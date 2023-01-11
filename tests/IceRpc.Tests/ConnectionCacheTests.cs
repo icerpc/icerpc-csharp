@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Net.Security;
@@ -201,101 +202,38 @@ public sealed class ConnectionCacheTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
 
         var colocTransport = new ColocTransport();
-        var clientTransport = new SlowDisposeClientTransport(new SlicClientTransport(colocTransport.ClientTransport));
+        var multiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport);
+        var multiplexedClientTransport = new TestMultiplexedClientTransportDecorator(
+            new SlicClientTransport(colocTransport.ClientTransport));
+
         await using var server = new Server(
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
             },
-            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+            multiplexedServerTransport: multiplexedServerTransport);
         server.Listen();
 
         await using var cache = new ConnectionCache(
-           new ConnectionCacheOptions(),
-           multiplexedClientTransport: clientTransport);
-
-        // Make a request to establish a connection
+            options: new(),
+            multiplexedClientTransport: multiplexedClientTransport);
         await new ServiceProxy(cache, new Uri("icerpc://foo")).IcePingAsync();
 
-        // Get the last connection created by the cache
-        SlowDisposeConnection connection = clientTransport.LastConnection!;
+        TestMultiplexedConnectionDecorator connection = multiplexedClientTransport.LastConnection!;
+        connection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
 
-        // Shutdown the server. This will trigger connection closure.
+        // Shutdown the server to trigger the background client connection shutdown and disposal.
         await server.ShutdownAsync();
-
-        await connection.WaitForDisposeAsync(CancellationToken.None);
 
         // Act
         ValueTask disposeTask = cache.DisposeAsync();
 
         // Assert
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
-        Assert.That(disposeTask.IsCompleted, Is.False);
-        connection.ReleaseDispose();
+        await connection.DisposeCalled;
+        using var cts = new CancellationTokenSource(100);
+        Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
+        connection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
         await disposeTask;
-    }
-
-    private sealed class SlowDisposeClientTransport : IMultiplexedClientTransport
-    {
-        public string Name => _transport.Name;
-
-        public SlowDisposeConnection? LastConnection { get; set; }
-
-        private readonly IMultiplexedClientTransport _transport;
-
-        public bool CheckParams(ServerAddress serverAddress) => _transport.CheckParams(serverAddress);
-        public SlowDisposeClientTransport(IMultiplexedClientTransport transport) => _transport = transport;
-
-        public IMultiplexedConnection CreateConnection(
-            ServerAddress serverAddress,
-            MultiplexedConnectionOptions options,
-            SslClientAuthenticationOptions? clientAuthenticationOptions)
-        {
-            IMultiplexedConnection connection = _transport.CreateConnection(
-                serverAddress,
-                options,
-                clientAuthenticationOptions);
-            Assert.That(LastConnection, Is.Null);
-            LastConnection = new SlowDisposeConnection(connection);
-            return LastConnection;
-        }
-    }
-
-    private sealed class SlowDisposeConnection : IMultiplexedConnection
-    {
-        public ServerAddress ServerAddress => _connection.ServerAddress;
-
-        private readonly IMultiplexedConnection _connection;
-
-        private readonly TaskCompletionSource _continueDisposeTcs = new();
-        private readonly SemaphoreSlim _waitDisposeSemaphore = new(0);
-
-        public SlowDisposeConnection(IMultiplexedConnection connection) => _connection = connection;
-
-        public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
-            _connection.AcceptStreamAsync(cancellationToken);
-
-        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
-            _connection.ConnectAsync(cancellationToken);
-
-        public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
-            _connection.CloseAsync(closeError, cancellationToken);
-
-        public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken) =>
-            _connection.CreateStreamAsync(bidirectional, cancellationToken);
-
-        public async ValueTask DisposeAsync()
-        {
-            _waitDisposeSemaphore.Release();
-            await _continueDisposeTcs.Task.ConfigureAwait(false);
-            await _connection.DisposeAsync().ConfigureAwait(false);
-            _waitDisposeSemaphore.Dispose();
-        }
-
-        public Task WaitForDisposeAsync(CancellationToken cancellationToken) =>
-            _waitDisposeSemaphore.WaitAsync(cancellationToken);
-
-        public void ReleaseDispose() => _continueDisposeTcs.SetResult();
     }
 }

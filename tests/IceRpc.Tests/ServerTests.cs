@@ -244,66 +244,41 @@ public class ServerTests
     public async Task Dispose_waits_for_background_connection_dispose()
     {
         // Arrange
-        using var dispatchHoldSemaphore = new SemaphoreSlim(0);
-        using var dispatchStartedSemaphore = new SemaphoreSlim(0);
-        IConnectionContext? serverConnectionContext = null;
-        var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
-        {
-            serverConnectionContext = request.ConnectionContext;
-            dispatchStartedSemaphore.Release();
-            await dispatchHoldSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-            return new OutgoingResponse(request);
-        });
+        var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
+
+        var colocTransport = new ColocTransport();
+        var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
+            new SlicServerTransport(colocTransport.ServerTransport));
+        var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
+
         await using var server = new Server(
             new ServerOptions
             {
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
-                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0")),
-                ShutdownTimeout = TimeSpan.FromMilliseconds(10),
-            });
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+            },
+            multiplexedServerTransport: multiplexedServerTransport);
 
-        ServerAddress serverAddress = server.Listen();
-
-        await using var clientConnection = new ClientConnection(serverAddress);
-
+        await using var clientConnection = new ClientConnection(
+            server.Listen(),
+            multiplexedClientTransport: multiplexedClientTransport);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        Task<IncomingResponse> invokeTask = clientConnection.InvokeAsync(request);
+        await clientConnection.InvokeAsync(request);
 
-        // Wait for invocation to be dispatched.
-        await dispatchStartedSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        TestMultiplexedConnectionDecorator connection = multiplexedServerTransport.LastAcceptedConnection!;
+        connection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
+
+        // Shutdown the client connection to trigger the background server connection disposal.
+        await server.ShutdownAsync();
 
         // Act
-        Exception? exception = null;
-        try
-        {
-            // Shutdown the client connection.
-            await clientConnection.ShutdownAsync().ConfigureAwait(false);
-        }
-        catch (IceRpcException ex)
-        {
-            // Expected. The server shutdown timed out and aborted the connection.
-            exception = ex;
-        }
-
-        // Ensure the server connection shutdown timed out. At this point, Server should have called DisposeAsync on the
-        // connection (which completes the Closed task).
-        await serverConnectionContext!.Closed.ConfigureAwait(false);
-
-        // Dispose the server. This will wait for the background connection dispose to complete.
         ValueTask disposeTask = server.DisposeAsync();
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
 
         // Assert
-        Assert.That(disposeTask.IsCompleted, Is.False);
-        Assert.That(exception, Is.Not.Null.And.With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-
-        // Release the dispatch semaphore, allowing the background connection dispose to complete.
-        dispatchHoldSemaphore.Release();
-
+        await connection.DisposeCalled;
+        using var cts = new CancellationTokenSource(100);
+        Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
+        connection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
         await disposeTask;
-
-        Assert.That(
-            async () => await invokeTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 }

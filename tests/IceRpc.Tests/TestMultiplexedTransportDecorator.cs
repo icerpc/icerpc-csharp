@@ -15,8 +15,9 @@ public enum MultiplexedTransportOperation
     CreateStream = 2,
     Connect = 4,
     Close = 8,
-    StreamRead = 16,
-    StreamWrite = 32
+    DisposeAsync = 16,
+    StreamRead = 32,
+    StreamWrite = 64,
 }
 
 #pragma warning disable CA1001 // _lastConnection is disposed by the caller.
@@ -228,6 +229,15 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
             {
                 _holdCloseTcs.TrySetResult();
             }
+
+            if (_holdOperation.HasFlag(MultiplexedTransportOperation.Close))
+            {
+                _holdDisposeTcs = new();
+            }
+            else
+            {
+                _holdDisposeTcs.TrySetResult();
+            }
         }
     }
 
@@ -237,6 +247,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     private TaskCompletionSource _holdCloseTcs = new();
     private TaskCompletionSource _holdConnectTcs = new();
     private TaskCompletionSource _holdCreateStreamTcs = new();
+    private TaskCompletionSource _holdDisposeTcs = new();
     private MultiplexedTransportOperation _holdOperation;
     private TestMultiplexedStreamDecorator? _lastStream;
 
@@ -307,14 +318,17 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
         return await _decoratee.ConnectAsync(cancellationToken);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        _disposeCalledTcs.TrySetResult();
+        await _holdDisposeTcs.Task;
+
         _holdAcceptStreamTcs.TrySetResult();
         _holdConnectTcs.TrySetResult();
         _holdCloseTcs.TrySetResult();
         _holdCreateStreamTcs.TrySetResult();
-        _disposeCalledTcs.TrySetResult();
-        return _decoratee.DisposeAsync();
+
+        await _decoratee.DisposeAsync();
     }
 
     internal TestMultiplexedConnectionDecorator(IMultiplexedConnection decoratee) => _decoratee = decoratee;
