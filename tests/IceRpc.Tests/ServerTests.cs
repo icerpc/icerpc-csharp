@@ -265,20 +265,20 @@ public class ServerTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         await clientConnection.InvokeAsync(request);
 
-        TestMultiplexedConnectionDecorator connection = multiplexedServerTransport.LastAcceptedConnection!;
-        connection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
+        TestMultiplexedConnectionDecorator serverConnection = multiplexedServerTransport.LastAcceptedConnection!;
+        serverConnection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
 
         // Shutdown the client connection to trigger the background server connection disposal.
-        await server.ShutdownAsync();
+        await clientConnection.ShutdownAsync();
 
         // Act
         ValueTask disposeTask = server.DisposeAsync();
 
         // Assert
-        await connection.DisposeCalled;
+        await serverConnection.DisposeCalled;
         using var cts = new CancellationTokenSource(100);
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
-        connection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
+        serverConnection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
         await disposeTask;
     }
 }

@@ -230,7 +230,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                 _holdCloseTcs.TrySetResult();
             }
 
-            if (_holdOperation.HasFlag(MultiplexedTransportOperation.Close))
+            if (_holdOperation.HasFlag(MultiplexedTransportOperation.DisposeAsync))
             {
                 _holdDisposeTcs = new();
             }

@@ -220,8 +220,8 @@ public sealed class ConnectionCacheTests
             multiplexedClientTransport: multiplexedClientTransport);
         await new ServiceProxy(cache, new Uri("icerpc://foo")).IcePingAsync();
 
-        TestMultiplexedConnectionDecorator connection = multiplexedClientTransport.LastConnection!;
-        connection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
+        TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastConnection!;
+        clientConnection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
 
         // Shutdown the server to trigger the background client connection shutdown and disposal.
         await server.ShutdownAsync();
@@ -230,10 +230,10 @@ public sealed class ConnectionCacheTests
         ValueTask disposeTask = cache.DisposeAsync();
 
         // Assert
-        await connection.DisposeCalled;
+        await clientConnection.DisposeCalled;
         using var cts = new CancellationTokenSource(100);
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
-        connection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
+        clientConnection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
         await disposeTask;
     }
 }
