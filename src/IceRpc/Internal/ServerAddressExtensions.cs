@@ -1,6 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
+using System.Collections.Immutable;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace IceRpc.Internal;
@@ -78,5 +81,23 @@ internal static class ServerAddressExtensions
             }
         }
         return sb;
+    }
+
+    internal static IEnumerable<ServerAddress> GetAllAddresses(this IServerAddressFeature serverAddressFeature)
+    {
+        if (serverAddressFeature.ServerAddress is null)
+        {
+            return ImmutableList<ServerAddress>.Empty;
+        }
+        else if (serverAddressFeature.AltServerAddresses is null)
+        {
+            return ImmutableList.Create(serverAddressFeature.ServerAddress.Value);
+        }
+        else
+        {
+            return ImmutableList
+                .Create(serverAddressFeature.ServerAddress.Value)
+                .Concat(serverAddressFeature.AltServerAddresses);
+        }
     }
 }

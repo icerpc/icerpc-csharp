@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -183,25 +184,29 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     {
                         lock (_mutex)
                         {
-                            connection = GetActiveConnection(mainServerAddress);
-                            if (connection is null)
+                            if (_isShutdown)
                             {
-                                for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
+                                throw new IceRpcException(
+                                    IceRpcError.InvocationRefused,
+                                    "The client connection is shut down.");
+                            }
+
+                            foreach (ServerAddress serverAddress in serverAddressFeature.GetAllAddresses())
+                            {
+                                connection = GetActiveConnection(serverAddress);
+                                if (connection is not null)
                                 {
-                                    ServerAddress altServerAddress = serverAddressFeature.AltServerAddresses[i];
-                                    connection = GetActiveConnection(altServerAddress);
-                                    if (connection is not null)
+                                    if (serverAddress != mainServerAddress)
                                     {
                                         // This altServerAddress becomes the main server address, and the existing main
                                         // server address becomes the first alt server address.
                                         serverAddressFeature.AltServerAddresses =
                                             serverAddressFeature.AltServerAddresses
-                                                .RemoveAt(i)
+                                                .Remove(serverAddress)
                                                 .Insert(0, mainServerAddress);
-                                        serverAddressFeature.ServerAddress = altServerAddress;
-
-                                        break; // for
+                                        serverAddressFeature.ServerAddress = serverAddress;
                                     }
+                                    break; // for
                                 }
                             }
                         }
@@ -213,37 +218,47 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
                     if (connection is null)
                     {
-                        try
+                        Exception? connectionException = null;
+                        foreach (ServerAddress serverAddress in serverAddressFeature.GetAllAddresses())
                         {
-                            // TODO: this code generates a UTE
-                            connection = await ConnectAsync(mainServerAddress).WaitAsync(cancellationToken)
-                                .ConfigureAwait(false);
-                        }
-                        catch (Exception) when (serverAddressFeature.AltServerAddresses.Count > 0)
-                        {
-                            // TODO: rework this code. We should not keep going on any exception.
-                            for (int i = 0; i < serverAddressFeature.AltServerAddresses.Count; ++i)
+                            lock (_mutex)
                             {
-                                // Rotate the server addresses before each new connection attempt: the first alt server
-                                // address becomes the main server address and the main server address becomes the last
-                                // alt server address.
-                                serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
-                                serverAddressFeature.AltServerAddresses =
-                                    serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
-                                mainServerAddress = serverAddressFeature.ServerAddress.Value;
-
-                                try
+                                if (_isShutdown)
                                 {
-                                    connection = await ConnectAsync(mainServerAddress).WaitAsync(cancellationToken)
-                                        .ConfigureAwait(false);
-                                    break; // for
-                                }
-                                catch (Exception) when (i + 1 < serverAddressFeature.AltServerAddresses.Count)
-                                {
-                                    // and keep trying unless this is the last alt server address.
+                                    throw new IceRpcException(
+                                        IceRpcError.InvocationRefused,
+                                        "The client connection is shut down.");
                                 }
                             }
-                            Debug.Assert(connection is not null);
+
+                            try
+                            {
+                                connection = await ConnectAsync(mainServerAddress).WaitAsync(cancellationToken)
+                                    .ConfigureAwait(false);
+                                break;
+                            }
+                            catch (TimeoutException exception)
+                            {
+                                connectionException = exception;
+                            }
+                            catch (IceRpcException exception)
+                            {
+                                connectionException = exception;
+                            }
+
+                            // Rotate the server addresses before each new connection attempt: the first alt server
+                            // address becomes the main server address and the main server address becomes the last
+                            // alt server address.
+                            serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
+                            serverAddressFeature.AltServerAddresses =
+                                serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
+                            mainServerAddress = serverAddressFeature.ServerAddress.Value;
+                        }
+
+                        if (connection is null)
+                        {
+                            Debug.Assert(connectionException is not null);
+                            throw ExceptionUtil.Throw(connectionException);
                         }
                     }
 
@@ -257,6 +272,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.InvocationRefused)
                 {
                     // The connection is refusing new invocations.
+                    lock (_mutex)
+                    {
+                        if (_isShutdown)
+                        {
+                            throw ExceptionUtil.Throw(exception);
+                        }
+                    }
                 }
             }
         }
