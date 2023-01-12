@@ -169,7 +169,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
             }
             if (_isShutdown)
             {
