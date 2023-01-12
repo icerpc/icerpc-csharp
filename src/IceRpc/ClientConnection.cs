@@ -615,7 +615,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         public Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
         {
             return _isConnected ? _decoratee.InvokeAsync(request, cancellationToken) : PerformConnectInvokeAsync();
 
