@@ -400,7 +400,6 @@ public sealed class Server : IAsyncDisposable
                     await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
 
                 IProtocolConnection? protocolConnection = null;
-                bool refuseConnection = false;
                 bool serverBusy = false;
 
                 // Create the protocol connection if the server is not being disposed and if the max connection
@@ -408,33 +407,24 @@ public sealed class Server : IAsyncDisposable
                 lock (_mutex)
                 {
                     Debug.Assert(_maxConnections == 0 || _connections.Count <= _maxConnections);
-                    if (_isShutdown)
+
+                    if (_disposeTask is null)
                     {
-                        refuseConnection = true;
-                    }
-                    else if (_maxConnections > 0 && _connections.Count == _maxConnections)
-                    {
-                        refuseConnection = true;
-                        serverBusy = true;
-                    }
-                    else if (_disposeTask is null)
-                    {
-                        // The protocol connection adopts the transport connection from the connector and it's now
-                        // responsible for disposing of it.
-                        protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
-                        _connections.Add(protocolConnection);
+                        if (_maxConnections > 0 && _connections.Count == _maxConnections)
+                        {
+                            serverBusy = true;
+                        }
+                        else if (!_isShutdown)
+                        {
+                            // The protocol connection adopts the transport connection from the connector and it's now
+                            // responsible for disposing of it.
+                            protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
+                            _connections.Add(protocolConnection);
+                        }
                     }
                 }
 
-                if (protocolConnection is not null)
-                {
-                    // Schedule removal after addition, outside mutex lock.
-                    _ = RemoveFromCollectionAsync(protocolConnection);
-
-                    // Connect the connection..
-                    _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
-                }
-                else if (refuseConnection)
+                if (protocolConnection is null)
                 {
                     try
                     {
@@ -444,11 +434,16 @@ public sealed class Server : IAsyncDisposable
                     {
                         // ignore and continue
                     }
+                    // The transport connection is disposed by the disposal of the connector.
                 }
-                // else the server is shutting down or the connect timeout expired after connecting the transport
-                // connection.
-                // The transport connection is disposed by the disposal of the connector if the protocol connection
-                // didn't adopt it above.
+                else
+                {
+                    // Schedule removal after addition, outside mutex lock.
+                    _ = RemoveFromCollectionAsync(protocolConnection);
+
+                    // Connect the protocol connection.
+                    _ = await protocolConnection.ConnectAsync(cts.Token).ConfigureAwait(false);
+                }
             }
 
             // Remove the connection from _connections
