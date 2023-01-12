@@ -224,12 +224,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     for (int i = 0; i < enumerator.Count; ++i)
                     {
                         enumerator.MoveNext();
-                        ServerAddress serverAddress = enumerator.Current;
                         if (i > 0)
                         {
-                            // Rotate the server addresses before each new connection attempt: the first alt server
-                            // address becomes the main server address and the main server address becomes the last
-                            // alt server address.
+                            // Rotate the server addresses before each new connection attempt after the initial attempt:
+                            // the first alt server address becomes the main server address and the main server address
+                            // becomes the last alt server address.
                             serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
                             serverAddressFeature.AltServerAddresses =
                                 serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
@@ -238,7 +237,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
                         try
                         {
-                            connection = await ConnectAsync(serverAddress).WaitAsync(cancellationToken)
+                            connection = await ConnectAsync(mainServerAddress).WaitAsync(cancellationToken)
                                 .ConfigureAwait(false);
                             break;
                         }
@@ -470,7 +469,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 else if (_isShutdown)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache is shut down.");
+                    throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
                 }
                 else
                 {
