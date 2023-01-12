@@ -171,9 +171,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
 
-            // We retry forever when InvokeAsync (or ConnectAsync) throws an IceRpcException(NoConnection). This
-            // exception is usually thrown synchronously by InvokeAsync, however this throwing can be asynchronous when
-            // we first connect the connection.
+            // When InvokeAsync (or ConnectAsync) throws an IceRpcException(InvocationRefused) we retry unless the
+            // cache is being shutdown. This exception is usually thrown synchronously by InvokeAsync, however this
+            // throwing can be asynchronous when we first connect the connection.
             while (true)
             {
                 try
@@ -184,7 +184,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     {
                         lock (_mutex)
                         {
-                            if (_isShutdown)
+                            if (_isShutdown || _disposeTask is not null)
                             {
                                 throw new IceRpcException(
                                     IceRpcError.InvocationRefused,
@@ -223,7 +223,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         {
                             lock (_mutex)
                             {
-                                if (_isShutdown)
+                                if (_isShutdown || _disposeTask is not null)
                                 {
                                     throw new IceRpcException(
                                         IceRpcError.InvocationRefused,
@@ -274,7 +274,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     // The connection is refusing new invocations.
                     lock (_mutex)
                     {
-                        if (_isShutdown)
+                        if (_isShutdown || _disposeTask is not null)
                         {
                             throw ExceptionUtil.Throw(exception);
                         }
