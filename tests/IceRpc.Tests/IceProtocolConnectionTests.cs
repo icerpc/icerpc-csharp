@@ -114,7 +114,9 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
         Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
+        Assert.That(
+            async () => await shutdownTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
@@ -203,14 +205,17 @@ public sealed class IceProtocolConnectionTests
             Payload = pipe.Reader
         };
 
-        // Act/Assert
-        var exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await sut.Client.InvokeAsync(request, default));
-        Assert.That(exception, Is.Not.Null);
+        // Act
+        Task invokeTask = sut.Client.InvokeAsync(request, default);
 
+        // Assert
+        Assert.That(await sut.Server.Closed, Is.InstanceOf<InvalidDataException>());
+
+        // Cleanup
+        await sut.Server.DisposeAsync();
         Assert.That(
-            await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,

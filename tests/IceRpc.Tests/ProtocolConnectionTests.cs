@@ -573,13 +573,9 @@ public sealed class ProtocolConnectionTests
                 Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.TruncatedData));
         }
 
-        // TODO: temporary if
-        if (protocol == Protocol.IceRpc)
-        {
-            Assert.That(
-                async () => await shutdownTask,
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-        }
+        Assert.That(
+            async () => await shutdownTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Verifies that disposing the client connection aborts pending invocations, the invocations will fail

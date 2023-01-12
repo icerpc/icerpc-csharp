@@ -65,6 +65,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
     private bool _refuseInvocations;
 
+    private Task? _shutdownTask;
+
     // The thread that completes this TCS can run the continuations, and as a result its result must be set without
     // holding a lock on _mutex.
     private readonly TaskCompletionSource _shutdownRequestedTcs = new();
@@ -99,6 +101,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
+            // _disposedCts is not disposed at this point because DisposeAsync waits for the completion of _connectTask.
+            using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                _disposedCts.Token);
+
             TransportConnectionInformation transportConnectionInformation;
 
             try
@@ -107,18 +114,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // null for client connections. The transport connection of a server connection is established by
                 // Server.
                 transportConnectionInformation = _transportConnectionInformation ??
-                    await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                    await _duplexConnection.ConnectAsync(connectCts.Token).ConfigureAwait(false);
 
                 if (IsServer)
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
-                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await _duplexConnectionWriter.FlushAsync(connectCts.Token).ConfigureAwait(false);
                 }
                 else
                 {
                     ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
                         IceDefinitions.PrologueSize,
-                        cancellationToken).ConfigureAwait(false);
+                        connectCts.Token).ConfigureAwait(false);
 
                     (IcePrologue validateConnectionFrame, long consumed) = DecodeValidateConnectionFrame(buffer);
                     _duplexConnectionReader.AdvanceTo(buffer.GetPosition(consumed), buffer.End);
@@ -136,10 +143,33 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
             }
+            catch (OperationCanceledException) when (_disposedCts.Token.IsCancellationRequested)
+            {
+                throw new IceRpcException(
+                    IceRpcError.OperationAborted,
+                    "The connection establishment was aborted because the connection was disposed.");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Assert(cancellationToken.IsCancellationRequested);
+                var exception = new OperationCanceledException(cancellationToken);
+                TryCompleteClosed(exception, "The connection establishment was canceled.");
+                throw exception;
+            }
+            catch (IceRpcException exception)
+            {
+                TryCompleteClosed(exception, "The connection establishment failed.");
+                throw;
+            }
+            catch (InvalidDataException exception)
+            {
+                TryCompleteClosed(exception, "The connection establishment failed.");
+                throw;
+            }
             catch (Exception exception)
             {
-                _closedTcs.SetResult(exception);
-                RefuseNewInvocations("The connection establishment failed.");
+                Debug.Fail($"ConnectAsync failed with an unexpected exception: {exception}");
+                TryCompleteClosed(exception, "The connection establishment failed.");
                 throw;
             }
 
@@ -151,7 +181,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // This needs to be set before starting the read frames task below.
             _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-            _readFramesTask = ReadFramesAsync(_disposedCts.Token);
+            // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
+            // DisposeAsync. Once _disposeTask is not null, _readFramesTask is immutable.
+            lock (_mutex)
+            {
+                if (_disposeTask is not null)
+                {
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        "The connection establishment was aborted because the connection was disposed.");
+                }
+
+                _readFramesTask = ReadFramesAsync(_disposedCts.Token);
+            }
 
             EnableIdleCheck();
             return transportConnectionInformation;
@@ -193,7 +235,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
 
-           // _disposedCts.Cancel();
+            _disposedCts.Cancel();
             _dispatchesAndInvocationsCts.Cancel();
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
@@ -206,30 +248,24 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 try
                 {
-                    _ = await _connectTask.ConfigureAwait(false);
+                    await Task.WhenAll(
+                        _connectTask,
+                        _readFramesTask ?? Task.CompletedTask,
+                        _shutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
                 }
                 catch
                 {
-                    // ignore any ConnectAsync exception
+                    // Excepted if any of these tasks failed or was canceled. Each task takes care of handling
+                    // unexpected exceptions so there's no need to handle them here.
                 }
 
-                if (_isShutdown)
-                {
-                    // ShutdownAsync will complete Closed and we wait for Closed completion.
-                    _ = await Closed.ConfigureAwait(false);
-                }
-                else
-                {
-                    // Abortive disposal.
-                    _ = _closedTcs.TrySetResult(
-                        new IceRpcException(IceRpcError.ConnectionAborted, "The connection was disposed."));
-                }
+                // We set the result after awaiting _shutdownTask, in case _shutdownTask was still running and about to
+                // complete successfully.
+                _ = _closedTcs.TrySetResult(
+                    new IceRpcException(IceRpcError.OperationAborted, "The connection was disposed."));
             }
 
             DisposeTransport();
-
-            // Wait for the read frames and ping tasks to complete.
-            await Task.WhenAll(_readFramesTask ?? Task.CompletedTask, _pingTask).ConfigureAwait(false);
 
             if (_readFramesTask is not null)
             {
@@ -583,7 +619,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 throw new ObjectDisposedException($"{typeof(IceProtocolConnection)}");
             }
-            if (_isShutdown)
+            if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException("Cannot call shutdown more than once.");
             }
@@ -599,47 +635,46 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
+
+            _shutdownTask = PerformShutdownAsync();
         }
 
-        return PerformShutdownAsync();
+        return _shutdownTask;
 
         async Task PerformShutdownAsync()
         {
+            await Task.Yield(); // exit mutex lock
+
             try
             {
                 // Wait for connect to complete first.
-                try
-                {
-                    _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
-                {
-                    // ConnectAsync was canceled.
-                    throw new IceRpcException(
-                        IceRpcError.OperationAborted,
-                        "The shutdown was aborted because the connection establishment was canceled.");
-                }
+                _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                // Since DisposeAsync waits for _shutdownTask completion, _disposedCts is not disposed at this point.
+                using var shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    _disposedCts.Token);
 
                 if (_receivedCloseConnection)
                 {
                     DisposeTransport();
 
                     // Wait for dispatches and invocations to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
                 }
                 else
                 {
                     // Wait for dispatches and invocations to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
                     // Encode and write the CloseConnection frame once all the dispatches are done.
                     try
                     {
-                        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        await _writeSemaphore.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
                         try
                         {
                             EncodeCloseConnectionFrame(_duplexConnectionWriter);
-                            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                            await _duplexConnectionWriter.FlushAsync(shutdownCts.Token).ConfigureAwait(false);
                         }
                         finally
                         {
@@ -649,7 +684,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
                         // connection closure here. We can't just return and close the underlying transport since this could
                         // abort the receive of the responses and close connection frame by the peer.
-                        await _transportConnectionDisposedTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        await _transportConnectionDisposedTcs.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
                     }
                     catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
                     {
@@ -659,22 +694,38 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 _closedTcs.SetResult(null);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                var exception = new OperationCanceledException(cancellationToken);
+                TryCompleteClosed(exception, "The connection shutdown was canceled.");
+                throw exception;
+            }
             catch (OperationCanceledException)
             {
-                _ = _closedTcs.TrySetResult(
-                    new IceRpcException(IceRpcError.OperationAborted, "The shutdown was canceled."));
-                throw;
+                lock (_mutex)
+                {
+                    throw new IceRpcException(
+                        IceRpcError.OperationAborted,
+                        _disposeTask is null ?
+                            "The connection shutdown was aborted because the connection establishment was canceled." :
+                            "The connection shutdown was aborted because the connection was disposed.");
+                }
             }
             catch (IceRpcException exception)
             {
-                _ = _closedTcs.TrySetResult(exception);
+                TryCompleteClosed(exception, "The connection shutdown failed.");
+                throw;
+            }
+            catch (InvalidDataException exception)
+            {
+                TryCompleteClosed(exception, "The connection shutdown failed.");
                 throw;
             }
             catch (Exception exception)
             {
-                var newException = new IceRpcException(IceRpcError.IceRpcError, exception);
-                _ = _closedTcs.TrySetResult(newException);
-                throw newException;
+                Debug.Fail($"ShutdownAsync failed with an unexpected exception: {exception}");
+                TryCompleteClosed(exception, "The connection shutdown failed.");
+                throw;
             }
 
             static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
@@ -976,28 +1027,30 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (OperationCanceledException)
         {
-            // expected
+            // Expected, the associated cancellation token source was canceled.
         }
         catch (InvalidDataException exception)
         {
-            DisposeTransport("Invalid data was received from the peer.", exception);
+            TryCompleteClosed(exception, "The connection was lost.");
         }
         catch (NotSupportedException exception)
         {
-            DisposeTransport("Frame with unsupported feature was received from the peer.", exception);
+            TryCompleteClosed(exception, "The connection was lost.");
         }
         catch (IceRpcException exception)
         {
             DisposeTransport("The connection was lost.", exception);
+            // TryCompleteClosed(exception, "The connection was lost.");
         }
         catch (ObjectDisposedException exception)
         {
-            DisposeTransport("The connection was disposed.", exception);
+            // TODO: shouldn't be necessary once DisposeTransport is gone
+            TryCompleteClosed(exception, "The connection was lost.");
         }
         catch (Exception exception)
         {
-            DisposeTransport("The connection failed due to an unhandled exception.", exception);
             Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
+            TryCompleteClosed(exception, "The connection was lost.");
         }
 
         async Task ReadReplyAsync(int replyFrameSize)
@@ -1430,7 +1483,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    /*
     private void TryCompleteClosed(Exception exception, string invocationRefusedMessage)
     {
         if (_closedTcs.TrySetResult(exception))
@@ -1438,5 +1490,4 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             RefuseNewInvocations(invocationRefusedMessage);
         }
     }
-    */
 }
