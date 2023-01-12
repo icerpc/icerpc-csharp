@@ -79,7 +79,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
     }
 
-    /// <summary>Releases all resources allocated by this cache. The cache disposes all the the connections it created.
+    /// <summary>Releases all resources allocated by this cache. The cache disposes all the connections it created.
     /// </summary>
     /// <returns>A value task that completes when the disposal of all connections created by this cache has completed.
     /// This includes connections that were active when this method is called and connections whose disposal was
@@ -165,6 +165,18 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             request.Features = request.Features.With(serverAddressFeature);
         }
 
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
+            {
+                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+            }
+            if (_isShutdown)
+            {
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The client connection is shut down.");
+            }
+        }
+
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
@@ -176,92 +188,86 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             // throwing can be asynchronous when we first connect the connection.
             while (true)
             {
-                try
+                IProtocolConnection? connection = null;
+                lock (_mutex)
                 {
-                    IProtocolConnection? connection = null;
+                    if (_disposeTask is not null)
+                    {
+                        throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+                    }
+
+                    if (_isShutdown)
+                    {
+                        throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                    }
 
                     if (_preferExistingConnection)
                     {
-                        lock (_mutex)
-                        {
-                            if (_isShutdown || _disposeTask is not null)
-                            {
-                                throw new IceRpcException(
-                                    IceRpcError.InvocationRefused,
-                                    "The client connection is shut down.");
-                            }
-
-                            foreach (ServerAddress serverAddress in serverAddressFeature.GetAllAddresses())
-                            {
-                                connection = GetActiveConnection(serverAddress);
-                                if (connection is not null)
-                                {
-                                    if (serverAddress != mainServerAddress)
-                                    {
-                                        // This altServerAddress becomes the main server address, and the existing main
-                                        // server address becomes the first alt server address.
-                                        serverAddressFeature.AltServerAddresses =
-                                            serverAddressFeature.AltServerAddresses
-                                                .Remove(serverAddress)
-                                                .Insert(0, mainServerAddress);
-                                        serverAddressFeature.ServerAddress = serverAddress;
-                                    }
-                                    break; // for
-                                }
-                            }
-                        }
-
-                        IProtocolConnection? GetActiveConnection(ServerAddress serverAddress) =>
-                            _activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection) ?
-                                connection : null;
-                    }
-
-                    if (connection is null)
-                    {
-                        Exception? connectionException = null;
                         foreach (ServerAddress serverAddress in serverAddressFeature.GetAllAddresses())
                         {
+                            if (_activeConnections.TryGetValue(serverAddress, out connection))
+                            {
+                                if (serverAddress != mainServerAddress)
+                                {
+                                    // This altServerAddress becomes the main server address, and the existing main
+                                    // server address becomes the first alt server address.
+                                    serverAddressFeature.AltServerAddresses =
+                                        serverAddressFeature.AltServerAddresses
+                                            .Remove(serverAddress)
+                                            .Insert(0, mainServerAddress);
+                                    serverAddressFeature.ServerAddress = serverAddress;
+                                }
+                                break; // for
+                            }
+                        }
+                    }
+                }
+
+                if (connection is null)
+                {
+                    Exception? connectionException = null;
+                    foreach (ServerAddress serverAddress in serverAddressFeature.GetAllAddresses())
+                    {
+                        try
+                        {
+                            connection = await ConnectAsync(serverAddress).WaitAsync(cancellationToken)
+                                .ConfigureAwait(false);
+                            break;
+                        }
+                        catch (TimeoutException exception)
+                        {
+                            connectionException = exception;
+                        }
+                        catch (IceRpcException exception)
+                        {
+                            connectionException = exception;
                             lock (_mutex)
                             {
                                 if (_isShutdown || _disposeTask is not null)
                                 {
-                                    throw new IceRpcException(
-                                        IceRpcError.InvocationRefused,
-                                        "The client connection is shut down.");
+                                    throw ExceptionUtil.Throw(connectionException);
                                 }
                             }
-
-                            try
-                            {
-                                connection = await ConnectAsync(mainServerAddress).WaitAsync(cancellationToken)
-                                    .ConfigureAwait(false);
-                                break;
-                            }
-                            catch (TimeoutException exception)
-                            {
-                                connectionException = exception;
-                            }
-                            catch (IceRpcException exception)
-                            {
-                                connectionException = exception;
-                            }
-
-                            // Rotate the server addresses before each new connection attempt: the first alt server
-                            // address becomes the main server address and the main server address becomes the last
-                            // alt server address.
-                            serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
-                            serverAddressFeature.AltServerAddresses =
-                                serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
-                            mainServerAddress = serverAddressFeature.ServerAddress.Value;
                         }
 
-                        if (connection is null)
-                        {
-                            Debug.Assert(connectionException is not null);
-                            throw ExceptionUtil.Throw(connectionException);
-                        }
+                        // Rotate the server addresses before each new connection attempt: the first alt server
+                        // address becomes the main server address and the main server address becomes the last
+                        // alt server address.
+                        serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
+                        serverAddressFeature.AltServerAddresses =
+                            serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
+                        mainServerAddress = serverAddressFeature.ServerAddress.Value;
                     }
 
+                    if (connection is null)
+                    {
+                        Debug.Assert(connectionException is not null);
+                        throw ExceptionUtil.Throw(connectionException);
+                    }
+                }
+
+                try
+                {
                     return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException)
@@ -274,7 +280,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     // The connection is refusing new invocations.
                     lock (_mutex)
                     {
-                        if (_isShutdown || _disposeTask is not null)
+                        if (_isShutdown)
                         {
                             throw ExceptionUtil.Throw(exception);
                         }
@@ -382,11 +388,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
+                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
             }
             if (_isShutdown)
             {
-                throw new InvalidOperationException("Connection cache is shut down or shutting down.");
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
             }
 
             if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
