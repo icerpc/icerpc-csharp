@@ -173,7 +173,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             if (_isShutdown)
             {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The client connection is shut down.");
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
             }
         }
 
@@ -278,13 +278,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.InvocationRefused)
                 {
                     // The connection is refusing new invocations.
-                    lock (_mutex)
-                    {
-                        if (_isShutdown)
-                        {
-                            throw ExceptionUtil.Throw(exception);
-                        }
-                    }
                 }
             }
         }
@@ -317,7 +310,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             if (_isShutdown)
             {
-                throw new InvalidOperationException($"The connection cache is already shut down or shutting down.");
+                throw new InvalidOperationException($"The connection cache is shut down.");
             }
             _isShutdown = true;
 
@@ -392,7 +385,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             if (_isShutdown)
             {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache is shut down.");
             }
 
             if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
@@ -455,12 +448,15 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             lock (_mutex)
             {
-                if (_isShutdown || _disposeTask is not null)
+                if (_disposeTask is not null)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new IceRpcException(
-                        IceRpcError.OperationAborted,
-                        "The connection cache was shut down or disposed.");
+                    throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+                }
+                else if (_isShutdown)
+                {
+                    // ConnectionCache.DisposeAsync will DisposeAsync this connection.
+                    throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache is shut down.");
                 }
                 else
                 {
