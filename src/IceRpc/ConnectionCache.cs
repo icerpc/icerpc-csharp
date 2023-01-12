@@ -240,6 +240,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         }
                         catch (IceRpcException exception)
                         {
+                            // keep going unless the connection cache was disposed or shut down
                             connectionException = exception;
                             lock (_mutex)
                             {
