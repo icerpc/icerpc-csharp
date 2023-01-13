@@ -393,11 +393,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_disposeTask is not null || _isShutdown)
+            if (_disposeTask is not null)
             {
-                throw new IceRpcException(
-                    IceRpcError.InvocationRefused,
-                    "The connection cache was disposed or shut down.");
+                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+            }
+            else if (_isShutdown)
+            {
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
             }
 
             if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
@@ -460,20 +462,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             lock (_mutex)
             {
-                if (_disposeTask is not null || _isShutdown)
+                if (_disposeTask is not null)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new IceRpcException(
-                        IceRpcError.InvocationRefused,
-                        "The connection cache was disposed or shut down.");
+                    throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
                 }
-                else
+                else if (_isShutdown)
                 {
-                    // "move" from pending to active
-                    bool removed = _pendingConnections.Remove(serverAddress);
-                    Debug.Assert(removed);
-                    _activeConnections.Add(serverAddress, connection);
+                    throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
                 }
+
+                // "move" from pending to active
+                bool removed = _pendingConnections.Remove(serverAddress);
+                Debug.Assert(removed);
+                _activeConnections.Add(serverAddress, connection);
             }
             _ = RemoveFromActiveAsync(connection, disposedCancellationToken);
         }
