@@ -103,6 +103,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
                 // _backgroundConnectionShutdown is only relevant to ShutdownAsync, which can't be called after
                 // DisposeAsync.
+                _isShutdown = true;
             }
             return new(_disposeTask);
         }
@@ -251,7 +252,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                             connectionException = exception;
                             lock (_mutex)
                             {
-                                if (_isShutdown || _disposeTask is not null)
+                                if (_isShutdown)
                                 {
                                     throw;
                                 }
@@ -488,7 +489,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             lock (_mutex)
             {
-                if (_isShutdown || _disposeTask is not null)
+                if (_isShutdown)
                 {
                     // ConnectionCache.DisposeAsync is responsible to dispose this connection.
                     return;
