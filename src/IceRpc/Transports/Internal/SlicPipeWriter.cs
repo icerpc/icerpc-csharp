@@ -37,13 +37,13 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         if (!_isCompleted)
         {
+            _isCompleted = true;
+
             if (!_stream.WritesCompleted && exception is null && _pipe.Writer.UnflushedBytes > 0)
             {
                 throw new InvalidOperationException(
                     $"Completing a {nameof(SlicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
             }
-
-            _isCompleted = true;
 
             if (exception is null)
             {
@@ -85,17 +85,19 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             throw new InvalidOperationException("Writing is not allowed once the writer is completed.");
         }
 
+        // Flush the pipe before check if the connection is closed. This makes sure that the check for unflushed data
+        // on successful compete succeeds. See the Complete implementation above.
+        if (_pipe.Writer.UnflushedBytes > 0)
+        {
+            await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+
         _stream.ThrowIfConnectionClosed();
 
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
                 _completeWritesCts);
-
-        if (_pipe.Writer.UnflushedBytes > 0)
-        {
-            await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-        }
 
         ReadOnlySequence<byte> source1;
         ReadOnlySequence<byte> source2;
