@@ -888,7 +888,7 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     else
                     {
-                        throw new IceRpcException(IceRpcError.IceRpcError, "Received truncated data.");
+                        throw new IceRpcException(IceRpcError.TruncatedData);
                     }
                 }
             }
