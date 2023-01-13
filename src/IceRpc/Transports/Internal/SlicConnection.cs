@@ -270,13 +270,13 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 catch (IceRpcException exception)
                 {
-                    Close(exception, "The connection was lost.");
+                    Close(exception, "The connection was lost.", IceRpcError.ConnectionAborted);
                     throw;
                 }
                 catch (Exception exception)
                 {
                     Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
-                    Close(exception, "The connection was lost.");
+                    Close(exception, "The connection was lost.", IceRpcError.ConnectionAborted);
                     throw;
                 }
             },
@@ -560,13 +560,15 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    /// <summary>Called by the Slic pipe reader and writer operations to check if the connection is closed.</summary>
     internal void ThrowIfClosed()
     {
         lock (_mutex)
         {
             if (_disposeTask is not null || _closeCts.IsCancellationRequested)
             {
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+                // TODO: Should this be ConnectionAborted instead? See #2382
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
             }
         }
     }
