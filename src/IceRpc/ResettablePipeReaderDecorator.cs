@@ -4,14 +4,14 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
-namespace IceRpc.Retry.Internal;
+namespace IceRpc;
 
 /// <summary>A PipeReader decorator that allows to reset its decoratee to its initial state (from the caller's
 /// perspective).</summary>
-internal class ResettablePipeReaderDecorator : PipeReader
+public class ResettablePipeReaderDecorator : PipeReader
 {
     /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
-    internal bool IsResettable
+    public bool IsResettable
     {
         get => _isResettable;
 
@@ -148,6 +148,39 @@ internal class ResettablePipeReaderDecorator : PipeReader
         return ProcessReadResult(readResult);
     }
 
+    /// <summary>Constructs a ResettablePipeReaderDecorator.</summary>
+    /// <param name="decoratee">The decorated pipe reader.</param>
+    /// <param name="maxBufferSize">The maximum size of buffered data, once the resetable pipe reader reads that much
+    /// data it becomes not resettable and <see cref="IsResettable"/> returns false.</param>
+    public ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
+    {
+        _decoratee = decoratee;
+        _maxBufferSize = maxBufferSize;
+    }
+
+    /// <summary>Resets this pipe reader.</summary>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable" /> is <see langword="false" />.
+    /// </exception>
+    public void Reset()
+    {
+        if (_isResettable)
+        {
+            if (_isReadingInProgress)
+            {
+                throw new InvalidOperationException(
+                    "The ResettablePipeReaderDecorator cannot be reset while reading is in progress.");
+            }
+
+            _consumed = null;
+            _isReaderCompleted = false;
+            _readerCompleteException = null;
+        }
+        else
+        {
+            throw new InvalidOperationException("Cannot reset non-resettable ResettablePipeReaderDecorator.");
+        }
+    }
+
     /// <inheritdoc/>
     public override bool TryRead(out ReadResult result)
     {
@@ -176,6 +209,7 @@ internal class ResettablePipeReaderDecorator : PipeReader
         }
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask<ReadResult> ReadAtLeastAsyncCore(
         int minimumSize,
         CancellationToken cancellationToken = default)
@@ -202,36 +236,6 @@ internal class ResettablePipeReaderDecorator : PipeReader
             throw;
         }
         return ProcessReadResult(readResult);
-    }
-
-    /// <summary>Constructs a ResettablePipeReaderDecorator.</summary>
-    internal ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
-    {
-        _decoratee = decoratee;
-        _maxBufferSize = maxBufferSize;
-    }
-
-    /// <summary>Resets this pipe reader.</summary>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable" /> is <see langword="false" />.
-    /// </exception>
-    internal void Reset()
-    {
-        if (_isResettable)
-        {
-            if (_isReadingInProgress)
-            {
-                throw new InvalidOperationException(
-                    "The ResettablePipeReaderDecorator cannot be reset while reading is in progress.");
-            }
-
-            _consumed = null;
-            _isReaderCompleted = false;
-            _readerCompleteException = null;
-        }
-        else
-        {
-            throw new InvalidOperationException("Cannot reset non-resettable ResettablePipeReaderDecorator.");
-        }
     }
 
     private ReadResult ProcessReadResult(ReadResult readResult)
