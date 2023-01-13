@@ -15,7 +15,6 @@ public class AssertTraceListener : DefaultTraceListener
     {
         if (detailMessage is null || detailMessage.Length == 0)
         {
-            Console.Error.WriteLine($"XXX {message}");
             Assert.Fail(message);
         }
         else

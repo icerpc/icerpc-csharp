@@ -777,9 +777,9 @@ internal class SlicConnection : IMultiplexedConnection
 
         // Cancel CreateStreamAsync, AcceptStreamAsync and writes on the connection.
         _closeCts.Cancel();
-        _acceptStreamChannel.Writer.Complete(exception);
+        _acceptStreamChannel.Writer.TryComplete(exception);
 
-        // Close streams. _streams is immutable once _closeCts is canceled and the accept stream channel completed.
+        // Close streams.
         foreach (SlicStream stream in _streams.Values)
         {
             stream.Close(exception);
@@ -792,7 +792,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (_disposeTask is not null || _closeCts.IsCancellationRequested)
             {
-                throw new IceRpcException(IceRpcError.ConnectionAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
             }
 
             _streams[id] = stream;
@@ -957,6 +957,7 @@ internal class SlicConnection : IMultiplexedConnection
                         dataSize,
                         (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                         cancellationToken).ConfigureAwait(false);
+
                     lock (_mutex)
                     {
                         // If close is not already in progress initiate the closure.
