@@ -74,6 +74,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <summary>Verifies that AcceptStream fails when the connection is closed.</summary>
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
+    [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
     public async Task Accept_stream_fails_on_close(
@@ -168,6 +169,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
+    [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
     public async Task Cannot_create_streams_with_a_closed_connection(
@@ -798,6 +800,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
+    [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
     public async Task Pending_create_stream_fails_with_peer_close_error_code_on_connection_close(

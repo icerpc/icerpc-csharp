@@ -18,11 +18,11 @@ internal abstract class TcpConnection : IDuplexConnection
     internal abstract SslStream? SslStream { get; }
 
     private protected volatile bool _isDisposed;
-    private protected bool _isShutdown;
 
     // The MaxDataSize of the SSL implementation.
     private const int MaxSslDataSize = 16 * 1024;
 
+    private bool _isShutdown;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
     private readonly List<ArraySegment<byte>> _segments = new();
@@ -93,8 +93,6 @@ internal abstract class TcpConnection : IDuplexConnection
     {
         try
         {
-            _isShutdown = true;
-
             if (SslStream is SslStream sslStream)
             {
                 await sslStream.ShutdownAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -103,6 +101,9 @@ internal abstract class TcpConnection : IDuplexConnection
             // Shutdown the socket send side to send a TCP FIN packet. We don't close the read side because we want
             // to be notified when the peer shuts down it's side of the socket (through the ReceiveAsync call).
             Socket.Shutdown(SocketShutdown.Send);
+            // If shutdown is successful mark the connection as shutdown to ensure Dispose won't reset the TCP
+            // connection.
+            _isShutdown = true;
         }
         catch
         {

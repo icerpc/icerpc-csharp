@@ -680,12 +680,19 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             "The connection shutdown was aborted because the connection was disposed.");
                 }
             }
+            catch (IceRpcException exception)
+            {
+                TryCompleteClosed(exception, "The connection shutdown failed.");
+                throw;
+            }
+            catch (InvalidDataException exception)
+            {
+                TryCompleteClosed(exception, "The connection shutdown failed.");
+                throw;
+            }
             catch (Exception exception)
             {
-                Debug.Assert(
-                    exception is IceRpcException or InvalidDataException,
-                    $"ShutdownAsync failed with an unexpected exception: {exception}");
-
+                Debug.Fail($"ShutdownAsync failed with an unexpected exception: {exception}");
                 TryCompleteClosed(exception, "The connection shutdown failed.");
                 throw;
             }

@@ -1215,6 +1215,7 @@ internal class SlicConnection : IMultiplexedConnection
             IceRpcError? peerCloseError = errorCode switch
             {
                 (ulong)MultiplexedConnectionCloseError.NoError => IceRpcError.ConnectionClosedByPeer,
+                (ulong)MultiplexedConnectionCloseError.Refused => IceRpcError.ConnectionRefused,
                 (ulong)MultiplexedConnectionCloseError.ServerBusy => IceRpcError.ServerBusy,
                 (ulong)MultiplexedConnectionCloseError.Aborted => IceRpcError.ConnectionAborted,
                 _ => null
