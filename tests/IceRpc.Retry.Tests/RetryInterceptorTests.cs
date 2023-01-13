@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
-using System.IO.Pipelines;
 
 namespace IceRpc.Retry.Tests;
 
@@ -25,26 +24,49 @@ public sealed class RetryInterceptorTests
         }
     }
 
+    // Status code we never retry on
+    public static IEnumerable<StatusCode> NotRetryableStatusCodeSource { get; } = new StatusCode[]
+    {
+        StatusCode.ApplicationError,
+        StatusCode.OperationNotFound,
+        StatusCode.UnhandledException,
+        StatusCode.InvalidData,
+        StatusCode.TruncatedPayload,
+        StatusCode.DeadlineExpired,
+        StatusCode.Unauthorized,
+    };
+
     public static IEnumerable<TestCaseData> RetryWithOtherReplicaSource
     {
         get
         {
-            yield return new TestCaseData(FailInvoker(IceRpcError.ConnectionRefused))
-                .SetName("Retry_with_other_replica(IceRpcError.ConnectionRefused)");
+            yield return new TestCaseData(Protocol.IceRpc, FailWithException(IceRpcError.ConnectionRefused))
+                .SetName("Retry_with_other_replica(icerpc, IceRpcError.ConnectionRefused)");
 
-            yield return new TestCaseData(FailInvoker(IceRpcError.ServerBusy))
-                .SetName("Retry_with_other_replica(IceRpcError.ServerBusy)");
+            yield return new TestCaseData(Protocol.IceRpc, FailWithException(IceRpcError.ServerBusy))
+                .SetName("Retry_with_other_replica(icerpc, IceRpcError.ServerBusy)");
 
-            yield return new TestCaseData(new InlineInvoker((request, cancel) =>
-                Task.FromResult(new IncomingResponse(
-                    request,
-                    FakeConnectionContext.IceRpc,
-                    StatusCode.Unavailable,
-                    "error message")))).SetName("Retry_with_other_replica(StatusCode.Unavailable)");
+            yield return new TestCaseData(
+                Protocol.IceRpc,
+                new InlineInvoker((request, cancel) =>
+                    Task.FromResult(new IncomingResponse(
+                        request,
+                        FakeConnectionContext.IceRpc,
+                        StatusCode.Unavailable,
+                        "error message")))).SetName("Retry_with_other_replica(icerpc, StatusCode.Unavailable)");
+
+            yield return new TestCaseData(
+                Protocol.Ice,
+                new InlineInvoker((request, cancel) =>
+                    Task.FromResult(new IncomingResponse(
+                        request,
+                        FakeConnectionContext.Ice,
+                        StatusCode.ServiceNotFound,
+                        "error message")))).SetName("Retry_with_other_replica(ice, StatusCode.ServiceNotFound)");
 
 #pragma warning disable CA1065 // Do not raise exceptions in unexpected locations.
             // The warning is bogus. The property doesn't raise any exceptions the returned invoker does.
-            static IInvoker FailInvoker(IceRpcError error) =>
+            static IInvoker FailWithException(IceRpcError error) =>
                 new InlineInvoker((request, cancel) => throw new IceRpcException(error));
 #pragma warning restore CA1065
         }
@@ -117,15 +139,20 @@ public sealed class RetryInterceptorTests
         Assert.That(attempts, Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task No_retry_on_application_error()
+    [Test, TestCaseSource(nameof(NotRetryableStatusCodeSource))]
+    public async Task No_retry_status_code(StatusCode statusCode)
     {
         // Arrange
         int attempts = 0;
         var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             attempts++;
-            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc, StatusCode.ApplicationError, ""));
+            return Task.FromResult(
+                new IncomingResponse(
+                    request,
+                    FakeConnectionContext.IceRpc,
+                    statusCode,
+                    ""));
         });
 
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
@@ -134,10 +161,10 @@ public sealed class RetryInterceptorTests
         using var request = new OutgoingRequest(serviceAddress) { Operation = "Op" };
 
         // Act
-        var response = await sut.InvokeAsync(request, default);
+        IncomingResponse response = await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ApplicationError));
+        Assert.That(response.StatusCode, Is.EqualTo(statusCode));
         Assert.That(attempts, Is.EqualTo(1));
     }
 
@@ -172,25 +199,15 @@ public sealed class RetryInterceptorTests
     {
         // Arrange
         int attempts = 0;
-        var invoker = new InlineInvoker(async (request, cancellationToken) =>
+        var invoker = new InlineInvoker((request, cancellationToken) =>
         {
             if (++attempts == 1)
             {
-                // The retry interceptor assumes that it is always safe to retry when the payload was not read, the
-                // reading of the payload here ensures that retry is due to request invocation mode being idempotent.
-                ReadResult readResult;
-                do
-                {
-                    readResult = await request.Payload.ReadAsync(cancellationToken);
-                    request.Payload.AdvanceTo(readResult.Buffer.End);
-                }
-                while (!readResult.IsCompleted && !readResult.IsCanceled);
-
                 throw new IceRpcException(IceRpcError.ConnectionAborted);
             }
             else
             {
-                return new IncomingResponse(request, FakeConnectionContext.IceRpc);
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
             }
         });
 
@@ -213,12 +230,12 @@ public sealed class RetryInterceptorTests
     }
 
     [Test, TestCaseSource(nameof(RetryWithOtherReplicaSource))]
-    public async Task Retry_with_other_replica(IInvoker next)
+    public async Task Retry_with_other_replica(Protocol protocol, IInvoker next)
     {
         // Arrange
-        await using var connection1 = new ClientConnection(new Uri("icerpc://host1"));
-        await using var connection2 = new ClientConnection(new Uri("icerpc://host2"));
-        await using var connection3 = new ClientConnection(new Uri("icerpc://host3"));
+        await using var connection1 = new ClientConnection(new Uri($"{protocol.Name}://host1"));
+        await using var connection2 = new ClientConnection(new Uri($"{protocol.Name}://host2"));
+        await using var connection3 = new ClientConnection(new Uri($"{protocol.Name}://host3"));
 
         var serviceAddress = new ServiceAddress(connection1.ServerAddress.Protocol)
         {
@@ -244,7 +261,10 @@ public sealed class RetryInterceptorTests
                 serverAddresses.Add(serverAddress);
                 if (serverAddress == serviceAddress.AltServerAddresses[1])
                 {
-                    return new IncomingResponse(request, FakeConnectionContext.IceRpc, StatusCode.Success);
+                    return new IncomingResponse(
+                        request,
+                        request.Protocol == Protocol.IceRpc ? FakeConnectionContext.IceRpc : FakeConnectionContext.Ice,
+                        StatusCode.Success);
                 }
             }
 
