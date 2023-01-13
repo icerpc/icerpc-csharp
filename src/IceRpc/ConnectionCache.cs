@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
 
@@ -195,19 +195,18 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     lock (_mutex)
                     {
                         var enumerator = new ServerAddressEnumerator(serverAddressFeature);
-                        for (int i = 0; i < enumerator.Count; ++i)
+                        while (enumerator.MoveNext())
                         {
-                            enumerator.MoveNext();
                             ServerAddress serverAddress = enumerator.Current;
                             if (_activeConnections.TryGetValue(serverAddress, out connection))
                             {
-                                if (i > 0)
+                                if (enumerator.CurrentIndex > 0)
                                 {
                                     // This altServerAddress becomes the main server address, and the existing main
                                     // server address becomes the first alt server address.
                                     serverAddressFeature.AltServerAddresses =
                                         serverAddressFeature.AltServerAddresses
-                                            .RemoveAt(i - 1)
+                                            .RemoveAt(enumerator.CurrentIndex - 1)
                                             .Insert(0, mainServerAddress);
                                     serverAddressFeature.ServerAddress = serverAddress;
                                 }
@@ -221,10 +220,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     Exception? connectionException = null;
                     var enumerator = new ServerAddressEnumerator(serverAddressFeature);
-                    for (int i = 0; i < enumerator.Count; ++i)
+                    while (enumerator.MoveNext())
                     {
-                        enumerator.MoveNext();
-                        if (i > 0)
+                        if (enumerator.CurrentIndex > 0)
                         {
                             // Rotate the server addresses before each new connection attempt after the initial attempt:
                             // the first alt server address becomes the main server address and the main server address
@@ -245,6 +243,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         {
                             connectionException = exception;
                         }
+                        // TODO are there other IceRpcError errors besides IceRpcError.IceRpcError that we want to
+                        // let through.
                         catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.IceRpcError)
                         {
                             // keep going unless the connection cache was disposed or shut down
@@ -253,7 +253,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                             {
                                 if (_isShutdown || _disposeTask is not null)
                                 {
-                                    throw ExceptionUtil.Throw(connectionException);
+                                    throw;
                                 }
                             }
                         }
@@ -262,7 +262,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     if (connection is null)
                     {
                         Debug.Assert(connectionException is not null);
-                        throw ExceptionUtil.Throw(connectionException);
+                        ExceptionDispatchInfo.Throw(connectionException);
+                        Debug.Assert(false);
                     }
                 }
 
@@ -323,7 +324,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             if (_isShutdown)
             {
-                throw new InvalidOperationException($"The connection cache is shut down.");
+                throw new InvalidOperationException("The client connection is already shut down or shutting down.");
             }
             _isShutdown = true;
 
@@ -398,7 +399,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             if (_isShutdown)
             {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache is shut down.");
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
             }
 
             if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
@@ -461,12 +462,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             lock (_mutex)
             {
-                if (_disposeTask is not null)
-                {
-                    // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
-                }
-                else if (_isShutdown)
+                if (_disposeTask is not null || _isShutdown)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
                     throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
@@ -554,37 +550,39 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     // A helper struct that implements and enumerator that allows iterating the addresses of a IServerAddressFeature
     // without allocations.
-    internal struct ServerAddressEnumerator
+    private struct ServerAddressEnumerator
     {
-        private readonly IServerAddressFeature _serverAddressFeature;
-        private int _index = -1;
-
-        public ServerAddress Current
+        internal ServerAddress Current
         {
             get
             {
-                Debug.Assert(_index >= 0 && _index <= _serverAddressFeature.AltServerAddresses.Count);
-                if (_index == 0)
+                Debug.Assert(CurrentIndex >= 0 && CurrentIndex <= _altServerAddresses.Count);
+                if (CurrentIndex == 0)
                 {
-                    Debug.Assert(_serverAddressFeature.ServerAddress is not null);
-                    return _serverAddressFeature.ServerAddress.Value;
+                    Debug.Assert(_mainServerAddress is not null);
+                    return _mainServerAddress.Value;
                 }
                 else
                 {
-                    return _serverAddressFeature.AltServerAddresses[_index - 1];
+                    return _altServerAddresses[CurrentIndex - 1];
                 }
             }
         }
 
-        public int Count { get; }
+        internal int Count { get; }
 
-        public bool MoveNext()
+        internal int CurrentIndex { get; private set; } = -1;
+
+        private readonly ServerAddress? _mainServerAddress;
+        private readonly IList<ServerAddress> _altServerAddresses;
+
+        internal bool MoveNext()
         {
-            if (_index == -1)
+            if (CurrentIndex == -1)
             {
-                if (_serverAddressFeature.ServerAddress is not null)
+                if (_mainServerAddress is not null)
                 {
-                    _index++;
+                    CurrentIndex++;
                     return true;
                 }
                 else
@@ -592,9 +590,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     return false;
                 }
             }
-            else if (_index < _serverAddressFeature.AltServerAddresses.Count)
+            else if (CurrentIndex < _altServerAddresses.Count)
             {
-                _index++;
+                CurrentIndex++;
                 return true;
             }
             return false;
@@ -602,14 +600,15 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         internal ServerAddressEnumerator(IServerAddressFeature serverAddressFeature)
         {
-            _serverAddressFeature = serverAddressFeature;
-            if (_serverAddressFeature.ServerAddress is null)
+            _mainServerAddress = serverAddressFeature.ServerAddress;
+            _altServerAddresses = serverAddressFeature.AltServerAddresses;
+            if (_mainServerAddress is null)
             {
                 Count = 0;
             }
             else
             {
-                Count = _serverAddressFeature.AltServerAddresses.Count + 1;
+                Count = _altServerAddresses.Count + 1;
             }
         }
     }

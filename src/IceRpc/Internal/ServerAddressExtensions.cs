@@ -1,9 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
-using System.Collections.Immutable;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace IceRpc.Internal;
