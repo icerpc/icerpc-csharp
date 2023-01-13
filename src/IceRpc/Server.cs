@@ -241,6 +241,7 @@ public sealed class Server : IAsyncDisposable
                     // There is no outstanding background dispose.
                     _ = _backgroundConnectionDisposeTcs.TrySetResult();
                 }
+                _isShutdown = true;
             }
             return new(_disposeTask);
         }
@@ -362,7 +363,7 @@ public sealed class Server : IAsyncDisposable
                                 // shutdown / dispose is initiated.
                                 lock (_mutex)
                                 {
-                                    if (_disposeTask is null && !_isShutdown)
+                                    if (!_isShutdown)
                                     {
                                         pendingConnectionSemaphore.Release();
                                     }
@@ -455,7 +456,7 @@ public sealed class Server : IAsyncDisposable
 
                 lock (_mutex)
                 {
-                    if (_isShutdown || _disposeTask is not null)
+                    if (_isShutdown)
                     {
                         // _connections is immutable and Server.ShutdownAsync/DisposeAsync is responsible to
                         // shutdown/dispose this connection.
