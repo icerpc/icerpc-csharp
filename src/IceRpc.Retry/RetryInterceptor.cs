@@ -60,7 +60,8 @@ public class RetryInterceptor : IInvoker
 
                         response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-                        if (response.Protocol == Protocol.Ice && response.StatusCode == StatusCode.ServiceNotFound)
+                        if (response.StatusCode == StatusCode.Unavailable ||
+                            (response.Protocol == Protocol.Ice && response.StatusCode == StatusCode.ServiceNotFound))
                         {
                             retryWithOtherReplica = true;
                         }
@@ -81,8 +82,7 @@ public class RetryInterceptor : IInvoker
                         response = null;
                         exception = otherException;
                         retryWithOtherReplica =
-                            otherException.IceRpcError == IceRpcError.ServerBusy ||
-                            otherException.IceRpcError == IceRpcError.ConnectionRefused;
+                            otherException.IceRpcError is IceRpcError.ServerBusy or IceRpcError.ConnectionRefused;
                     }
 
                     Debug.Assert(retryWithOtherReplica || exception is not null);
@@ -103,15 +103,18 @@ public class RetryInterceptor : IInvoker
                             }
                             // else there is no replica to retry with
                         }
-                        else if (exception!.IceRpcError == IceRpcError.InvocationCanceled)
+                        else
                         {
-                            tryAgain = true;
-                        }
-                        else if (
-                            request.Fields.ContainsKey(RequestFieldKey.Idempotent) &&
-                            exception!.IceRpcError == IceRpcError.ConnectionAborted)
-                        {
-                            tryAgain = true;
+                            Debug.Assert(exception is not null);
+                            // It always safe to retry InvocationCanceled. For idempotent requests we also retry on
+                            // ConnectionAborted and TruncatedData.
+                            tryAgain = exception.IceRpcError switch
+                            {
+                                IceRpcError.InvocationCanceled => true,
+                                IceRpcError.ConnectionAborted or IceRpcError.TruncatedData
+                                    when request.Fields.ContainsKey(RequestFieldKey.Idempotent) => true,
+                                _ => false
+                            };
                         }
 
                         if (tryAgain)
