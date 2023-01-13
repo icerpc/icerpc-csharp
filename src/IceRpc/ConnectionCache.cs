@@ -393,13 +393,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_disposeTask is not null)
+            if (_disposeTask is not null || _isShutdown)
             {
-                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
-            }
-            if (_isShutdown)
-            {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                throw new IceRpcException(
+                    IceRpcError.InvocationRefused,
+                    "The connection cache was disposed or shut down.");
             }
 
             if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
