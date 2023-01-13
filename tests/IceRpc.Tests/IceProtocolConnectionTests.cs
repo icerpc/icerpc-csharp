@@ -86,10 +86,9 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
-    /// <summary>Verifies that an abortive server connection shutdown causes the invocation to fail with a <see
-    /// cref="DispatchException" />.</summary>
+    /// <summary>Verifies that an abortive server connection shutdown causes an invocation failure.</summary>
     [Test]
-    public async Task Abortive_server_connection_shutdown_triggers_dispatch_exception()
+    public async Task Abortive_server_connection_shutdown_triggers_invocation_failure()
     {
         // Arrange
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
@@ -109,11 +108,23 @@ public sealed class IceProtocolConnectionTests
         // Act
         await sut.Server.DisposeAsync();
 
-        IncomingResponse response = await invokeTask;
-
         // Assert
-        Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
+
+        // Depending on the timing, we can get a DispatchException or an IceRpcException(ConnectionAborted).
+        try
+        {
+            IncomingResponse response = await invokeTask;
+
+            Assert.That(
+                response.ErrorMessage,
+                Is.EqualTo("The dispatch was canceled by the closure of the connection."));
+            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
+        }
+        catch (IceRpcException exception)
+        {
+            Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+        }
+
         Assert.That(
             async () => await shutdownTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
@@ -209,13 +220,16 @@ public sealed class IceProtocolConnectionTests
         Task invokeTask = sut.Client.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(await sut.Server.Closed, Is.InstanceOf<InvalidDataException>());
+        Assert.That(
+            await sut.Server.Closed,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
 
         // Cleanup
         await sut.Server.DisposeAsync();
+
         Assert.That(
             async () => await invokeTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,

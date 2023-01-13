@@ -13,6 +13,8 @@ public class AssertTraceListener : DefaultTraceListener
 
     public override void Fail(string? message, string? detailMessage)
     {
+        Console.WriteLine($"message = {message}, detailMessage = {detailMessage}");
+
         if (detailMessage is null || detailMessage.Length == 0)
         {
             Assert.Fail(message);
