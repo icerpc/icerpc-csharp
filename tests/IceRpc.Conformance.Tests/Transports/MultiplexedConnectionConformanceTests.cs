@@ -443,13 +443,13 @@ public abstract class MultiplexedConnectionConformanceTests
         await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
 
         // Assert
+        // TODO: OperationAborted or ConnectionAborted? Or another code? See #2382.
         Assert.That(
             async () => await clientConnection.CreateStreamAsync(true, default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         Assert.That(
             async () => await clientConnection.AcceptStreamAsync(default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-        // TODO: OperationAborted or ConnectionAborted? Or another code? See #2382.
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         Assert.That(
             async () => await sut.LocalStream.Input.ReadAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));

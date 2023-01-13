@@ -79,7 +79,8 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_closeCts.IsCancellationRequested)
             {
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+                // TODO: Or ConnectionAborted? See #2382
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
             }
         }
 
@@ -367,7 +368,8 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_closeCts.IsCancellationRequested)
             {
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+                // TODO: Or ConnectionAborted? See #2382
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
             }
 
             Debug.Assert(!_closeCts.IsCancellationRequested);
@@ -812,7 +814,8 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (_disposeTask is not null || _closeCts.IsCancellationRequested)
             {
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+                // TODO: Or ConnectionAborted? See #2382
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
             }
 
             _streams[id] = stream;
@@ -1417,7 +1420,8 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (_disposeTask is not null || _closeCts.IsCancellationRequested)
             {
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+                // TODO: Or ConnectionAborted? See #2382
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
             }
             closeCancellationToken = _closeCts.Token;
         }
