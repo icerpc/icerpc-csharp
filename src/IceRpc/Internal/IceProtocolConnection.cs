@@ -37,7 +37,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly CancellationTokenSource _dispatchesAndInvocationsCts = new();
+    // The _dispatchesCts is used to cancel outstanding dispatches. It does not cancel a oneway dispatch after it has
+    // acquired _dispatchSemaphore. It's canceled when _disposedCts is canceled.
+    private readonly CancellationTokenSource _dispatchesCts;
     private readonly SemaphoreSlim? _dispatchSemaphore;
 
     // This cancellation token source is canceled when the connection is disposed.
@@ -160,9 +162,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     if (_disposeTask is null)
                     {
-                        throw new IceRpcException(
-                            IceRpcError.ConnectionAborted,
-                            "The connection establishment was aborted by the disposal of the transport connection.");
+                        throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was aborted.");
                     }
                     else
                     {
@@ -250,7 +250,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             await Task.Yield();
 
             _disposedCts.Cancel();
-            _dispatchesAndInvocationsCts.Cancel();
             _duplexConnection.Dispose();
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
@@ -285,8 +284,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _duplexConnectionReader.Dispose();
             _duplexConnectionWriter.Dispose();
 
+            _dispatchesCts.Dispose();
             _disposedCts.Dispose();
-            _dispatchesAndInvocationsCts.Dispose();
             _dispatchSemaphore?.Dispose();
             _writeSemaphore.Dispose();
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
@@ -342,11 +341,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 ++_invocationCount;
 
-                // Since _refuseInvocations is false, the connection and its _dispatchesAndInvocationsCts token are not
-                // disposed.
-                cts = CancellationTokenSource.CreateLinkedTokenSource(
-                    _dispatchesAndInvocationsCts.Token,
-                    cancellationToken);
+                // Since _refuseInvocations is false, the connection and _disposedCts are not disposed.
+                cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, cancellationToken);
             }
 
             PipeReader? frameReader = null;
@@ -449,13 +445,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         throw new IceRpcException(
                             IceRpcError.ConnectionAborted,
-                            "The invocation was aborted by the disposal of the transport connection.");
+                            "The invocation was aborted because the connection was aborted.");
                     }
                     else
                     {
                         throw new IceRpcException(
                             IceRpcError.OperationAborted,
-                            "The invocation was aborted by the disposal of the connection.");
+                            "The invocation was aborted because the connection was disposed.");
                     }
                 }
             }
@@ -464,7 +460,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 lock (_mutex)
                 {
                     // If registered, unregister the twoway invocation.
-                    if (requestId != 0 && !_isClosedByPeer)
+                    if (requestId != 0 && !_refuseInvocations)
                     {
                         _twowayInvocations.Remove(requestId);
                     }
@@ -476,8 +472,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         {
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
-                        else if (!ShutdownRequested.IsCompleted)
+                        else if (!_refuseInvocations)
                         {
+                            // We enable the idle check in order to complete ShutdownRequested when idle for too long.
+                            // _refuseInvocations is true when the connection is either about to be "shutdown
+                            // requested", or shut down / disposed, or aborted (with Closed completed). We don't need to
+                            // complete ShutdownRequested in any of these situations.
                             EnableIdleCheck();
                         }
                     }
@@ -694,7 +694,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                // Either the connection is (being) disposed or the _connectTask was canceled.
                 lock (_mutex)
                 {
                     if (_disposeTask is null)
@@ -737,6 +736,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
     {
+        _dispatchesCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
+
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
@@ -765,9 +766,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 lock (_mutex)
                 {
+                    // We only send a new ping if the previous one completed.
                     if (_pingTask.IsCompletedSuccessfully && !_isShutdown && _disposeTask is null)
                     {
-                        _pingTask = PingAsync(_dispatchesAndInvocationsCts.Token);
+                        _pingTask = PingAsync(_disposedCts.Token);
                     }
                 }
             });
@@ -813,7 +815,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 try
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
-                    await _duplexConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -955,16 +957,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                                 "The connection was shut down because it received a CloseConnection frame from the peer.");
                         }
 
-                        // _twowayInvocations is immutable when _isClosedByPeer and _refuseInvocations are true.
-                        foreach (TaskCompletionSource<PipeReader> responseCompletionSource in _twowayInvocations.Values)
-                        {
-                            // _twowayInvocations can hold completed responseCompletionSource. It's the completion of
-                            // the InvokeAsync call that removes the entry from _twowayInvocations.
-                            _ = responseCompletionSource.TrySetException(
-                                new IceRpcException(
-                                    IceRpcError.InvocationCanceled,
-                                    "The invocation was canceled by the shutdown of the peer."));
-                        }
+                        // Abort twoway invocations that are waiting for a response (it will never come).
+                        AbortTwowayInvocations(
+                            IceRpcError.InvocationCanceled,
+                            "The invocation was canceled by the shutdown of the peer.");
 
                         // We dispose the duplex connection for 2 reasons:
                         // - abort any invocations currently writing to the duplex connection
@@ -1028,9 +1024,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 if (_disposeTask is null)
                 {
-                    throw new IceRpcException(
-                        IceRpcError.ConnectionAborted,
-                        "The connection was aborted by the disposal of the transport connection.");
+                    throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was aborted.");
                 }
                 else
                 {
@@ -1130,6 +1124,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         async Task ReadRequestAsync(int requestFrameSize)
         {
+            CancellationToken cancellationToken = _dispatchesCts.Token;
+
             // Read the request frame.
             PipeReader requestFrameReader = await CreateFrameReaderAsync(
                 requestFrameSize - IceDefinitions.PrologueSize,
@@ -1186,7 +1182,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // caller.
                     try
                     {
-                        await dispatchSemaphore.WaitAsync(_dispatchesAndInvocationsCts.Token).ConfigureAwait(false);
+                        await dispatchSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                         releaseDispatchSemaphore = true;
                     }
                     catch (OperationCanceledException)
@@ -1256,7 +1252,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             async Task DispatchRequestAsync(IncomingRequest request, PipeReader? contextReader)
             {
                 OutgoingResponse? response = null;
-                CancellationToken cancellationToken = _dispatchesAndInvocationsCts.Token;
+                CancellationToken cancellationToken = request.IsOneway ? _disposedCts.Token : _dispatchesCts.Token;
+
                 try
                 {
                     // The dispatcher can complete the incoming request payload to release its memory as soon as
@@ -1510,11 +1507,34 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
+    /// <summary>Aborts this connection by disposing its underlying duplex connection (and more).</summary>
+    /// <remarks>Abort is called by background tasks (_pingTask, _readFrameTask, the idle monitor) when they encounter
+    /// a failure. Other methods (such as ConnectAsync, InvokeAsync, ShutdownAsync) don't dispose the duplex connection
+    /// when they encounter a failure.</remarks>
     private void Abort(Exception exception, string invocationRefusedMessage)
     {
         TryCompleteClosed(exception, invocationRefusedMessage);
         _duplexConnection.Dispose();
-        _dispatchesAndInvocationsCts.Cancel();
+
+        AbortTwowayInvocations(
+            IceRpcError.ConnectionAborted,
+            "The invocation was aborted because the connection was aborted.");
+
+        _dispatchesCts.Cancel();
+    }
+
+    private void AbortTwowayInvocations(IceRpcError error, string message)
+    {
+        // Must be called outside mutex lock after setting _refuseInvocations to true.
+        Debug.Assert(_refuseInvocations);
+
+        // _twowayInvocations is immutable once _refuseInvocations is true.
+        foreach (TaskCompletionSource<PipeReader> responseCompletionSource in _twowayInvocations.Values)
+        {
+            // _twowayInvocations can hold completed responseCompletionSource. It's the completion of
+            // the InvokeAsync call that removes the entry from _twowayInvocations.
+            _ = responseCompletionSource.TrySetException(new IceRpcException(error, message));
+        }
     }
 
     private void TryCompleteClosed(Exception exception, string invocationRefusedMessage)
