@@ -150,7 +150,7 @@ public class ResettablePipeReaderDecorator : PipeReader
 
     /// <summary>Constructs a ResettablePipeReaderDecorator.</summary>
     /// <param name="decoratee">The decorated pipe reader.</param>
-    /// <param name="maxBufferSize">The maximum size of buffered data, once the resetable pipe reader reads that much
+    /// <param name="maxBufferSize">The maximum size of buffered data, once the resettable pipe reader reads that much
     /// data it becomes not resettable and <see cref="IsResettable"/> returns false.</param>
     public ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
     {
