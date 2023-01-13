@@ -9,8 +9,7 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc.Retry;
 
-/// <summary>The retry interceptor is responsible for retrying requests when there is a retryable failure.
-/// TODO explain which failures are retryable.</summary>
+/// <summary>The retry interceptor is responsible for retrying requests when there is a retryable failure.</summary>
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;
