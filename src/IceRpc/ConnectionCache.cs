@@ -324,7 +324,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
             if (_isShutdown)
             {
-                throw new InvalidOperationException("The client connection is already shut down or shutting down.");
+                throw new InvalidOperationException("The connection cache is already shut down or shutting down.");
             }
             _isShutdown = true;
 
@@ -395,7 +395,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is not null)
             {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
             }
             if (_isShutdown)
             {
@@ -465,7 +465,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 if (_disposeTask is not null || _isShutdown)
                 {
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
-                    throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                    throw new IceRpcException(
+                        IceRpcError.InvocationRefused,
+                        "The connection cache was disposed or shut down.");
                 }
                 else
                 {
