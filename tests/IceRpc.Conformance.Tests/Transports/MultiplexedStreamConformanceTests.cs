@@ -101,6 +101,69 @@ public abstract class MultiplexedStreamConformanceTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
+    [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
+    [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
+    [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
+    [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
+    public async Task Pending_stream_read_fails_with_peer_close_error_code_on_connection_close(
+        MultiplexedConnectionCloseError closeError,
+        IceRpcError expectedIceRpcError)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        await clientStream.Output.WriteAsync(new byte[1]);
+        IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
+
+        ValueTask<ReadResult> readTask = clientStream.Input.ReadAsync();
+
+        // Act
+        await serverConnection.CloseAsync(closeError, default);
+
+        // Assert
+        Assert.That(
+            async () => await readTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(expectedIceRpcError));
+    }
+
+    [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
+    [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
+    [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
+    [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
+    public async Task Pending_stream_write_fails_with_peer_close_error_code_on_connection_close(
+        MultiplexedConnectionCloseError closeError,
+        IceRpcError expectedIceRpcError)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        ValueTask<FlushResult> writeTask = clientStream.Output.WriteAsync(new byte[128 * 1024]);
+
+        // Act
+        await serverConnection.CloseAsync(closeError, default);
+
+        // Assert
+        Assert.That(
+            async () => await writeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(expectedIceRpcError));
+    }
+
     [Test]
     public async Task Stream_abort_read()
     {

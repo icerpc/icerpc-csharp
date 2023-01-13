@@ -11,8 +11,8 @@ namespace IceRpc.Transports.Internal;
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
-    private readonly CancellationTokenSource _abortCts = new(); // Disposed by Complete
-    private IceRpcException? _exception;
+    private readonly CancellationTokenSource _completeWritesCts = new(); // Disposed by Complete
+    private Exception? _exception;
     private readonly Pipe _pipe;
     private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
@@ -50,14 +50,11 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 _stream.CompleteWrites(errorCode: 0ul);
             }
 
-            _pipe.Writer.Complete();
-            if (_state.TrySetFlag(State.PipeReaderCompleted))
-            {
-                _pipe.Reader.Complete();
-            }
+            CompleteWrites(exception: null);
 
+            _pipe.Writer.Complete();
             _sendCreditSemaphore.Dispose();
-            _abortCts.Dispose();
+            _completeWritesCts.Dispose();
         }
     }
 
@@ -84,7 +81,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
-                _abortCts);
+                _completeWritesCts);
 
         ReadResult readResult = default;
         try
@@ -137,13 +134,13 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                 source1,
                 source2,
                 endStream,
-                _abortCts.Token).ConfigureAwait(false);
+                _completeWritesCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            Debug.Assert(_abortCts.IsCancellationRequested);
+            Debug.Assert(_completeWritesCts.IsCancellationRequested);
             return _exception is null ?
                 new FlushResult(isCanceled: false, isCompleted: true) :
                 throw ExceptionUtil.Throw(_exception);
@@ -183,10 +180,10 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             writerScheduler: PipeScheduler.Inline));
     }
 
-    /// <summary>Aborts writes.</summary>
+    /// <summary>CompleteWrites writes.</summary>
     /// <param name="exception">The exception raised by <see cref="PipeWriter.WriteAsync" /> or <see cref="FlushAsync"
     /// />.</param>
-    internal void Abort(IceRpcException? exception)
+    internal void CompleteWrites(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
 
@@ -195,7 +192,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         if (_state.TrySetFlag(State.PipeReaderCompleted))
         {
             // Cancel write if pending.
-            _abortCts.Cancel();
+            _completeWritesCts.Cancel();
 
             if (!_state.HasFlag(State.PipeReaderInUse))
             {
@@ -266,7 +263,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         /// <summary>Data is being read from the internal pipe reader.</summary>
         PipeReaderInUse = 2,
 
-        /// <summary>The internal pipe reader was completed by <see cref="Abort" />.</summary>
+        /// <summary>The internal pipe reader was completed by <see cref="CompleteWrites" />.</summary>
         PipeReaderCompleted = 4
     }
 }
