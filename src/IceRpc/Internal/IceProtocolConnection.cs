@@ -329,8 +329,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            CancellationTokenSource invocationCts;
-
             lock (_mutex)
             {
                 if (_refuseInvocations)
@@ -343,13 +341,16 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     DisableIdleCheck();
                 }
                 ++_invocationCount;
-
-                // Since _refuseInvocations is false, the connection and _disposedCts are not disposed.
-                invocationCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, cancellationToken);
             }
 
+            // Since _invocationCount > 0, _disposedCts is not disposed.
+            using var invocationCts =
+                CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, cancellationToken);
+
             PipeReader? frameReader = null;
+            TaskCompletionSource<PipeReader>? responseCompletionSource = null;
             int requestId = 0;
+
             try
             {
                 // Read the full payload. This can take some time so this needs to be done before acquiring the write
@@ -362,7 +363,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
                 // serialize the writing of frames.
                 await _writeSemaphore.WaitAsync(invocationCts.Token).ConfigureAwait(false);
-                TaskCompletionSource<PipeReader>? responseCompletionSource = null;
 
                 try
                 {
@@ -460,6 +460,22 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             finally
             {
+                // If responseCompletionSource is not completed, we want to complete it to prevent another method from
+                // setting an unobservable exception in it. And if it's already completed with an exception, we observe
+                // this exception.
+                if (responseCompletionSource is not null &&
+                    !responseCompletionSource.TrySetResult(InvalidPipeReader.Instance))
+                {
+                    try
+                    {
+                        _ = await responseCompletionSource.Task.ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // observe exception, if any
+                    }
+                }
+
                 lock (_mutex)
                 {
                     // If registered, unregister the twoway invocation.
@@ -487,7 +503,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
 
                 frameReader?.Complete();
-                invocationCts.Dispose();
             }
 
             static (StatusCode StatusCode, string? ErrorMessage, SequencePosition Consumed) DecodeResponseHeader(
