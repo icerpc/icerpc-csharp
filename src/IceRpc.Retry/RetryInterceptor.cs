@@ -9,8 +9,7 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc.Retry;
 
-/// <summary>The retry interceptor is responsible for retrying requests when there is a retryable failure.
-/// TODO explain which failures are retryable.</summary>
+/// <summary>The retry interceptor is responsible for retrying requests when there is a retryable failure.</summary>
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;
@@ -45,7 +44,7 @@ public class RetryInterceptor : IInvoker
             {
                 int attempt = 1;
                 IncomingResponse? response = null;
-                Exception? exception = null;
+                IceRpcException? exception = null;
                 bool tryAgain;
 
                 do
@@ -77,14 +76,12 @@ public class RetryInterceptor : IInvoker
                         // removed server addresses from serverAddressFeature.
                         return response ?? throw RethrowException(exception ?? iceRpcException);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
-                    catch (Exception otherException)
+                    catch (IceRpcException otherException)
                     {
                         response = null;
                         exception = otherException;
+                        retryWithOtherReplica =
+                            otherException.IceRpcError is IceRpcError.ServerBusy or IceRpcError.ConnectionRefused;
                     }
 
                     Debug.Assert(retryWithOtherReplica || exception is not null);
@@ -105,12 +102,18 @@ public class RetryInterceptor : IInvoker
                             }
                             // else there is no replica to retry with
                         }
-                        else if (request.Fields.ContainsKey(RequestFieldKey.Idempotent) ||
-                            (exception is IceRpcException rpcException &&
-                                rpcException.IceRpcError == IceRpcError.InvocationCanceled) ||
-                            !decorator.IsRead)
+                        else
                         {
-                            tryAgain = true;
+                            Debug.Assert(exception is not null);
+                            // It always safe to retry InvocationCanceled. For idempotent requests we also retry on
+                            // ConnectionAborted and TruncatedData.
+                            tryAgain = exception.IceRpcError switch
+                            {
+                                IceRpcError.InvocationCanceled => true,
+                                IceRpcError.ConnectionAborted or IceRpcError.TruncatedData
+                                    when request.Fields.ContainsKey(RequestFieldKey.Idempotent) => true,
+                                _ => false
+                            };
                         }
 
                         if (tryAgain)

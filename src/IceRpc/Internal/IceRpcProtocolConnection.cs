@@ -250,32 +250,31 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             else
             {
+                // Since we await _dispatchesCompleted.Task before disposing the transport connection (or disposing
+                // anything else), a dispatch can't get an IceRpcException(OperationAborted) when sending a response.
                 try
                 {
                     await Task.WhenAll(
                         _connectTask,
                         _acceptRequestsTask ?? Task.CompletedTask,
                         _readGoAwayTask ?? Task.CompletedTask,
-                        _shutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
+                        _shutdownTask ?? Task.CompletedTask,
+                        _dispatchesCompleted.Task).ConfigureAwait(false);
                 }
                 catch
                 {
-                    // Excepted if any of these tasks failed or was canceled. Each task takes care of handling
+                    // Expected if any of these tasks failed or was canceled. Each task takes care of handling
                     // unexpected exceptions so there's no need to handle them here.
                 }
 
                 // We set the result after awaiting _shutdownTask, in case _shutdownTask was still running and about to
                 // complete successfully.
-                _ = _closedTcs.TrySetResult(
-                    new IceRpcException(IceRpcError.OperationAborted, "The connection was disposed."));
+                _ = _closedTcs.TrySetResult(new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}"));
             }
 
+            // We didn't wait for _streams.Closed above. Invocations and the sending of payload continuation that are
+            // not canceled yet can be aborted by this disposal.
             await _transportConnection.DisposeAsync().ConfigureAwait(false);
-
-            // Next, wait for dispatches to complete. We're not waiting for network activity on the streams to complete
-            // (with _streamsClosed.Task). It should be complete since we've disposed the underlying transport
-            // connection.
-            await _dispatchesCompleted.Task.ConfigureAwait(false);
 
             // It's safe to complete the output since write operations have been completed by the transport connection
             // disposal.
@@ -935,14 +934,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             success = true;
         }
         catch (IceRpcException exception) when (
-            exception.IceRpcError is
-                IceRpcError.ConnectionAborted or
-                IceRpcError.OperationAborted or
-                IceRpcError.TruncatedData)
+            exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.TruncatedData)
         {
             // ConnectionAborted is expected when the peer aborts the connection.
-            // OperationAborted is expected when the connection is disposed (and aborted)
-            // while we're receiving a request header or sending a response.
             // TruncatedData is expected when reading a request header. It can also be
             // thrown when reading a response payload tied to an incoming IceRPC payload.
         }
