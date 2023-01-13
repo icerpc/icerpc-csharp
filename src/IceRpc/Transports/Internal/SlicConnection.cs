@@ -323,7 +323,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
-            Close(new IceRpcException(IceRpcError.ConnectionAborted), "The connection was closed.");
+            Close(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed.");
 
             await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -398,13 +398,19 @@ internal class SlicConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
-            _disposeTask ??= PerformDisposeAsync();
+            if (_disposeTask is null)
+            {
+                Close(new IceRpcException(IceRpcError.OperationAborted), "The connection was disposed.");
+
+                _disposeTask = PerformDisposeAsync();
+            }
         }
         return new(_disposeTask);
 
         async Task PerformDisposeAsync()
         {
-            Close(new IceRpcException(IceRpcError.OperationAborted), "The connection was disposed.");
+            // Make sure we execute the code below without holding the mutex lock.
+            await Task.Yield();
 
             _disposedCts.Cancel();
 
@@ -775,7 +781,7 @@ internal class SlicConnection : IMultiplexedConnection
             _peerCloseError = peerCloseError;
         }
 
-        // Cancel CreateStreamAsync, AcceptStreamAsync and writes on the connection.
+        // Cancel pending CreateStreamAsync, AcceptStreamAsync and writes on the connection.
         _closeCts.Cancel();
         _acceptStreamChannel.Writer.TryComplete(exception);
 
@@ -1391,7 +1397,20 @@ internal class SlicConnection : IMultiplexedConnection
 
     private async ValueTask WaitWriteSemaphoreAsync(CancellationToken cancellationToken)
     {
-        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(_closeCts.Token, cancellationToken);
+        CancellationToken closeCancellationToken;
+        lock (_mutex)
+        {
+            if (_disposeTask is not null || _closeCts.IsCancellationRequested)
+            {
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+            }
+            closeCancellationToken = _closeCts.Token;
+        }
+
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(
+            closeCancellationToken,
+            cancellationToken);
+
         try
         {
             await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);

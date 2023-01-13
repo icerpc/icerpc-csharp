@@ -180,7 +180,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             writerScheduler: PipeScheduler.Inline));
     }
 
-    /// <summary>CompleteWrites writes.</summary>
+    /// <summary>Complete writes.</summary>
     /// <param name="exception">The exception raised by <see cref="PipeWriter.WriteAsync" /> or <see cref="FlushAsync"
     /// />.</param>
     internal void CompleteWrites(Exception? exception)
