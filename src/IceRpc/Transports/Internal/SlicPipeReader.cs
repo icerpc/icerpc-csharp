@@ -22,7 +22,7 @@ internal class SlicPipeReader : PipeReader
 
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
-        CheckIfCompleted();
+        ThrowIfCompleted();
 
         long startOffset = _readResult.Buffer.GetOffset(_readResult.Buffer.Start);
         long consumedOffset = _readResult.Buffer.GetOffset(consumed) - startOffset;
@@ -61,12 +61,9 @@ internal class SlicPipeReader : PipeReader
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        CheckIfCompleted();
+        ThrowIfCompleted();
 
-        if (_state.HasFlag(State.PipeWriterCompleted))
-        {
-            return GetReadResult();
-        }
+        _stream.ThrowIfConnectionClosed();
 
         ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
@@ -90,13 +87,9 @@ internal class SlicPipeReader : PipeReader
 
     public override bool TryRead(out ReadResult result)
     {
-        CheckIfCompleted();
+        ThrowIfCompleted();
 
-        if (_state.HasFlag(State.PipeWriterCompleted))
-        {
-            result = GetReadResult();
-            return true;
-        }
+        _stream.ThrowIfConnectionClosed();
 
         if (_pipe.Reader.TryRead(out result))
         {
@@ -226,7 +219,7 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    private void CheckIfCompleted()
+    private void ThrowIfCompleted()
     {
         if (_state.HasFlag(State.Completed))
         {

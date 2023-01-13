@@ -62,7 +62,6 @@ public class SlicTransportTests
     /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server
     /// duplex connection hangs.</summary>
     [Test]
-    [Ignore("See #2404")]
     public async Task Close_canceled_when_duplex_server_connection_shutdown_hangs()
     {
         // Arrange

@@ -98,6 +98,8 @@ internal class SlicStream : IMultiplexedStream
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
         _outputPipeWriter!.AcquireSendCreditAsync(cancellationToken);
 
+    internal void ThrowIfConnectionClosed() => _connection.ThrowIfClosed();
+
     internal void Close(Exception completeException)
     {
         if (TrySetReadsCompleted())

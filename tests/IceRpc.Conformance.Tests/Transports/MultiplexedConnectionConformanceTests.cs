@@ -428,11 +428,8 @@ public abstract class MultiplexedConnectionConformanceTests
             provider.GetService<SslServerAuthenticationOptions>()));
     }
 
-    /// <summary>Verifies that disposing the connection aborts the streams.</summary>
-    /// <param name="disposeServer">Whether to dispose the server connection or the client connection.
-    /// </param>
     [Test]
-    public async Task Disposing_the_connection_aborts_stream_read_and_write([Values(true, false)] bool disposeServer)
+    public async Task Connection_operations_fail_with_connection_aborted_error_after_close()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -442,30 +439,30 @@ public abstract class MultiplexedConnectionConformanceTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-
-        IMultiplexedConnection disposedConnection = disposeServer ? serverConnection : clientConnection;
         using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
             clientConnection,
             serverConnection);
 
-        IMultiplexedStream disposedStream = disposeServer ? sut.RemoteStream : sut.LocalStream;
-        IMultiplexedStream peerStream = disposeServer ? sut.LocalStream : sut.RemoteStream;
-
         // Act
-        await disposedConnection.DisposeAsync();
+        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
 
         // Assert
-
-        // TODO: check error codes, see #2382
-        Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Input.ReadAsync());
-        Assert.ThrowsAsync<IceRpcException>(async () => await disposedStream.Output.WriteAsync(_oneBytePayload));
-
-        Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Input.ReadAsync());
-        Assert.ThrowsAsync<IceRpcException>(async () => await peerStream.Output.WriteAsync(_oneBytePayload));
+        Assert.That(
+            async () => await clientConnection.CreateStreamAsync(true, default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            async () => await clientConnection.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            async () => await sut.LocalStream.Input.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            async () => await sut.LocalStream.Output.WriteAsync(_oneBytePayload),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]
-    public async Task Disposing_the_server_connection_aborts_the_client_connection()
+    public async Task Connection_operations_fail_with_connection_aborted_error_after_dispose()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -475,14 +472,63 @@ public abstract class MultiplexedConnectionConformanceTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         await using IMultiplexedConnection serverConnection =
             await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
 
         // Act
-        await serverConnection.DisposeAsync();
+        await clientConnection.DisposeAsync();
 
         // Assert
         Assert.That(
-            async () => _ = await clientConnection.AcceptStreamAsync(default),
+            async () => await clientConnection.CreateStreamAsync(true, default),
+            Throws.InstanceOf<ObjectDisposedException>());
+        Assert.That(
+            async () => await clientConnection.AcceptStreamAsync(default),
+            Throws.InstanceOf<ObjectDisposedException>());
+        Assert.That(
+            async () => await sut.LocalStream.Input.ReadAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            async () => await sut.LocalStream.Output.WriteAsync(_oneBytePayload),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
+    [Test]
+    public async Task Connection_dispose_aborts_pending_operations_with_operation_aborted_error()
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientConnection,
+            serverConnection);
+
+        ValueTask<IMultiplexedStream> acceptStreamTask = clientConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> createStreamTask = clientConnection.CreateStreamAsync(true, default);
+        ValueTask<ReadResult> readTask = sut.LocalStream.Input.ReadAsync();
+
+        // Act
+        await clientConnection.DisposeAsync();
+
+        // Assert
+
+        Assert.That(
+            async () => await acceptStreamTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+        Assert.That(
+            async () => await createStreamTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+        Assert.That(
+            async () => await readTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     [Test]
@@ -770,6 +816,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
+    [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
     public async Task Pending_accept_stream_fails_with_peer_close_error_code_on_connection_close(

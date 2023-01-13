@@ -253,10 +253,10 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         // The server-side of the connection is only shutdown once the client-side is shutdown. When
                         // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state.
-                        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        await _writeSemaphore.WaitAsync(_disposedCts.Token).ConfigureAwait(false);
                         try
                         {
-                            await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                            await _duplexConnection.ShutdownAsync(_disposedCts.Token).ConfigureAwait(false);
                         }
                         finally
                         {
@@ -316,10 +316,11 @@ internal class SlicConnection : IMultiplexedConnection
             _closeTask ??= PerformCloseAsync();
         }
 
-        // Wait for the termination of the close and read frames tasks.
-        await _readFramesTask.ConfigureAwait(false);
-
+        // Wait for the sending of the close frame.
         await _closeTask.ConfigureAwait(false);
+
+        // Now, wait for the peer to send the close frame that will terminate the read frames task.
+        await _readFramesTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         async Task PerformCloseAsync()
         {
@@ -390,7 +391,7 @@ internal class SlicConnection : IMultiplexedConnection
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
         }
     }
 
@@ -555,6 +556,17 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 Debug.Fail($"ping task failed with an unexpected exception: {exception}");
                 throw;
+            }
+        }
+    }
+
+    internal void ThrowIfClosed()
+    {
+        lock (_mutex)
+        {
+            if (_disposeTask is not null || _closeCts.IsCancellationRequested)
+            {
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
             }
         }
     }
@@ -1232,7 +1244,8 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 Close(
                     new IceRpcException(IceRpcError.ConnectionAborted),
-                    $"The connection was closed by the peer with an unknown application error code: '{errorCode}'");
+                    $"The connection was closed by the peer with an unknown application error code: '{errorCode}'",
+                    IceRpcError.ConnectionAborted);
             }
             else
             {
@@ -1418,7 +1431,7 @@ internal class SlicConnection : IMultiplexedConnection
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closeMessage);
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
         }
     }
 
