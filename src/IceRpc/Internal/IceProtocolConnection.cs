@@ -198,9 +198,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
 
                 _readFramesTask = ReadFramesAsync(_disposedCts.Token);
+
+                // As soon as we exit the mutex lock, _readFramesTask that start dispatching requests and disable this
+                // idle check.
+                EnableIdleCheck();
             }
 
-            EnableIdleCheck();
             return transportConnectionInformation;
 
             static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
@@ -510,7 +513,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         {
                             _invocationsCompleted.TrySetResult();
                         }
-                        else if (!_refuseInvocations)
+                        else if (_dispatchCount == 0 && !_refuseInvocations)
                         {
                             // We enable the idle check in order to complete ShutdownRequested when idle for too long.
                             // _refuseInvocations is true when the connection is either about to be "shutdown
@@ -1113,7 +1116,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         _dispatchesCompleted.TrySetResult();
                     }
-                    else if (!_refuseInvocations)
+                    else if (_invocationCount == 0 && !_refuseInvocations)
                     {
                         EnableIdleCheck();
                     }
