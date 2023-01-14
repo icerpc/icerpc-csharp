@@ -402,6 +402,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
+                    // TODO: see #2472
                     await _duplexConnectionWriter.WriteAsync(payload, CancellationToken.None).ConfigureAwait(false);
 
                     request.Payload.Complete();
@@ -1063,8 +1064,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 try
                 {
-                    // Write the payload and complete the source.
-                    await _duplexConnectionWriter.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
+                    // Write the payload and complete the source. We use _disposedCts.Token here instead of
+                    // cancellationToken because canceling _twowayDispatchesCts should not write invalid data.
+                    // _disposedCts is not disposed because DisposeAsync waits for dispatches to complete.
+                    await _duplexConnectionWriter.WriteAsync(payload, _disposedCts.Token).ConfigureAwait(false);
                 }
                 catch (IceRpcException exception) when (
                     exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.OperationAborted)
@@ -1224,6 +1227,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             IceRpcError.InvocationCanceled,
                             "The invocation was canceled by the shutdown of the peer.");
 
+                        // Cancel twoway dispatches since the peer is not interested in the responses. This does not
+                        // cancel WriteAsync to _duplexConnection - we don't send incomplete/invalid data.
+                        _twowayDispatchesCts.Cancel();
+
                         // We can't just abort the duplex connection immediately. If we're still writing to it, the
                         // peer could receive invalid data which would make its graceful shutdown fail.
 
@@ -1315,7 +1322,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // canceling twoway dispatches.
         void Abort(Exception exception)
         {
-            TryCompleteClosed(exception, "The connection was lost.");
+            RefuseNewInvocations("The connection was lost.");
+
             _duplexConnection.Dispose();
 
             AbortTwowayInvocations(
@@ -1323,6 +1331,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 "The invocation was aborted because the connection was aborted.");
 
             _twowayDispatchesCts.Cancel();
+
+            // Completing Closed typically triggers an abrupt disposal of the connection, with a different error when
+            // aborting twoway invocations. That's why we do it last.
+            _ = _closedTcs.TrySetResult(exception);
         }
     }
 
@@ -1571,14 +1583,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    /// <summary>Attempts to complete Closed with the given exception, and if successful, sets _refuseInvocations
-    /// to true.</summary>
+    /// <summary>Refuse new invocations and attempts to complete Closed with the given exception.</summary>
     /// <remarks>Must be called outside the mutex lock.</remarks>
     private void TryCompleteClosed(Exception exception, string invocationRefusedMessage)
     {
-        if (_closedTcs.TrySetResult(exception))
-        {
-            RefuseNewInvocations(invocationRefusedMessage);
-        }
+        RefuseNewInvocations(invocationRefusedMessage);
+        _ = _closedTcs.TrySetResult(exception);
     }
 }
