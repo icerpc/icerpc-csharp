@@ -1247,6 +1247,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             // By exiting the "read frames loop" below, we are refusing new dispatches as well.
                         }
 
+                        // Even though we're in the "read frames loop", it's ok to cancel CTS and a "synchronous" TCS
+                        // below. We won't be reading anything else so it's ok to run continuations synchronously.
+
                         // Abort twoway invocations that are waiting for a response (it will never come).
                         AbortTwowayInvocations(
                             IceRpcError.InvocationCanceled,
@@ -1352,6 +1355,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             _duplexConnection.Dispose();
 
+            // Even though we're in the "read frames loop", it's ok to cancel CTS and a "synchronous" TCS below. We
+            // won't be reading anything else so it's ok to run continuations synchronously.
+
             AbortTwowayInvocations(
                 IceRpcError.ConnectionAborted,
                 "The invocation was aborted because the connection was aborted.");
@@ -1394,15 +1400,20 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                // The CloseConnection frame completes the read frames task.
-                Debug.Assert(!_isClosedByPeer);
-
                 if (_twowayInvocations.TryGetValue(
                     requestId,
                     out TaskCompletionSource<PipeReader>? responseCompletionSource))
                 {
-                    responseCompletionSource.SetResult(replyFrameReader);
-                    completeFrameReader = false;
+                    // continuation runs asynchronously
+                    if (responseCompletionSource.TrySetResult(replyFrameReader))
+                    {
+                        completeFrameReader = false;
+                    }
+                    else
+                    {
+                        // We found an invocation that completed after _refuseInvocations was set to true.
+                        Debug.Assert(_refuseInvocations);
+                    }
                 }
                 // else the request ID carried by the response is bogus or corresponds to a request that was
                 // previously discarded (for example, because its deadline expired).
