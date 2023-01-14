@@ -10,13 +10,6 @@ namespace IceRpc.Retry.Internal;
 /// perspective).</summary>
 internal class ResettablePipeReaderDecorator : PipeReader
 {
-    /// <summary>Gets a value indicating whether any of the Read method was called and completed successfully since
-    /// its creation or the last reset.</summary>
-    /// <remarks>If no Read method completed successfully, no request or part of a request was sent to the server.
-    /// This includes the situation where this decorator decorates the empty pipe reader: if the empty pipe reader
-    /// was never read successfully, we did not send a empty-payload request to the server.</remarks>
-    internal bool IsRead { get; private set; }
-
     /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
     internal bool IsResettable
     {
@@ -234,7 +227,6 @@ internal class ResettablePipeReaderDecorator : PipeReader
             _consumed = null;
             _isReaderCompleted = false;
             _readerCompleteException = null;
-            IsRead = false;
         }
         else
         {
@@ -261,7 +253,6 @@ internal class ResettablePipeReaderDecorator : PipeReader
             _isResettable = false;
         }
 
-        IsRead = true;
         return readResult;
     }
 

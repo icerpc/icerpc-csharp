@@ -189,7 +189,8 @@ public sealed class ProtocolLoggerTests
         Assert.That(
             entry.State["RemoteNetworkAddress"],
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress));
-        Assert.That(entry.Exception, Is.InstanceOf<IceRpcException>());
+
+        Assert.That(entry.Exception, Is.InstanceOf<ObjectDisposedException>());
     }
 
     [Test]

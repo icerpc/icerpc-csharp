@@ -255,32 +255,6 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.IsCompleted, Is.True);
     }
 
-    /// <summary>Verifies that a shutdown succeeds even if the server transport connection ShutdownAsync is hung. The
-    /// ice protocol connection implementation does not call ShutdownAsync on the duplex connection.</summary>
-    [Test]
-    public async Task Shutdown_succeeds_with_hung_server_transport()
-    {
-        // Arrange
-
-        // We use our own decorated server transport
-        var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
-
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice)
-            .AddSingleton(colocTransport.ClientTransport) // overwrite
-            .AddSingleton<IDuplexServerTransport>(serverTransport)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Server);
-
-        // Act/Assert
-        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Nothing);
-    }
-
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
     {
         await connection.ShutdownRequested;

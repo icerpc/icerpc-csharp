@@ -9,10 +9,14 @@ public enum MultiplexedConnectionCloseError : byte
     NoError = 0,
 
     /// <summary>The connection was aborted for some unspecified reason.</summary>
-    Aborted = 1,
+    Aborted,
+
+    /// <summary>The server refused the connection, for example because it's shutting down.</summary>
+    /// <seealso cref="IceRpcError.ConnectionRefused" />
+    Refused,
 
     /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
     /// </summary>
     /// <seealso cref="IceRpcError.ServerBusy" />
-    ServerBusy = 2,
+    ServerBusy,
 }

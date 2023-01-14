@@ -180,6 +180,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         lock (_mutex)
         {
             _disposeTask ??= PerformDisposeAsync();
+            _isShutdown = true;
         }
         return new(_disposeTask);
 
@@ -356,7 +357,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (connection == _connection)
             {
-                if (_disposeTask is not null || _isShutdown)
+                if (_isShutdown)
                 {
                     // The client connection is being shut down or disposed. Its ShutdownAsync/DisposeAsync will
                     // shutdown/dispose _connection.
@@ -615,7 +616,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         public Task<IncomingResponse> InvokeAsync(
             OutgoingRequest request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
         {
             return _isConnected ? _decoratee.InvokeAsync(request, cancellationToken) : PerformConnectInvokeAsync();
 

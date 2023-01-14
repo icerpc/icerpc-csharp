@@ -17,6 +17,8 @@ internal static class QuicExceptionExtensions
                     {
                         (long)MultiplexedConnectionCloseError.NoError =>
                             new IceRpcException(IceRpcError.ConnectionClosedByPeer),
+                        (long)MultiplexedConnectionCloseError.Refused =>
+                            new IceRpcException(IceRpcError.ConnectionRefused),
                         (long)MultiplexedConnectionCloseError.ServerBusy =>
                             new IceRpcException(IceRpcError.ServerBusy),
                         (long)MultiplexedConnectionCloseError.Aborted =>
