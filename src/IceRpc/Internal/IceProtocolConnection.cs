@@ -953,8 +953,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         PipeReader? contextReader,
         CancellationToken cancellationToken)
     {
-        OutgoingResponse? response = null;
-        bool isCanceled = false;
+        OutgoingResponse? response;
         try
         {
             // The dispatcher can complete the incoming request payload to release its memory as soon as possible.
@@ -975,12 +974,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch when (request.IsOneway)
         {
-            // ignored since we're not returning anything; return below
+            // ignored since we're not returning anything
+            response = null;
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
         {
             // The connection is disposed or aborted. We're not sending anything back.
-            isCanceled = true;
+            response = null;
         }
         catch (Exception exception)
         {
@@ -1007,55 +1007,56 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         try
         {
-            if (request.IsOneway || isCanceled)
+            if (response is not null)
             {
-                return; // execute finally block
-            }
+                // Read the full response payload. This can take some time so this needs to be done before acquiring
+                // the write semaphore.
+                ReadOnlySequence<byte> payload = ReadOnlySequence<byte>.Empty;
 
-            Debug.Assert(response is not null);
+                if (response.StatusCode <= StatusCode.ApplicationError)
+                {
+                    try
+                    {
+                        payload = await ReadFullPayloadAsync(response.Payload, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception)
+                    {
+                        // We "encode" the exception in the error message.
+                        var dispatchException = new DispatchException(
+                            StatusCode.UnhandledException,
+                            message: null,
+                            exception);
 
-            // Read the full response payload. This can take some time so this needs to be done before acquiring the
-            // write semaphore.
-            ReadOnlySequence<byte> payload = ReadOnlySequence<byte>.Empty;
+                        response = new OutgoingResponse(request, dispatchException);
+                    }
+                }
+                // else payload remains empty because the payload of a dispatch exception (if any) cannot be sent
+                // over ice.
 
-            if (response.StatusCode <= StatusCode.ApplicationError)
-            {
+                int payloadSize = checked((int)payload.Length);
+
+                // Wait for writing of other frames to complete. The semaphore is used to serialize the writing of
+                // frames.
+                await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                acquiredSemaphore = true;
+
+                EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
+
                 try
                 {
-                    payload = await ReadFullPayloadAsync(response.Payload, cancellationToken)
-                        .ConfigureAwait(false);
+                    // Write the payload and complete the source.
+                    await _duplexConnectionWriter.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch (IceRpcException exception) when (
+                    exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.OperationAborted)
                 {
-                    var dispatchException = new DispatchException(
-                        StatusCode.UnhandledException,
-                        message: null,
-                        exception);
-
-                    response = new OutgoingResponse(request, dispatchException);
+                    // The duplex connection was disposed or aborted, which is ok.
                 }
-            }
-            // else payload remains empty because the payload of a dispatch exception (if any) cannot be sent
-            // over ice.
-
-            int payloadSize = checked((int)payload.Length);
-
-            // Wait for writing of other frames to complete. The semaphore is used to serialize the writing of
-            // frames.
-            await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-            acquiredSemaphore = true;
-
-            EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
-
-            try
-            {
-                // Write the payload and complete the source.
-                await _duplexConnectionWriter.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
-            }
-            catch (IceRpcException exception) when (
-                exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.OperationAborted)
-            {
-                // The duplex connection was disposed or aborted, which is ok.
             }
         }
         finally
@@ -1498,6 +1499,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             requestId,
                             contextReader,
                             cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // expected
                     }
                     catch (Exception exception)
                     {
