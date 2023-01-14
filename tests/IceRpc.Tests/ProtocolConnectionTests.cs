@@ -235,6 +235,7 @@ public sealed class ProtocolConnectionTests
                  Throws.InstanceOf<IceRpcException>()
                      .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
                      .With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
         Assert.That(
                 async () => await invokeTask2,
                 Throws.InstanceOf<IceRpcException>()

@@ -98,7 +98,6 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask = sut.Client.InvokeAsync(request);
@@ -119,7 +118,7 @@ public sealed class IceProtocolConnectionTests
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
-    /// Requests that are not dispatched by the server should complete with a InvocationCanceled error code.</summary>
+    /// Requests that are not dispatched by the server complete with an InvocationCanceled error.</summary>
     [Test]
     public async Task Not_dispatched_twoway_request_gets_invocation_canceled_on_server_connection_shutdown()
     {
@@ -137,7 +136,6 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask1 = sut.Client.InvokeAsync(request1);
@@ -153,8 +151,10 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(async () => await invokeTask1, Throws.Nothing);
         Assert.That(async () => await shutdownTask, Throws.Nothing);
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.InvocationCanceled));
+
+        Assert.That(
+            async () => await invokeTask2,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled));
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -274,23 +274,9 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Server);
 
         // Act/Assert
         Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Nothing);
-    }
-
-    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
-    {
-        await connection.ShutdownRequested;
-        try
-        {
-            await connection.ShutdownAsync();
-        }
-        catch
-        {
-            // ignore all exceptions
-        }
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>
