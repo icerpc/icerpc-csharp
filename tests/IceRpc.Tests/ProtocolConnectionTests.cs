@@ -287,6 +287,32 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await sut.Client.Closed, Is.Null);
     }
 
+    /// <summary>Verifies that ShutdownRequested completes when the peer shuts down.</summary>
+     [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    public async Task ShutdownRequested_completes_when_peer_shuts_down(Protocol protocol, bool closeClientSide)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        IProtocolConnection localConnection = closeClientSide ? sut.Client : sut.Server;
+        IProtocolConnection peerConnection = closeClientSide ? sut.Server : sut.Client;
+
+        // Act
+        Task shutdownTask = localConnection.ShutdownAsync();
+
+        // Assert
+        Assert.That(async () => await peerConnection.ShutdownRequested, Throws.Nothing);
+        Assert.That(shutdownTask.IsCompleted, Is.False); // it's waiting for the peer to shutdown
+        Assert.That(peerConnection.Closed.IsCompleted, Is.False);
+
+        await peerConnection.ShutdownAsync(); // fulfills shutdown request
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
+    }
+
     /// <summary>Verifies that ShutdownRequested completes when idle.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task ShutdownRequested_completes_when_idle(Protocol protocol)
