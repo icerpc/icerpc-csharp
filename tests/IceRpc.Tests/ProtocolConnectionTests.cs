@@ -224,48 +224,22 @@ public sealed class ProtocolConnectionTests
         Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request2);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
 
-        // Act / Assert
-        // If the protocol connection's internal dispatch semaphore wasn't canceled, the DisposeAsync would hang.
+        // Act
         await sut.Server.DisposeAsync();
 
-        // TODO: split test between ice and icerpc
-        if (protocol == Protocol.Ice)
-        {
-            // Depending on the timing, we can get a DispatchException or a ConnectionAborted.
-
-            try
-            {
-                IncomingResponse response1 = await invokeTask1;
-                Assert.That(response1.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-            }
-            catch (IceRpcException exception)
-            {
-                Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-            }
-
-            try
-            {
-                IncomingResponse response2 = await invokeTask2;
-                Assert.That(response2.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-            }
-            catch (IceRpcException exception)
-            {
-                Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-            }
-        }
-        else
-        {
-            Assert.That(
-                async () => await invokeTask1,
-                Throws.InstanceOf<IceRpcException>()
-                    .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
-                    .With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-            Assert.That(
+        // Assert
+        // If the protocol connection's internal dispatch semaphore wasn't canceled, the DisposeAsync would hang.
+        // Note: TruncatedData is only with icerpc.
+        Assert.That(
+                 async () => await invokeTask1,
+                 Throws.InstanceOf<IceRpcException>()
+                     .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
+                     .With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+        Assert.That(
                 async () => await invokeTask2,
                 Throws.InstanceOf<IceRpcException>()
                     .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted).Or
                     .With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-        }
     }
 
     /// <summary>Verifies that when a exception other than a DispatchException is thrown
@@ -542,7 +516,6 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that an abortive shutdown of a server connection cancels dispatches.</summary>
-    // TODO: split this test in ice and icerpc versions since the exception is different.
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Abortive_shutdown_cancels_dispatches(Protocol protocol)
     {
@@ -569,20 +542,10 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
 
-        try
-        {
-            IncomingResponse response = await invokeTask;
-
-            // expected with ice
-            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-        }
-        catch (IceRpcException exception)
-        {
-            // expected with icerpc
-            Assert.That(
-                exception.IceRpcError,
-                Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.TruncatedData));
-        }
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted)
+                .Or.With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
 
         Assert.That(
             async () => await shutdownTask,

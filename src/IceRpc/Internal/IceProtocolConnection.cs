@@ -289,9 +289,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _duplexConnection.Dispose();
 
                 // Wait for dispatches and invocations to complete.
-                // TODO: we don't care about invocations at this point. If we don't wait for invocations and don't use
-                // CancellationToken.None when writing responses, we could move the duplex connection dispose further
-                // down.
+                // TODO: we don't care about invocations at this point. If we don't wait for invocations, we could move
+                // the duplex connection dispose further down.
                 await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
             }
 
@@ -955,6 +954,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         CancellationToken cancellationToken)
     {
         OutgoingResponse? response = null;
+        bool isCanceled = false;
         try
         {
             // The dispatcher can complete the incoming request payload to release its memory as soon as possible.
@@ -975,14 +975,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch when (request.IsOneway)
         {
-            // ignored since we're not returning anything
+            // ignored since we're not returning anything; return below
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
         {
-            response = new OutgoingResponse(
-                request,
-                StatusCode.UnhandledException,
-                "The dispatch was canceled by the closure of the connection.");
+            // The connection is disposed or aborted. We're not sending anything back.
+            isCanceled = true;
         }
         catch (Exception exception)
         {
@@ -990,8 +988,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
             {
                 // We want the default error message for this new exception.
-                dispatchException =
-                    new DispatchException(StatusCode.UnhandledException, message: null, exception);
+                dispatchException = new DispatchException(StatusCode.UnhandledException, message: null, exception);
             }
 
             response = new OutgoingResponse(request, dispatchException);
@@ -1010,14 +1007,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         try
         {
-            if (request.IsOneway)
+            if (request.IsOneway || isCanceled)
             {
-                return;
+                return; // execute finally block
             }
 
             Debug.Assert(response is not null);
 
-            // Read the full payload. This can take some time so this needs to be done before acquiring the
+            // Read the full response payload. This can take some time so this needs to be done before acquiring the
             // write semaphore.
             ReadOnlySequence<byte> payload = ReadOnlySequence<byte>.Empty;
 
@@ -1045,11 +1042,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // Wait for writing of other frames to complete. The semaphore is used to serialize the writing of
             // frames.
-            // We pass CancellationToken.None and not cancellationToken because we want to send the response
-            // even when we're shutting down and cancellationToken is canceled. This can't take forever since
-            // the closure of the transport connection causes the holder of this semaphore to fail and
-            // release it.
-            await _writeSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             acquiredSemaphore = true;
 
             EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
@@ -1057,12 +1050,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             try
             {
                 // Write the payload and complete the source.
-                await _duplexConnectionWriter.WriteAsync(payload, CancellationToken.None).ConfigureAwait(false);
+                await _duplexConnectionWriter.WriteAsync(payload, cancellationToken).ConfigureAwait(false);
             }
             catch (IceRpcException exception) when (
                 exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.OperationAborted)
             {
-                // The transport connection was disposed, which is ok.
+                // The duplex connection was disposed or aborted, which is ok.
             }
         }
         finally

@@ -109,21 +109,9 @@ public sealed class IceProtocolConnectionTests
         await sut.Server.DisposeAsync();
 
         // Assert
-
-        // Depending on the timing, we can get a DispatchException or an IceRpcException(ConnectionAborted).
-        try
-        {
-            IncomingResponse response = await invokeTask;
-
-            Assert.That(
-                response.ErrorMessage,
-                Is.EqualTo("The dispatch was canceled by the closure of the connection."));
-            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-        }
-        catch (IceRpcException exception)
-        {
-            Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
-        }
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
         Assert.That(
             async () => await shutdownTask,
