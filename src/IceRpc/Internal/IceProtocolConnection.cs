@@ -34,7 +34,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly IDispatcher _dispatcher;
     private int _dispatchCount;
-    private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
+    private readonly TaskCompletionSource _dispatchesCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly SemaphoreSlim? _dispatchSemaphore;
@@ -50,6 +50,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly TimeSpan _idleTimeout;
     private readonly Timer _idleTimeoutTimer;
     private int _invocationCount;
+
+    private readonly TaskCompletionSource _invocationsCompleted =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private string? _invocationRefusedMessage;
     private bool _isClosedByPeer;
     private bool _isShutdown;
@@ -234,9 +238,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 RefuseNewInvocations("The connection was disposed.");
 
                 _isShutdown = true;
-                if (_invocationCount == 0 && _dispatchCount == 0)
+
+                if (_dispatchCount == 0)
                 {
-                    _dispatchesAndInvocationsCompleted.TrySetResult();
+                    _dispatchesCompleted.TrySetResult();
+                }
+                if (_invocationCount == 0)
+                {
+                    _invocationsCompleted.TrySetResult();
                 }
 
                 _disposeTask = PerformDisposeAsync();
@@ -260,16 +269,17 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             if (_connectTask is null)
             {
                 _ = _closedTcs.TrySetResult(null); // disposing non-connected connection
-                _duplexConnection.Dispose();
             }
             else
             {
+                // Wait for all tasks to complete, except there is no need to wait for invocations.
                 try
                 {
                     await Task.WhenAll(
                         _connectTask,
                         _readFramesTask ?? Task.CompletedTask,
                         _pingTask,
+                        _dispatchesCompleted.Task,
                         _shutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
                 }
                 catch
@@ -282,17 +292,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // complete successfully with "SetResult".
                 _ = _closedTcs.TrySetResult(
                     new IceRpcException(IceRpcError.OperationAborted, "The connection was disposed."));
-
-                // Dispose _duplexConnection to abort the invocations that are still writing to the duplex connection.
-                // We dispose the _duplexConnection only after the completion of _readFramesTask. This way, if
-                // _readsFrameTask sees a disposed _duplexConnection, it can only be from the idle monitor.
-                _duplexConnection.Dispose();
-
-                // Wait for dispatches and invocations to complete.
-                // TODO: we don't care about invocations at this point. If we don't wait for invocations, we could move
-                // the duplex connection dispose further down.
-                await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
             }
+
+            // We dispose the _duplexConnection only after the completion of _readFramesTask. This way, if
+            // _readsFrameTask sees a disposed _duplexConnection, it can only be from the idle monitor.
+            _duplexConnection.Dispose();
 
             // It's safe to dispose the reader/writer since no more threads are sending/receiving data.
             _duplexConnectionReader.Dispose();
@@ -496,11 +500,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
 
                     --_invocationCount;
-                    if (_invocationCount == 0 && _dispatchCount == 0)
+                    if (_invocationCount == 0)
                     {
                         if (_isShutdown)
                         {
-                            _dispatchesAndInvocationsCompleted.TrySetResult();
+                            _invocationsCompleted.TrySetResult();
                         }
                         else if (!_refuseInvocations)
                         {
@@ -662,9 +666,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             RefuseNewInvocations("The connection was shut down.");
 
             _isShutdown = true;
-            if (_invocationCount == 0 && _dispatchCount == 0)
+            if (_dispatchCount == 0)
             {
-                _dispatchesAndInvocationsCompleted.TrySetResult();
+                _dispatchesCompleted.TrySetResult();
+            }
+            if (_invocationCount == 0)
+            {
+                _invocationsCompleted.TrySetResult();
             }
 
             _shutdownTask = PerformShutdownAsync(_isClosedByPeer);
@@ -681,13 +689,16 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for connect to complete first.
                 _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-                // Since DisposeAsync waits for _shutdownTask completion, _disposedCts is not disposed at this point.
+                // Since DisposeAsync waits for the _shutdownTask completion, _disposedCts is not disposed at this
+                // point.
                 using var shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken,
                     _disposedCts.Token);
 
                 // Wait for dispatches and invocations to complete.
-                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
+                await Task.WhenAll(
+                    _dispatchesCompleted.Task,
+                    _invocationsCompleted.Task).WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
                 if (!closedByPeer)
                 {
@@ -712,7 +723,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // (including the CloseConnection frame) and we don't want to abort this reading.
                 await _readFramesTask!.ConfigureAwait(false);
 
-                // We can use SetResult because no other task can (Try)SetResult at this point.
+                // It's safe to call SetResult: no other task can (Try)SetResult on _closedTcs at this stage.
                 _closedTcs.SetResult(null);
 
                 if (closedByPeer)
@@ -1073,11 +1084,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 // Dispatch is done.
                 --_dispatchCount;
-                if (_invocationCount == 0 && _dispatchCount == 0)
+                if (_dispatchCount == 0)
                 {
                     if (_isShutdown)
                     {
-                        _dispatchesAndInvocationsCompleted.TrySetResult();
+                        _dispatchesCompleted.TrySetResult();
                     }
                     else if (!_refuseInvocations)
                     {
@@ -1262,6 +1273,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             // canceled by DisposeAsync, no need to throw anything
         }
+        catch (IceRpcException exception) when (
+            exception.IceRpcError == IceRpcError.ConnectionAborted &&
+            _dispatchesCompleted.Task.IsCompleted && _invocationsCompleted.Task.IsCompleted)
+        {
+            // The peer acknowledged receipt of the CloseConnection frame by aborting the duplex connection.
+            // See ShutdownAsync.
+        }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
             // _duplexConnection was disposed by the idle monitor. Nothing else can trigger this exception.
@@ -1270,23 +1288,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 "The connection was aborted by the idle monitor.");
             Abort(exception);
             throw exception;
-        }
-        catch (IceRpcException exception) when (
-            exception.IceRpcError == IceRpcError.ConnectionAborted &&
-            _dispatchesAndInvocationsCompleted.Task.IsCompleted)
-        {
-            // The peer acknowledges receipt of the CloseConnection frame by aborting the duplex connection.
-            // See ShutdownAsync and case IceFrameType.CloseConnection above.
-            lock (_mutex)
-            {
-                if (_shutdownTask is not null)
-                {
-                    return;
-                }
-            }
-
-            Abort(exception);
-            throw;
         }
         catch (IceRpcException exception)
         {
