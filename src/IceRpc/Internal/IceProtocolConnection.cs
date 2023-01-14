@@ -147,46 +147,34 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException) when (_disposedCts.Token.IsCancellationRequested)
             {
+                // DisposeAsync completes Closed.
                 throw new IceRpcException(
                     IceRpcError.OperationAborted,
                     "The connection establishment was aborted because the connection was disposed.");
             }
+            // For all other exceptions, we complete _closedTcs. This way the caller (e.g. Server) will typically
+            // dispose this failed connection promptly.
             catch (OperationCanceledException)
             {
                 Debug.Assert(cancellationToken.IsCancellationRequested);
                 var exception = new OperationCanceledException(cancellationToken);
-                TryCompleteClosed(exception, "The connection establishment was canceled.");
+                _ = _closedTcs.TrySetResult(exception);
                 throw exception;
-            }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-            {
-                // We don't want to throw IceRpcException(OperationAborted) unless this connection is actually disposed.
-                lock (_mutex)
-                {
-                    if (_disposeTask is null)
-                    {
-                        throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was aborted.");
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
             }
             catch (IceRpcException exception)
             {
-                TryCompleteClosed(exception, "The connection establishment failed.");
+                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
             catch (InvalidDataException exception)
             {
-                TryCompleteClosed(exception, "The connection establishment failed.");
+                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
             catch (Exception exception)
             {
                 Debug.Fail($"ConnectAsync failed with an unexpected exception: {exception}");
-                TryCompleteClosed(exception, "The connection establishment failed.");
+                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
 
@@ -344,6 +332,21 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
+            if (IsServer)
+            {
+                // Make sure the connection is fully connected because proceeding.
+                try
+                {
+                    _ = await _connectTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                    throw new IceRpcException(
+                        IceRpcError.InvocationRefused,
+                        "The invocation was refused because the connection establishment failed.");
+                }
+            }
+
             lock (_mutex)
             {
                 if (_refuseInvocations)
@@ -733,9 +736,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     _duplexConnection.Dispose();
                 }
             }
+            // Note that a ShutdownAsync failure does not complete Closed. This way outstanding dispatches and
+            // invocations can keep going. Completing Closed typically triggers an immediate disposal by the client of
+            // this class.
             catch (OperationCanceledException)
             {
-                // We don't set Closed at all in this case. The dispatches and invocations could keep going.
                 cancellationToken.ThrowIfCancellationRequested();
 
                 lock (_mutex)
@@ -772,15 +777,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
             }
-            catch (IceRpcException exception)
+            catch (IceRpcException)
             {
-                TryCompleteClosed(exception, "The connection shutdown failed.");
                 throw;
             }
             catch (Exception exception)
             {
                 Debug.Fail($"ShutdownAsync failed with an unexpected exception: {exception}");
-                TryCompleteClosed(exception, "The connection shutdown failed.");
                 throw;
             }
 
@@ -1598,13 +1601,5 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _refuseInvocations = true;
             _invocationRefusedMessage ??= message;
         }
-    }
-
-    /// <summary>Refuse new invocations and attempts to complete Closed with the given exception.</summary>
-    /// <remarks>Must be called outside the mutex lock.</remarks>
-    private void TryCompleteClosed(Exception exception, string invocationRefusedMessage)
-    {
-        RefuseNewInvocations(invocationRefusedMessage);
-        _ = _closedTcs.TrySetResult(exception);
     }
 }
