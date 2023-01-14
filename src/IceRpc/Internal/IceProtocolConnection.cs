@@ -708,15 +708,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Otherwise, we've just sent a CloseConnection frame to the peer and we wait for the peer to abort
                 // the connection as an acknowledgment for this CloseConnection frame. The peer could also send us
                 // a concurrent CloseConnection frame.
-                // We can't just return and dispose the duplex connection since this could abort the receipt of
-                // responses and the CloseConnection frame still being processed by the peer.
+                // We can't just return and dispose the duplex connection since this peer can still be reading frames
+                // (including the CloseConnection frame) and we don't want to abort this reading.
                 await _readFramesTask!.ConfigureAwait(false);
-
-                // We don't dispose _duplexConnection here. With a graceful shutdown, the important
-                // _duplexConnection dispose is in the _readFramesTask when we receive the CloseConnection frame.
 
                 // We can use SetResult because no other task can (Try)SetResult at this point.
                 _closedTcs.SetResult(null);
+
+                if (closedByPeer)
+                {
+                    // The peer is waiting for us to abort the duplex connection; we oblige.
+                    _duplexConnection.Dispose();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -807,7 +810,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _minSegmentSize,
             // TODO: since connectionLostAction always gives the same exception, what's the point of this parameter?
             // We count on the _readFramesTask to report this connection abort (complete Closed etc.). Note this is
-            // the only _duplexConnection Dispose outside _readFramesTask and DisposeAsync.
+            // the only _duplexConnection Dispose that can "interrupt" _readFramesTask.
             connectionLostAction: _ => _duplexConnection.Dispose());
 
         _idleTimeoutTimer = new Timer(_ =>
@@ -1210,14 +1213,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             IceRpcError.InvocationCanceled,
                             "The invocation was canceled by the shutdown of the peer.");
 
-                        // Cancel twoway dispatches since the peer is no longer interested in the responses.
-                        _twowayDispatchesCts.Cancel();
-
-                        // We dispose the duplex connection for 2 reasons:
-                        // - abort any invocation currently writing to the duplex connection.
-                        // - acknowledge receipt of the CloseConnection frame, which allows the peer to complete its
-                        // own shutdown.
-                        _duplexConnection.Dispose();
+                        // We can't just abort the duplex connection immediately. If we're still writing to it, the
+                        // peer could receive invalid data which would make its graceful shutdown fail.
 
                         // We request a graceful shutdown that will complete Closed with null.
                         _shutdownRequestedTcs.TrySetResult();
