@@ -755,6 +755,23 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
             }
+            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+            {
+                // We don't want to throw IceRpcException(OperationAborted) unless this connection is actually
+                // disposed.
+                lock (_mutex)
+                {
+                    if (_disposeTask is null)
+                    {
+                        // _readFramesTask completes Closed in this case.
+                        throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was aborted.");
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
             catch (IceRpcException exception)
             {
                 TryCompleteClosed(exception, "The connection shutdown failed.");

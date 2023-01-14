@@ -117,6 +117,37 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
+    /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>
+    [Test]
+    public async Task Idle_timeout_mismatch_aborts_connection()
+    {
+        var clientConnectionOptions = new ConnectionOptions { IdleTimeout = TimeSpan.FromSeconds(10) };
+        var serverConnectionOptions = new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(100) };
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher: null,
+                clientConnectionOptions,
+                serverConnectionOptions)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Act
+        await sut.Server.ShutdownRequested; // after about 100 ms, the server connection requests a shutdown
+
+        // Assert
+        Assert.That(
+            async () => await sut.Server.Closed,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
+
+        Assert.That(
+            async () => await sut.Client.ShutdownAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
     /// Requests that are not dispatched by the server complete with an InvocationCanceled error.</summary>
     [Test]
