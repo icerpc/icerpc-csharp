@@ -255,13 +255,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 IceRpcError.OperationAborted,
                 "The invocation was aborted because the connection was disposed.");
 
-            _duplexConnection.Dispose();
-
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
 
             if (_connectTask is null)
             {
                 _ = _closedTcs.TrySetResult(null); // disposing non-connected connection
+                _duplexConnection.Dispose();
             }
             else
             {
@@ -271,8 +270,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         _connectTask,
                         _readFramesTask ?? Task.CompletedTask,
                         _pingTask,
-                        _shutdownTask ?? Task.CompletedTask,
-                        _dispatchesAndInvocationsCompleted.Task).ConfigureAwait(false);
+                        _shutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -284,6 +282,17 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // complete successfully with "SetResult".
                 _ = _closedTcs.TrySetResult(
                     new IceRpcException(IceRpcError.OperationAborted, "The connection was disposed."));
+
+                // Dispose _duplexConnection to abort the invocations that are still writing to the duplex connection.
+                // We dispose the _duplexConnection only after the completion of _readFramesTask. This way, if
+                // _readsFrameTask sees a disposed _duplexConnection, it can only be from the idle monitor.
+                _duplexConnection.Dispose();
+
+                // Wait for dispatches and invocations to complete.
+                // TODO: we don't care about invocations at this point. If we don't wait for invocations and don't use
+                // CancellationToken.None when writing responses, we could move the duplex connection dispose further
+                // down.
+                await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
             }
 
             // It's safe to dispose the reader/writer since no more threads are sending/receiving data.
@@ -704,7 +713,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // responses and the CloseConnection frame still being processed by the peer.
                 await _readFramesTask!.ConfigureAwait(false);
 
-                _duplexConnection.Dispose();
+                // We don't dispose _duplexConnection here. With a graceful shutdown, the important
+                // _duplexConnection dispose is in the _readFramesTask when we receive the CloseConnection frame.
 
                 // We can use SetResult because no other task can (Try)SetResult at this point.
                 _closedTcs.SetResult(null);
@@ -797,7 +807,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _memoryPool,
             _minSegmentSize,
             // TODO: since connectionLostAction always gives the same exception, what's the point of this parameter?
-            // We count on the _readFramesTask to report this connection abort (complete Closed etc.).
+            // We count on the _readFramesTask to report this connection abort (complete Closed etc.). Note this is
+            // the only _duplexConnection Dispose outside _readFramesTask and DisposeAsync.
             connectionLostAction: _ => _duplexConnection.Dispose());
 
         _idleTimeoutTimer = new Timer(_ =>
@@ -834,7 +845,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 try
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
-                    await _duplexConnectionWriter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -853,8 +864,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 Debug.Fail($"The ping task completed due to an unhandled exception: {exception}");
 
-                // We don't abort the connection in this extremely unlikely event (some severe bug with the
-                // writeSemaphore). If we did, we would need to await _pingTask in ShutdownAsync.
+                // We don't abort the connection (complete Closed) in this extremely unlikely event (some severe bug
+                // with the writeSemaphore). If we did, we would need to await _pingTask in ShutdownAsync.
                 throw;
             }
 
@@ -1262,17 +1273,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            // The underlying connection was disposed by a call to Abort or by the idle monitor. We don't want to throw
-            // IceRpcException(OperationAborted) unless this connection is actually disposed.
-            lock (_mutex)
-            {
-                if (_disposeTask is not null)
-                {
-                    throw;
-                }
-            }
-
-            exception = new IceRpcException(IceRpcError.ConnectionAborted, "The connection was aborted.");
+            // _duplexConnection was disposed by the idle monitor. Nothing else can trigger this exception.
+            exception = new IceRpcException(
+                IceRpcError.ConnectionIdle,
+                "The connection was aborted by the idle monitor.");
             Abort(exception);
             throw exception;
         }
