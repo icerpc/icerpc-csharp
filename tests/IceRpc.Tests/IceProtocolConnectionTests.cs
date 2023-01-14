@@ -222,7 +222,7 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(
             await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
         // Cleanup
         await sut.Server.DisposeAsync();
