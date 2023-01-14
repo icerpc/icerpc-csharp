@@ -288,7 +288,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that ShutdownRequested completes when the peer shuts down.</summary>
-     [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
+    [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task ShutdownRequested_completes_when_peer_shuts_down(Protocol protocol, bool closeClientSide)
     {
         // Arrange
