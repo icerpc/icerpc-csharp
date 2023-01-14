@@ -27,8 +27,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private bool IsServer => _transportConnectionInformation is not null;
 
-    private readonly TaskCompletionSource<Exception?> _closedTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<Exception?> _closedTcs = new();
 
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private Task<TransportConnectionInformation>? _connectTask;
@@ -401,6 +400,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         if (!request.IsOneway)
                         {
                             requestId = ++_nextRequestId;
+
+                            // RunContinuationsAsynchronously because we don't want the "read frames loop" to run the
+                            // continuation.
                             responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
                             _twowayInvocations[requestId] = responseCompletionSource;
                         }
@@ -740,8 +742,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
             }
             // Note that a ShutdownAsync failure does not complete Closed. This way outstanding dispatches and
-            // invocations can keep going. Completing Closed typically triggers an immediate disposal by the client of
-            // this class.
+            // invocations can keep going. Completing Closed typically triggers an immediate disposal by the caller.
             catch (OperationCanceledException)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -771,7 +772,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     if (_disposeTask is null)
                     {
-                        // _readFramesTask completes Closed in this case.
                         throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was aborted.");
                     }
                     else
@@ -1243,6 +1243,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             _isClosedByPeer = true;
                             RefuseNewInvocations(
                                 "The connection was shut down because it received a CloseConnection frame from the peer.");
+
+                            // By exiting the "read frames loop" below, we are refusing new dispatches as well.
                         }
 
                         // Abort twoway invocations that are waiting for a response (it will never come).
@@ -1251,13 +1253,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             "The invocation was canceled by the shutdown of the peer.");
 
                         // Cancel twoway dispatches since the peer is not interested in the responses. This does not
-                        // cancel WriteAsync to _duplexConnection - we don't send incomplete/invalid data.
+                        // cancel ongoing writes to _duplexConnection: we don't send incomplete/invalid data.
                         _twowayDispatchesCts.Cancel();
 
                         // We can't just abort the duplex connection immediately. If we're still writing to it, the
-                        // peer could receive invalid data which would make its graceful shutdown fail.
+                        // peer could receive invalid data which would make its shutdown fail.
 
-                        // We request a graceful shutdown that will complete Closed with null.
+                        // We request a shutdown that will dispose _duplexConnection once all invocations and dispatches
+                        // have completed.
                         _shutdownRequestedTcs.TrySetResult();
                         return;
                     }
@@ -1307,7 +1310,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             exception.IceRpcError == IceRpcError.ConnectionAborted &&
             _dispatchesCompleted.Task.IsCompleted && _invocationsCompleted.Task.IsCompleted)
         {
-            // The peer acknowledged receipt of the CloseConnection frame by aborting the duplex connection.
+            // The peer acknowledged receipt of the CloseConnection frame by aborting the duplex connection. Return.
             // See ShutdownAsync.
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
