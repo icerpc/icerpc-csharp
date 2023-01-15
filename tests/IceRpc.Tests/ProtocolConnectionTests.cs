@@ -542,9 +542,10 @@ public sealed class ProtocolConnectionTests
         Assert.That(tokenCanceled, Is.False);
     }
 
-    /// <summary>Verifies that an abortive shutdown of a server connection cancels dispatches.</summary>
+    /// <summary>Verifies that disposing a server connection cancels dispatches even when shutdown is already in
+    /// progress.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Abortive_shutdown_cancels_dispatches(Protocol protocol)
+    public async Task Dispose_cancels_dispatches(Protocol protocol)
     {
         // Arrange
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
@@ -579,8 +580,7 @@ public sealed class ProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
-    /// <summary>Verifies that disposing the client connection aborts pending invocations, the invocations will fail
-    /// with <see cref="IceRpcError.OperationAborted" />.</summary>
+    /// <summary>Verifies that disposing the client connection aborts pending invocations.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_aborts_pending_invocations(Protocol protocol)
     {
@@ -644,29 +644,9 @@ public sealed class ProtocolConnectionTests
         Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Act/Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
-            () => sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))));
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.InvocationRefused));
-
-        // Cleanup
-        await shutdownTask;
-    }
-
-    /// <summary>Ensures that the sending a request after dispose fails.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Invoke_on_connection_fails_after_dispose(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        Task disposeTask = sut.Client.DisposeAsync().AsTask();
-
-        // Act/Assert
-        Assert.ThrowsAsync<ObjectDisposedException>(() => sut.Client.InvokeAsync(
-            new OutgoingRequest(new ServiceAddress(protocol))));
+        Assert.That(
+            async () => await sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationRefused));
     }
 
     /// <summary>Ensures that calling ConnectAsync, ShutdownAsync or InvokeAsync raise ObjectDisposedException if the
@@ -1090,6 +1070,44 @@ public sealed class ProtocolConnectionTests
         (await invokeTask).Payload.Complete();
 
         Assert.That(async () => await shutdownTask, Throws.Nothing);
+    }
+
+    /// <summary>Verifies that a client connection shutdown cancels left-over dispatches in the server.</summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Shutdown_cancels_left_over_dispatches_in_server(Protocol protocol)
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
+        using var cts = new CancellationTokenSource();
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, cts.Token);
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // This cancels both the invocation and the dispatch with icerpc; only the invocation with ice.
+        cts.Cancel();
+
+        // Act
+        Task clientShutdownTask = sut.Client.ShutdownAsync();
+        await sut.Server.ShutdownRequested;
+
+        // Assert
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
+
+        await Task.Delay(TimeSpan.FromMilliseconds(100)); // make sure the client shutdown is hanging
+        Assert.That(clientShutdownTask.IsCompleted, Is.False);
+
+        // Fulfill shutdown request.
+        await sut.Server.ShutdownAsync();
+        Assert.That(async () => await clientShutdownTask, Throws.Nothing);
     }
 
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
