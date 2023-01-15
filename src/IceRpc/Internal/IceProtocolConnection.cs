@@ -1268,7 +1268,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             var exception = new IceRpcException(
                 IceRpcError.ConnectionIdle,
                 "The connection was aborted by the idle monitor.");
-            Abort(exception);
+            AbortRead(exception);
             throw exception;
         }
         catch (IceRpcException exception) when (
@@ -1280,7 +1280,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (IceRpcException exception)
         {
-            Abort(exception);
+            AbortRead(exception);
             throw;
         }
         catch (InvalidDataException exception)
@@ -1290,33 +1290,28 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 "The connection was aborted by an ice protocol error.",
                 exception);
 
-            Abort(rpcException);
+            AbortRead(rpcException);
             throw rpcException;
         }
         catch (Exception exception)
         {
             Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
-            Abort(exception);
+            AbortRead(exception);
             throw;
         }
 
-        // Aborts the connection without disposing _duplexConnection. Once Abort completes and we exit the read frames
-        // loop, any outstanding dispatch or invocation is aborted, canceled or writing to the duplex connection.
-        void Abort(Exception exception)
+        // Aborts all activities that rely on reading the connection since we're about to exit the read frames loop.
+        void AbortRead(Exception exception)
         {
+            // We also prevent new oneway invocations even though they don't need to read the connection.
             RefuseNewInvocations("The connection was lost.");
 
-            // Even though we're in the "read frames loop", it's ok to cancel CTS and a "synchronous" TCS below. We
-            // won't be reading anything else so it's ok to run continuations synchronously.
+            // It's ok to cancel CTS and a "synchronous" TCS below. We  won't be reading anything else so it's ok to ru
+            // continuations synchronously.
 
             AbortTwowayInvocations(
                 IceRpcError.ConnectionAborted,
-                "The invocation was aborted because the connection was aborted.");
-
-            _twowayDispatchesCts.Cancel();
-
-            // There is no point sending more pings.
-            _pingCts.Cancel();
+                "The invocation was aborted because the connection was lost.");
 
             // Completing Closed typically triggers an abrupt disposal of the connection, with invocations completing
             // with OperationAborted as opposed to ConnectionAborted. That's why we do it last.
