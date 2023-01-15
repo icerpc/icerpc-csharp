@@ -56,6 +56,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly int _minSegmentSize;
     private readonly object _mutex = new();
     private int _nextRequestId;
+    private readonly CancellationTokenSource _pingCts;
     private Task _pingTask = Task.CompletedTask;
 
     private readonly CancellationTokenSource _readFramesCts;
@@ -117,7 +118,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 if (IsServer)
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
-                    await _duplexConnectionWriter.FlushAsync(connectCts.Token).ConfigureAwait(false);
+
+                    // We only use _disposedCts.Token to write/flush.
+                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).AsTask()
+                        .WaitAsync(connectCts.Token)
+                        .ConfigureAwait(false);
                 }
                 else
                 {
@@ -278,7 +283,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _duplexConnectionWriter.Dispose();
 
             _disposedCts.Dispose();
+            _pingCts.Dispose();
             _twowayDispatchesCts.Dispose();
+
             _dispatchSemaphore?.Dispose();
             _writeSemaphore.Dispose();
             await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
@@ -675,6 +682,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         "The connection shutdown was aborted because the connection establishment was canceled.");
                 }
 
+                Debug.Assert(_readFramesTask is not null);
+
                 // Since DisposeAsync waits for the _shutdownTask completion, _disposedCts is not disposed at this
                 // point.
                 using var shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(
@@ -684,42 +693,46 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for dispatches and invocations to complete.
                 await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
-                if (!closedByPeer)
+                // Stop sending pings and wait for the last ping to complete before sending the CloseConnection frame or
+                // disposing the duplex connection.
+                _pingCts.Cancel();
+                await _pingTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
+
+                if (closedByPeer)
                 {
-                    // Encode and write the CloseConnection frame once all the dispatches are done.
+                    // _readFramesTask should be already completed or nearly completed.
+                    await _readFramesTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
+
+                    // The peer is waiting for us to abort the duplex connection; we oblige.
+                    _duplexConnection.Dispose();
+                }
+                else
+                {
+                    // Send CloseConnection frame.
                     await _writeSemaphore.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
                     try
                     {
                         EncodeCloseConnectionFrame(_duplexConnectionWriter);
 
-                        // The cancellation of the cancellation token does not interrupt writes except during
-                        // DisposeAsync.
+                        // We only use _disposedCts.Token to write/flush.
                         await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).AsTask()
-                            .WaitAsync(cancellationToken)
+                            .WaitAsync(shutdownCts.Token)
                             .ConfigureAwait(false);
                     }
                     finally
                     {
                         _writeSemaphore.Release();
                     }
-                }
 
-                // If closedByPeer is true, _readFramesTask is completed or nearly completed.
-                // Otherwise, we've just sent a CloseConnection frame to the peer and we wait for the peer to abort
-                // the connection as an acknowledgment for this CloseConnection frame. The peer could also send us
-                // a concurrent CloseConnection frame.
-                // We can't just return and dispose the duplex connection since this peer can still be reading frames
-                // (including the CloseConnection frame) and we don't want to abort this reading.
-                await _readFramesTask!.ConfigureAwait(false);
+                    // Wait for the peer to abort the connection as an acknowledgment for this CloseConnection frame.
+                    // The peer can also send us a CloseConnection frame.
+                    // We can't just return and dispose the duplex connection since the peer can still be reading frames
+                    // (including the CloseConnection frame) and we don't want to abort this reading.
+                    await _readFramesTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
+                }
 
                 // It's safe to call SetResult: no other task can (Try)SetResult on _closedTcs at this stage.
                 _closedTcs.SetResult(null);
-
-                if (closedByPeer)
-                {
-                    // The peer is waiting for us to abort the duplex connection; we oblige.
-                    _duplexConnection.Dispose();
-                }
             }
             // Note that a ShutdownAsync failure does not complete Closed. This way, outstanding dispatches and
             // invocations can keep going. Completing Closed typically triggers an immediate disposal by the caller.
@@ -755,6 +768,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
     {
+        _pingCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
         _readFramesCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
         _twowayDispatchesCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
 
@@ -786,9 +800,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 lock (_mutex)
                 {
-                    if (_pingTask.IsCompletedSuccessfully && _disposeTask is null)
+                    if (_pingTask.IsCompletedSuccessfully && !_pingCts.Token.IsCancellationRequested)
                     {
-                        _pingTask = PingAsync(_disposedCts.Token);
+                        _pingTask = PingAsync(_pingCts.Token);
                     }
                 }
             });
@@ -834,11 +848,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 try
                 {
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
-                    await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore, the read frames task will fail if the connection fails.
+
+                    // We only use _disposedCts.Token to write/flush.
+                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).AsTask()
+                        .WaitAsync(cancellationToken)
+                        .ConfigureAwait(false);
                 }
                 finally
                 {
@@ -847,14 +861,17 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                // Ignore, the connection is already closing or closed.
+                // Successful completion through cancellation.
+            }
+            catch (IceRpcException)
+            {
+                // Expected, typically the peer aborted the connection.
+                // The read frames loop (if still running) will abort the connection.
+                throw;
             }
             catch (Exception exception)
             {
                 Debug.Fail($"The ping task completed due to an unhandled exception: {exception}");
-
-                // We don't abort the connection (complete Closed) in this extremely unlikely event (some severe bug
-                // with the writeSemaphore). If we did, we would need to await _pingTask in ShutdownAsync.
                 throw;
             }
 
@@ -1196,8 +1213,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // cancel ongoing writes to _duplexConnection: we don't send incomplete/invalid data.
                         _twowayDispatchesCts.Cancel();
 
-                        // We can't just abort the duplex connection immediately. If we're still writing to it, the
-                        // peer could receive invalid data which would make its shutdown fail.
+                        // We keep sending pings. If the shutdown request / shutdown is not fulfilled quickly, they
+                        // tell the peer we're still alive and maybe stuck waiting for invocations and dispatches to
+                        // complete.
 
                         // We request a shutdown that will dispose _duplexConnection once all invocations and dispatches
                         // have completed.
@@ -1297,6 +1315,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 "The invocation was aborted because the connection was aborted.");
 
             _twowayDispatchesCts.Cancel();
+
+            // There is no point sending more pings.
+            _pingCts.Cancel();
 
             // Completing Closed typically triggers an abrupt disposal of the connection, with invocations completing
             // with OperationAborted as opposed to ConnectionAborted. That's why we do it last.
