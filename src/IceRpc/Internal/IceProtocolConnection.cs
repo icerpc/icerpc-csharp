@@ -725,7 +725,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
 
                     // Wait for the peer to abort the connection as an acknowledgment for this CloseConnection frame.
-                    // The peer can also send us a CloseConnection frame.
+                    // The peer can also send us a CloseConnection frame if it started shutting down at the same time.
                     // We can't just return and dispose the duplex connection since the peer can still be reading frames
                     // (including the CloseConnection frame) and we don't want to abort this reading.
                     await _readFramesTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
