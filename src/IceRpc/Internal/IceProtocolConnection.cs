@@ -11,6 +11,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
 
+/// <summary>Implements <see cref="IProtocolConnection" /> for the ice protocol.</summary>
 internal sealed class IceProtocolConnection : IProtocolConnection
 {
     public Task<Exception?> Closed => _closedTcs.Task;
@@ -28,7 +29,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private bool IsServer => _transportConnectionInformation is not null;
 
     private readonly TaskCompletionSource<Exception?> _closedTcs = new();
-
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly IDispatcher _dispatcher;
@@ -58,7 +58,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private int _nextRequestId;
     private readonly CancellationTokenSource _pingCts;
     private Task _pingTask = Task.CompletedTask;
-
     private readonly CancellationTokenSource _readFramesCts;
     private Task? _readFramesTask;
 
@@ -184,9 +183,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
             _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
 
-            // This needs to be set before starting the read frames task below.
-            _connectionContext = new ConnectionContext(this, transportConnectionInformation);
-
             // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
             // DisposeAsync. Once _disposeTask is not null, _readFramesTask is immutable.
             lock (_mutex)
@@ -197,6 +193,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         IceRpcError.OperationAborted,
                         "The connection establishment was aborted because the connection was disposed.");
                 }
+
+                // This needs to be set before starting the read frames task below.
+                _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
                 _readFramesTask = ReadFramesAsync(_readFramesCts.Token);
 
@@ -283,6 +282,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             _disposedCts.Dispose();
             _pingCts.Dispose();
+            _readFramesCts.Dispose();
             _twowayDispatchesCts.Dispose();
 
             _dispatchSemaphore?.Dispose();
