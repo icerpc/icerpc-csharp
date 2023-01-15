@@ -143,6 +143,12 @@ public sealed class IceProtocolConnectionTests
             async () => await sut.Server.Closed,
             Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
 
+        // Cleanup
+
+        // That's the dispose that actually aborts the connection for the client. It's usually triggered by Closed's
+        // completion.
+        await sut.Server.DisposeAsync();
+
         Assert.That(
             async () => await sut.Client.ShutdownAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
