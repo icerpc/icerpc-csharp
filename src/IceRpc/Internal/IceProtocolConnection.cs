@@ -482,8 +482,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 lock (_mutex)
                 {
-                    // If registered, unregister the twoway invocation.
-                    if (requestId != 0 && !_refuseInvocations)
+                    // Unregister the twoway invocation if registered.
+                    if (responseCompletionSource is not null)
                     {
                         _twowayInvocations.Remove(requestId);
                     }
