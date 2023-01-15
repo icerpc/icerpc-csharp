@@ -255,7 +255,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             else
             {
-                // Wait for all tasks to complete, except there is no need to wait for invocations.
                 try
                 {
                     await Task.WhenAll(
