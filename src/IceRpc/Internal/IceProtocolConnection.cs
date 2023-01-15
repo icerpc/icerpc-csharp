@@ -811,7 +811,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _memoryPool,
             _minSegmentSize,
             // TODO: since connectionLostAction always gives the same exception, what's the point of this parameter?
-            // We count on the _readFramesTask to report this connection lost.
             connectionLostAction: _ => _readFramesCts.Cancel());
 
         _idleTimeoutTimer = new Timer(_ =>
