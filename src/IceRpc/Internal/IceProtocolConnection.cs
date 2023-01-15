@@ -51,7 +51,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private int _invocationCount;
     private string? _invocationRefusedMessage;
     private bool _isClosedByPeer;
-    private bool _isShutdown;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
@@ -225,7 +224,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 RefuseNewInvocations("The connection was disposed.");
 
-                _isShutdown = true;
+                _shutdownTask ??= Task.CompletedTask;
                 if (_dispatchCount == 0 && _invocationCount == 0)
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
@@ -259,7 +258,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         _readFramesTask ?? Task.CompletedTask,
                         _pingTask,
                         _dispatchesAndInvocationsCompleted.Task,
-                        _shutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
+                        _shutdownTask).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -486,7 +485,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     --_invocationCount;
                     if (_dispatchCount == 0 && _invocationCount == 0)
                     {
-                        if (_isShutdown)
+                        if (_shutdownTask is not null)
                         {
                             _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
@@ -649,12 +648,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             RefuseNewInvocations("The connection was shut down.");
 
-            _isShutdown = true;
             if (_dispatchCount == 0 && _invocationCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
-
             _shutdownTask = PerformShutdownAsync(_isClosedByPeer);
         }
 
@@ -809,7 +806,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _invocationCount == 0 && !_isShutdown)
+                if (_dispatchCount == 0 && _invocationCount == 0 && _shutdownTask is null)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
@@ -1052,7 +1049,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 --_dispatchCount;
                 if (_dispatchCount == 0 && _invocationCount == 0)
                 {
-                    if (_isShutdown)
+                    if (_shutdownTask is not null)
                     {
                         _dispatchesAndInvocationsCompleted.TrySetResult();
                     }
@@ -1450,11 +1447,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_isShutdown)
+                if (_shutdownTask is not null)
                 {
                     // The connection is (being) disposed or the connection is shutting down and received a request.
-                    // We simply discard it.
-                    // For a graceful shutdown, the twoway invocation in the peer will throw
+                    // We simply discard it. For a graceful shutdown, the twoway invocation in the peer will throw
                     // IceRpcException(InvocationCanceled). We also discard oneway requests: if we accepted them, they
                     // could delay our shutdown and make it time out.
                     if (releaseDispatchSemaphore)
