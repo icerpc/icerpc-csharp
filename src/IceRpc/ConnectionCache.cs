@@ -244,6 +244,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         {
                             connectionException = exception;
                         }
+                        catch (InvalidDataException exception)
+                        {
+                            connectionException = exception;
+                        }
                         // TODO are there other IceRpcError errors besides IceRpcError.IceRpcError that we want to
                         // let through.
                         catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.IceRpcError)
@@ -516,16 +520,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch
                 {
-                }
-                catch (IceRpcException)
-                {
-                }
-                catch (Exception exception)
-                {
-                    Debug.Fail($"Unexpected connection shutdown exception: {exception}");
-                    throw;
+                    // Ignore connection shutdown failures
                 }
                 finally
                 {
