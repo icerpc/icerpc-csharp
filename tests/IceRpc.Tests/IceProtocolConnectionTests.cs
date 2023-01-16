@@ -86,10 +86,9 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
-    /// <summary>Verifies that an abortive server connection shutdown causes the invocation to fail with a <see
-    /// cref="DispatchException" />.</summary>
+    /// <summary>Verifies that an abortive server connection shutdown causes an invocation failure.</summary>
     [Test]
-    public async Task Abortive_server_connection_shutdown_triggers_dispatch_exception()
+    public async Task Abortive_server_connection_shutdown_triggers_invocation_failure()
     {
         // Arrange
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
@@ -99,6 +98,7 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
@@ -107,16 +107,55 @@ public sealed class IceProtocolConnectionTests
         // Act
         await sut.Server.DisposeAsync();
 
-        IncomingResponse response = await invokeTask;
+        // Assert
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        Assert.That(
+            async () => await shutdownTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+    }
+
+    /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>
+    [Test]
+    public async Task Idle_timeout_mismatch_aborts_connection()
+    {
+        var clientConnectionOptions = new ConnectionOptions { IdleTimeout = TimeSpan.FromSeconds(10) };
+        var serverConnectionOptions = new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(100) };
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher: null,
+                clientConnectionOptions,
+                serverConnectionOptions)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Act
+        await sut.Server.ShutdownRequested; // after about 100 ms, the server connection requests a shutdown
 
         // Assert
-        Assert.That(response.ErrorMessage, Is.EqualTo("The dispatch was canceled by the closure of the connection."));
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
+        Assert.That(
+            async () => await sut.Server.Closed,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
+
+        // Cleanup
+
+        // That's the dispose that actually aborts the connection for the client. It's usually triggered by Closed's
+        // completion.
+        await sut.Server.DisposeAsync();
+
+        Assert.That(
+            async () => await sut.Client.ShutdownAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
-    /// Requests that are not dispatched by the server should complete with a InvocationCanceled error code.</summary>
+    /// Requests that are not dispatched by the server complete with an InvocationCanceled error.</summary>
     [Test]
     public async Task Not_dispatched_twoway_request_gets_invocation_canceled_on_server_connection_shutdown()
     {
@@ -134,6 +173,7 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask1 = sut.Client.InvokeAsync(request1);
@@ -149,8 +189,10 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(async () => await invokeTask1, Throws.Nothing);
         Assert.That(async () => await shutdownTask, Throws.Nothing);
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.InvocationCanceled));
+
+        Assert.That(
+            async () => await invokeTask2,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled));
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -200,14 +242,20 @@ public sealed class IceProtocolConnectionTests
             Payload = pipe.Reader
         };
 
-        // Act/Assert
-        var exception = Assert.ThrowsAsync<IceRpcException>(
-            async () => await sut.Client.InvokeAsync(request, default));
-        Assert.That(exception, Is.Not.Null);
+        // Act
+        Task invokeTask = sut.Client.InvokeAsync(request, default);
 
+        // Assert
         Assert.That(
             await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        // Cleanup
+        await sut.Server.DisposeAsync();
+
+        Assert.That(
+            async () => await invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,
@@ -242,6 +290,19 @@ public sealed class IceProtocolConnectionTests
         bool ok = response.Payload.TryRead(out ReadResult readResult);
         Assert.That(ok, Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
+    }
+
+    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
+    {
+        await connection.ShutdownRequested;
+        try
+        {
+            await connection.ShutdownAsync();
+        }
+        catch
+        {
+            // ignore all exceptions
+        }
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>
