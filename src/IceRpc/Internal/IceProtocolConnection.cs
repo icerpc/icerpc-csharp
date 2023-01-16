@@ -307,37 +307,16 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
             }
-            if (_connectTask is null)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
-                throw new InvalidOperationException("Cannot invoke on a connection before connecting it.");
+                throw new InvalidOperationException("Cannot invoke on a connection that is not fully established.");
             }
-            if (!IsServer && !_connectTask.IsCompletedSuccessfully)
-            {
-                throw new InvalidOperationException(
-                    "Cannot invoke on a client connection that is not fully established.");
-            }
-            // It's possible but rare to invoke on a server connection that is still connecting.
         }
 
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            if (IsServer)
-            {
-                // Make sure the connection is fully connected because proceeding.
-                try
-                {
-                    _ = await _connectTask.ConfigureAwait(false);
-                }
-                catch
-                {
-                    throw new IceRpcException(
-                        IceRpcError.InvocationRefused,
-                        "The invocation was refused because the connection establishment failed.");
-                }
-            }
-
             lock (_mutex)
             {
                 if (_refuseInvocations)
@@ -1142,6 +1121,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private async Task ReadFramesAsync(CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
+
+        // Wait for _connectTask (which spawned the _readFramesTask running this method) to complete. This way, we
+        // won't dispatch any request until _connectTask has completed successfully, and indirectly we won't make any
+        // invocation until _connectTask has completed successfully. The creation of the _readFramesTask is the last
+        // action taken by _connectTask and as a result this await can't fail.
+        _ = await _connectTask!.ConfigureAwait(false);
 
         try
         {
