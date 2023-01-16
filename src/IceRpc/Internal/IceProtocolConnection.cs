@@ -119,9 +119,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
 
                     // We only use _disposedCts.Token to write/flush.
-                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).AsTask()
-                        .WaitAsync(connectCts.Token)
-                        .ConfigureAwait(false);
+                    // TODO: see #2523 and #2472
+                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
                 }
                 else
                 {
@@ -197,11 +196,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // This needs to be set before starting the read frames task below.
                 _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-                _readFramesTask = ReadFramesAsync(_readFramesCts.Token);
-
-                // As soon as we exit the mutex lock, _readFramesTask can start dispatching requests and disable this
-                // idle check.
+                // Requests dispatches by _readFramesTask disable this idle check.
                 EnableIdleCheck();
+
+                _readFramesTask = ReadFramesAsync(_readFramesCts.Token);
             }
 
             return transportConnectionInformation;
@@ -401,7 +399,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
-                    // TODO: see #2472
+                    // TODO: see #2523 and #2472
                     await _duplexConnectionWriter.WriteAsync(payload, _disposedCts.Token).ConfigureAwait(false);
 
                     request.Payload.Complete();
@@ -483,7 +481,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 lock (_mutex)
                 {
                     // Unregister the twoway invocation if registered.
-                    if (responseCompletionSource is not null)
+                    if (requestId > 0 && !_refuseInvocations)
                     {
                         _twowayInvocations.Remove(requestId);
                     }
@@ -714,9 +712,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         EncodeCloseConnectionFrame(_duplexConnectionWriter);
 
                         // We only use _disposedCts.Token to write/flush.
-                        await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).AsTask()
-                            .WaitAsync(shutdownCts.Token)
-                            .ConfigureAwait(false);
+                        // TODO: see #2523 and #2472
+                        await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -848,9 +845,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     EncodeValidateConnectionFrame(_duplexConnectionWriter);
 
                     // We only use _disposedCts.Token to write/flush.
-                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).AsTask()
-                        .WaitAsync(cancellationToken)
-                        .ConfigureAwait(false);
+                    // TODO: see #2523 and #2472
+                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -1043,6 +1039,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // Write the payload and complete the source. We use _disposedCts.Token here instead of
                     // cancellationToken because canceling _twowayDispatchesCts should not write invalid data.
                     // _disposedCts is not disposed because DisposeAsync waits for dispatches to complete.
+                    // TODO: see #2523 and #2472
                     await _duplexConnectionWriter.WriteAsync(payload, _disposedCts.Token).ConfigureAwait(false);
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionAborted)
@@ -1266,7 +1263,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             var exception = new IceRpcException(
                 IceRpcError.ConnectionIdle,
-                "The connection was aborted by the idle monitor.");
+                "The connection was aborted because its underlying duplex connection did not receive any byte for too long.");
             AbortRead(exception);
             throw exception;
         }
@@ -1572,7 +1569,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    private void RefuseNewInvocations(string? message)
+    private void RefuseNewInvocations(string message)
     {
         lock (_mutex)
         {
