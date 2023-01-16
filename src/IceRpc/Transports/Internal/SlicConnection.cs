@@ -305,6 +305,8 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync()
         {
+            await Task.Yield(); // Exit mutex lock
+
             Close(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed.");
 
             await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -1198,6 +1200,8 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task PerformCloseAsync(ulong errorCode)
         {
+            await Task.Yield(); // Exit mutex lock
+
             IceRpcError? peerCloseError = errorCode switch
             {
                 (ulong)MultiplexedConnectionCloseError.NoError => IceRpcError.ConnectionClosedByPeer,
