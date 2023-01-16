@@ -164,6 +164,16 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             writerScheduler: PipeScheduler.Inline));
     }
 
+    internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
+    {
+        // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire the
+        // semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send additional data
+        // (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send additional data and
+        // _sendCredit can be used to figure out the size of the next packet to send.
+        await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return _sendCredit;
+    }
+
     /// <summary>Complete writes.</summary>
     /// <param name="exception">The exception raised by <see cref="PipeWriter.WriteAsync" /> or <see cref="FlushAsync"
     /// />.</param>
@@ -177,16 +187,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         catch (ObjectDisposedException)
         {
         }
-    }
-
-    internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
-    {
-        // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire the
-        // semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send additional data
-        // (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send additional data and
-        // _sendCredit can be used to figure out the size of the next packet to send.
-        await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return _sendCredit;
     }
 
     internal void ConsumedSendCredit(int consumed)
