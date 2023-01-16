@@ -8,7 +8,7 @@ namespace IceRpc;
 
 /// <summary>A PipeReader decorator that allows to reset its decoratee to its initial state (from the caller's
 /// perspective).</summary>
-public class ResettablePipeReaderDecorator : PipeReader
+public sealed class ResettablePipeReaderDecorator : PipeReader
 {
     /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
     public bool IsResettable
@@ -148,10 +148,11 @@ public class ResettablePipeReaderDecorator : PipeReader
         return ProcessReadResult(readResult);
     }
 
-    /// <summary>Constructs a ResettablePipeReaderDecorator.</summary>
-    /// <param name="decoratee">The decorated pipe reader.</param>
-    /// <param name="maxBufferSize">The maximum size of buffered data, once the resettable pipe reader reads that much
-    /// data it becomes not resettable and <see cref="IsResettable"/> returns false.</param>
+    /// <summary>Constructs a ResettablePipeReaderDecorator. This decorator avoids consuming the read data to allow
+    /// restart reading from the beginning, once the buffered data exceeds the <paramref name="maxBufferSize"/> the
+    /// decorator becomes non resettable and <see cref="IsResettable"/> returns <see langword="false" />.</summary>
+    /// <param name="decoratee">The pipe reader being decorated.</param>
+    /// <param name="maxBufferSize">The maximum size of buffered data in bytes.</param>
     public ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
     {
         _decoratee = decoratee;
