@@ -482,6 +482,10 @@ public sealed class Server : IAsyncDisposable
                     {
                         await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
                     }
+                    catch
+                    {
+                        // Ignore connection shutdown failures
+                    }
                     finally
                     {
                         lock (_mutex)
