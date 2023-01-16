@@ -53,9 +53,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly Timer _idleTimeoutTimer;
     private string? _invocationRefusedMessage;
 
-    // _isShutdown is true once ShutdownAsync or DisposeAsync is called.
-    private bool _isShutdown;
-
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
     // was accepted.
     private ulong? _lastRemoteBidirectionalStreamId;
@@ -228,7 +225,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     _dispatchesCompleted.TrySetResult();
                 }
 
-                _isShutdown = true;
+                _shutdownTask ??= Task.CompletedTask;
                 _disposeTask = PerformDisposeAsync();
             }
         }
@@ -258,7 +255,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         _connectTask,
                         _acceptRequestsTask ?? Task.CompletedTask,
                         _readGoAwayTask ?? Task.CompletedTask,
-                        _shutdownTask ?? Task.CompletedTask,
+                        _shutdownTask,
                         _dispatchesCompleted.Task).ConfigureAwait(false);
                 }
                 catch
@@ -533,7 +530,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
             }
 
-            _isShutdown = true;
             RefuseNewInvocations("The connection was shut down.");
 
             if (_streamCount == 0)
@@ -723,7 +719,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _streamCount == 0 && !_isShutdown)
+                if (_dispatchCount == 0 && _streamCount == 0 && _shutdownTask is null)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
@@ -808,7 +804,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     // We don't want to increment _dispatchCount or _streamCount when the connection is
                     // shutting down or being disposed.
-                    if (_isShutdown)
+                    if (_shutdownTask is not null)
                     {
                         // Note that cancellationToken may not be canceled yet at this point.
                         throw new OperationCanceledException();
@@ -967,7 +963,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (--_dispatchCount == 0 && _isShutdown)
+                if (--_dispatchCount == 0 && _shutdownTask is not null)
                 {
                     _ = _dispatchesCompleted.TrySetResult();
                 }
@@ -1459,7 +1455,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && !_isShutdown)
+            if (!stream.IsRemote && _shutdownTask is null)
             {
                 if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
                 {
@@ -1473,7 +1469,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (--_streamCount == 0)
             {
-                if (_isShutdown)
+                if (_shutdownTask is not null)
                 {
                     _streamsClosed.TrySetResult();
                 }
