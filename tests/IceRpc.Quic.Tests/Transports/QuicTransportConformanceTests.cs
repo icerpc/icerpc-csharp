@@ -12,7 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Tests.Transports;
 
 [Parallelizable(ParallelScope.All)]
-public class QuiConnectionConformanceTests : MultiplexedConnectionConformanceTests
+public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTests
 {
     [OneTimeSetUp]
     public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();

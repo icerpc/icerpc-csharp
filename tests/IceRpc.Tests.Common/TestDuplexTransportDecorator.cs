@@ -16,6 +16,50 @@ public enum DuplexTransportOperation
     Write = 8
 }
 
+#pragma warning disable CA1001 // _lastConnection is disposed by the caller.
+public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
+#pragma warning restore CA1001
+{
+    public TestDuplexConnectionDecorator LastConnection =>
+        _lastConnection ?? throw new InvalidOperationException("Call CreateConnection first.");
+
+    private readonly IDuplexClientTransport _decoratee;
+    private readonly DuplexTransportOperation _failOperation;
+    private readonly DuplexTransportOperation _holdOperation;
+    private TestDuplexConnectionDecorator? _lastConnection;
+
+    public string Name => _decoratee.Name;
+
+    public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
+
+    public IDuplexConnection CreateConnection(
+        ServerAddress serverAddress,
+        DuplexConnectionOptions options,
+        SslClientAuthenticationOptions? clientAuthenticationOptions)
+    {
+        var connection = new TestDuplexConnectionDecorator(_decoratee.CreateConnection(
+            serverAddress,
+            options,
+            clientAuthenticationOptions))
+        {
+            HoldOperation = _holdOperation,
+            FailOperation = _failOperation
+        };
+        _lastConnection = connection;
+        return connection;
+    }
+
+    public TestDuplexClientTransportDecorator(
+        IDuplexClientTransport decoratee,
+        DuplexTransportOperation holdOperation = DuplexTransportOperation.None,
+        DuplexTransportOperation failOperation = DuplexTransportOperation.None)
+    {
+        _decoratee = decoratee;
+        _holdOperation = holdOperation;
+        _failOperation = failOperation;
+    }
+}
+
 /// <summary>A decorator for duplex server transport that holds any ConnectAsync and ShutdownAsync for connections
 /// accepted by this transport.</summary>
 #pragma warning disable CA1001 // _listener is disposed by Listen caller.

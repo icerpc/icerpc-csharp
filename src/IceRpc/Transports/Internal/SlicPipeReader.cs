@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal;
 internal class SlicPipeReader : PipeReader
 {
     private int _examined;
-    private IceRpcException? _exception;
+    private Exception? _exception;
     private long _lastExaminedOffset;
     private readonly Pipe _pipe;
     private ReadResult _readResult;
@@ -22,7 +22,7 @@ internal class SlicPipeReader : PipeReader
 
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
-        CheckIfCompleted();
+        ThrowIfCompleted();
 
         long startOffset = _readResult.Buffer.GetOffset(_readResult.Buffer.Start);
         long consumedOffset = _readResult.Buffer.GetOffset(consumed) - startOffset;
@@ -53,22 +53,17 @@ internal class SlicPipeReader : PipeReader
             // We don't use the application error code, it's irrelevant.
             _stream.CompleteReads(errorCode: 0ul);
 
-            if (_state.TrySetFlag(State.PipeWriterCompleted))
-            {
-                _pipe.Writer.Complete();
-            }
+            CompleteReads(exception: null);
+
             _pipe.Reader.Complete();
         }
     }
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        CheckIfCompleted();
+        ThrowIfCompleted();
 
-        if (_state.HasFlag(State.PipeWriterCompleted))
-        {
-            return GetReadResult();
-        }
+        _stream.ThrowIfConnectionClosed();
 
         ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
@@ -92,13 +87,9 @@ internal class SlicPipeReader : PipeReader
 
     public override bool TryRead(out ReadResult result)
     {
-        CheckIfCompleted();
+        ThrowIfCompleted();
 
-        if (_state.HasFlag(State.PipeWriterCompleted))
-        {
-            result = GetReadResult();
-            return true;
-        }
+        _stream.ThrowIfConnectionClosed();
 
         if (_pipe.Reader.TryRead(out result))
         {
@@ -138,9 +129,9 @@ internal class SlicPipeReader : PipeReader
             writerScheduler: PipeScheduler.Inline));
     }
 
-    /// <summary>Aborts reads.</summary>
+    /// <summary>Complete reads.</summary>
     /// <param name="exception">The exception raised by ReadAsync.</param>
-    internal void Abort(IceRpcException? exception)
+    internal void CompleteReads(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
 
@@ -181,8 +172,7 @@ internal class SlicPipeReader : PipeReader
         {
             if (_state.HasFlag(State.PipeWriterCompleted))
             {
-                // If the Slic pipe reader is completed, nothing was consumed.
-                return 0;
+                return 0; // No bytes consumed.
             }
 
             int newCredit = Interlocked.Add(ref _receiveCredit, -dataSize);
@@ -203,7 +193,8 @@ internal class SlicPipeReader : PipeReader
             {
                 // If it's not a remote stream and the peer is done sending data, we can complete reads right away to
                 // allow a new stream to be opened. There's no need to wait for the buffered data or end of stream to be
-                // consumed. This will prevent the sending of a stop sending frame when this reader is completed.
+                // consumed. This will also prevent the sending of a stop sending frame when this reader is completed
+                // before all the data is consumed.
                 if (!_stream.IsRemote && dataSize == 0)
                 {
                     _stream.TrySetReadsCompleted();
@@ -229,16 +220,6 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    private void CheckIfCompleted()
-    {
-        if (_state.HasFlag(State.Completed))
-        {
-            // If the reader is completed, the caller is bogus, it shouldn't call read operations after completing the
-            // pipe reader.
-            throw new InvalidOperationException("Reading is not allowed once the reader is completed.");
-        }
-    }
-
     private ReadResult GetReadResult()
     {
         if (_state.HasFlag(State.PipeWriterCompleted))
@@ -258,6 +239,16 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
+    private void ThrowIfCompleted()
+    {
+        if (_state.HasFlag(State.Completed))
+        {
+            // If the reader is completed, the caller is bogus, it shouldn't call read operations after completing the
+            // pipe reader.
+            throw new InvalidOperationException("Reading is not allowed once the reader is completed.");
+        }
+    }
+
     /// <summary>The state enumeration is used to ensure the reader is not used after it's completed and to ensure that
     /// the internal pipe writer isn't completed concurrently when it's being used by <see
     /// cref="ReceivedStreamFrameAsync" />.</summary>
@@ -269,7 +260,7 @@ internal class SlicPipeReader : PipeReader
         /// <summary>Data is being written to the internal pipe writer.</summary>
         PipeWriterInUse = 2,
 
-        /// <summary>The internal pipe writer was completed by <see cref="Abort" />.</summary>
+        /// <summary>The internal pipe writer was completed by <see cref="CompleteReads" />.</summary>
         PipeWriterCompleted = 4,
     }
 }
