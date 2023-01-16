@@ -130,28 +130,31 @@ public class SlicTransportTests
             4096,
             connectionLostAction: exception => { });
         reader.EnableAliveCheck(TimeSpan.FromSeconds(60));
+
         // Act
-        EncodeInitializeFrame(writer);
+        EncodeInitializeFrame(writer, version: 2);
         await writer.FlushAsync(default);
         (var multiplexedServerConnection, _) = await acceptTask;
         var connectTask = multiplexedServerConnection.ConnectAsync(default);
         (FrameType frameType, int frameSize, VersionBody versionBody) = await ReadFrameHeaderAsync(reader);
+        EncodeInitializeFrame(writer, version: 1);
+        await writer.FlushAsync(default);
 
         // Assert
         Assert.That(frameType, Is.EqualTo(FrameType.Version));
         Assert.That(versionBody.Versions, Is.EqualTo(new ulong[] { 1 }));
+        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>()); // The initialize frame is incomplete.
 
         await multiplexedServerConnection.DisposeAsync();
-        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
 
-        void EncodeInitializeFrame(IBufferWriter<byte> writer)
+        void EncodeInitializeFrame(IBufferWriter<byte> writer, ulong version)
         {
             var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, IList<byte>>());
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
             encoder.EncodeFrameType(FrameType.Initialize);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
-            encoder.EncodeVarUInt62(2);
+            encoder.EncodeVarUInt62(version);
             initializeBody.Encode(ref encoder);
             SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
         }
