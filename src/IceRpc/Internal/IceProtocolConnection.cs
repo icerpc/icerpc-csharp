@@ -144,28 +144,36 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
             }
-            catch (OperationCanceledException) when (_disposedCts.Token.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    _ = _closedTcs.TrySetResult(
+                        new IceRpcException(
+                            IceRpcError.ConnectionAborted,
+                            "The connection establishment was canceled."));
+
+                    cancellationToken.ThrowIfCancellationRequested(); // always throws
+                }
+
                 // DisposeAsync completes Closed.
+                Debug.Assert(_disposedCts.Token.IsCancellationRequested);
                 throw new IceRpcException(
                     IceRpcError.OperationAborted,
                     "The connection establishment was aborted because the connection was disposed.");
             }
             // For all other exceptions, we complete _closedTcs. This way the caller (e.g. Server) will typically
             // dispose this failed connection promptly.
-            catch (OperationCanceledException)
+            catch (InvalidDataException exception)
             {
-                Debug.Assert(cancellationToken.IsCancellationRequested);
-                var exception = new OperationCanceledException(cancellationToken);
-                _ = _closedTcs.TrySetResult(exception);
-                throw exception;
+                var rpcException = new IceRpcException(
+                    IceRpcError.ConnectionAborted,
+                    "The connection was aborted by an ice protocol error.",
+                    exception);
+                _ = _closedTcs.TrySetResult(rpcException);
+                throw rpcException;
             }
             catch (IceRpcException exception)
-            {
-                _ = _closedTcs.TrySetResult(exception);
-                throw;
-            }
-            catch (InvalidDataException exception)
             {
                 _ = _closedTcs.TrySetResult(exception);
                 throw;
