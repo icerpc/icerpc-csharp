@@ -352,9 +352,7 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
+        var serverTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
         await using ServiceProvider provider =
             services
@@ -367,6 +365,9 @@ public class ClientConnectionTests
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
         await connection.ConnectAsync();
+        await serverTransport.LastAcceptedConnection.ConnectAsync(default);
+        // Hold server reads after the connection is established to prevent shutdown to proceed.
+        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
 
         Task shutdownTask = connection.ShutdownAsync();
 
@@ -384,9 +385,7 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
+        var serverTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
         await using ServiceProvider provider =
             services
@@ -399,6 +398,9 @@ public class ClientConnectionTests
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
         await connection.ConnectAsync();
+        await serverTransport.LastAcceptedConnection.ConnectAsync(default);
+        // Hold server reads after the connection is established to prevent shutdown to proceed.
+        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         Task shutdownTask = connection.ShutdownAsync(cts.Token);
