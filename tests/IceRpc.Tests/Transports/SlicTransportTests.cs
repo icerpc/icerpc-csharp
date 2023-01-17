@@ -368,6 +368,8 @@ public class SlicTransportTests
         duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(writePayloadData, writeCts.Token);
         writeCts.Cancel();
+        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
+
         // Modify the data right after cancelling the write.
         writePayloadData[0] = 0x20;
         writePayloadData[1] = 0x50;
