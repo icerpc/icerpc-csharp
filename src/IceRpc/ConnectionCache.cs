@@ -359,11 +359,21 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             try
             {
-                await Task.WhenAll(
-                    allConnections
-                        .Select(connection => connection.ShutdownAsync(cts.Token))
-                        .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
-                    .ConfigureAwait(false);
+                try
+                {
+                    await Task.WhenAll(
+                        allConnections
+                            .Select(connection => connection.ShutdownAsync(cts.Token))
+                            .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
+                        .ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    // Ignore connection shutdown failures other than OperationCanceledException.
+                    // Avoid eating OCE when connection shutdown fails and ConnectionCache ShutdownAsync is already
+                    // canceled.
+                    cts.Token.ThrowIfCancellationRequested();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -380,10 +390,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     throw new TimeoutException(
                         $"The connection cache shut down timed out after {_shutdownTimeout.TotalSeconds} s.");
                 }
-            }
-            catch
-            {
-                // Ignore connection shutdown failures
             }
         }
     }

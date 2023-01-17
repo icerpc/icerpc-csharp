@@ -586,11 +586,20 @@ public sealed class Server : IAsyncDisposable
                     await _listenTask.WaitAsync(cts.Token).ConfigureAwait(false);
                 }
 
-                await Task.WhenAll(
-                    _connections
-                        .Select(entry => entry.ShutdownAsync(cts.Token))
-                        .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
-                    .ConfigureAwait(false);
+                try
+                {
+                    await Task.WhenAll(
+                        _connections
+                            .Select(entry => entry.ShutdownAsync(cts.Token))
+                            .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
+                        .ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    // Ignore connection shutdown failures other than OperationCanceledException.
+                    // Avoid eating OCE when connection shutdown fails and Server ShutdownAsync is already canceled.
+                    cts.Token.ThrowIfCancellationRequested();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -607,10 +616,6 @@ public sealed class Server : IAsyncDisposable
                     throw new TimeoutException(
                         $"The server shut down timed out after {_shutdownTimeout.TotalSeconds} s.");
                 }
-            }
-            catch
-            {
-                // Ignore connection shutdown failures
             }
         }
     }
