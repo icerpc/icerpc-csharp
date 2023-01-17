@@ -56,7 +56,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly int _minSegmentSize;
     private readonly object _mutex = new();
     private int _nextRequestId;
-    private readonly CancellationTokenSource _pingCts;
+    private bool _pingEnabled = true;
     private Task _pingTask = Task.CompletedTask;
     private readonly CancellationTokenSource _readFramesCts;
     private Task? _readFramesTask;
@@ -75,6 +75,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private readonly CancellationTokenSource _twowayDispatchesCts;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _twowayInvocations = new();
+
+    // _writeFailed is protected by the _writeSemaphore. When true, the connection is aborted because a write operation
+    // failed.
+    private bool _writeFailed;
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -116,11 +120,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 if (IsServer)
                 {
-                    EncodeValidateConnectionFrame(_duplexConnectionWriter);
-
-                    // We only use _disposedCts.Token to write/flush.
-                    // TODO: see #2523 and #2472
-                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
+                    // Send ValidateConnection frame. Any failure while writing to _duplexConnectionWriter (including
+                    // cancellation through connectCts.Token) aborts the connection.
+                    await SendControlFrameAsync(EncodeValidateConnectionFrame, connectCts.Token).ConfigureAwait(false);
                 }
                 else
                 {
@@ -212,7 +214,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             return transportConnectionInformation;
 
-            static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
+            static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
             {
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
@@ -239,6 +241,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
                 }
+
+                _pingEnabled = false; // makes _pingTask immutable
 
                 _disposeTask = PerformDisposeAsync();
             }
@@ -287,7 +291,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _duplexConnectionWriter.Dispose();
 
             _disposedCts.Dispose();
-            _pingCts.Dispose();
             _readFramesCts.Dispose();
             _twowayDispatchesCts.Dispose();
 
@@ -356,12 +359,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     invocationCts.Token).ConfigureAwait(false);
                 int payloadSize = checked((int)payload.Length);
 
-                // Wait for writing of other frames to complete. The semaphore is used as an asynchronous queue to
-                // serialize the writing of frames.
-                await _writeSemaphore.WaitAsync(invocationCts.Token).ConfigureAwait(false);
-
                 try
                 {
+                    // Wait for the writing of other frames to complete.
+                    using SemaphoreLock _ = await AcquireWriteLockAsync(invocationCts.Token).ConfigureAwait(false);
+
                     // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
                     // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
                     // canceled request to allocate a request ID that won't be used.
@@ -384,12 +386,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         }
                     }
 
-                    EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
-
-                    // TODO: see #2523 and #2472
-                    await _duplexConnectionWriter.WriteAsync(payload, _disposedCts.Token).ConfigureAwait(false);
-
-                    request.Payload.Complete();
+                    try
+                    {
+                        EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
+                        await _duplexConnectionWriter.WriteAsync(payload, invocationCts.Token).ConfigureAwait(false);
+                        request.Payload.Complete();
+                    }
+                    catch (Exception exception)
+                    {
+                        // We abort the connection on failure, including if invocationCts is canceled - for example,
+                        // the deadline interceptor canceled the cancellation token. See #2472.
+                        AbortWrite(exception);
+                        throw;
+                    }
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.InvocationCanceled)
                 {
@@ -398,10 +407,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         IceRpcError.InvocationCanceled,
                         "Failed to send ice request.",
                         exception);
-                }
-                finally
-                {
-                    _writeSemaphore.Release();
                 }
 
                 if (request.IsOneway)
@@ -571,7 +576,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             static void EncodeRequestHeader(
-                DuplexConnectionWriter output,
+                IBufferWriter<byte> output,
                 OutgoingRequest request,
                 int requestId,
                 int payloadSize)
@@ -677,9 +682,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for dispatches and invocations to complete.
                 await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
-                // Stop sending pings and wait for the last ping to complete before sending the CloseConnection frame or
-                // disposing the duplex connection.
-                _pingCts.Cancel();
+                // Stops pings. We can't do earlier: while we're waiting for dispatches and invocations to complete,
+                // we need to keep sending pings otherwise the peer could see the connection as idle and abort it.
+                lock (_mutex)
+                {
+                    _pingEnabled = false; // makes _pingTask immutable
+                }
+
+                // Wait for the last ping to complete before sending the CloseConnection frame or disposing the duplex
+                // connection. _pingTask is immutable once _shutdownTask set. _pingTask can be canceled by DisposeAsync.
                 await _pingTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
                 if (closedByPeer)
@@ -692,20 +703,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 else
                 {
-                    // Send CloseConnection frame.
-                    await _writeSemaphore.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
-                    try
-                    {
-                        EncodeCloseConnectionFrame(_duplexConnectionWriter);
-
-                        // We only use _disposedCts.Token to write/flush.
-                        // TODO: see #2523 and #2472
-                        await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        _writeSemaphore.Release();
-                    }
+                    // Send CloseConnection frame. Any failure while writing to _duplexConnectionWriter (including
+                    // cancellation through shutdownCts.Token) aborts the connection.
+                    await SendControlFrameAsync(EncodeCloseConnectionFrame, shutdownCts.Token).ConfigureAwait(false);
 
                     // Wait for the peer to abort the connection as an acknowledgment for this CloseConnection frame.
                     // The peer can also send us a CloseConnection frame if it started shutting down at the same time.
@@ -717,8 +717,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // It's safe to call SetResult: no other task can (Try)SetResult on _closedTcs at this stage.
                 _closedTcs.SetResult(null);
             }
-            // Note that a ShutdownAsync failure does not complete Closed. This way, outstanding dispatches and
-            // invocations can keep going. Completing Closed typically triggers an immediate disposal by the caller.
             catch (OperationCanceledException)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -738,7 +736,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw;
             }
 
-            static void EncodeCloseConnectionFrame(DuplexConnectionWriter writer)
+            static void EncodeCloseConnectionFrame(IBufferWriter<byte> writer)
             {
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.CloseConnectionFrame.Encode(ref encoder);
@@ -751,7 +749,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
     {
-        _pingCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
         _readFramesCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
         _twowayDispatchesCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
 
@@ -779,13 +776,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             duplexConnection,
             _memoryPool,
             _minSegmentSize,
+            // This will execute until _duplexConnectionWriter is disposed, perhaps even after!
             keepAliveAction: () =>
             {
                 lock (_mutex)
                 {
-                    if (_pingTask.IsCompletedSuccessfully && !_pingCts.Token.IsCancellationRequested)
+                    if (_pingTask.IsCompletedSuccessfully && _pingEnabled)
                     {
-                        _pingTask = PingAsync(_pingCts.Token);
+                        _pingTask = PingAsync(_disposedCts.Token);
                     }
                 }
             });
@@ -793,7 +791,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             duplexConnection,
             _memoryPool,
             _minSegmentSize,
-            // TODO: since connectionLostAction always gives the same exception, what's the point of this parameter?
             connectionLostAction: _ => _readFramesCts.Cancel());
 
         _idleTimeoutTimer = new Timer(_ =>
@@ -819,35 +816,22 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         async Task PingAsync(CancellationToken cancellationToken)
         {
-            Debug.Assert(_duplexConnectionWriter is not null);
-
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
 
             try
             {
-                await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    EncodeValidateConnectionFrame(_duplexConnectionWriter);
-
-                    // We only use _disposedCts.Token to write/flush.
-                    // TODO: see #2523 and #2472
-                    await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _writeSemaphore.Release();
-                }
+                // Any failure while writing to the _duplexConnectionWriter aborts the connection.
+                await SendControlFrameAsync(EncodeValidateConnectionFrame, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                // Successful completion through cancellation.
+                // Canceled by DisposeAsync
+                throw;
             }
             catch (IceRpcException)
             {
                 // Expected, typically the peer aborted the connection.
-                // The read frames loop (if still running) will abort the connection.
                 throw;
             }
             catch (Exception exception)
@@ -856,7 +840,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw;
             }
 
-            static void EncodeValidateConnectionFrame(DuplexConnectionWriter writer)
+            static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
             {
                 var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
                 IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
@@ -915,6 +899,42 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         return readResult.IsCompleted ? readResult.Buffer :
             throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
+    }
+
+    /// <summary>Aborts write operations on this connection.</summary>
+    /// <remarks>Must be called outside the mutex lock but after acquiring the write lock with
+    /// <see cref="AcquireWriteLockAsync" />.</remarks>
+    private void AbortWrite(Exception exception)
+    {
+        // Protected by _writeSemaphore.
+        _writeFailed = true;
+
+        // We can't send new invocations without writing to the connection.
+        RefuseNewInvocations("The connection was lost because a write operation failed.");
+
+        // We can't send responses so these dispatches can be canceled.
+        _twowayDispatchesCts.Cancel();
+
+        // Completing Closed typically triggers an abrupt disposal of the connection.
+        _ = _closedTcs.TrySetResult(exception);
+    }
+
+    /// <summary>Acquires exclusive access to _duplexConnectionWriter.</summary>
+    /// <returns>A <see cref="SemaphoreLock" /> that releases the acquired semaphore in its Dispose method.</returns>
+    private async ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
+    {
+        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        // _writeFailed in protected by _writeSemaphore
+        if (_writeFailed)
+        {
+            _writeSemaphore.Release();
+
+            throw new IceRpcException(
+                IceRpcError.ConnectionAborted,
+                "The connection was aborted because a write operation failed.");
+        }
+        return new SemaphoreLock(_writeSemaphore);
     }
 
     private void DisableIdleCheck() => _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -977,8 +997,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             request.Fields = ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
         }
 
-        bool acquiredSemaphore = false;
-
         try
         {
             if (response is not null)
@@ -1014,34 +1032,28 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 int payloadSize = checked((int)payload.Length);
 
-                // Wait for writing of other frames to complete. The semaphore is used to serialize the writing of
-                // frames.
-                await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                acquiredSemaphore = true;
-
-                EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
-
+                // Wait for writing of other frames to complete.
+                using SemaphoreLock _ = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
+                    EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
+
                     // Write the payload and complete the source. We use _disposedCts.Token here instead of
-                    // cancellationToken because canceling _twowayDispatchesCts should not write invalid data.
-                    // _disposedCts is not disposed because DisposeAsync waits for dispatches to complete.
-                    // TODO: see #2523 and #2472
+                    // cancellationToken because canceling _twowayDispatchesCts should not write invalid data or
+                    // abort this connection. _disposedCts is not disposed because DisposeAsync waits for dispatches to
+                    // complete.
                     await _duplexConnectionWriter.WriteAsync(payload, _disposedCts.Token).ConfigureAwait(false);
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionAborted)
+                catch (Exception exception)
                 {
-                    // The connection was aborted, which is ok.
+                    // The caller will log this failure.
+                    AbortWrite(exception);
+                    throw;
                 }
             }
         }
         finally
         {
-            if (acquiredSemaphore)
-            {
-                _writeSemaphore.Release();
-            }
-
             lock (_mutex)
             {
                 // Dispatch is done.
@@ -1061,7 +1073,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         static void EncodeResponseHeader(
-            DuplexConnectionWriter writer,
+            IBufferWriter<byte> writer,
             OutgoingResponse response,
             IncomingRequest request,
             int requestId,
@@ -1293,7 +1305,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         void AbortRead(Exception exception)
         {
             // We also prevent new oneway invocations even though they don't need to read the connection.
-            RefuseNewInvocations("The connection was lost.");
+            RefuseNewInvocations("The connection was lost because a read operation failed.");
 
             // It's ok to cancel CTS and a "synchronous" TCS below. We  won't be reading anything else so it's ok to ru
             // continuations synchronously.
@@ -1569,5 +1581,36 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _refuseInvocations = true;
             _invocationRefusedMessage ??= message;
         }
+    }
+
+    /// <summary>Sends a control frame. It takes care of acquiring and releasing the write lock and calls
+    /// <see cref="AbortWrite" /> if a failure occurs while writing to _duplexConnectionWriter.</summary>
+    /// <param name="encode">Encodes the control frame into the _duplexConnectionWriter.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private async ValueTask SendControlFrameAsync(
+        Action<IBufferWriter<byte>> encode,
+        CancellationToken cancellationToken)
+    {
+        using SemaphoreLock _ = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            encode(_duplexConnectionWriter);
+            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            AbortWrite(exception);
+            throw;
+        }
+    }
+
+    /// <summary>A simple helper for releasing a semaphore.</summary>
+    private struct SemaphoreLock : IDisposable
+    {
+        private readonly SemaphoreSlim _semaphore;
+
+        public void Dispose() => _semaphore.Release();
+
+        internal SemaphoreLock(SemaphoreSlim semaphore) => _semaphore = semaphore;
     }
 }
