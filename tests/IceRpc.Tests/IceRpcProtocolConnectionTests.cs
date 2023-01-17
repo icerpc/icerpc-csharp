@@ -954,9 +954,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
+        var serverTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
@@ -965,6 +963,8 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        // Hold server reads after the connection is established to prevent shutdown to proceed.
+        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
         _ = FulfillShutdownRequestAsync(sut.Server);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
