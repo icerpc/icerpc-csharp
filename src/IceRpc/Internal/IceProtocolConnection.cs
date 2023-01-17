@@ -56,6 +56,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly int _minSegmentSize;
     private readonly object _mutex = new();
     private int _nextRequestId;
+    private bool _pingEnabled = true;
     private Task _pingTask = Task.CompletedTask;
     private readonly CancellationTokenSource _readFramesCts;
     private Task? _readFramesTask;
@@ -240,6 +241,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
                 }
+
+                _pingEnabled = false; // makes _pingTask immutable
 
                 _disposeTask = PerformDisposeAsync();
             }
@@ -679,6 +682,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for dispatches and invocations to complete.
                 await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
+                // Stops pings. We can't do earlier: while we're waiting for dispatches and invocations to complete,
+                // we need to keep sending pings otherwise the peer could see the connection as idle and abort it.
+                lock (_mutex)
+                {
+                    _pingEnabled = false; // makes _pingTask immutable
+                }
+
                 // Wait for the last ping to complete before sending the CloseConnection frame or disposing the duplex
                 // connection. _pingTask is immutable once _shutdownTask set. _pingTask can be canceled by DisposeAsync.
                 await _pingTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
@@ -769,11 +779,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // This will execute until _duplexConnectionWriter is disposed, perhaps even after!
             keepAliveAction: () =>
             {
-                // We stop sending pings as soon as we start shutting down. As a result, if we don't write anything
-                // for a long time after a failed ShutdownAsync, the peer will abort the connection.
                 lock (_mutex)
                 {
-                    if (_pingTask.IsCompletedSuccessfully && _shutdownTask is null)
+                    if (_pingTask.IsCompletedSuccessfully && _pingEnabled)
                     {
                         _pingTask = PingAsync(_disposedCts.Token);
                     }
