@@ -335,6 +335,53 @@ public class SlicTransportTests
         CompleteStreams(localStream1, remoteStream1, localStream2, remoteStream2);
     }
 
+    [Test]
+    public async Task Stream_write_cancellation_with_reclaimed_write_buffer_after_cancel()
+    {
+        // Arrange
+
+        var colocTransport = new ColocTransport();
+        var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddSingleton(colocTransport.ServerTransport)
+            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await using IMultiplexedConnection serverConnection = await acceptTask;
+        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastConnection;
+
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        byte[] payloadData = new byte[] { 0x10, 0x05 };
+        byte[] writePayloadData = new byte[payloadData.Length];
+        payloadData.CopyTo(writePayloadData.AsSpan());
+
+        using var writeCts = new CancellationTokenSource();
+
+        // Act
+        duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
+        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(writePayloadData, writeCts.Token);
+        writeCts.Cancel();
+        // Modify the data right after cancelling the write.
+        writePayloadData[0] = 0x20;
+        writePayloadData[1] = 0x50;
+        duplexClientConnection.HoldOperation = DuplexTransportOperation.None;
+
+        // Assert
+        ReadResult readResult = await remoteStream.Input.ReadAsync();
+        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(readResult.Buffer.Length, Is.EqualTo(payloadData.Length));
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(payloadData));
+
+        CompleteStreams(localStream, remoteStream);
+    }
+
     [TestCase(64 * 1024, 32 * 1024)]
     [TestCase(1024 * 1024, 512 * 1024)]
     [TestCase(2048 * 1024, 512 * 1024)]
@@ -343,12 +390,15 @@ public class SlicTransportTests
         int resumeThreshold)
     {
         // Arrange
-        IServiceCollection services = new ServiceCollection().AddSlicTest();
+        IServiceCollection services = new ServiceCollection()
+            .AddSlicTest();
+
         services.AddOptions<SlicTransportOptions>("server").Configure(options =>
             {
                 options.PauseWriterThreshold = pauseThreshold;
                 options.ResumeWriterThreshold = resumeThreshold;
             });
+
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
