@@ -524,8 +524,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 frameReader?.Complete();
             }
 
-            // Sends the request. SendRequestAsync owns "payload" and its payloadBuffer. It also owns the write
-            // semaphore lock.
+            // Sends the request. SendRequestAsync owns payload and its payloadBuffer. It also owns the write semaphore
+            // lock.
             async Task SendRequestAsync(
                 PipeReader payload,
                 ReadOnlySequence<byte> payloadBuffer,
