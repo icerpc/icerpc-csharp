@@ -380,15 +380,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch
             {
-            }
-            catch (IceRpcException)
-            {
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"Unexpected connection shutdown exception: {exception}");
+                // Ignore connection shutdown failures
             }
         }
 
