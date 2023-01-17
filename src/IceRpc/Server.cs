@@ -596,8 +596,9 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch (Exception exception) when (exception is not OperationCanceledException)
                 {
+                    // Ignore connection shutdown failures other than OperationCanceledException.
+                    // Avoid eating OCE when connection shutdown fails and Server ShutdownAsync is already canceled.
                     cts.Token.ThrowIfCancellationRequested();
-                    // Ignore connection shutdown failures other than OperationCanceledException
                 }
             }
             catch (OperationCanceledException)

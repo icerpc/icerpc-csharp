@@ -369,8 +369,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
                 catch (Exception exception) when (exception is not OperationCanceledException)
                 {
+                    // Ignore connection shutdown failures other than OperationCanceledException.
+                    // Avoid eating OCE when connection shutdown fails and ConnectionCache ShutdownAsync is already
+                    // canceled.
                     cts.Token.ThrowIfCancellationRequested();
-                    // Ignore connection shutdown failures
                 }
             }
             catch (OperationCanceledException)
