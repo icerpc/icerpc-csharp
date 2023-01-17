@@ -482,16 +482,9 @@ public sealed class Server : IAsyncDisposable
                     {
                         await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException)
+                    catch
                     {
-                    }
-                    catch (IceRpcException)
-                    {
-                    }
-                    catch (Exception exception)
-                    {
-                        Debug.Fail($"Unexpected connection shutdown exception: {exception}");
-                        throw;
+                        // Ignore connection shutdown failures
                     }
                     finally
                     {
