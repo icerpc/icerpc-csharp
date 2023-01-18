@@ -394,32 +394,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         }
                     }
 
-                    // Detach payload before calling SendRequestAsync.
-                    PipeReader payload = request.Payload;
-                    request.Payload = InvalidPipeReader.Instance;
-
                     // _writeTask is protected by the write semaphore. SendRequestAsync does not throw synchronously.
-                    _writeTask = SendRequestAsync(payload, payloadBuffer, semaphoreLock);
+                    _writeTask = SendRequestAsync(request.Payload, payloadBuffer, semaphoreLock);
 
                     try
                     {
                         await _writeTask.WaitAsync(invocationCts.Token).ConfigureAwait(false);
-
-                        // Reattach (completed) payload. The RetryInterceptor may need it for a retry.
-                        request.Payload = payload;
                     }
                     catch (OperationCanceledException exception) when (
                         exception.CancellationToken == invocationCts.Token)
                     {
                         // From WaitAsync. _writeTask is running in the background and owns both the payload and the
-                        // semaphore. We can't reattach the payload ever.
-                        throw;
-                    }
-                    catch
-                    {
-                        // For any other exception (most likely IceRpcException), we also reattach the (completed)
-                        // payload. _writeTask no longer uses it.
-                        request.Payload = payload;
+                        // semaphore. Detach request payload since it now belongs to _writeTask.
+                        request.Payload = InvalidPipeReader.Instance;
                         throw;
                     }
                 }
