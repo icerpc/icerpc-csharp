@@ -119,12 +119,12 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
 
-        using var writer = new DuplexConnectionWriter(
+        await using var writer = new DuplexConnectionWriter(
             duplexClientConnection,
             MemoryPool<byte>.Shared,
             4096,
             keepAliveAction: null);
-        using var reader = new DuplexConnectionReader(
+        await using var reader = new DuplexConnectionReader(
             duplexClientConnection,
             MemoryPool<byte>.Shared,
             4096,
