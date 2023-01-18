@@ -497,7 +497,8 @@ internal class SlicConnection : IMultiplexedConnection
             duplexConnection,
             options.Pool,
             options.MinSegmentSize,
-            connectionLostAction: exception => _acceptStreamChannel.Writer.TryComplete(exception));
+            connectionLostAction: () => _acceptStreamChannel.Writer.TryComplete(
+                new IceRpcException(IceRpcError.ConnectionIdle)));
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.
