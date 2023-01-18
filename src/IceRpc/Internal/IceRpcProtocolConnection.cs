@@ -356,8 +356,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Create the stream.
                 try
                 {
-                    // Cancel CreateStreamAsync as soon as the connection is being shutdown instead of waiting for its
-                    // disposal.
+                    // We also want to cancel CreateStreamAsync as soon as the connection is being shutdown instead of
+                    // waiting for its disposal.
                     using CancellationTokenRegistration _ = acceptRequestsCancellationToken.UnsafeRegister(
                         cts => ((CancellationTokenSource)cts!).Cancel(),
                         invocationCts);
