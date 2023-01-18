@@ -1066,11 +1066,21 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     {
         await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        // _writeTask is completed or nearly complete since we've just acquired _writeSemaphore (hence no need to
-        // add a WaitAsync. It throws an exception if the previous write failed.
-        await _writeTask.ConfigureAwait(false);
+        var semaphoreLock = new SemaphoreLock(_writeSemaphore);
 
-        return new SemaphoreLock(_writeSemaphore);
+        try
+        {
+            // _writeTask is completed or nearly complete since we've just acquired _writeSemaphore (hence no need to
+            // add a WaitAsync). It throws an exception if the previous write failed.
+            await _writeTask.ConfigureAwait(false);
+        }
+        catch
+        {
+            semaphoreLock.Dispose();
+            throw;
+        }
+
+        return semaphoreLock;
     }
 
     private void DisableIdleCheck() => _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
