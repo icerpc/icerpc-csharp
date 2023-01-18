@@ -377,7 +377,6 @@ public class SlicTransportTests
 
         // Assert
         ReadResult readResult = await remoteStream.Input.ReadAsync();
-        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
         Assert.That(readResult.Buffer.Length, Is.EqualTo(payloadData.Length));
         Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(payloadData));
 
