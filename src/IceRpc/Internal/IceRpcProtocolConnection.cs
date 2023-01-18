@@ -303,7 +303,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
 
         CancellationToken disposedCancellationToken;
-
+        CancellationToken acceptRequestsCancellationToken;
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -331,6 +331,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
 
             disposedCancellationToken = _disposedCts.Token;
+            acceptRequestsCancellationToken = _acceptRequestsCts.Token;
         }
 
         return PerformInvokeAsync();
@@ -355,12 +356,21 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Create the stream.
                 try
                 {
+                    // We also want to cancel CreateStreamAsync as soon as the connection is being shutdown instead of
+                    // waiting for its disposal.
+                    using CancellationTokenRegistration _ = acceptRequestsCancellationToken.UnsafeRegister(
+                        cts => ((CancellationTokenSource)cts!).Cancel(),
+                        invocationCts);
+
                     stream = await _transportConnection.CreateStreamAsync(
                         bidirectional: !request.IsOneway,
                         invocationCancellationToken).ConfigureAwait(false);
                 }
-                catch (ObjectDisposedException)
+                catch (OperationCanceledException)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Connection was shutdown or disposed.
                     lock (_mutex)
                     {
                         Debug.Assert(_refuseInvocations);
@@ -1445,6 +1455,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         if (_closedTcs.TrySetResult(exception))
         {
             RefuseNewInvocations(invocationRefusedMessage);
+
+            // Cancel pending AcceptStreamAsync or CreateStreamAsync calls.
+            _acceptRequestsCts.Cancel();
         }
     }
 
