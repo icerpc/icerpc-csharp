@@ -1640,6 +1640,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // _writeTask is protected by the write semaphore
         _writeTask = PerformSendControlFrameAsync(semaphoreLock); // does not throw synchronously
 
+        // _writeTask owns the write semaphore
         await _writeTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         // PerformSendControlFrameAsync keeps running in the background when cancellation token is canceled and possibly
