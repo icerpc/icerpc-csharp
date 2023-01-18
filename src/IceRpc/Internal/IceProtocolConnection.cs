@@ -1099,6 +1099,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // The dispatcher can complete the incoming request payload to release its memory as soon as possible.
             try
             {
+                // _dispatcher.DispatchAsync may very well ignore the cancellation token and we don't want to keep
+                // dispatching when the cancellation token is canceled.
+                cancellationToken.ThrowIfCancellationRequested();
+
                 response = await _dispatcher.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
             }
             finally
