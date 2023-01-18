@@ -128,7 +128,7 @@ public class SlicTransportTests
             duplexClientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: exception => { });
+            connectionLostAction: () => { });
         reader.EnableAliveCheck(TimeSpan.FromSeconds(60));
 
         // Act
