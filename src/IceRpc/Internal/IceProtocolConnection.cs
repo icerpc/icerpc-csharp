@@ -292,8 +292,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _duplexConnection.Dispose();
 
             // It's safe to dispose the reader/writer since no more threads are sending/receiving data.
-            _duplexConnectionReader.Dispose();
-            _duplexConnectionWriter.Dispose();
+            await _duplexConnectionReader.DisposeAsync().ConfigureAwait(false);
+            await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
 
             _disposedCts.Dispose();
             _readFramesCts.Dispose();

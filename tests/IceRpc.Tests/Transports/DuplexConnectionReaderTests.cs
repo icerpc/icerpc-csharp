@@ -33,7 +33,7 @@ public class DuplexConnectionReaderTests
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         var tcs = new TaskCompletionSource<TimeSpan>();
-        using var reader = new DuplexConnectionReader(
+        await using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
@@ -66,7 +66,7 @@ public class DuplexConnectionReaderTests
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         var tcs = new TaskCompletionSource<TimeSpan>();
-        using var reader = new DuplexConnectionReader(
+        await using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
