@@ -46,6 +46,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private readonly bool _preferExistingConnection;
 
+    private readonly CancellationTokenSource _shutdownCts;
+
     private readonly TimeSpan _shutdownTimeout;
 
     /// <summary>Constructs a connection cache.</summary>
@@ -69,6 +71,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         _connectTimeout = options.ConnectTimeout;
         _shutdownTimeout = options.ShutdownTimeout;
+
+        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
 
         _preferExistingConnection = options.PreferExistingConnection;
     }
@@ -122,6 +126,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             await _backgroundConnectionDisposeTcs.Task.ConfigureAwait(false);
 
+            _shutdownCts.Dispose();
             _disposedCts.Dispose();
         }
     }
@@ -348,8 +353,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         async Task PerformShutdownAsync()
         {
-            IEnumerable<IProtocolConnection> allConnections =
-                _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
+            // Cancel all outstanding ConnectAsync. We don't shutdown or otherwise wait for the pending connections:
+            // since they remain in _pendingConnections, we have not send any invocations on them and it's extremely
+            // unlikely that they processed any dispatch.
+            _shutdownCts.Cancel();
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
@@ -362,16 +369,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 try
                 {
                     await Task.WhenAll(
-                        allConnections
+                        _activeConnections.Values
                             .Select(connection => connection.ShutdownAsync(cts.Token))
                             .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
                         .ConfigureAwait(false);
                 }
-                catch (Exception exception) when (exception is not OperationCanceledException)
+                catch (OperationCanceledException)
                 {
-                    // Ignore connection shutdown failures other than OperationCanceledException.
-                    // Avoid eating OCE when connection shutdown fails and ConnectionCache ShutdownAsync is already
-                    // canceled.
+                    throw;
+                }
+                catch
+                {
+                    // Ignore other connection shutdown failures.
+
+                    // Throw OperationCanceledException if this WhenAll exception is hiding an OCE.
                     cts.Token.ThrowIfCancellationRequested();
                 }
             }
@@ -424,7 +435,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             else
             {
                 connection = _connectionFactory.CreateConnection(serverAddress);
-                pendingConnectionValue = (connection, PerformConnectAsync(connection, _disposedCts.Token));
+                pendingConnectionValue = (connection, PerformConnectAsync(connection, _shutdownCts.Token));
                 _pendingConnections.Add(serverAddress, pendingConnectionValue);
             }
         }
@@ -432,11 +443,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         await pendingConnectionValue.Task.ConfigureAwait(false);
         return pendingConnectionValue.Connection;
 
-        async Task PerformConnectAsync(IProtocolConnection connection, CancellationToken disposedCancellationToken)
+        async Task PerformConnectAsync(IProtocolConnection connection, CancellationToken cancellationToken)
         {
             await Task.Yield(); // exit mutex lock
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(_connectTimeout);
 
             try
@@ -445,7 +456,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     _ = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) when (!disposedCancellationToken.IsCancellationRequested)
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
                     throw new TimeoutException(
                         $"The connection establishment timed out after {_connectTimeout.TotalSeconds} s.");
@@ -488,7 +499,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 Debug.Assert(removed);
                 _activeConnections.Add(serverAddress, connection);
             }
-            _ = RemoveFromActiveAsync(connection, disposedCancellationToken);
+            _ = RemoveFromActiveAsync(connection, cancellationToken);
         }
 
         async Task RemoveFromActiveAsync(IProtocolConnection connection, CancellationToken disposedCancellationToken)
