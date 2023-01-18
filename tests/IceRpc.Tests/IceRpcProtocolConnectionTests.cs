@@ -282,6 +282,55 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
+    public async Task Invocation_refused_if_waiting_on_create_stream_and_connection_is_shutdown_or_disposed(
+        [Values(false, true)] bool shutdown,
+        [Values(false, true)] bool clientSide)
+    {
+        TestMultiplexedClientTransportDecorator? clientTransport = null;
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTransport()
+            .AddSingleton<IMultiplexedServerTransport>(
+                provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
+            .AddSingleton<IMultiplexedClientTransport>(
+                provider => clientTransport = new TestMultiplexedClientTransportDecorator(
+                    new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>())))
+            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+            .AddIceRpcProtocolTest(
+                clientConnectionOptions: new(),
+                serverConnectionOptions: new() { Dispatcher = dispatcher })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Server);
+        _ = FulfillShutdownRequestAsync(sut.Client);
+
+        TestMultiplexedConnectionDecorator clientConnection = clientTransport!.LastConnection;
+        clientConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+
+        // Act
+        IProtocolConnection connection = clientSide ? sut.Client : sut.Server;
+        if (shutdown)
+        {
+            await connection.ShutdownAsync();
+        }
+        else
+        {
+            await connection.DisposeAsync();
+        }
+
+        // Assert
+        Assert.That(
+            () => invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationRefused));
+    }
+
+    [Test]
     public async Task Invocation_stream_failure_triggers_incoming_request_truncated_data_exception()
     {
         // Arrange
@@ -954,9 +1003,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
+        var serverTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
@@ -965,6 +1012,8 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+        // Hold server reads after the connection is established to prevent shutdown to proceed.
+        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
         _ = FulfillShutdownRequestAsync(sut.Server);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
