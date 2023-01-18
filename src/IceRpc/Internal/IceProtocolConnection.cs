@@ -51,11 +51,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private int _invocationCount;
     private string? _invocationRefusedMessage;
     private bool _isClosedByPeer;
+    private int _lastRequestId;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
     private readonly int _minSegmentSize;
     private readonly object _mutex = new();
-    private int _nextRequestId;
     private bool _pingEnabled = true;
     private Task _pingTask = Task.CompletedTask;
     private readonly CancellationTokenSource _readFramesCts;
@@ -385,7 +385,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                         if (!request.IsOneway)
                         {
-                            requestId = ++_nextRequestId;
+                            // wrap around back to 1 if we reach int.MaxValue. 0 means oneway.
+                            _lastRequestId = _lastRequestId == int.MaxValue ? 1 : _lastRequestId + 1;
+                            requestId = _lastRequestId;
 
                             // RunContinuationsAsynchronously because we don't want the "read frames loop" to run the
                             // continuation.
