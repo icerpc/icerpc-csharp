@@ -7,10 +7,8 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Net;
-using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc.Tests;
 
@@ -156,6 +154,134 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await shutdownTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+    }
+
+    [TestCase(false, false, MultiplexedTransportOperation.Connect)]
+    [TestCase(false, false, MultiplexedTransportOperation.CreateStream)]
+    [TestCase(false, false, MultiplexedTransportOperation.AcceptStream)]
+    [TestCase(false, false, MultiplexedTransportOperation.StreamRead)]
+    [TestCase(false, false, MultiplexedTransportOperation.StreamWrite)]
+    [TestCase(false, true, MultiplexedTransportOperation.Connect)]
+    [TestCase(true, false, MultiplexedTransportOperation.Connect)]
+    [TestCase(true, false, MultiplexedTransportOperation.CreateStream)]
+    [TestCase(true, false, MultiplexedTransportOperation.AcceptStream)]
+    [TestCase(true, false, MultiplexedTransportOperation.StreamRead)]
+    [TestCase(true, false, MultiplexedTransportOperation.StreamWrite)]
+    [TestCase(true, true, MultiplexedTransportOperation.Connect)]
+    public async Task Connect_exception_handling_on_transport_failure(
+        bool serverConnection,
+        bool authenticationException,
+        MultiplexedTransportOperation operation)
+    {
+        // Arrange
+        Exception exception = authenticationException ?
+            new AuthenticationException() :
+            new IceRpcException(IceRpcError.ConnectionRefused);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTransport()
+            .AddSingleton<IMultiplexedServerTransport>(
+                provider => new TestMultiplexedServerTransportDecorator(
+                    new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()),
+                    failOperation: serverConnection ? operation : MultiplexedTransportOperation.None,
+                    failureException: exception))
+            .AddSingleton<IMultiplexedClientTransport>(
+                provider => new TestMultiplexedClientTransportDecorator(
+                    new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()),
+                    failOperation: serverConnection ? MultiplexedTransportOperation.None : operation,
+                    failureException: exception))
+            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+            .AddIceRpcProtocolTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        Func<Task> connectCall = serverConnection ?
+            () => sut.ConnectAsync(default) :
+            async () =>
+            {
+                _ = AcceptAsync();
+                _ = await sut.Client.ConnectAsync();
+
+                async Task AcceptAsync()
+                {
+                    try
+                    {
+                        await sut.AcceptAsync();
+                    }
+                    catch
+                    {
+                        // Prevents unobserved task exceptions.
+                    }
+                }
+            };
+
+        // Act/Assert
+        Assert.That(connectCall, Throws.InstanceOf(exception.GetType()));
+
+        // The protocol connection is not created if server-side connect fails.
+        if (!serverConnection || operation != MultiplexedTransportOperation.Connect)
+        {
+            Assert.That(() => serverConnection ? sut.Server.Closed : sut.Client.Closed, Is.EqualTo(exception));
+        }
+    }
+
+    [TestCase(false, MultiplexedTransportOperation.Connect)]
+    [TestCase(false, MultiplexedTransportOperation.CreateStream)]
+    [TestCase(false, MultiplexedTransportOperation.AcceptStream)]
+    [TestCase(false, MultiplexedTransportOperation.StreamRead)]
+    [TestCase(false, MultiplexedTransportOperation.StreamWrite)]
+    [TestCase(true, MultiplexedTransportOperation.Connect)]
+    [TestCase(true, MultiplexedTransportOperation.CreateStream)]
+    [TestCase(true, MultiplexedTransportOperation.AcceptStream)]
+    [TestCase(true, MultiplexedTransportOperation.StreamRead)]
+    [TestCase(true, MultiplexedTransportOperation.StreamWrite)]
+    public async Task Connect_cancellation_on_transport_hang(
+        bool serverConnection,
+        MultiplexedTransportOperation operation)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTransport()
+            .AddSingleton<IMultiplexedServerTransport>(
+                provider => new TestMultiplexedServerTransportDecorator(
+                    new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()),
+                    holdOperation: serverConnection ? operation : MultiplexedTransportOperation.None))
+            .AddSingleton<IMultiplexedClientTransport>(
+                provider => new TestMultiplexedClientTransportDecorator(
+                    new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()),
+                    holdOperation: serverConnection ? MultiplexedTransportOperation.None : operation))
+            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+            .AddIceRpcProtocolTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        using var connectCts = new CancellationTokenSource(100);
+
+        Func<Task> connectCall = serverConnection ?
+            () => sut.ConnectAsync(connectCts.Token) :
+            async () =>
+            {
+                _ = AcceptAsync();
+                _ = await sut.Client.ConnectAsync(connectCts.Token);
+
+                async Task AcceptAsync()
+                {
+                    try
+                    {
+                        await sut.AcceptAsync();
+                    }
+                    catch
+                    {
+                        // Prevents unobserved task exceptions.
+                    }
+                }
+            };
+
+        // Act/Assert
+        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => connectCall());
+        Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
     }
 
     [Test]

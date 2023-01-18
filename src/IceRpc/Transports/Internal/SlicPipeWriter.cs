@@ -85,7 +85,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             throw new InvalidOperationException("Writing is not allowed once the writer is completed.");
         }
 
-        // Flush the pipe before check if the connection is closed. This makes sure that the check for unflushed data
+        // Flush the pipe before the check for the close connection. This makes sure that the check for unflushed data
         // on successful compete succeeds. See the Complete implementation above.
         if (_pipe.Writer.UnflushedBytes > 0)
         {

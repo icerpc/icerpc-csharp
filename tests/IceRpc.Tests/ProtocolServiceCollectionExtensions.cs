@@ -11,54 +11,56 @@ public static class ProtocolServiceCollectionExtensions
 {
     public static IServiceCollection AddIceProtocolTest(
         this IServiceCollection services,
-        ConnectionOptions clientConnectionOptions,
-        ConnectionOptions serverConnectionOptions) =>
+        ConnectionOptions? clientConnectionOptions = null,
+        ConnectionOptions? serverConnectionOptions = null) =>
         services.AddSingleton(provider =>
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceProtocolConnection(
                     provider.GetRequiredService<IDuplexConnection>(),
                     transportConnectionInformation: null,
-                    clientConnectionOptions),
+                    clientConnectionOptions ?? new()),
                 acceptServerConnectionAsync:
-                    async () =>
+                    async (CancellationToken cancellationToken) =>
                     {
                         (IDuplexConnection transportConnection, _) =
-                            await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(default);
+                            await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(
+                                cancellationToken);
 
                         TransportConnectionInformation transportConnectionInformation =
-                            await transportConnection.ConnectAsync(default);
+                            await transportConnection.ConnectAsync(cancellationToken);
 
                         return new IceProtocolConnection(
                             transportConnection,
                             transportConnectionInformation,
-                            serverConnectionOptions);
+                            serverConnectionOptions ?? new());
                     },
                 listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
 
     public static IServiceCollection AddIceRpcProtocolTest(
         this IServiceCollection services,
-        ConnectionOptions clientConnectionOptions,
-        ConnectionOptions serverConnectionOptions)
+        ConnectionOptions? clientConnectionOptions = null,
+        ConnectionOptions? serverConnectionOptions = null)
     {
         services.AddSingleton(provider =>
             new ClientServerProtocolConnection(
                 clientProtocolConnection: new IceRpcProtocolConnection(
                     provider.GetRequiredService<IMultiplexedConnection>(),
                     transportConnectionInformation: null,
-                    clientConnectionOptions),
+                    clientConnectionOptions ?? new()),
                 acceptServerConnectionAsync:
-                    async () =>
+                    async (CancellationToken cancellationToken) =>
                     {
                         (IMultiplexedConnection transportConnection, _) =
-                            await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(default);
+                            await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(
+                                cancellationToken);
 
                         TransportConnectionInformation transportConnectionInformation =
-                            await transportConnection.ConnectAsync(default);
+                            await transportConnection.ConnectAsync(cancellationToken);
 
                         return new IceRpcProtocolConnection(
                             transportConnection,
                             transportConnectionInformation,
-                            serverConnectionOptions);
+                            serverConnectionOptions ?? new());
                     },
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
@@ -108,21 +110,21 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
         private set => _server = value;
     }
 
-    private readonly Func<Task<IProtocolConnection>> _acceptServerConnectionAsync;
+    private readonly Func<CancellationToken, Task<IProtocolConnection>> _acceptServerConnectionAsync;
     private readonly IAsyncDisposable _listener;
     private IProtocolConnection? _server;
 
-    public async Task ConnectAsync()
+    public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
-        Task clientProtocolConnectionTask = Client.ConnectAsync(CancellationToken.None);
-        await AcceptAsync();
+        Task clientProtocolConnectionTask = Client.ConnectAsync(cancellationToken);
+        await AcceptAsync(cancellationToken);
         await clientProtocolConnectionTask;
     }
 
-    public async Task AcceptAsync()
+    public async Task AcceptAsync(CancellationToken cancellationToken = default)
     {
-        _server = await _acceptServerConnectionAsync();
-        await _server.ConnectAsync(CancellationToken.None);
+        _server = await _acceptServerConnectionAsync(cancellationToken);
+        await _server.ConnectAsync(cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -139,7 +141,7 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
 
     internal ClientServerProtocolConnection(
         IProtocolConnection clientProtocolConnection,
-        Func<Task<IProtocolConnection>> acceptServerConnectionAsync,
+        Func<CancellationToken, Task<IProtocolConnection>> acceptServerConnectionAsync,
         IAsyncDisposable listener)
     {
         _acceptServerConnectionAsync = acceptServerConnectionAsync;

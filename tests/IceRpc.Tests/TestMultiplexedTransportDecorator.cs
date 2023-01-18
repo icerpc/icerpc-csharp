@@ -24,12 +24,13 @@ public enum MultiplexedTransportOperation
 public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClientTransport
 #pragma warning restore CA1001
 {
+    public MultiplexedTransportOperation FailOperation { get; set; }
+    public Exception FailureException { get; set; } = new Exception();
+    public MultiplexedTransportOperation HoldOperation { get; set; }
     public TestMultiplexedConnectionDecorator LastConnection =>
         _lastConnection ?? throw new InvalidOperationException("Call CreateConnection first.");
 
     private readonly IMultiplexedClientTransport _decoratee;
-    private readonly MultiplexedTransportOperation _failOperation;
-    private readonly MultiplexedTransportOperation _holdOperation;
     private TestMultiplexedConnectionDecorator? _lastConnection;
 
     public string Name => _decoratee.Name;
@@ -46,8 +47,9 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
             options,
             clientAuthenticationOptions))
             {
-                HoldOperation = _holdOperation,
-                FailOperation = _failOperation
+                HoldOperation = HoldOperation,
+                FailOperation = FailOperation,
+                FailureException = FailureException
             };
         _lastConnection = connection;
         return connection;
@@ -56,11 +58,13 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     public TestMultiplexedClientTransportDecorator(
         IMultiplexedClientTransport decoratee,
         MultiplexedTransportOperation holdOperation = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation failOperation = MultiplexedTransportOperation.None)
+        MultiplexedTransportOperation failOperation = MultiplexedTransportOperation.None,
+        Exception? failureException = null)
     {
         _decoratee = decoratee;
-        _holdOperation = holdOperation;
-        _failOperation = failOperation;
+        HoldOperation = holdOperation;
+        FailOperation = failOperation;
+        FailureException = failureException ?? new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
     }
 }
 
@@ -81,6 +85,20 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
                 throw new InvalidOperationException("Call Listen first.");
             }
             _listener.FailOperation = value;
+        }
+    }
+
+    public Exception FailureException
+    {
+        get => _listener?.FailureException ?? throw new InvalidOperationException("Call Listen first.");
+
+        set
+        {
+            if (_listener is null)
+            {
+                throw new InvalidOperationException("Call Listen first.");
+            }
+            _listener.FailureException = value;
         }
     }
 
@@ -105,17 +123,20 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
     private readonly IMultiplexedServerTransport _decoratee;
     private readonly MultiplexedTransportOperation _failOperation;
+    private readonly Exception _failureException;
     private readonly MultiplexedTransportOperation _holdOperation;
     private TestMultiplexedListenerDecorator? _listener;
 
     public TestMultiplexedServerTransportDecorator(
         IMultiplexedServerTransport decoratee,
         MultiplexedTransportOperation holdOperation = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation failOperation = MultiplexedTransportOperation.None)
+        MultiplexedTransportOperation failOperation = MultiplexedTransportOperation.None,
+        Exception? failureException = null)
     {
         _decoratee = decoratee;
         _holdOperation = holdOperation;
         _failOperation = failOperation;
+        _failureException = failureException ?? new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
     }
 
     public IListener<IMultiplexedConnection> Listen(
@@ -131,7 +152,8 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
             _decoratee.Listen(serverAddress, options, serverAuthenticationOptions))
             {
                 HoldOperation = _holdOperation,
-                FailOperation = _failOperation
+                FailOperation = _failOperation,
+                FailureException = _failureException
             };
         return _listener;
     }
@@ -140,8 +162,9 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        internal MultiplexedTransportOperation HoldOperation { get; set; }
         internal MultiplexedTransportOperation FailOperation { get; set; }
+        internal Exception FailureException { get; set; } = new Exception();
+        internal MultiplexedTransportOperation HoldOperation { get; set; }
 
         internal TestMultiplexedConnectionDecorator LastAcceptedConnection
         {
@@ -158,9 +181,12 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
             (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
-            var testConnection = new TestMultiplexedConnectionDecorator(connection);
-            testConnection.HoldOperation = HoldOperation;
-            testConnection.FailOperation = FailOperation;
+            var testConnection = new TestMultiplexedConnectionDecorator(connection)
+                {
+                    HoldOperation = HoldOperation,
+                    FailOperation = FailOperation,
+                    FailureException = FailureException
+                };
             LastAcceptedConnection = testConnection;
             return (testConnection, remoteNetworkAddress);
         }
@@ -185,6 +211,8 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     public Task DisposeCalled => _disposeCalledTcs.Task;
 
     public MultiplexedTransportOperation FailOperation { get; set; }
+
+    public Exception FailureException { get; set; } = new Exception();
 
     public MultiplexedTransportOperation HoldOperation
     {
@@ -255,9 +283,12 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     {
         await CheckFailAndHoldAsync();
 
-        var stream = new TestMultiplexedStreamDecorator(await _decoratee.AcceptStreamAsync(cancellationToken));
-        stream.HoldOperation = HoldOperation;
-        stream.FailOperation = FailOperation;
+        var stream = new TestMultiplexedStreamDecorator(await _decoratee.AcceptStreamAsync(cancellationToken))
+            {
+                HoldOperation = HoldOperation,
+                FailOperation = FailOperation,
+                FailureException = FailureException
+             };
         _lastStream = stream;
 
         // Check again fail/hold condition in case the configuration was changed while AcceptAsync was pending.
@@ -269,7 +300,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
         {
             if (FailOperation.HasFlag(MultiplexedTransportOperation.AcceptStream))
             {
-                throw new IceRpcException(IceRpcError.IceRpcError, "Test transport accept stream failure.");
+                throw FailureException;
             }
             await _holdAcceptStreamTcs.Task.WaitAsync(cancellationToken);
         }
@@ -281,14 +312,17 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     {
         if (FailOperation.HasFlag(MultiplexedTransportOperation.CreateStream))
         {
-            throw new IceRpcException(IceRpcError.IceRpcError, "Test transport create stream failure.");
+            throw FailureException;
         }
         await _holdCreateStreamTcs.Task.WaitAsync(cancellationToken);
 
         var stream = new TestMultiplexedStreamDecorator(
-            await _decoratee.CreateStreamAsync(bidirectional, cancellationToken));
-        stream.HoldOperation = HoldOperation;
-        stream.FailOperation = FailOperation;
+            await _decoratee.CreateStreamAsync(bidirectional, cancellationToken))
+            {
+                HoldOperation = HoldOperation,
+                FailOperation = FailOperation,
+                FailureException = FailureException
+            };
         _lastStream = stream;
         return stream;
     }
@@ -297,7 +331,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     {
         if (FailOperation.HasFlag(MultiplexedTransportOperation.Close))
         {
-            throw new IceRpcException(IceRpcError.IceRpcError, "Test transport close failure.");
+            throw FailureException;
         }
         await _holdCloseTcs.Task.WaitAsync(cancellationToken);
 
@@ -311,7 +345,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     {
         if (FailOperation.HasFlag(MultiplexedTransportOperation.Connect))
         {
-            throw new IceRpcException(IceRpcError.IceRpcError, "Test transport connect failure.");
+            throw FailureException;
         }
         await _holdConnectTcs.Task.WaitAsync(cancellationToken);
 
@@ -352,7 +386,24 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
                 _input.FailReadOperation = _failOperation.HasFlag(MultiplexedTransportOperation.StreamRead);
             }
         }
+    }
 
+    public Exception FailureException
+    {
+        get => _failureException;
+
+        set
+        {
+            _failureException = value;
+            if (_output is not null)
+            {
+                _output.FailureException = value;
+            }
+            if (_input is not null)
+            {
+                _input.FailureException = value;
+            }
+        }
     }
 
     public MultiplexedTransportOperation HoldOperation
@@ -390,6 +441,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     public Task WritesClosed => _decoratee.WritesClosed;
 
     private readonly IMultiplexedStream _decoratee;
+    private Exception _failureException = new();
     private MultiplexedTransportOperation _failOperation;
     private MultiplexedTransportOperation _holdOperation;
     private readonly TestPipeReader? _input;
@@ -400,11 +452,21 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
         _decoratee = decoratee;
         if (!IsRemote || IsBidirectional)
         {
-            _output = new TestPipeWriter(decoratee.Output);
+            _output = new TestPipeWriter(decoratee.Output)
+                {
+                    FailWriteOperation = _failOperation.HasFlag(MultiplexedTransportOperation.StreamWrite),
+                    FailureException = _failureException,
+                    HoldWriteOperation = _holdOperation.HasFlag(MultiplexedTransportOperation.StreamWrite)
+                };
         }
         if (IsRemote || IsBidirectional)
         {
-            _input = new TestPipeReader(decoratee.Input);
+            _input = new TestPipeReader(decoratee.Input)
+                {
+                    FailReadOperation = _failOperation.HasFlag(MultiplexedTransportOperation.StreamWrite),
+                    FailureException = _failureException,
+                    HoldReadOperation = _holdOperation.HasFlag(MultiplexedTransportOperation.StreamWrite)
+                };
         }
     }
 }
@@ -412,6 +474,8 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 internal sealed class TestPipeWriter : PipeWriter
 {
     internal bool FailWriteOperation { get; set; }
+
+    internal Exception FailureException { get; set; } = new Exception();
 
     internal bool HoldWriteOperation
     {
@@ -450,7 +514,7 @@ internal sealed class TestPipeWriter : PipeWriter
     {
         if (FailWriteOperation)
         {
-            throw new IceRpcException(IceRpcError.IceRpcError, "Test stream flush failure.");
+            throw FailureException;
         }
         await _holdWriteTcs.Task.WaitAsync(cancellationToken);
         return await _decoratee.FlushAsync(cancellationToken);
@@ -466,7 +530,7 @@ internal sealed class TestPipeWriter : PipeWriter
     {
         if (FailWriteOperation)
         {
-            throw new IceRpcException(IceRpcError.IceRpcError, "Test stream write failure.");
+            throw FailureException;
         }
         await _holdWriteTcs.Task.WaitAsync(cancellationToken);
         return await _decoratee.WriteAsync(source, cancellationToken);
@@ -478,6 +542,8 @@ internal sealed class TestPipeWriter : PipeWriter
 internal sealed class TestPipeReader : PipeReader
 {
     internal bool FailReadOperation { get; set; }
+
+    internal Exception FailureException { get; set; } = new Exception();
 
     internal bool HoldReadOperation
     {
@@ -518,7 +584,7 @@ internal sealed class TestPipeReader : PipeReader
     {
         if (FailReadOperation)
         {
-            throw new IceRpcException(IceRpcError.IceRpcError, "Test stream read failure.");
+            throw FailureException;
         }
         await _holdReadTcs.Task.WaitAsync(cancellationToken);
 
@@ -527,7 +593,7 @@ internal sealed class TestPipeReader : PipeReader
         // Check again fail/hold condition in case the configuration was changed while ReadAsync was pending.
         if (FailReadOperation)
         {
-            throw new IceRpcException(IceRpcError.IceRpcError, "Test stream read failure.");
+            throw FailureException;
         }
         await _holdReadTcs.Task.WaitAsync(cancellationToken);
         return result;

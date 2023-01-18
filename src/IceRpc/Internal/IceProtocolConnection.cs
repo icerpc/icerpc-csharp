@@ -8,6 +8,7 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Security.Authentication;
 
 namespace IceRpc.Internal;
 
@@ -174,6 +175,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     exception);
                 _ = _closedTcs.TrySetResult(rpcException);
                 throw rpcException;
+            }
+            catch (AuthenticationException exception)
+            {
+                _ = _closedTcs.TrySetResult(exception);
+                throw;
             }
             catch (IceRpcException exception)
             {
