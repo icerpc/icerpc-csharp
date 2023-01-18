@@ -554,11 +554,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             if (_shutdownTask is not null)
             {
-                throw new InvalidOperationException("Cannot call shutdown more than once.");
+                throw new InvalidOperationException("Cannot call ShutdownAsync more than once.");
             }
-            if (_connectTask is null)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
-                throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
+                throw new InvalidOperationException("Cannot shut down an a connection before it's connected.");
             }
 
             RefuseNewInvocations("The connection was shut down.");
@@ -578,18 +578,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             try
             {
-                try
-                {
-                    // Wait for connect to complete first.
-                    _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
-                {
-                    throw new IceRpcException(
-                        IceRpcError.ConnectionAborted,
-                        "The connection shutdown was aborted because the connection establishment was canceled.");
-                }
-
                 Debug.Assert(_readFramesTask is not null);
 
                 // Since DisposeAsync waits for the _shutdownTask completion, _disposedCts is not disposed at this

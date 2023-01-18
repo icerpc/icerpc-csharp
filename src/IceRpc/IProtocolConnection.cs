@@ -56,8 +56,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// </list>
     /// </returns>
     /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="ConnectAsync" /> was not called prior to this
-    /// call, or if this method is called more than once.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="ConnectAsync" /> did not complete successfully
+    /// prior to this call, or if this method is called more than once.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>
     Task ShutdownAsync(CancellationToken cancellationToken = default);
 }

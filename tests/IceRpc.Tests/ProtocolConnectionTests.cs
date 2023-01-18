@@ -914,7 +914,7 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
-    /// <summary>Ensure that ShutdownAsync fails with an IceRpcException if ConnectAsync fails.</summary>
+    /// <summary>Ensure that ShutdownAsync fails if ConnectAsync fails.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
     {
@@ -929,18 +929,12 @@ public sealed class ProtocolConnectionTests
         await sut.DisposeListenerAsync(); // dispose the listener to trigger the connection establishment failure.
 
         // Act/Assert
-        Assert.That(
-            async () => await connectTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
-
-        Assert.That(
-            async () => await sut.Client.ShutdownAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
     }
 
-    /// <summary>Ensure that ShutdownAsync waits when ConnectAsync is in progress.</summary>
+    /// <summary>Ensure that ShutdownAsync fails when ConnectAsync is in progress.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Shutdown_waits_when_connect_is_in_progress(Protocol protocol)
+    public async Task Shutdown_fails_when_connect_is_in_progress(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -948,61 +942,10 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
-        using var cts = new CancellationTokenSource();
-        Task connectTask = sut.Client.ConnectAsync(cts.Token);
-        Task shutdownTask = sut.Client.ShutdownAsync();
-        await Task.Delay(TimeSpan.FromMilliseconds(100)); // make sure shutdown is running
-
-        // Assert
-        Assert.That(shutdownTask.IsCompleted, Is.False);
-        cts.Cancel();
-        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
-
-        // TODO: fix icerpc
-        if (protocol == Protocol.Ice)
-        {
-            Assert.That(
-                async () => await shutdownTask,
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-        }
-        else
-        {
-            Assert.That(
-                async () => await shutdownTask,
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-        }
-    }
-
-    /// <summary>Ensure that ShutdownAsync fails if ConnectAsync is canceled.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Shutdown_fails_on_connect_cancellation(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        Task connectTask = sut.Client.ConnectAsync();
 
         // Act/Assert
-        Assert.That(
-            async () => await sut.Client.ConnectAsync(cts.Token),
-            Throws.InstanceOf<OperationCanceledException>());
-
-        // TODO: fix icerpc
-        if (protocol == Protocol.Ice)
-        {
-            Assert.That(
-                async () => await sut.Client.ShutdownAsync(),
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-        }
-        else
-        {
-            Assert.That(
-                async () => await sut.Client.ShutdownAsync(),
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-        }
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that the cancellation of a shutdown does not abort invocations.</summary>

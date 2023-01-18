@@ -533,11 +533,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             if (_shutdownTask is not null)
             {
-                throw new InvalidOperationException("Cannot call shutdown more than once.");
+                throw new InvalidOperationException("Cannot call ShutdownAsync more than once.");
             }
-            if (_connectTask is null)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
-                throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
+                throw new InvalidOperationException("Cannot shut down an a connection before it's connected.");
             }
 
             RefuseNewInvocations("The connection was shut down.");
@@ -563,15 +563,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                // Wait for connect to complete. _connectTask can itself get canceled through _disposedCts or because
-                // ConnectAsync was canceled.
-                _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                if (_acceptRequestsTask is not null)
-                {
-                    // Wait for the _acceptRequestsTask to complete.
-                    await _acceptRequestsTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                }
+                Debug.Assert(_acceptRequestsTask is not null);
+                await _acceptRequestsTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 // Once _isShutdown is true, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are
                 // immutable.
@@ -676,14 +669,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                lock (_mutex)
-                {
-                    throw new IceRpcException(
-                        IceRpcError.OperationAborted,
-                        _disposeTask is null ?
-                            "The connection shutdown was aborted because the connection establishment was canceled." :
-                            "The connection shutdown was aborted because the connection was disposed.");
-                }
+                Debug.Assert(_disposedCts.Token.IsCancellationRequested);
+                throw new IceRpcException(
+                    IceRpcError.OperationAborted,
+                    "The connection shutdown was aborted because the connection was disposed.");
             }
             catch (IceRpcException exception)
             {
