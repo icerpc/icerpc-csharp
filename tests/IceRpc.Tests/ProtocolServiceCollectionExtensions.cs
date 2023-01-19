@@ -123,6 +123,7 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
         }
         catch
         {
+            await Client.DisposeAsync();
             try
             {
                 await clientProtocolConnectionTask;

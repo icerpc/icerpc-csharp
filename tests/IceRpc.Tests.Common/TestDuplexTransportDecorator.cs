@@ -108,6 +108,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
     public DuplexTransportOperation HoldOperation
     {
         get => _listener?.HoldOperation ?? _holdOperation;
+
         set
         {
             if (_listener is null)

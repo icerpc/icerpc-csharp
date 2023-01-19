@@ -394,6 +394,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                     }
                 }
+                catch (Exception exception)
+                {
+                    TryCompleteClosed(exception, "The connection was lost.");
+                    throw;
+                }
 
                 streamInput = stream.IsBidirectional ? stream.Input : null;
 

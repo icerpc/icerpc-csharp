@@ -78,20 +78,13 @@ public class SlicTransportTests
             new System.Security.Authentication.AuthenticationException() :
             new IceRpcException(IceRpcError.ConnectionRefused);
 
-        var colocTransport = new ColocTransport();
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddSingleton<IDuplexServerTransport>(
-                provider => new TestDuplexServerTransportDecorator(
-                    colocTransport.ServerTransport,
-                    failOperation: serverSide ? operation : DuplexTransportOperation.None,
-                    failureException: exception))
-            .AddSingleton<IDuplexClientTransport>(
-                provider => new TestDuplexClientTransportDecorator(
-                    colocTransport.ClientTransport,
-                    failOperation: serverSide ? DuplexTransportOperation.None : operation,
-                    failureException: exception))
+            .AddTestDuplexTransport(
+                clientFailOperation: serverSide ? DuplexTransportOperation.None : operation,
+                clientFailureException: exception,
+                serverFailOperation: serverSide ? operation : DuplexTransportOperation.None,
+                serverFailureException: exception)
             .BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
@@ -130,23 +123,14 @@ public class SlicTransportTests
     [TestCase(true, DuplexTransportOperation.Connect)]
     [TestCase(true, DuplexTransportOperation.Write)]
     [TestCase(true, DuplexTransportOperation.Read)]
-    public async Task Connect_cancellation_on_transport_hang(
-        bool serverSide,
-        DuplexTransportOperation operation)
+    public async Task Connect_cancellation_on_transport_hang(bool serverSide, DuplexTransportOperation operation)
     {
         // Arrange
-        var colocTransport = new ColocTransport();
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddSingleton<IDuplexServerTransport>(
-                provider => new TestDuplexServerTransportDecorator(
-                    colocTransport.ServerTransport,
-                    holdOperation: serverSide ? operation : DuplexTransportOperation.None))
-            .AddSingleton<IDuplexClientTransport>(
-                provider => new TestDuplexClientTransportDecorator(
-                    colocTransport.ClientTransport,
-                    holdOperation: serverSide ? DuplexTransportOperation.None : operation))
+            .AddTestDuplexTransport(
+                clientHoldOperation: serverSide ? DuplexTransportOperation.None : operation,
+                serverHoldOperation: serverSide ? operation : DuplexTransportOperation.None)
             .BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
@@ -187,15 +171,9 @@ public class SlicTransportTests
     public async Task Close_canceled_when_duplex_server_connection_shutdown_hangs()
     {
         // Arrange
-        var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddSingleton(colocTransport.ClientTransport)
-            .AddSingleton<IDuplexServerTransport>(serverTransport)
+            .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Shutdown)
             .BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();

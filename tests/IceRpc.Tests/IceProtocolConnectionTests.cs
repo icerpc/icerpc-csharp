@@ -136,15 +136,14 @@ public sealed class IceProtocolConnectionTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddTestDuplexTransport(
                 serverFailOperation: serverConnection ? operation : DuplexTransportOperation.None,
-                clientFailOperation: serverConnection ? DuplexTransportOperation.None : operation,
                 serverFailureException: exception,
+                clientFailOperation: serverConnection ? DuplexTransportOperation.None : operation,
                 clientFailureException: exception)
             .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
             .AddIceProtocolTest()
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
         Func<Task> connectCall = serverConnection ?
             () => sut.ConnectAsync(default) :
             async () =>
