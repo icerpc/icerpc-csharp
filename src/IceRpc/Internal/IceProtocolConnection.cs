@@ -717,7 +717,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             duplexConnection,
             _memoryPool,
             _minSegmentSize,
-            connectionLostAction: _readFramesCts.Cancel);
+            connectionIdleAction: _readFramesCts.Cancel);
 
         _idleTimeoutTimer = new Timer(_ =>
         {

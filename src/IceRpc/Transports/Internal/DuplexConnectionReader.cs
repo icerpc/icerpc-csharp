@@ -29,7 +29,7 @@ internal class DuplexConnectionReader : IAsyncDisposable
         IDuplexConnection connection,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        Action connectionLostAction)
+        Action connectionIdleAction)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
@@ -57,7 +57,7 @@ internal class DuplexConnectionReader : IAsyncDisposable
                     _nextIdleTime = Timeout.InfiniteTimeSpan;
                 }
 
-                connectionLostAction();
+                connectionIdleAction();
             });
     }
 
