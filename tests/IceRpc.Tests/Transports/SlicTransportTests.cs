@@ -532,6 +532,13 @@ public class SlicTransportTests
         catch
         {
             await serverConnection.DisposeAsync();
+            try
+            {
+                await connectTask;
+            }
+            catch
+            {
+            }
             throw;
         }
     }

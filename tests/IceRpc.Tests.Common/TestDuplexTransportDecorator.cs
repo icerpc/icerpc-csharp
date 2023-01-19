@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Security;
 
@@ -72,42 +73,51 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 {
     public DuplexTransportOperation FailOperation
     {
-        get => _listener?.FailOperation ?? throw new InvalidOperationException("Call Listen first.");
+        get => _listener?.FailOperation ?? _failOperation;
 
         set
         {
             if (_listener is null)
             {
-                throw new InvalidOperationException("Call Listen first.");
+                _failOperation = value;
             }
-            _listener.FailOperation = value;
+            else
+            {
+                _listener.FailOperation = value;
+            }
         }
     }
 
     public Exception FailureException
     {
-        get => _listener?.FailureException ?? throw new InvalidOperationException("Call Listen first.");
+        get => _listener?.FailureException ?? _failureException;
 
         set
         {
             if (_listener is null)
             {
-                throw new InvalidOperationException("Call Listen first.");
+                _failureException = value;
             }
-            _listener.FailureException = value;
+            else
+            {
+                _listener.FailureException = value;
+            }
         }
     }
 
     public DuplexTransportOperation HoldOperation
     {
-        get => _listener?.HoldOperation ?? throw new InvalidOperationException("Call Listen first.");
+        get => _listener?.HoldOperation ?? _holdOperation;
         set
         {
             if (_listener is null)
             {
-                throw new InvalidOperationException("Call Listen first.");
+                _holdOperation = value;
             }
-            _listener.HoldOperation = value;
+            else
+            {
+                _listener.HoldOperation = value;
+            }
         }
     }
 
@@ -117,9 +127,9 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
 
     private readonly IDuplexServerTransport _decoratee;
-    private readonly DuplexTransportOperation _failOperation;
-    private readonly Exception _failureException;
-    private readonly DuplexTransportOperation _holdOperation;
+    private DuplexTransportOperation _failOperation;
+    private Exception _failureException;
+    private DuplexTransportOperation _holdOperation;
     private TestDuplexListenerDecorator? _listener;
 
     public TestDuplexServerTransportDecorator(
@@ -143,6 +153,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         {
             throw new InvalidOperationException("Test server transport doesn't support multiple listeners.");
         }
+
         _listener = new TestDuplexListenerDecorator(
             _decoratee.Listen(serverAddress, options, serverAuthenticationOptions))
             {
@@ -320,4 +331,35 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     }
 
     internal TestDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
+}
+
+public static class TestDuplexTransportServiceCollectionExtensions
+{
+    /// <summary>Installs the test duplex transport.</summary>
+    public static IServiceCollection AddTestDuplexTransport(
+        this IServiceCollection services,
+        DuplexTransportOperation clientHoldOperation = DuplexTransportOperation.None,
+        DuplexTransportOperation clientFailOperation = DuplexTransportOperation.None,
+        Exception? clientFailureException = null,
+        DuplexTransportOperation serverHoldOperation = DuplexTransportOperation.None,
+        DuplexTransportOperation serverFailOperation = DuplexTransportOperation.None,
+        Exception? serverFailureException = null) => services
+        .AddSingleton<ColocTransportOptions>()
+        .AddSingleton(provider => new ColocTransport(provider.GetRequiredService<ColocTransportOptions>()))
+        .AddSingleton(provider =>
+            new TestDuplexClientTransportDecorator(
+                provider.GetRequiredService<ColocTransport>().ClientTransport,
+                holdOperation: clientHoldOperation,
+                failOperation: clientFailOperation,
+                failureException: clientFailureException))
+        .AddSingleton<IDuplexClientTransport>(provider =>
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>())
+        .AddSingleton(provider =>
+            new TestDuplexServerTransportDecorator(
+                provider.GetRequiredService<ColocTransport>().ServerTransport,
+                holdOperation: serverHoldOperation,
+                failOperation: serverFailOperation,
+                failureException: serverFailureException))
+        .AddSingleton<IDuplexServerTransport>(provider =>
+            provider.GetRequiredService<TestDuplexServerTransportDecorator>());
 }

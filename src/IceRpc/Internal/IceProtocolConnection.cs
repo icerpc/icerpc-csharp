@@ -1395,8 +1395,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
             AbortRead(exception);
+            Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
             throw;
         }
 

@@ -133,20 +133,12 @@ public sealed class IceProtocolConnectionTests
             new System.Security.Authentication.AuthenticationException() :
             new IceRpcException(IceRpcError.ConnectionRefused);
 
-        var colocTransport = new ColocTransport();
-
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTransport()
-            .AddSingleton<IDuplexServerTransport>(
-                provider => new TestDuplexServerTransportDecorator(
-                    colocTransport.ServerTransport,
-                    failOperation: serverConnection ? operation : DuplexTransportOperation.None,
-                    failureException: exception))
-            .AddSingleton<IDuplexClientTransport>(
-                provider => new TestDuplexClientTransportDecorator(
-                    colocTransport.ClientTransport,
-                    failOperation: serverConnection ? DuplexTransportOperation.None : operation,
-                    failureException: exception))
+            .AddTestDuplexTransport(
+                serverFailOperation: serverConnection ? operation : DuplexTransportOperation.None,
+                clientFailOperation: serverConnection ? DuplexTransportOperation.None : operation,
+                serverFailureException: exception,
+                clientFailureException: exception)
             .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
             .AddIceProtocolTest()
             .BuildServiceProvider(validateScopes: true);
@@ -188,23 +180,13 @@ public sealed class IceProtocolConnectionTests
     [TestCase(false, DuplexTransportOperation.Read)]
     [TestCase(true, DuplexTransportOperation.Connect)]
     [TestCase(true, DuplexTransportOperation.Write)]
-    public async Task Connect_cancellation_on_transport_hang(
-        bool serverConnection,
-        DuplexTransportOperation operation)
+    public async Task Connect_cancellation_on_transport_hang(bool serverConnection, DuplexTransportOperation operation)
     {
         // Arrange
-        var colocTransport = new ColocTransport();
-
         await using ServiceProvider provider = new ServiceCollection()
-            .AddColocTransport()
-            .AddSingleton<IDuplexServerTransport>(
-                provider => new TestDuplexServerTransportDecorator(
-                    colocTransport.ServerTransport,
-                    holdOperation: serverConnection ? operation : DuplexTransportOperation.None))
-            .AddSingleton<IDuplexClientTransport>(
-                provider => new TestDuplexClientTransportDecorator(
-                    colocTransport.ClientTransport,
-                    holdOperation: serverConnection ? DuplexTransportOperation.None : operation))
+            .AddTestDuplexTransport(
+                serverHoldOperation: serverConnection ? operation : DuplexTransportOperation.None,
+                clientHoldOperation: serverConnection ? DuplexTransportOperation.None : operation)
             .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
             .AddIceProtocolTest()
             .BuildServiceProvider(validateScopes: true);
@@ -236,6 +218,55 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => connectCall());
         Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
+    }
+
+    [Test]
+    public async Task Invoke_exception_handling_on_transport_failure()
+    {
+        // Arrange
+
+        // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
+        var failureException = new Exception();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddTestDuplexTransport(clientFailureException: failureException)
+            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+            .AddIceProtocolTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Write;
+
+        // Act/Assert
+        Exception? caughtException = Assert.CatchAsync(() => sut.Client.InvokeAsync(request));
+        Assert.That(caughtException, Is.EqualTo(failureException));
+        Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
+    }
+
+    [Test]
+    public async Task Invoke_cancellation_on_transport_hang()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddTestDuplexTransport(clientHoldOperation: DuplexTransportOperation.Write)
+            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+            .AddIceProtocolTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var invokeCts = new CancellationTokenSource(100);
+
+        // Act/Assert
+        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() =>
+            sut.Client.InvokeAsync(request, invokeCts.Token));
+        Assert.That(exception!.CancellationToken, Is.EqualTo(invokeCts.Token));
     }
 
     /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>
