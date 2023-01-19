@@ -281,7 +281,7 @@ public sealed class IceProtocolConnectionTests
     [Test]
     public async Task Invocation_cancellation_lets_payload_writing_continue_on_background()
     {
-        using var dispatcher = new TestDispatcher();
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         var colocTransport = new ColocTransport();
 
         var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
@@ -329,6 +329,7 @@ public sealed class IceProtocolConnectionTests
         incomingRequest.Payload.TryRead(out ReadResult readResult);
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.Length, Is.EqualTo(1024));
+        dispatcher.ReleaseDispatch();
         Assert.That(async () => await dispatcher.DispatchComplete, Is.Null);
     }
 
