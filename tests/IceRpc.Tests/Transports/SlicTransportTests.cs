@@ -62,9 +62,11 @@ public class SlicTransportTests
 
     [TestCase(false, false, DuplexTransportOperation.Connect)]
     [TestCase(false, false, DuplexTransportOperation.Read)]
+    [TestCase(false, false, DuplexTransportOperation.Write)]
     [TestCase(false, true, DuplexTransportOperation.Connect)]
     [TestCase(true, false, DuplexTransportOperation.Connect)]
     [TestCase(true, false, DuplexTransportOperation.Write)]
+    [TestCase(true, false, DuplexTransportOperation.Read)]
     [TestCase(true, true, DuplexTransportOperation.Connect)]
     public async Task Connect_exception_handling_on_transport_failure(
         bool serverSide,
@@ -124,8 +126,10 @@ public class SlicTransportTests
 
     [TestCase(false, DuplexTransportOperation.Connect)]
     [TestCase(false, DuplexTransportOperation.Read)]
+    [TestCase(false, DuplexTransportOperation.Write)]
     [TestCase(true, DuplexTransportOperation.Connect)]
     [TestCase(true, DuplexTransportOperation.Write)]
+    [TestCase(true, DuplexTransportOperation.Read)]
     public async Task Connect_cancellation_on_transport_hang(
         bool serverSide,
         DuplexTransportOperation operation)
@@ -511,6 +515,7 @@ public class SlicTransportTests
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
         return (localStream, remoteStream);
     }
+
     private static async Task<IMultiplexedConnection> ConnectAndAcceptConnectionAsync(
         IListener<IMultiplexedConnection> listener,
         IMultiplexedConnection connection,

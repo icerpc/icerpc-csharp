@@ -124,13 +124,14 @@ internal class SlicConnection : IMultiplexedConnection
             await Task.Yield(); // Exit mutex lock
 
             // Connect the duplex connection.
-            TransportConnectionInformation information;
+            TransportConnectionInformation transportConnectionInformation;
             TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
             (FrameType FrameType, int FrameSize, ulong?)? header;
 
             try
             {
-                information = await _duplexConnection.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                transportConnectionInformation = await _duplexConnection.ConnectAsync(cancellationToken)
+                    .ConfigureAwait(false);
 
                 // Initialize the Slic connection.
                 if (IsServer)
@@ -289,7 +290,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
 
-            return information;
+            return transportConnectionInformation;
         }
 
         static (uint, InitializeBody?) DecodeInitialize(ref SliceDecoder decoder, int frameSize)
