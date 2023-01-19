@@ -625,56 +625,52 @@ public sealed class Server : IAsyncDisposable
 
             cts.CancelAfter(_shutdownTimeout);
 
-            try
+            // _listener and _listenTask are immutable once _isShutdown is true.
+            if (_listener is not null)
             {
-                // _listener and _listenTask are immutable once _isShutdown is true.
-                if (_listener is not null)
-                {
-                    // The disposal of the listener will terminate the listenTask
-                    await _listener.DisposeAsync().AsTask().WaitAsync(cts.Token).ConfigureAwait(false);
-                }
+                Debug.Assert(_listenTask is not null);
 
-                if (_listenTask is not null)
-                {
-                    await _listenTask.WaitAsync(cts.Token).ConfigureAwait(false);
-                }
-
-                // _connections can hold protocol connections that are still connecting, and
-                // ShutdownProtocolConnectionDecorator takes care of this issue.
                 try
                 {
-                    await Task.WhenAll(
-                        _connections
-                            .Select(entry => entry.ShutdownAsync(cts.Token))
-                            .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
-                        .ConfigureAwait(false);
+                    // _connections can hold protocol connections that are still connecting, and
+                    // ShutdownProtocolConnectionDecorator takes care of this issue.
+                    try
+                    {
+                        await Task.WhenAll(
+                            _connections
+                                .Select(entry => entry.ShutdownAsync(cts.Token))
+                                .Append(_listener.DisposeAsync().AsTask().WaitAsync(cts.Token))
+                                .Append(_listenTask.WaitAsync(cts.Token))
+                                .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
+                            .ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        // Ignore _listenTask and connection shutdown exceptions
+
+                        // Throw OperationCanceledException if this WhenAll exception is hiding an OCE.
+                        cts.Token.ThrowIfCancellationRequested();
+                    }
                 }
                 catch (OperationCanceledException)
                 {
-                    throw;
-                }
-                catch
-                {
-                    // Ignore other connection shutdown failures.
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                    // Throw OperationCanceledException if this WhenAll exception is hiding an OCE.
-                    cts.Token.ThrowIfCancellationRequested();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (disposedCancellationToken.IsCancellationRequested)
-                {
-                    throw new IceRpcException(
-                        IceRpcError.OperationAborted,
-                        "The shutdown was aborted because the server was disposed.");
-                }
-                else
-                {
-                    throw new TimeoutException(
-                        $"The server shut down timed out after {_shutdownTimeout.TotalSeconds} s.");
+                    if (disposedCancellationToken.IsCancellationRequested)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.OperationAborted,
+                            "The shutdown was aborted because the server was disposed.");
+                    }
+                    else
+                    {
+                        throw new TimeoutException(
+                            $"The server shut down timed out after {_shutdownTimeout.TotalSeconds} s.");
+                    }
                 }
             }
         }
