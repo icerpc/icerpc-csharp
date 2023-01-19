@@ -36,8 +36,6 @@ public sealed class Server : IAsyncDisposable
 
     private bool _isShutdown;
 
-    private IConnectorListener? _listener;
-
     private readonly Func<IConnectorListener> _listenerFactory;
 
     private Task? _listenTask;
@@ -256,11 +254,8 @@ public sealed class Server : IAsyncDisposable
 
             // _listener, _listenTask etc are immutable when _disposeTask is not null.
 
-            if (_listener is not null)
+            if (_listenTask is not null)
             {
-                await _listener.DisposeAsync().ConfigureAwait(false);
-
-                Debug.Assert(_listenTask is not null);
                 try
                 {
                     await _listenTask.ConfigureAwait(false);
@@ -293,8 +288,6 @@ public sealed class Server : IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Throw when the server is disposed.</exception>
     public ServerAddress Listen()
     {
-        IConnectorListener listener;
-
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -305,19 +298,17 @@ public sealed class Server : IAsyncDisposable
             {
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
-            if (_listener is not null)
+            if (_listenTask is not null)
             {
                 throw new InvalidOperationException($"Server '{this}' is already listening.");
             }
 
-            listener = _listenerFactory();
-            _listener = listener;
-            _listenTask = ListenAsync();
+            IConnectorListener listener = _listenerFactory();
+            _listenTask = ListenAsync(listener); // _listenTask owns listener and must dispose it
+            return listener.ServerAddress;
         }
 
-        return listener.ServerAddress;
-
-        async Task ListenAsync()
+        async Task ListenAsync(IConnectorListener listener)
         {
             await Task.Yield(); // exit mutex lock
 
@@ -389,6 +380,10 @@ public sealed class Server : IAsyncDisposable
                 // while the listener is disposed.
             }
             // other exceptions thrown by listener.AcceptAsync are logged by listener via a log decorator
+            finally
+            {
+                await listener.DisposeAsync().ConfigureAwait(false);
+            }
 
             async Task ConnectAsync(IConnector connector)
             {
@@ -625,11 +620,9 @@ public sealed class Server : IAsyncDisposable
 
             cts.CancelAfter(_shutdownTimeout);
 
-            // _listener and _listenTask are immutable once _isShutdown is true.
-            if (_listener is not null)
+            // _listenTask is immutable once _isShutdown is true.
+            if (_listenTask is not null)
             {
-                Debug.Assert(_listenTask is not null);
-
                 try
                 {
                     // _connections can hold protocol connections that are still connecting, and
@@ -639,7 +632,6 @@ public sealed class Server : IAsyncDisposable
                         await Task.WhenAll(
                             _connections
                                 .Select(entry => entry.ShutdownAsync(cts.Token))
-                                .Append(_listener.DisposeAsync().AsTask().WaitAsync(cts.Token))
                                 .Append(_listenTask.WaitAsync(cts.Token))
                                 .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
                             .ConfigureAwait(false);
