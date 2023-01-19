@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
+using IceRpc.Tests.Transports;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -275,6 +276,62 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
+    /// <summary>Verifies that canceling an invocation that is writing the payload, fails with
+    /// OperationCanceledException and lets the payload write finish in the background.</summary>
+    [Test]
+    public async Task Invocation_cancelation_lets_payload_writting_continue_on_background()
+    {
+        using var dispatcher = new TestDispatcher();
+        var colocTransport = new ColocTransport();
+
+        var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .AddSingleton(colocTransport.ServerTransport)
+            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[1024]);
+        pipe.Writer.Complete();
+        var payload = new ReadsCompletedPipeReaderDecorator(pipe.Reader);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        {
+            Payload = payload
+        };
+
+        using var cts = new CancellationTokenSource();
+        // Hold transport writes to ensure the invocation blocks writing the payload
+        clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.Write;
+
+        // Act/Assert
+        var invokeTask = sut.Client.InvokeAsync(request, cts.Token);
+        // Wait for the connection to read the payload
+        await payload.ReadsCompleted;
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        // Invoke task cannot complete because we are holding the writes
+        Assert.That(invokeTask.IsCompleted, Is.False);
+        // Dispatch cannot start until invocation finish
+        Assert.That(dispatcher.DispatchStart.IsCompleted, Is.False);
+        // Cancel the invocation and stop holding writes
+        cts.Cancel();
+        // The invocation must fail, and writing continues on the background.
+        Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
+        Assert.That(dispatcher.DispatchStart.IsCompleted, Is.False);
+
+        // Unblock writes
+        clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.None;
+
+        var incomingRequest = await dispatcher.DispatchStart;
+        incomingRequest.Payload.TryRead(out ReadResult readResult);
+        Assert.That(readResult.IsCompleted, Is.True);
+        Assert.That(readResult.Buffer.Length, Is.EqualTo(1024));
+        Assert.That(async () => await dispatcher.DispatchComplete, Is.Null);
+    }
+
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
     /// Requests that are not dispatched by the server complete with an InvocationCanceled error.</summary>
     [Test]
@@ -431,4 +488,43 @@ public sealed class IceProtocolConnectionTests
 
     private static string GetErrorMessage(DispatchException dispatchException) =>
         $"{dispatchException.Message} {{ Original StatusCode = {dispatchException.StatusCode} }}";
+
+    private class ReadsCompletedPipeReaderDecorator : PipeReader
+    {
+        public Task ReadsCompleted => _readsCompleted.Task;
+
+        private PipeReader _decoratee;
+        private TaskCompletionSource _readsCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
+            _decoratee.AdvanceTo(consumed, examined);
+
+        public override void CancelPendingRead() => _decoratee.CancelPendingRead();
+
+        public override void Complete(Exception? exception) => _decoratee.CancelPendingRead();
+
+        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
+        {
+            ReadResult readResult = await _decoratee.ReadAsync(cancellationToken);
+            if (readResult.IsCompleted)
+            {
+                _readsCompleted.SetResult();
+            }
+            return readResult;
+        }
+
+        public override bool TryRead(out ReadResult readResult)
+        {
+            bool result = _decoratee.TryRead(out readResult);
+            if (readResult.IsCompleted)
+            {
+                _readsCompleted.SetResult();
+            }
+            return result;
+        }
+
+        internal ReadsCompletedPipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
+    }
 }
