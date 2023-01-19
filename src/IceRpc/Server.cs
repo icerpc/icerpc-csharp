@@ -312,13 +312,15 @@ public sealed class Server : IAsyncDisposable
 
             listener = _listenerFactory();
             _listener = listener;
-            _listenTask = Task.Run(ListenAsync);
+            _listenTask = ListenAsync();
         }
 
         return listener.ServerAddress;
 
         async Task ListenAsync()
         {
+            await Task.Yield(); // exit mutex lock
+
             // DisposeAsync waits for the completion of _listenTask so it's safe to read _shutdownCts.Token.
             CancellationToken cancellationToken = _shutdownCts.Token;
 
