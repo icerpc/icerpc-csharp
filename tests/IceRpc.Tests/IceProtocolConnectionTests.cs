@@ -279,7 +279,7 @@ public sealed class IceProtocolConnectionTests
     /// <summary>Verifies that canceling an invocation that is writing the payload, fails with
     /// OperationCanceledException and lets the payload write finish in the background.</summary>
     [Test]
-    public async Task Invocation_cancelation_lets_payload_writting_continue_on_background()
+    public async Task Invocation_cancellation_lets_payload_writing_continue_on_background()
     {
         using var dispatcher = new TestDispatcher();
         var colocTransport = new ColocTransport();
