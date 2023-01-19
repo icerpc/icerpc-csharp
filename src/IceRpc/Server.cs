@@ -34,8 +34,6 @@ public sealed class Server : IAsyncDisposable
 
     private Task? _disposeTask;
 
-    private bool _isShutdown;
-
     private readonly Func<IConnectorListener> _listenerFactory;
 
     private Task? _listenTask;
@@ -51,6 +49,8 @@ public sealed class Server : IAsyncDisposable
 
     // A cancellation token source canceled by ShutdownAsync and DisposeAsync.
     private readonly CancellationTokenSource _shutdownCts;
+
+    private Task? _shutdownTask;
 
     private readonly TimeSpan _shutdownTimeout;
 
@@ -235,13 +235,12 @@ public sealed class Server : IAsyncDisposable
             if (_disposeTask is null)
             {
                 _disposeTask = PerformDisposeAsync();
+                _shutdownTask ??= Task.CompletedTask;
 
                 if (_backgroundConnectionDisposeCount == 0)
                 {
-                    // There is no outstanding background dispose.
                     _ = _backgroundConnectionDisposeTcs.TrySetResult();
                 }
-                _isShutdown = true;
             }
             return new(_disposeTask);
         }
@@ -252,23 +251,22 @@ public sealed class Server : IAsyncDisposable
 
             _disposedCts.Cancel();
 
-            // _listener, _listenTask etc are immutable when _disposeTask is not null.
+            // _listenTask etc are immutable when _disposeTask is not null.
 
             if (_listenTask is not null)
             {
                 try
                 {
-                    await _listenTask.ConfigureAwait(false);
+                    await Task.WhenAll(
+                        _connections.Select(connection => connection.DisposeAsync().AsTask())
+                            .Append(_listenTask)
+                            .Append(_shutdownTask!)
+                            .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch
                 {
-                    Debug.Fail($"Unexpected listen exception: {exception}");
+                    // Ignore exceptions. Each task is responsible to log/Debug.Fail on its exceptions.
                 }
-
-                await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
-                    .ConfigureAwait(false);
-
-                await _backgroundConnectionDisposeTcs.Task.ConfigureAwait(false);
             }
 
             _disposedCts.Dispose();
@@ -294,7 +292,7 @@ public sealed class Server : IAsyncDisposable
             {
                 throw new ObjectDisposedException($"{typeof(Server)}");
             }
-            if (_isShutdown)
+            if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
@@ -354,7 +352,7 @@ public sealed class Server : IAsyncDisposable
                                 // shutdown / dispose is initiated.
                                 lock (_mutex)
                                 {
-                                    if (!_isShutdown)
+                                    if (_shutdownTask is null)
                                     {
                                         pendingConnectionSemaphore.Release();
                                     }
@@ -398,7 +396,7 @@ public sealed class Server : IAsyncDisposable
                     {
                         Debug.Assert(_maxConnections == 0 || _connections.Count <= _maxConnections);
 
-                        if (!_isShutdown)
+                        if (_shutdownTask is null)
                         {
                             if (_maxConnections > 0 && _connections.Count == _maxConnections)
                             {
@@ -460,7 +458,7 @@ public sealed class Server : IAsyncDisposable
                     {
                         lock (_mutex)
                         {
-                            if (_isShutdown)
+                            if (_shutdownTask is not null)
                             {
                                 // in _connections and disposed by ShutdownAsync/DisposeAsync.
                                 return;
@@ -491,13 +489,7 @@ public sealed class Server : IAsyncDisposable
 
                 lock (_mutex)
                 {
-                    if (_isShutdown)
-                    {
-                        // _connections is immutable and ShutdownAsync/DisposeAsync is responsible to shutdown/dispose
-                        // this connection.
-                        return;
-                    }
-                    else
+                    if (_shutdownTask is null)
                     {
                         _connections.Remove(listNode);
 
@@ -506,6 +498,12 @@ public sealed class Server : IAsyncDisposable
                         {
                             _backgroundConnectionShutdownCount++;
                         }
+                    }
+                    else
+                    {
+                        // _connections is immutable and ShutdownAsync/DisposeAsync is responsible to shutdown/dispose
+                        // this connection.
+                        return;
                     }
                 }
 
@@ -528,7 +526,7 @@ public sealed class Server : IAsyncDisposable
                     {
                         lock (_mutex)
                         {
-                            if (--_backgroundConnectionShutdownCount == 0 && _isShutdown)
+                            if (--_backgroundConnectionShutdownCount == 0 && _shutdownTask is not null)
                             {
                                 _backgroundConnectionShutdownTcs.SetResult();
                             }
@@ -567,50 +565,37 @@ public sealed class Server : IAsyncDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the server is disposed.</exception>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        CancellationToken disposedCancellationToken;
-
         lock (_mutex)
         {
             if (_disposeTask is not null)
             {
                 throw new ObjectDisposedException($"{typeof(Server)}");
             }
-            if (_isShutdown)
+            if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
 
-            _isShutdown = true;
-
             if (_backgroundConnectionShutdownCount == 0)
             {
-                // There is no outstanding background connection shutdown.
                 _ = _backgroundConnectionShutdownTcs.TrySetResult();
             }
 
-            disposedCancellationToken = _disposedCts.Token;
+            _shutdownTask = PerformShutdownAsync();
         }
-
-        try
-        {
-            _shutdownCts.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-            // This can happen if dispose has been already called. We don't want to call Cancel with the mutex locked.
-        }
-
-        return PerformShutdownAsync();
+        return _shutdownTask;
 
         async Task PerformShutdownAsync()
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken,
-                disposedCancellationToken);
+            await Task.Yield(); // exit mutex lock
+
+            _shutdownCts.Cancel();
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
 
             cts.CancelAfter(_shutdownTimeout);
 
-            // _listenTask is immutable once _isShutdown is true.
+            // _listenTask is immutable once _shutdownTask is not null.
             if (_listenTask is not null)
             {
                 try
@@ -642,7 +627,7 @@ public sealed class Server : IAsyncDisposable
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    if (disposedCancellationToken.IsCancellationRequested)
+                    if (_disposedCts.IsCancellationRequested)
                     {
                         throw new IceRpcException(
                             IceRpcError.OperationAborted,
