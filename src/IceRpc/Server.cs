@@ -364,20 +364,10 @@ public sealed class Server : IAsyncDisposable
                         CancellationToken.None);
                 }
             }
-            catch (ObjectDisposedException)
-            {
-                // The AcceptAsync call can fail with ObjectDisposedException during shutdown once the listener is
-                // disposed.
-            }
             catch (OperationCanceledException)
             {
                 // The AcceptAsync call can fail with OperationCanceledException during shutdown once the shutdown
                 // cancellation token is canceled.
-            }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-            {
-                // The AcceptAsync call can fail with OperationAborted during shutdown if it is accepting a connection
-                // while the listener is disposed.
             }
             // other exceptions thrown by listener.AcceptAsync are logged by listener via a log decorator
             finally
