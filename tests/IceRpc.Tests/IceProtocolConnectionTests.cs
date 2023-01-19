@@ -117,6 +117,127 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
+    [TestCase(false, false, DuplexTransportOperation.Connect)]
+    [TestCase(false, false, DuplexTransportOperation.Read)]
+    [TestCase(false, true, DuplexTransportOperation.Connect)]
+    [TestCase(true, false, DuplexTransportOperation.Connect)]
+    [TestCase(true, false, DuplexTransportOperation.Write)]
+    [TestCase(true, true, DuplexTransportOperation.Connect)]
+    public async Task Connect_exception_handling_on_transport_failure(
+        bool serverConnection,
+        bool authenticationException,
+        DuplexTransportOperation operation)
+    {
+        // Arrange
+        Exception exception = authenticationException ?
+            new System.Security.Authentication.AuthenticationException() :
+            new IceRpcException(IceRpcError.ConnectionRefused);
+
+        var colocTransport = new ColocTransport();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTransport()
+            .AddSingleton<IDuplexServerTransport>(
+                provider => new TestDuplexServerTransportDecorator(
+                    colocTransport.ServerTransport,
+                    failOperation: serverConnection ? operation : DuplexTransportOperation.None,
+                    failureException: exception))
+            .AddSingleton<IDuplexClientTransport>(
+                provider => new TestDuplexClientTransportDecorator(
+                    colocTransport.ClientTransport,
+                    failOperation: serverConnection ? DuplexTransportOperation.None : operation,
+                    failureException: exception))
+            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+            .AddIceProtocolTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        Func<Task> connectCall = serverConnection ?
+            () => sut.ConnectAsync(default) :
+            async () =>
+            {
+                _ = AcceptAsync();
+                _ = await sut.Client.ConnectAsync();
+
+                async Task AcceptAsync()
+                {
+                    try
+                    {
+                        await sut.AcceptAsync();
+                    }
+                    catch
+                    {
+                        // Prevents unobserved task exceptions.
+                    }
+                }
+            };
+
+        // Act/Assert
+        Exception? caughtException = Assert.CatchAsync(() => connectCall());
+        Assert.That(caughtException, Is.EqualTo(exception));
+
+        // The protocol connection is not created if server-side connect fails.
+        if (!serverConnection || operation != DuplexTransportOperation.Connect)
+        {
+            Assert.That(() => serverConnection ? sut.Server.Closed : sut.Client.Closed, Is.EqualTo(exception));
+        }
+    }
+
+    [TestCase(false, DuplexTransportOperation.Connect)]
+    [TestCase(false, DuplexTransportOperation.Read)]
+    [TestCase(true, DuplexTransportOperation.Connect)]
+    [TestCase(true, DuplexTransportOperation.Write)]
+    public async Task Connect_cancellation_on_transport_hang(
+        bool serverConnection,
+        DuplexTransportOperation operation)
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddColocTransport()
+            .AddSingleton<IDuplexServerTransport>(
+                provider => new TestDuplexServerTransportDecorator(
+                    colocTransport.ServerTransport,
+                    holdOperation: serverConnection ? operation : DuplexTransportOperation.None))
+            .AddSingleton<IDuplexClientTransport>(
+                provider => new TestDuplexClientTransportDecorator(
+                    colocTransport.ClientTransport,
+                    holdOperation: serverConnection ? DuplexTransportOperation.None : operation))
+            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+            .AddIceProtocolTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        using var connectCts = new CancellationTokenSource(100);
+
+        Func<Task> connectCall = serverConnection ?
+            () => sut.ConnectAsync(connectCts.Token) :
+            async () =>
+            {
+                _ = AcceptAsync();
+                _ = await sut.Client.ConnectAsync(connectCts.Token);
+
+                async Task AcceptAsync()
+                {
+                    try
+                    {
+                        await sut.AcceptAsync();
+                    }
+                    catch
+                    {
+                        // Prevents unobserved task exceptions.
+                    }
+                }
+            };
+
+        // Act/Assert
+        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => connectCall());
+        Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
+    }
+
     /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>
     [Test]
     public async Task Idle_timeout_mismatch_aborts_connection()

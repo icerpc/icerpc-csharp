@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
+using System.Net;
 
 namespace IceRpc.Tests.Transports;
 
@@ -57,6 +58,127 @@ public class SlicTransportTests
 
         // Act/Assert
         Assert.That(async () => await sut.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [TestCase(false, false, DuplexTransportOperation.Connect)]
+    [TestCase(false, false, DuplexTransportOperation.Read)]
+    [TestCase(false, false, DuplexTransportOperation.Write)]
+    [TestCase(false, true, DuplexTransportOperation.Connect)]
+    [TestCase(true, false, DuplexTransportOperation.Connect)]
+    [TestCase(true, false, DuplexTransportOperation.Write)]
+    [TestCase(true, false, DuplexTransportOperation.Read)]
+    [TestCase(true, true, DuplexTransportOperation.Connect)]
+    public async Task Connect_exception_handling_on_transport_failure(
+        bool serverSide,
+        bool authenticationException,
+        DuplexTransportOperation operation)
+    {
+        // Arrange
+        Exception exception = authenticationException ?
+            new System.Security.Authentication.AuthenticationException() :
+            new IceRpcException(IceRpcError.ConnectionRefused);
+
+        var colocTransport = new ColocTransport();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddSingleton<IDuplexServerTransport>(
+                provider => new TestDuplexServerTransportDecorator(
+                    colocTransport.ServerTransport,
+                    failOperation: serverSide ? operation : DuplexTransportOperation.None,
+                    failureException: exception))
+            .AddSingleton<IDuplexClientTransport>(
+                provider => new TestDuplexClientTransportDecorator(
+                    colocTransport.ClientTransport,
+                    failOperation: serverSide ? DuplexTransportOperation.None : operation,
+                    failureException: exception))
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        Func<Task> connectCall = serverSide ?
+            async () => _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection) :
+            async () =>
+            {
+                _ = AcceptAsync();
+                _ = await clientConnection.ConnectAsync(default);
+
+                async Task AcceptAsync()
+                {
+                    try
+                    {
+                        (IMultiplexedConnection connection, EndPoint _) = await listener.AcceptAsync(default);
+                        await using IMultiplexedConnection serverConnection = connection;
+                        await serverConnection.ConnectAsync(default);
+                    }
+                    catch
+                    {
+                        // Prevents unobserved task exceptions.
+                    }
+                }
+            };
+
+        // Act/Assert
+        Exception? caughtException = Assert.CatchAsync(() => connectCall());
+        Assert.That(caughtException, Is.EqualTo(exception));
+    }
+
+    [TestCase(false, DuplexTransportOperation.Connect)]
+    [TestCase(false, DuplexTransportOperation.Read)]
+    [TestCase(false, DuplexTransportOperation.Write)]
+    [TestCase(true, DuplexTransportOperation.Connect)]
+    [TestCase(true, DuplexTransportOperation.Write)]
+    [TestCase(true, DuplexTransportOperation.Read)]
+    public async Task Connect_cancellation_on_transport_hang(
+        bool serverSide,
+        DuplexTransportOperation operation)
+    {
+        // Arrange
+        var colocTransport = new ColocTransport();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddSingleton<IDuplexServerTransport>(
+                provider => new TestDuplexServerTransportDecorator(
+                    colocTransport.ServerTransport,
+                    holdOperation: serverSide ? operation : DuplexTransportOperation.None))
+            .AddSingleton<IDuplexClientTransport>(
+                provider => new TestDuplexClientTransportDecorator(
+                    colocTransport.ClientTransport,
+                    holdOperation: serverSide ? DuplexTransportOperation.None : operation))
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+
+        using var connectCts = new CancellationTokenSource(100);
+
+        Func<Task> connectCall = serverSide ?
+            async () => _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection, connectCts.Token) :
+            async () =>
+            {
+                _ = AcceptAsync();
+                _ = await clientConnection.ConnectAsync(connectCts.Token);
+
+                async Task AcceptAsync()
+                {
+                    try
+                    {
+                        (IMultiplexedConnection connection, EndPoint _) = await listener.AcceptAsync(default);
+                        await using IMultiplexedConnection serverConnection = connection;
+                        await serverConnection.ConnectAsync(default);
+                    }
+                    catch
+                    {
+                        // Prevents unobserved task exceptions.
+                    }
+                }
+            };
+
+        // Act/Assert
+        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => connectCall());
+        Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
     }
 
     /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server
@@ -393,14 +515,24 @@ public class SlicTransportTests
         remoteStream.Input.AdvanceTo(readResult.Buffer.End);
         return (localStream, remoteStream);
     }
+
     private static async Task<IMultiplexedConnection> ConnectAndAcceptConnectionAsync(
         IListener<IMultiplexedConnection> listener,
-        IMultiplexedConnection connection)
+        IMultiplexedConnection connection,
+        CancellationToken cancellationToken = default)
     {
-        var connectTask = connection.ConnectAsync(default);
-        var serverConnection = (await listener.AcceptAsync(default)).Connection;
-        await serverConnection.ConnectAsync(default);
-        await connectTask;
-        return serverConnection;
+        Task<TransportConnectionInformation> connectTask = connection.ConnectAsync(cancellationToken);
+        IMultiplexedConnection serverConnection = (await listener.AcceptAsync(cancellationToken)).Connection;
+        try
+        {
+            await serverConnection.ConnectAsync(cancellationToken);
+            await connectTask;
+            return serverConnection;
+        }
+        catch
+        {
+            await serverConnection.DisposeAsync();
+            throw;
+        }
     }
 }

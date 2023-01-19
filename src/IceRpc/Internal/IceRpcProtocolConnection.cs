@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Security.Authentication;
 
 namespace IceRpc.Internal;
 
@@ -136,10 +137,21 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             [IceRpcSettingKey.MaxHeaderSize] = (ulong)_maxLocalHeaderSize
                         });
 
-                await SendControlFrameAsync(
-                    IceRpcControlFrameType.Settings,
-                    settings.Encode,
-                    connectCts.Token).ConfigureAwait(false);
+                try
+                {
+                    await SendControlFrameAsync(
+                        IceRpcControlFrameType.Settings,
+                        settings.Encode,
+                        connectCts.Token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // If we fail to send the Settings frame, we are in an abortive closure and we close Output to allow
+                    // the peer to continue if it's waiting for us. This could happen when the cancellation token is
+                    // canceled.
+                    _controlStream!.Output.CompleteOutput(success: false);
+                    throw;
+                }
 
                 // Wait for the remote control stream to be accepted and read the protocol Settings frame
                 _remoteControlStream = await _transportConnection.AcceptStreamAsync(
@@ -170,6 +182,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw;
             }
             catch (InvalidDataException exception)
+            {
+                TryCompleteClosed(exception, "The connection establishment failed.");
+                throw;
+            }
+            catch (AuthenticationException exception)
             {
                 TryCompleteClosed(exception, "The connection establishment failed.");
                 throw;
