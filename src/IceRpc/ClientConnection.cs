@@ -589,21 +589,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     _ = await _connectTask.ConfigureAwait(false);
                 }
-                catch (IceRpcException)
+                catch
                 {
-                    // expected
-                }
-                catch (OperationCanceledException)
-                {
-                    // expected
-                }
-                catch (TimeoutException)
-                {
-                    // expected
-                }
-                catch (Exception exception)
-                {
-                    Debug.Fail($"Unexpected connection connect exception: {exception}");
+                    // The protocol connection handles unexpected exceptions no need to handle them here.
                 }
             }
         }
