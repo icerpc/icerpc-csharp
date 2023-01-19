@@ -555,7 +555,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
-                throw new InvalidOperationException("Cannot shut down an a connection before it's connected.");
+                throw new InvalidOperationException("Cannot shut down a protocol connection before it's connected.");
             }
 
             RefuseNewInvocations("The connection was shut down.");

@@ -310,32 +310,30 @@ public sealed class Server : IAsyncDisposable
         {
             await Task.Yield(); // exit mutex lock
 
-            // DisposeAsync waits for the completion of _listenTask so it's safe to read _shutdownCts.Token.
-            CancellationToken cancellationToken = _shutdownCts.Token;
-
             try
             {
                 using var pendingConnectionSemaphore = new SemaphoreSlim(
                     _maxPendingConnections,
                     _maxPendingConnections);
 
-                while (!cancellationToken.IsCancellationRequested)
+                while (!_shutdownCts.IsCancellationRequested)
                 {
-                    await pendingConnectionSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    await pendingConnectionSemaphore.WaitAsync(_shutdownCts.Token).ConfigureAwait(false);
 
-                    (IConnector connector, _) = await listener.AcceptAsync(cancellationToken).ConfigureAwait(false);
+                    (IConnector connector, _) = await listener.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
 
                     // We don't wait for the connection to be activated or shutdown. This could take a while for some
                     // transports such as TLS based transports where the handshake requires few round trips between the
                     // client and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime. The
                     // call will eventually timeout if the ConnectTimeout expires.
+                    CancellationToken cancellationToken = _shutdownCts.Token;
                     _ = Task.Run(
                         async () =>
                         {
                             try
                             {
-                                await ConnectAsync(connector).ConfigureAwait(false);
+                                await ConnectAsync(connector, cancellationToken).ConfigureAwait(false);
                             }
                             catch
                             {
@@ -373,31 +371,34 @@ public sealed class Server : IAsyncDisposable
                 await listener.DisposeAsync().ConfigureAwait(false);
             }
 
-            async Task ConnectAsync(IConnector connector)
+            async Task ConnectAsync(IConnector connector, CancellationToken cancellationToken)
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(_connectTimeout);
-
-                // Connect the transport connection first. This connection establishment can be interrupted by the
-                // connect timeout or the server ShutdownAsync/DisposeAsync.
-                TransportConnectionInformation transportConnectionInformation =
-                    await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
-
                 IProtocolConnection? protocolConnection = null;
                 Task? connectTask = null;
                 LinkedListNode<IProtocolConnection>? listNode = null;
                 bool serverBusy = false;
+                CancellationToken disposedCancellationToken = default;
 
                 // Create the protocol connection if the server is not being shutdown/disposed and if the max connection
                 // count is not reached.
                 try
                 {
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    cts.CancelAfter(_connectTimeout);
+
+                    // Connect the transport connection first. This connection establishment can be interrupted by the
+                    // connect timeout or the server ShutdownAsync/DisposeAsync.
+                    TransportConnectionInformation transportConnectionInformation =
+                        await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
+
                     lock (_mutex)
                     {
                         Debug.Assert(_maxConnections == 0 || _connections.Count <= _maxConnections);
 
                         if (_shutdownTask is null)
                         {
+                            disposedCancellationToken = _disposedCts.Token;
+
                             if (_maxConnections > 0 && _connections.Count == _maxConnections)
                             {
                                 serverBusy = true;
@@ -433,11 +434,16 @@ public sealed class Server : IAsyncDisposable
 
                 if (protocolConnection is null)
                 {
-                    // TODO: should we refuse the connection "in the background" in case we're shutting down and cts is
-                    // canceled?
+                    // We don't want this refusal to be canceled by a call to ShutdownAsync.
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
+
+                    // We don't want this refusal to hang until the server is disposed.
+                    cts.CancelAfter(_connectTimeout);
+
                     try
                     {
-                        await connector.RefuseTransportConnectionAsync(serverBusy, cts.Token).ConfigureAwait(false);
+                        await connector.RefuseTransportConnectionAsync(serverBusy, cts.Token)
+                            .ConfigureAwait(false);
                     }
                     catch
                     {
