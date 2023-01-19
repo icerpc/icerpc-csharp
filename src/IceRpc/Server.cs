@@ -259,10 +259,8 @@ public sealed class Server : IAsyncDisposable
             if (_listener is not null)
             {
                 await _listener.DisposeAsync().ConfigureAwait(false);
-            }
 
-            if (_listenTask is not null)
-            {
+                Debug.Assert(_listenTask is not null);
                 try
                 {
                     await _listenTask.ConfigureAwait(false);
@@ -271,12 +269,12 @@ public sealed class Server : IAsyncDisposable
                 {
                     Debug.Fail($"Unexpected listen exception: {exception}");
                 }
+
+                await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
+                    .ConfigureAwait(false);
+
+                await _backgroundConnectionDisposeTcs.Task.ConfigureAwait(false);
             }
-
-            await Task.WhenAll(_connections.Select(connection => connection.DisposeAsync().AsTask()))
-                .ConfigureAwait(false);
-
-            await _backgroundConnectionDisposeTcs.Task.ConfigureAwait(false);
 
             _disposedCts.Dispose();
             _shutdownCts.Dispose();
