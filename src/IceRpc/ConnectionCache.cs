@@ -103,13 +103,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 // Once _disposeTask is not null, we no longer perform any background dispose or shutdown.
                 if (_backgroundConnectionDisposeCount == 0)
                 {
-                    // There is no outstanding background dispose.
                     _ = _backgroundConnectionDisposeTcs.TrySetResult();
-                }
-                if (_backgroundConnectionShutdownCount == 0)
-                {
-                    // There is no outstanding background shutdown.
-                    _ = _backgroundConnectionShutdownTcs.TrySetResult();
                 }
             }
             return new(_disposeTask);
@@ -348,7 +342,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             // Once _shutdownTask is not null, we no longer perform any background dispose or shutdown.
             if (_backgroundConnectionShutdownCount == 0)
             {
-                // There is no outstanding background connection shutdown.
                 _ = _backgroundConnectionShutdownTcs.TrySetResult();
             }
             // _backgroundConnectionDispose is only relevant to DisposeAsync
@@ -363,7 +356,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             await Task.Yield(); // exit mutex lock
 
             // Cancel all outstanding ConnectAsync. We don't shutdown or otherwise wait for the pending connections:
-            // since they remain in _pendingConnections, we have not send any invocations on them and it's extremely
+            // since they remain in _pendingConnections, we have not send any invocation on them and it's extremely
             // unlikely that they processed any dispatch.
             _shutdownCts.Cancel();
 
