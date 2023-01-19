@@ -304,28 +304,28 @@ public sealed class IceProtocolConnectionTests
         };
 
         using var cts = new CancellationTokenSource();
-        // Hold transport writes to ensure the invocation blocks writing the payload
+        // Hold writes to ensure the invocation blocks writing the payload.
         clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.Write;
 
         // Act/Assert
-        var invokeTask = sut.Client.InvokeAsync(request, cts.Token);
-        // Wait for the connection to read the payload
+
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, cts.Token);
+        // Wait for the connection to read the payload, and let write start.
         await payload.ReadsCompleted;
         await Task.Delay(TimeSpan.FromSeconds(1));
-        // Invoke task cannot complete because we are holding the writes
+
+        // Ensure Invoke didn't complete and dispatch didn't start
         Assert.That(invokeTask.IsCompleted, Is.False);
-        // Dispatch cannot start until invocation finish
         Assert.That(dispatcher.DispatchStart.IsCompleted, Is.False);
-        // Cancel the invocation and stop holding writes
+
+        // Cancel the invocation, and let invoke fail.
         cts.Cancel();
-        // The invocation must fail, and writing continues on the background.
         Assert.That(async () => await invokeTask, Throws.TypeOf<OperationCanceledException>());
         Assert.That(dispatcher.DispatchStart.IsCompleted, Is.False);
 
-        // Unblock writes
+        // Unblock writes and let them continue on the background
         clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.None;
-
-        var incomingRequest = await dispatcher.DispatchStart;
+        IncomingRequest incomingRequest = await dispatcher.DispatchStart;
         incomingRequest.Payload.TryRead(out ReadResult readResult);
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.Length, Is.EqualTo(1024));
