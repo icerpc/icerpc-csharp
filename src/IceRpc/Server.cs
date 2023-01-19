@@ -425,16 +425,13 @@ public sealed class Server : IAsyncDisposable
                                 // now responsible for disposing of it.
                                 protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
 
-                                // We can only insert protocolConnection in _connections after we call ConnectAsync;
-                                // otherwise, Server.ShutdownAsync could try to shutdown a connection prior to the call
-                                // to ConnectAsync. ConnectAsync can throw.
-                                connectTask = protocolConnection.ConnectAsync(cts.Token);
-
-                                // We decorate protocolConnection to allow Server.ShutdownAsync to call
-                                // connection.ShutdownAsync before connectTask's completion.
+                                connectTask = protocolConnection.ConnectAsync(cts.Token); // this can throw
                                 protocolConnection =
                                     new ShutdownProtocolConnectionDecorator(protocolConnection, connectTask);
 
+                                // We can only insert protocolConnection in _connections after we call ConnectAsync;
+                                // otherwise, Server.ShutdownAsync could try to shutdown a connection prior to the call
+                                // to ConnectAsync.
                                 listNode = _connections.AddLast(protocolConnection);
                             }
                         }
@@ -442,9 +439,12 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch
                 {
-                    // ConnectAsync failed and we must dispose protocol connection outside the mutex lock.
-                    Debug.Assert(protocolConnection is not null && connectTask is null);
-                    await protocolConnection.DisposeAsync().ConfigureAwait(false);
+                    Debug.Assert(connectTask is null); // can't fail after ConnectAsync
+                    if (protocolConnection is not null)
+                    {
+                        // ConnectAsync failed.
+                        await protocolConnection.DisposeAsync().ConfigureAwait(false);
+                    }
                     throw;
                 }
 
@@ -639,6 +639,8 @@ public sealed class Server : IAsyncDisposable
                     await _listenTask.WaitAsync(cts.Token).ConfigureAwait(false);
                 }
 
+                // _connections can hold protocol connections that are still connecting, and
+                // ShutdownProtocolConnectionDecorator takes care of this issue.
                 try
                 {
                     await Task.WhenAll(
@@ -944,9 +946,11 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    /// <summary>A protocol connection decorator to simplify shutdown. Its ShutdownAsync waits for
-    /// decoratee.ConnectAsync to complete successfully. It's not a general purpose decorator: it relies on Server's
-    /// internal logic.</summary>
+    /// <summary>A normal undecorated protocol connection does not allow calling ShutdownAsync unless ConnectAsync
+    /// completed successfully. This decorator relaxes this requirement: its ShutdownAsync waits for the connectTask
+    /// to complete successfully because calling decoratee.ShutdownAsync. This simplifies Server's implementation, in
+    /// particular <see cref="Server.ShutdownAsync" />.
+    /// </summary>
     private class ShutdownProtocolConnectionDecorator : IProtocolConnection
     {
         public Task<Exception?> Closed => _decoratee.Closed;
@@ -956,7 +960,6 @@ public sealed class Server : IAsyncDisposable
         public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
         private readonly Task _connectTask;
-
         private readonly IProtocolConnection _decoratee;
 
         public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -976,12 +979,11 @@ public sealed class Server : IAsyncDisposable
         {
             try
             {
-                // Wait for _connectTask to complete, which shouldn't take long.
                 await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
-                // ShutdownAsync cancellation. _connectTask could still be running, which is fine.
+                // _connectTask could still be running, which is fine.
                 throw;
             }
             catch
