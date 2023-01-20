@@ -219,8 +219,9 @@ public sealed class IceProtocolConnectionTests
         Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
     }
 
-    [Test]
-    public async Task Invoke_exception_handling_on_transport_failure()
+    [TestCase(DuplexTransportOperation.Read)]
+    [TestCase(DuplexTransportOperation.Write)]
+    public async Task Invoke_exception_handling_on_transport_failure(DuplexTransportOperation operation)
     {
         // Arrange
 
@@ -239,10 +240,20 @@ public sealed class IceProtocolConnectionTests
         await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
-        clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Write;
+        clientTransport!.LastConnection.FailOperation = operation;
 
         // Act/Assert
-        Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
+        if (operation == DuplexTransportOperation.Write)
+        {
+            Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
+        }
+        else
+        {
+            Assert.That(() =>
+                sut.Client.InvokeAsync(request),
+                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                    IceRpcError.ConnectionAborted));
+        }
         Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
     }
 
