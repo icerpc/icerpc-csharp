@@ -25,6 +25,8 @@ public sealed class Server : IAsyncDisposable
     private readonly TaskCompletionSource _backgroundConnectionShutdownTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private int _connectionCount;
+
     private readonly LinkedList<IProtocolConnection> _connections = new();
 
     private readonly TimeSpan _connectTimeout;
@@ -373,76 +375,55 @@ public sealed class Server : IAsyncDisposable
 
             async Task ConnectAsync(IConnector connector, CancellationToken cancellationToken)
             {
+                using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                connectCts.CancelAfter(_connectTimeout);
+
+                // Connect the transport connection first. This connection establishment can be interrupted by the
+                // connect timeout or the server ShutdownAsync/DisposeAsync.
+                TransportConnectionInformation transportConnectionInformation =
+                    await connector.ConnectTransportConnectionAsync(connectCts.Token).ConfigureAwait(false);
+
                 IProtocolConnection? protocolConnection = null;
-                Task? connectTask = null;
-                LinkedListNode<IProtocolConnection>? listNode = null;
                 bool serverBusy = false;
-                CancellationToken disposedCancellationToken = default;
+                CancellationToken disposedCancellationToken;
 
-                // Create the protocol connection if the server is not being shutdown/disposed and if the max connection
-                // count is not reached.
-                try
+                lock (_mutex)
                 {
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    cts.CancelAfter(_connectTimeout);
+                    // _connectionCount includes connections we've decided to connect but that we did not add to
+                    // _connections yet.
+                    Debug.Assert(_connections.Count <= _connectionCount);
+                    Debug.Assert(_maxConnections == 0 || _connectionCount <= _maxConnections);
 
-                    // Connect the transport connection first. This connection establishment can be interrupted by the
-                    // connect timeout or the server ShutdownAsync/DisposeAsync.
-                    TransportConnectionInformation transportConnectionInformation =
-                        await connector.ConnectTransportConnectionAsync(cts.Token).ConfigureAwait(false);
+                    disposedCancellationToken =
+                        _disposeTask is null ? _disposedCts.Token : new CancellationToken(canceled: true);
 
-                    lock (_mutex)
+                    if (_shutdownTask is null)
                     {
-                        Debug.Assert(_maxConnections == 0 || _connections.Count <= _maxConnections);
-
-                        if (_shutdownTask is null)
+                        if (_maxConnections > 0 && _connections.Count == _maxConnections)
                         {
-                            disposedCancellationToken = _disposedCts.Token;
-
-                            if (_maxConnections > 0 && _connections.Count == _maxConnections)
-                            {
-                                serverBusy = true;
-                            }
-                            else
-                            {
-                                // The protocol connection adopts the transport connection from the connector and it's
-                                // now responsible for disposing of it.
-                                protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
-
-                                connectTask = protocolConnection.ConnectAsync(cts.Token); // this can throw
-                                protocolConnection =
-                                    new ShutdownProtocolConnectionDecorator(protocolConnection, connectTask);
-
-                                // We can only insert protocolConnection in _connections after we call ConnectAsync;
-                                // otherwise, Server.ShutdownAsync could try to shutdown a connection prior to the call
-                                // to ConnectAsync.
-                                listNode = _connections.AddLast(protocolConnection);
-                            }
+                            serverBusy = true;
+                        }
+                        else
+                        {
+                            // The protocol connection adopts the transport connection from the connector and it's
+                            // now responsible for disposing of it.
+                            protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
+                            _connectionCount++;
                         }
                     }
-                }
-                catch
-                {
-                    Debug.Assert(connectTask is null); // can't fail after ConnectAsync
-                    if (protocolConnection is not null)
-                    {
-                        // ConnectAsync failed.
-                        await protocolConnection.DisposeAsync().ConfigureAwait(false);
-                    }
-                    throw;
                 }
 
                 if (protocolConnection is null)
                 {
                     // We don't want this refusal to be canceled by a call to ShutdownAsync.
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
+                    using var refuseCts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
 
                     // We don't want this refusal to hang until the server is disposed.
-                    cts.CancelAfter(_connectTimeout);
+                    refuseCts.CancelAfter(_connectTimeout);
 
                     try
                     {
-                        await connector.RefuseTransportConnectionAsync(serverBusy, cts.Token)
+                        await connector.RefuseTransportConnectionAsync(serverBusy, refuseCts.Token)
                             .ConfigureAwait(false);
                     }
                     catch
@@ -453,34 +434,67 @@ public sealed class Server : IAsyncDisposable
                 }
                 else
                 {
-                    Debug.Assert(connectTask is not null);
-                    Debug.Assert(listNode is not null);
-
                     try
                     {
-                        await connectTask.ConfigureAwait(false);
+                        _ = await protocolConnection.ConnectAsync(connectCts.Token).ConfigureAwait(false);
                     }
                     catch
                     {
                         lock (_mutex)
                         {
-                            if (_shutdownTask is not null)
-                            {
-                                // in _connections and disposed by ShutdownAsync/DisposeAsync.
-                                return;
-                            }
-
-                            _connections.Remove(listNode);
+                            _connectionCount--;
                         }
-
-                        // We don't consider this dispose a "background dispose" since this connection is not connected
-                        // at the RPC level.
                         await protocolConnection.DisposeAsync().ConfigureAwait(false);
                         throw;
                     }
 
-                    // Schedule removal after successful ConnectAsync.
-                    _ = RemoveFromConnectionsAsync(protocolConnection, listNode);
+                    LinkedListNode<IProtocolConnection>? listNode = null;
+                    bool serverShutdown = false;
+
+                    lock (_mutex)
+                    {
+                        if (_shutdownTask is null)
+                        {
+                            // We can only insert protocolConnection in _connections after we call ConnectAsync;
+                            // otherwise, Server.ShutdownAsync could try to shutdown a connection that is not
+                            // successfully connected.
+                            listNode = _connections.AddLast(protocolConnection);
+                        }
+                        else
+                        {
+                            serverShutdown = _disposeTask is null;
+                        }
+                    }
+
+                    if (listNode is null)
+                    {
+                        if (serverShutdown)
+                        {
+                            // Server is shutting down before we could add the connected protocolConnection into
+                            // _connections. We must shut it down as it may have dispatched some requests already.
+
+                            using var shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(
+                                disposedCancellationToken);
+                            shutdownCts.CancelAfter(_shutdownTimeout);
+
+                            try
+                            {
+                                await protocolConnection.ShutdownAsync(shutdownCts.Token).ConfigureAwait(false);
+                            }
+                            catch
+                            {
+                                // Ignore all shutdown exceptions.
+                            }
+                        }
+                        // else, Server is being disposed. No need to shutdown the connection.
+
+                        await protocolConnection.DisposeAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Schedule removal after successful ConnectAsync.
+                        _ = RemoveFromConnectionsAsync(protocolConnection, listNode);
+                    }
                 }
             }
 
@@ -498,6 +512,7 @@ public sealed class Server : IAsyncDisposable
                     if (_shutdownTask is null)
                     {
                         _connections.Remove(listNode);
+                        _connectionCount--;
 
                         _backgroundConnectionDisposeCount++;
                         if (shutdownRequested)
@@ -606,8 +621,6 @@ public sealed class Server : IAsyncDisposable
             {
                 try
                 {
-                    // _connections can hold protocol connections that are still connecting, and
-                    // ShutdownProtocolConnectionDecorator takes care of this issue.
                     try
                     {
                         await Task.WhenAll(
@@ -912,62 +925,6 @@ public sealed class Server : IAsyncDisposable
                 }
                 ServerMetrics.Instance.ConnectionStop();
             }
-        }
-    }
-
-    /// <summary>A normal undecorated protocol connection does not allow calling ShutdownAsync unless ConnectAsync
-    /// completed successfully. This decorator relaxes this requirement: its ShutdownAsync waits for the connectTask
-    /// to complete successfully because calling decoratee.ShutdownAsync. This simplifies Server's implementation, in
-    /// particular <see cref="Server.ShutdownAsync" />.
-    /// </summary>
-    private class ShutdownProtocolConnectionDecorator : IProtocolConnection
-    {
-        public Task<Exception?> Closed => _decoratee.Closed;
-
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
-        public Task ShutdownRequested => _decoratee.ShutdownRequested;
-
-        private readonly Task _connectTask;
-        private readonly IProtocolConnection _decoratee;
-
-        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
-        {
-            Debug.Fail(
-                "ShutdownProtocolConnectionDecorator must be constructed after calling ConnectAsync on decoratee.");
-            return _decoratee.ConnectAsync(cancellationToken);
-        }
-
-        // The caller takes care of observing any exception in _connectTask.
-        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
-
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
-            _decoratee.InvokeAsync(request, cancellationToken);
-
-        public async Task ShutdownAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-            {
-                // _connectTask could still be running, which is fine.
-                throw;
-            }
-            catch
-            {
-                // _connectTask failed so there is nothing to shutdown - it's a successful shutdown.
-                return;
-            }
-
-            await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        internal ShutdownProtocolConnectionDecorator(IProtocolConnection decoratee, Task connectTask)
-        {
-            _decoratee = decoratee;
-            _connectTask = connectTask;
         }
     }
 
