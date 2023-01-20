@@ -232,13 +232,13 @@ public sealed class Server : IAsyncDisposable
         {
             if (_disposeTask is null)
             {
-                _disposeTask = PerformDisposeAsync();
                 _shutdownTask ??= Task.CompletedTask;
-
                 if (_detachedConnectionCount == 0)
                 {
                     _ = _detachedConnectionTcs.TrySetResult();
                 }
+
+                _disposeTask = PerformDisposeAsync();
             }
             return new(_disposeTask);
         }
@@ -566,15 +566,17 @@ public sealed class Server : IAsyncDisposable
 
             _shutdownCts.Cancel();
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
-
-            cts.CancelAfter(_shutdownTimeout);
-
             // _listenTask is immutable once _shutdownTask is not null.
             if (_listenTask is not null)
             {
                 try
                 {
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken,
+                        _disposedCts.Token);
+
+                    cts.CancelAfter(_shutdownTimeout);
+
                     try
                     {
                         await Task.WhenAll(

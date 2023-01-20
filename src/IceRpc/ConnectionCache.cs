@@ -92,13 +92,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is null)
             {
-                _disposeTask = PerformDisposeAsync();
                 _shutdownTask ??= Task.CompletedTask;
-
                 if (_detachedConnectionCount == 0)
                 {
                     _ = _detachedConnectionTcs.TrySetResult();
                 }
+
+                _disposeTask = PerformDisposeAsync();
             }
             return new(_disposeTask);
         }

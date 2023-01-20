@@ -536,7 +536,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
-                throw new InvalidOperationException("Cannot shut down an protocol connection before it's connected.");
+                throw new InvalidOperationException("Cannot shut down a protocol connection before it's connected.");
             }
 
             RefuseNewInvocations("The connection was shut down.");
