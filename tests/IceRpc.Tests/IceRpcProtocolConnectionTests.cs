@@ -524,13 +524,17 @@ public sealed class IceRpcProtocolConnectionTests
         clientTransport.LastConnection.FailOperation = operation;
 
         // Act/Assert
-        Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
         if (operation == MultiplexedTransportOperation.CreateStream)
         {
+            Assert.That(
+                () => sut.Client.InvokeAsync(request),
+                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                    IceRpcError.InvocationRefused));
             Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
         }
         else
         {
+            Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
             Assert.That(sut.Client.Closed.IsCompleted, Is.False);
         }
     }

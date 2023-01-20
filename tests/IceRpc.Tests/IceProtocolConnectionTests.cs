@@ -246,7 +246,10 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         if (operation == DuplexTransportOperation.Write)
         {
-            Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
+            Assert.That(() =>
+                sut.Client.InvokeAsync(request),
+                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                    IceRpcError.InvocationCanceled));
         }
         else
         {
