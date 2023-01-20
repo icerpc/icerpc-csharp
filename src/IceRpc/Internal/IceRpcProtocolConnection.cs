@@ -163,38 +163,47 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 await ReceiveSettingsFrameBody(connectCts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (_disposedCts.Token.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    _ = _closedTcs.TrySetResult(
+                        new IceRpcException(
+                            IceRpcError.ConnectionAborted,
+                            "The connection establishment was canceled."));
+
+                    cancellationToken.ThrowIfCancellationRequested(); // always throws
+                }
+
+                // DisposeAsync completes Closed.
+                Debug.Assert(_disposedCts.Token.IsCancellationRequested);
                 throw new IceRpcException(
                     IceRpcError.OperationAborted,
                     "The connection establishment was aborted because the connection was disposed.");
             }
-            catch (OperationCanceledException)
-            {
-                Debug.Assert(cancellationToken.IsCancellationRequested);
-                var exception = new OperationCanceledException(cancellationToken);
-                TryCompleteClosed(exception, "The connection establishment was canceled.");
-                throw exception;
-            }
-            catch (IceRpcException exception)
-            {
-                TryCompleteClosed(exception, "The connection establishment failed.");
-                throw;
-            }
             catch (InvalidDataException exception)
             {
-                TryCompleteClosed(exception, "The connection establishment failed.");
-                throw;
+                var rpcException = new IceRpcException(
+                    IceRpcError.IceRpcError,
+                    "The connection establishment was aborted by an icerpc protocol error.",
+                    exception);
+                _ = _closedTcs.TrySetResult(rpcException);
+                throw rpcException;
             }
             catch (AuthenticationException exception)
             {
-                TryCompleteClosed(exception, "The connection establishment failed.");
+                _ = _closedTcs.TrySetResult(exception);
+                throw;
+            }
+            catch (IceRpcException exception)
+            {
+                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
             catch (Exception exception)
             {
                 Debug.Fail($"ConnectAsync failed with an unexpected exception: {exception}");
-                TryCompleteClosed(exception, "The connection establishment failed.");
+                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
 
@@ -677,33 +686,29 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 _closedTcs.SetResult(null);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                var exception = new OperationCanceledException(cancellationToken);
-                TryCompleteClosed(exception, "The connection shutdown was canceled.");
-                throw exception;
-            }
             catch (OperationCanceledException)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 Debug.Assert(_disposedCts.Token.IsCancellationRequested);
                 throw new IceRpcException(
                     IceRpcError.OperationAborted,
                     "The connection shutdown was aborted because the connection was disposed.");
             }
-            catch (IceRpcException exception)
-            {
-                TryCompleteClosed(exception, "The connection shutdown failed.");
-                throw;
-            }
             catch (InvalidDataException exception)
             {
-                TryCompleteClosed(exception, "The connection shutdown failed.");
+                throw new IceRpcException(
+                    IceRpcError.IceRpcError,
+                    "The connection shutdown was aborted by an icerpc protocol error.",
+                    exception);
+            }
+            catch (IceRpcException)
+            {
                 throw;
             }
             catch (Exception exception)
             {
                 Debug.Fail($"ShutdownAsync failed with an unexpected exception: {exception}");
-                TryCompleteClosed(exception, "The connection shutdown failed.");
                 throw;
             }
         }
