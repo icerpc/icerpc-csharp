@@ -23,11 +23,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     // A detached connection is a protocol connection that is shutting down or being disposed. Both
     // ConnectionCache.ShutdownAsync and DisposeAsync wait for detached connections to reach 0 using
-    // _detachedConnectionTcs. Such a connection is "detached" because it's not in _activeConnections or
+    // _detachedConnectionsTcs. Such a connection is "detached" because it's not in _activeConnections or
     // _pendingConnections.
     private int _detachedConnectionCount;
 
-    private readonly TaskCompletionSource _detachedConnectionTcs =
+    private readonly TaskCompletionSource _detachedConnectionsTcs =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     // A cancellation token source that is canceled when DisposeAsync is called.
@@ -95,7 +95,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 _shutdownTask ??= Task.CompletedTask;
                 if (_detachedConnectionCount == 0)
                 {
-                    _ = _detachedConnectionTcs.TrySetResult();
+                    _ = _detachedConnectionsTcs.TrySetResult();
                 }
 
                 _disposeTask = PerformDisposeAsync();
@@ -117,7 +117,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 await Task.WhenAll(
                     allConnections.Select(connection => connection.DisposeAsync().AsTask())
                         .Append(_shutdownTask!)
-                        .Append(_detachedConnectionTcs.Task)).ConfigureAwait(false);
+                        .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
             }
             catch
             {
@@ -336,7 +336,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             if (_detachedConnectionCount == 0)
             {
-                _ = _detachedConnectionTcs.TrySetResult();
+                _ = _detachedConnectionsTcs.TrySetResult();
             }
 
             _shutdownTask = PerformShutdownAsync();
@@ -359,7 +359,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         _pendingConnections.Values.Select(
                             value => ShutdownPendingAsync(value.Connection, value.Task, cts.Token))
                         .Concat(_activeConnections.Values.Select(connection => connection.ShutdownAsync(cts.Token)))
-                        .Append(_detachedConnectionTcs.Task.WaitAsync(cts.Token))).ConfigureAwait(false);
+                        .Append(_detachedConnectionsTcs.Task.WaitAsync(cts.Token))).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -556,7 +556,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 if (--_detachedConnectionCount == 0 && _disposeTask is not null)
                 {
-                    _detachedConnectionTcs.SetResult();
+                    _detachedConnectionsTcs.SetResult();
                 }
             }
         }
