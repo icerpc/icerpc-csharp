@@ -553,7 +553,7 @@ public sealed class Server : IAsyncDisposable
 
             if (_detachedConnectionCount == 0)
             {
-                _ = _detachedConnectionsTcs.TrySetResult();
+                _detachedConnectionsTcs.SetResult();
             }
 
             _shutdownTask = PerformShutdownAsync();
