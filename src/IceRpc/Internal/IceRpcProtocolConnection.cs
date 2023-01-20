@@ -220,7 +220,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _acceptRequestsTask = AcceptRequestsAsync(_acceptRequestsCts.Token);
             }
 
-            EnableIdleCheck();
             return transportConnectionInformation;
         }
     }
@@ -550,11 +549,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             if (_shutdownTask is not null)
             {
-                throw new InvalidOperationException("Cannot call shutdown more than once.");
+                throw new InvalidOperationException("Cannot call ShutdownAsync more than once.");
             }
-            if (_connectTask is null)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
-                throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
+                throw new InvalidOperationException("Cannot shut down a protocol connection before it's connected.");
             }
 
             RefuseNewInvocations("The connection was shut down.");
@@ -580,15 +579,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                // Wait for connect to complete. _connectTask can itself get canceled through _disposedCts or because
-                // ConnectAsync was canceled.
-                _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                if (_acceptRequestsTask is not null)
-                {
-                    // Wait for the _acceptRequestsTask to complete.
-                    await _acceptRequestsTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                }
+                Debug.Assert(_acceptRequestsTask is not null);
+                await _acceptRequestsTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 // Once _isShutdown is true, _lastRemoteBidirectionalStreamId and _lastRemoteUnidirectionalStreamId are
                 // immutable.
@@ -693,14 +685,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                lock (_mutex)
-                {
-                    throw new IceRpcException(
-                        IceRpcError.OperationAborted,
-                        _disposeTask is null ?
-                            "The connection shutdown was aborted because the connection establishment was canceled." :
-                            "The connection shutdown was aborted because the connection was disposed.");
-                }
+                Debug.Assert(_disposedCts.Token.IsCancellationRequested);
+                throw new IceRpcException(
+                    IceRpcError.OperationAborted,
+                    "The connection shutdown was aborted because the connection was disposed.");
             }
             catch (IceRpcException exception)
             {
@@ -811,6 +799,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private async Task AcceptRequestsAsync(CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
+
+        // Wait for _connectTask (which spawned the task running this method) to complete. This way, we won't dispatch
+        // any request until _connectTask has completed successfully, and indirectly we won't make any invocation until
+        // _connectTask has completed successfully. The creation of the _acceptRequestsTask is the last action taken by
+        // _connectTask and as a result this await can't fail.
+        _ = await _connectTask!.ConfigureAwait(false);
+
+        // The idle check requests shutdown and we want to make sure we only request it after _connectTask completed
+        // successfully.
+        EnableIdleCheck();
 
         try
         {
@@ -1115,6 +1113,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private async Task<IceRpcGoAway> ReadGoAwayAsync(CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
+
+        // Wait for _connectTask (which spawned the task running this method) to complete. This await can't fail.
+        // This guarantees this method won't request a shutdown until after _connectTask completed successfully.
+        _ = await _connectTask!.ConfigureAwait(false);
 
         PipeReader remoteInput = _remoteControlStream!.Input!;
 
