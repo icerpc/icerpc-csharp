@@ -579,7 +579,7 @@ public sealed class Server : IAsyncDisposable
                     {
                         await Task.WhenAll(
                             _connections
-                                .Select(entry => entry.ShutdownAsync(cts.Token))
+                                .Select(connection => connection.ShutdownAsync(cts.Token))
                                 .Append(_listenTask.WaitAsync(cts.Token))
                                 .Append(_detachedConnectionTcs.Task.WaitAsync(cts.Token)))
                             .ConfigureAwait(false);
