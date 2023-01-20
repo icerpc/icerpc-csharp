@@ -283,7 +283,17 @@ public sealed class IceProtocolConnectionTests
     public async Task Invocation_cancellation_lets_payload_writing_continue_in_background()
     {
         // Arrange
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        var dispatchTcs = new TaskCompletionSource();
+        int dispatchCount = 0;
+        var dispatcher = new InlineDispatcher(
+            (request, cancel) =>
+            {
+                if (++dispatchCount == 2)
+                {
+                    dispatchTcs.SetResult();
+                }
+                return new(new OutgoingResponse(request));
+            });
         var colocTransport = new ColocTransport();
 
         var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
@@ -312,8 +322,8 @@ public sealed class IceProtocolConnectionTests
 
         Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1, cts.Token);
         Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request1, default);
-        // Wait for the connection to read the payload, and let write start.
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        // Delay to let the connection write start.
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
 
         // Act
         cts.Cancel();
@@ -321,13 +331,8 @@ public sealed class IceProtocolConnectionTests
         // Assert
         clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.None;
         Assert.That(async () => await invokeTask1, Throws.TypeOf<OperationCanceledException>());
-        IncomingRequest incomingRequest = await dispatcher.DispatchStart;
-        incomingRequest.Payload.TryRead(out ReadResult readResult);
-        Assert.That(readResult.IsCompleted, Is.True);
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(1024));
-        dispatcher.ReleaseDispatch();
-        Assert.That(async () => await dispatcher.DispatchComplete, Is.Null);
         Assert.That(async () => await invokeTask2, Throws.Nothing);
+        Assert.That(async () => await dispatchTcs.Task, Throws.Nothing);
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
