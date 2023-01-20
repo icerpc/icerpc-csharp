@@ -225,7 +225,7 @@ public sealed class IceProtocolConnectionTests
         // Arrange
 
         // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
-        var failureException = new Exception();
+        var failureException = new IceRpcException(IceRpcError.IceRpcError);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddTestDuplexTransport(clientFailureException: failureException)
@@ -242,8 +242,7 @@ public sealed class IceProtocolConnectionTests
         clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Write;
 
         // Act/Assert
-        Exception? caughtException = Assert.CatchAsync(() => sut.Client.InvokeAsync(request));
-        Assert.That(caughtException, Is.EqualTo(failureException));
+        Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
         Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
     }
 

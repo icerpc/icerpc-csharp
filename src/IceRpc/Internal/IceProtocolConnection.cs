@@ -360,7 +360,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             PipeReader? frameReader = null;
             TaskCompletionSource<PipeReader>? responseCompletionSource = null;
             int requestId = 0;
-
             try
             {
                 // Read the full payload. This can take some time so this needs to be done before acquiring the write
@@ -369,64 +368,49 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     request.Payload,
                     invocationCts.Token).ConfigureAwait(false);
 
-                try
+                // Wait for the writing of other frames to complete. We'll give this semaphoreLock to
+                // SendRequestAsync.
+                SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(invocationCts.Token).ConfigureAwait(false);
+
+                // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
+                // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
+                // canceled request to allocate a request ID that won't be used.
+                lock (_mutex)
                 {
-                    // Wait for the writing of other frames to complete. We'll give this semaphoreLock to
-                    // SendRequestAsync.
-                    SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(invocationCts.Token)
-                        .ConfigureAwait(false);
-
-                    // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
-                    // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
-                    // canceled request to allocate a request ID that won't be used.
-                    lock (_mutex)
+                    if (_refuseInvocations)
                     {
-                        if (_refuseInvocations)
-                        {
-                            semaphoreLock.Dispose();
+                        semaphoreLock.Dispose();
 
-                            // It's InvocationCanceled and not InvocationRefused because we've read the payload.
-                            throw new IceRpcException(IceRpcError.InvocationCanceled, _invocationRefusedMessage);
-                        }
-
-                        if (!request.IsOneway)
-                        {
-                            // wrap around back to 1 if we reach int.MaxValue. 0 means oneway.
-                            _lastRequestId = _lastRequestId == int.MaxValue ? 1 : _lastRequestId + 1;
-                            requestId = _lastRequestId;
-
-                            // RunContinuationsAsynchronously because we don't want the "read frames loop" to run the
-                            // continuation.
-                            responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                            _twowayInvocations[requestId] = responseCompletionSource;
-                        }
+                        // It's InvocationCanceled and not InvocationRefused because we've read the payload.
+                        throw new IceRpcException(IceRpcError.InvocationCanceled, _invocationRefusedMessage);
                     }
 
-                    // _writeTask is protected by the write semaphore. SendRequestAsync does not throw synchronously.
-                    _writeTask = SendRequestAsync(request.Payload, payloadBuffer, semaphoreLock);
+                    if (!request.IsOneway)
+                    {
+                        // wrap around back to 1 if we reach int.MaxValue. 0 means oneway.
+                        _lastRequestId = _lastRequestId == int.MaxValue ? 1 : _lastRequestId + 1;
+                        requestId = _lastRequestId;
 
-                    try
-                    {
-                        await _writeTask.WaitAsync(invocationCts.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException exception) when (
-                        exception.CancellationToken == invocationCts.Token)
-                    {
-                        // From WaitAsync. _writeTask is running in the background and owns both the payload and the
-                        // semaphore. Detach request payload since it now belongs to _writeTask.
-                        request.Payload = InvalidPipeReader.Instance;
-                        throw;
+                        // RunContinuationsAsynchronously because we don't want the "read frames loop" to run the
+                        // continuation.
+                        responseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _twowayInvocations[requestId] = responseCompletionSource;
                     }
                 }
-                catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.InvocationCanceled)
+
+                // _writeTask is protected by the write semaphore. SendRequestAsync does not throw synchronously.
+                _writeTask = SendRequestAsync(request.Payload, payloadBuffer, semaphoreLock);
+
+                try
                 {
-                    // Since we could not send the request, the server cannot dispatch it and it's safe to retry.
-                    // This includes the situation where await AcquireWriteLockAsync throws because a previous write
-                    // failed.
-                    throw new IceRpcException(
-                        IceRpcError.InvocationCanceled,
-                        "Failed to send ice request.",
-                        exception);
+                    await _writeTask.WaitAsync(invocationCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException exception) when (exception.CancellationToken == invocationCts.Token)
+                {
+                    // From WaitAsync. _writeTask is running in the background and owns both the payload and the
+                    // semaphore. Detach request payload since it now belongs to _writeTask.
+                    request.Payload = InvalidPipeReader.Instance;
+                    throw;
                 }
 
                 if (request.IsOneway)
@@ -1395,8 +1379,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            AbortRead(exception);
             Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
+            AbortRead(exception);
             throw;
         }
 

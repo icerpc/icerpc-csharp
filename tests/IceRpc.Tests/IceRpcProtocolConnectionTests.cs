@@ -507,7 +507,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
 
         // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
-        var failureException = new Exception();
+        var failureException = new IceRpcException(IceRpcError.IceRpcError);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddTestMultiplexedTransport(clientFailureException: failureException)
@@ -524,8 +524,7 @@ public sealed class IceRpcProtocolConnectionTests
         clientTransport.LastConnection.FailOperation = operation;
 
         // Act/Assert
-        Exception? caughtException = Assert.CatchAsync(() => sut.Client.InvokeAsync(request));
-        Assert.That(caughtException, Is.EqualTo(failureException));
+        Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
         if (operation == MultiplexedTransportOperation.CreateStream)
         {
             Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
