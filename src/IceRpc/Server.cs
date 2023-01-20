@@ -15,21 +15,18 @@ namespace IceRpc;
 /// </summary>
 public sealed class Server : IAsyncDisposable
 {
-    private int _backgroundConnectionDisposeCount;
-
-    private readonly TaskCompletionSource _backgroundConnectionDisposeTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    private int _backgroundConnectionShutdownCount;
-
-    private readonly TaskCompletionSource _backgroundConnectionShutdownTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    private int _connectionCount;
-
     private readonly LinkedList<IProtocolConnection> _connections = new();
 
     private readonly TimeSpan _connectTimeout;
+
+    // A detached connection is a protocol connection that we've decided to connect at the RPC level, or that is
+    // connecting at the RPC level, shutting down or being disposed. It counts towards _maxConnections and both
+    // Server.ShutdownAsync and DisposeAsync wait for detached connections to reach 0 using _detachedConnectionTcs.
+    // Such a connection is "detached" because it's not in _connections.
+    private int _detachedConnectionCount;
+
+    private readonly TaskCompletionSource _detachedConnectionTcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     // A cancellation token source that is canceled by DisposeAsync.
     private readonly CancellationTokenSource _disposedCts = new();
@@ -44,7 +41,6 @@ public sealed class Server : IAsyncDisposable
 
     private readonly int _maxPendingConnections;
 
-    // protects _listener and _connections
     private readonly object _mutex = new();
 
     private readonly ServerAddress _serverAddress;
@@ -239,9 +235,9 @@ public sealed class Server : IAsyncDisposable
                 _disposeTask = PerformDisposeAsync();
                 _shutdownTask ??= Task.CompletedTask;
 
-                if (_backgroundConnectionDisposeCount == 0)
+                if (_detachedConnectionCount == 0)
                 {
-                    _ = _backgroundConnectionDisposeTcs.TrySetResult();
+                    _ = _detachedConnectionTcs.TrySetResult();
                 }
             }
             return new(_disposeTask);
@@ -263,7 +259,7 @@ public sealed class Server : IAsyncDisposable
                         _connections.Select(connection => connection.DisposeAsync().AsTask())
                             .Append(_listenTask)
                             .Append(_shutdownTask!)
-                            .Append(_backgroundConnectionDisposeTcs.Task)).ConfigureAwait(false);
+                            .Append(_detachedConnectionTcs.Task)).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -329,7 +325,7 @@ public sealed class Server : IAsyncDisposable
                     // client and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime. The
                     // call will eventually timeout if the ConnectTimeout expires.
-                    CancellationToken cancellationToken = _shutdownCts.Token;
+                    CancellationToken cancellationToken = _disposedCts.Token;
                     _ = Task.Run(
                         async () =>
                         {
@@ -359,7 +355,7 @@ public sealed class Server : IAsyncDisposable
                                 }
                             }
                         },
-                        CancellationToken.None);
+                        CancellationToken.None); // the task must run to dispose the connector.
                 }
             }
             catch (OperationCanceledException)
@@ -385,21 +381,15 @@ public sealed class Server : IAsyncDisposable
 
                 IProtocolConnection? protocolConnection = null;
                 bool serverBusy = false;
-                CancellationToken disposedCancellationToken;
 
                 lock (_mutex)
                 {
-                    // _connectionCount includes connections we've decided to connect but that we did not add to
-                    // _connections yet.
-                    Debug.Assert(_connections.Count <= _connectionCount);
-                    Debug.Assert(_maxConnections == 0 || _connectionCount <= _maxConnections);
-
-                    disposedCancellationToken =
-                        _disposeTask is null ? _disposedCts.Token : new CancellationToken(canceled: true);
+                    Debug.Assert(
+                        _maxConnections == 0 || _connections.Count + _detachedConnectionCount <= _maxConnections);
 
                     if (_shutdownTask is null)
                     {
-                        if (_maxConnections > 0 && _connections.Count == _maxConnections)
+                        if (_maxConnections > 0 && (_connections.Count + _detachedConnectionCount) == _maxConnections)
                         {
                             serverBusy = true;
                         }
@@ -408,30 +398,16 @@ public sealed class Server : IAsyncDisposable
                             // The protocol connection adopts the transport connection from the connector and it's
                             // now responsible for disposing of it.
                             protocolConnection = connector.CreateProtocolConnection(transportConnectionInformation);
-                            _connectionCount++;
-
-                            // We increment _backgroundConnectionShutdownCount: Server.ShutdownAsync, if called, will
-                            // wait for us or time out.
-                            _backgroundConnectionShutdownCount++;
-
-                            // We increment _backgroundConnectionDisposeCount: Server.DisposedAsync is called, will
-                            // wait for us.
-                            _backgroundConnectionDisposeCount++;
+                            _detachedConnectionCount++;
                         }
                     }
                 }
 
                 if (protocolConnection is null)
                 {
-                    // We don't want this refusal to be canceled by a call to ShutdownAsync.
-                    using var refuseCts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
-
-                    // We don't want this refusal to hang until the server is disposed.
-                    refuseCts.CancelAfter(_connectTimeout);
-
                     try
                     {
-                        await connector.RefuseTransportConnectionAsync(serverBusy, refuseCts.Token)
+                        await connector.RefuseTransportConnectionAsync(serverBusy, connectCts.Token)
                             .ConfigureAwait(false);
                     }
                     catch
@@ -448,13 +424,7 @@ public sealed class Server : IAsyncDisposable
                     }
                     catch
                     {
-                        lock (_mutex)
-                        {
-                            _connectionCount--;
-                            ReleaseBackgroundShutdownCount();
-                        }
-
-                        await DisposeConnectionAsync(
+                        await DisposeDetachedConnectionAsync(
                             protocolConnection,
                             shutdownRequested: false).ConfigureAwait(false);
                         throw;
@@ -469,26 +439,21 @@ public sealed class Server : IAsyncDisposable
                         {
                             listNode = _connections.AddLast(protocolConnection);
 
-                            // RemoveFromConnectionsAsync or Server will shutdown or dispose this connection.
-                            --_backgroundConnectionShutdownCount;
-                            --_backgroundConnectionDisposeCount;
+                            // protocolConnection is no longer a detached connection since it's now "attached" in
+                            // _connections.
+                            _detachedConnectionCount--;
                         }
                         else
                         {
-                            if (_disposeTask is null)
-                            {
-                                shutdownRequested = true;
-                            }
-                            else
-                            {
-                                ReleaseBackgroundShutdownCount();
-                            }
+                            shutdownRequested = _disposeTask is null;
                         }
                     }
 
                     if (listNode is null)
                     {
-                        await DisposeConnectionAsync(protocolConnection, shutdownRequested).ConfigureAwait(false);
+                        await DisposeDetachedConnectionAsync(
+                            protocolConnection,
+                            shutdownRequested).ConfigureAwait(false);
                     }
                     else
                     {
@@ -499,7 +464,7 @@ public sealed class Server : IAsyncDisposable
             }
         }
 
-        async Task DisposeConnectionAsync(IProtocolConnection connection, bool shutdownRequested)
+        async Task DisposeDetachedConnectionAsync(IProtocolConnection connection, bool shutdownRequested)
         {
             if (shutdownRequested)
             {
@@ -517,29 +482,14 @@ public sealed class Server : IAsyncDisposable
                     // Ignore connection shutdown failures. connection.ShutdownAsync makes sure it's an "expected"
                     // exception.
                 }
-                finally
-                {
-                    ReleaseBackgroundShutdownCount();
-                }
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
             lock (_mutex)
             {
-                if (--_backgroundConnectionDisposeCount == 0 && _disposeTask is not null)
+                if (--_detachedConnectionCount == 0 && _shutdownTask is not null)
                 {
-                    _backgroundConnectionDisposeTcs.SetResult();
-                }
-            }
-        }
-
-        void ReleaseBackgroundShutdownCount()
-        {
-            lock (_mutex)
-            {
-                if (--_backgroundConnectionShutdownCount == 0 && _shutdownTask is not null)
-                {
-                    _backgroundConnectionShutdownTcs.SetResult();
+                    _detachedConnectionTcs.SetResult();
                 }
             }
         }
@@ -558,13 +508,7 @@ public sealed class Server : IAsyncDisposable
                 if (_shutdownTask is null)
                 {
                     _connections.Remove(listNode);
-                    _connectionCount--;
-
-                    if (shutdownRequested)
-                    {
-                        _backgroundConnectionShutdownCount++;
-                    }
-                    _backgroundConnectionDisposeCount++;
+                    _detachedConnectionCount++;
                 }
                 else
                 {
@@ -574,7 +518,7 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            await DisposeConnectionAsync(connection, shutdownRequested).ConfigureAwait(false);
+            await DisposeDetachedConnectionAsync(connection, shutdownRequested).ConfigureAwait(false);
         }
     }
 
@@ -607,9 +551,9 @@ public sealed class Server : IAsyncDisposable
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
             }
 
-            if (_backgroundConnectionShutdownCount == 0)
+            if (_detachedConnectionCount == 0)
             {
-                _ = _backgroundConnectionShutdownTcs.TrySetResult();
+                _ = _detachedConnectionTcs.TrySetResult();
             }
 
             _shutdownTask = PerformShutdownAsync();
@@ -637,7 +581,7 @@ public sealed class Server : IAsyncDisposable
                             _connections
                                 .Select(entry => entry.ShutdownAsync(cts.Token))
                                 .Append(_listenTask.WaitAsync(cts.Token))
-                                .Append(_backgroundConnectionShutdownTcs.Task.WaitAsync(cts.Token)))
+                                .Append(_detachedConnectionTcs.Task.WaitAsync(cts.Token)))
                             .ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
