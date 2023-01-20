@@ -116,7 +116,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 await Task.WhenAll(
                     allConnections.Select(connection => connection.DisposeAsync().AsTask())
-                        .Append(_shutdownTask!)
+                        .Append(_shutdownTask)
                         .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
             }
             catch

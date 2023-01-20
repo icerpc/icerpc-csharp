@@ -19,10 +19,10 @@ public sealed class Server : IAsyncDisposable
 
     private readonly TimeSpan _connectTimeout;
 
-    // A detached connection is a protocol connection that we've decided to connect at the RPC level, or that is
-    // connecting at the RPC level, shutting down or being disposed. It counts towards _maxConnections and both
-    // Server.ShutdownAsync and DisposeAsync wait for detached connections to reach 0 using _detachedConnectionsTcs.
-    // Such a connection is "detached" because it's not in _connections.
+    // A detached connection is a protocol connection that we've decided to connect, or that is connecting, shutting
+    // down or being disposed. It counts towards _maxConnections and both Server.ShutdownAsync and DisposeAsync wait for
+    // detached connections to reach 0 using _detachedConnectionsTcs. Such a connection is "detached" because it's not
+    // in _connections.
     private int _detachedConnectionCount;
 
     private readonly TaskCompletionSource _detachedConnectionsTcs =
@@ -258,7 +258,7 @@ public sealed class Server : IAsyncDisposable
                     await Task.WhenAll(
                         _connections.Select(connection => connection.DisposeAsync().AsTask())
                             .Append(_listenTask)
-                            .Append(_shutdownTask!)
+                            .Append(_shutdownTask)
                             .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
                 }
                 catch
