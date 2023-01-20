@@ -5,6 +5,7 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
@@ -275,6 +276,65 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
+    /// <summary>Verifies that canceling an invocation while the request is being write, fails with
+    /// OperationCanceledException and lets the write finish in the background. The connection remains
+    /// active and subsequent request are not affected.</summary>
+    [Test]
+    public async Task Invocation_cancellation_lets_payload_writing_continue_in_background()
+    {
+        // Arrange
+        var dispatchTcs = new TaskCompletionSource();
+        int dispatchCount = 0;
+        var dispatcher = new InlineDispatcher(
+            (request, cancel) =>
+            {
+                if (++dispatchCount == 2)
+                {
+                    dispatchTcs.SetResult();
+                }
+                return new(new OutgoingResponse(request));
+            });
+        var colocTransport = new ColocTransport();
+
+        var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .AddSingleton(colocTransport.ServerTransport)
+            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        {
+            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
+        };
+
+        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
+        {
+            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
+        };
+
+        using var cts = new CancellationTokenSource();
+        // Hold writes to ensure the invocation blocks writing the request.
+        clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.Write;
+
+        Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1, cts.Token);
+        Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request1, default);
+        // Delay to let the connection write start.
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.None;
+        Assert.That(async () => await invokeTask1, Throws.TypeOf<OperationCanceledException>());
+        Assert.That(async () => await invokeTask2, Throws.Nothing);
+        Assert.That(async () => await dispatchTcs.Task, Throws.Nothing);
+    }
+
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
     /// Requests that are not dispatched by the server complete with an InvocationCanceled error.</summary>
     [Test]
@@ -379,8 +439,8 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
-    /// <summary>This test verifies that responses that are received after a request has been discarded are ignored,
-    /// and doesn't interfere with other request and responses being send over the same connection.</summary>
+    /// <summary>This test verifies that responses that are received after a request1 has been discarded are ignored,
+    /// and doesn't interfere with other request1 and responses being send over the same connection.</summary>
     [Test]
     public async Task Response_received_for_discarded_request_is_ignored()
     {
