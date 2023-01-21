@@ -441,21 +441,100 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 invocationCts?.Dispose();
             }
 
+            PipeWriter payloadWriter;
             try
             {
+                EncodeHeader(stream.Output);
+                payloadWriter = request.GetPayloadWriter(stream.Output);
+            }
+            catch
+            {
+                stream.Output.CompleteOutput(success: false);
+                throw;
+            }
+
+            try
+            {
+                bool hasContinuation = request.PayloadContinuation is not null;
+                Task writesClosed = stream.WritesClosed;
+                FlushResult flushResult;
+
                 try
                 {
-                    EncodeHeader(stream.Output);
+                    flushResult = await payloadWriter.CopyFromAsync(
+                        request.Payload,
+                        writesClosed,
+                        endStream: !hasContinuation,
+                        invocationCancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
-                    stream.Output.CompleteOutput(success: false);
+                    payloadWriter.CompleteOutput(success: false);
+                    request.PayloadContinuation?.Complete();
                     throw;
                 }
+                finally
+                {
+                    request.Payload.Complete();
+                }
 
-                // SendPayloadAsync takes ownership of stream.Output
-                await SendPayloadAsync(request, stream.Output, stream.WritesClosed, invocationCancellationToken)
-                    .ConfigureAwait(false);
+                if (flushResult.IsCompleted || flushResult.IsCanceled || !hasContinuation)
+                {
+                    // The remote reader doesn't want more data, or the copying was canceled, or there is no
+                    // continuation: we're done.
+                    payloadWriter.CompleteOutput(!flushResult.IsCanceled);
+                    request.PayloadContinuation?.Complete();
+                }
+                else
+                {
+                    // Send the continuation in a background task after "detaching" this continuation.
+                    PipeReader payloadContinuation = request.PayloadContinuation!;
+                    request.PayloadContinuation = null;
+
+                    _ = Task.Run(
+                        async () =>
+                        {
+                            var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
+                            try
+                            {
+                                // The cancellation of the token given to InvokeAsync/InvokeAsyncCore cancels
+                                // invocationCts only until InvokeAsyncCore completes (see tokenRegistration); after
+                                // that, the cancellation of this token has no effect on invocationCts, so it doesn't
+                                // cancel the copying of payloadContinuation.
+                                flushResult = await payloadWriter.CopyFromAsync(
+                                    payloadContinuation,
+                                    writesClosed,
+                                    endStream: true,
+                                    invocationCancellationToken).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException exception) when (
+                                exception.CancellationToken == invocationCancellationToken)
+                            {
+                                // Expected when the connection is shut down.
+                            }
+                            catch (IceRpcException exception) when (
+                                exception.IceRpcError is
+                                    IceRpcError.ConnectionAborted or
+                                    IceRpcError.OperationAborted or
+                                    IceRpcError.TruncatedData)
+                            {
+                                // ConnectionAborted is expected when the peer aborts the connection.
+                                // OperationAborted is expected when the local application disposes the connection.
+                                // TruncatedData is expected when the payloadContinuation comes from an incoming
+                                // IceRPC payload and the peer's Output is completed with an exception.
+                            }
+                            catch (Exception exception)
+                            {
+                                _faultedTaskAction(exception);
+                            }
+                            finally
+                            {
+                                payloadWriter.CompleteOutput(!flushResult.IsCanceled);
+                                payloadContinuation.Complete();
+                            }
+                        },
+                        CancellationToken.None); // must run no matter what to complete the payload continuation
+                }
 
                 if (request.IsOneway)
                 {
@@ -1309,99 +1388,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             _refuseInvocations = true;
             _invocationRefusedMessage ??= message;
-        }
-    }
-
-    /// <summary>Sends the payload and payload continuation of an outgoing frame, and takes ownership of streamOutput.
-    /// </summary>
-    private async ValueTask SendPayloadAsync(
-        OutgoingFrame outgoingFrame,
-        PipeWriter streamOutput,
-        Task streamWritesClosed,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            streamOutput = outgoingFrame.GetPayloadWriter(streamOutput);
-
-            FlushResult flushResult = await streamOutput.CopyFromAsync(
-                outgoingFrame.Payload,
-                streamWritesClosed,
-                endStream: outgoingFrame.PayloadContinuation is null,
-                cancellationToken).ConfigureAwait(false);
-
-            if (flushResult.IsCompleted || flushResult.IsCanceled)
-            {
-                // The remote reader doesn't want more data, or the copying was canceled--we're done.
-                streamOutput.CompleteOutput(success: flushResult.IsCompleted && !flushResult.IsCanceled);
-                outgoingFrame.Payload.Complete();
-                outgoingFrame.PayloadContinuation?.Complete();
-                return;
-            }
-        }
-        catch
-        {
-            streamOutput.CompleteOutput(success: false);
-            throw;
-        }
-
-        outgoingFrame.Payload.Complete(); // the payload was sent successfully
-
-        if (outgoingFrame.PayloadContinuation is null)
-        {
-            streamOutput.CompleteOutput(success: true);
-        }
-        else
-        {
-            // Send payloadContinuation in the background.
-            PipeReader payloadContinuation = outgoingFrame.PayloadContinuation;
-            outgoingFrame.PayloadContinuation = null; // we're now responsible for payloadContinuation
-
-            _ = Task.Run(
-                async () =>
-                {
-                    bool success = false;
-                    try
-                    {
-                        // When we send an outgoing request, the cancellation token is invocationCts.Token. The
-                        // cancellation of the token given to InvokeAsync/InvokeAsyncCore cancels invocationCts only
-                        // until InvokeAsyncCore completes (see tokenRegistration); after that, the cancellation of this
-                        // token has no effect on invocationCts, so it doesn't cancel the copying of
-                        // payloadContinuation.
-                        FlushResult flushResult = await streamOutput.CopyFromAsync(
-                            payloadContinuation,
-                            streamWritesClosed,
-                            endStream: true,
-                            cancellationToken).ConfigureAwait(false);
-
-                        success = !flushResult.IsCanceled;
-                    }
-                    catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-                    {
-                        // Expected when the connection is shut down.
-                    }
-                    catch (IceRpcException exception) when (
-                        exception.IceRpcError is
-                            IceRpcError.ConnectionAborted or
-                            IceRpcError.OperationAborted or
-                            IceRpcError.TruncatedData)
-                    {
-                        // ConnectionAborted is expected when the peer aborts the connection.
-                        // OperationAborted is expected when the local application disposes the connection.
-                        // TruncatedData is expected when the payloadContinuation comes from an incoming IceRPC payload
-                        // and the peer's Output is completed with an exception.
-                    }
-                    catch (Exception exception)
-                    {
-                        _faultedTaskAction(exception);
-                    }
-                    finally
-                    {
-                        streamOutput.CompleteOutput(success);
-                        payloadContinuation.Complete();
-                    }
-                },
-                CancellationToken.None); // we need this task to run to complete streamOutput and payloadContinuation
         }
     }
 
