@@ -919,7 +919,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             async Task CancelDispatchOnWritesClosedAsync()
             {
-                await stream.WritesClosed.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
+                try
+                {
+                    await stream.WritesClosed.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignored.
+                }
                 dispatchCts.Cancel();
             }
         }
@@ -984,14 +991,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             if (cancelDispatchOnWritesClosedTask is not null)
             {
                 dispatchCts.Cancel();
-                try
-                {
-                    await cancelDispatchOnWritesClosedTask.ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // expected
-                }
+                await cancelDispatchOnWritesClosedTask.ConfigureAwait(false);
             }
 
             if (!success)
@@ -1080,9 +1080,36 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             EncodeHeader();
 
-            // SendPayloadAsync takes ownership of streamOutput
-            await SendPayloadAsync(response, streamOutput, stream.WritesClosed, cancellationToken)
-                .ConfigureAwait(false);
+            PipeWriter payloadWriter = response.GetPayloadWriter(streamOutput);
+
+            // We give flushResult an initial "failed" value, in case the first CopyFromAsync throws.
+            var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
+
+            try
+            {
+                bool hasContinuation = response.PayloadContinuation is not null;
+
+                flushResult = await payloadWriter.CopyFromAsync(
+                    response.Payload,
+                    stream.WritesClosed,
+                    endStream: !hasContinuation,
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!flushResult.IsCompleted && !flushResult.IsCanceled && hasContinuation)
+                {
+                    flushResult = await payloadWriter.CopyFromAsync(
+                        response.PayloadContinuation!,
+                        stream.WritesClosed,
+                        endStream: true,
+                        cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                payloadWriter.CompleteOutput(success: !flushResult.IsCanceled);
+                response.Payload.Complete();
+                response.PayloadContinuation?.Complete();
+            }
 
             void EncodeHeader()
             {
@@ -1297,24 +1324,19 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             streamOutput = outgoingFrame.GetPayloadWriter(streamOutput);
 
-            FlushResult flushResult = await CopyReaderToWriterAsync(
+            FlushResult flushResult = await streamOutput.CopyFromAsync(
                 outgoingFrame.Payload,
-                streamOutput,
+                streamWritesClosed,
                 endStream: outgoingFrame.PayloadContinuation is null,
                 cancellationToken).ConfigureAwait(false);
 
-            if (flushResult.IsCompleted)
+            if (flushResult.IsCompleted || flushResult.IsCanceled)
             {
-                // The remote reader doesn't want more data, we're done.
-                streamOutput.CompleteOutput(success: true);
+                // The remote reader doesn't want more data, or the copying was canceled--we're done.
+                streamOutput.CompleteOutput(success: flushResult.IsCompleted && !flushResult.IsCanceled);
                 outgoingFrame.Payload.Complete();
                 outgoingFrame.PayloadContinuation?.Complete();
                 return;
-            }
-            else if (flushResult.IsCanceled)
-            {
-                throw new InvalidOperationException(
-                    "A payload writer interceptor is not allowed to return a canceled flush result.");
             }
         }
         catch
@@ -1346,18 +1368,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // until InvokeAsyncCore completes (see tokenRegistration); after that, the cancellation of this
                         // token has no effect on invocationCts, so it doesn't cancel the copying of
                         // payloadContinuation.
-                        FlushResult flushResult = await CopyReaderToWriterAsync(
+                        FlushResult flushResult = await streamOutput.CopyFromAsync(
                             payloadContinuation,
-                            streamOutput,
+                            streamWritesClosed,
                             endStream: true,
                             cancellationToken).ConfigureAwait(false);
 
-                        if (flushResult.IsCanceled)
-                        {
-                            throw new InvalidOperationException(
-                                "A payload writer interceptor is not allowed to return a canceled flush result.");
-                        }
-                        success = true;
+                        success = !flushResult.IsCanceled;
                     }
                     catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                     {
@@ -1385,87 +1402,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 },
                 CancellationToken.None); // we need this task to run to complete streamOutput and payloadContinuation
-        }
-
-        async Task<FlushResult> CopyReaderToWriterAsync(
-            PipeReader reader,
-            PipeWriter writer,
-            bool endStream,
-            CancellationToken cancellationToken)
-        {
-            using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            // If the peer is no longer reading the payload, call Cancel on readCts.
-            Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
-
-            FlushResult flushResult;
-
-            try
-            {
-                ReadResult readResult;
-                do
-                {
-                    try
-                    {
-                        readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException exception) when (exception.CancellationToken == readCts.Token)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        Debug.Assert(streamWritesClosed.IsCompleted);
-
-                        // This either throws the WritesClosed exception or returns a completed FlushResult.
-                        return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                    }
-                    // we let other exceptions thrown by ReadAsync (including possibly an OperationCanceledException
-                    // thrown incorrectly) escape.
-
-                    if (readResult.IsCanceled)
-                    {
-                        // The application (or an interceptor/middleware) called CancelPendingRead on reader.
-                        reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
-
-                        writer.CompleteOutput(success: false); // we didn't copy everything
-                        flushResult = new FlushResult(isCanceled: false, isCompleted: true);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            flushResult = await writer.WriteAsync(
-                                readResult.Buffer,
-                                readResult.IsCompleted && endStream,
-                                cancellationToken).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            reader.AdvanceTo(readResult.Buffer.End);
-                        }
-                    }
-                }
-                while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
-            }
-            finally
-            {
-                readCts.Cancel();
-                await cancelOnWritesClosedTask.ConfigureAwait(false);
-            }
-
-            return flushResult;
-
-            async Task CancelOnWritesClosedAsync(CancellationTokenSource readCts)
-            {
-                try
-                {
-                    await streamWritesClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore the reason of the writes close, or the OperationCanceledException
-                }
-
-                readCts.Cancel();
-            }
         }
     }
 

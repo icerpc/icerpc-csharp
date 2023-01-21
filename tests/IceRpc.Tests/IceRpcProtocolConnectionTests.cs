@@ -999,11 +999,11 @@ public sealed class IceRpcProtocolConnectionTests
                     Payload = InvalidPipeReader.Instance
                 };
                 response.Use(writer =>
-                    {
-                        var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                        payloadWriterSource.SetResult(payloadWriterDecorator);
-                        return payloadWriterDecorator;
-                    });
+                {
+                    var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                    payloadWriterSource.SetResult(payloadWriterDecorator);
+                    return payloadWriterDecorator;
+                });
                 return new(response);
             });
         var tcs = new TaskCompletionSource<Exception>();
@@ -1022,12 +1022,13 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null);
+
         Assert.That(
-            async () => await responseTask,
+            async () => await invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
     }
