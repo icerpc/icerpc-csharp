@@ -66,7 +66,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // Represents the streams of invocations where the corresponding request _may_ not have been received or dispatched
     // by the peer yet.
     private readonly Dictionary<IMultiplexedStream, CancellationTokenSource> _pendingInvocations = new();
-    private Task<IceRpcGoAway>? _readGoAwayTask;
+    private Task? _readGoAwayTask;
 
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
     private bool _refuseInvocations;
@@ -674,6 +674,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             try
             {
                 Debug.Assert(_acceptRequestsTask is not null);
+                Debug.Assert(_controlStream is not null);
+                Debug.Assert(_readGoAwayTask is not null);
+                Debug.Assert(_remoteControlStream is not null);
+
                 await _acceptRequestsTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
@@ -685,55 +689,33 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // peer is the client endpoint, the first accepted bidirectional stream ID is 1.
                 IceRpcGoAway goAwayFrame = new(
                      _lastRemoteBidirectionalStreamId is ulong value ? value + 4 : (IsServer ? 0ul : 1ul),
-                     (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream!.Id) + 4);
+                     (_lastRemoteUnidirectionalStreamId ?? _remoteControlStream.Id) + 4);
 
                 try
                 {
-                    await SendControlFrameAsync(
+                    _ = await SendControlFrameAsync(
                         IceRpcControlFrameType.GoAway,
                         goAwayFrame.Encode,
                         cts.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // If we fail to send the GoAway frame, we are in an abortive closure and we close Output to allow
-                    // the peer to continue if it's waiting for us. This could happen when the cancellation token is
-                    // canceled.
-                    _controlStream!.Output.CompleteOutput(success: false);
-                    throw;
-                }
 
-                try
-                {
                     // Wait for the peer to send back a GoAway frame. The task should already be completed if the
                     // shutdown was initiated by the peer.
-                    IceRpcGoAway peerGoAwayFrame = await _readGoAwayTask!.WaitAsync(cts.Token).ConfigureAwait(false);
-
-                    // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will
-                    // throw IceRpcException(InvocationCanceled) which can be retried. Since _isShutdown is true,
-                    // _pendingInvocations is immutable at this point.
-                    foreach ((IMultiplexedStream stream, CancellationTokenSource invocationCts) in _pendingInvocations)
-                    {
-                        if (!stream.IsStarted ||
-                            stream.Id >= (stream.IsBidirectional ?
-                                peerGoAwayFrame.BidirectionalStreamId : peerGoAwayFrame.UnidirectionalStreamId))
-                        {
-                            invocationCts.Cancel();
-                        }
-                    }
+                    await _readGoAwayTask.WaitAsync(cts.Token).ConfigureAwait(false);
 
                     // Wait for network activity on streams (other than control streams) to cease.
                     await _streamsClosed.Task.WaitAsync(cts.Token).ConfigureAwait(false);
-                }
-                finally
-                {
+
                     // Close the control stream to notify the peer that on our side, all the streams completed and that
                     // it can close the transport connection whenever it likes.
-                    // We also do this if an exception is thrown (such as OperationCanceledException): we're now in an
-                    // abortive closure and from our point of view, it's ok for the peer to close the transport
-                    // connection. We don't close the transport connection immediately as this would kill the streams in
-                    // the peer and we want to give the peer a chance to complete its shutdown gracefully.
-                    _controlStream!.Output.Complete();
+                    _controlStream.Output.CompleteOutput(success: true);
+                }
+                catch
+                {
+                    // If we fail to send the GoAway frame or some other failure occur (such as
+                    // OperationCanceledException) we are in an abortive closure and we close Output to allow
+                    // the peer to continue if it's waiting for us.
+                    _controlStream.Output.CompleteOutput(success: false);
+                    throw;
                 }
 
                 // Wait for the peer notification that on its side all the streams are completed. It's important to wait
@@ -742,8 +724,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 try
                 {
                     // Wait for the _remoteControlStream Input completion.
-                    ReadResult readResult = await _remoteControlStream!.Input.ReadAsync(cts.Token)
-                        .ConfigureAwait(false);
+                    ReadResult readResult = await _remoteControlStream.Input.ReadAsync(cts.Token).ConfigureAwait(false);
 
                     Debug.Assert(!readResult.IsCanceled);
 
@@ -754,9 +735,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
 
                     // We can now safely close the connection.
-                    await _transportConnection.CloseAsync(
-                        MultiplexedConnectionCloseError.NoError,
-                        cts.Token).ConfigureAwait(false);
+                    await _transportConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, cts.Token)
+                        .ConfigureAwait(false);
                 }
                 catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.ConnectionClosedByPeer)
                 {
@@ -1234,7 +1214,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // - the connection is still idle and we request shutdown
     private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
 
-    private async Task<IceRpcGoAway> ReadGoAwayAsync(CancellationToken cancellationToken)
+    private async Task ReadGoAwayAsync(CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
 
@@ -1271,8 +1251,21 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
 
             RefuseNewInvocations("The connection was shut down because it received a GoAway frame from the peer.");
-            _shutdownRequestedTcs.TrySetResult();
-            return goAwayFrame;
+
+            // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will
+            // throw IceRpcException(InvocationCanceled) which can be retried. Since _refuseInvocations is true,
+            // _pendingInvocations is immutable at this point.
+            foreach ((IMultiplexedStream stream, CancellationTokenSource invocationCts) in _pendingInvocations)
+            {
+                if (!stream.IsStarted ||
+                    stream.Id >= (stream.IsBidirectional ?
+                        goAwayFrame.BidirectionalStreamId : goAwayFrame.UnidirectionalStreamId))
+                {
+                    invocationCts.Cancel();
+                }
+            }
+
+            _ = _shutdownRequestedTcs.TrySetResult();
         }
         catch (OperationCanceledException)
         {
@@ -1421,7 +1414,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && _shutdownTask is null)
+            if (!stream.IsRemote && !_refuseInvocations)
             {
                 if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
                 {
