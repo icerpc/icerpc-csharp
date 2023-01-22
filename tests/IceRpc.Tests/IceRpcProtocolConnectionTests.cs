@@ -430,8 +430,16 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Server);
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        if (shutdown)
+        {
+            _ = FulfillShutdownRequestAsync(sut.Server);
+            _ = FulfillShutdownRequestAsync(sut.Client);
+        }
+        else
+        {
+            _ = FulfillDisposeRequestAsync(sut.Server);
+            _ = FulfillDisposeRequestAsync(sut.Client);
+        }
 
         TestMultiplexedConnectionDecorator clientConnection = clientTransport!.LastConnection;
         clientConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
@@ -1149,6 +1157,12 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.ShutdownAsync(cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    private static async Task FulfillDisposeRequestAsync(IProtocolConnection connection)
+    {
+        _  = await connection.Closed;
+        await connection.DisposeAsync();
     }
 
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
