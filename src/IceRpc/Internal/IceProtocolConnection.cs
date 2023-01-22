@@ -330,26 +330,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 throw new InvalidOperationException("Cannot invoke on a connection that is not fully established.");
             }
+
+            if (_dispatchCount == 0 && _invocationCount == 0)
+            {
+                DisableIdleCheck();
+            }
+            ++_invocationCount;
         }
 
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            lock (_mutex)
-            {
-                if (_refuseInvocations)
-                {
-                    throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
-                }
-
-                if (_dispatchCount == 0 && _invocationCount == 0)
-                {
-                    DisableIdleCheck();
-                }
-                ++_invocationCount;
-            }
-
             // Since _invocationCount > 0, _disposedCts is not disposed.
             using var invocationCts =
                 CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, cancellationToken);
@@ -362,9 +354,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 // Read the full payload. This can take some time so this needs to be done before acquiring the write
                 // semaphore.
-                ReadOnlySequence<byte> payloadBuffer = await ReadFullPayloadAsync(
-                    request.Payload,
-                    invocationCts.Token).ConfigureAwait(false);
+                ReadOnlySequence<byte> payloadBuffer = await ReadFullPayloadAsync(request.Payload, invocationCts.Token)
+                    .ConfigureAwait(false);
 
                 try
                 {

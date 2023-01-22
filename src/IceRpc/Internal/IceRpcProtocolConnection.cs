@@ -497,10 +497,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
                             try
                             {
-                                // The cancellation of the token given to InvokeAsync/InvokeAsyncCore cancels
-                                // invocationCts only until InvokeAsyncCore completes (see tokenRegistration); after
-                                // that, the cancellation of this token has no effect on invocationCts, so it doesn't
-                                // cancel the copying of payloadContinuation.
+                                // The cancellation of the token given to InvokeAsync cancels invocationCts only until
+                                // InvokeAsync completes (see tokenRegistration); after that, the cancellation of this
+                                // token has no effect on invocationCts, so it doesn't cancel the copying of
+                                // payloadContinuation.
                                 flushResult = await payloadWriter.CopyFromAsync(
                                     payloadContinuation,
                                     writesClosed,
@@ -923,16 +923,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // We were idle, we no longer are.
                         DisableIdleCheck();
                     }
-
-                    _ = UnregisterOnReadsAndWritesClosedAsync(stream);
-
-                    // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
-                    // to Task.Run because DispatchRequestAsync must clean-up the stream.
-                    CancellationToken disposedCancellationToken = _disposedCts.Token;
-                    _ = Task.Run(
-                        () => DispatchRequestAsync(stream, disposedCancellationToken),
-                        CancellationToken.None);
                 }
+
+                _ = UnregisterOnReadsAndWritesClosedAsync(stream);
+
+                // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
+                // to Task.Run because DispatchRequestAsync must clean-up the stream.
+                _ = Task.Run(() => DispatchRequestAsync(stream), CancellationToken.None);
             }
         }
         catch (OperationCanceledException)
@@ -966,9 +963,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private void DisableIdleCheck() => _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
-    private async Task DispatchRequestAsync(IMultiplexedStream stream, CancellationToken cancellationToken)
+    private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
-        using var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        // _disposedCts is not disposed since we own a dispatch count.
+        using var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
         Task? cancelDispatchOnWritesClosedTask = null;
 
         if (stream.IsBidirectional)
@@ -1000,7 +998,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             ReadResult readResult = await streamInput.ReadSegmentAsync(
                 SliceEncoding.Slice2,
                 _maxLocalHeaderSize,
-                cancellationToken).ConfigureAwait(false);
+                dispatchCts.Token).ConfigureAwait(false);
 
             if (readResult.Buffer.IsEmpty)
             {
