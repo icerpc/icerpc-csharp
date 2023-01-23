@@ -408,17 +408,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     RefuseNewInvocations("The connection was lost.");
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage, exception);
                 }
-                catch (IceRpcException exception)
-                {
-                    TryCompleteClosed(exception, "The connection was lost.");
-                    throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
-                }
-                catch (Exception exception)
-                {
-                    Debug.Assert(false, $"InvokeAsync failed with an unexpected exception: {exception}");
-                    TryCompleteClosed(exception, "The connection was lost.");
-                    throw;
-                }
 
                 streamInput = stream.IsBidirectional ? stream.Input : null;
 
