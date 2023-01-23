@@ -9,6 +9,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net;
+using System.Security.Authentication;
 
 namespace IceRpc.Tests.Transports;
 
@@ -75,7 +76,7 @@ public class SlicTransportTests
     {
         // Arrange
         Exception exception = authenticationException ?
-            new System.Security.Authentication.AuthenticationException() :
+            new AuthenticationException() :
             new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
@@ -161,8 +162,10 @@ public class SlicTransportTests
             };
 
         // Act/Assert
-        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => connectCall());
-        Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
+        Assert.That(
+            () => connectCall(),
+            Throws.InstanceOf<OperationCanceledException>().With.Property(
+                "CancellationToken").EqualTo(connectCts.Token));
     }
 
     /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server

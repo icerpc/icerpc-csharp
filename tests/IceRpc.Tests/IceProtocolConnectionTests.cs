@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
+using System.Security.Authentication;
 
 namespace IceRpc.Tests;
 
@@ -131,7 +132,7 @@ public sealed class IceProtocolConnectionTests
     {
         // Arrange
         Exception exception = authenticationException ?
-            new System.Security.Authentication.AuthenticationException() :
+            new AuthenticationException() :
             new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
@@ -216,8 +217,10 @@ public sealed class IceProtocolConnectionTests
             };
 
         // Act/Assert
-        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => connectCall());
-        Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
+        Assert.That(
+            () => connectCall(),
+            Throws.InstanceOf<OperationCanceledException>().With.Property(
+                "CancellationToken").EqualTo(connectCts.Token));
     }
 
     [TestCase(DuplexTransportOperation.Read)]
@@ -277,9 +280,10 @@ public sealed class IceProtocolConnectionTests
         using var invokeCts = new CancellationTokenSource(100);
 
         // Act/Assert
-        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() =>
-            sut.Client.InvokeAsync(request, invokeCts.Token));
-        Assert.That(exception!.CancellationToken, Is.EqualTo(invokeCts.Token));
+        Assert.That(
+            () => sut.Client.InvokeAsync(request, invokeCts.Token),
+            Throws.InstanceOf<OperationCanceledException>().With.Property(
+                "CancellationToken").EqualTo(invokeCts.Token));
     }
 
     /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>

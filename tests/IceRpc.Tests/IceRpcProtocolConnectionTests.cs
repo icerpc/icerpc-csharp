@@ -268,8 +268,10 @@ public sealed class IceRpcProtocolConnectionTests
             };
 
         // Act/Assert
-        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => connectCall());
-        Assert.That(exception!.CancellationToken, Is.EqualTo(connectCts.Token));
+        Assert.That(
+            () => connectCall(),
+            Throws.InstanceOf<OperationCanceledException>().With.Property(
+                "CancellationToken").EqualTo(connectCts.Token));
     }
 
     [Test]
@@ -567,9 +569,10 @@ public sealed class IceRpcProtocolConnectionTests
         using var invokeCts = new CancellationTokenSource(100);
 
         // Act/Assert
-        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() =>
-            sut.Client.InvokeAsync(request, invokeCts.Token));
-        Assert.That(exception!.CancellationToken, Is.EqualTo(invokeCts.Token));
+        Assert.That(
+            () => sut.Client.InvokeAsync(request, invokeCts.Token),
+            Throws.InstanceOf<OperationCanceledException>().With.Property(
+                "CancellationToken").EqualTo(invokeCts.Token));
         Assert.That(sut.Client.Closed.IsCompleted, Is.False);
     }
 
@@ -624,8 +627,9 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(() => invokeTask2);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.InvocationCanceled));
+        Assert.That(
+            () => invokeTask2,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled));
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
         request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
