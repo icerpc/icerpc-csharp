@@ -81,6 +81,8 @@ internal class DuplexConnectionReader : IAsyncDisposable
             }
             else
             {
+                // Update _nextIdleTime before changing the timer, the idle action is considered
+                // postponed when _nextIdleTime is greater than the current time.
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + idleTimeout;
                 _idleTimeoutTimer.Change(idleTimeout, Timeout.InfiniteTimeSpan);
             }
@@ -202,7 +204,8 @@ internal class DuplexConnectionReader : IAsyncDisposable
             }
             else
             {
-                // Postpone the idle timeout.
+                // Update _nextIdleTime before changing the timer, the idle action is considered
+                // postponed when _nextIdleTime is greater than the current time.
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
                 _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
             }
