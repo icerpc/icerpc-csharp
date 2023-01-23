@@ -235,8 +235,10 @@ public class ServerTests
 
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
-        Assert.That(async () => await clientConnection1.ShutdownAsync(), Throws.Nothing);
+        Assert.That(() => clientConnection1.ShutdownAsync(), Throws.Nothing);
         await testConnection.DisposeCalled;
+        // Add a small delay to ensure the sever decremented the connection count after disposing the connection.
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(() => clientConnection3.ConnectAsync(), Throws.Nothing);
     }
 
