@@ -438,6 +438,41 @@ public class SlicTransportTests
         CompleteStreams(localStream1, remoteStream1, localStream2, remoteStream2);
     }
 
+    [Test]
+    public async Task Write_hang_does_not_trigger_the_transport_idle_timeout()
+    {
+        IServiceCollection services = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransport();
+        services.AddOptions<SlicTransportOptions>("server").Configure(options =>
+                options.IdleTimeout = TimeSpan.FromMilliseconds(250));
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var serverConnection = await acceptTask;
+
+        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
+        TestDuplexConnectionDecorator transportConnection = clientTransport.LastConnection!;
+
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        // Simulate transport flow-control write hang. The hang of the writes shouldn't trigger the connection closure
+        // because the connection is just fine: it can still receive data from the server.
+        // The bug: the sending of pings from the client connection hang because of the write hang. As a result the
+        // client won't receive pong frames from the server and the connection will be aborted.
+        transportConnection.HoldOperation = DuplexTransportOperation.Write;
+        using var writeCts = new CancellationTokenSource(1000);
+
+        // Act
+        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[10], writeCts.Token);
+
+        // Assert
+        Assert.That(() => writeTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+
     [TestCase(64 * 1024, 32 * 1024)]
     [TestCase(1024 * 1024, 512 * 1024)]
     [TestCase(2048 * 1024, 512 * 1024)]

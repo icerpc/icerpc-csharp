@@ -518,6 +518,59 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.IsCompleted, Is.True);
     }
 
+    [Test]
+    public async Task Write_hang_does_not_trigger_the_transport_idle_timeout()
+    {
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher: dispatcher,
+                clientConnectionOptions: new ConnectionOptions
+                    {
+                        IdleTimeout = TimeSpan.FromMilliseconds(250)
+                    },
+                serverConnectionOptions: new ConnectionOptions
+                    {
+                        IdleTimeout = TimeSpan.FromMilliseconds(250)
+                    })
+            .AddTestDuplexTransport()
+            .BuildServiceProvider(validateScopes: true);
+        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        await dispatcher.DispatchStart;
+
+        _ = DisposeOnClosedAsync(sut.Server);
+
+        TestDuplexConnectionDecorator transportConnection = clientTransport.LastConnection!;
+
+        // Simulate transport flow-control write hang. The hang of the writes shouldn't trigger the connection closure
+        // because the connection is just fine: it can still receive data from the server.
+        // The bug: The sending of pings from the client connection will hang and the server idle timeout will be
+        // triggered. The server connection will be disposed as a result.
+        transportConnection.HoldOperation = DuplexTransportOperation.Write;
+
+        // Act
+        Exception? exception = await sut.Client.Closed;
+
+        // Assert
+        Assert.That(() => invokeTask, Throws.Nothing);
+        Assert.That(() => exception, Is.Null);
+
+        dispatcher.ReleaseDispatch();
+
+        async static Task DisposeOnClosedAsync(IProtocolConnection connection)
+        {
+            await connection.Closed;
+            await connection.DisposeAsync();
+        }
+    }
+
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
     {
         await connection.ShutdownRequested;
