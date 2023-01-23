@@ -330,26 +330,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 throw new InvalidOperationException("Cannot invoke on a connection that is not fully established.");
             }
+
+            if (_dispatchCount == 0 && _invocationCount == 0)
+            {
+                DisableIdleCheck();
+            }
+            ++_invocationCount;
         }
 
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            lock (_mutex)
-            {
-                if (_refuseInvocations)
-                {
-                    throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
-                }
-
-                if (_dispatchCount == 0 && _invocationCount == 0)
-                {
-                    DisableIdleCheck();
-                }
-                ++_invocationCount;
-            }
-
             // Since _invocationCount > 0, _disposedCts is not disposed.
             using var invocationCts =
                 CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, cancellationToken);
@@ -362,9 +354,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 // Read the full payload. This can take some time so this needs to be done before acquiring the write
                 // semaphore.
-                ReadOnlySequence<byte> payloadBuffer = await ReadFullPayloadAsync(
-                    request.Payload,
-                    invocationCts.Token).ConfigureAwait(false);
+                ReadOnlySequence<byte> payloadBuffer = await ReadFullPayloadAsync(request.Payload, invocationCts.Token)
+                    .ConfigureAwait(false);
 
                 try
                 {
@@ -1057,9 +1048,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     /// <returns>A <see cref="SemaphoreLock" /> that releases the acquired semaphore in its Dispose method.</returns>
     private async ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
     {
-        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        var semaphoreLock = new SemaphoreLock(_writeSemaphore);
+        SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -1661,15 +1650,5 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw;
             }
         }
-    }
-
-    /// <summary>A simple helper for releasing a semaphore.</summary>
-    private struct SemaphoreLock : IDisposable
-    {
-        private readonly SemaphoreSlim _semaphore;
-
-        public void Dispose() => _semaphore.Release();
-
-        internal SemaphoreLock(SemaphoreSlim semaphore) => _semaphore = semaphore;
     }
 }
