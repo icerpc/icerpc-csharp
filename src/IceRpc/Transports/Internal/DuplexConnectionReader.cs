@@ -76,13 +76,13 @@ internal class DuplexConnectionReader : IAsyncDisposable
 
             if (_idleTimeout == Timeout.InfiniteTimeSpan)
             {
-                _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                 _nextIdleTime = TimeSpan.Zero;
+                _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
             else
             {
-                _idleTimeoutTimer.Change(idleTimeout, Timeout.InfiniteTimeSpan);
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + idleTimeout;
+                _idleTimeoutTimer.Change(idleTimeout, Timeout.InfiniteTimeSpan);
             }
         }
     }
@@ -203,8 +203,8 @@ internal class DuplexConnectionReader : IAsyncDisposable
             else
             {
                 // Postpone the idle timeout.
-                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
+                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
             }
         }
     }
