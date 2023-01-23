@@ -113,9 +113,9 @@ public record class ConnectionOptions
     /// <value>A pool of memory blocks used for buffer management.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
-    /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
-    /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
-    /// in progress.</summary>
+    /// <summary>Gets or sets the timeout. This timeout is used to gracefully shutdown the connection if it's idle
+    /// for longer than this timeout. A connection is considered idle when there's no invocations or dispatches in
+    /// progress.</summary>
     /// <value>Defaults to <c>60</c> seconds.</value>
     public TimeSpan Timeout
     {
