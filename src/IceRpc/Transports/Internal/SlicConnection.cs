@@ -35,8 +35,9 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
     private SemaphoreSlim? _bidirectionalStreamSemaphore;
-    private readonly CancellationTokenSource _closeCts = new();
-    private string? _closeMessage;
+    private readonly CancellationTokenSource _closedCts = new();
+    private readonly CancellationToken _closedCancellationToken;
+    private string? _closedMessage;
     private Task? _closeTask;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly CancellationTokenSource _disposedCts = new();
@@ -82,7 +83,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
         }
 
@@ -366,7 +367,6 @@ internal class SlicConnection : IMultiplexedConnection
         bool bidirectional,
         CancellationToken cancellationToken)
     {
-        CancellationToken closeCancellationToken;
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -380,14 +380,12 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
-
-            closeCancellationToken = _closeCts.Token;
         }
 
         using var createStreamCts = CancellationTokenSource.CreateLinkedTokenSource(
-            closeCancellationToken,
+            _closedCancellationToken,
             cancellationToken);
 
         try
@@ -405,7 +403,7 @@ internal class SlicConnection : IMultiplexedConnection
             cancellationToken.ThrowIfCancellationRequested();
 
             Debug.Assert(_isClosed);
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
     }
 
@@ -476,7 +474,7 @@ internal class SlicConnection : IMultiplexedConnection
             _writeSemaphore.Dispose();
             _bidirectionalStreamSemaphore?.Dispose();
             _unidirectionalStreamSemaphore?.Dispose();
-            _closeCts.Dispose();
+            _closedCts.Dispose();
         }
     }
 
@@ -505,6 +503,8 @@ internal class SlicConnection : IMultiplexedConnection
             SingleReader = true,
             SingleWriter = true
         });
+
+        _closedCancellationToken = _closedCts.Token;
 
         Action? keepAliveAction = null;
         if (!IsServer)
@@ -614,74 +614,16 @@ internal class SlicConnection : IMultiplexedConnection
         EncodeAction? encode,
         CancellationToken cancellationToken)
     {
-        CancellationToken closeCancellationToken;
-        lock (_mutex)
-        {
-            if (_isClosed)
-            {
-                // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
-            }
-            closeCancellationToken = _closeCts.Token;
-        }
-
         using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(
-            closeCancellationToken,
-            cancellationToken);
-
-        using SemaphoreLock _ = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
-        try
-        {
-            await WriteFrameAsync(
-                    frameType,
-                    streamId: null,
-                    encode,
-                    writeCts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            Debug.Assert(_isClosed);
-            // TODO: Or ConnectionAborted? See #2382
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
-        }
-    }
-
-    internal async ValueTask SendStreamFrameAsync(
-        SlicStream stream,
-        FrameType frameType,
-        EncodeAction? encode,
-        CancellationToken cancellationToken)
-    {
-        Debug.Assert(frameType >= FrameType.StreamReset);
-
-        CancellationToken closeCancellationToken;
-        lock (_mutex)
-        {
-            if (_isClosed)
-            {
-                // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
-            }
-            closeCancellationToken = _closeCts.Token;
-        }
-
-        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(
-            closeCancellationToken,
+            _closedCancellationToken,
             cancellationToken);
 
         try
         {
             using SemaphoreLock _ = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
-            if (!stream.IsStarted)
-            {
-                StartStream(stream);
-            }
-
             await WriteFrameAsync(
                 frameType,
-                stream.Id,
+                streamId: null,
                 encode,
                 writeCts.Token).ConfigureAwait(false);
         }
@@ -691,7 +633,35 @@ internal class SlicConnection : IMultiplexedConnection
 
             Debug.Assert(_isClosed);
             // TODO: Or ConnectionAborted? See #2382
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
+        }
+    }
+
+    internal async ValueTask SendStreamFrameAsync(
+        SlicStream stream,
+        FrameType frameType,
+        EncodeAction? encode)
+    {
+        Debug.Assert(frameType >= FrameType.StreamReset);
+        try
+        {
+            using SemaphoreLock _ = await AcquireWriteLockAsync(_closedCancellationToken).ConfigureAwait(false);
+            if (!stream.IsStarted)
+            {
+                StartStream(stream);
+            }
+
+            await WriteFrameAsync(
+                frameType,
+                stream.Id,
+                encode,
+                _closedCancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            Debug.Assert(_isClosed);
+            // TODO: Or ConnectionAborted? See #2382
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
     }
 
@@ -709,19 +679,8 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
         }
 
-        CancellationToken closeCancellationToken;
-        lock (_mutex)
-        {
-            if (_isClosed)
-            {
-                // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
-            }
-            closeCancellationToken = _closeCts.Token;
-        }
-
         using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(
-            closeCancellationToken,
+            _closedCancellationToken,
             cancellationToken);
 
         try
@@ -805,7 +764,7 @@ internal class SlicConnection : IMultiplexedConnection
             cancellationToken.ThrowIfCancellationRequested();
 
             Debug.Assert(_isClosed);
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
 
         return new FlushResult(isCanceled: false, isCompleted: false);
@@ -846,7 +805,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Should this be ConnectionAborted instead? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
         }
     }
@@ -858,7 +817,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
 
             _streams[id] = stream;
@@ -884,18 +843,8 @@ internal class SlicConnection : IMultiplexedConnection
 
     private async Task<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-            return new SemaphoreLock(_writeSemaphore);
-        }
-        catch (OperationCanceledException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            Debug.Assert(_isClosed);
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
-        }
+        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new SemaphoreLock(_writeSemaphore);
     }
 
     private void Close(Exception exception, string closeMessage, IceRpcError? peerCloseError = null)
@@ -907,12 +856,12 @@ internal class SlicConnection : IMultiplexedConnection
                 return;
             }
             _isClosed = true;
-            _closeMessage = closeMessage;
+            _closedMessage = closeMessage;
             _peerCloseError = peerCloseError;
         }
 
         // Cancel pending CreateStreamAsync, AcceptStreamAsync and writes on the connection.
-        _closeCts.Cancel();
+        _closedCts.Cancel();
         _acceptStreamChannel.Writer.TryComplete(exception);
 
         // Close streams.
