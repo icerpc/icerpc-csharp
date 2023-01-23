@@ -1048,9 +1048,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     /// <returns>A <see cref="SemaphoreLock" /> that releases the acquired semaphore in its Dispose method.</returns>
     private async ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
     {
-        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        var semaphoreLock = new SemaphoreLock(_writeSemaphore);
+        SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -1652,15 +1650,5 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw;
             }
         }
-    }
-
-    /// <summary>A simple helper for releasing a semaphore.</summary>
-    private struct SemaphoreLock : IDisposable
-    {
-        private readonly SemaphoreSlim _semaphore;
-
-        public void Dispose() => _semaphore.Release();
-
-        internal SemaphoreLock(SemaphoreSlim semaphore) => _semaphore = semaphore;
     }
 }
