@@ -259,7 +259,7 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     }
 
     private readonly IDuplexConnection _decoratee;
-    private readonly TaskCompletionSource _disposeCalledTcs = new();
+    private readonly TaskCompletionSource _disposeCalledTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private TaskCompletionSource _holdConnectTcs = new();
     private DuplexTransportOperation _holdOperation;
     private TaskCompletionSource _holdReadTcs = new();
