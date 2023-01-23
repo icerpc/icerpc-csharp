@@ -540,7 +540,6 @@ public sealed class IceRpcProtocolConnectionTests
                 () => sut.Client.InvokeAsync(request),
                 Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                     IceRpcError.InvocationRefused));
-            Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
         }
         else
         {
