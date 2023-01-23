@@ -23,8 +23,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the peer or the idle monitor requests the shutdown of this connection.
-    /// </summary>
+    /// <summary>Gets a task that completes when the peer or the inactivity monitor requests the shutdown of this
+    /// connection.</summary>
     /// <remarks>This task is never faulted or canceled.</remarks>
     /// <seealso cref="ConnectionOptions.Timeout" />
     Task ShutdownRequested { get; }

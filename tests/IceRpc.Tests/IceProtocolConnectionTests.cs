@@ -290,8 +290,8 @@ public sealed class IceProtocolConnectionTests
     [Test]
     public async Task Idle_timeout_mismatch_aborts_connection()
     {
-        var clientConnectionOptions = new ConnectionOptions { Timeout = TimeSpan.FromSeconds(10) };
-        var serverConnectionOptions = new ConnectionOptions { Timeout = TimeSpan.FromMilliseconds(100) };
+        var clientConnectionOptions = new ConnectionOptions { IceIdleTimeout = TimeSpan.FromSeconds(10) };
+        var serverConnectionOptions = new ConnectionOptions { IceIdleTimeout = TimeSpan.FromMilliseconds(100) };
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
@@ -304,10 +304,7 @@ public sealed class IceProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
 
-        // Act
-        await sut.Server.ShutdownRequested; // after about 100 ms, the server connection requests a shutdown
-
-        // Assert
+        // Act/Assert
         Assert.That(
             async () => await sut.Server.Closed,
             Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));

@@ -422,7 +422,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     if (++_streamCount == 1)
                     {
-                        DisableIdleCheck();
+                        CancelInactivityCheck();
                     }
 
                     // Keep track of the invocation cancellation token source for the shutdown logic.
@@ -809,7 +809,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
-                        $"The connection was shut down because it was idle for over {_timeout.TotalSeconds} s.");
+                        $"The connection was shut down because it was inactive for over {_timeout.TotalSeconds} s.");
                 }
             }
 
@@ -879,7 +879,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         // The idle check requests shutdown and we want to make sure we only request it after _connectTask completed
         // successfully.
-        EnableIdleCheck();
+        ScheduleInactivityCheck();
 
         try
         {
@@ -923,7 +923,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     if (++_streamCount == 1)
                     {
                         // We were idle, we no longer are.
-                        DisableIdleCheck();
+                        CancelInactivityCheck();
                     }
                 }
 
@@ -963,7 +963,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void DisableIdleCheck() => _timeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    private void CancelInactivityCheck() => _timeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
@@ -1210,9 +1210,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     }
 
     // The idle check executes once in _timeout. By then either:
-    // - the connection is no longer idle (and DisableIdleCheck was called or is being called)
+    // - the connection is no longer idle (and CancelInactivityCheck was called or is being called)
     // - the connection is still idle and we request shutdown
-    private void EnableIdleCheck() => _timeoutTimer.Change(_timeout, Timeout.InfiniteTimeSpan);
+    private void ScheduleInactivityCheck() => _timeoutTimer.Change(_timeout, Timeout.InfiniteTimeSpan);
 
     private async Task ReadGoAwayAsync(CancellationToken cancellationToken)
     {
@@ -1438,7 +1438,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // _refuseInvocations is true when the connection is either about to be "shutdown requested", or
                     // shut down / disposed, or aborted (with Closed completed). We don't need to complete
                     // ShutdownRequested in any of these situations.
-                    EnableIdleCheck();
+                    ScheduleInactivityCheck();
                 }
             }
         }

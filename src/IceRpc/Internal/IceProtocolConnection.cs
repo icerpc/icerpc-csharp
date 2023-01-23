@@ -47,7 +47,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Action<Exception> _faultedTaskAction;
-    private readonly TimeSpan _iceIdleTimeout;
+    private readonly TimeSpan _idleTimeout;
     private int _invocationCount;
     private string? _invocationRefusedMessage;
     private bool _isClosedByPeer;
@@ -195,8 +195,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
             // messages requires the connection to be established.
-            _duplexConnectionReader.EnableAliveCheck(_iceIdleTimeout);
-            _duplexConnectionWriter.EnableKeepAlive(_iceIdleTimeout / 2);
+            _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
+            _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
 
             // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
             // DisposeAsync. Once _disposeTask is not null, _readFramesTask is immutable.
@@ -335,7 +335,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             if (_dispatchCount == 0 && _invocationCount == 0)
             {
-                DisableIdleCheck();
+                CancelInactivityCheck();
             }
             ++_invocationCount;
         }
@@ -501,7 +501,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             // _refuseInvocations is true when the connection is either about to be "shutdown
                             // requested", or shut down / disposed, or aborted (with Closed completed). We don't need to
                             // complete ShutdownRequested in any of these situations.
-                            EnableIdleCheck();
+                            ScheduleInactivityCheck();
                         }
                     }
                 }
@@ -671,7 +671,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 maxCount: options.MaxDispatches);
         }
 
-        _iceIdleTimeout = options.IceIdleTimeout;
+        _idleTimeout = options.IceIdleTimeout;
         _timeout = options.Timeout;
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
@@ -708,7 +708,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
-                        $"The connection was shut down because it was idle for over {_timeout.TotalSeconds} s.");
+                        $"The connection was shut down because it was inactive for over {_timeout.TotalSeconds} s.");
                 }
             }
 
@@ -1068,7 +1068,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         return semaphoreLock;
     }
 
-    private void DisableIdleCheck() => _timeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    private void CancelInactivityCheck() => _timeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     /// <summary>Dispatches an incoming request. This method executes in a task spawn from the read frames loop.
     /// </summary>
@@ -1203,14 +1203,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                     else if (!_refuseInvocations)
                     {
-                        EnableIdleCheck();
+                        ScheduleInactivityCheck();
                     }
                 }
             }
         }
     }
 
-    private void EnableIdleCheck() => _timeoutTimer.Change(_timeout, Timeout.InfiniteTimeSpan);
+    private void ScheduleInactivityCheck() => _timeoutTimer.Change(_timeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Reads incoming frames and returns successfully when a CloseConnection frame is received or when the
     /// connection is aborted during ShutdownAsync or canceled by DisposeAsync.</summary>
@@ -1226,7 +1226,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         // The idle check requests shutdown and we want to make sure we only request it after _connectTask completed
         // successfully.
-        EnableIdleCheck();
+        ScheduleInactivityCheck();
 
         try
         {
@@ -1558,7 +1558,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 if (_dispatchCount == 0 && _invocationCount == 0)
                 {
-                    DisableIdleCheck();
+                    CancelInactivityCheck();
                 }
                 ++_dispatchCount;
             }

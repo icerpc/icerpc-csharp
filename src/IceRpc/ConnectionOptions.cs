@@ -24,7 +24,7 @@ public record class ConnectionOptions
     public Action<Exception> FaultedTaskAction { get; set; } = _defaultFaultedTaskAction;
 
     /// <summary>Gets or sets the ice idle timeout. This timeout is used to monitor the transport connection health. If
-    /// no data is received within the ice idle timeout period, the transport connection is aborted. The default is 60s.
+    /// no data is received within the ice idle timeout period, the transport connection is aborted. The default is 30s.
     /// </summary>
     public TimeSpan IceIdleTimeout
     {
@@ -113,8 +113,8 @@ public record class ConnectionOptions
     /// <value>A pool of memory blocks used for buffer management.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
-    /// <summary>Gets or sets the timeout. This timeout is used to gracefully shutdown the connection if it's idle
-    /// for longer than this timeout. A connection is considered idle when there's no invocations or dispatches in
+    /// <summary>Gets or sets the timeout. This timeout is used to gracefully shutdown the connection if it's inactive
+    /// for longer than this timeout. A connection is considered inactive when there's no invocations or dispatches in
     /// progress.</summary>
     /// <value>Defaults to <c>60</c> seconds.</value>
     public TimeSpan Timeout
@@ -131,7 +131,7 @@ public record class ConnectionOptions
     private static readonly Action<Exception> _defaultFaultedTaskAction =
         exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
 
-    private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(30);
     private int _maxDispatches = 100;
     private int _maxIceFrameSize = 1024 * 1024;
     private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;

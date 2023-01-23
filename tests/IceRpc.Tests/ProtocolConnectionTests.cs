@@ -318,22 +318,10 @@ public sealed class ProtocolConnectionTests
     public async Task ShutdownRequested_completes_when_idle(Protocol protocol)
     {
         // Arrange
-
-        // With the ice protocol, the idle timeout is used for both the transport connection and protocol connection
-        // idle timeout. We need to set the server side idle timeout to ensure the server-side connection sends a keep
-        // alive to prevent the client transport connection to be closed because it's idle.
-        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
-            new ConnectionOptions
-            {
-                Timeout = TimeSpan.FromMilliseconds(800),
-            } :
-            null;
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
-                clientConnectionOptions: new ConnectionOptions { Timeout = TimeSpan.FromMilliseconds(500) },
-                serverConnectionOptions: serverConnectionOptions)
+                clientConnectionOptions: new ConnectionOptions { Timeout = TimeSpan.FromMilliseconds(500) })
             .BuildServiceProvider(validateScopes: true);
 
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
@@ -358,17 +346,6 @@ public sealed class ProtocolConnectionTests
         bool isOneway)
     {
         // Arrange
-
-        // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
-        // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
-        // client transport connection to be closed because it's idle.
-        ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
-            new ConnectionOptions
-            {
-                Timeout = TimeSpan.FromMilliseconds(800),
-            } :
-            null;
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
@@ -376,8 +353,7 @@ public sealed class ProtocolConnectionTests
                 {
                     Timeout = TimeSpan.FromMilliseconds(500),
                     Dispatcher = ServiceNotFoundDispatcher.Instance
-                },
-                serverConnectionOptions: serverConnectionOptions)
+                })
             .BuildServiceProvider(validateScopes: true);
 
         long startTime = Environment.TickCount64;
