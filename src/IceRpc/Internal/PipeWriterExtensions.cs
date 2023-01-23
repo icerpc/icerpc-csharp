@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
@@ -27,13 +28,104 @@ internal static class PipeWriterExtensions
         }
     }
 
+    /// <summary>Copies the contents of a <see cref="PipeReader"/> into this <see cref="PipeWriter" />.</summary>
+    /// <param name="writer">This pipe writer.</param>
+    /// <param name="reader">The pipe reader to copy. This method does not complete it.</param>
+    /// <param name="writerClosed">A task that completes when the writer can no longer write.</param>
+    /// <param name="endStream">When <see langword="true" />, no more data will be written to the writer after the
+    /// contents of the pipe reader.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The flush result. <see cref="FlushResult.IsCanceled" /> is <langword name="true"/> when the copying is
+    /// interrupted by a call to <see cref="PipeReader.CancelPendingRead" /> on <paramref name="reader" />.</returns>
+    internal static async ValueTask<FlushResult> CopyFromAsync(
+        this PipeWriter writer,
+        PipeReader reader,
+        Task writerClosed,
+        bool endStream,
+        CancellationToken cancellationToken)
+    {
+        using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        // If the peer is no longer reading the payload, call Cancel on readCts.
+        Task cancelOnWriterClosedTask = CancelOnWriterClosedAsync(readCts);
+
+        FlushResult flushResult;
+
+        try
+        {
+            ReadResult readResult;
+            do
+            {
+                try
+                {
+                    readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException exception) when (exception.CancellationToken == readCts.Token)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Debug.Assert(writerClosed.IsCompleted);
+
+                    // This FlushAsync either throws an exception because the writer failed, or returns a completed
+                    // FlushResult.
+                    return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                // we let other exceptions thrown by ReadAsync (including possibly an OperationCanceledException
+                // thrown incorrectly) escape.
+
+                if (readResult.IsCanceled)
+                {
+                    // The application (or an interceptor/middleware) called CancelPendingRead on reader.
+                    reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
+
+                    // The copy was canceled.
+                    flushResult = new FlushResult(isCanceled: true, isCompleted: true);
+                }
+                else
+                {
+                    try
+                    {
+                        flushResult = await writer.WriteAsync(
+                            readResult.Buffer,
+                            readResult.IsCompleted && endStream,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        reader.AdvanceTo(readResult.Buffer.End);
+                    }
+                }
+            }
+            while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
+        }
+        finally
+        {
+            readCts.Cancel();
+            await cancelOnWriterClosedTask.ConfigureAwait(false);
+        }
+
+        return flushResult;
+
+        async Task CancelOnWriterClosedAsync(CancellationTokenSource readCts)
+        {
+            try
+            {
+                await writerClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore the reason of the writer close, or the OperationCanceledException
+            }
+            readCts.Cancel();
+        }
+    }
+
     /// <summary>Writes a read only sequence of bytes to this writer.</summary>
     /// <param name="writer">The pipe writer.</param>
     /// <param name="source">The source sequence.</param>
     /// <param name="endStream">When <see langword="true" />, no more data will be written to the writer.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The flush result.</returns>
-    internal static async ValueTask<FlushResult> WriteAsync(
+    private static async ValueTask<FlushResult> WriteAsync(
         this PipeWriter writer,
         ReadOnlySequence<byte> source,
         bool endStream,
