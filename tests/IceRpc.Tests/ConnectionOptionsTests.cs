@@ -8,5 +8,5 @@ public class ConnectionOptionsTests
 {
     [Test]
     public void Connection_Options_ArgumentException() =>
-        Assert.Throws<ArgumentException>(() => new ConnectionOptions { IdleTimeout = TimeSpan.Zero });
+        Assert.Throws<ArgumentException>(() => new ConnectionOptions { Timeout = TimeSpan.Zero });
 }

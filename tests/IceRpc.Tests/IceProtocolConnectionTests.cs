@@ -290,8 +290,8 @@ public sealed class IceProtocolConnectionTests
     [Test]
     public async Task Idle_timeout_mismatch_aborts_connection()
     {
-        var clientConnectionOptions = new ConnectionOptions { IdleTimeout = TimeSpan.FromSeconds(10) };
-        var serverConnectionOptions = new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(100) };
+        var clientConnectionOptions = new ConnectionOptions { Timeout = TimeSpan.FromSeconds(10) };
+        var serverConnectionOptions = new ConnectionOptions { Timeout = TimeSpan.FromMilliseconds(100) };
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(

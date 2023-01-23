@@ -23,15 +23,14 @@ public record class ConnectionOptions
     /// <seealso cref="TaskScheduler.UnobservedTaskException" />
     public Action<Exception> FaultedTaskAction { get; set; } = _defaultFaultedTaskAction;
 
-    /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
-    /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
-    /// in progress.</summary>
-    /// <value>Defaults to <c>60</c> seconds.</value>
-    public TimeSpan IdleTimeout
+    /// <summary>Gets or sets the ice idle timeout. This timeout is used to monitor the transport connection health. If
+    /// no data is received within the ice idle timeout period, the transport connection is aborted. The default is 60s.
+    /// </summary>
+    public TimeSpan IceIdleTimeout
     {
-        get => _idleTimeout;
-        set => _idleTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+        get => _iceIdleTimeout;
+        set => _iceIdleTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(IceIdleTimeout)}", nameof(value));
     }
 
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
@@ -114,6 +113,17 @@ public record class ConnectionOptions
     /// <value>A pool of memory blocks used for buffer management.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
+    /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
+    /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
+    /// in progress.</summary>
+    /// <value>Defaults to <c>60</c> seconds.</value>
+    public TimeSpan Timeout
+    {
+        get => _timeout;
+        set => _timeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(Timeout)}", nameof(value));
+    }
+
     /// <summary>The default value for <see cref="MaxIceRpcHeaderSize" />.</summary>
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
@@ -121,13 +131,14 @@ public record class ConnectionOptions
     private static readonly Action<Exception> _defaultFaultedTaskAction =
         exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
 
-    private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(60);
     private int _maxDispatches = 100;
     private int _maxIceFrameSize = 1024 * 1024;
     private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;
     private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
     private int _maxIceRpcUnidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxUnidirectionalStreams;
     private int _minSegmentSize = 4096;
+    private TimeSpan _timeout = TimeSpan.FromSeconds(60);
 
     internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
         throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");

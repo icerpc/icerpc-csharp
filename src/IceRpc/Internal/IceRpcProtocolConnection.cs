@@ -50,8 +50,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
 
-    private readonly TimeSpan _idleTimeout;
-    private readonly Timer _idleTimeoutTimer;
     private string? _invocationRefusedMessage;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
@@ -83,6 +81,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private int _streamCount;
     private readonly TaskCompletionSource _streamsClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private readonly TimeSpan _timeout;
+    private readonly Timer _timeoutTimer;
+
     private readonly IMultiplexedConnection _transportConnection;
 
     // Only set for server connections.
@@ -306,7 +308,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             _disposedCts.Dispose();
             _acceptRequestsCts.Dispose();
 
-            await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
+            await _timeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -738,8 +740,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 maxCount: options.MaxDispatches);
         }
 
-        _idleTimeout = options.IdleTimeout;
-        _idleTimeoutTimer = new Timer(_ =>
+        _timeout = options.Timeout;
+        _timeoutTimer = new Timer(_ =>
         {
             bool requestShutdown = false;
 
@@ -749,7 +751,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
-                        $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                        $"The connection was shut down because it was idle for over {_timeout.TotalSeconds} s.");
                 }
             }
 
@@ -904,7 +906,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void DisableIdleCheck() => _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    private void DisableIdleCheck() => _timeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     private async Task DispatchRequestAsync(IMultiplexedStream stream, CancellationToken cancellationToken)
     {
@@ -1116,10 +1118,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    // The idle check executes once in _idleTimeout. By then either:
+    // The idle check executes once in _timeout. By then either:
     // - the connection is no longer idle (and DisableIdleCheck was called or is being called)
     // - the connection is still idle and we request shutdown
-    private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+    private void EnableIdleCheck() => _timeoutTimer.Change(_timeout, Timeout.InfiniteTimeSpan);
 
     private async Task<IceRpcGoAway> ReadGoAwayAsync(CancellationToken cancellationToken)
     {

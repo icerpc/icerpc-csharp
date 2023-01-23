@@ -325,14 +325,14 @@ public sealed class ProtocolConnectionTests
         ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
             new ConnectionOptions
             {
-                IdleTimeout = TimeSpan.FromMilliseconds(800),
+                Timeout = TimeSpan.FromMilliseconds(800),
             } :
             null;
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
-                clientConnectionOptions: new ConnectionOptions { IdleTimeout = TimeSpan.FromMilliseconds(500) },
+                clientConnectionOptions: new ConnectionOptions { Timeout = TimeSpan.FromMilliseconds(500) },
                 serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);
 
@@ -365,7 +365,7 @@ public sealed class ProtocolConnectionTests
         ConnectionOptions? serverConnectionOptions = protocol == Protocol.Ice ?
             new ConnectionOptions
             {
-                IdleTimeout = TimeSpan.FromMilliseconds(800),
+                Timeout = TimeSpan.FromMilliseconds(800),
             } :
             null;
 
@@ -374,7 +374,7 @@ public sealed class ProtocolConnectionTests
                 protocol,
                 clientConnectionOptions: new ConnectionOptions
                 {
-                    IdleTimeout = TimeSpan.FromMilliseconds(500),
+                    Timeout = TimeSpan.FromMilliseconds(500),
                     Dispatcher = ServiceNotFoundDispatcher.Instance
                 },
                 serverConnectionOptions: serverConnectionOptions)
@@ -418,7 +418,7 @@ public sealed class ProtocolConnectionTests
         ConnectionOptions? serverConnectionOptions =
             new ConnectionOptions
             {
-                IdleTimeout = idleTimeout,
+                Timeout = idleTimeout,
                 Dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
                 {
                     ReadResult result;
@@ -437,7 +437,7 @@ public sealed class ProtocolConnectionTests
                 protocol,
                 clientConnectionOptions: new ConnectionOptions
                 {
-                    IdleTimeout = TimeSpan.FromMilliseconds(500),
+                    Timeout = TimeSpan.FromMilliseconds(500),
                 },
                 serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);

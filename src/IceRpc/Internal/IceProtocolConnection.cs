@@ -47,8 +47,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Action<Exception> _faultedTaskAction;
-    private readonly TimeSpan _idleTimeout;
-    private readonly Timer _idleTimeoutTimer;
+    private readonly TimeSpan _iceIdleTimeout;
     private int _invocationCount;
     private string? _invocationRefusedMessage;
     private bool _isClosedByPeer;
@@ -70,6 +69,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     // The thread that completes this TCS can run the continuations, and as a result its result must be set without
     // holding a lock on _mutex.
     private readonly TaskCompletionSource _shutdownRequestedTcs = new();
+
+    private readonly TimeSpan _timeout;
+    private readonly Timer _timeoutTimer;
 
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
@@ -193,8 +195,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
             // messages requires the connection to be established.
-            _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
-            _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
+            _duplexConnectionReader.EnableAliveCheck(_iceIdleTimeout);
+            _duplexConnectionWriter.EnableKeepAlive(_iceIdleTimeout / 2);
 
             // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
             // DisposeAsync. Once _disposeTask is not null, _readFramesTask is immutable.
@@ -304,7 +306,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             _dispatchSemaphore?.Dispose();
             _writeSemaphore.Dispose();
-            await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
+            await _timeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -678,7 +680,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 maxCount: options.MaxDispatches);
         }
 
-        _idleTimeout = options.IdleTimeout;
+        _iceIdleTimeout = options.IceIdleTimeout;
+        _timeout = options.Timeout;
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
 
@@ -687,7 +690,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             duplexConnection,
             _memoryPool,
             _minSegmentSize,
-            // This will execute until _duplexConnectionWriter is disposed, perhaps even after!
+            // This will execute until _duplexConnectionWriter is disposed.
             keepAliveAction: () =>
             {
                 lock (_mutex)
@@ -704,7 +707,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _minSegmentSize,
             connectionIdleAction: _readFramesCts.Cancel);
 
-        _idleTimeoutTimer = new Timer(_ =>
+        _timeoutTimer = new Timer(_ =>
         {
             bool requestShutdown = false;
 
@@ -714,7 +717,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
-                        $"The connection was shut down because it was idle for over {_idleTimeout.TotalSeconds} s.");
+                        $"The connection was shut down because it was idle for over {_timeout.TotalSeconds} s.");
                 }
             }
 
@@ -1076,7 +1079,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         return semaphoreLock;
     }
 
-    private void DisableIdleCheck() => _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    private void DisableIdleCheck() => _timeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     /// <summary>Dispatches an incoming request. This method executes in a task spawn from the read frames loop.
     /// </summary>
@@ -1218,7 +1221,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    private void EnableIdleCheck() => _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+    private void EnableIdleCheck() => _timeoutTimer.Change(_timeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Reads incoming frames and returns successfully when a CloseConnection frame is received or when the
     /// connection is aborted during ShutdownAsync or canceled by DisposeAsync.</summary>
