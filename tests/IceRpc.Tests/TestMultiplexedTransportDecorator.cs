@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.DependencyInjection;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Security;
@@ -76,43 +77,52 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 {
     public MultiplexedTransportOperation FailOperation
     {
-        get => _listener?.FailOperation ?? throw new InvalidOperationException("Call Listen first.");
+        get => _listener?.FailOperation ?? _failOperation;
 
         set
         {
             if (_listener is null)
             {
-                throw new InvalidOperationException("Call Listen first.");
+                _failOperation = value;
             }
-            _listener.FailOperation = value;
+            else
+            {
+                _listener.FailOperation = value;
+            }
         }
     }
 
     public Exception FailureException
     {
-        get => _listener?.FailureException ?? throw new InvalidOperationException("Call Listen first.");
+        get => _listener?.FailureException ?? _failureException;
 
         set
         {
             if (_listener is null)
             {
-                throw new InvalidOperationException("Call Listen first.");
+                _failureException = value;
             }
-            _listener.FailureException = value;
+            else
+            {
+                _listener.FailureException = value;
+            }
         }
     }
 
     public MultiplexedTransportOperation HoldOperation
     {
-        get => _listener?.HoldOperation ?? throw new InvalidOperationException("Call Listen first.");
+        get => _listener?.HoldOperation ?? _holdOperation;
 
         set
         {
             if (_listener is null)
             {
-                throw new InvalidOperationException("Call Listen first.");
+                _holdOperation = value;
             }
-            _listener.HoldOperation = value;
+            else
+            {
+                _listener.HoldOperation = value;
+            }
         }
     }
 
@@ -122,9 +132,9 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
 
     private readonly IMultiplexedServerTransport _decoratee;
-    private readonly MultiplexedTransportOperation _failOperation;
-    private readonly Exception _failureException;
-    private readonly MultiplexedTransportOperation _holdOperation;
+    private MultiplexedTransportOperation _failOperation;
+    private Exception _failureException;
+    private MultiplexedTransportOperation _holdOperation;
     private TestMultiplexedListenerDecorator? _listener;
 
     public TestMultiplexedServerTransportDecorator(
@@ -606,4 +616,34 @@ internal sealed class TestPipeReader : PipeReader
     }
 
     internal TestPipeReader(PipeReader decoratee) => _decoratee = decoratee;
+}
+
+public static class TestMultiplexedTransportServiceCollectionExtensions
+{
+    /// <summary>Installs the test Multiplexed transport.</summary>
+    public static IServiceCollection AddTestMultiplexedTransport(
+        this IServiceCollection services,
+        MultiplexedTransportOperation clientHoldOperation = MultiplexedTransportOperation.None,
+        MultiplexedTransportOperation clientFailOperation = MultiplexedTransportOperation.None,
+        Exception? clientFailureException = null,
+        MultiplexedTransportOperation serverHoldOperation = MultiplexedTransportOperation.None,
+        MultiplexedTransportOperation serverFailOperation = MultiplexedTransportOperation.None,
+        Exception? serverFailureException = null) => services
+            .AddColocTransport()
+            .AddSingleton(provider =>
+                new TestMultiplexedClientTransportDecorator(
+                    new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()),
+                    holdOperation: clientHoldOperation,
+                    failOperation: clientFailOperation,
+                    failureException: clientFailureException))
+            .AddSingleton<IMultiplexedClientTransport>(provider =>
+                provider.GetRequiredService<TestMultiplexedClientTransportDecorator>())
+            .AddSingleton(provider =>
+                new TestMultiplexedServerTransportDecorator(
+                    new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()),
+                    holdOperation: serverHoldOperation,
+                    failOperation: serverFailOperation,
+                    failureException: serverFailureException))
+            .AddSingleton<IMultiplexedServerTransport>(provider =>
+                provider.GetRequiredService<TestMultiplexedServerTransportDecorator>());
 }

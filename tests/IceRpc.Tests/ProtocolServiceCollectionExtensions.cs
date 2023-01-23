@@ -117,7 +117,22 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         Task clientProtocolConnectionTask = Client.ConnectAsync(cancellationToken);
-        await AcceptAsync(cancellationToken);
+        try
+        {
+            await AcceptAsync(cancellationToken);
+        }
+        catch
+        {
+            await Client.DisposeAsync();
+            try
+            {
+                await clientProtocolConnectionTask;
+            }
+            catch
+            {
+            }
+            throw;
+        }
         await clientProtocolConnectionTask;
     }
 

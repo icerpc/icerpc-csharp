@@ -210,9 +210,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // This needs to be set before starting the read frames task below.
                 _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-                // Requests dispatches by _readFramesTask disable this idle check.
-                EnableIdleCheck();
-
                 _readFramesTask = ReadFramesAsync(_readFramesCts.Token);
             }
 
@@ -562,11 +559,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             if (_shutdownTask is not null)
             {
-                throw new InvalidOperationException("Cannot call shutdown more than once.");
+                throw new InvalidOperationException("Cannot call ShutdownAsync more than once.");
             }
-            if (_connectTask is null)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
-                throw new InvalidOperationException("Cannot shut down a protocol connection before connecting it.");
+                throw new InvalidOperationException("Cannot shut down a protocol connection before it's connected.");
             }
 
             RefuseNewInvocations("The connection was shut down.");
@@ -586,18 +583,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             try
             {
-                try
-                {
-                    // Wait for connect to complete first.
-                    _ = await _connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
-                {
-                    throw new IceRpcException(
-                        IceRpcError.ConnectionAborted,
-                        "The connection shutdown was aborted because the connection establishment was canceled.");
-                }
-
                 Debug.Assert(_readFramesTask is not null);
 
                 // Since DisposeAsync waits for the _shutdownTask completion, _disposedCts is not disposed at this
@@ -735,7 +720,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             if (requestShutdown)
             {
-                // TrySetResult must be called outside the mutex lock
+                // TrySetResult must be called outside the mutex lock.
                 _shutdownRequestedTcs.TrySetResult();
             }
         });
@@ -1239,11 +1224,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     {
         await Task.Yield(); // exit mutex lock
 
-        // Wait for _connectTask (which spawned the _readFramesTask running this method) to complete. This way, we
-        // won't dispatch any request until _connectTask has completed successfully, and indirectly we won't make any
-        // invocation until _connectTask has completed successfully. The creation of the _readFramesTask is the last
-        // action taken by _connectTask and as a result this await can't fail.
+        // Wait for _connectTask (which spawned the task running this method) to complete. This way, we won't dispatch
+        // any request until _connectTask has completed successfully, and indirectly we won't make any invocation until
+        // _connectTask has completed successfully. The creation of the _readFramesTask is the last action taken by
+        // _connectTask and as a result this await can't fail.
         _ = await _connectTask!.ConfigureAwait(false);
+
+        // The idle check requests shutdown and we want to make sure we only request it after _connectTask completed
+        // successfully.
+        EnableIdleCheck();
 
         try
         {

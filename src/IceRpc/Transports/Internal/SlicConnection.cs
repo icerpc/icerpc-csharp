@@ -841,6 +841,12 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    private async Task<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
+    {
+        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new SemaphoreLock(_writeSemaphore);
+    }
+
     private void Close(Exception exception, string closeMessage, IceRpcError? peerCloseError = null)
     {
         lock (_mutex)
