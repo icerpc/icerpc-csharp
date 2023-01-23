@@ -341,15 +341,13 @@ public sealed class IceProtocolConnectionTests
                 }
                 return new(new OutgoingResponse(request));
             });
-        var colocTransport = new ColocTransport();
-
-        var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .AddSingleton(colocTransport.ServerTransport)
-            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .AddTestDuplexTransport()
             .BuildServiceProvider(validateScopes: true);
+
+        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
