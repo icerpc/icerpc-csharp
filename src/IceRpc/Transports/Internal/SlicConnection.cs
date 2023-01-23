@@ -620,7 +620,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         try
         {
-            using SemaphoreLock _ = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
             await WriteFrameAsync(
                 frameType,
                 streamId: null,
@@ -645,7 +645,7 @@ internal class SlicConnection : IMultiplexedConnection
         Debug.Assert(frameType >= FrameType.StreamReset);
         try
         {
-            using SemaphoreLock _ = await AcquireWriteLockAsync(_closedCancellationToken).ConfigureAwait(false);
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_closedCancellationToken).ConfigureAwait(false);
             if (!stream.IsStarted)
             {
                 StartStream(stream);
@@ -726,7 +726,7 @@ internal class SlicConnection : IMultiplexedConnection
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
                 // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-                SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
+                SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
                 if (!stream.IsStarted)
                 {
                     StartStream(stream);
@@ -839,12 +839,6 @@ internal class SlicConnection : IMultiplexedConnection
                 }
             }
         }
-    }
-
-    private async Task<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
-    {
-        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return new SemaphoreLock(_writeSemaphore);
     }
 
     private void Close(Exception exception, string closeMessage, IceRpcError? peerCloseError = null)
@@ -1506,15 +1500,5 @@ internal class SlicConnection : IMultiplexedConnection
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
         return _duplexConnectionWriter.FlushAsync(cancellationToken);
-    }
-
-    /// <summary>A simple helper for releasing a semaphore.</summary>
-    private struct SemaphoreLock : IDisposable
-    {
-        private readonly SemaphoreSlim _semaphore;
-
-        public void Dispose() => _semaphore.Release();
-
-        internal SemaphoreLock(SemaphoreSlim semaphore) => _semaphore = semaphore;
     }
 }

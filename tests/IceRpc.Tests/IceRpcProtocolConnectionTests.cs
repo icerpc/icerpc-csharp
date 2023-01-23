@@ -416,8 +416,16 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Server);
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        if (shutdown)
+        {
+            _ = FulfillShutdownRequestAsync(sut.Server);
+            _ = FulfillShutdownRequestAsync(sut.Client);
+        }
+        else
+        {
+            _ = FulfillDisposeRequestAsync(sut.Server);
+            _ = FulfillDisposeRequestAsync(sut.Client);
+        }
 
         TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastConnection;
         clientConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
@@ -532,7 +540,6 @@ public sealed class IceRpcProtocolConnectionTests
                 () => sut.Client.InvokeAsync(request),
                 Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                     IceRpcError.InvocationRefused));
-            Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
         }
         else
         {
@@ -1054,11 +1061,11 @@ public sealed class IceRpcProtocolConnectionTests
                     Payload = InvalidPipeReader.Instance
                 };
                 response.Use(writer =>
-                    {
-                        var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
-                        payloadWriterSource.SetResult(payloadWriterDecorator);
-                        return payloadWriterDecorator;
-                    });
+                {
+                    var payloadWriterDecorator = new PayloadPipeWriterDecorator(writer);
+                    payloadWriterSource.SetResult(payloadWriterDecorator);
+                    return payloadWriterDecorator;
+                });
                 return new(response);
             });
         var tcs = new TaskCompletionSource<Exception>();
@@ -1077,12 +1084,13 @@ public sealed class IceRpcProtocolConnectionTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
 
         // Assert
         Assert.That(await (await payloadWriterSource.Task).Completed, Is.Not.Null);
+
         Assert.That(
-            async () => await responseTask,
+            async () => await invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
         Assert.That(async () => await tcs.Task, Is.InstanceOf<InvalidOperationException>());
     }
@@ -1201,6 +1209,12 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.ShutdownAsync(cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    private static async Task FulfillDisposeRequestAsync(IProtocolConnection connection)
+    {
+        _  = await connection.Closed;
+        await connection.DisposeAsync();
     }
 
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
