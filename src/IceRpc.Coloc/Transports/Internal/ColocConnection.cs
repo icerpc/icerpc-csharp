@@ -25,10 +25,8 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
-        {
-            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_state.HasFlag(State.Disposed), this);
+
         if (_reader is null)
         {
             throw new InvalidOperationException("Reading is not allowed before connection is connected.");
@@ -99,10 +97,8 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
-        {
-            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_state.HasFlag(State.Disposed), this);
+
         if (_reader is null)
         {
             throw new InvalidOperationException("Shutdown is not allowed before the connection is connected.");
@@ -122,10 +118,8 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
-        {
-            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_state.HasFlag(State.Disposed), this);
+
         if (_reader is null)
         {
             throw new InvalidOperationException("Writing is not allowed before the connection is connected.");
@@ -227,10 +221,8 @@ internal class ClientColocConnection : ColocConnection
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        if (_state.HasFlag(State.Disposed))
-        {
-            throw new ObjectDisposedException($"{typeof(ColocConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_state.HasFlag(State.Disposed), this);
+
         if (_reader is not null)
         {
             throw new InvalidOperationException("Connection establishment cannot be called twice.");
