@@ -186,6 +186,67 @@ public sealed class ProtocolConnectionTests
         }
     }
 
+    [Test]
+    public async Task Connection_with_max_dispatches_stops_new_invocations_on_flow_control(
+        [Values("ice", "icerpc")] string protocolString)
+    {
+        // Arrange
+        var protocol = Protocol.Parse(protocolString);
+        var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        ServiceProvider provider = new ServiceCollection().AddProtocolTest(
+            protocol,
+            serverConnectionOptions: new ConnectionOptions
+            {
+                Dispatcher = dispatcher,
+                MaxDispatches = 1
+            }).BuildServiceProvider(validateScopes: true);
+
+        int payloadSize = 64 * 1024;
+        byte[] payload = new byte[payloadSize];
+        var requests = new List<(OutgoingRequest, Task<IncomingResponse>)>();
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        for (int i = 0; i < 1000; ++i)
+        {
+            var request = new OutgoingRequest(new ServiceAddress(protocol))
+                {
+                    IsOneway = true,
+                    Payload = PipeReader.Create(new ReadOnlySequence<byte>(payload))
+                };
+            requests.Add((request, sut.Client.InvokeAsync(request, cts.Token)));
+            if (i == 0)
+            {
+                await dispatcher.DispatchStart;
+            }
+        }
+
+        // Assert
+        bool invocationsCompleted = true;
+        foreach ((OutgoingRequest request, Task<IncomingResponse> task) in requests)
+        {
+            Assert.That(task.IsFaulted, Is.False);
+            invocationsCompleted &= task.IsCompleted;
+        }
+
+        // Something's wrong with flow control if all the invocations completed. The sending of 100 requests with a 64KB
+        // payload should trigger the transport flow control. If all the invocations completed successfully it would
+        // imply that the server read all the requests even though only one dispatch is allowed and hanging. This would
+        // result in the server buffering 64MB of data.
+        Assert.That(invocationsCompleted, Is.False);
+
+        // Cleanup
+        dispatcher.ReleaseDispatch();
+        foreach ((OutgoingRequest request, Task<IncomingResponse> task) in requests)
+        {
+            await task;
+            request.Dispose();
+        }
+    }
+
     /// <summary>Verifies that when dispatches are blocked waiting for the dispatch semaphore that aborting the server
     /// connection correctly cancels the dispatch semaphore wait. If the dispatch semaphore wait wasn't canceled, the
     /// DisposeAsync call would hang because it waits for the dispatches to complete.</summary>
