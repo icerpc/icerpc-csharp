@@ -427,9 +427,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Creates the connection establishment task for a pending connection.</summary>
     /// <param name="connection">The new pending connection to connect.</param>
-    /// <param name="disposedCancellationToken">The cancellation token of _disposedCts.</param>
-    /// <param name="cancellationToken">The main cancellation token.</param>
+    /// <param name="disposedCancellationToken">The cancellation token of _disposedCts. It does not cancel this task but
+    /// makes it fail with an <see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" />.
+    /// </param>
+    /// <param name="cancellationToken">The cancellation token that can cancel this task.</param>
     /// <returns>A task that completes successfully when the connection is connected.</returns>
+    /// <remarks>Upon success, this task sets _activeConnection and clears _pendingConnection. Upon failure, this task
+    /// clears _pendingConnection and schedules the connection's disposal after observing the task's exception.
+    /// </remarks>
     private async Task<TransportConnectionInformation> CreateConnectTask(
         IProtocolConnection connection,
         CancellationToken disposedCancellationToken,
