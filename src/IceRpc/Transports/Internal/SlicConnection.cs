@@ -510,13 +510,16 @@ internal class SlicConnection : IMultiplexedConnection
         if (!IsServer)
         {
             // Only client connections send ping frames when idle to keep the connection alive.
-            CancellationToken disposeCancellationToken = _disposedCts.Token;
             keepAliveAction = () =>
                 {
-                    // Send a new ping frame if the previous frame was sent.
-                    if (_pingTask.IsCompleted && !disposeCancellationToken.IsCancellationRequested)
+                    lock (_mutex)
                     {
-                        _pingTask = SendPingFrameAsync(disposeCancellationToken);
+                        // Send a new ping frame if the previous frame was sent and the connection is not closed
+                        // or being close.
+                        if (_pingTask.IsCompleted && !_isClosed)
+                        {
+                            _pingTask = SendPingFrameAsync(_disposedCts.Token);
+                        }
                     }
                 };
         }
@@ -557,6 +560,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task SendPingFrameAsync(CancellationToken cancellationToken)
         {
+            await Task.Yield(); // Exit mutex lock
             try
             {
                 await SendFrameAsync(FrameType.Ping, encode: null, cancellationToken).ConfigureAwait(false);
@@ -624,7 +628,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         try
         {
-            using SemaphoreLock _ = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
             await WriteFrameAsync(
                 frameType,
                 streamId: null,
@@ -649,7 +653,7 @@ internal class SlicConnection : IMultiplexedConnection
         Debug.Assert(frameType >= FrameType.StreamReset);
         try
         {
-            using SemaphoreLock _ = await AcquireWriteLockAsync(_closedCancellationToken).ConfigureAwait(false);
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_closedCancellationToken).ConfigureAwait(false);
             if (!stream.IsStarted)
             {
                 StartStream(stream);
@@ -730,7 +734,7 @@ internal class SlicConnection : IMultiplexedConnection
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
                 // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-                SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
+                SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
                 if (!stream.IsStarted)
                 {
                     StartStream(stream);
@@ -843,12 +847,6 @@ internal class SlicConnection : IMultiplexedConnection
                 }
             }
         }
-    }
-
-    private async Task<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
-    {
-        await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return new SemaphoreLock(_writeSemaphore);
     }
 
     private void Close(Exception exception, string closeMessage, IceRpcError? peerCloseError = null)
@@ -1333,7 +1331,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (Exception exception)
             {
-                Debug.Fail($"ping task failed with an unexpected exception: {exception}");
+                Debug.Fail($"pong task failed with an unexpected exception: {exception}");
                 throw;
             }
         }
@@ -1510,15 +1508,5 @@ internal class SlicConnection : IMultiplexedConnection
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
         return _duplexConnectionWriter.FlushAsync(cancellationToken);
-    }
-
-    /// <summary>A simple helper for releasing a semaphore.</summary>
-    private struct SemaphoreLock : IDisposable
-    {
-        private readonly SemaphoreSlim _semaphore;
-
-        public void Dispose() => _semaphore.Release();
-
-        internal SemaphoreLock(SemaphoreSlim semaphore) => _semaphore = semaphore;
     }
 }
