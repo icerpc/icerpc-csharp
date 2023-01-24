@@ -9,9 +9,9 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>Represents a client connection used to send and receive requests and responses. This client connection is
-/// reconnected automatically when its underlying connection is closed by the server or the transport. Only one
-/// underlying connection can be established, connecting or shutting down at any one time.</summary>
+/// <summary>Represents a client connection used to send requests to a server and receive the corresponding responses.
+/// This client connection's underlying connection is recreated and reconnected automatically when it's closed by any
+/// event other than a call to <see cref="ShutdownAsync" /> or <see cref="DisposeAsync" />.</summary>
 public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     /// <summary>Gets the server address of this connection.</summary>
