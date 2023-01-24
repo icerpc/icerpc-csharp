@@ -8,7 +8,7 @@ namespace IceRpc.Transports.Internal;
 
 /// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
 /// PipeWriter.</summary>
-internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
+internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
 {
     private readonly IDuplexConnection _connection;
     private TimeSpan _keepAlivePeriod = Timeout.InfiniteTimeSpan;
@@ -20,11 +20,14 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
     /// <inheritdoc/>
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
-        _keepAliveTimer?.Dispose();
+        if (_keepAliveTimer is not null)
+        {
+            await _keepAliveTimer.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     /// <inheritdoc/>

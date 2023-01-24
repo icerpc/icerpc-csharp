@@ -33,11 +33,11 @@ public class DuplexConnectionReaderTests
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         var tcs = new TaskCompletionSource<TimeSpan>();
-        using var reader = new DuplexConnectionReader(
+        await using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: _ => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
+            connectionIdleAction: () => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
 
@@ -66,11 +66,11 @@ public class DuplexConnectionReaderTests
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         var tcs = new TaskCompletionSource<TimeSpan>();
-        using var reader = new DuplexConnectionReader(
+        await using var reader = new DuplexConnectionReader(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,
-            connectionLostAction: _ => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
+            connectionIdleAction: () => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
 

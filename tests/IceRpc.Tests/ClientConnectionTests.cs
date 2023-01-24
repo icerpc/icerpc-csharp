@@ -52,18 +52,10 @@ public class ClientConnectionTests
         var services = new ServiceCollection();
         services.AddOptions<ClientConnectionOptions>().Configure(
             options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
-
-        // We use our own decorated server transport
-        var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Connect);
-
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
-                .AddSingleton(colocTransport.ClientTransport) // overwrite
-                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Connect)
                 .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -83,17 +75,10 @@ public class ClientConnectionTests
         services.AddOptions<ClientConnectionOptions>().Configure(
             options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
 
-        // We use our own decorated server transport
-        var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Connect);
-
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
-                .AddSingleton(colocTransport.ClientTransport) // overwrite
-                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Connect)
                 .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -312,17 +297,10 @@ public class ClientConnectionTests
         services.AddOptions<ClientConnectionOptions>().Configure(
             options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
 
-        // We use our own decorated server transport
-        var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Connect);
-
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
-                .AddSingleton(colocTransport.ClientTransport) // overwrite
-                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Connect)
                 .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -350,23 +328,21 @@ public class ClientConnectionTests
         services.AddOptions<ClientConnectionOptions>().Configure(
             options => options.ShutdownTimeout = TimeSpan.FromMilliseconds(300));
 
-        // We use our own decorated server transport
-        var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
-
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
-                .AddSingleton(colocTransport.ClientTransport) // overwrite
-                .AddSingleton<IDuplexServerTransport>(serverTransport)
+                .AddTestDuplexTransport()
                 .BuildServiceProvider(validateScopes: true);
+
+        var serverTransport = provider.GetRequiredService<TestDuplexServerTransportDecorator>();
 
         Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
         await connection.ConnectAsync();
+        await serverTransport.LastAcceptedConnection.ConnectAsync(default);
+        // Hold server reads after the connection is established to prevent shutdown to proceed.
+        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
 
         Task shutdownTask = connection.ShutdownAsync();
 
@@ -384,9 +360,7 @@ public class ClientConnectionTests
 
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
-        var serverTransport = new TestDuplexServerTransportDecorator(
-            colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Shutdown);
+        var serverTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
         await using ServiceProvider provider =
             services
@@ -399,6 +373,9 @@ public class ClientConnectionTests
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
         await connection.ConnectAsync();
+        await serverTransport.LastAcceptedConnection.ConnectAsync(default);
+        // Hold server reads after the connection is established to prevent shutdown to proceed.
+        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         Task shutdownTask = connection.ShutdownAsync(cts.Token);

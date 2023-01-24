@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal;
 
 /// <summary>A helper class to efficiently read data from a duplex connection. It provides a PipeReader-like API but is
 /// not a PipeReader.</summary>
-internal class DuplexConnectionReader : IDisposable
+internal class DuplexConnectionReader : IAsyncDisposable
 {
     private readonly IDuplexConnection _connection;
     private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
@@ -18,18 +18,18 @@ internal class DuplexConnectionReader : IDisposable
     private TimeSpan _nextIdleTime;
     private readonly Pipe _pipe;
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
-        _idleTimeoutTimer.Dispose();
+        await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
     }
 
     internal DuplexConnectionReader(
         IDuplexConnection connection,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        Action<IceRpcException> connectionLostAction)
+        Action connectionIdleAction)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
@@ -57,7 +57,7 @@ internal class DuplexConnectionReader : IDisposable
                     _nextIdleTime = Timeout.InfiniteTimeSpan;
                 }
 
-                connectionLostAction(new IceRpcException(IceRpcError.ConnectionIdle));
+                connectionIdleAction();
             });
     }
 
@@ -76,13 +76,15 @@ internal class DuplexConnectionReader : IDisposable
 
             if (_idleTimeout == Timeout.InfiniteTimeSpan)
             {
-                _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                 _nextIdleTime = TimeSpan.Zero;
+                _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
             else
             {
-                _idleTimeoutTimer.Change(idleTimeout, Timeout.InfiniteTimeSpan);
+                // Update _nextIdleTime before changing the timer, the idle action is considered postponed when
+                // _nextIdleTime is greater than the current time.
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + idleTimeout;
+                _idleTimeoutTimer.Change(idleTimeout, Timeout.InfiniteTimeSpan);
             }
         }
     }
@@ -202,9 +204,10 @@ internal class DuplexConnectionReader : IDisposable
             }
             else
             {
-                // Postpone the idle timeout.
-                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                // Update _nextIdleTime before changing the timer, the idle action is considered postponed when
+                // _nextIdleTime is greater than the current time.
                 _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
+                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
             }
         }
     }

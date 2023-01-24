@@ -143,8 +143,7 @@ internal class SlicStream : IMultiplexedStream
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamStopSending,
-                        new StreamStopSendingBody(errorCode.Value).Encode,
-                        default).ConfigureAwait(false);
+                        new StreamStopSendingBody(errorCode.Value).Encode).ConfigureAwait(false);
                 }
                 else if (IsRemote)
                 {
@@ -152,8 +151,7 @@ internal class SlicStream : IMultiplexedStream
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamReadsCompleted,
-                        encode: null,
-                        default).ConfigureAwait(false);
+                        encode: null).ConfigureAwait(false);
                 }
                 // When completing reads for a local stream, there's no need to notify the peer. The peer already
                 // completed writes after sending the last stream frame.
@@ -220,8 +218,7 @@ internal class SlicStream : IMultiplexedStream
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamReset,
-                        new StreamResetBody(applicationErrorCode: 0).Encode,
-                        default).ConfigureAwait(false);
+                        new StreamResetBody(applicationErrorCode: 0).Encode).ConfigureAwait(false);
 
                     if (!IsRemote)
                     {
@@ -335,8 +332,7 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendStreamFrameAsync(
                     stream: this,
                     FrameType.StreamConsumed,
-                    new StreamConsumedBody((ulong)size).Encode,
-                    CancellationToken.None).ConfigureAwait(false);
+                    new StreamConsumedBody((ulong)size).Encode).ConfigureAwait(false);
             }
             catch (IceRpcException)
             {

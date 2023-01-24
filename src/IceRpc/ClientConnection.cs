@@ -324,6 +324,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 // _connection is immutable once _isShutdown is true.
                 await _connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
             }
+            catch (InvalidOperationException)
+            {
+                // TODO: this is very inelegant.
+                // This means (or should mean) _connection was not connected yet and we have no way of knowing unless
+                // _connection is no longer a pure decorator.
+            }
             catch (OperationCanceledException)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -380,15 +386,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch
             {
-            }
-            catch (IceRpcException)
-            {
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"Unexpected connection shutdown exception: {exception}");
+                // Ignore connection shutdown failures
             }
         }
 
@@ -595,21 +595,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     _ = await _connectTask.ConfigureAwait(false);
                 }
-                catch (IceRpcException)
+                catch
                 {
-                    // expected
-                }
-                catch (OperationCanceledException)
-                {
-                    // expected
-                }
-                catch (TimeoutException)
-                {
-                    // expected
-                }
-                catch (Exception exception)
-                {
-                    Debug.Fail($"Unexpected connection connect exception: {exception}");
+                    // The protocol connection handles unexpected exceptions no need to handle them here.
                 }
             }
         }

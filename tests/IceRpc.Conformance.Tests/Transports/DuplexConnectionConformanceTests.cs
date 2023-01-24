@@ -212,8 +212,9 @@ public abstract class DuplexConnectionConformanceTests
             provider.GetRequiredService<IDuplexConnection>());
         var buffer = new Memory<byte>(new byte[1]);
 
-        Assert.CatchAsync<OperationCanceledException>(
-            async () => await sut.ClientConnection.ReadAsync(buffer, new CancellationToken(canceled: true)));
+        Assert.That(
+            async () => await sut.ClientConnection.ReadAsync(buffer, new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that a read operation ends with <see cref="OperationCanceledException" /> if the given
@@ -378,8 +379,9 @@ public abstract class DuplexConnectionConformanceTests
             provider.GetRequiredService<IDuplexConnection>());
         var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
 
-        Assert.CatchAsync<OperationCanceledException>(
-            async () => await sut.ClientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)));
+        Assert.That(
+            async () => await sut.ClientConnection.WriteAsync(buffer, new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException" /> once the
@@ -429,9 +431,10 @@ public abstract class DuplexConnectionConformanceTests
         await sut.ServerConnection.ShutdownAsync(CancellationToken.None);
 
         // Act/Assert
-        Assert.CatchAsync<Exception>(async () =>
-            await sut.ServerConnection.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[1] },
-            CancellationToken.None));
+        Assert.That(
+            async () => await sut.ServerConnection.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[1] },
+                CancellationToken.None),
+                Throws.Exception);
     }
 
     /// <summary>Verifies that calling write fails with <see cref="IceRpcError.ConnectionAborted" />

@@ -33,7 +33,7 @@ public class DuplexConnectionWriterTests
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
         int pingCount = 0;
-        using var writer = new DuplexConnectionWriter(
+        await using var writer = new DuplexConnectionWriter(
             clientConnection,
             MemoryPool<byte>.Shared,
             4096,

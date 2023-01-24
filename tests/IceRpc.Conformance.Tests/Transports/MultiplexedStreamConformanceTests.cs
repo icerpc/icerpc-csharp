@@ -472,7 +472,7 @@ public abstract class MultiplexedStreamConformanceTests
         cts.Cancel();
 
         // Assert
-        Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
+        Assert.That(async () => await readTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that the input pipe reader keeps not consumed data around and is still accessible in
@@ -643,8 +643,9 @@ public abstract class MultiplexedStreamConformanceTests
             default).ConfigureAwait(false);
 
         // Act/Assert
-        Assert.CatchAsync<OperationCanceledException>(
-            async () => await clientStream.Input.ReadAsync(new CancellationToken(canceled: true)));
+        Assert.That(
+            async () => await clientStream.Input.ReadAsync(new CancellationToken(canceled: true)),
+            Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Ensures that remote input is closed when the we complete the local output.</summary>
@@ -803,7 +804,7 @@ public abstract class MultiplexedStreamConformanceTests
             new CancellationToken(canceled: true));
 
         // Assert
-        Assert.CatchAsync<OperationCanceledException>(async () => await task);
+        Assert.That(async () => await task,Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Creates the service collection used for multiplexed listener conformance tests.</summary>

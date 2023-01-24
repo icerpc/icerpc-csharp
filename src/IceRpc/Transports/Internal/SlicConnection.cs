@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Security.Authentication;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal;
@@ -34,8 +35,9 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
     private SemaphoreSlim? _bidirectionalStreamSemaphore;
-    private readonly CancellationTokenSource _closeCts = new();
-    private string? _closeMessage;
+    private readonly CancellationTokenSource _closedCts = new();
+    private readonly CancellationToken _closedCancellationToken;
+    private string? _closedMessage;
     private Task? _closeTask;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly CancellationTokenSource _disposedCts = new();
@@ -81,7 +83,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
         }
 
@@ -123,129 +125,161 @@ internal class SlicConnection : IMultiplexedConnection
             await Task.Yield(); // Exit mutex lock
 
             // Connect the duplex connection.
-            TransportConnectionInformation information = await _duplexConnection.ConnectAsync(cancellationToken)
-                .ConfigureAwait(false);
-
+            TransportConnectionInformation transportConnectionInformation;
             TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
             (FrameType FrameType, int FrameSize, ulong?)? header;
 
-            // Initialize the Slic connection.
-            if (IsServer)
+            try
             {
-                // Read the Initialize frame sent by the client.
-                header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
-                if (header is null || header.Value.FrameSize == 0)
+                transportConnectionInformation = await _duplexConnection.ConnectAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                // Initialize the Slic connection.
+                if (IsServer)
                 {
-                    throw new IceRpcException(IceRpcError.IceRpcError, "Received invalid Slic initialize frame.");
-                }
-
-                if (header.Value.FrameType != FrameType.Initialize)
-                {
-                    throw new IceRpcException(
-                        IceRpcError.IceRpcError,
-                        $"Received unexpected Slic frame: '{header.Value.FrameType}'.");
-                }
-
-                (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
-                    header.Value.FrameSize,
-                    (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
-                    cancellationToken).ConfigureAwait(false);
-
-                if (version != 1)
-                {
-                    // Unsupported version, try to negotiate another version by sending a Version frame with
-                    // the Slic versions supported by this server.
-                    await SendFrameAsync(
-                        FrameType.Version,
-                        new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
-                        cancellationToken).ConfigureAwait(false);
-
-                    // Read again the Initialize frame sent by the client.
+                    // Read the Initialize frame sent by the client.
                     header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
                     if (header is null || header.Value.FrameSize == 0)
                     {
-                        throw new IceRpcException(IceRpcError.IceRpcError, "Received invalid Slic initialize frame.");
+                        throw new InvalidDataException("Received invalid Slic initialize frame.");
                     }
 
-                    (version, initializeBody) = await ReadFrameAsync(
+                    if (header.Value.FrameType != FrameType.Initialize)
+                    {
+                        throw new InvalidDataException($"Received unexpected Slic frame: '{header.Value.FrameType}'.");
+                    }
+
+                    (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
                         header.Value.FrameSize,
                         (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
                         cancellationToken).ConfigureAwait(false);
-                }
 
-                if (initializeBody is null)
-                {
-                    throw new NotSupportedException(
-                        $"Received initialize frame with unsupported Slic version '{version}'.");
-                }
-
-                // Check the application protocol and set the parameters.
-                string protocolName = initializeBody.Value.ApplicationProtocolName;
-                if (!Protocol.TryParse(protocolName, out Protocol? protocol) || protocol != Protocol.IceRpc)
-                {
-                    throw new NotSupportedException($"The application protocol '{protocolName}' is not supported.");
-                }
-
-                DecodeParameters(initializeBody.Value.Parameters);
-
-                // Write back an InitializeAck frame.
-                await SendFrameAsync(
-                    FrameType.InitializeAck,
-                    new InitializeAckBody(EncodeParameters()).Encode,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                // Write the Initialize frame.
-                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, EncodeParameters());
-
-                await SendFrameAsync(
-                    FrameType.Initialize,
-                    (ref SliceEncoder encoder) =>
+                    if (version != 1)
                     {
-                        encoder.EncodeVarUInt62(SlicDefinitions.V1);
-                        initializeBody.Encode(ref encoder);
-                    },
-                    cancellationToken).ConfigureAwait(false);
-
-                // Read back either the InitializeAck or Version frame.
-                header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
-                if (header is null || header.Value.FrameSize == 0)
-                {
-                    throw new IceRpcException(IceRpcError.IceRpcError, "Received invalid Slic initialize ack frame.");
-                }
-
-                switch (header.Value.FrameType)
-                {
-                    case FrameType.InitializeAck:
-                        InitializeAckBody initializeAckBody = await ReadFrameAsync(
-                            header.Value.FrameSize,
-                            (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
+                        // Unsupported version, try to negotiate another version by sending a Version frame with
+                        // the Slic versions supported by this server.
+                        await SendFrameAsync(
+                            FrameType.Version,
+                            new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
                             cancellationToken).ConfigureAwait(false);
 
-                        DecodeParameters(initializeAckBody.Parameters);
-                        break;
+                        // Read again the Initialize frame sent by the client.
+                        header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
+                        if (header is null || header.Value.FrameSize == 0)
+                        {
+                            throw new InvalidDataException("Received invalid Slic initialize frame.");
+                        }
 
-                    case FrameType.Version:
-                        VersionBody versionBody = await ReadFrameAsync(
+                        (version, initializeBody) = await ReadFrameAsync(
                             header.Value.FrameSize,
-                            (ref SliceDecoder decoder) => new VersionBody(ref decoder),
+                            (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
                             cancellationToken).ConfigureAwait(false);
+                    }
 
-                        // We currently only support V1
+                    if (initializeBody is null)
+                    {
                         throw new NotSupportedException(
-                            $"Unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'.");
+                            $"Received initialize frame with unsupported Slic version '{version}'.");
+                    }
 
-                    default:
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"Received unexpected Slic frame: '{header.Value.FrameType}'.");
+                    // Check the application protocol and set the parameters.
+                    string protocolName = initializeBody.Value.ApplicationProtocolName;
+                    if (!Protocol.TryParse(protocolName, out Protocol? protocol) || protocol != Protocol.IceRpc)
+                    {
+                        throw new NotSupportedException($"The application protocol '{protocolName}' is not supported.");
+                    }
+
+                    DecodeParameters(initializeBody.Value.Parameters);
+
+                    // Write back an InitializeAck frame.
+                    await SendFrameAsync(
+                        FrameType.InitializeAck,
+                        new InitializeAckBody(EncodeParameters()).Encode,
+                        cancellationToken).ConfigureAwait(false);
                 }
+                else
+                {
+                    // Write the Initialize frame.
+                    var initializeBody = new InitializeBody(Protocol.IceRpc.Name, EncodeParameters());
+
+                    await SendFrameAsync(
+                        FrameType.Initialize,
+                        (ref SliceEncoder encoder) =>
+                        {
+                            encoder.EncodeVarUInt62(SlicDefinitions.V1);
+                            initializeBody.Encode(ref encoder);
+                        },
+                        cancellationToken).ConfigureAwait(false);
+
+                    // Read back either the InitializeAck or Version frame.
+                    header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
+                    if (header is null || header.Value.FrameSize == 0)
+                    {
+                        throw new InvalidDataException("Received invalid Slic initialize ack frame.");
+                    }
+
+                    switch (header.Value.FrameType)
+                    {
+                        case FrameType.InitializeAck:
+                            InitializeAckBody initializeAckBody = await ReadFrameAsync(
+                                header.Value.FrameSize,
+                                (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
+                                cancellationToken).ConfigureAwait(false);
+
+                            DecodeParameters(initializeAckBody.Parameters);
+                            break;
+
+                        case FrameType.Version:
+                            VersionBody versionBody = await ReadFrameAsync(
+                                header.Value.FrameSize,
+                                (ref SliceDecoder decoder) => new VersionBody(ref decoder),
+                                cancellationToken).ConfigureAwait(false);
+
+                            // We currently only support V1
+                            throw new NotSupportedException(
+                                $"Unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'.");
+
+                        default:
+                            throw new InvalidDataException(
+                                $"Received unexpected Slic frame: '{header.Value.FrameType}'.");
+                    }
+                }
+            }
+            catch (NotSupportedException exception)
+            {
+                throw new IceRpcException(
+                    IceRpcError.ConnectionAborted,
+                    "The connection was aborted by because of an unsupported Slic protocol feature.",
+                    exception);
+            }
+            catch (InvalidDataException exception)
+            {
+                throw new IceRpcException(
+                    IceRpcError.ConnectionAborted,
+                    "The connection was aborted by a Slic protocol error.",
+                    exception);
+            }
+            catch (AuthenticationException)
+            {
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (IceRpcException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"ConnectAsync failed with an unexpected exception: {exception}");
+                throw;
             }
 
             // Enable the idle timeout checks after the connection establishment. The Ping frames sent by the keep alive
-            // check are not expected until the Slic connection initialization completes. The idle timeout check uses the
-            // smallest idle timeout.
+            // check are not expected until the Slic connection initialization completes. The idle timeout check uses
+            // the smallest idle timeout.
             TimeSpan keepAliveTimeout =
                 _peerIdleTimeout == Timeout.InfiniteTimeSpan ? _localIdleTimeout :
                 _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
@@ -257,7 +291,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
 
-            return information;
+            return transportConnectionInformation;
         }
 
         static (uint, InitializeBody?) DecodeInitialize(ref SliceDecoder decoder, int frameSize)
@@ -333,7 +367,6 @@ internal class SlicConnection : IMultiplexedConnection
         bool bidirectional,
         CancellationToken cancellationToken)
     {
-        CancellationToken closeCancellationToken;
         lock (_mutex)
         {
             if (_disposeTask is not null)
@@ -347,14 +380,12 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
-
-            closeCancellationToken = _closeCts.Token;
         }
 
         using var createStreamCts = CancellationTokenSource.CreateLinkedTokenSource(
-            closeCancellationToken,
+            _closedCancellationToken,
             cancellationToken);
 
         try
@@ -370,8 +401,9 @@ internal class SlicConnection : IMultiplexedConnection
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
             Debug.Assert(_isClosed);
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
     }
 
@@ -435,14 +467,14 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             _duplexConnection.Dispose();
-            _duplexConnectionReader.Dispose();
-            _duplexConnectionWriter.Dispose();
+            await _duplexConnectionReader.DisposeAsync().ConfigureAwait(false);
+            await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
 
             _disposedCts.Dispose();
             _writeSemaphore.Dispose();
             _bidirectionalStreamSemaphore?.Dispose();
             _unidirectionalStreamSemaphore?.Dispose();
-            _closeCts.Dispose();
+            _closedCts.Dispose();
         }
     }
 
@@ -472,17 +504,22 @@ internal class SlicConnection : IMultiplexedConnection
             SingleWriter = true
         });
 
+        _closedCancellationToken = _closedCts.Token;
+
         Action? keepAliveAction = null;
         if (!IsServer)
         {
             // Only client connections send ping frames when idle to keep the connection alive.
-            CancellationToken disposeCancellationToken = _disposedCts.Token;
             keepAliveAction = () =>
                 {
-                    // Send a new ping frame if the previous frame was sent.
-                    if (_pingTask.IsCompleted && !disposeCancellationToken.IsCancellationRequested)
+                    lock (_mutex)
                     {
-                        _pingTask = SendPingFrameAsync(disposeCancellationToken);
+                        // Send a new ping frame if the previous frame was sent and the connection is not closed
+                        // or being close.
+                        if (_pingTask.IsCompleted && !_isClosed)
+                        {
+                            _pingTask = SendPingFrameAsync(_disposedCts.Token);
+                        }
                     }
                 };
         }
@@ -497,7 +534,8 @@ internal class SlicConnection : IMultiplexedConnection
             duplexConnection,
             options.Pool,
             options.MinSegmentSize,
-            connectionLostAction: exception => _acceptStreamChannel.Writer.TryComplete(exception));
+            connectionIdleAction: () => _acceptStreamChannel.Writer.TryComplete(
+                new IceRpcException(IceRpcError.ConnectionIdle)));
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.
@@ -518,6 +556,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task SendPingFrameAsync(CancellationToken cancellationToken)
         {
+            await Task.Yield(); // Exit mutex lock
             try
             {
                 await SendFrameAsync(FrameType.Ping, encode: null, cancellationToken).ConfigureAwait(false);
@@ -579,32 +618,38 @@ internal class SlicConnection : IMultiplexedConnection
         EncodeAction? encode,
         CancellationToken cancellationToken)
     {
-        await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(
+            _closedCancellationToken,
+            cancellationToken);
+
         try
         {
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
             await WriteFrameAsync(
                 frameType,
                 streamId: null,
                 encode,
-                cancellationToken).ConfigureAwait(false);
+                writeCts.Token).ConfigureAwait(false);
         }
-        finally
+        catch (OperationCanceledException)
         {
-            _writeSemaphore.Release();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Debug.Assert(_isClosed);
+            // TODO: Or ConnectionAborted? See #2382
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
     }
 
     internal async ValueTask SendStreamFrameAsync(
         SlicStream stream,
         FrameType frameType,
-        EncodeAction? encode,
-        CancellationToken cancellationToken)
+        EncodeAction? encode)
     {
         Debug.Assert(frameType >= FrameType.StreamReset);
-
-        await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_closedCancellationToken).ConfigureAwait(false);
             if (!stream.IsStarted)
             {
                 StartStream(stream);
@@ -614,11 +659,13 @@ internal class SlicConnection : IMultiplexedConnection
                 frameType,
                 stream.Id,
                 encode,
-                cancellationToken).ConfigureAwait(false);
+                _closedCancellationToken).ConfigureAwait(false);
         }
-        finally
+        catch (OperationCanceledException)
         {
-            _writeSemaphore.Release();
+            Debug.Assert(_isClosed);
+            // TODO: Or ConnectionAborted? See #2382
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
     }
 
@@ -636,50 +683,54 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
         }
 
-        do
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(
+            _closedCancellationToken,
+            cancellationToken);
+
+        try
         {
-            // Next, ensure send credit is available. If not, this will block until the receiver allows sending
-            // additional data.
-            int sendCredit = 0;
-            if (!source1.IsEmpty || !source2.IsEmpty)
+            do
             {
-                sendCredit = await stream.AcquireSendCreditAsync(cancellationToken).ConfigureAwait(false);
-                Debug.Assert(sendCredit > 0);
-            }
+                // Next, ensure send credit is available. If not, this will block until the receiver allows sending
+                // additional data.
+                int sendCredit = 0;
+                if (!source1.IsEmpty || !source2.IsEmpty)
+                {
+                    sendCredit = await stream.AcquireSendCreditAsync(writeCts.Token).ConfigureAwait(false);
+                    Debug.Assert(sendCredit > 0);
+                }
 
-            // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
-            int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
-            ReadOnlySequence<byte> sendSource1;
-            ReadOnlySequence<byte> sendSource2;
-            if (!source1.IsEmpty)
-            {
-                int length = Math.Min((int)source1.Length, sendMaxSize);
-                sendSource1 = source1.Slice(0, length);
-                source1 = source1.Slice(length);
-            }
-            else
-            {
-                sendSource1 = ReadOnlySequence<byte>.Empty;
-            }
+                // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
+                int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
+                ReadOnlySequence<byte> sendSource1;
+                ReadOnlySequence<byte> sendSource2;
+                if (!source1.IsEmpty)
+                {
+                    int length = Math.Min((int)source1.Length, sendMaxSize);
+                    sendSource1 = source1.Slice(0, length);
+                    source1 = source1.Slice(length);
+                }
+                else
+                {
+                    sendSource1 = ReadOnlySequence<byte>.Empty;
+                }
 
-            if (source1.IsEmpty && !source2.IsEmpty)
-            {
-                int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
-                sendSource2 = source2.Slice(0, length);
-                source2 = source2.Slice(length);
-            }
-            else
-            {
-                sendSource2 = ReadOnlySequence<byte>.Empty;
-            }
+                if (source1.IsEmpty && !source2.IsEmpty)
+                {
+                    int length = Math.Min((int)source2.Length, sendMaxSize - (int)sendSource1.Length);
+                    sendSource2 = source2.Slice(0, length);
+                    source2 = source2.Slice(length);
+                }
+                else
+                {
+                    sendSource2 = ReadOnlySequence<byte>.Empty;
+                }
 
-            // If there's no data left to send and endStream is true, it's the last stream frame.
-            bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
+                // If there's no data left to send and endStream is true, it's the last stream frame.
+                bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
-            // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-            await WaitWriteSemaphoreAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
+                // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
+                SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
                 if (!stream.IsStarted)
                 {
                     StartStream(stream);
@@ -694,34 +745,41 @@ internal class SlicConnection : IMultiplexedConnection
                 }
 
                 EncodeStreamFrameHeader(stream.Id, sendSource1.Length + sendSource2.Length, lastStreamFrame);
-            }
-            catch
-            {
-                _writeSemaphore.Release();
-                throw;
-            }
 
-            if (lastStreamFrame)
-            {
-                // Notify the stream that the last stream frame is considered sent at this point. This will complete
-                // writes on the stream and allow the stream to be released if reads are also completed.
-                stream.SentLastStreamFrame();
+                if (lastStreamFrame)
+                {
+                    // Notify the stream that the last stream frame is considered sent at this point. This will complete
+                    // writes on the stream and allow the stream to be released if reads are also completed.
+                    stream.SentLastStreamFrame();
+                }
+
+                // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
+                // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
+                // exceptions from the WriteStreamFrameAsync task are always observed.
+
+                // WriteStreamFrameAsync is responsible for releasing the write semaphore.
+                _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2, semaphoreLock);
+                await _writeStreamFrameTask.WaitAsync(writeCts.Token).ConfigureAwait(false);
             }
-
-            // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
-            // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
-            // exceptions from the WriteStreamFrameAsync task are always observed.
-
-            // WriteStreamFrameAsync is responsible for releasing the write semaphore.
-            _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2);
-            await _writeStreamFrameTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
         }
-        while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
+        catch (OperationCanceledException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Debug.Assert(_isClosed);
+            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
+        }
 
         return new FlushResult(isCanceled: false, isCompleted: false);
 
-        async Task WriteStreamFrameAsync(ReadOnlySequence<byte> source1, ReadOnlySequence<byte> source2)
+        async Task WriteStreamFrameAsync(
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
+            SemaphoreLock semaphoreLock)
         {
+            using SemaphoreLock _ = semaphoreLock; // release when done
+
             try
             {
                 await _duplexConnectionWriter.WriteAsync(source1, source2, _disposedCts.Token).ConfigureAwait(false);
@@ -729,10 +787,6 @@ internal class SlicConnection : IMultiplexedConnection
             catch (OperationCanceledException)
             {
                 throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-            finally
-            {
-                _writeSemaphore.Release();
             }
         }
 
@@ -755,7 +809,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Should this be ConnectionAborted instead? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
         }
     }
@@ -767,7 +821,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (_isClosed)
             {
                 // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
 
             _streams[id] = stream;
@@ -800,12 +854,12 @@ internal class SlicConnection : IMultiplexedConnection
                 return;
             }
             _isClosed = true;
-            _closeMessage = closeMessage;
+            _closedMessage = closeMessage;
             _peerCloseError = peerCloseError;
         }
 
         // Cancel pending CreateStreamAsync, AcceptStreamAsync and writes on the connection.
-        _closeCts.Cancel();
+        _closedCts.Cancel();
         _acceptStreamChannel.Writer.TryComplete(exception);
 
         // Close streams.
@@ -1273,7 +1327,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (Exception exception)
             {
-                Debug.Fail($"ping task failed with an unexpected exception: {exception}");
+                Debug.Fail($"pong task failed with an unexpected exception: {exception}");
                 throw;
             }
         }
@@ -1428,35 +1482,6 @@ internal class SlicConnection : IMultiplexedConnection
         {
             AddStream(_nextUnidirectionalId, stream);
             _nextUnidirectionalId += 4;
-        }
-    }
-
-    private async ValueTask WaitWriteSemaphoreAsync(CancellationToken cancellationToken)
-    {
-        CancellationToken closeCancellationToken;
-        lock (_mutex)
-        {
-            if (_isClosed)
-            {
-                // TODO: Or ConnectionAborted? See #2382
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
-            }
-            closeCancellationToken = _closeCts.Token;
-        }
-
-        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(
-            closeCancellationToken,
-            cancellationToken);
-
-        try
-        {
-            await _writeSemaphore.WaitAsync(writeCts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Debug.Assert(_isClosed);
-            throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closeMessage);
         }
     }
 

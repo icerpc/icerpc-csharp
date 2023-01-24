@@ -8,13 +8,14 @@ namespace IceRpc;
 /// <summary>Base class for outgoing frames.</summary>
 public abstract class OutgoingFrame
 {
-    /// <summary>Gets or sets the payload of this frame. The payload is sent together with the frame header and the
-    /// sending operation awaits until the payload is fully sent.</summary>
+    /// <summary>Gets or sets the payload of this frame.</summary>
     /// <value>The payload of this frame. The default is an empty pipe reader.</value>
     public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
-    /// <summary>Gets or sets the payload continuation of this frame. The payload continuation is sent after the payload, in the
-    /// background: the sending operation does not await it.</summary>
+    /// <summary>Gets or sets the payload continuation of this frame. The payload continuation is a continuation of
+    /// <see cref="Payload"/>. The receiver cannot distinguish any seam between payload and payload continuation in
+    /// the <see cref="IncomingFrame.Payload" /> it receives.</summary>
+    /// <value>The payload continuation of this frame. The default is null which means no continuation.</value>
     public PipeReader? PayloadContinuation
     {
         get => _payloadContinuation;
