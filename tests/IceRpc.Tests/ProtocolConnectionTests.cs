@@ -192,8 +192,8 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var protocol = Protocol.Parse(protocolString);
-        var dispatcher = new TestDispatcher(holdDispatchCount: 1);
-        ServiceProvider provider = new ServiceCollection().AddProtocolTest(
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection().AddProtocolTest(
             protocol,
             serverConnectionOptions: new ConnectionOptions
             {
