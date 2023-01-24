@@ -4,7 +4,6 @@ using IceRpc.Features;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Net.Security;
 
 namespace IceRpc;
