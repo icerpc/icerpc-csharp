@@ -24,8 +24,7 @@ public record class ConnectionOptions
     public Action<Exception> FaultedTaskAction { get; set; } = _defaultFaultedTaskAction;
 
     /// <summary>Gets or sets the ice idle timeout. This timeout is used to monitor the transport connection health. If
-    /// no data is received within the ice idle timeout period, the transport connection is aborted. The default is 30s.
-    /// </summary>
+    /// no data is received within this period, the transport connection is aborted. The default is 30s.</summary>
     public TimeSpan IceIdleTimeout
     {
         get => _iceIdleTimeout;
