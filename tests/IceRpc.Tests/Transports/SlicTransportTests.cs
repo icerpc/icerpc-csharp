@@ -464,7 +464,7 @@ public class SlicTransportTests
         // The bug: the sending of pings from the client connection hang because of the write hang. As a result the
         // client won't receive pong frames from the server and the connection will be aborted.
         transportConnection.HoldOperation = DuplexTransportOperation.Write;
-        using var writeCts = new CancellationTokenSource(1000);
+        using var writeCts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
 
         // Act
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[10], writeCts.Token);
