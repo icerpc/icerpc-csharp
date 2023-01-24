@@ -510,7 +510,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             _pendingConnection = null;
         }
 
-        _ = RemoveFromActiveAsync();
+        _ = RemoveFromActiveAsync(connection);
         return connectionInformation;
 
         async Task DisposeFailedPendingConnectionAsync(IProtocolConnection connection, Task connectTask)
@@ -536,24 +536,34 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        async Task RemoveFromActiveAsync()
+        async Task RemoveFromActiveAsync(IProtocolConnection connection)
         {
-            bool shutdownRequested =
-                await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
-                    connection.ShutdownRequested;
+            bool shutdownRequested;
+
+            try
+            {
+                shutdownRequested =
+                    await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
+                        connection.ShutdownRequested;
+            }
+            catch (ObjectDisposedException)
+            {
+                // someone else already disposed this connection. That's fine.
+                return;
+            }
 
             await DisposeActiveConnectionAsync(connection, shutdownRequested).ConfigureAwait(false);
         }
     }
 
-    /// <summary>Optionally shuts down then disposes a connected connection, but only if the caller can become the
-    /// exclusive owner of this connection.</summary>
+    /// <summary>Optionally shuts down then disposes a connected connection, but only if the caller can detach the
+    /// connection and become its exclusive owner.</summary>
     /// <param name="connection">The connected connection to shutdown and dispose.</param>
     /// <param name="shutdownRequested">When <langword name="true"/>, shutdown the connection before disposing it.
     /// </param>
     /// <returns>A task that completes when this method became the exclusive owner of the connection and disposed; or
     /// immediately if it cannot become the exclusive owner of the connection.</returns>
-    private async Task DisposeActiveConnectionAsync(IProtocolConnection connection, bool shutdownRequested)
+    private Task DisposeActiveConnectionAsync(IProtocolConnection connection, bool shutdownRequested)
     {
         CancellationToken cancellationToken;
         lock (_mutex)
@@ -567,32 +577,37 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             else
             {
                 // Another task owns this connection
-                return;
+                return Task.CompletedTask;
             }
         }
 
-        if (shutdownRequested)
+        return PerformDisposeActiveConnectionAsync();
+
+        async Task PerformDisposeActiveConnectionAsync()
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(_shutdownTimeout);
-
-            try
+            if (shutdownRequested)
             {
-                await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(_shutdownTimeout);
+
+                try
+                {
+                    await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore connection shutdown failures
+                }
             }
-            catch
-            {
-                // Ignore connection shutdown failures
-            }
-        }
 
-        await connection.DisposeAsync().ConfigureAwait(false);
+            await connection.DisposeAsync().ConfigureAwait(false);
 
-        lock (_mutex)
-        {
-            if (--_detachedConnectionCount == 0 && _shutdownTask is not null)
+            lock (_mutex)
             {
-                _detachedConnectionsTcs.SetResult();
+                if (--_detachedConnectionCount == 0 && _shutdownTask is not null)
+                {
+                    _detachedConnectionsTcs.SetResult();
+                }
             }
         }
     }
