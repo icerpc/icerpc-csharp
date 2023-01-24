@@ -154,8 +154,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     IceRpcError.OperationAborted,
                     "The connection establishment was aborted because the connection was disposed.");
             }
-            // For all other exceptions, we complete _closedTcs. This way the caller (e.g. Server) will typically
-            // dispose this failed connection promptly.
             catch (InvalidDataException exception)
             {
                 throw new IceRpcException(
