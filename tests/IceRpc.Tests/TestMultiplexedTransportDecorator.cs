@@ -473,9 +473,9 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
         {
             _input = new TestPipeReader(decoratee.Input)
                 {
-                    FailReadOperation = _failOperation.HasFlag(MultiplexedTransportOperation.StreamWrite),
+                    FailReadOperation = _failOperation.HasFlag(MultiplexedTransportOperation.StreamRead),
                     FailureException = _failureException,
-                    HoldReadOperation = _holdOperation.HasFlag(MultiplexedTransportOperation.StreamWrite)
+                    HoldReadOperation = _holdOperation.HasFlag(MultiplexedTransportOperation.StreamRead)
                 };
         }
     }
