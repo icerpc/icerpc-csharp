@@ -333,6 +333,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 }
 
                 // Make sure connection is detached before we retry; we don't want to retry with the same connection.
+                // shutdownRequested is true because soon we'll always call ShutdownAsync on a connected connection.
                 _ = DisposeActiveConnectionAsync(connection, shutdownRequested: true);
 
                 connection = await GetActiveConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -424,6 +425,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
+    /// <summary>Creates the connection establishment task for a pending connection.</summary>
+    /// <param name="connection">The new pending connection to connect.</param>
+    /// <param name="disposedCancellationToken">The cancellation token of _disposedCts.</param>
+    /// <param name="cancellationToken">The main cancellation token.</param>
+    /// <returns>A task that completes successfully when the connection is connected.</returns>
     private async Task<TransportConnectionInformation> CreateConnectTask(
         IProtocolConnection connection,
         CancellationToken disposedCancellationToken,
@@ -470,8 +476,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
                 if (_shutdownTask is null)
                 {
-                    // That's the task currently executing this method and about to throw. We need to observe this
-                    // exception once the connectTask is completed.
+                    // connectTask is executing this method and about to throw. We need to observe this exception once
+                    // connectTask is completed.
                     connectTask = _pendingConnection.Value.ConnectTask;
                     _pendingConnection = null;
                     _detachedConnectionCount++;
@@ -507,6 +513,29 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         _ = RemoveFromActiveAsync();
         return connectionInformation;
 
+        async Task DisposeFailedPendingConnectionAsync(IProtocolConnection connection, Task connectTask)
+        {
+            try
+            {
+                await connectTask.ConfigureAwait(false);
+                Debug.Fail("DisposeFailedPendingConnectionAsync requires a failed or failing connectTask.");
+            }
+            catch
+            {
+                // Observe expected exception.
+            }
+
+            await connection.DisposeAsync().ConfigureAwait(false);
+
+            lock (_mutex)
+            {
+                if (--_detachedConnectionCount == 0 && _shutdownTask is not null)
+                {
+                    _detachedConnectionsTcs.SetResult();
+                }
+            }
+        }
+
         async Task RemoveFromActiveAsync()
         {
             bool shutdownRequested =
@@ -517,6 +546,13 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
+    /// <summary>Optionally shuts down then disposes a connected connection, but only if the caller can become the
+    /// exclusive owner of this connection.</summary>
+    /// <param name="connection">The connected connection to shutdown and dispose.</param>
+    /// <param name="shutdownRequested">When <langword name="true"/>, shutdown the connection before disposing it.
+    /// </param>
+    /// <returns>A task that completes when this method became the exclusive owner of the connection and disposed; or
+    /// immediately if it cannot become the exclusive owner of the connection.</returns>
     private async Task DisposeActiveConnectionAsync(IProtocolConnection connection, bool shutdownRequested)
     {
         CancellationToken cancellationToken;
@@ -561,33 +597,11 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    private async Task DisposeFailedPendingConnectionAsync(IProtocolConnection connection, Task connectTask)
-    {
-        try
-        {
-            await connectTask.ConfigureAwait(false);
-            Debug.Fail("DisposeFailedPendingConnectionAsync requires a failed or failing connectTask.");
-        }
-        catch
-        {
-            // Observe expected exception.
-        }
-
-        await connection.DisposeAsync().ConfigureAwait(false);
-
-        lock (_mutex)
-        {
-            if (--_detachedConnectionCount == 0 && _shutdownTask is not null)
-            {
-                _detachedConnectionsTcs.SetResult();
-            }
-        }
-    }
-
     /// <summary>Gets an active connection, by creating and connecting (if necessary) a new protocol connection.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token of the invocation calling this method.</param>
     /// <returns>A connected connection.</returns>
+    /// <remarks>This method is called exclusively by <see cref="InvokeAsync" />.</remarks>
     // TODO: rename corresponding ConnectionCache method currently named ConnectAsync.
     private Task<IProtocolConnection> GetActiveConnectionAsync(CancellationToken cancellationToken)
     {
@@ -635,7 +649,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Canceled via the cancellation token given to ConnectAsync.
+                // Canceled by the cancellation token given to ClientConnection.ConnectAsync.
                 throw new IceRpcException(
                     IceRpcError.ConnectionAborted,
                     "The connection establishment was canceled by another concurrent attempt.");
