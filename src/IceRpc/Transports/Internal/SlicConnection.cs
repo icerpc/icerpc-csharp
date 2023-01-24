@@ -510,13 +510,16 @@ internal class SlicConnection : IMultiplexedConnection
         if (!IsServer)
         {
             // Only client connections send ping frames when idle to keep the connection alive.
-            CancellationToken disposeCancellationToken = _disposedCts.Token;
             keepAliveAction = () =>
                 {
-                    // Send a new ping frame if the previous frame was sent.
-                    if (_pingTask.IsCompleted && !disposeCancellationToken.IsCancellationRequested)
+                    lock (_mutex)
                     {
-                        _pingTask = SendPingFrameAsync(disposeCancellationToken);
+                        // Send a new ping frame if the previous frame was sent and the connection is not closed
+                        // or being close.
+                        if (_pingTask.IsCompleted && !_isClosed)
+                        {
+                            _pingTask = SendPingFrameAsync(_disposedCts.Token);
+                        }
                     }
                 };
         }
@@ -553,6 +556,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task SendPingFrameAsync(CancellationToken cancellationToken)
         {
+            await Task.Yield(); // Exit mutex lock
             try
             {
                 await SendFrameAsync(FrameType.Ping, encode: null, cancellationToken).ConfigureAwait(false);
@@ -1323,7 +1327,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (Exception exception)
             {
-                Debug.Fail($"ping task failed with an unexpected exception: {exception}");
+                Debug.Fail($"pong task failed with an unexpected exception: {exception}");
                 throw;
             }
         }

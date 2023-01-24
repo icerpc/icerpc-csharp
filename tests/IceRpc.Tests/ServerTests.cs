@@ -237,6 +237,8 @@ public class ServerTests
         // thus removed from the server's connection list.
         Assert.That(() => clientConnection1.ShutdownAsync(), Throws.Nothing);
         await testConnection.DisposeCalled;
+        // Add a small delay to ensure the sever decremented the connection count after disposing the connection.
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(() => clientConnection3.ConnectAsync(), Throws.Nothing);
     }
 
