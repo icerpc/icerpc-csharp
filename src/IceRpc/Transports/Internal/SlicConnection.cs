@@ -514,7 +514,8 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     lock (_mutex)
                     {
-                        // Send a new ping frame if the previous frame was sent.
+                        // Send a new ping frame if the previous frame was sent and the connection is not closed
+                        // or being close.
                         if (_pingTask.IsCompleted && !_isClosed)
                         {
                             _pingTask = SendPingFrameAsync(_disposedCts.Token);
