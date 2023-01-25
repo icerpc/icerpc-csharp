@@ -534,8 +534,10 @@ internal class SlicConnection : IMultiplexedConnection
             duplexConnection,
             options.Pool,
             options.MinSegmentSize,
-            connectionIdleAction: () => _acceptStreamChannel.Writer.TryComplete(
-                new IceRpcException(IceRpcError.ConnectionIdle)));
+            connectionIdleAction: () =>
+                Close(
+                    new IceRpcException(IceRpcError.ConnectionIdle),
+                    "The Slic connection was aborted because it did not receive any byte for too long."));
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.
