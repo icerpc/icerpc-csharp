@@ -367,7 +367,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // This way, the sending of the payload continuation can continue in the background after this async method
             // completes independently of cancellationToken.
             using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
+                cts => ((DetachableCancellationTokenSource)cts!).Cancel(),
                 invocationCts);
 
             IMultiplexedStream? stream = null;
@@ -380,7 +380,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // We want to cancel CreateStreamAsync as soon as the connection is being shutdown instead of
                     // waiting for its disposal.
                     using CancellationTokenRegistration _ = shutdownCancellationToken.UnsafeRegister(
-                        cts => ((CancellationTokenSource)cts!).Cancel(),
+                        cts => ((DetachableCancellationTokenSource)cts!).Cancel(),
                         invocationCts);
 
                     stream = await _transportConnection.CreateStreamAsync(
