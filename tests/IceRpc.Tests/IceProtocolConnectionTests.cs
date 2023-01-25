@@ -231,11 +231,15 @@ public sealed class IceProtocolConnectionTests
 
         // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
-
+        using var dispatcher = new TestDispatcher(
+            holdDispatchCount: operation == DuplexTransportOperation.Read ? 1 : 0);
         await using ServiceProvider provider = new ServiceCollection()
             .AddTestDuplexTransport(clientFailureException: failureException)
             .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-            .AddIceProtocolTest()
+            .AddIceProtocolTest(serverConnectionOptions: new ConnectionOptions
+            {
+                Dispatcher = dispatcher
+            })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
@@ -244,11 +248,10 @@ public sealed class IceProtocolConnectionTests
         await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
 
-        clientTransport!.LastConnection.FailOperation = operation;
-
         // Act/Assert
         if (operation == DuplexTransportOperation.Write)
         {
+            clientTransport!.LastConnection.FailOperation = operation;
             Assert.That(() =>
                 sut.Client.InvokeAsync(request),
                 Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
@@ -256,8 +259,15 @@ public sealed class IceProtocolConnectionTests
         }
         else
         {
+            var invokeTask = sut.Client.InvokeAsync(request);
+            // Wait for the dispatch to start before setup the failure, to ensure this happens when we are reading
+            // the response
+            await dispatcher.DispatchStart;
+            clientTransport!.LastConnection.FailOperation = operation;
+            dispatcher.ReleaseDispatch();
+
             Assert.That(() =>
-                sut.Client.InvokeAsync(request),
+                invokeTask,
                 Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                     IceRpcError.ConnectionAborted));
         }
