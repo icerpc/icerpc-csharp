@@ -172,10 +172,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
@@ -324,10 +322,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException("The connection cache is already shut down or shutting down.");
@@ -356,7 +352,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     await Task.WhenAll(
                         _pendingConnections.Values.Select(
-                            value => value.Connection.ShutdownPendingAsync(value.Task, cts.Token))
+                            value => ShutdownPendingAsync(value.Connection, value.Task, cts.Token))
                         .Concat(_activeConnections.Values.Select(connection => connection.ShutdownAsync(cts.Token)))
                         .Append(_detachedConnectionsTcs.Task.WaitAsync(cts.Token))).ConfigureAwait(false);
                 }
@@ -388,6 +384,31 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         $"The connection cache shut down timed out after {_shutdownTimeout.TotalSeconds} s.");
                 }
             }
+        }
+
+        // For pending connections, we need to wait for the _connectTask to complete successfully before calling
+        // ShutdownAsync.
+        static async Task ShutdownPendingAsync(
+            IProtocolConnection connection,
+            Task connectTask,
+            CancellationToken cancellationToken)
+        {
+            // First wait for the ConnectAsync to complete
+            try
+            {
+                await connectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            {
+                throw;
+            }
+            catch
+            {
+                // connectTask failed = successful shutdown
+                return;
+            }
+
+            await connection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 

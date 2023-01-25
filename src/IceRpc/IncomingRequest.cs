@@ -46,10 +46,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
         get => _response;
         set
         {
-            if (_isDisposed)
-            {
-                throw new ObjectDisposedException(nameof(IncomingRequest));
-            }
+            ObjectDisposedException.ThrowIf(_isDisposed, this);
 
             _response?.Payload.Complete();
             _response?.PayloadContinuation?.Complete();

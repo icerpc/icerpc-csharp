@@ -72,10 +72,8 @@ internal class SlicConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_connectTask is null || !_connectTask.IsCompleted)
             {
                 throw new InvalidOperationException("Cannot accept stream before connecting the Slic connection.");
@@ -104,10 +102,8 @@ internal class SlicConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_connectTask is not null)
             {
                 throw new InvalidOperationException("Cannot connect twice a Slic connection.");
@@ -313,10 +309,8 @@ internal class SlicConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_connectTask is null || !_connectTask.IsCompleted)
             {
                 throw new InvalidOperationException("Cannot close a Slic connection before connecting it.");
@@ -369,10 +363,8 @@ internal class SlicConnection : IMultiplexedConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(SlicConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_connectTask is null || !_connectTask.IsCompleted)
             {
                 throw new InvalidOperationException("Cannot create stream before connecting the Slic connection.");
@@ -534,8 +526,10 @@ internal class SlicConnection : IMultiplexedConnection
             duplexConnection,
             options.Pool,
             options.MinSegmentSize,
-            connectionIdleAction: () => _acceptStreamChannel.Writer.TryComplete(
-                new IceRpcException(IceRpcError.ConnectionIdle)));
+            connectionIdleAction: () =>
+                Close(
+                    new IceRpcException(IceRpcError.ConnectionIdle),
+                    "The Slic connection was aborted because it did not receive any byte for too long."));
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.

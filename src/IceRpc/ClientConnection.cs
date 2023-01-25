@@ -27,9 +27,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     private readonly TimeSpan _connectTimeout;
 
-    // A detached connection is a protocol connection that is shutting down or being disposed. Both ShutdownAsync and
-    // DisposeAsync wait for detached connections to reach 0 using _detachedConnectionsTcs. Such a connection is
-    // "detached" because it's not in _activeConnection or _pendingConnection.
+    // A detached connection is a protocol connection that is connecting, shutting down or being disposed. Both
+    // ShutdownAsync and DisposeAsync wait for detached connections to reach 0 using _detachedConnectionsTcs. Such a
+    // connection is "detached" because it's not in _activeConnection.
     private int _detachedConnectionCount;
 
     private readonly TaskCompletionSource _detachedConnectionsTcs =
@@ -160,7 +160,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+                ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
             }
             if (_shutdownTask is not null)
             {
@@ -176,6 +176,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 IProtocolConnection newConnection = _connectionFactory();
                 connectTask = CreateConnectTask(newConnection, _disposedCts.Token, cancellationToken);
+                _detachedConnectionCount++;
                 _pendingConnection = (newConnection, connectTask);
             }
             else
@@ -230,10 +231,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             _disposedCts.Cancel();
 
-            if (_pendingConnection is not null)
-            {
-                await _pendingConnection.Value.Connection.DisposeAsync().ConfigureAwait(false);
-            }
+            // Since a pending connection is "detached", it's disposed via the connectTask, not directly by this method.
+
             if (_activeConnection is not null)
             {
                 await _activeConnection.Value.Connection.DisposeAsync().ConfigureAwait(false);
@@ -278,7 +277,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+                ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
             }
             if (_shutdownTask is not null)
             {
@@ -365,7 +364,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         {
             if (_disposeTask is not null)
             {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
+                ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
             }
             if (_shutdownTask is not null)
             {
@@ -388,14 +387,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
             cts.CancelAfter(_shutdownTimeout);
 
+            // Since a pending connection is "detached", it's shutdown and disposed via the connectTask, not directly by
+            // this method.
             try
             {
-                if (_pendingConnection is not null)
-                {
-                    await _pendingConnection.Value.Connection.ShutdownPendingAsync(
-                        _pendingConnection.Value.ConnectTask,
-                        cts.Token).ConfigureAwait(false);
-                }
                 if (_activeConnection is not null)
                 {
                     await _activeConnection.Value.Connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
@@ -433,9 +428,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// </param>
     /// <param name="cancellationToken">The cancellation token that can cancel this task.</param>
     /// <returns>A task that completes successfully when the connection is connected.</returns>
-    /// <remarks>Upon success, this task sets _activeConnection and clears _pendingConnection. Upon failure, this task
-    /// clears _pendingConnection and schedules the connection's disposal after observing the task's exception.
-    /// </remarks>
     private async Task<TransportConnectionInformation> CreateConnectTask(
         IProtocolConnection connection,
         CancellationToken disposedCancellationToken,
@@ -447,6 +439,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         cts.CancelAfter(_connectTimeout);
 
         TransportConnectionInformation connectionInformation;
+        Task? connectTask = null;
 
         try
         {
@@ -473,28 +466,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
         catch
         {
-            Task? connectTask = null;
-
             lock (_mutex)
             {
                 Debug.Assert(_pendingConnection is not null && _pendingConnection.Value.Connection == connection);
                 Debug.Assert(_activeConnection is null);
 
-                if (_shutdownTask is null)
-                {
-                    // connectTask is executing this method and about to throw. We need to observe this exception once
-                    // connectTask is completed.
-                    connectTask = _pendingConnection.Value.ConnectTask;
-                    _pendingConnection = null;
-                    _detachedConnectionCount++;
-                }
-                // else ClientConnection.DisposeAsync will dispose this "attached" pending connection
+                // connectTask is executing this method and about to throw.
+                connectTask = _pendingConnection.Value.ConnectTask;
+                _pendingConnection = null;
             }
 
-            if (connectTask is not null)
-            {
-                _ = DisposeFailedPendingConnectionAsync(connection, connectTask);
-            }
+            _ = DisposePendingConnectionAsync(connection, connectTask);
             throw;
         }
 
@@ -503,32 +485,44 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             Debug.Assert(_pendingConnection is not null && _pendingConnection.Value.Connection == connection);
             Debug.Assert(_activeConnection is null);
 
-            if (_disposeTask is not null)
+            if (_shutdownTask is null)
             {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The client connection was disposed.");
+                // the connection is now "attached" in _activeConnection
+                _activeConnection = (connection, connectionInformation);
+                _detachedConnectionCount--;
             }
-            if (_shutdownTask is not null)
+            else
             {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The client connection was shut down.");
+                connectTask = _pendingConnection.Value.ConnectTask;
             }
-
-            _activeConnection = (connection, connectionInformation);
             _pendingConnection = null;
         }
 
-        _ = RemoveFromActiveAsync(connection);
+        if (connectTask is null)
+        {
+            _ = RemoveFromActiveAsync(connection);
+        }
+        else
+        {
+            // As soon as this method completes successfully, we shut down then dispose the connection.
+            _ = DisposePendingConnectionAsync(connection, connectTask);
+        }
         return connectionInformation;
 
-        async Task DisposeFailedPendingConnectionAsync(IProtocolConnection connection, Task connectTask)
+        async Task DisposePendingConnectionAsync(IProtocolConnection connection, Task connectTask)
         {
             try
             {
                 await connectTask.ConfigureAwait(false);
-                Debug.Fail("DisposeFailedPendingConnectionAsync requires a failed or failing connectTask.");
+
+                // Since we own a detachedConnectionCount, _disposedCts is not disposed.
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
+                cts.CancelAfter(_shutdownTimeout);
+                await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
             }
             catch
             {
-                // Observe expected exception.
+                // Observe and ignore exceptions.
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);
@@ -652,6 +646,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 // establishment.
                 Task<TransportConnectionInformation> connectTask =
                     CreateConnectTask(connection, _disposedCts.Token, CancellationToken.None);
+                _detachedConnectionCount++;
                 _pendingConnection = (connection, connectTask);
             }
             pendingConnectionValue = _pendingConnection.Value;

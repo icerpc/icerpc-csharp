@@ -52,10 +52,8 @@ internal abstract class TcpConnection : IDuplexConnection
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
+
         if (buffer.Length == 0)
         {
             throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
@@ -113,10 +111,7 @@ internal abstract class TcpConnection : IDuplexConnection
 
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         Debug.Assert(buffers.Count > 0);
 
@@ -239,10 +234,7 @@ internal class TcpClientConnection : TcpConnection
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         try
         {
@@ -341,10 +333,7 @@ internal class TcpServerConnection : TcpConnection
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException($"{typeof(TcpConnection)}");
-        }
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         try
         {
