@@ -66,7 +66,6 @@ internal class SlicConnection : IMultiplexedConnection
     private int _unidirectionalStreamCount;
     private SemaphoreSlim? _unidirectionalStreamSemaphore;
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
-    private Task _writeStreamFrameTask = Task.CompletedTask;
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
@@ -518,7 +517,7 @@ internal class SlicConnection : IMultiplexedConnection
                         // or being close.
                         if (_pingTask.IsCompleted && !_isClosed)
                         {
-                            _pingTask = SendPingFrameAsync(_disposedCts.Token);
+                            _pingTask = SendPingFrameAsync(_closedCancellationToken);
                         }
                     }
                 };
@@ -753,13 +752,14 @@ internal class SlicConnection : IMultiplexedConnection
                     stream.SentLastStreamFrame();
                 }
 
-                // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
-                // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
-                // exceptions from the WriteStreamFrameAsync task are always observed.
-
-                // WriteStreamFrameAsync is responsible for releasing the write semaphore.
-                _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2, semaphoreLock);
-                await _writeStreamFrameTask.WaitAsync(writeCts.Token).ConfigureAwait(false);
+                // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream
+                // is canceled. If it did, it would abort the connection. WriteStreamFrameAsync is responsible for
+                // releasing the write semaphore.
+                await WriteStreamFrameAsync(
+                    sendSource1,
+                    sendSource2,
+                    semaphoreLock,
+                    _disposedCts.Token).ConfigureAwait(false);
             }
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
         }
@@ -776,48 +776,18 @@ internal class SlicConnection : IMultiplexedConnection
         async Task WriteStreamFrameAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
-            SemaphoreLock semaphoreLock)
+            SemaphoreLock semaphoreLock,
+            CancellationToken cancellationToken)
         {
-            int writeSize = checked((int)(source1.Length + source2.Length));
-
-            Debug.Assert(writeSize <= PeerPacketMaxSize);
-
             using SemaphoreLock _ = semaphoreLock; // release when done
-
-            using IMemoryOwner<byte> writeBufferOwner = Pool.Rent(writeSize);
-            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeSize];
-            CopyToBuffer(source1, writeBuffer);
-            CopyToBuffer(source2, writeBuffer[(int)source1.Length..]);
 
             try
             {
-                await _duplexConnectionWriter.WriteAsync(
-                    new ReadOnlySequence<byte>(writeBuffer),
-                    _disposedCts.Token).ConfigureAwait(false);
+                await _duplexConnectionWriter.WriteAsync(source1, source2, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
                 throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-
-            void CopyToBuffer(ReadOnlySequence<byte> source, Memory<byte> destination)
-            {
-                if (source.IsEmpty)
-                {
-                    // Nothing to copy.
-                }
-                else if (source.IsSingleSegment)
-                {
-                    source.First.CopyTo(destination);
-                }
-                else
-                {
-                    foreach (ReadOnlyMemory<byte> memory in source)
-                    {
-                        memory.CopyTo(destination);
-                        destination = destination[memory.Length..];
-                    }
-                }
             }
         }
 
@@ -1042,7 +1012,7 @@ internal class SlicConnection : IMultiplexedConnection
                 if (_pongTask.IsCompleted)
                 {
                     // Send back a pong frame.
-                    _pongTask = SendPongFrameAsync(cancellationToken);
+                    _pongTask = SendPongFrameAsync(_closedCancellationToken);
                 }
                 break;
             }

@@ -439,7 +439,7 @@ public class SlicTransportTests
     }
 
     [Test]
-    public async Task Stream_write_cancellation_with_reclaimed_write_buffer_after_cancel()
+    public async Task Stream_write_cancellation_does_not_cancel_write_if_writing_data_on_duplex_connection()
     {
         // Arrange
 
@@ -471,12 +471,9 @@ public class SlicTransportTests
         duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(writePayloadData, writeCts.Token);
         writeCts.Cancel();
-        Assert.That(async () => await writeTask, Throws.InstanceOf<OperationCanceledException>());
-
-        // Modify the data right after cancelling the write.
-        writePayloadData[0] = 0x20;
-        writePayloadData[1] = 0x50;
+        Assert.That(writeTask.IsCompleted, Is.False);
         duplexClientConnection.HoldOperation = DuplexTransportOperation.None;
+        Assert.That(async () => await writeTask, Throws.Nothing);
 
         // Assert
         ReadResult readResult = await remoteStream.Input.ReadAsync();
