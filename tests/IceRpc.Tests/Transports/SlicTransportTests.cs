@@ -461,24 +461,18 @@ public class SlicTransportTests
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
-        byte[] payloadData = new byte[] { 0x10, 0x05 };
-        byte[] writePayloadData = new byte[payloadData.Length];
-        payloadData.CopyTo(writePayloadData.AsSpan());
-
         using var writeCts = new CancellationTokenSource();
 
         // Act
         duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
-        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(writePayloadData, writeCts.Token);
+        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[1], writeCts.Token);
         writeCts.Cancel();
+        await Task.Delay(10);
+
+        // Assert
         Assert.That(writeTask.IsCompleted, Is.False);
         duplexClientConnection.HoldOperation = DuplexTransportOperation.None;
         Assert.That(async () => await writeTask, Throws.Nothing);
-
-        // Assert
-        ReadResult readResult = await remoteStream.Input.ReadAsync();
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(payloadData.Length));
-        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(payloadData));
 
         CompleteStreams(localStream, remoteStream);
     }

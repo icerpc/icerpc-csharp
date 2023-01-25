@@ -753,8 +753,7 @@ internal class SlicConnection : IMultiplexedConnection
                 }
 
                 // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream
-                // is canceled. If it did, it would abort the connection. WriteStreamFrameAsync is responsible for
-                // releasing the write semaphore.
+                // is canceled. WriteStreamFrameAsync is responsible for releasing the write semaphore.
                 await WriteStreamFrameAsync(
                     sendSource1,
                     sendSource2,
