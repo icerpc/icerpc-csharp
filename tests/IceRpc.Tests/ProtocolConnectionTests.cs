@@ -313,9 +313,9 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
-    /// <summary>Verifies that ShutdownRequested completes when idle.</summary>
+    /// <summary>Verifies that ShutdownRequested completes when inactive.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task ShutdownRequested_completes_when_idle(Protocol protocol)
+    public async Task ShutdownRequested_completes_when_inactive(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -338,10 +338,10 @@ public sealed class ProtocolConnectionTests
             Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
     }
 
-    /// <summary>Verifies that ShutdownRequested completes when idle and after the idle time has been deferred by the
+    /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive time has been deferred by the
     /// reading of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
-    public async Task ShutdownRequested_completes_when_idle_and_idle_timeout_deferred_by_payload_read(
+    public async Task ShutdownRequested_completes_when_inactive_and_inactive_timeout_deferred_by_payload_read(
         Protocol protocol,
         bool isOneway)
     {
@@ -379,8 +379,8 @@ public sealed class ProtocolConnectionTests
             Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
     }
 
-    /// <summary>Verifies that ShutdownRequested completes when idle and after the idle time has been deferred by the
-    /// writing of the payload.</summary>
+    /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
+    /// deferred by the writing of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task ShutdownRequested_completes_when_inactive_and_inactive_timeout_deferred_by_payload_write(
         Protocol protocol,
