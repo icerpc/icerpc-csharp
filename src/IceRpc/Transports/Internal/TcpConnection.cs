@@ -183,7 +183,6 @@ internal abstract class TcpConnection : IDuplexConnection
                         }
                     }
 
-                    // We ignore the number of bytes actually sent.
                     Task sendTask = Socket.SendAsync(_segments, SocketFlags.None);
 
                     try
@@ -201,7 +200,7 @@ internal abstract class TcpConnection : IDuplexConnection
                         }
                         catch
                         {
-                            // expected, most likely a OperationAborted
+                            // expected, most likely OperationAborted
                         }
                         throw;
                     }
