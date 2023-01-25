@@ -36,6 +36,13 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     /// <inheritdoc/>
     public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
 
+    /// <summary>Constructs a duplex connection writer.</summary>
+    /// <param name="connection">The duplex connection to write to.</param>
+    /// <param name="pool">The memory pool to use.</param>
+    /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref name="pool"/>.
+    /// </param>
+    /// <param name="keepAliveAction">When not null, the action to take to keep a higher-level connection alive. This
+    /// action must write to this duplex connection writer.</param>
     internal DuplexConnectionWriter(
         IDuplexConnection connection,
         MemoryPool<byte> pool,
@@ -62,6 +69,9 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
         if (_keepAliveTimer is not null)
         {
             _keepAlivePeriod = keepAlivePeriod;
+
+            // This timer is not periodic because we schedule a new "keep alive" after each successful write. See
+            // comment below.
             _keepAliveTimer.Change(keepAlivePeriod, Timeout.InfiniteTimeSpan);
         }
     }
@@ -116,6 +126,9 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
                 await task.ConfigureAwait(false);
             }
 
+            // After each successful write, we schedule one ping (keep alive) at _keepAlivePeriod in the future. Since
+            // each ping is itself a write, if there is no application activity at all, we'll send successive pings at
+            // _keepAlivePeriod intervals.
             _keepAliveTimer?.Change(_keepAlivePeriod, Timeout.InfiniteTimeSpan);
         }
         catch (ObjectDisposedException exception)
