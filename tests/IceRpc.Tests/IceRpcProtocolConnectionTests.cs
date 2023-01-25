@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -134,8 +133,8 @@ public sealed class IceRpcProtocolConnectionTests
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client, clientShutdownRequested);
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request);
@@ -409,17 +408,9 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        if (shutdown)
-        {
-            _ = FulfillShutdownRequestAsync(sut.Server);
-            _ = FulfillShutdownRequestAsync(sut.Client);
-        }
-        else
-        {
-            _ = FulfillDisposeRequestAsync(sut.Server);
-            _ = FulfillDisposeRequestAsync(sut.Client);
-        }
+        (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Server, serverShutdownRequested);
+        _ = FulfillShutdownRequestAsync(sut.Client, clientShutdownRequested);
 
         TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastConnection;
         clientConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
@@ -522,7 +513,7 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         clientTransport.LastConnection.FailOperation = operation;
@@ -538,7 +529,7 @@ public sealed class IceRpcProtocolConnectionTests
         else
         {
             Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
-            Assert.That(sut.Client.Closed.IsCompleted, Is.False);
+            Assert.That(clientShutdownRequested.IsCompleted, Is.False);
         }
     }
 
@@ -562,7 +553,7 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         clientTransport.LastConnection.HoldOperation = operation;
@@ -574,7 +565,7 @@ public sealed class IceRpcProtocolConnectionTests
             () => sut.Client.InvokeAsync(request, invokeCts.Token),
             Throws.InstanceOf<OperationCanceledException>().With.Property(
                 "CancellationToken").EqualTo(invokeCts.Token));
-        Assert.That(sut.Client.Closed.IsCompleted, Is.False);
+        Assert.That(clientShutdownRequested.IsCompleted, Is.False);
     }
 
     // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2444
@@ -600,8 +591,8 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = FulfillShutdownRequestAsync(sut.Client, clientShutdownRequested);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request1);
@@ -1192,10 +1183,10 @@ public sealed class IceRpcProtocolConnectionTests
         var serverTransport = provider.GetRequiredService<TestDuplexServerTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         // Hold server reads after the connection is established to prevent shutdown to proceed.
         serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
-        _ = FulfillShutdownRequestAsync(sut.Server);
+        _ = FulfillShutdownRequestAsync(sut.Server, serverShutdownRequested);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
@@ -1205,15 +1196,9 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
-    private static async Task FulfillDisposeRequestAsync(IProtocolConnection connection)
+    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection, Task shutdownRequested)
     {
-        _  = await connection.Closed;
-        await connection.DisposeAsync();
-    }
-
-    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
-    {
-        await connection.ShutdownRequested;
+        await shutdownRequested;
         try
         {
             await connection.ShutdownAsync();
@@ -1222,6 +1207,7 @@ public sealed class IceRpcProtocolConnectionTests
         {
             // ignore all exceptions
         }
+        // we leave the DisposeAsync to the test.
     }
 
     private static string GetErrorMessage(StatusCode statusCode, Exception innerException)
