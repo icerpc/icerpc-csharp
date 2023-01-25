@@ -43,8 +43,6 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     /// </param>
     /// <param name="keepAliveAction">When not null, the action to take to keep a higher-level connection alive. This
     /// action must write to this duplex connection writer.</param>
-    // TODO 1: it would be clearer if keepAliveAction was an Action<DuplexConnectionWriter>.
-    // TODO 2: why is it nullable? Both Slic and IceProtocolConnection pass a non-null action.
     internal DuplexConnectionWriter(
         IDuplexConnection connection,
         MemoryPool<byte> pool,
