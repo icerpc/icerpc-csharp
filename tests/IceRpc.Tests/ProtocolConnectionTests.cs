@@ -207,7 +207,6 @@ public sealed class ProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var cts = new CancellationTokenSource();
 
         // Act
         for (int i = 0; i < 1000; ++i)
@@ -217,7 +216,7 @@ public sealed class ProtocolConnectionTests
                     IsOneway = true,
                     Payload = PipeReader.Create(new ReadOnlySequence<byte>(payload))
                 };
-            requests.Add((request, sut.Client.InvokeAsync(request, cts.Token)));
+            requests.Add((request, sut.Client.InvokeAsync(request, CancellationToken.None)));
             if (i == 0)
             {
                 await dispatcher.DispatchStart;
@@ -232,10 +231,10 @@ public sealed class ProtocolConnectionTests
             invocationsCompleted &= task.IsCompleted;
         }
 
-        // Something's wrong with flow control if all the invocations completed. The sending of 100 requests with a 64KB
+        // Something's wrong with flow control if all the invocations completed. The sending of 1000 requests with a 64KB
         // payload should trigger the transport flow control. If all the invocations completed successfully it would
-        // imply that the server read all the requests even though only one dispatch is allowed and hanging. This would
-        // result in the server buffering 64MB of data.
+        // imply that the server connection read all the requests even though only one dispatch is allowed and hanging.
+        // This would result in the server buffering 64MB of data.
         Assert.That(invocationsCompleted, Is.False);
 
         // Cleanup
