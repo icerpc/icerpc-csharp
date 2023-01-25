@@ -34,10 +34,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
         get => _response;
         set
         {
-            if (_isDisposed)
-            {
-                throw new ObjectDisposedException(nameof(OutgoingRequest));
-            }
+            ObjectDisposedException.ThrowIf(_isDisposed, this);
 
             _response?.Dispose();
             _response = value;

@@ -14,7 +14,7 @@ internal static class IceDefinitions
     internal const int PrologueSize = 14;
 
     // The magic number at the front of each frame.
-    internal static readonly byte[] Magic = new byte[] { 0x49, 0x63, 0x65, 0x50 }; // 'I', 'c', 'e', 'P'
+    internal static readonly byte[] Magic = "IceP"u8.ToArray(); // 'I', 'c', 'e', 'P'
 
     // 4-bytes after magic that provide the protocol version (always 1.0 for an ice frame) and the encoding of the
     // frame header (always set to 1.0 with the an ice frame, even though we use Slice1).

@@ -172,10 +172,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
@@ -325,10 +323,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ConnectionCache)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException("The connection cache is already shut down or shutting down.");

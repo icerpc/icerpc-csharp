@@ -92,10 +92,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_connectTask is not null)
             {
                 throw new InvalidOperationException("Cannot call connect more than once.");
@@ -330,10 +328,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         CancellationToken shutdownCancellationToken;
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_refuseInvocations)
             {
                 throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
@@ -662,10 +658,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException("Cannot call ShutdownAsync more than once.");

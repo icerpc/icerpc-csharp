@@ -26,10 +26,7 @@ internal class ColocListener : IListener<IDuplexConnection>
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
-        if (_disposeCts.IsCancellationRequested)
-        {
-            throw new ObjectDisposedException(nameof(ColocListener));
-        }
+        ObjectDisposedException.ThrowIf(_disposeCts.IsCancellationRequested, this);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposeCts.Token, cancellationToken);
         try
