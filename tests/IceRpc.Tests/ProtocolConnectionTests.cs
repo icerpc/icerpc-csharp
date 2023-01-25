@@ -321,7 +321,7 @@ public sealed class ProtocolConnectionTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
                 protocol,
-                clientConnectionOptions: new ConnectionOptions { Timeout = TimeSpan.FromMilliseconds(500) })
+                clientConnectionOptions: new ConnectionOptions { InactivityTimeout = TimeSpan.FromMilliseconds(500) })
             .BuildServiceProvider(validateScopes: true);
 
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
@@ -351,7 +351,7 @@ public sealed class ProtocolConnectionTests
                 protocol,
                 clientConnectionOptions: new ConnectionOptions
                 {
-                    Timeout = TimeSpan.FromMilliseconds(500),
+                    InactivityTimeout = TimeSpan.FromMilliseconds(500),
                     Dispatcher = ServiceNotFoundDispatcher.Instance
                 })
             .BuildServiceProvider(validateScopes: true);
@@ -394,7 +394,7 @@ public sealed class ProtocolConnectionTests
         ConnectionOptions? serverConnectionOptions =
             new ConnectionOptions
             {
-                Timeout = idleTimeout,
+                InactivityTimeout = idleTimeout,
                 Dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
                 {
                     ReadResult result;
@@ -413,7 +413,7 @@ public sealed class ProtocolConnectionTests
                 protocol,
                 clientConnectionOptions: new ConnectionOptions
                 {
-                    Timeout = TimeSpan.FromMilliseconds(500),
+                    InactivityTimeout = TimeSpan.FromMilliseconds(500),
                 },
                 serverConnectionOptions: serverConnectionOptions)
             .BuildServiceProvider(validateScopes: true);

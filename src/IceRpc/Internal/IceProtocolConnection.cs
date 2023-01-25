@@ -48,6 +48,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private readonly Action<Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
+    private readonly TimeSpan _inactivityTimeout;
+    private readonly Timer _inactivityTimeoutTimer;
     private int _invocationCount;
     private string? _invocationRefusedMessage;
     private bool _isClosedByPeer;
@@ -69,9 +71,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     // The thread that completes this TCS can run the continuations, and as a result its result must be set without
     // holding a lock on _mutex.
     private readonly TaskCompletionSource _shutdownRequestedTcs = new();
-
-    private readonly TimeSpan _timeout;
-    private readonly Timer _timeoutTimer;
 
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
@@ -306,7 +305,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             _dispatchSemaphore?.Dispose();
             _writeSemaphore.Dispose();
-            await _timeoutTimer.DisposeAsync().ConfigureAwait(false);
+            await _inactivityTimeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -497,8 +496,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         }
                         else if (!_refuseInvocations)
                         {
-                            // We enable the idle check in order to complete ShutdownRequested when idle for too long.
-                            // _refuseInvocations is true when the connection is either about to be "shutdown
+                            // We enable the inactivity check in order to complete ShutdownRequested when inactive for
+                            // too long. _refuseInvocations is true when the connection is either about to be "shutdown
                             // requested", or shut down / disposed, or aborted (with Closed completed). We don't need to
                             // complete ShutdownRequested in any of these situations.
                             ScheduleInactivityCheck();
@@ -672,7 +671,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         _idleTimeout = options.IceIdleTimeout;
-        _timeout = options.Timeout;
+        _inactivityTimeout = options.InactivityTimeout;
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
 
@@ -698,7 +697,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _minSegmentSize,
             connectionIdleAction: _readFramesCts.Cancel);
 
-        _timeoutTimer = new Timer(_ =>
+        _inactivityTimeoutTimer = new Timer(_ =>
         {
             bool requestShutdown = false;
 
@@ -708,7 +707,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
-                        $"The connection was shut down because it was inactive for over {_timeout.TotalSeconds} s.");
+                        $"The connection was shut down because it was inactive for over {_inactivityTimeout.TotalSeconds} s.");
                 }
             }
 
@@ -1068,7 +1067,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         return semaphoreLock;
     }
 
-    private void CancelInactivityCheck() => _timeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    private void CancelInactivityCheck() =>
+        _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     /// <summary>Dispatches an incoming request. This method executes in a task spawn from the read frames loop.
     /// </summary>
@@ -1210,7 +1210,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
     }
 
-    private void ScheduleInactivityCheck() => _timeoutTimer.Change(_timeout, Timeout.InfiniteTimeSpan);
+    private void ScheduleInactivityCheck() =>
+        _inactivityTimeoutTimer.Change(_inactivityTimeout, Timeout.InfiniteTimeSpan);
 
     /// <summary>Reads incoming frames and returns successfully when a CloseConnection frame is received or when the
     /// connection is aborted during ShutdownAsync or canceled by DisposeAsync.</summary>
@@ -1224,7 +1225,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // _connectTask and as a result this await can't fail.
         _ = await _connectTask!.ConfigureAwait(false);
 
-        // The idle check requests shutdown and we want to make sure we only request it after _connectTask completed
+        // The inactivity check requests shutdown and we want to make sure we only request it after _connectTask completed
         // successfully.
         ScheduleInactivityCheck();
 

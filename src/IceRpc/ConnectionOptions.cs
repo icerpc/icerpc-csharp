@@ -32,6 +32,17 @@ public record class ConnectionOptions
             throw new ArgumentException($"0 is not a valid value for {nameof(IceIdleTimeout)}", nameof(value));
     }
 
+    /// <summary>Gets or sets the inactivity timeout. This timeout is used to gracefully shutdown the connection if
+    /// it's inactive for longer than this timeout. A connection is considered inactive when there's no invocations or
+    /// dispatches in progress.</summary>
+    /// <value>Defaults to <c>60</c> seconds.</value>
+    public TimeSpan InactivityTimeout
+    {
+        get => _inactivityTimeout;
+        set => _inactivityTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(InactivityTimeout)}", nameof(value));
+    }
+
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
     /// limit is reached, the connection stops reading new requests off its underlying transport connection.</summary>
     /// <value>The maximum number of requests that a connection can dispatch concurrently. 0 means no maximum. The
@@ -112,17 +123,6 @@ public record class ConnectionOptions
     /// <value>A pool of memory blocks used for buffer management.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
-    /// <summary>Gets or sets the timeout. This timeout is used to gracefully shutdown the connection if it's inactive
-    /// for longer than this timeout. A connection is considered inactive when there's no invocations or dispatches in
-    /// progress.</summary>
-    /// <value>Defaults to <c>60</c> seconds.</value>
-    public TimeSpan Timeout
-    {
-        get => _timeout;
-        set => _timeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(Timeout)}", nameof(value));
-    }
-
     /// <summary>The default value for <see cref="MaxIceRpcHeaderSize" />.</summary>
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
@@ -131,13 +131,13 @@ public record class ConnectionOptions
         exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
 
     private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(30);
+    private TimeSpan _inactivityTimeout = TimeSpan.FromSeconds(60);
     private int _maxDispatches = 100;
     private int _maxIceFrameSize = 1024 * 1024;
     private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;
     private int _maxIceRpcHeaderSize = DefaultMaxIceRpcHeaderSize;
     private int _maxIceRpcUnidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxUnidirectionalStreams;
     private int _minSegmentSize = 4096;
-    private TimeSpan _timeout = TimeSpan.FromSeconds(60);
 
     internal static int IceRpcCheckMaxHeaderSize(long value) => value is >= 63 and <= 1_048_575 ? (int)value :
         throw new ArgumentOutOfRangeException(nameof(value), "value must be between 63 and 1,048,575");

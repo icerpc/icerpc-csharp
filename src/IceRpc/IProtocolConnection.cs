@@ -26,7 +26,7 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <summary>Gets a task that completes when the peer or the inactivity monitor requests the shutdown of this
     /// connection.</summary>
     /// <remarks>This task is never faulted or canceled.</remarks>
-    /// <seealso cref="ConnectionOptions.Timeout" />
+    /// <seealso cref="ConnectionOptions.InactivityTimeout" />
     Task ShutdownRequested { get; }
 
     /// <summary>Establishes the connection to the peer.</summary>
