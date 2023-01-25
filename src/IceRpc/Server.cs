@@ -286,10 +286,8 @@ public sealed class Server : IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(Server)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
@@ -542,10 +540,8 @@ public sealed class Server : IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(Server)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException($"Server '{this}' is shut down or shutting down.");
