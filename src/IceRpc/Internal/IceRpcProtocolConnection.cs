@@ -364,9 +364,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 (IMultiplexedStream stream, IncomingResponse response) = await PerformInvokeAsync(invocationCts)
                     .ConfigureAwait(false);
+                // UnregisterInvocationAsync disposes the invocation CTS
                 invocationCts = null;
-                // DisposeInvocationCtsOnReadsAndWriteClosed disposes the invocation CTS
-                _ = DisposeInvocationCtsOnReadsAndWriteClosed(stream);
+                _ = UnregisterInvocationAsync(stream);
                 return response;
             }
             finally
@@ -374,7 +374,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 invocationCts?.Dispose();
             }
 
-            async Task DisposeInvocationCtsOnReadsAndWriteClosed(IMultiplexedStream stream)
+            async Task UnregisterInvocationAsync(IMultiplexedStream stream)
             {
                 // Wait for the stream's reading and writing side to be closed to dispose the invocation cts.
                 await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
@@ -412,6 +412,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Create the stream.
                 try
                 {
+                    // We want to cancel CreateStreamAsync as soon as the connection is being shutdown instead of
+                    // waiting for its disposal.
+                    using CancellationTokenRegistration _ = shutdownCancellationToken.UnsafeRegister(
+                        cts => ((CancellationTokenSource)cts!).Cancel(),
+                        invocationCts);
                     stream = await _transportConnection.CreateStreamAsync(
                         bidirectional: !request.IsOneway,
                         invocationCancellationToken).ConfigureAwait(false);
@@ -451,7 +456,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     // Keep track of the invocation cancellation token source for the shutdown logic.
                     _pendingInvocations.Add(stream, invocationCts);
-                    _ = UnregisterOnReadsAndWritesClosedAsync(stream);
+                    _ = UnregisterStreamOnReadsAndWritesClosedAsync(stream);
                 }
             }
             catch
@@ -944,7 +949,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
-                _ = UnregisterOnReadsAndWritesClosedAsync(stream);
+                _ = UnregisterStreamOnReadsAndWritesClosedAsync(stream);
 
                 // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
                 // to Task.Run because DispatchRequestAsync must clean-up the stream.
@@ -1424,7 +1429,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private async Task UnregisterOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
+    private async Task UnregisterStreamOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
     {
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
