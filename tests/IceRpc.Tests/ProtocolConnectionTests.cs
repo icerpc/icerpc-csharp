@@ -382,19 +382,14 @@ public sealed class ProtocolConnectionTests
     /// <summary>Verifies that ShutdownRequested completes when idle and after the idle time has been deferred by the
     /// writing of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
-    public async Task ShutdownRequested_completes_when_idle_and_idle_timeout_deferred_by_payload_write(
+    public async Task ShutdownRequested_completes_when_inactive_and_inactive_timeout_deferred_by_payload_write(
         Protocol protocol,
         bool isOneway)
     {
         // Arrange
-        // With the ice protocol, the idle timeout is used for both the transport and protocol idle timeout. We need
-        // to set the server side idle timeout to ensure the server-side connection sends keep alive to prevent the
-        // client transport connection to be closed because it's idle.
-        TimeSpan idleTimeout = protocol == Protocol.Ice ? TimeSpan.FromMilliseconds(800) : TimeSpan.FromSeconds(60);
         ConnectionOptions? serverConnectionOptions =
             new ConnectionOptions
             {
-                InactivityTimeout = idleTimeout,
                 Dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
                 {
                     ReadResult result;
