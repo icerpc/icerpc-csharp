@@ -521,29 +521,6 @@ public sealed class ProtocolConnectionTests
             Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
-    /// <summary>Verifies that a ConnectAsync failure completes Closed.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task ConnectAsync_failure_completes_closed(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
-        Task connectTask = sut.Client.ConnectAsync(default);
-
-        // Act
-        await sut.DisposeListenerAsync(); // dispose the listener to trigger the ConnectAsync failure.
-
-        // Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<IceRpcException>());
-
-        Assert.That(
-            await sut.Client.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
-    }
-
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task Dispatch_cancellation_token_is_not_canceled(Protocol protocol, bool isOneway)

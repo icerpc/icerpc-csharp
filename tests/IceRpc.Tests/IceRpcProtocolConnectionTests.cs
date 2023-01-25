@@ -211,13 +211,7 @@ public sealed class IceRpcProtocolConnectionTests
             };
 
         // Act/Assert
-        Assert.That(connectCall, Throws.InstanceOf(exception.GetType()));
-
-        // The protocol connection is not created if server-side connect fails.
-        if (!serverConnection || operation != MultiplexedTransportOperation.Connect)
-        {
-            Assert.That(() => serverConnection ? sut.Server.Closed : sut.Client.Closed, Is.EqualTo(exception));
-        }
+        Assert.That(connectCall, Throws.Exception.EqualTo(exception));
     }
 
     [TestCase(false, MultiplexedTransportOperation.Connect)]

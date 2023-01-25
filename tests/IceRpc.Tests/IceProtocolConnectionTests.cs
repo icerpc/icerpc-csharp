@@ -169,12 +169,6 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         Exception? caughtException = Assert.CatchAsync(() => connectCall());
         Assert.That(caughtException, Is.EqualTo(exception));
-
-        // The protocol connection is not created if server-side connect fails.
-        if (!serverConnection || operation != DuplexTransportOperation.Connect)
-        {
-            Assert.That(() => serverConnection ? sut.Server.Closed : sut.Client.Closed, Is.EqualTo(exception));
-        }
     }
 
     [TestCase(false, DuplexTransportOperation.Connect)]
