@@ -35,7 +35,8 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 
         async Task WaitForClosedAsync()
         {
-            if (await Closed.ConfigureAwait(false) is not null)
+            Exception? exception = await Closed.ConfigureAwait(false);
+            if (exception is not null)
             {
                 ClientMetrics.Instance.ConnectionFailure();
             }

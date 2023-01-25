@@ -23,7 +23,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // The underlying protocol connection once successfully established.
     private (IProtocolConnection Connection, TransportConnectionInformation ConnectionInformation)? _activeConnection;
 
-    private readonly Func<IProtocolConnection> _connectionFactory;
+    private readonly IClientProtocolConnectionFactory _clientProtocolConnectionFactory;
 
     private readonly TimeSpan _connectTimeout;
 
@@ -32,8 +32,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // connection is "detached" because it's not in _activeConnection.
     private int _detachedConnectionCount;
 
-    private readonly TaskCompletionSource _detachedConnectionsTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _detachedConnectionsTcs = new();
 
     // A cancellation token source that is canceled when DisposeAsync is called.
     private readonly CancellationTokenSource _disposedCts = new();
@@ -79,14 +78,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             };
         }
 
-        var clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
+        _clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
             options,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport,
             logger);
-
-        _connectionFactory = () => clientProtocolConnectionFactory.CreateConnection(ServerAddress);
     }
 
     /// <summary>Constructs a client connection with the specified server address and client authentication options. All
@@ -158,10 +155,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
             if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException("Cannot connect a client connection after shutting it down.");
@@ -174,7 +168,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (_pendingConnection is null)
             {
-                IProtocolConnection newConnection = _connectionFactory();
+                IProtocolConnection newConnection = _clientProtocolConnectionFactory.CreateConnection(ServerAddress);
                 connectTask = CreateConnectTask(newConnection, _disposedCts.Token, cancellationToken);
                 _detachedConnectionCount++;
                 _pendingConnection = (newConnection, connectTask);
@@ -275,10 +269,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_shutdownTask is not null)
             {
                 throw new IceRpcException(IceRpcError.InvocationRefused, "The client connection was shut down.");
@@ -312,12 +304,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         async Task<IncomingResponse> PerformInvokeAsync(IProtocolConnection? connection)
         {
-            connection ??= await GetActiveConnectionAsync(cancellationToken).ConfigureAwait(false);
-
             // When InvokeAsync throws an IceRpcException(InvocationRefused) we retry unless the client connection is
-            // being shutdown.
+            // being shutdown or disposed.
             while (true)
             {
+                connection ??= await GetActiveConnectionAsync(cancellationToken).ConfigureAwait(false);
+
                 try
                 {
                     return await connection.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
@@ -335,8 +327,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 // Make sure connection is detached before we retry; we don't want to retry with the same connection.
                 // shutdownRequested is true because soon we'll always call ShutdownAsync on a connected connection.
                 _ = DisposeActiveConnectionAsync(connection, shutdownRequested: true);
-
-                connection = await GetActiveConnectionAsync(cancellationToken).ConfigureAwait(false);
+                connection = null;
             }
         }
     }
@@ -362,10 +353,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
             if (_shutdownTask is not null)
             {
                 throw new InvalidOperationException("The client connection is already shut down or shutting down.");
@@ -455,7 +443,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 {
                     throw new IceRpcException(
                         IceRpcError.OperationAborted,
-                        "The connection establishment was aborted because ClientConnection was disposed.");
+                        "The connection establishment was aborted because the client connection was disposed.");
                 }
                 else
                 {
@@ -640,7 +628,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (_pendingConnection is null)
             {
-                IProtocolConnection connection = _connectionFactory();
+                IProtocolConnection connection = _clientProtocolConnectionFactory.CreateConnection(ServerAddress);
 
                 // We pass CancellationToken.None because the invocation cancellation should not cancel the connection
                 // establishment.
