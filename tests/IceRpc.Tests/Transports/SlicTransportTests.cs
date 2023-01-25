@@ -491,15 +491,12 @@ public class SlicTransportTests
         int resumeThreshold)
     {
         // Arrange
-        IServiceCollection services = new ServiceCollection()
-            .AddSlicTest();
-
+        IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(options =>
             {
                 options.PauseWriterThreshold = pauseThreshold;
                 options.ResumeWriterThreshold = resumeThreshold;
             });
-
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
