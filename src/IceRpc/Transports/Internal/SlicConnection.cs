@@ -778,15 +778,46 @@ internal class SlicConnection : IMultiplexedConnection
             ReadOnlySequence<byte> source2,
             SemaphoreLock semaphoreLock)
         {
+            int writeSize = checked((int)(source1.Length + source2.Length));
+
+            Debug.Assert(writeSize <= PeerPacketMaxSize);
+
             using SemaphoreLock _ = semaphoreLock; // release when done
+
+            using IMemoryOwner<byte> writeBufferOwner = Pool.Rent(writeSize);
+            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeSize];
+            CopyToBuffer(source1, writeBuffer);
+            CopyToBuffer(source2, writeBuffer[(int)source1.Length..]);
 
             try
             {
-                await _duplexConnectionWriter.WriteAsync(source1, source2, _disposedCts.Token).ConfigureAwait(false);
+                await _duplexConnectionWriter.WriteAsync(
+                    new ReadOnlySequence<byte>(writeBuffer),
+                    _disposedCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
                 throw new IceRpcException(IceRpcError.OperationAborted);
+            }
+
+            void CopyToBuffer(ReadOnlySequence<byte> source, Memory<byte> destination)
+            {
+                if (source.IsEmpty)
+                {
+                    // Nothing to copy.
+                }
+                else if (source.IsSingleSegment)
+                {
+                    source.First.CopyTo(destination);
+                }
+                else
+                {
+                    foreach (ReadOnlyMemory<byte> memory in source)
+                    {
+                        memory.CopyTo(destination);
+                        destination = destination[memory.Length..];
+                    }
+                }
             }
         }
 
