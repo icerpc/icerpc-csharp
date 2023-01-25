@@ -1448,12 +1448,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     /// <summary>A DetachableCancellationTokenSource holds a CancellationTokenSource and allows taking ownership of the
     /// underlying CancellationTokenSource. After calling Detach the caller takes ownership of the
     /// CancellationTokenSource and its responsible of its disposal.</summary>
-    internal struct DetachableCancellationTokenSource : IDisposable
+    private struct DetachableCancellationTokenSource : IDisposable
     {
         internal CancellationTokenSource Source =>
-            _cts ?? throw new InvalidOperationException("Cannot not access Source property after calling Detach().");
+            _cts ?? throw new InvalidOperationException("Cannot access Source property after calling Detach().");
 
-        internal CancellationToken Token => _cts?.Token ?? CancellationToken.None;
+        internal CancellationToken Token =>
+            _cts?.Token ?? throw new InvalidOperationException("Cannot access Token property after calling Detach().");
 
         private CancellationTokenSource? _cts;
 
@@ -1463,7 +1464,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             if (_cts is null)
             {
-                throw new InvalidOperationException("Cannot not call Cancel after calling Detach().");
+                throw new InvalidOperationException("Cannot call Cancel after calling Detach().");
             }
             _cts.Cancel();
         }
