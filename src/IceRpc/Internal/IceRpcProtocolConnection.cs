@@ -358,7 +358,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
+            using var invocationCts = new DetachableCancellationTokenSource(
+                CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken));
             CancellationToken invocationCancellationToken = invocationCts.Token;
 
             // We unregister this cancellationToken when this async method completes (it completes successfully when we
@@ -420,10 +421,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
 
                     // Keep track of the invocation cancellation token source for the shutdown logic.
-                    _pendingInvocations.Add(stream, invocationCts);
-                    invocationCts = null; // invocationCts is disposed by UnregisterOnReadsAndWritesClosedAsync
+                    _pendingInvocations.Add(stream, invocationCts.Source);
 
-                    _ = UnregisterOnReadsAndWritesClosedAsync(stream);
+                    _ = EnableIdleCheckOnReadsAndWritesClosedAsync(stream);
                 }
             }
             catch
@@ -431,10 +431,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 stream?.Output.CompleteOutput(success: false);
                 streamInput?.Complete();
                 throw;
-            }
-            finally
-            {
-                invocationCts?.Dispose();
             }
 
             PipeWriter payloadWriter;
@@ -568,6 +564,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 };
 
                 streamInput = null; // response now owns the stream input
+
+                // Detach the Cts UnregisterInvocationOnReadsAndWritesClosedAsync will dispose it.
+                invocationCts.Detach();
+                _ = UnregisterInvocationOnReadsAndWritesClosedAsync(stream);
                 return response;
             }
             catch (OperationCanceledException)
@@ -587,6 +587,27 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             finally
             {
                 streamInput?.Complete();
+            }
+
+            async Task UnregisterInvocationOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
+            {
+                // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
+                await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+
+                lock (_mutex)
+                {
+                    if (!_refuseInvocations)
+                    {
+                        if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
+                        {
+                            cts.Dispose();
+                        }
+                        else
+                        {
+                            Debug.Fail("Did not find multiplexed stream in pending invocations");
+                        }
+                    }
+                }
             }
 
             void EncodeHeader(PipeWriter writer)
@@ -919,7 +940,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
-                _ = UnregisterOnReadsAndWritesClosedAsync(stream);
+                _ = EnableIdleCheckOnReadsAndWritesClosedAsync(stream);
 
                 // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
                 // to Task.Run because DispatchRequestAsync must clean-up the stream.
@@ -1399,25 +1420,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private async Task UnregisterOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
+    private async Task EnableIdleCheckOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
     {
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && !_refuseInvocations)
-            {
-                if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
-                {
-                    cts.Dispose();
-                }
-                else
-                {
-                    Debug.Fail("Did not find multiplexed stream in pending invocations");
-                }
-            }
-
             if (--_streamCount == 0)
             {
                 if (_shutdownTask is not null)
@@ -1434,5 +1443,33 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
             }
         }
+    }
+
+    /// <summary>A DetachableCancellationTokenSource holds a CancellationTokenSource and allows taking ownership of the
+    /// underlying CancellationTokenSource. After calling Detach the caller takes ownership of the
+    /// CancellationTokenSource and its responsible of its disposal.</summary>
+    internal struct DetachableCancellationTokenSource : IDisposable
+    {
+        internal CancellationTokenSource Source =>
+            _cts ?? throw new InvalidOperationException("Cannot not access Source property after calling Detach().");
+
+        internal CancellationToken Token => _cts?.Token ?? CancellationToken.None;
+
+        private CancellationTokenSource? _cts;
+
+        public void Dispose() => _cts?.Dispose();
+
+        internal void Cancel()
+        {
+            if (_cts is null)
+            {
+                throw new InvalidOperationException("Cannot not call Cancel after calling Detach().");
+            }
+            _cts.Cancel();
+        }
+
+        internal void Detach() => _cts = null;
+
+        internal DetachableCancellationTokenSource(CancellationTokenSource cts) => _cts = cts;
     }
 }
