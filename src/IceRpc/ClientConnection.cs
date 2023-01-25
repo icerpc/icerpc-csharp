@@ -141,10 +141,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IProtocolConnection connection;
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_isShutdown)
             {
                 throw new InvalidOperationException("Cannot connect a client connection after shutting it down.");
@@ -213,10 +211,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         IProtocolConnection connection;
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_isShutdown)
             {
                 throw new IceRpcException(IceRpcError.InvocationRefused, "The client connection is shut down.");
@@ -294,10 +290,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         lock (_mutex)
         {
-            if (_disposeTask is not null)
-            {
-                throw new ObjectDisposedException($"{typeof(ClientConnection)}");
-            }
+            ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
+
             if (_isShutdown)
             {
                 throw new InvalidOperationException("The client connection is already shut down or shutting down.");
@@ -513,10 +507,9 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                 // tries again with a refreshed connection.
                 // Note: this works fine because ClientConnection does not use ObjectDisposedException to mean "there is
                 // no need to dispose this connection".
-                if (_isDisposed || (_connectTask is not null && (_connectTask.IsFaulted || _connectTask.IsCanceled)))
-                {
-                    throw new ObjectDisposedException($"{typeof(ConnectProtocolConnectionDecorator)}");
-                }
+                ObjectDisposedException.ThrowIf(
+                    _isDisposed || (_connectTask is not null && (_connectTask.IsFaulted || _connectTask.IsCanceled)),
+                    this);
 
                 if (_connectTask is null)
                 {

@@ -23,15 +23,24 @@ public record class ConnectionOptions
     /// <seealso cref="TaskScheduler.UnobservedTaskException" />
     public Action<Exception> FaultedTaskAction { get; set; } = _defaultFaultedTaskAction;
 
-    /// <summary>Gets or sets the idle timeout. This timeout is used to gracefully shutdown the connection if it's
-    /// idle for longer than this timeout. A connection is considered idle when there's no invocations or dispatches
-    /// in progress.</summary>
-    /// <value>Defaults to <c>60</c> seconds.</value>
-    public TimeSpan IdleTimeout
+    /// <summary>Gets or sets the ice idle timeout. This timeout is used to monitor the transport connection health. If
+    /// no data is received within this period, the transport connection is aborted. The default is 30s.</summary>
+    public TimeSpan IceIdleTimeout
     {
-        get => _idleTimeout;
-        set => _idleTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+        get => _iceIdleTimeout;
+        set => _iceIdleTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(IceIdleTimeout)}", nameof(value));
+    }
+
+    /// <summary>Gets or sets the inactivity timeout. This timeout is used to gracefully shutdown the connection if
+    /// it's inactive for longer than this timeout. A connection is considered inactive when there's no invocations or
+    /// dispatches in progress.</summary>
+    /// <value>Defaults to <c>60</c> seconds.</value>
+    public TimeSpan InactivityTimeout
+    {
+        get => _inactivityTimeout;
+        set => _inactivityTimeout = value != TimeSpan.Zero ? value :
+            throw new ArgumentException($"0 is not a valid value for {nameof(InactivityTimeout)}", nameof(value));
     }
 
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
@@ -121,7 +130,8 @@ public record class ConnectionOptions
     private static readonly Action<Exception> _defaultFaultedTaskAction =
         exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
 
-    private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(30);
+    private TimeSpan _inactivityTimeout = TimeSpan.FromSeconds(60);
     private int _maxDispatches = 100;
     private int _maxIceFrameSize = 1024 * 1024;
     private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;
