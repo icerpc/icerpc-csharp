@@ -23,9 +23,6 @@ enum FrameType : uint8
     /// The ping frame is sent to check the liveliness of the connection.
     Ping,
 
-    /// The pong frame is sent back after receiving a ping frame.
-    Pong,
-
     /// The stream frame is sent send data over a Slic stream.
     Stream,
 

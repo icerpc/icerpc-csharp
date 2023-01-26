@@ -988,21 +988,6 @@ internal class SlicConnection : IMultiplexedConnection
             }
             case FrameType.Ping:
             {
-                lock (_mutex)
-                {
-                    // Send a new pong frame if the previous frame was sent and the connection is not closed or being
-                    // close. The check for _isClosed ensures _pongTask is not reassigned once the connection is closed.
-                    if (_pongTask.IsCompleted && !_isClosed)
-                    {
-                        // Send back a pong frame.
-                        _pongTask = SendPongFrameAsync();
-                    }
-                }
-                break;
-            }
-            case FrameType.Pong:
-            {
-                // Nothing to do, the duplex connection reader keeps track of the last activity time.
                 break;
             }
             case FrameType.Stream:
@@ -1293,27 +1278,6 @@ internal class SlicConnection : IMultiplexedConnection
             else
             {
                 return _lastRemoteUnidirectionalStreamId is not null && streamId <= _lastRemoteUnidirectionalStreamId;
-            }
-        }
-
-        async Task SendPongFrameAsync()
-        {
-            try
-            {
-                await SendFrameAsync(FrameType.Pong, encode: null, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected if the connection was closed.
-            }
-            catch (IceRpcException)
-            {
-                // Expected if the connection failed.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"pong task failed with an unexpected exception: {exception}");
-                throw;
             }
         }
     }
