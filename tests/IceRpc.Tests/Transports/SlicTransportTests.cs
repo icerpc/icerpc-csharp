@@ -517,6 +517,34 @@ public class SlicTransportTests
         CompleteStreams(localStream, remoteStream);
     }
 
+    [Test]
+    public async Task Write_failure_when_idle_triggers_the_connection_closure()
+    {
+        // Arrange
+        var services = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransport();
+        services.AddOptions<SlicTransportOptions>("client").Configure(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMilliseconds(100);
+            });
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using var _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        var duplexClientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
+        duplexClientTransport.LastConnection!.FailOperation = DuplexTransportOperation.Write;
+        duplexClientTransport.LastConnection!.FailureException = new IceRpcException(IceRpcError.ConnectionAborted);
+
+        // Act/Assert
+        Assert.That(
+            async () => await clientConnection.AcceptStreamAsync(CancellationToken.None),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
     private static void CompleteStreams(params IMultiplexedStream[] streams)
     {
         foreach (IMultiplexedStream stream in streams)

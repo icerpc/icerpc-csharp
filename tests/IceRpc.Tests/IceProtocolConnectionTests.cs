@@ -558,6 +558,34 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
+    [Test]
+    public async Task Write_failure_when_idle_triggers_the_connection_closure()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher,
+                clientConnectionOptions: new ConnectionOptions
+                    {
+                        IceIdleTimeout = TimeSpan.FromMilliseconds(100)
+                    })
+            .AddTestDuplexTransport()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        var duplexClientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
+        duplexClientTransport.LastConnection!.FailOperation = DuplexTransportOperation.Write;
+        var failureException = new IceRpcException(IceRpcError.ConnectionAborted);
+        duplexClientTransport.LastConnection!.FailureException = failureException;
+
+        // Act/Assert
+        Assert.That(async () => await sut.Client.Closed, Is.EqualTo(failureException));
+    }
+
     private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
     {
         await connection.ShutdownRequested;

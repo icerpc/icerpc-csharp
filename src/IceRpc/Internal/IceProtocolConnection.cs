@@ -708,9 +708,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Canceled by DisposeAsync
                 throw;
             }
-            catch (IceRpcException)
+            catch (IceRpcException exception)
             {
-                // Expected, typically the peer aborted the connection.
+                // Expected if the connection was aborted.
+                AbortWrite(exception);
                 throw;
             }
             catch (Exception exception)

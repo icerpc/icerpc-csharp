@@ -554,9 +554,10 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 // Expected if the connection was closed.
             }
-            catch (IceRpcException)
+            catch (IceRpcException exception)
             {
-                // Expected if the connection failed.
+                // Expected if the connection was aborted.
+                Close(exception, "The connection was lost.");
             }
             catch (Exception exception)
             {
