@@ -332,26 +332,20 @@ internal class SlicConnection : IMultiplexedConnection
 
             Close(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed.");
 
-            await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                await WriteFrameAsync(
-                    FrameType.Close,
-                    streamId: null,
-                    new CloseBody((ulong)closeError).Encode,
-                    cancellationToken).ConfigureAwait(false);
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
 
-                if (!IsServer)
-                {
-                    // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
-                    // For TCP, it's important to always shutdown the connection on the client-side first to avoid
-                    // TIME_WAIT states on the server-side.
-                    await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
-                }
-            }
-            finally
+            await WriteFrameAsync(
+                FrameType.Close,
+                streamId: null,
+                new CloseBody((ulong)closeError).Encode,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!IsServer)
             {
-                _writeSemaphore.Release();
+                // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
+                // For TCP, it's important to always shutdown the connection on the client-side first to avoid
+                // TIME_WAIT states on the server-side.
+                await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -618,7 +612,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         try
         {
-            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
+            using SemaphoreLock _ = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
             await WriteFrameAsync(
                 frameType,
                 streamId: null,
@@ -643,7 +637,7 @@ internal class SlicConnection : IMultiplexedConnection
         Debug.Assert(frameType >= FrameType.StreamReset);
         try
         {
-            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_closedCancellationToken).ConfigureAwait(false);
+            using SemaphoreLock _ = await AcquireWriteLockAsync(_closedCancellationToken).ConfigureAwait(false);
             if (!stream.IsStarted)
             {
                 StartStream(stream);
@@ -724,8 +718,7 @@ internal class SlicConnection : IMultiplexedConnection
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
                 // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-                using SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(writeCts.Token)
-                    .ConfigureAwait(false);
+                using SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
                 if (!stream.IsStarted)
                 {
                     StartStream(stream);
@@ -796,6 +789,22 @@ internal class SlicConnection : IMultiplexedConnection
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
         }
+    }
+
+    private ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
+    {
+        ValueTask<SemaphoreLock> acquireWriteLockTask;
+        lock (_mutex)
+        {
+            // Make sure the connection is not being closed or closed when we acquire the semaphore.
+            if (_isClosed)
+            {
+                // TODO: Or ConnectionAborted? See #2382
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
+            }
+            acquireWriteLockTask = _writeSemaphore.AcquireAsync(cancellationToken);
+        }
+        return acquireWriteLockTask;
     }
 
     private void AddStream(ulong id, SlicStream stream)
@@ -1276,15 +1285,8 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
-                await _writeSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _writeSemaphore.Release();
-                }
+                using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
+                await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -1421,15 +1423,8 @@ internal class SlicConnection : IMultiplexedConnection
                 // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
-                await _writeSemaphore.WaitAsync(_disposedCts.Token).ConfigureAwait(false);
-                try
-                {
-                    await _duplexConnection.ShutdownAsync(_disposedCts.Token).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _writeSemaphore.Release();
-                }
+                using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_disposedCts.Token).ConfigureAwait(false);
+                await _duplexConnection.ShutdownAsync(_disposedCts.Token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
