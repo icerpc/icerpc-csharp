@@ -4,6 +4,7 @@ namespace IceRpc.Tests.Common;
 
 public static class ProtocolConnectionExtensions
 {
+    /// <summary>Shuts down this connection when shutdownRequested completes.</summary>
     public static async Task ShutdownWhenAsync(this IProtocolConnection connection, Task shutdownRequested)
     {
         await shutdownRequested;

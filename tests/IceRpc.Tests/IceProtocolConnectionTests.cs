@@ -394,7 +394,7 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client, clientShutdownRequested);
+        _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask1 = sut.Client.InvokeAsync(request1);
@@ -516,20 +516,6 @@ public sealed class IceProtocolConnectionTests
         bool ok = response.Payload.TryRead(out ReadResult readResult);
         Assert.That(ok, Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-    }
-
-    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection, Task shutdownRequested)
-    {
-        await shutdownRequested;
-        try
-        {
-            await connection.ShutdownAsync();
-        }
-        catch
-        {
-            // ignore all exceptions
-        }
-        // we leave the DisposeAsync to the test.
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>
