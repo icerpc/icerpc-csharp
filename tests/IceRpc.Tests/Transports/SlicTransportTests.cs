@@ -233,7 +233,7 @@ public class SlicTransportTests
             MemoryPool<byte>.Shared,
             4096,
             keepAliveAction: null);
-        await using var reader = new DuplexConnectionReader(
+        using var reader = new DuplexConnectionReader(
             duplexClientConnection,
             MemoryPool<byte>.Shared,
             4096);

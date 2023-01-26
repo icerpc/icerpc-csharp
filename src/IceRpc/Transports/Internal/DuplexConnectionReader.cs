@@ -9,16 +9,15 @@ namespace IceRpc.Transports.Internal;
 
 /// <summary>A helper class to efficiently read data from a duplex connection. It provides a PipeReader-like API but is
 /// not a PipeReader.</summary>
-internal class DuplexConnectionReader : IAsyncDisposable
+internal class DuplexConnectionReader : IDisposable
 {
     private readonly IDuplexConnection _connection;
     private readonly Pipe _pipe;
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
-        return default;
     }
 
     internal DuplexConnectionReader(

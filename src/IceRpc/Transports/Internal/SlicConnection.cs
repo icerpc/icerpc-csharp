@@ -457,7 +457,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             _duplexConnection.Dispose();
-            await _duplexConnectionReader.DisposeAsync().ConfigureAwait(false);
+            _duplexConnectionReader.Dispose();
             await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
 
             _disposedCts.Dispose();
