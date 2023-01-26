@@ -549,7 +549,7 @@ public sealed class ProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
-        _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
@@ -634,7 +634,7 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
-        _ = sut.Server.ShutdownWhenAsync(serverShutdownRequested);
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Act/Assert
@@ -901,11 +901,11 @@ public sealed class ProtocolConnectionTests
         (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
         if (closeClientSide)
         {
-            _ = sut.Server.ShutdownWhenAsync(serverShutdownRequested);
+            _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         }
         else
         {
-            _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
+            _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
         }
 
         // Act
@@ -996,11 +996,11 @@ public sealed class ProtocolConnectionTests
         (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
         if (closeClientSide)
         {
-            _ = sut.Server.ShutdownWhenAsync(serverShutdownRequested);
+            _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         }
         else
         {
-            _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
+            _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
         }
 
         using var request = new OutgoingRequest(new ServiceAddress(protocol));

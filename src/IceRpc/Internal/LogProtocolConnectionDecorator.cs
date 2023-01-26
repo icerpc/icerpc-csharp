@@ -85,37 +85,57 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     public Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        // It's not thread-safe because we don't need to be perfectly thread-safe for InvalidOperationException.
-        _shutdownTask = _shutdownTask is null ? PerformShutdownAsync() :
-            throw new InvalidOperationException("The connection is already shut down.");
+        try
+        {
+            _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
+            return _shutdownTask;
+        }
+        // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
+        catch (InvalidOperationException)
+        {
+            // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+            throw;
+        }
+        catch (Exception exception)
+        {
+            LogShutdownFailed(exception);
+            throw;
+        }
 
-        return _shutdownTask;
+        void LogShutdownFailed(Exception exception)
+        {
+            Debug.Assert(_connectionInformation is not null);
 
-        async Task PerformShutdownAsync()
+            _logger.LogConnectionFailed(
+                IsServer,
+                _connectionInformation.LocalNetworkAddress,
+                _connectionInformation.RemoteNetworkAddress,
+                exception);
+        }
+
+        async Task PerformShutdownAsync(Task decorateeShutdownTask)
         {
             try
             {
-                await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                await decorateeShutdownTask.ConfigureAwait(false);
+
+                Debug.Assert(_connectionInformation is not null);
+
+                _logger.LogConnectionShutdown(
+                    IsServer,
+                    _connectionInformation.LocalNetworkAddress,
+                    _connectionInformation.RemoteNetworkAddress);
+            }
+            catch (InvalidOperationException)
+            {
+                // See above. A decorator can convert synchronous exceptions into asynchronous exceptions.
+                throw;
             }
             catch (Exception exception)
             {
-                Debug.Assert(_connectionInformation is not null);
-
-                // TODO: rename to ShutdownFailed
-                _logger.LogConnectionFailed(
-                    IsServer,
-                    _connectionInformation.LocalNetworkAddress,
-                    _connectionInformation.RemoteNetworkAddress,
-                    exception);
+                LogShutdownFailed(exception);
                 throw;
             }
-
-            Debug.Assert(_connectionInformation is not null);
-
-            _logger.LogConnectionShutdown(
-                IsServer,
-                _connectionInformation.LocalNetworkAddress,
-                _connectionInformation.RemoteNetworkAddress);
         }
     }
 

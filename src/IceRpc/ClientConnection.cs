@@ -489,7 +489,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         if (connectTask is null)
         {
-            _ = ShutdownWhenAsync(connection, shutdownRequested);
+            _ = ShutdownWhenRequestedAsync(connection, shutdownRequested);
         }
         else
         {
@@ -525,7 +525,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        async Task ShutdownWhenAsync(IProtocolConnection connection, Task shutdownRequested)
+        async Task ShutdownWhenRequestedAsync(IProtocolConnection connection, Task shutdownRequested)
         {
             await shutdownRequested.ConfigureAwait(false);
             await RemoveFromActiveAsync(connection).ConfigureAwait(false);

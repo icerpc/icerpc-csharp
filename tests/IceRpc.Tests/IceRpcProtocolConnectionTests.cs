@@ -134,7 +134,7 @@ public sealed class IceRpcProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
-        _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request);
@@ -409,8 +409,8 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
-        _ = sut.Server.ShutdownWhenAsync(serverShutdownRequested);
-        _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastConnection;
         clientConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
@@ -591,7 +591,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
-        _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request1);
@@ -1185,7 +1185,7 @@ public sealed class IceRpcProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         // Hold server reads after the connection is established to prevent shutdown to proceed.
         serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
-        _ = sut.Server.ShutdownWhenAsync(serverShutdownRequested);
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 

@@ -53,17 +53,33 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 
     public Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        // It's not thread-safe because we don't need to be perfectly thread-safe for InvalidOperationException.
-        _shutdownTask = _shutdownTask is null ? PerformShutdownAsync() :
-            throw new InvalidOperationException("The connection is already shut down.");
+        try
+        {
+            _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
+            return _shutdownTask;
+        }
+        // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
+        catch (InvalidOperationException)
+        {
+            // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+            throw;
+        }
+        catch
+        {
+            ClientMetrics.Instance.ConnectionFailure();
+            throw;
+        }
 
-        return _shutdownTask;
-
-        async Task PerformShutdownAsync()
+        static async Task PerformShutdownAsync(Task decorateeShutdownTask)
         {
             try
             {
-                await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                await decorateeShutdownTask.ConfigureAwait(false);
+            }
+            catch (InvalidOperationException)
+            {
+                // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+                throw;
             }
             catch
             {

@@ -451,7 +451,7 @@ public sealed class Server : IAsyncDisposable
                     else
                     {
                         // Schedule removal after successful ConnectAsync.
-                        _ = ShutdownWhenAsync(protocolConnection, shutdownRequested, listNode);
+                        _ = ShutdownWhenRequestedAsync(protocolConnection, shutdownRequested, listNode);
                     }
                 }
             }
@@ -488,7 +488,7 @@ public sealed class Server : IAsyncDisposable
         }
 
         // Remove the connection from _connections after a successful ConnectAsync.
-        async Task ShutdownWhenAsync(
+        async Task ShutdownWhenRequestedAsync(
             IProtocolConnection connection,
             Task shutdownRequested,
             LinkedListNode<IProtocolConnection> listNode)
@@ -861,21 +861,37 @@ public sealed class Server : IAsyncDisposable
 
         public Task ShutdownAsync(CancellationToken cancellationToken)
         {
-            // It's not thread-safe because we don't need to be perfectly thread-safe for InvalidOperationException.
-            _shutdownTask = _shutdownTask is null ? PerformShutdownAsync() :
-                throw new InvalidOperationException("The connection is already shut down.");
+            try
+            {
+                _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
+                return _shutdownTask;
+            }
+            // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
+            catch (InvalidOperationException)
+            {
+                // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+                throw;
+            }
+            catch
+            {
+                ClientMetrics.Instance.ConnectionFailure();
+                throw;
+            }
 
-            return _shutdownTask;
-
-            async Task PerformShutdownAsync()
+            static async Task PerformShutdownAsync(Task decorateeShutdownTask)
             {
                 try
                 {
-                    await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                    await decorateeShutdownTask.ConfigureAwait(false);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+                    throw;
                 }
                 catch
                 {
-                    ServerMetrics.Instance.ConnectionFailure();
+                    ClientMetrics.Instance.ConnectionFailure();
                     throw;
                 }
             }

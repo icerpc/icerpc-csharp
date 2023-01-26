@@ -331,13 +331,12 @@ public sealed class IceProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         // Act/Assert
-        await serverShutdownRequested;
-
-        // TODO: why is this necessary with Assert.That?
-        await Task.Yield();
-
         Assert.That(
-            async () => await sut.Server.ShutdownAsync(),
+            async () =>
+            {
+                await serverShutdownRequested;
+                await sut.Server.ShutdownAsync();
+            },
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
 
         // Cleanup
@@ -426,7 +425,7 @@ public sealed class IceProtocolConnectionTests
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
-        _ = sut.Client.ShutdownWhenAsync(clientShutdownRequested);
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask1 = sut.Client.InvokeAsync(request1);
@@ -499,15 +498,12 @@ public sealed class IceProtocolConnectionTests
         Task invokeTask = sut.Client.InvokeAsync(request, default);
 
         // Assert
-        await serverShutdownRequested;
-
-        Task shutdownTask = sut.Server.ShutdownAsync();
-
-        // TODO: why is this Task.Yield necessary when using Assert.That???
-        await Task.Yield();
-
         Assert.That(
-            async () => await shutdownTask,
+            async () =>
+            {
+                await serverShutdownRequested;
+                await sut.Server.ShutdownAsync();
+            },
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
         // Cleanup
