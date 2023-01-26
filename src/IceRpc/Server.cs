@@ -823,7 +823,6 @@ public sealed class Server : IAsyncDisposable
         public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
             CancellationToken cancellationToken)
         {
-            Metrics.ServerMetrics.ConnectStart();
             try
             {
                 (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
