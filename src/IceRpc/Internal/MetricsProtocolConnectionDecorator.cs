@@ -14,7 +14,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public Task ShutdownRequested => _decoratee.ShutdownRequested;
 
     private readonly IProtocolConnection _decoratee;
-    private readonly Task _stopTask;
+    private volatile Task? _stopTask;
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -24,18 +24,33 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
             TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
                 .ConfigureAwait(false);
             ClientMetrics.Instance.ConnectSuccess();
+
+            _stopTask = WaitForClosedAsync();
             return result;
         }
         finally
         {
             ClientMetrics.Instance.ConnectStop();
         }
+
+        async Task WaitForClosedAsync()
+        {
+            Exception? exception = await Closed.ConfigureAwait(false);
+            if (exception is not null)
+            {
+                ClientMetrics.Instance.ConnectionFailure();
+            }
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
-        await _stopTask.ConfigureAwait(false);
+        if (_stopTask is Task stopTask)
+        {
+            await stopTask.ConfigureAwait(false);
+        }
+        ClientMetrics.Instance.ConnectionStop();
     }
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -46,18 +61,6 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
     {
         ClientMetrics.Instance.ConnectionStart();
-
         _decoratee = decoratee;
-        _stopTask = WaitForClosedAsync();
-
-        // This task executes exactly once per decorated connection.
-        async Task WaitForClosedAsync()
-        {
-            if (await Closed.ConfigureAwait(false) is not null)
-            {
-                ClientMetrics.Instance.ConnectionFailure();
-            }
-            ClientMetrics.Instance.ConnectionStop();
-        }
     }
 }

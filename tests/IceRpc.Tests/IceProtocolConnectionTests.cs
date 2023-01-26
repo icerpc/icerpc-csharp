@@ -169,12 +169,6 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         Exception? caughtException = Assert.CatchAsync(() => connectCall());
         Assert.That(caughtException, Is.EqualTo(exception));
-
-        // The protocol connection is not created if server-side connect fails.
-        if (!serverConnection || operation != DuplexTransportOperation.Connect)
-        {
-            Assert.That(() => serverConnection ? sut.Server.Closed : sut.Client.Closed, Is.EqualTo(exception));
-        }
     }
 
     [TestCase(false, DuplexTransportOperation.Connect)]
@@ -223,15 +217,54 @@ public sealed class IceProtocolConnectionTests
                 "CancellationToken").EqualTo(connectCts.Token));
     }
 
-    [TestCase(DuplexTransportOperation.Read)]
-    [TestCase(DuplexTransportOperation.Write)]
-    public async Task Invoke_exception_handling_on_transport_failure(DuplexTransportOperation operation)
+    [Test]
+    public async Task Invoke_exception_handling_on_read_transport_failure()
     {
         // Arrange
 
         // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
 
+        // We need a dispatcher to hold the invocation, and ensure the transport read failure happens after we call
+        // InvokeAsync and while it is still in course.
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddTestDuplexTransport(clientFailureException: failureException)
+            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+            .AddIceProtocolTest(serverConnectionOptions: new ConnectionOptions
+            {
+                Dispatcher = dispatcher
+            })
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        // Act
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        // Wait for the dispatch to start, to ensure the transport read failure happens after we make the invocation.
+        await dispatcher.DispatchStart;
+        clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Read;
+        dispatcher.ReleaseDispatch();
+
+        // Assert
+        Assert.That(() =>
+            invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                IceRpcError.ConnectionAborted));
+        Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
+    }
+
+    [Test]
+    public async Task Invoke_exception_handling_on_write_transport_failure()
+    {
+        // Arrange
+
+        // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
+        var failureException = new IceRpcException(IceRpcError.IceRpcError);
         await using ServiceProvider provider = new ServiceCollection()
             .AddTestDuplexTransport(clientFailureException: failureException)
             .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
@@ -243,24 +276,16 @@ public sealed class IceProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Write;
 
-        clientTransport!.LastConnection.FailOperation = operation;
+        // Act
+        var invokeTask = sut.Client.InvokeAsync(request);
 
-        // Act/Assert
-        if (operation == DuplexTransportOperation.Write)
-        {
-            Assert.That(() =>
-                sut.Client.InvokeAsync(request),
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
-                    IceRpcError.InvocationCanceled));
-        }
-        else
-        {
-            Assert.That(() =>
-                sut.Client.InvokeAsync(request),
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
-                    IceRpcError.ConnectionAborted));
-        }
+        // Assert
+        Assert.That(() =>
+            invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                IceRpcError.InvocationCanceled));
         Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
     }
 
@@ -284,40 +309,6 @@ public sealed class IceProtocolConnectionTests
             () => sut.Client.InvokeAsync(request, invokeCts.Token),
             Throws.InstanceOf<OperationCanceledException>().With.Property(
                 "CancellationToken").EqualTo(invokeCts.Token));
-    }
-
-    /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>
-    [Test]
-    public async Task Idle_timeout_mismatch_aborts_connection()
-    {
-        var clientConnectionOptions = new ConnectionOptions { IceIdleTimeout = TimeSpan.FromSeconds(10) };
-        var serverConnectionOptions = new ConnectionOptions { IceIdleTimeout = TimeSpan.FromMilliseconds(100) };
-
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(
-                Protocol.Ice,
-                dispatcher: null,
-                clientConnectionOptions,
-                serverConnectionOptions)
-            .BuildServiceProvider(validateScopes: true);
-
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        // Act/Assert
-        Assert.That(
-            async () => await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
-
-        // Cleanup
-
-        // That's the dispose that actually aborts the connection for the client. It's usually triggered by Closed's
-        // completion.
-        await sut.Server.DisposeAsync();
-
-        Assert.That(
-            async () => await sut.Client.ShutdownAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that canceling an invocation while the request is being write, fails with

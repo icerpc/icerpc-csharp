@@ -437,38 +437,42 @@ public class SlicTransportTests
     }
 
     [Test]
-    public async Task Write_hang_does_not_trigger_the_transport_idle_timeout()
+    public async Task Stream_write_cancellation_does_not_cancel_write_if_writing_data_on_duplex_connection()
     {
-        IServiceCollection services = new ServiceCollection()
+        // Arrange
+
+        var colocTransport = new ColocTransport();
+        var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport();
-        services.AddOptions<SlicTransportOptions>("server").Configure(options =>
-                options.IdleTimeout = TimeSpan.FromMilliseconds(250));
-        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+            .AddSingleton(colocTransport.ServerTransport)
+            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        var serverConnection = await acceptTask;
-
-        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
-        TestDuplexConnectionDecorator transportConnection = clientTransport.LastConnection!;
+        await using IMultiplexedConnection serverConnection = await acceptTask;
+        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastConnection;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
 
-        // Simulate transport flow-control write hang. The hang of the writes shouldn't trigger the connection closure
-        // because the connection is just fine: it can still receive data from the server.
-        // The bug: the sending of pings from the client connection hang because of the write hang. As a result the
-        // client won't receive pong frames from the server and the connection will be aborted.
-        transportConnection.HoldOperation = DuplexTransportOperation.Write;
-        using var writeCts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using var writeCts = new CancellationTokenSource();
 
         // Act
-        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[10], writeCts.Token);
+        duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
+        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[1], writeCts.Token);
+        writeCts.Cancel();
+        await Task.Delay(TimeSpan.FromMilliseconds(10));
 
         // Assert
-        Assert.That(() => writeTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(writeTask.IsCompleted, Is.False);
+        duplexClientConnection.HoldOperation = DuplexTransportOperation.None;
+        Assert.That(async () => await writeTask, Throws.Nothing);
+
+        CompleteStreams(localStream, remoteStream);
     }
 
     [TestCase(64 * 1024, 32 * 1024)]

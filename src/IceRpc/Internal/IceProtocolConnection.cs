@@ -146,47 +146,31 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    _ = _closedTcs.TrySetResult(
-                        new IceRpcException(
-                            IceRpcError.ConnectionAborted,
-                            "The connection establishment was canceled."));
+                cancellationToken.ThrowIfCancellationRequested();
 
-                    cancellationToken.ThrowIfCancellationRequested(); // always throws
-                }
-
-                // DisposeAsync completes Closed.
                 Debug.Assert(_disposedCts.Token.IsCancellationRequested);
                 throw new IceRpcException(
                     IceRpcError.OperationAborted,
                     "The connection establishment was aborted because the connection was disposed.");
             }
-            // For all other exceptions, we complete _closedTcs. This way the caller (e.g. Server) will typically
-            // dispose this failed connection promptly.
             catch (InvalidDataException exception)
             {
-                var rpcException = new IceRpcException(
+                throw new IceRpcException(
                     IceRpcError.ConnectionAborted,
                     "The connection was aborted by an ice protocol error.",
                     exception);
-                _ = _closedTcs.TrySetResult(rpcException);
-                throw rpcException;
             }
-            catch (AuthenticationException exception)
+            catch (AuthenticationException)
             {
-                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
-            catch (IceRpcException exception)
+            catch (IceRpcException)
             {
-                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
             catch (Exception exception)
             {
                 Debug.Fail($"ConnectAsync failed with an unexpected exception: {exception}");
-                _ = _closedTcs.TrySetResult(exception);
                 throw;
             }
 
@@ -1586,6 +1570,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     catch (OperationCanceledException)
                     {
                         // expected
+                    }
+                    catch (IceRpcException exception) when (exception.IceRpcError is IceRpcError.ConnectionAborted)
+                    {
+                        // ConnectionAborted is expected when the peer aborts the connection.
                     }
                     catch (Exception exception)
                     {

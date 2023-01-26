@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -211,13 +210,7 @@ public sealed class IceRpcProtocolConnectionTests
             };
 
         // Act/Assert
-        Assert.That(connectCall, Throws.InstanceOf(exception.GetType()));
-
-        // The protocol connection is not created if server-side connect fails.
-        if (!serverConnection || operation != MultiplexedTransportOperation.Connect)
-        {
-            Assert.That(() => serverConnection ? sut.Server.Closed : sut.Client.Closed, Is.EqualTo(exception));
-        }
+        Assert.That(connectCall, Throws.Exception.EqualTo(exception));
     }
 
     [TestCase(false, MultiplexedTransportOperation.Connect)]
@@ -550,8 +543,7 @@ public sealed class IceRpcProtocolConnectionTests
 
     [TestCase(MultiplexedTransportOperation.CreateStream)]
     [TestCase(MultiplexedTransportOperation.StreamWrite)]
-    // TODO: Fix #2570
-    // [TestCase(MultiplexedTransportOperation.StreamRead)]
+    [TestCase(MultiplexedTransportOperation.StreamRead)]
     public async Task Invoke_cancellation_on_transport_hang(MultiplexedTransportOperation operation)
     {
         // Arrange

@@ -187,8 +187,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
 
             // When InvokeAsync (or ConnectAsync) throws an IceRpcException(InvocationRefused) we retry unless the
-            // cache is being shutdown. This exception is usually thrown synchronously by InvokeAsync, however this
-            // throwing can be asynchronous when we first connect the connection.
+            // cache is being shutdown.
             while (true)
             {
                 IProtocolConnection? connection = null;
@@ -550,7 +549,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             lock (_mutex)
             {
-                if (--_detachedConnectionCount == 0 && _disposeTask is not null)
+                if (--_detachedConnectionCount == 0 && _shutdownTask is not null)
                 {
                     _detachedConnectionsTcs.SetResult();
                 }
