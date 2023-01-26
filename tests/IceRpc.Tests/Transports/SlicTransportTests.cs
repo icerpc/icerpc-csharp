@@ -438,6 +438,45 @@ public class SlicTransportTests
         CompleteStreams(localStream1, remoteStream1, localStream2, remoteStream2);
     }
 
+    [Test]
+    public async Task Stream_write_cancellation_does_not_cancel_write_if_writing_data_on_duplex_connection()
+    {
+        // Arrange
+
+        var colocTransport = new ColocTransport();
+        var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddSingleton(colocTransport.ServerTransport)
+            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientConnection = provider.GetRequiredService<SlicConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await using IMultiplexedConnection serverConnection = await acceptTask;
+        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastConnection;
+
+        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
+            await CreateAndAcceptStreamAsync(clientConnection, serverConnection);
+
+        using var writeCts = new CancellationTokenSource();
+
+        // Act
+        duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
+        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[1], writeCts.Token);
+        writeCts.Cancel();
+        await Task.Delay(TimeSpan.FromMilliseconds(10));
+
+        // Assert
+        Assert.That(writeTask.IsCompleted, Is.False);
+        duplexClientConnection.HoldOperation = DuplexTransportOperation.None;
+        Assert.That(async () => await writeTask, Throws.Nothing);
+
+        CompleteStreams(localStream, remoteStream);
+    }
+
     [TestCase(64 * 1024, 32 * 1024)]
     [TestCase(1024 * 1024, 512 * 1024)]
     [TestCase(2048 * 1024, 512 * 1024)]

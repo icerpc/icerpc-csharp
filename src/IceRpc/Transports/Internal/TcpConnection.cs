@@ -59,21 +59,11 @@ internal abstract class TcpConnection : IDuplexConnection
             throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
         }
 
-        int received;
         try
         {
-            if (SslStream is not null)
-            {
-                received = await SslStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
+            return SslStream is SslStream sslStream ?
+                await SslStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false) :
+                await Socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
         }
         catch (IOException exception)
         {
@@ -83,8 +73,6 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             throw exception.ToIceRpcException();
         }
-
-        return received;
     }
 
     public async Task ShutdownAsync(CancellationToken cancellationToken)
@@ -112,7 +100,6 @@ internal abstract class TcpConnection : IDuplexConnection
     public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
-
         Debug.Assert(buffers.Count > 0);
 
         try
@@ -177,7 +164,7 @@ internal abstract class TcpConnection : IDuplexConnection
             {
                 if (buffers.Count == 1)
                 {
-                    await Socket.SendAsync(buffers[0], SocketFlags.None, cancellationToken).ConfigureAwait(false);
+                    _ = await Socket.SendAsync(buffers[0], SocketFlags.None, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -195,8 +182,28 @@ internal abstract class TcpConnection : IDuplexConnection
                                 nameof(buffers));
                         }
                     }
-                    await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(
-                        cancellationToken).ConfigureAwait(false);
+
+                    Task sendTask = Socket.SendAsync(_segments, SocketFlags.None);
+
+                    try
+                    {
+                        await sendTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Abort the connection and wait for sendTask to complete
+                        Socket.Close(0);
+
+                        try
+                        {
+                            await sendTask.ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // expected, most likely OperationAborted
+                        }
+                        throw;
+                    }
                 }
             }
         }

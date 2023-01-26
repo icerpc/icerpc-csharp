@@ -535,8 +535,7 @@ public sealed class IceRpcProtocolConnectionTests
 
     [TestCase(MultiplexedTransportOperation.CreateStream)]
     [TestCase(MultiplexedTransportOperation.StreamWrite)]
-    // TODO: Fix #2570
-    // [TestCase(MultiplexedTransportOperation.StreamRead)]
+    [TestCase(MultiplexedTransportOperation.StreamRead)]
     public async Task Invoke_cancellation_on_transport_hang(MultiplexedTransportOperation operation)
     {
         // Arrange

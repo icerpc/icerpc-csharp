@@ -217,14 +217,54 @@ public sealed class IceProtocolConnectionTests
                 "CancellationToken").EqualTo(connectCts.Token));
     }
 
-    [TestCase(DuplexTransportOperation.Read)]
-    [TestCase(DuplexTransportOperation.Write)]
-    public async Task Invoke_exception_handling_on_transport_failure(DuplexTransportOperation operation)
+    [Test]
+    public async Task Invoke_exception_handling_on_read_transport_failure()
     {
         // Arrange
 
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
 
+        // We need a dispatcher to hold the invocation, and ensure the transport read failure happens after we call
+        // InvokeAsync and while it is still in course.
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddTestDuplexTransport(clientFailureException: failureException)
+            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+            .AddIceProtocolTest(serverConnectionOptions: new ConnectionOptions
+            {
+                Dispatcher = dispatcher
+            })
+            .BuildServiceProvider(validateScopes: true);
+
+        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        // Act
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        // Wait for the dispatch to start, to ensure the transport read failure happens after we make the invocation.
+        await dispatcher.DispatchStart;
+        clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Read;
+        dispatcher.ReleaseDispatch();
+
+        // Assert
+        Assert.That(() =>
+            invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                IceRpcError.ConnectionAborted));
+
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Exception.EqualTo(failureException));
+    }
+
+    [Test]
+    public async Task Invoke_exception_handling_on_write_transport_failure()
+    {
+        // Arrange
+
+        // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
+        var failureException = new IceRpcException(IceRpcError.IceRpcError);
         await using ServiceProvider provider = new ServiceCollection()
             .AddTestDuplexTransport(clientFailureException: failureException)
             .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
@@ -236,24 +276,16 @@ public sealed class IceProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         _ = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Write;
 
-        clientTransport!.LastConnection.FailOperation = operation;
+        // Act
+        var invokeTask = sut.Client.InvokeAsync(request);
 
-        // Act/Assert
-        if (operation == DuplexTransportOperation.Write)
-        {
-            Assert.That(() =>
-                sut.Client.InvokeAsync(request),
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
-                    IceRpcError.InvocationCanceled));
-        }
-        else
-        {
-            Assert.That(() =>
-                sut.Client.InvokeAsync(request),
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
-                    IceRpcError.ConnectionAborted));
-        }
+        // Assert
+        Assert.That(() =>
+            invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                IceRpcError.InvocationCanceled));
 
         Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Exception.EqualTo(failureException));
     }

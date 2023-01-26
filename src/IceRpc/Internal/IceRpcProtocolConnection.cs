@@ -340,8 +340,23 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         async Task<IncomingResponse> PerformInvokeAsync()
         {
             var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
-            CancellationToken invocationCancellationToken = invocationCts.Token;
+            try
+            {
+                IncomingResponse response = await PerformInvokeAsyncCore(invocationCts).ConfigureAwait(false);
+                // PerformInvokeAsyncCore will dispose the invocationCts when the invocation is unregister
+                // see UnregisterInvocationAsync.
+                invocationCts = null;
+                return response;
+            }
+            finally
+            {
+                invocationCts?.Dispose();
+            }
+        }
 
+        async Task<IncomingResponse> PerformInvokeAsyncCore(CancellationTokenSource invocationCts)
+        {
+            CancellationToken invocationCancellationToken = invocationCts.Token;
             // We unregister this cancellationToken when this async method completes (it completes successfully when we
             // receive a response (for twoway) or the request Payload is sent (oneway)).
             // This way, the sending of the payload continuation can continue in the background after this async method
@@ -349,7 +364,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),
                 invocationCts);
-
             IMultiplexedStream? stream = null;
             PipeReader? streamInput = null;
             try
@@ -362,7 +376,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     using CancellationTokenRegistration _ = shutdownCancellationToken.UnsafeRegister(
                         cts => ((CancellationTokenSource)cts!).Cancel(),
                         invocationCts);
-
                     stream = await _transportConnection.CreateStreamAsync(
                         bidirectional: !request.IsOneway,
                         invocationCancellationToken).ConfigureAwait(false);
@@ -402,9 +415,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     // Keep track of the invocation cancellation token source for the shutdown logic.
                     _pendingInvocations.Add(stream, invocationCts);
-                    invocationCts = null; // invocationCts is disposed by UnregisterOnReadsAndWritesClosedAsync
-
-                    _ = UnregisterOnReadsAndWritesClosedAsync(stream);
+                    _ = UnregisterStreamOnReadsAndWritesClosedAsync(stream);
                 }
             }
             catch
@@ -412,10 +423,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 stream?.Output.CompleteOutput(success: false);
                 streamInput?.Complete();
                 throw;
-            }
-            finally
-            {
-                invocationCts?.Dispose();
             }
 
             PipeWriter payloadWriter;
@@ -549,6 +556,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 };
 
                 streamInput = null; // response now owns the stream input
+                // UnregisterInvocationAsync will dispose the invocationCts
+                _ = UnregisterInvocationAsync(stream);
                 return response;
             }
             catch (OperationCanceledException)
@@ -606,6 +615,26 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
                 return (statusCode, errorMessage, fields, pipeReader);
+            }
+
+            async Task UnregisterInvocationAsync(IMultiplexedStream stream)
+            {
+                // Wait for the stream's reading and writing side to be closed to dispose the invocation cts.
+                await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
+                lock (_mutex)
+                {
+                    if (!_refuseInvocations)
+                    {
+                        if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
+                        {
+                            cts.Dispose();
+                        }
+                        else
+                        {
+                            Debug.Fail("Did not find multiplexed stream in pending invocations");
+                        }
+                    }
+                }
             }
         }
     }
@@ -894,7 +923,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
-                _ = UnregisterOnReadsAndWritesClosedAsync(stream);
+                _ = UnregisterStreamOnReadsAndWritesClosedAsync(stream);
 
                 // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
                 // to Task.Run because DispatchRequestAsync must clean-up the stream.
@@ -1376,25 +1405,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private async Task UnregisterOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
+    private async Task UnregisterStreamOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
     {
         // Wait for the stream's reading and writing side to be closed to unregister the stream from the connection.
         await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
 
         lock (_mutex)
         {
-            if (!stream.IsRemote && !_refuseInvocations)
-            {
-                if (_pendingInvocations.Remove(stream, out CancellationTokenSource? cts))
-                {
-                    cts.Dispose();
-                }
-                else
-                {
-                    Debug.Fail("Did not find multiplexed stream in pending invocations");
-                }
-            }
-
             if (--_streamCount == 0)
             {
                 if (_shutdownTask is not null)
