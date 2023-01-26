@@ -212,6 +212,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _acceptRequestsTask = AcceptRequestsAsync(_shutdownCts.Token);
             }
 
+            // The _acceptRequestsTask waits for this PerformConnectAsync completion before reading anything. As soon as
+            // it receives a request, it will cancel this inactivity check.
+            ScheduleInactivityCheck();
+
             return (transportConnectionInformation, _shutdownRequestedTcs.Task);
         }
     }
@@ -843,10 +847,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         // _connectTask has completed successfully. The creation of the _acceptRequestsTask is the last action taken by
         // _connectTask and as a result this await can't fail.
         await _connectTask!.ConfigureAwait(false);
-
-        // The inactivity check requests shutdown and we want to make sure we only request it after _connectTask
-        // completed successfully.
-        ScheduleInactivityCheck();
 
         try
         {
