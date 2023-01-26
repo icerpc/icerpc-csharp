@@ -491,10 +491,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 ReadOnlySequence<byte> payloadBuffer,
                 SemaphoreLock semaphoreLock)
             {
-                using SemaphoreLock _ = semaphoreLock; // release semaphore when done
-
                 try
                 {
+                    using SemaphoreLock _ = semaphoreLock; // release semaphore when done
                     int payloadSize = checked((int)payloadBuffer.Length);
                     EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
@@ -1004,22 +1003,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
-    /// <summary>Takes appropriate action after a write failure.</summary>
-    /// <remarks>Must be called outside the mutex lock.</remarks>
-    private void WriteFailed()
-    {
-        // We can't send new invocations without writing to the connection.
-        RefuseNewInvocations("The connection was lost because a write operation failed.");
-
-        // We can't send responses so these dispatches can be canceled.
-        _twowayDispatchesCts.Cancel();
-
-        // We don't change _sendClosedConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync to
-        // send CloseConnection - and fail.
-
-        _ = _shutdownRequestedTcs.TrySetResult();
-    }
-
     /// <summary>Acquires exclusive access to _duplexConnectionWriter.</summary>
     /// <returns>A <see cref="SemaphoreLock" /> that releases the acquired semaphore in its Dispose method.</returns>
     private async ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
@@ -1142,9 +1125,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 int payloadSize = checked((int)payload.Length);
 
                 // Wait for writing of other frames to complete.
-                using SemaphoreLock _ = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
+                SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
+                    using SemaphoreLock _ = semaphoreLock;
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
 
                     // Write the payload and complete the source. It's much simpler than the WriteAsync in InvokeAsync
@@ -1614,10 +1598,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // until DisposeAsync.
         async Task PerformSendControlFrameAsync(SemaphoreLock semaphoreLock)
         {
-            using SemaphoreLock _ = semaphoreLock; // release when done
-
             try
             {
+                using SemaphoreLock _ = semaphoreLock; // release when done
                 encode(_duplexConnectionWriter);
                 await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
             }
@@ -1627,5 +1610,21 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw;
             }
         }
+    }
+
+    /// <summary>Takes appropriate action after a write failure.</summary>
+    /// <remarks>Must be called outside the mutex lock.</remarks>
+    private void WriteFailed()
+    {
+        // We can't send new invocations without writing to the connection.
+        RefuseNewInvocations("The connection was lost because a write operation failed.");
+
+        // We can't send responses so these dispatches can be canceled.
+        _twowayDispatchesCts.Cancel();
+
+        // We don't change _sendClosedConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync to
+        // send CloseConnection - and fail.
+
+        _ = _shutdownRequestedTcs.TrySetResult();
     }
 }
