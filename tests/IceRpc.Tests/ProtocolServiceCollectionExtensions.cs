@@ -114,12 +114,16 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
     private readonly IAsyncDisposable _listener;
     private IProtocolConnection? _server;
 
-    public async Task ConnectAsync(CancellationToken cancellationToken = default)
+    public async Task<(Task ClientShutdownRequested, Task ServerShutdownRequested)> ConnectAsync(
+        CancellationToken cancellationToken = default)
     {
-        Task clientProtocolConnectionTask = Client.ConnectAsync(cancellationToken);
+        Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> clientProtocolConnectionTask =
+            Client.ConnectAsync(cancellationToken);
+
+        Task serverShutdownRequested;
         try
         {
-            await AcceptAsync(cancellationToken);
+            serverShutdownRequested = await AcceptAsync(cancellationToken);
         }
         catch
         {
@@ -133,13 +137,13 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
             }
             throw;
         }
-        await clientProtocolConnectionTask;
+        return ((await clientProtocolConnectionTask).ShutdownRequested, serverShutdownRequested);
     }
 
-    public async Task AcceptAsync(CancellationToken cancellationToken = default)
+    public async Task<Task> AcceptAsync(CancellationToken cancellationToken = default)
     {
         _server = await _acceptServerConnectionAsync(cancellationToken);
-        await _server.ConnectAsync(cancellationToken);
+        return (await _server.ConnectAsync(cancellationToken)).ShutdownRequested;
     }
 
     public async ValueTask DisposeAsync()

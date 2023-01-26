@@ -328,25 +328,6 @@ public sealed class ProtocolConnectionTests
         Assert.That(response.StatusCode, Is.EqualTo(statusCode));
     }
 
-    /// <summary>Verifies that disposing a connection that was not connected completes the
-    /// <see cref="IProtocolConnection.Closed" /> task.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Closed_completes_when_disposing_not_connected_connection(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
-        // Act
-        await sut.Client.DisposeAsync();
-
-        // Assert
-        Assert.That(async () => await sut.Client.Closed, Is.Null);
-    }
-
     /// <summary>Verifies that ShutdownRequested completes when the peer shuts down.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task ShutdownRequested_completes_when_peer_shuts_down(Protocol protocol, bool closeClientSide)
@@ -357,19 +338,19 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
         IProtocolConnection localConnection = closeClientSide ? sut.Client : sut.Server;
+        Task localShutdownRequested = closeClientSide ? clientShutdownRequested : serverShutdownRequested;
         IProtocolConnection peerConnection = closeClientSide ? sut.Server : sut.Client;
 
         // Act
-        Task shutdownTask = localConnection.ShutdownAsync();
+        Task shutdownTask = peerConnection.ShutdownAsync();
 
         // Assert
-        Assert.That(async () => await peerConnection.ShutdownRequested, Throws.Nothing);
-        Assert.That(shutdownTask.IsCompleted, Is.False); // it's waiting for the peer to shutdown
-        Assert.That(peerConnection.Closed.IsCompleted, Is.False);
+        Assert.That(async () => await localShutdownRequested, Throws.Nothing);
+        Assert.That(shutdownTask.IsCompleted, Is.False); // it's waiting for local connection to shut down
 
-        await peerConnection.ShutdownAsync(); // fulfills shutdown request
+        await localConnection.ShutdownAsync(); // fulfills shutdown request
         Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
@@ -387,10 +368,11 @@ public sealed class ProtocolConnectionTests
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
 
         // Act
-        await sut.Client.ShutdownRequested;
+        await clientShutdownRequested;
 
         // Assert
         Assert.That(
@@ -419,7 +401,7 @@ public sealed class ProtocolConnectionTests
         long startTime = Environment.TickCount64;
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
 
         {
             using var request = new OutgoingRequest(new ServiceAddress(protocol))
@@ -431,7 +413,7 @@ public sealed class ProtocolConnectionTests
         }
 
         // Act
-        await sut.Client.ShutdownRequested;
+        await clientShutdownRequested;
 
         // Assert
         Assert.That(
@@ -474,7 +456,7 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
 
         var pipe = new Pipe();
         using var request = new OutgoingRequest(new ServiceAddress(protocol))
@@ -490,7 +472,7 @@ public sealed class ProtocolConnectionTests
         await invokeTask;
 
         // Act
-        await sut.Client.ShutdownRequested;
+        await clientShutdownRequested;
 
         // Assert
         Assert.That(
@@ -498,9 +480,9 @@ public sealed class ProtocolConnectionTests
             Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
     }
 
-    /// <summary>Verifies that an abortive shutdown completes Closed.</summary>
+    /// <summary>Verifies that an abortive shutdown completes ShutdownRequested.</summary>
     [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connection_abort_completes_closed(Protocol protocol)
+    public async Task Connection_abort_completes_shutdown_requested(Protocol protocol)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -510,15 +492,19 @@ public sealed class ProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
         // Initialize the connection.
-        await sut.ConnectAsync();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         // Act
         await sut.Client.DisposeAsync();
 
         // Assert
         Assert.That(
-            await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            async () =>
+            {
+                await serverShutdownRequested;
+                await sut.Server.ShutdownAsync();
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verifies that the cancellation token given to dispatch is not cancelled.</summary>
@@ -562,8 +548,8 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
@@ -647,8 +633,8 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Server);
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         Task shutdownTask = sut.Client.ShutdownAsync();
 
         // Act/Assert
@@ -912,8 +898,15 @@ public sealed class ProtocolConnectionTests
             .AddProtocolTest(protocol)
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(closeClientSide ? sut.Server : sut.Client);
+        (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
+        if (closeClientSide)
+        {
+            _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+        }
+        else
+        {
+            _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
+        }
 
         // Act
         Task shutdownTask = (closeClientSide ? sut.Client : sut.Server).ShutdownAsync();
@@ -1000,8 +993,15 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(closeClientSide ? sut.Server : sut.Client);
+        (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
+        if (closeClientSide)
+        {
+            _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+        }
+        else
+        {
+            _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
+        }
 
         using var request = new OutgoingRequest(new ServiceAddress(protocol));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
@@ -1035,7 +1035,7 @@ public sealed class ProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         using var request = new OutgoingRequest(new ServiceAddress(protocol));
         using var cts = new CancellationTokenSource();
@@ -1047,7 +1047,7 @@ public sealed class ProtocolConnectionTests
 
         // Act
         Task clientShutdownTask = sut.Client.ShutdownAsync();
-        await sut.Server.ShutdownRequested;
+        await serverShutdownRequested;
 
         // Assert
         Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
@@ -1059,19 +1059,6 @@ public sealed class ProtocolConnectionTests
         // Fulfill shutdown request.
         await sut.Server.ShutdownAsync();
         Assert.That(async () => await clientShutdownTask, Throws.Nothing);
-    }
-
-    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
-    {
-        await connection.ShutdownRequested;
-        try
-        {
-            await connection.ShutdownAsync();
-        }
-        catch
-        {
-            // ignore all exceptions
-        }
     }
 
     private sealed class DelayPipeReader : PipeReader

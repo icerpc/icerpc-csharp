@@ -222,7 +222,6 @@ public sealed class IceProtocolConnectionTests
     {
         // Arrange
 
-        // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
 
         // We need a dispatcher to hold the invocation, and ensure the transport read failure happens after we call
@@ -255,7 +254,8 @@ public sealed class IceProtocolConnectionTests
             invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                 IceRpcError.ConnectionAborted));
-        Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
+
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Exception.EqualTo(failureException));
     }
 
     [Test]
@@ -274,7 +274,7 @@ public sealed class IceProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        _ = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Write;
 
@@ -286,7 +286,8 @@ public sealed class IceProtocolConnectionTests
             invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                 IceRpcError.InvocationCanceled));
-        Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
+
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Exception.EqualTo(failureException));
     }
 
     [Test]
@@ -327,17 +328,20 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         // Act/Assert
         Assert.That(
-            async () => await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
+            async () =>
+            {
+                await serverShutdownRequested;
+                await sut.Server.ShutdownAsync();
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
 
         // Cleanup
 
-        // That's the dispose that actually aborts the connection for the client. It's usually triggered by Closed's
-        // completion.
+        // That's the dispose that actually aborts the connection for the client.
         await sut.Server.DisposeAsync();
 
         Assert.That(
@@ -420,8 +424,8 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask1 = sut.Client.InvokeAsync(request1);
@@ -481,7 +485,7 @@ public sealed class IceProtocolConnectionTests
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[1024]));
         pipe.Writer.Complete();
@@ -495,8 +499,12 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(
-            await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            async () =>
+            {
+                await serverShutdownRequested;
+                await sut.Server.ShutdownAsync();
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
         // Cleanup
         await sut.Server.DisposeAsync();
@@ -538,19 +546,6 @@ public sealed class IceProtocolConnectionTests
         bool ok = response.Payload.TryRead(out ReadResult readResult);
         Assert.That(ok, Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
-    }
-
-    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
-    {
-        await connection.ShutdownRequested;
-        try
-        {
-            await connection.ShutdownAsync();
-        }
-        catch
-        {
-            // ignore all exceptions
-        }
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>

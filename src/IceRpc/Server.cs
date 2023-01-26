@@ -416,20 +416,20 @@ public sealed class Server : IAsyncDisposable
                 }
                 else
                 {
+                    Task shutdownRequested;
                     try
                     {
-                        _ = await protocolConnection.ConnectAsync(connectCts.Token).ConfigureAwait(false);
+                        (_, shutdownRequested) = await protocolConnection.ConnectAsync(connectCts.Token)
+                            .ConfigureAwait(false);
                     }
                     catch
                     {
-                        await DisposeDetachedConnectionAsync(
-                            protocolConnection,
-                            shutdownRequested: false).ConfigureAwait(false);
+                        await DisposeDetachedConnectionAsync(protocolConnection, withShutdown: false)
+                            .ConfigureAwait(false);
                         throw;
                     }
 
                     LinkedListNode<IProtocolConnection>? listNode = null;
-                    bool shutdownRequested = false;
 
                     lock (_mutex)
                     {
@@ -441,30 +441,25 @@ public sealed class Server : IAsyncDisposable
                             // _connections.
                             _detachedConnectionCount--;
                         }
-                        else
-                        {
-                            shutdownRequested = _disposeTask is null;
-                        }
                     }
 
                     if (listNode is null)
                     {
-                        await DisposeDetachedConnectionAsync(
-                            protocolConnection,
-                            shutdownRequested).ConfigureAwait(false);
+                        await DisposeDetachedConnectionAsync(protocolConnection, withShutdown: true)
+                            .ConfigureAwait(false);
                     }
                     else
                     {
                         // Schedule removal after successful ConnectAsync.
-                        _ = RemoveFromConnectionsAsync(protocolConnection, listNode);
+                        _ = ShutdownWhenRequestedAsync(protocolConnection, shutdownRequested, listNode);
                     }
                 }
             }
         }
 
-        async Task DisposeDetachedConnectionAsync(IProtocolConnection connection, bool shutdownRequested)
+        async Task DisposeDetachedConnectionAsync(IProtocolConnection connection, bool withShutdown)
         {
-            if (shutdownRequested)
+            if (withShutdown)
             {
                 // _disposedCts is not disposed since we own a _backgroundConnectionDisposeCount.
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
@@ -493,13 +488,12 @@ public sealed class Server : IAsyncDisposable
         }
 
         // Remove the connection from _connections after a successful ConnectAsync.
-        async Task RemoveFromConnectionsAsync(
+        async Task ShutdownWhenRequestedAsync(
             IProtocolConnection connection,
+            Task shutdownRequested,
             LinkedListNode<IProtocolConnection> listNode)
         {
-            bool shutdownRequested =
-                await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
-                    connection.ShutdownRequested;
+            await shutdownRequested.ConfigureAwait(false);
 
             lock (_mutex)
             {
@@ -516,7 +510,7 @@ public sealed class Server : IAsyncDisposable
                 }
             }
 
-            await DisposeDetachedConnectionAsync(connection, shutdownRequested).ConfigureAwait(false);
+            await DisposeDetachedConnectionAsync(connection, withShutdown: true).ConfigureAwait(false);
         }
     }
 
@@ -818,32 +812,24 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.</summary>
+    /// TODO: see #2608
     private class MetricsProtocolConnectionDecorator : IProtocolConnection
     {
-        public Task<Exception?> Closed => _decoratee.Closed;
-
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        public Task ShutdownRequested => _decoratee.ShutdownRequested;
-
         private readonly IProtocolConnection _decoratee;
-        private readonly Task _shutdownTask;
+        private volatile Task? _shutdownTask;
 
-        public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+        public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
+            CancellationToken cancellationToken)
         {
-            // The connector called ConnectStart()
-
+            ServerMetrics.Instance.ConnectStart();
             try
             {
-                TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
+                    await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
                 ServerMetrics.Instance.ConnectSuccess();
-                return result;
-            }
-            catch
-            {
-                ServerMetrics.Instance.ConnectionStop();
-                throw;
+                return (connectionInformation, shutdownRequested);
             }
             finally
             {
@@ -854,29 +840,67 @@ public sealed class Server : IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             await _decoratee.DisposeAsync().ConfigureAwait(false);
-            await _shutdownTask.ConfigureAwait(false);
+
+            // Wait for _shutdownTask's completion
+            if (_shutdownTask is Task shutdownTask)
+            {
+                try
+                {
+                    await shutdownTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // observe and ignore any exception
+                }
+            }
+            ServerMetrics.Instance.ConnectionStop();
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
             _decoratee.InvokeAsync(request, cancellationToken);
 
-        public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
+        public Task ShutdownAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
+                return _shutdownTask;
+            }
+            // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
+            catch (InvalidOperationException)
+            {
+                // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+                throw;
+            }
+            catch
+            {
+                ClientMetrics.Instance.ConnectionFailure();
+                throw;
+            }
+
+            static async Task PerformShutdownAsync(Task decorateeShutdownTask)
+            {
+                try
+                {
+                    await decorateeShutdownTask.ConfigureAwait(false);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+                    throw;
+                }
+                catch
+                {
+                    ClientMetrics.Instance.ConnectionFailure();
+                    throw;
+                }
+            }
+        }
 
         internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
         {
+            ServerMetrics.Instance.ConnectionStart();
             _decoratee = decoratee;
-
-            _shutdownTask = ShutdownAsync();
-
-            // This task executes once per decorated connection.
-            async Task ShutdownAsync()
-            {
-                if (await Closed.ConfigureAwait(false) is not null)
-                {
-                    ServerMetrics.Instance.ConnectionFailure();
-                }
-                ServerMetrics.Instance.ConnectionStop();
-            }
         }
     }
 
