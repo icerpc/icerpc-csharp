@@ -9,23 +9,28 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
+    private readonly bool _connectStarted;
     private readonly IProtocolConnection _decoratee;
+    private readonly Metrics _metrics;
     private volatile Task? _shutdownTask;
 
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
     {
-        Metrics.ClientMetrics.ConnectStart();
+        if (!_connectStarted)
+        {
+            _metrics.ConnectStart();
+        }
         try
         {
             (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
                 await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
-            Metrics.ClientMetrics.ConnectSuccess();
+            _metrics.ConnectSuccess();
             return (connectionInformation, shutdownRequested);
         }
         finally
         {
-            Metrics.ClientMetrics.ConnectStop();
+            _metrics.ConnectStop();
         }
     }
 
@@ -45,7 +50,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
                 // observe and ignore any exception
             }
         }
-        Metrics.ClientMetrics.ConnectionStop();
+        _metrics.ConnectionStop();
     }
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -66,11 +71,11 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         }
         catch
         {
-            Metrics.ClientMetrics.ConnectionFailure();
+            _metrics.ConnectionFailure();
             throw;
         }
 
-        static async Task PerformShutdownAsync(Task decorateeShutdownTask)
+        async Task PerformShutdownAsync(Task decorateeShutdownTask)
         {
             try
             {
@@ -83,15 +88,20 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
             }
             catch
             {
-                Metrics.ClientMetrics.ConnectionFailure();
+                _metrics.ConnectionFailure();
                 throw;
             }
         }
     }
 
-    internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
+    internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee, Metrics metrics, bool connectStarted)
     {
-        Metrics.ClientMetrics.ConnectionStart();
+        _connectStarted = connectStarted;
         _decoratee = decoratee;
+        _metrics = metrics;
+        if (!_connectStarted)
+        {
+            Metrics.ClientMetrics.ConnectionStart();
+        }
     }
 }

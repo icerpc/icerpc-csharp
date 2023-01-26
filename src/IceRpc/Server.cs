@@ -791,7 +791,9 @@ public sealed class Server : IAsyncDisposable
         public IProtocolConnection CreateProtocolConnection(
             TransportConnectionInformation transportConnectionInformation) =>
                 new MetricsProtocolConnectionDecorator(
-                    _decoratee.CreateProtocolConnection(transportConnectionInformation));
+                    _decoratee.CreateProtocolConnection(transportConnectionInformation),
+                    Metrics.ServerMetrics,
+                    connectStarted: true);
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
@@ -809,98 +811,6 @@ public sealed class Server : IAsyncDisposable
         }
 
         internal MetricsConnectorDecorator(IConnector decoratee) => _decoratee = decoratee;
-    }
-
-    /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.</summary>
-    /// TODO: see #2608
-    private class MetricsProtocolConnectionDecorator : IProtocolConnection
-    {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
-        private readonly IProtocolConnection _decoratee;
-        private volatile Task? _shutdownTask;
-
-        public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
-                    await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                Metrics.ServerMetrics.ConnectSuccess();
-                return (connectionInformation, shutdownRequested);
-            }
-            finally
-            {
-                Metrics.ServerMetrics.ConnectStop();
-            }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
-
-            // Wait for _shutdownTask's completion
-            if (_shutdownTask is Task shutdownTask)
-            {
-                try
-                {
-                    await shutdownTask.ConfigureAwait(false);
-                }
-                catch
-                {
-                    // observe and ignore any exception
-                }
-            }
-            Metrics.ServerMetrics.ConnectionStop();
-        }
-
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
-            _decoratee.InvokeAsync(request, cancellationToken);
-
-        public Task ShutdownAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
-                return _shutdownTask;
-            }
-            // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
-            catch (InvalidOperationException)
-            {
-                // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
-                throw;
-            }
-            catch
-            {
-                Metrics.ClientMetrics.ConnectionFailure();
-                throw;
-            }
-
-            static async Task PerformShutdownAsync(Task decorateeShutdownTask)
-            {
-                try
-                {
-                    await decorateeShutdownTask.ConfigureAwait(false);
-                }
-                catch (InvalidOperationException)
-                {
-                    // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
-                    throw;
-                }
-                catch
-                {
-                    Metrics.ClientMetrics.ConnectionFailure();
-                    throw;
-                }
-            }
-        }
-
-        internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
-        {
-            Metrics.ServerMetrics.ConnectionStart();
-            _decoratee = decoratee;
-        }
     }
 
     /// <summary>A connector listener accepts a transport connection and returns a <see cref="IConnector" />. The
