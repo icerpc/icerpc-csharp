@@ -1573,6 +1573,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         // expected
                     }
+                    catch (IceRpcException exception) when (exception.IceRpcError is IceRpcError.ConnectionAborted)
+                    {
+                        // ConnectionAborted is expected when the peer aborts the connection.
+                    }
                     catch (Exception exception)
                     {
                         _faultedTaskAction(exception);
