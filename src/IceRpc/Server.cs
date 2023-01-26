@@ -451,7 +451,7 @@ public sealed class Server : IAsyncDisposable
                     else
                     {
                         // Schedule removal after successful ConnectAsync.
-                        _ = FulfillShutdownRequestAsync(protocolConnection, shutdownRequested, listNode);
+                        _ = ShutdownWhenAsync(protocolConnection, shutdownRequested, listNode);
                     }
                 }
             }
@@ -488,7 +488,7 @@ public sealed class Server : IAsyncDisposable
         }
 
         // Remove the connection from _connections after a successful ConnectAsync.
-        async Task FulfillShutdownRequestAsync(
+        async Task ShutdownWhenAsync(
             IProtocolConnection connection,
             Task shutdownRequested,
             LinkedListNode<IProtocolConnection> listNode)

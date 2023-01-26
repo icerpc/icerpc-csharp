@@ -508,10 +508,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 Debug.Assert(removed);
                 _activeConnections.Add(serverAddress, connection);
             }
-            _ = FulfillShutdownRequestAsync(connection, shutdownRequested);
+            _ = ShutdownWhenAsync(connection, shutdownRequested);
         }
 
-        async Task FulfillShutdownRequestAsync(IProtocolConnection connection, Task shutdownRequested)
+        async Task ShutdownWhenAsync(IProtocolConnection connection, Task shutdownRequested)
         {
             await shutdownRequested.ConfigureAwait(false);
 

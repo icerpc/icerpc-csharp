@@ -11,8 +11,6 @@ public sealed class FakeConnectionContext : IConnectionContext
     public static IConnectionContext Ice { get; } = new FakeConnectionContext(Protocol.Ice);
     public static IConnectionContext IceRpc { get; } = new FakeConnectionContext(Protocol.IceRpc);
 
-    public Task<Exception?> Closed => _closedTcs.Task;
-
     public IInvoker Invoker => NotImplementedInvoker.Instance;
 
     public ServerAddress ServerAddress { get; }
@@ -22,8 +20,6 @@ public sealed class FakeConnectionContext : IConnectionContext
 
     private const string LocalAddress = "192.168.7.7:10000";
     private const string RemoteAddress = "10.10.10.10:11000";
-
-    private readonly TaskCompletionSource<Exception?> _closedTcs = new(); // never completed
 
     public static IConnectionContext FromProtocol(Protocol protocol) =>
         protocol == Protocol.Ice ? Ice :
