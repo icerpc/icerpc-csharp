@@ -29,6 +29,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private Task? _connectTask;
     private readonly IDispatcher _dispatcher;
     private int _dispatchCount;
+    // We don't want the continuation to run from the dispatch or invocation thread.
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 

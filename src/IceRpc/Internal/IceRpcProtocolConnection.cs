@@ -27,8 +27,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
     private readonly IDispatcher? _dispatcher;
-    private readonly TaskCompletionSource _dispatchesCompleted =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _dispatchesCompleted = new();
 
     private readonly SemaphoreSlim? _dispatchSemaphore;
 
@@ -76,7 +75,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private Task? _shutdownTask;
 
     private int _streamCount;
-    private readonly TaskCompletionSource _streamsClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _streamsClosed = new();
 
     private readonly IMultiplexedConnection _transportConnection;
 

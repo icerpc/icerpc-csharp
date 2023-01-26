@@ -25,8 +25,7 @@ public sealed class Server : IAsyncDisposable
     // in _connections.
     private int _detachedConnectionCount;
 
-    private readonly TaskCompletionSource _detachedConnectionsTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _detachedConnectionsTcs = new();
 
     // A cancellation token source that is canceled by DisposeAsync.
     private readonly CancellationTokenSource _disposedCts = new();

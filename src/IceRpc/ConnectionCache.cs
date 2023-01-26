@@ -27,8 +27,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     // _pendingConnections.
     private int _detachedConnectionCount;
 
-    private readonly TaskCompletionSource _detachedConnectionsTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _detachedConnectionsTcs = new();
 
     // A cancellation token source that is canceled when DisposeAsync is called.
     private readonly CancellationTokenSource _disposedCts = new();
