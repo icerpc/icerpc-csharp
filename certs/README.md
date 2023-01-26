@@ -1,7 +1,7 @@
-# Ice Test Suite Certificates
+# IceRpc Test Suite Certificates
 
-This directory contains certificates used by the clients and servers in Ice test
-suite. These certificates are for testing purposes only and should **never** be
+This directory contains certificates used by the programs from this repository.
+These certificates are for testing purposes only and should **never** be
 used in a production environment.
 
 As provided, the server certificates use `127.0.0.1` for the Common Name, the

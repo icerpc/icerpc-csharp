@@ -66,7 +66,6 @@ internal class SlicConnection : IMultiplexedConnection
     private int _unidirectionalStreamCount;
     private SemaphoreSlim? _unidirectionalStreamSemaphore;
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
-    private Task _writeStreamFrameTask = Task.CompletedTask;
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
@@ -506,11 +505,12 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     lock (_mutex)
                     {
-                        // Send a new ping frame if the previous frame was sent and the connection is not closed
-                        // or being close.
+                        // Send a new ping frame if the previous frame was sent and the connection is not closed or
+                        // being close. The check for _isClosed ensures _pingTask is not reassigned once the connection
+                        // is closed.
                         if (_pingTask.IsCompleted && !_isClosed)
                         {
-                            _pingTask = SendPingFrameAsync(_disposedCts.Token);
+                            _pingTask = SendPingFrameAsync();
                         }
                     }
                 };
@@ -548,16 +548,16 @@ internal class SlicConnection : IMultiplexedConnection
             _nextUnidirectionalId = 2;
         }
 
-        async Task SendPingFrameAsync(CancellationToken cancellationToken)
+        async Task SendPingFrameAsync()
         {
             await Task.Yield(); // Exit mutex lock
             try
             {
-                await SendFrameAsync(FrameType.Ping, encode: null, cancellationToken).ConfigureAwait(false);
+                await SendFrameAsync(FrameType.Ping, encode: null, CancellationToken.None).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                // Expected if the connection was disposed.
+                // Expected if the connection was closed.
             }
             catch (IceRpcException)
             {
@@ -724,7 +724,8 @@ internal class SlicConnection : IMultiplexedConnection
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
                 // Finally, acquire the write semaphore to ensure only one stream writes to the connection.
-                SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(writeCts.Token).ConfigureAwait(false);
+                using SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(writeCts.Token)
+                    .ConfigureAwait(false);
                 if (!stream.IsStarted)
                 {
                     StartStream(stream);
@@ -747,13 +748,19 @@ internal class SlicConnection : IMultiplexedConnection
                     stream.SentLastStreamFrame();
                 }
 
-                // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream is
-                // canceled. If it did, it would abort the connection. We keep around the _writeStreamFrameTask to ensure
-                // exceptions from the WriteStreamFrameAsync task are always observed.
-
-                // WriteStreamFrameAsync is responsible for releasing the write semaphore.
-                _writeStreamFrameTask = WriteStreamFrameAsync(sendSource1, sendSource2, semaphoreLock);
-                await _writeStreamFrameTask.WaitAsync(writeCts.Token).ConfigureAwait(false);
+                // Write the stream frame. The writing should not be canceled if the WriteAsync operation on the stream
+                // is canceled.
+                try
+                {
+                    await _duplexConnectionWriter.WriteAsync(
+                        sendSource1,
+                        sendSource2,
+                        _disposedCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw new IceRpcException(IceRpcError.OperationAborted);
+                }
             }
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
         }
@@ -766,23 +773,6 @@ internal class SlicConnection : IMultiplexedConnection
         }
 
         return new FlushResult(isCanceled: false, isCompleted: false);
-
-        async Task WriteStreamFrameAsync(
-            ReadOnlySequence<byte> source1,
-            ReadOnlySequence<byte> source2,
-            SemaphoreLock semaphoreLock)
-        {
-            using SemaphoreLock _ = semaphoreLock; // release when done
-
-            try
-            {
-                await _duplexConnectionWriter.WriteAsync(source1, source2, _disposedCts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted);
-            }
-        }
 
         void EncodeStreamFrameHeader(ulong streamId, long size, bool lastStreamFrame)
         {
@@ -1002,10 +992,15 @@ internal class SlicConnection : IMultiplexedConnection
             }
             case FrameType.Ping:
             {
-                if (_pongTask.IsCompleted)
+                lock (_mutex)
                 {
-                    // Send back a pong frame.
-                    _pongTask = SendPongFrameAsync(cancellationToken);
+                    // Send a new pong frame if the previous frame was sent and the connection is not closed or being
+                    // close. The check for _isClosed ensures _pongTask is not reassigned once the connection is closed.
+                    if (_pongTask.IsCompleted && !_isClosed)
+                    {
+                        // Send back a pong frame.
+                        _pongTask = SendPongFrameAsync();
+                    }
                 }
                 break;
             }
@@ -1305,15 +1300,15 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        async Task SendPongFrameAsync(CancellationToken cancellationToken)
+        async Task SendPongFrameAsync()
         {
             try
             {
-                await SendFrameAsync(FrameType.Pong, encode: null, cancellationToken).ConfigureAwait(false);
+                await SendFrameAsync(FrameType.Pong, encode: null, CancellationToken.None).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                // Expected if the connection was disposed.
+                // Expected if the connection was closed.
             }
             catch (IceRpcException)
             {
