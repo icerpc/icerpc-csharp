@@ -53,7 +53,6 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         }
     }
 
-    // TODO: add log for Dispose when shutdown was not called or failed
     public async ValueTask DisposeAsync()
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
@@ -67,16 +66,16 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             }
             catch
             {
-                // observe and ignore any exception
+                // ignore any exception
             }
         }
-        else if (_connectionInformation is TransportConnectionInformation connectionInformation)
+
+        if (_connectionInformation is TransportConnectionInformation connectionInformation)
         {
-            _logger.LogConnectionFailed(
+            _logger.LogConnectionDisposed(
                 IsServer,
                 connectionInformation.LocalNetworkAddress,
-                connectionInformation.RemoteNetworkAddress,
-                new ObjectDisposedException("")); // temporary, for now means disposed after connect without a shutdown
+                connectionInformation.RemoteNetworkAddress);
         }
     }
 
@@ -106,7 +105,7 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         {
             Debug.Assert(_connectionInformation is not null);
 
-            _logger.LogConnectionFailed(
+            _logger.LogConnectionShutdownFailed(
                 IsServer,
                 _connectionInformation.LocalNetworkAddress,
                 _connectionInformation.RemoteNetworkAddress,

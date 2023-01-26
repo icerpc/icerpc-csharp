@@ -85,29 +85,26 @@ internal static partial class ProtocolLoggerExtensions
 #pragma warning restore SYSLIB1006
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionFailed,
-        EventName = nameof(ProtocolEventIds.ConnectionFailed),
+        EventId = (int)ProtocolEventIds.ConnectionDisposed,
+        EventName = nameof(ProtocolEventIds.ConnectionDisposed),
         Level = LogLevel.Trace,
-        Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' failed")]
-    internal static partial void LogConnectionFailed(
+        Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' disposed")]
+    internal static partial void LogConnectionDisposed(
         this ILogger logger,
         string kind,
         EndPoint localNetworkAddress,
-        EndPoint remoteNetworkAddress,
-        Exception exception);
+        EndPoint remoteNetworkAddress);
 
-    internal static void LogConnectionFailed(
+    internal static void LogConnectionDisposed(
         this ILogger logger,
         bool isServer,
         EndPoint localNetworkAddress,
-        EndPoint remoteNetworkAddress,
-        Exception exception) =>
-        LogConnectionFailed(
+        EndPoint remoteNetworkAddress) =>
+        LogConnectionDisposed(
             logger,
             isServer ? "Server" : "Client",
             localNetworkAddress,
-            remoteNetworkAddress,
-            exception);
+            remoteNetworkAddress);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionShutdown,
@@ -130,6 +127,31 @@ internal static partial class ProtocolLoggerExtensions
             isServer ? "Server" : "Client",
             localNetworkAddress,
             remoteNetworkAddress);
+
+    [LoggerMessage(
+        EventId = (int)ProtocolEventIds.ConnectionShutdownFailed,
+        EventName = nameof(ProtocolEventIds.ConnectionShutdownFailed),
+        Level = LogLevel.Trace,
+        Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' failed to shutdown")]
+    internal static partial void LogConnectionShutdownFailed(
+        this ILogger logger,
+        string kind,
+        EndPoint localNetworkAddress,
+        EndPoint remoteNetworkAddress,
+        Exception exception);
+
+    internal static void LogConnectionShutdownFailed(
+        this ILogger logger,
+        bool isServer,
+        EndPoint localNetworkAddress,
+        EndPoint remoteNetworkAddress,
+        Exception exception) =>
+        LogConnectionShutdownFailed(
+            logger,
+            isServer ? "Server" : "Client",
+            localNetworkAddress,
+            remoteNetworkAddress,
+            exception);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
