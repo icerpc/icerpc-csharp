@@ -15,17 +15,17 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
     {
-        ClientMetrics.Instance.ConnectStart();
+        Metrics.ClientMetrics.ConnectStart();
         try
         {
             (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
                 await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
-            ClientMetrics.Instance.ConnectSuccess();
+            Metrics.ClientMetrics.ConnectSuccess();
             return (connectionInformation, shutdownRequested);
         }
         finally
         {
-            ClientMetrics.Instance.ConnectStop();
+            Metrics.ClientMetrics.ConnectStop();
         }
     }
 
@@ -45,7 +45,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
                 // observe and ignore any exception
             }
         }
-        ClientMetrics.Instance.ConnectionStop();
+        Metrics.ClientMetrics.ConnectionStop();
     }
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -66,7 +66,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         }
         catch
         {
-            ClientMetrics.Instance.ConnectionFailure();
+            Metrics.ClientMetrics.ConnectionFailure();
             throw;
         }
 
@@ -83,7 +83,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
             }
             catch
             {
-                ClientMetrics.Instance.ConnectionFailure();
+                Metrics.ClientMetrics.ConnectionFailure();
                 throw;
             }
         }
@@ -91,7 +91,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 
     internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
     {
-        ClientMetrics.Instance.ConnectionStart();
+        Metrics.ClientMetrics.ConnectionStart();
         _decoratee = decoratee;
     }
 }

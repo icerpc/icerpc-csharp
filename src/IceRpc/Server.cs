@@ -758,7 +758,7 @@ public sealed class Server : IAsyncDisposable
         {
             (IConnector connector, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-            ServerMetrics.Instance.ConnectionStart();
+            Metrics.ServerMetrics.ConnectionStart();
             return (new MetricsConnectorDecorator(connector), remoteNetworkAddress);
         }
 
@@ -775,15 +775,15 @@ public sealed class Server : IAsyncDisposable
         public async Task<TransportConnectionInformation> ConnectTransportConnectionAsync(
             CancellationToken cancellationToken)
         {
-            ServerMetrics.Instance.ConnectStart();
+            Metrics.ServerMetrics.ConnectStart();
             try
             {
                 return await _decoratee.ConnectTransportConnectionAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                ServerMetrics.Instance.ConnectStop();
-                ServerMetrics.Instance.ConnectionStop();
+                Metrics.ServerMetrics.ConnectStop();
+                Metrics.ServerMetrics.ConnectionStop();
                 throw;
             }
         }
@@ -803,8 +803,8 @@ public sealed class Server : IAsyncDisposable
             }
             finally
             {
-                ServerMetrics.Instance.ConnectStop();
-                ServerMetrics.Instance.ConnectionStop();
+                Metrics.ServerMetrics.ConnectStop();
+                Metrics.ServerMetrics.ConnectionStop();
             }
         }
 
@@ -823,17 +823,17 @@ public sealed class Server : IAsyncDisposable
         public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
             CancellationToken cancellationToken)
         {
-            ServerMetrics.Instance.ConnectStart();
+            Metrics.ServerMetrics.ConnectStart();
             try
             {
                 (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
                     await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                ServerMetrics.Instance.ConnectSuccess();
+                Metrics.ServerMetrics.ConnectSuccess();
                 return (connectionInformation, shutdownRequested);
             }
             finally
             {
-                ServerMetrics.Instance.ConnectStop();
+                Metrics.ServerMetrics.ConnectStop();
             }
         }
 
@@ -853,7 +853,7 @@ public sealed class Server : IAsyncDisposable
                     // observe and ignore any exception
                 }
             }
-            ServerMetrics.Instance.ConnectionStop();
+            Metrics.ServerMetrics.ConnectionStop();
         }
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -874,7 +874,7 @@ public sealed class Server : IAsyncDisposable
             }
             catch
             {
-                ClientMetrics.Instance.ConnectionFailure();
+                Metrics.ClientMetrics.ConnectionFailure();
                 throw;
             }
 
@@ -891,7 +891,7 @@ public sealed class Server : IAsyncDisposable
                 }
                 catch
                 {
-                    ClientMetrics.Instance.ConnectionFailure();
+                    Metrics.ClientMetrics.ConnectionFailure();
                     throw;
                 }
             }
@@ -899,7 +899,7 @@ public sealed class Server : IAsyncDisposable
 
         internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
         {
-            ServerMetrics.Instance.ConnectionStart();
+            Metrics.ServerMetrics.ConnectionStart();
             _decoratee = decoratee;
         }
     }
