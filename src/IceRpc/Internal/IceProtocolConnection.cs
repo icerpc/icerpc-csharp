@@ -1014,6 +1014,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // We can't send responses so these dispatches can be canceled.
         _twowayDispatchesCts.Cancel();
 
+        // We don't change _sendClosedConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync to
+        // send CloseConnection - and fail.
+
         _ = _shutdownRequestedTcs.TrySetResult();
     }
 
