@@ -107,7 +107,7 @@ fn try_main() -> CompilationResult {
                     .into_iter()
                     .chain(generated_code.code_blocks.into_iter())
                     .collect::<CodeBlock>()
-                    .into_string();
+                    .to_string();
 
                 // If the file already exists and its contents match the generated code, we don't re-write it.
                 if matches!(std::fs::read(&path), Ok(file_bytes) if file_bytes == code_string.as_bytes()) {
