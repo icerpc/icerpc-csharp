@@ -94,7 +94,7 @@ fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut 
     }
 }
 
-// Validates C# lanaguage specific attribtue dupilcates.
+// Validates C# language specific attribute duplicates.
 fn validate_repeated_attributes(entity: &dyn Entity, diagnostic_reporter: &mut DiagnosticReporter) {
     let attributes = entity
         .attributes(false)
