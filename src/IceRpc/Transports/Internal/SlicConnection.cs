@@ -245,7 +245,7 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(
                     IceRpcError.ConnectionAborted,
-                    "The connection was aborted by because of an unsupported Slic protocol feature.",
+                    "The connection was aborted because of an unsupported Slic protocol feature.",
                     exception);
             }
             catch (InvalidDataException exception)
@@ -281,9 +281,8 @@ internal class SlicConnection : IMultiplexedConnection
                 _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
                 _localIdleTimeout;
 
-            _duplexConnectionReader.EnableAliveCheck(keepAliveTimeout);
             _duplexConnectionWriter.EnableKeepAlive(
-                keepAliveTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : keepAliveTimeout / 2);
+                keepAliveTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : keepAliveTimeout);
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
 
@@ -525,11 +524,7 @@ internal class SlicConnection : IMultiplexedConnection
         _duplexConnectionReader = new DuplexConnectionReader(
             duplexConnection,
             options.Pool,
-            options.MinSegmentSize,
-            connectionIdleAction: () =>
-                Close(
-                    new IceRpcException(IceRpcError.ConnectionIdle),
-                    "The Slic connection was aborted because it did not receive any byte for too long."));
+            options.MinSegmentSize);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.

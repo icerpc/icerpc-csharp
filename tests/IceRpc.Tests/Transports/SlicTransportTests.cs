@@ -230,9 +230,7 @@ public class SlicTransportTests
         await using var reader = new DuplexConnectionReader(
             duplexClientConnection,
             MemoryPool<byte>.Shared,
-            4096,
-            connectionIdleAction: () => { });
-        reader.EnableAliveCheck(TimeSpan.FromSeconds(60));
+            4096);
 
         // Act
         EncodeInitializeFrame(writer, version: 2);

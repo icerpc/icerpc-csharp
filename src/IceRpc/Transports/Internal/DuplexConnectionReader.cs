@@ -12,24 +12,19 @@ namespace IceRpc.Transports.Internal;
 internal class DuplexConnectionReader : IAsyncDisposable
 {
     private readonly IDuplexConnection _connection;
-    private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
-    private readonly Timer _idleTimeoutTimer;
-    private readonly object _mutex = new();
-    private TimeSpan _nextIdleTime;
     private readonly Pipe _pipe;
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
-        await _idleTimeoutTimer.DisposeAsync().ConfigureAwait(false);
+        return default;
     }
 
     internal DuplexConnectionReader(
         IDuplexConnection connection,
         MemoryPool<byte> pool,
-        int minimumSegmentSize,
-        Action connectionIdleAction)
+        int minimumSegmentSize)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
@@ -37,57 +32,12 @@ internal class DuplexConnectionReader : IAsyncDisposable
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
-        _nextIdleTime = TimeSpan.Zero;
-
-        // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
-        _idleTimeoutTimer = new Timer(
-            _ =>
-            {
-                lock (_mutex)
-                {
-                    if (_nextIdleTime > TimeSpan.FromMilliseconds(Environment.TickCount64))
-                    {
-                        // The idle timeout has just been postponed. Don't abort the connection since this indicates
-                        // data was just received.
-                        return;
-                    }
-
-                    // Set the next idle time to the infinite timeout to ensure ResetTimers fails. Timers can't be
-                    // reset once the connection abort is initiated.
-                    _nextIdleTime = Timeout.InfiniteTimeSpan;
-                }
-
-                connectionIdleAction();
-            });
     }
 
     internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
 
     internal void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
         _pipe.Reader.AdvanceTo(consumed, examined);
-
-    /// <summary>Enables check for ensuring that the connection is alive. If no data is received within the idleTimeout
-    /// period, the connection is considered dead.</summary>
-    internal void EnableAliveCheck(TimeSpan idleTimeout)
-    {
-        lock (_mutex)
-        {
-            _idleTimeout = idleTimeout;
-
-            if (_idleTimeout == Timeout.InfiniteTimeSpan)
-            {
-                _nextIdleTime = TimeSpan.Zero;
-                _idleTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            }
-            else
-            {
-                // Update _nextIdleTime before changing the timer, the idle action is considered postponed when
-                // _nextIdleTime is greater than the current time.
-                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + idleTimeout;
-                _idleTimeoutTimer.Change(idleTimeout, Timeout.InfiniteTimeSpan);
-            }
-        }
-    }
 
     /// <summary>Writes <paramref name="byteCount" /> bytes read from this pipe reader or its underlying connection
     /// into <paramref name="bufferWriter" />.</summary>
@@ -142,8 +92,6 @@ internal class DuplexConnectionReader : IAsyncDisposable
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
-                    ResetTimers();
-
                     if (byteCount > 0 && read == 0)
                     {
                         // The peer gracefully shut down the connection but returned less data than expected, it's
@@ -188,30 +136,6 @@ internal class DuplexConnectionReader : IAsyncDisposable
         }
     }
 
-    private void ResetTimers()
-    {
-        lock (_mutex)
-        {
-            if (_idleTimeout == Timeout.InfiniteTimeSpan)
-            {
-                // Nothing to do, idle timeout is disabled.
-            }
-            else if (_nextIdleTime == Timeout.InfiniteTimeSpan)
-            {
-                // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
-                // calling read method doesn't return data.
-                throw new IceRpcException(IceRpcError.ConnectionIdle);
-            }
-            else
-            {
-                // Update _nextIdleTime before changing the timer, the idle action is considered postponed when
-                // _nextIdleTime is greater than the current time.
-                _nextIdleTime = TimeSpan.FromMilliseconds(Environment.TickCount64) + _idleTimeout;
-                _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
-            }
-        }
-    }
-
     /// <summary>Reads and returns bytes from the underlying transport connection. The returned buffer has always at
     /// least minimumSize bytes or if canReturnEmptyBuffer is true, the returned buffer can be empty if the peer
     /// shutdown the connection.</summary>
@@ -243,8 +167,6 @@ internal class DuplexConnectionReader : IAsyncDisposable
                 int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
-
-                ResetTimers();
 
                 // The peer shutdown its side of the connection, return an empty buffer if allowed.
                 if (read == 0)

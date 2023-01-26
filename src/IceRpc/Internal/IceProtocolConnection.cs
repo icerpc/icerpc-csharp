@@ -192,8 +192,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
             // messages requires the connection to be established.
-            _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
-            _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
+            _duplexConnectionWriter.EnableKeepAlive(_idleTimeout);
 
             // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
             // DisposeAsync. Once _disposeTask is not null, _readFramesTask is immutable.
@@ -688,8 +687,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         _duplexConnectionReader = new DuplexConnectionReader(
             duplexConnection,
             _memoryPool,
-            _minSegmentSize,
-            connectionIdleAction: _readFramesCts.Cancel);
+            _minSegmentSize);
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {

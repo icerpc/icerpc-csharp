@@ -526,11 +526,11 @@ public sealed class IceProtocolConnectionTests
                 dispatcher: dispatcher,
                 clientConnectionOptions: new ConnectionOptions
                     {
-                        IdleTimeout = TimeSpan.FromMilliseconds(250)
+                        IceIdleTimeout = TimeSpan.FromMilliseconds(10)
                     },
                 serverConnectionOptions: new ConnectionOptions
                     {
-                        IdleTimeout = TimeSpan.FromMilliseconds(250)
+                        IceIdleTimeout = TimeSpan.FromMilliseconds(10)
                     })
             .AddTestDuplexTransport()
             .BuildServiceProvider(validateScopes: true);
@@ -548,18 +548,17 @@ public sealed class IceProtocolConnectionTests
 
         // Simulate transport flow-control write hang. The hang of the writes shouldn't trigger the connection closure
         // because the connection is just fine: it can still receive data from the server.
-        // The bug: The sending of pings from the client connection will hang and the server idle timeout will be
-        // triggered. The server connection will be disposed as a result.
         transportConnection.HoldOperation = DuplexTransportOperation.Write;
 
         // Act
-        Exception? exception = await sut.Client.Closed;
+        await Task.Delay(TimeSpan.FromMilliseconds(200));
 
         // Assert
-        Assert.That(() => invokeTask, Throws.Nothing);
-        Assert.That(() => exception, Is.Null);
-
+        Assert.That(invokeTask.IsCompleted, Is.False);
         dispatcher.ReleaseDispatch();
+        Assert.That(() => invokeTask, Throws.Nothing);
+
+        transportConnection.HoldOperation = DuplexTransportOperation.None;
 
         async static Task DisposeOnClosedAsync(IProtocolConnection connection)
         {
