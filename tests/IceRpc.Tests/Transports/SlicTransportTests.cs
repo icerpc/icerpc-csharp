@@ -467,7 +467,7 @@ public class SlicTransportTests
         duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[1], writeCts.Token);
         writeCts.Cancel();
-        await Task.Delay(10);
+        await Task.Delay(TimeSpan.FromMilliseconds(10));
 
         // Assert
         Assert.That(writeTask.IsCompleted, Is.False);
