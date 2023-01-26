@@ -55,7 +55,7 @@ public class SlicTransportTests
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await using IMultiplexedConnection _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act/Assert
         Assert.That(async () => await sut.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
@@ -92,7 +92,10 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
         Func<Task> connectCall = serverSide ?
-            async () => _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection) :
+            async () =>
+            {
+                await using var _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+            } :
             async () =>
             {
                 _ = AcceptAsync();
@@ -140,7 +143,10 @@ public class SlicTransportTests
         using var connectCts = new CancellationTokenSource(100);
 
         Func<Task> connectCall = serverSide ?
-            async () => _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection, connectCts.Token) :
+            async () =>
+            {
+                await using var _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection, connectCts.Token);
+            } :
             async () =>
             {
                 _ = AcceptAsync();
@@ -182,7 +188,7 @@ public class SlicTransportTests
         var clientConnection = provider.GetRequiredService<SlicConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        var serverConnection = (SlicConnection)await acceptTask;
+        await using var serverConnection = (SlicConnection)await acceptTask;
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
         // Act
@@ -342,7 +348,7 @@ public class SlicTransportTests
         Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act
-        var serverConnection = (SlicConnection)await acceptTask;
+        await using var serverConnection = (SlicConnection)await acceptTask;
 
         // Assert
         Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
