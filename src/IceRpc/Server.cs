@@ -255,7 +255,7 @@ public sealed class Server : IAsyncDisposable
                 // Wait for shutdown before disposing connections.
                 try
                 {
-                    await _shutdownTask.ConfigureAwait(false);
+                    await Task.WhenAll(_listenTask, _shutdownTask).ConfigureAwait(false);
                 }
                 catch
                 {
