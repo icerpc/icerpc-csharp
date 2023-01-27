@@ -280,8 +280,7 @@ internal class SlicConnection : IMultiplexedConnection
                 _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
                 _localIdleTimeout;
 
-            _duplexConnectionWriter.EnableKeepAlive(
-                keepAliveTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : keepAliveTimeout);
+            _duplexConnectionWriter.EnableKeepAlive(keepAliveTimeout);
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
 
