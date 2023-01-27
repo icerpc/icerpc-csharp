@@ -11,18 +11,19 @@ internal sealed class Metrics : IDisposable
     internal static readonly Metrics ClientMetrics = new("IceRpc.Client");
     internal static readonly Metrics ServerMetrics = new("IceRpc.Server");
 
-    // The number of active (accepted and connected) connections.
+    // The number of active connections.
     private long _activeConnections;
 
     private readonly Meter _meter;
 
-    // The number of connections that were accepted and are being connected.
+    // The number of connections that are being connected.
     private long _pendingConnections;
 
-    // The number of connection that have been accepted and connected.
+    // The number of connection that have been created.
     private long _totalConnections;
 
-    // The number of connections that were accepted and failed later on.
+    // The number of connections that start connecting and failed to connect, or connected successfully but
+    // later terminate due to a failure.
     private long _totalFailedConnections;
 
     /// <inheritdoc/>
