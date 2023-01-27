@@ -265,7 +265,6 @@ public sealed class Server : IAsyncDisposable
                 await Task.WhenAll(
                     _connections
                         .Select(connection => connection.DisposeAsync().AsTask())
-                        .Append(_listenTask)
                         .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
             }
 
