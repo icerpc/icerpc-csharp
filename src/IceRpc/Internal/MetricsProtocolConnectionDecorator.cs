@@ -11,7 +11,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 
     private readonly bool _connectStarted;
     private readonly IProtocolConnection _decoratee;
-    private bool _isConneceted;
+    private bool _isConnected;
     private bool _isShutdown;
     private readonly Metrics _metrics;
 
@@ -27,7 +27,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
             (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
                 await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
             _metrics.ConnectSuccess();
-            _isConneceted = true;
+            _isConnected = true;
             return (connectionInformation, shutdownRequested);
         }
         catch
@@ -44,7 +44,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public async ValueTask DisposeAsync()
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
-        if (_isConneceted)
+        if (_isConnected)
         {
             if (!_isShutdown)
             {
