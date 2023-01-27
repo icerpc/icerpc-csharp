@@ -757,7 +757,7 @@ public sealed class Server : IAsyncDisposable
         {
             (IConnector connector, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-            ServerMetrics.Instance.ConnectionStart();
+            Metrics.ServerMetrics.ConnectionStart();
             return (new MetricsConnectorDecorator(connector), remoteNetworkAddress);
         }
 
@@ -774,15 +774,15 @@ public sealed class Server : IAsyncDisposable
         public async Task<TransportConnectionInformation> ConnectTransportConnectionAsync(
             CancellationToken cancellationToken)
         {
-            ServerMetrics.Instance.ConnectStart();
+            Metrics.ServerMetrics.ConnectStart();
             try
             {
                 return await _decoratee.ConnectTransportConnectionAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                ServerMetrics.Instance.ConnectStop();
-                ServerMetrics.Instance.ConnectionStop();
+                Metrics.ServerMetrics.ConnectStop();
+                Metrics.ServerMetrics.ConnectionFailure();
                 throw;
             }
         }
@@ -790,7 +790,9 @@ public sealed class Server : IAsyncDisposable
         public IProtocolConnection CreateProtocolConnection(
             TransportConnectionInformation transportConnectionInformation) =>
                 new MetricsProtocolConnectionDecorator(
-                    _decoratee.CreateProtocolConnection(transportConnectionInformation));
+                    _decoratee.CreateProtocolConnection(transportConnectionInformation),
+                    Metrics.ServerMetrics,
+                    logStart: false);
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
@@ -802,105 +804,11 @@ public sealed class Server : IAsyncDisposable
             }
             finally
             {
-                ServerMetrics.Instance.ConnectStop();
-                ServerMetrics.Instance.ConnectionStop();
+                Metrics.ServerMetrics.ConnectStop();
             }
         }
 
         internal MetricsConnectorDecorator(IConnector decoratee) => _decoratee = decoratee;
-    }
-
-    /// <summary>Provides a decorator that adds metrics to the <see cref="IProtocolConnection" />.</summary>
-    /// TODO: see #2608
-    private class MetricsProtocolConnectionDecorator : IProtocolConnection
-    {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
-        private readonly IProtocolConnection _decoratee;
-        private volatile Task? _shutdownTask;
-
-        public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
-            CancellationToken cancellationToken)
-        {
-            ServerMetrics.Instance.ConnectStart();
-            try
-            {
-                (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
-                    await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                ServerMetrics.Instance.ConnectSuccess();
-                return (connectionInformation, shutdownRequested);
-            }
-            finally
-            {
-                ServerMetrics.Instance.ConnectStop();
-            }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
-
-            // Wait for _shutdownTask's completion
-            if (_shutdownTask is Task shutdownTask)
-            {
-                try
-                {
-                    await shutdownTask.ConfigureAwait(false);
-                }
-                catch
-                {
-                    // observe and ignore any exception
-                }
-            }
-            ServerMetrics.Instance.ConnectionStop();
-        }
-
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
-            _decoratee.InvokeAsync(request, cancellationToken);
-
-        public Task ShutdownAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
-                return _shutdownTask;
-            }
-            // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
-            catch (InvalidOperationException)
-            {
-                // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
-                throw;
-            }
-            catch
-            {
-                ClientMetrics.Instance.ConnectionFailure();
-                throw;
-            }
-
-            static async Task PerformShutdownAsync(Task decorateeShutdownTask)
-            {
-                try
-                {
-                    await decorateeShutdownTask.ConfigureAwait(false);
-                }
-                catch (InvalidOperationException)
-                {
-                    // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
-                    throw;
-                }
-                catch
-                {
-                    ClientMetrics.Instance.ConnectionFailure();
-                    throw;
-                }
-            }
-        }
-
-        internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
-        {
-            ServerMetrics.Instance.ConnectionStart();
-            _decoratee = decoratee;
-        }
     }
 
     /// <summary>A connector listener accepts a transport connection and returns a <see cref="IConnector" />. The
