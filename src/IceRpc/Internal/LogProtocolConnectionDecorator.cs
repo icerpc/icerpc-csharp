@@ -14,8 +14,9 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private bool IsServer => _remoteNetworkAddress is not null;
 
-    // _connectionInformation is not volatile because all correct callers of IProtocolConnection wait for ConnectAsync
-    // to complete before calling any other method on IProtocolConnection, including DisposeAsync.
+    // _connectionInformation is not volatile because all correct callers of IProtocolConnection.ConnectAsync wait for
+    // the connection establishment to complete (successfully or not) before calling any other method on
+    // IProtocolConnection, including DisposeAsync.
     private TransportConnectionInformation? _connectionInformation;
 
     private readonly IProtocolConnection _decoratee;
