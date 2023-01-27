@@ -332,6 +332,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             Close(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed.");
 
+            // The semaphore can't be disposed until the close task completes.
             using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
 
             await WriteFrameAsync(
@@ -793,7 +794,6 @@ internal class SlicConnection : IMultiplexedConnection
 
     private ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
     {
-        ValueTask<SemaphoreLock> acquireWriteLockTask;
         lock (_mutex)
         {
             // Make sure the connection is not being closed or closed when we acquire the semaphore.
@@ -802,9 +802,8 @@ internal class SlicConnection : IMultiplexedConnection
                 // TODO: Or ConnectionAborted? See #2382
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
-            acquireWriteLockTask = _writeSemaphore.AcquireAsync(cancellationToken);
+            return _writeSemaphore.AcquireAsync(cancellationToken);
         }
-        return acquireWriteLockTask;
     }
 
     private void AddStream(ulong id, SlicStream stream)
@@ -1285,6 +1284,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
+                // The semaphore can't be disposed until the read frames task completes.
                 using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
                 await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -1423,6 +1423,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
+                // The semaphore can't be disposed until the read frames task completes.
                 using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_disposedCts.Token).ConfigureAwait(false);
                 await _duplexConnection.ShutdownAsync(_disposedCts.Token).ConfigureAwait(false);
             }
