@@ -27,7 +27,11 @@ internal abstract class TcpConnection : IDuplexConnection
     private readonly MemoryPool<byte> _pool;
     private readonly List<ArraySegment<byte>> _segments = new();
 
-    public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
+        return ConnectAsyncCore(cancellationToken);
+    }
 
     public void Dispose()
     {
@@ -50,170 +54,189 @@ internal abstract class TcpConnection : IDuplexConnection
         }
     }
 
-    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+    public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
-        if (buffer.Length == 0)
-        {
+        return buffer.Length > 0 ? PerformReadAsync() :
             throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
-        }
 
-        try
+        async ValueTask<int> PerformReadAsync()
         {
-            return SslStream is SslStream sslStream ?
-                await SslStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false) :
-                await Socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
-        }
-        catch (IOException exception)
-        {
-            throw exception.ToIceRpcException();
-        }
-        catch (SocketException exception)
-        {
-            throw exception.ToIceRpcException();
-        }
-    }
-
-    public async Task ShutdownAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (SslStream is SslStream sslStream)
+            try
             {
-                await sslStream.ShutdownAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+                return SslStream is SslStream sslStream ?
+                    await SslStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false) :
+                    await Socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
             }
-
-            // Shutdown the socket send side to send a TCP FIN packet. We don't close the read side because we want
-            // to be notified when the peer shuts down it's side of the socket (through the ReceiveAsync call).
-            Socket.Shutdown(SocketShutdown.Send);
-            // If shutdown is successful mark the connection as shutdown to ensure Dispose won't reset the TCP
-            // connection.
-            _isShutdown = true;
-        }
-        catch
-        {
-            // Ignore, the socket might already be disposed or it might not be connected.
+            catch (IOException exception)
+            {
+                throw exception.ToIceRpcException();
+            }
+            catch (SocketException exception)
+            {
+                throw exception.ToIceRpcException();
+            }
         }
     }
 
-    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
+    public Task ShutdownAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
-        Debug.Assert(buffers.Count > 0);
 
-        try
+        return PerformShutdownAsync();
+
+        async Task PerformShutdownAsync()
         {
-            if (SslStream is SslStream sslStream)
+            try
             {
-                if (buffers.Count == 1)
+                if (SslStream is SslStream sslStream)
                 {
-                    await sslStream.WriteAsync(buffers[0], cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are
-                    // large enough and don't need coalescing.
-                    int index = 0;
-                    int writeBufferSize = 0;
-                    do
-                    {
-                        ReadOnlyMemory<byte> buffer = buffers[index];
-                        if (writeBufferSize + buffer.Length < MaxSslDataSize)
-                        {
-                            index++;
-                            writeBufferSize += buffer.Length;
-                        }
-                        else
-                        {
-                            break; // while
-                        }
-                    }
-                    while (index < buffers.Count);
-
-                    if (index == 1)
-                    {
-                        // There is no point copying only the first buffer into another buffer.
-                        index = 0;
-                    }
-                    else if (writeBufferSize > 0)
-                    {
-                        using IMemoryOwner<byte> writeBufferOwner =
-                            _pool.Rent(Math.Max(_minSegmentSize, writeBufferSize));
-                        Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
-                        int offset = 0;
-                        for (int i = 0; i < index; ++i)
-                        {
-                            ReadOnlyMemory<byte> buffer = buffers[i];
-                            buffer.CopyTo(writeBuffer[offset..]);
-                            offset += buffer.Length;
-                        }
-
-                        // Send the "coalesced" initial buffers
-                        await sslStream.WriteAsync(writeBuffer, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    // Send the remaining buffers one by one
-                    for (int i = index; i < buffers.Count; ++i)
-                    {
-                        await sslStream.WriteAsync(buffers[i], cancellationToken).ConfigureAwait(false);
-                    }
-                }
-            }
-            else
-            {
-                if (buffers.Count == 1)
-                {
-                    _ = await Socket.SendAsync(buffers[0], SocketFlags.None, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    _segments.Clear();
-                    foreach (ReadOnlyMemory<byte> memory in buffers)
-                    {
-                        if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
-                        {
-                            _segments.Add(segment);
-                        }
-                        else
-                        {
-                            throw new ArgumentException(
-                                $"The {nameof(buffers)} must be backed by arrays.",
-                                nameof(buffers));
-                        }
-                    }
-
-                    Task sendTask = Socket.SendAsync(_segments, SocketFlags.None);
+                    Task shutdownTask = sslStream.ShutdownAsync();
 
                     try
                     {
-                        await sendTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        await shutdownTask.WaitAsync(cancellationToken).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
-                        // Abort the connection and wait for sendTask to complete
-                        Socket.Close(0);
-
-                        try
-                        {
-                            await sendTask.ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            // expected, most likely OperationAborted
-                        }
+                        await AbortAndObserveAsync(shutdownTask).ConfigureAwait(false);
                         throw;
                     }
                 }
+
+                // Shutdown the socket send side to send a TCP FIN packet. We don't close the read side because we want
+                // to be notified when the peer shuts down it's side of the socket (through the ReceiveAsync call).
+                Socket.Shutdown(SocketShutdown.Send);
+
+                // If shutdown is successful mark the connection as shutdown to ensure Dispose won't reset the TCP
+                // connection.
+                _isShutdown = true;
+            }
+            catch (IOException exception)
+            {
+                throw exception.ToIceRpcException();
+            }
+            catch (SocketException exception)
+            {
+                throw exception.ToIceRpcException();
             }
         }
-        catch (IOException exception)
+    }
+
+    public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
+
+        return buffers.Count > 0 ? PerformWriteAsync() :
+            throw new ArgumentException($"The {nameof(buffers)} list cannot be empty.", nameof(buffers));
+
+        async ValueTask PerformWriteAsync()
         {
-            throw exception.ToIceRpcException();
-        }
-        catch (SocketException exception)
-        {
-            throw exception.ToIceRpcException();
+            try
+            {
+                if (SslStream is SslStream sslStream)
+                {
+                    if (buffers.Count == 1)
+                    {
+                        await sslStream.WriteAsync(buffers[0], cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are
+                        // large enough and don't need coalescing.
+                        int index = 0;
+                        int writeBufferSize = 0;
+                        do
+                        {
+                            ReadOnlyMemory<byte> buffer = buffers[index];
+                            if (writeBufferSize + buffer.Length < MaxSslDataSize)
+                            {
+                                index++;
+                                writeBufferSize += buffer.Length;
+                            }
+                            else
+                            {
+                                break; // while
+                            }
+                        }
+                        while (index < buffers.Count);
+
+                        if (index == 1)
+                        {
+                            // There is no point copying only the first buffer into another buffer.
+                            index = 0;
+                        }
+                        else if (writeBufferSize > 0)
+                        {
+                            using IMemoryOwner<byte> writeBufferOwner =
+                                _pool.Rent(Math.Max(_minSegmentSize, writeBufferSize));
+                            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
+                            int offset = 0;
+                            for (int i = 0; i < index; ++i)
+                            {
+                                ReadOnlyMemory<byte> buffer = buffers[i];
+                                buffer.CopyTo(writeBuffer[offset..]);
+                                offset += buffer.Length;
+                            }
+
+                            // Send the "coalesced" initial buffers
+                            await sslStream.WriteAsync(writeBuffer, cancellationToken).ConfigureAwait(false);
+                        }
+
+                        // Send the remaining buffers one by one
+                        for (int i = index; i < buffers.Count; ++i)
+                        {
+                            await sslStream.WriteAsync(buffers[i], cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                }
+                else
+                {
+                    if (buffers.Count == 1)
+                    {
+                        _ = await Socket.SendAsync(buffers[0], SocketFlags.None, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        _segments.Clear();
+                        foreach (ReadOnlyMemory<byte> memory in buffers)
+                        {
+                            if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
+                            {
+                                _segments.Add(segment);
+                            }
+                            else
+                            {
+                                throw new ArgumentException(
+                                    $"The {nameof(buffers)} must be backed by arrays.",
+                                    nameof(buffers));
+                            }
+                        }
+
+                        Task sendTask = Socket.SendAsync(_segments, SocketFlags.None);
+
+                        try
+                        {
+                            await sendTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            await AbortAndObserveAsync(sendTask).ConfigureAwait(false);
+                            throw;
+                        }
+                    }
+                }
+            }
+            catch (IOException exception)
+            {
+                throw exception.ToIceRpcException();
+            }
+            catch (SocketException exception)
+            {
+                throw exception.ToIceRpcException();
+            }
         }
     }
 
@@ -225,6 +248,23 @@ internal abstract class TcpConnection : IDuplexConnection
         ServerAddress = serverAddress;
         _pool = pool;
         _minSegmentSize = minimumSegmentSize;
+    }
+
+    private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
+        CancellationToken cancellationToken);
+
+    /// <summary>Aborts the connection and then observes the exception of the provided task.</summary>
+    private async Task AbortAndObserveAsync(Task task)
+    {
+        Socket.Close(0);
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch
+        {
+            // observe exception
+        }
     }
 }
 
@@ -238,45 +278,6 @@ internal class TcpClientConnection : TcpConnection
     private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
     private SslStream? _sslStream;
-
-    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
-    {
-        ObjectDisposedException.ThrowIf(_isDisposed, this);
-
-        try
-        {
-            Debug.Assert(Socket is not null);
-
-            // Connect to the peer.
-            await Socket.ConnectAsync(_addr, cancellationToken).ConfigureAwait(false);
-
-            // Workaround: a canceled Socket.ConnectAsync call can return successfully but the Socket is closed because
-            // of the cancellation. See https://github.com/dotnet/runtime/issues/75889.
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (_authenticationOptions is not null)
-            {
-                _sslStream = new SslStream(new NetworkStream(Socket, false), false);
-
-                await _sslStream.AuthenticateAsClientAsync(
-                    _authenticationOptions,
-                    cancellationToken).ConfigureAwait(false);
-            }
-
-            return new TransportConnectionInformation(
-                localNetworkAddress: Socket.LocalEndPoint!,
-                remoteNetworkAddress: Socket.RemoteEndPoint!,
-                _sslStream?.RemoteCertificate);
-        }
-        catch (IOException exception)
-        {
-            throw exception.ToIceRpcException();
-        }
-        catch (SocketException exception)
-        {
-            throw exception.ToIceRpcException();
-        }
-    }
 
     internal TcpClientConnection(
         ServerAddress serverAddress,
@@ -327,6 +328,44 @@ internal class TcpClientConnection : TcpConnection
             throw;
         }
     }
+
+    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            Debug.Assert(Socket is not null);
+
+            // Connect to the peer.
+            await Socket.ConnectAsync(_addr, cancellationToken).ConfigureAwait(false);
+
+            // Workaround: a canceled Socket.ConnectAsync call can return successfully but the Socket is closed because
+            // of the cancellation. See https://github.com/dotnet/runtime/issues/75889.
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_authenticationOptions is not null)
+            {
+                _sslStream = new SslStream(new NetworkStream(Socket, false), false);
+
+                await _sslStream.AuthenticateAsClientAsync(
+                    _authenticationOptions,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            return new TransportConnectionInformation(
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
+                _sslStream?.RemoteCertificate);
+        }
+        catch (IOException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+    }
 }
 
 internal class TcpServerConnection : TcpConnection
@@ -338,10 +377,21 @@ internal class TcpServerConnection : TcpConnection
     private readonly SslServerAuthenticationOptions? _authenticationOptions;
     private SslStream? _sslStream;
 
-    public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    internal TcpServerConnection(
+        ServerAddress serverAddress,
+        Socket socket,
+        SslServerAuthenticationOptions? authenticationOptions,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize)
+        : base(serverAddress, pool, minimumSegmentSize)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, this);
+        Socket = socket;
+        _authenticationOptions = authenticationOptions;
+    }
 
+    private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
+        CancellationToken cancellationToken)
+    {
         try
         {
             if (_authenticationOptions is not null)
@@ -366,17 +416,5 @@ internal class TcpServerConnection : TcpConnection
         {
             throw exception.ToIceRpcException();
         }
-    }
-
-    internal TcpServerConnection(
-        ServerAddress serverAddress,
-        Socket socket,
-        SslServerAuthenticationOptions? authenticationOptions,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize)
-        : base(serverAddress, pool, minimumSegmentSize)
-    {
-        Socket = socket;
-        _authenticationOptions = authenticationOptions;
     }
 }
