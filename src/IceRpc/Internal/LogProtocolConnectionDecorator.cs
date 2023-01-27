@@ -24,10 +24,6 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private readonly EndPoint? _remoteNetworkAddress;
 
-    // _shutdownTask is volatile because it's possible (but rare) for ShutdownAsync and DisposeAsync to execute
-    // concurrently.
-    private volatile Task? _shutdownTask;
-
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
     {
@@ -61,19 +57,6 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
 
-        // Wait for _shutdownTask's completion
-        if (_shutdownTask is Task shutdownTask)
-        {
-            try
-            {
-                await shutdownTask.ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignore any exception
-            }
-        }
-
         if (_connectionInformation is not null)
         {
             _logger.LogConnectionDisposed(
@@ -86,47 +69,27 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
         _decoratee.InvokeAsync(request, cancellationToken);
 
-    public Task ShutdownAsync(CancellationToken cancellationToken)
+    public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
         try
         {
-            _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
-            return _shutdownTask;
+            await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+
+            Debug.Assert(_connectionInformation is not null);
+
+            _logger.LogConnectionShutdown(
+                IsServer,
+                _connectionInformation.LocalNetworkAddress,
+                _connectionInformation.RemoteNetworkAddress);
         }
-        // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
         catch (Exception exception) when (_connectionInformation is not null)
         {
-            LogShutdownFailed(exception, _connectionInformation);
-            throw;
-        }
-        // otherwise ConnectAsync was not called (a bug) and the exception is an InvalidOperationException or an
-        // ObjectDisposedException.
-
-        void LogShutdownFailed(Exception exception, TransportConnectionInformation connectionInformation) =>
             _logger.LogConnectionShutdownFailed(
                 IsServer,
-                connectionInformation.LocalNetworkAddress,
-                connectionInformation.RemoteNetworkAddress,
+                _connectionInformation.LocalNetworkAddress,
+                _connectionInformation.RemoteNetworkAddress,
                 exception);
-
-        async Task PerformShutdownAsync(Task decorateeShutdownTask)
-        {
-            try
-            {
-                await decorateeShutdownTask.ConfigureAwait(false);
-
-                Debug.Assert(_connectionInformation is not null);
-
-                _logger.LogConnectionShutdown(
-                    IsServer,
-                    _connectionInformation.LocalNetworkAddress,
-                    _connectionInformation.RemoteNetworkAddress);
-            }
-            catch (Exception exception) when (_connectionInformation is not null)
-            {
-                LogShutdownFailed(exception, _connectionInformation);
-                throw;
-            }
+            throw;
         }
     }
 
