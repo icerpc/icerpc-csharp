@@ -759,7 +759,6 @@ public sealed class Server : IAsyncDisposable
         {
             (IConnector connector, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-            Metrics.ServerMetrics.ConnectionStart();
             return (new MetricsConnectorDecorator(connector), remoteNetworkAddress);
         }
 
@@ -806,6 +805,7 @@ public sealed class Server : IAsyncDisposable
             }
             finally
             {
+                Metrics.ServerMetrics.ConnectionFailure();
                 Metrics.ServerMetrics.ConnectStop();
             }
         }

@@ -13,6 +13,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     private readonly IProtocolConnection _decoratee;
     private readonly Metrics _metrics;
     private TransportConnectionInformation? _connectionInformation;
+    private Task? _shutdownTask;
 
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
@@ -44,7 +45,12 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         await _decoratee.DisposeAsync().ConfigureAwait(false);
         if (_connectionInformation is not null)
         {
-            _metrics.ConnectionStop();
+            if (_shutdownTask is null)
+            {
+                // Disposing a connection without calling shutdown first count as an error.
+                _metrics.ConnectionFailure();
+            }
+            _metrics.ConnectionDiconnected();
         }
     }
 
@@ -55,9 +61,10 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     {
         try
         {
-            await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+            _shutdownTask = _decoratee.ShutdownAsync(cancellationToken);
+            await _shutdownTask.ConfigureAwait(false);
         }
-        catch when (_connectionInformation is not null)
+        catch
         {
             _metrics.ConnectionFailure();
             throw;
@@ -77,9 +84,5 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         _logStart = logStart;
         _decoratee = decoratee;
         _metrics = metrics;
-        if (_logStart)
-        {
-            _metrics.ConnectionStart();
-        }
     }
 }
