@@ -6,12 +6,12 @@ namespace IceRpc.Tests.Common;
 
 public sealed class TestMeterListener<T> : IDisposable where T : struct
 {
-    private readonly MeterListener _listener;
+    public MeterListener MeterListener { get; }
 
     public TestMeterListener(string meterName, MeasurementCallback<T>? measurementCallback)
     {
-        _listener = new MeterListener();
-        _listener.InstrumentPublished = (instrument, listener) =>
+        MeterListener = new MeterListener();
+        MeterListener.InstrumentPublished = (instrument, listener) =>
         {
             if (instrument.Meter.Name == meterName)
             {
@@ -19,9 +19,9 @@ public sealed class TestMeterListener<T> : IDisposable where T : struct
             }
         };
 
-        _listener.SetMeasurementEventCallback(measurementCallback);
-        _listener.Start();
+        MeterListener.SetMeasurementEventCallback(measurementCallback);
+        MeterListener.Start();
     }
 
-    public void Dispose() => _listener.Dispose();
+    public void Dispose() => MeterListener.Dispose();
 }

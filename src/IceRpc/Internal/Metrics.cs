@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 namespace IceRpc.Internal;
@@ -51,20 +52,44 @@ internal sealed class Metrics : IDisposable
 
         _meter.CreateObservableCounter(
             "total-failed-connections",
-            () => Volatile.Read(ref _totalConnections),
+            () => Volatile.Read(ref _totalFailedConnections),
             "Connections",
             "Total Failed Connections");
     }
 
-    internal void ConnectStart() => Interlocked.Increment(ref _pendingConnections);
+    internal void ConnectStart()
+    {
+        Debug.Assert(_pendingConnections >= 0);
+        Interlocked.Increment(ref _pendingConnections);
+    }
 
-    internal void ConnectStop() => Interlocked.Decrement(ref _pendingConnections);
+    internal void ConnectStop()
+    {
+        Debug.Assert(_pendingConnections > 0);
+        Interlocked.Decrement(ref _pendingConnections);
+    }
 
-    internal void ConnectSuccess() => Interlocked.Increment(ref _currentConnections);
+    internal void ConnectSuccess()
+    {
+        Debug.Assert(_currentConnections >= 0);
+        Interlocked.Increment(ref _currentConnections);
+    }
 
-    internal void ConnectionFailure() => Interlocked.Increment(ref _totalFailedConnections);
+    internal void ConnectionFailure()
+    {
+        Debug.Assert(_totalFailedConnections >= 0);
+        Interlocked.Increment(ref _totalFailedConnections);
+    }
 
-    internal void ConnectionStart() => Interlocked.Increment(ref _totalConnections);
+    internal void ConnectionStart()
+    {
+        Debug.Assert(_totalConnections >= 0);
+        Interlocked.Increment(ref _totalConnections);
+    }
 
-    internal void ConnectionStop() => Interlocked.Decrement(ref _currentConnections);
+    internal void ConnectionStop()
+    {
+        Debug.Assert(_currentConnections > 0);
+        Interlocked.Decrement(ref _currentConnections);
+    }
 }

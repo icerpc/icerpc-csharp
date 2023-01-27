@@ -9,24 +9,30 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    private readonly bool _connectStarted;
+    private readonly bool _logStart;
     private readonly IProtocolConnection _decoratee;
     private readonly Metrics _metrics;
     private volatile Task? _shutdownTask;
+    private TransportConnectionInformation? _connectionInformation;
 
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
     {
-        if (!_connectStarted)
+        if (_logStart)
         {
             _metrics.ConnectStart();
         }
         try
         {
-            (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
-                await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            (_connectionInformation, Task shutdownRequested) = await _decoratee.ConnectAsync(cancellationToken)
+                .ConfigureAwait(false);
             _metrics.ConnectSuccess();
-            return (connectionInformation, shutdownRequested);
+            return (_connectionInformation, shutdownRequested);
+        }
+        catch
+        {
+            _metrics.ConnectionFailure();
+            throw;
         }
         finally
         {
@@ -50,7 +56,11 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
                 // observe and ignore any exception
             }
         }
-        _metrics.ConnectionStop();
+
+        if (_connectionInformation is not null)
+        {
+            _metrics.ConnectionStop();
+        }
     }
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
@@ -94,14 +104,22 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         }
     }
 
-    internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee, Metrics metrics, bool connectStarted)
+    /// <summary>A protocol connection decorator to log connection metrics.</summary>
+    /// <param name="decoratee">The protocol connection decoratee.</param>
+    /// <param name="metrics">The metrics object used to log the metrics.</param>
+    /// <param name="logStart">Whether or not to log the ConnectionStart and ConnectStart events. For server connections
+    /// these events are logged from a separate <see cref="Server.IConnector"/> decorator.</param>
+    internal MetricsProtocolConnectionDecorator(
+        IProtocolConnection decoratee,
+        Metrics metrics,
+        bool logStart)
     {
-        _connectStarted = connectStarted;
+        _logStart = logStart;
         _decoratee = decoratee;
         _metrics = metrics;
-        if (!_connectStarted)
+        if (_logStart)
         {
-            Metrics.ClientMetrics.ConnectionStart();
+            _metrics.ConnectionStart();
         }
     }
 }

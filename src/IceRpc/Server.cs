@@ -783,7 +783,7 @@ public sealed class Server : IAsyncDisposable
             catch
             {
                 Metrics.ServerMetrics.ConnectStop();
-                Metrics.ServerMetrics.ConnectionStop();
+                Metrics.ServerMetrics.ConnectionFailure();
                 throw;
             }
         }
@@ -793,7 +793,7 @@ public sealed class Server : IAsyncDisposable
                 new MetricsProtocolConnectionDecorator(
                     _decoratee.CreateProtocolConnection(transportConnectionInformation),
                     Metrics.ServerMetrics,
-                    connectStarted: true);
+                    logStart: false);
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
@@ -806,7 +806,6 @@ public sealed class Server : IAsyncDisposable
             finally
             {
                 Metrics.ServerMetrics.ConnectStop();
-                Metrics.ServerMetrics.ConnectionStop();
             }
         }
 

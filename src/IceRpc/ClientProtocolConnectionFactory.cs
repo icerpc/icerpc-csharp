@@ -90,7 +90,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                     transportConnectionInformation: null,
                     _connectionOptions);
 
-        connection = new MetricsProtocolConnectionDecorator(connection, Metrics.ClientMetrics, connectStarted: false);
+        connection = new MetricsProtocolConnectionDecorator(connection, Metrics.ClientMetrics, logStart: true);
 
         return _logger == NullLogger.Instance ? connection :
             new LogProtocolConnectionDecorator(connection, remoteNetworkAddress: null, _logger);
