@@ -18,6 +18,8 @@ internal static class SocketExceptionExtensions
             // non-gracefully the connection. EPIPE is returned if the socket is closed and the send buffer is empty
             // while ECONNRESET is returned if the send buffer is not empty.
             SocketError.ConnectionReset => IceRpcError.ConnectionAborted,
+            SocketError.HostUnreachable => IceRpcError.ServerUnreachable,
+            SocketError.NetworkUnreachable => IceRpcError.ServerUnreachable,
             SocketError.Shutdown => IceRpcError.ConnectionAborted,
             SocketError.ConnectionRefused => IceRpcError.ConnectionRefused,
             SocketError.OperationAborted => IceRpcError.OperationAborted,

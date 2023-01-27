@@ -48,6 +48,9 @@ public enum IceRpcError
     /// </summary>
     ServerBusy,
 
+    /// <summary>The server is unreachable.</summary>
+    ServerUnreachable,
+
     /// <summary>The reading of a transport stream completed with incomplete data.</summary>
     TruncatedData,
 }
