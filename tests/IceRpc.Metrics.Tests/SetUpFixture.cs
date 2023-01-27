@@ -9,5 +9,8 @@ namespace IceRpc.Tests;
 public sealed class SetUpFixture
 {
     [OneTimeSetUp]
-    public void OneTimeSetup() => AssertTraceListener.Setup();
+    public void OneTimeSetUp() => CommonSetUpFixture.OneTimeSetUp();
+
+    [OneTimeTearDown]
+    public void OneTimeTearDown() => CommonSetUpFixture.OneTimeTearDown();
 }
