@@ -57,7 +57,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
         {
             await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch
+        catch when (_connectionInformation is not null)
         {
             _metrics.ConnectionFailure();
             throw;
