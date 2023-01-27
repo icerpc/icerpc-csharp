@@ -133,8 +133,8 @@ public sealed class IceRpcProtocolConnectionTests
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request);
@@ -408,17 +408,9 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        if (shutdown)
-        {
-            _ = FulfillShutdownRequestAsync(sut.Server);
-            _ = FulfillShutdownRequestAsync(sut.Client);
-        }
-        else
-        {
-            _ = FulfillDisposeRequestAsync(sut.Server);
-            _ = FulfillDisposeRequestAsync(sut.Client);
-        }
+        (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastConnection;
         clientConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
@@ -521,7 +513,7 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         clientTransport.LastConnection.FailOperation = operation;
@@ -537,7 +529,7 @@ public sealed class IceRpcProtocolConnectionTests
         else
         {
             Assert.That(() => sut.Client.InvokeAsync(request), Throws.Exception.EqualTo(failureException));
-            Assert.That(sut.Client.Closed.IsCompleted, Is.False);
+            Assert.That(clientShutdownRequested.IsCompleted, Is.False);
         }
     }
 
@@ -560,7 +552,7 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         clientTransport.LastConnection.HoldOperation = operation;
@@ -572,7 +564,7 @@ public sealed class IceRpcProtocolConnectionTests
             () => sut.Client.InvokeAsync(request, invokeCts.Token),
             Throws.InstanceOf<OperationCanceledException>().With.Property(
                 "CancellationToken").EqualTo(invokeCts.Token));
-        Assert.That(sut.Client.Closed.IsCompleted, Is.False);
+        Assert.That(clientShutdownRequested.IsCompleted, Is.False);
     }
 
     // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2444
@@ -598,8 +590,8 @@ public sealed class IceRpcProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
 
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var invokeTask = sut.Client.InvokeAsync(request1);
@@ -1190,10 +1182,10 @@ public sealed class IceRpcProtocolConnectionTests
         var serverTransport = provider.GetRequiredService<TestDuplexServerTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         // Hold server reads after the connection is established to prevent shutdown to proceed.
         serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
-        _ = FulfillShutdownRequestAsync(sut.Server);
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
@@ -1201,25 +1193,6 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.ShutdownAsync(cts.Token),
             Throws.InstanceOf<OperationCanceledException>());
-    }
-
-    private static async Task FulfillDisposeRequestAsync(IProtocolConnection connection)
-    {
-        _  = await connection.Closed;
-        await connection.DisposeAsync();
-    }
-
-    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
-    {
-        await connection.ShutdownRequested;
-        try
-        {
-            await connection.ShutdownAsync();
-        }
-        catch
-        {
-            // ignore all exceptions
-        }
     }
 
     private static string GetErrorMessage(StatusCode statusCode, Exception innerException)

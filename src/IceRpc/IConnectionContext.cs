@@ -15,13 +15,6 @@ public interface IConnectionContext
     /// non-null.</value>
     ServerAddress ServerAddress { get; }
 
-    /// <summary>Gets a task that completes when the connection is closed.</summary>
-    /// <value>A task that completes when the connection is closed. If the connection was shut down gracefully, this
-    /// task completes with a null exception; otherwise, it completes with the exception that aborted the connection.
-    /// </value>
-    /// <remarks>This task is never faulted or canceled.</remarks>
-    Task<Exception?> Closed { get; }
-
     /// <summary>Gets the transport connection information.</summary>
     TransportConnectionInformation TransportConnectionInformation { get; }
 }

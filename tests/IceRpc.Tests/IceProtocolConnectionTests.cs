@@ -222,7 +222,6 @@ public sealed class IceProtocolConnectionTests
     {
         // Arrange
 
-        // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
 
         // We need a dispatcher to hold the invocation, and ensure the transport read failure happens after we call
@@ -255,7 +254,8 @@ public sealed class IceProtocolConnectionTests
             invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                 IceRpcError.ConnectionAborted));
-        Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
+
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Exception.EqualTo(failureException));
     }
 
     [Test]
@@ -274,7 +274,7 @@ public sealed class IceProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        _ = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         clientTransport!.LastConnection.FailOperation = DuplexTransportOperation.Write;
 
@@ -286,7 +286,8 @@ public sealed class IceProtocolConnectionTests
             invokeTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
                 IceRpcError.InvocationCanceled));
-        Assert.That(() => sut.Client.Closed, Is.EqualTo(failureException));
+
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Exception.EqualTo(failureException));
     }
 
     [Test]
@@ -386,8 +387,8 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        _ = FulfillShutdownRequestAsync(sut.Client);
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         var invokeTask1 = sut.Client.InvokeAsync(request1);
@@ -447,7 +448,7 @@ public sealed class IceProtocolConnectionTests
                 })
             .BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[1024]));
         pipe.Writer.Complete();
@@ -461,8 +462,12 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(
-            await sut.Server.Closed,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            async () =>
+            {
+                await serverShutdownRequested;
+                await sut.Server.ShutdownAsync();
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
         // Cleanup
         await sut.Server.DisposeAsync();
@@ -528,12 +533,12 @@ public sealed class IceProtocolConnectionTests
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task _, Task serverShutdownRequested) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         await dispatcher.DispatchStart;
 
-        _ = DisposeOnClosedAsync(sut.Server);
+        _ = DisposeOnClosedAsync(sut.Server, serverShutdownRequested);
 
         TestDuplexConnectionDecorator transportConnection = clientTransport.LastConnection!;
 
@@ -551,9 +556,9 @@ public sealed class IceProtocolConnectionTests
 
         transportConnection.HoldOperation = DuplexTransportOperation.None;
 
-        async static Task DisposeOnClosedAsync(IProtocolConnection connection)
+        async static Task DisposeOnClosedAsync(IProtocolConnection connection, Task shutdownRequested)
         {
-            await connection.Closed;
+            await shutdownRequested;
             await connection.DisposeAsync();
         }
     }
@@ -575,7 +580,7 @@ public sealed class IceProtocolConnectionTests
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
+        (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         var duplexClientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
         duplexClientTransport.LastConnection!.FailOperation = DuplexTransportOperation.Write;
@@ -583,20 +588,8 @@ public sealed class IceProtocolConnectionTests
         duplexClientTransport.LastConnection!.FailureException = failureException;
 
         // Act/Assert
-        Assert.That(async () => await sut.Client.Closed, Is.EqualTo(failureException));
-    }
-
-    private static async Task FulfillShutdownRequestAsync(IProtocolConnection connection)
-    {
-        await connection.ShutdownRequested;
-        try
-        {
-            await connection.ShutdownAsync();
-        }
-        catch
-        {
-            // ignore all exceptions
-        }
+        Assert.That(async () => await clientShutdownRequested, Throws.Nothing);
+        Assert.That(() => sut.Client.ShutdownAsync(default), Throws.Exception.EqualTo(failureException));
     }
 
     private static string GetErrorMessage(string Message, Exception innerException) =>

@@ -49,6 +49,19 @@ impl LanguageKind for CsAttributeKind {
     fn debug_kind(&self) -> &str {
         self.directive()
     }
+
+    fn is_repeatable(&self) -> bool {
+        match &self {
+            CsAttributeKind::Attribute { .. } => true,
+            CsAttributeKind::EncodedResult => false,
+            CsAttributeKind::Generic { .. } => false,
+            CsAttributeKind::Identifier { .. } => false,
+            CsAttributeKind::Internal => false,
+            CsAttributeKind::Namespace { .. } => false,
+            CsAttributeKind::Readonly => false,
+            CsAttributeKind::Custom { .. } => false,
+        }
+    }
 }
 
 impl From<CsAttributeKind> for AttributeKind {

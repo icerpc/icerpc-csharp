@@ -27,8 +27,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     // _pendingConnections.
     private int _detachedConnectionCount;
 
-    private readonly TaskCompletionSource _detachedConnectionsTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _detachedConnectionsTcs = new();
 
     // A cancellation token source that is canceled when DisposeAsync is called.
     private readonly CancellationTokenSource _disposedCts = new();
@@ -454,6 +453,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             await Task.Yield(); // exit mutex lock
 
+            Task shutdownRequested;
+
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(_connectTimeout);
 
@@ -461,7 +462,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 try
                 {
-                    _ = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
+                    (_, shutdownRequested) = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
@@ -478,7 +479,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                         // The ConnectionCache disposal canceled the connection establishment.
                         throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
                     }
-                    else if (_shutdownTask is null)
+                    if (_shutdownTask is null)
                     {
                         bool removed = _pendingConnections.Remove(serverAddress);
                         Debug.Assert(removed);
@@ -496,7 +497,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     // ConnectionCache.DisposeAsync will DisposeAsync this connection.
                     throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
                 }
-                else if (_shutdownTask is not null)
+                if (_shutdownTask is not null)
                 {
                     throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
                 }
@@ -506,14 +507,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 Debug.Assert(removed);
                 _activeConnections.Add(serverAddress, connection);
             }
-            _ = RemoveFromActiveAsync(connection, cancellationToken);
+            _ = ShutdownWhenRequestedAsync(connection, shutdownRequested);
         }
 
-        async Task RemoveFromActiveAsync(IProtocolConnection connection, CancellationToken disposedCancellationToken)
+        async Task ShutdownWhenRequestedAsync(IProtocolConnection connection, Task shutdownRequested)
         {
-            bool shutdownRequested =
-                await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
-                    connection.ShutdownRequested;
+            await shutdownRequested.ConfigureAwait(false);
 
             lock (_mutex)
             {
@@ -530,19 +529,17 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
             }
 
-            if (shutdownRequested)
-            {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
-                cts.CancelAfter(_shutdownTimeout);
+            // _disposedCts is not disposed since we own a _detachedConnectionCount
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
+            cts.CancelAfter(_shutdownTimeout);
 
-                try
-                {
-                    await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore connection shutdown failures
-                }
+            try
+            {
+                await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore connection shutdown failures
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);

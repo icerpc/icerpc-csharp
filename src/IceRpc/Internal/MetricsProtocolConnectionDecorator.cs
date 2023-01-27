@@ -7,48 +7,43 @@ namespace IceRpc.Internal;
 /// <summary>Provides a log decorator for protocol connections.</summary>
 internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
-    public Task<Exception?> Closed => _decoratee.Closed;
-
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    public Task ShutdownRequested => _decoratee.ShutdownRequested;
-
     private readonly IProtocolConnection _decoratee;
-    private volatile Task? _stopTask;
+    private volatile Task? _shutdownTask;
 
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
+        CancellationToken cancellationToken)
     {
         ClientMetrics.Instance.ConnectStart();
         try
         {
-            TransportConnectionInformation result = await _decoratee.ConnectAsync(cancellationToken)
-                .ConfigureAwait(false);
+            (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
+                await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
             ClientMetrics.Instance.ConnectSuccess();
-
-            _stopTask = WaitForClosedAsync();
-            return result;
+            return (connectionInformation, shutdownRequested);
         }
         finally
         {
             ClientMetrics.Instance.ConnectStop();
-        }
-
-        async Task WaitForClosedAsync()
-        {
-            Exception? exception = await Closed.ConfigureAwait(false);
-            if (exception is not null)
-            {
-                ClientMetrics.Instance.ConnectionFailure();
-            }
         }
     }
 
     public async ValueTask DisposeAsync()
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
-        if (_stopTask is Task stopTask)
+
+        // Wait for _shutdownTask's completion
+        if (_shutdownTask is Task shutdownTask)
         {
-            await stopTask.ConfigureAwait(false);
+            try
+            {
+                await shutdownTask.ConfigureAwait(false);
+            }
+            catch
+            {
+                // observe and ignore any exception
+            }
         }
         ClientMetrics.Instance.ConnectionStop();
     }
@@ -56,7 +51,43 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken) =>
         _decoratee.InvokeAsync(request, cancellationToken);
 
-    public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
+    public Task ShutdownAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _shutdownTask = PerformShutdownAsync(_decoratee.ShutdownAsync(cancellationToken));
+            return _shutdownTask;
+        }
+        // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
+        catch (InvalidOperationException)
+        {
+            // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+            throw;
+        }
+        catch
+        {
+            ClientMetrics.Instance.ConnectionFailure();
+            throw;
+        }
+
+        static async Task PerformShutdownAsync(Task decorateeShutdownTask)
+        {
+            try
+            {
+                await decorateeShutdownTask.ConfigureAwait(false);
+            }
+            catch (InvalidOperationException)
+            {
+                // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+                throw;
+            }
+            catch
+            {
+                ClientMetrics.Instance.ConnectionFailure();
+                throw;
+            }
+        }
+    }
 
     internal MetricsProtocolConnectionDecorator(IProtocolConnection decoratee)
     {

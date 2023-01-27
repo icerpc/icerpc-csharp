@@ -13,11 +13,7 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : IProtocolConnection
 {
-    public Task<Exception?> Closed => _closedTcs.Task;
-
     public ServerAddress ServerAddress => _transportConnection.ServerAddress;
-
-    public Task ShutdownRequested => _shutdownRequestedTcs.Task;
 
     private const int MaxGoAwayFrameBodySize = 16;
     private const int MaxSettingsFrameBodySize = 1024;
@@ -26,16 +22,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private Task? _acceptRequestsTask;
 
-    private readonly TaskCompletionSource<Exception?> _closedTcs =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    private Task<TransportConnectionInformation>? _connectTask;
+    private Task? _connectTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
     private int _dispatchCount;
     private readonly IDispatcher? _dispatcher;
-    private readonly TaskCompletionSource _dispatchesCompleted =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _dispatchesCompleted = new();
 
     private readonly SemaphoreSlim? _dispatchSemaphore;
 
@@ -83,15 +75,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private Task? _shutdownTask;
 
     private int _streamCount;
-    private readonly TaskCompletionSource _streamsClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _streamsClosed = new();
 
     private readonly IMultiplexedConnection _transportConnection;
 
     // Only set for server connections.
     private readonly TransportConnectionInformation? _transportConnectionInformation;
 
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    public Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
+        CancellationToken cancellationToken)
     {
+        Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> result;
+
         lock (_mutex)
         {
             ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
@@ -101,11 +96,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot call connect more than once.");
             }
 
-            _connectTask = PerformConnectAsync();
+            result = PerformConnectAsync();
+            _connectTask = result;
         }
-        return _connectTask;
+        return result;
 
-        async Task<TransportConnectionInformation> PerformConnectAsync()
+        async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> PerformConnectAsync()
         {
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
@@ -215,7 +211,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _acceptRequestsTask = AcceptRequestsAsync(_shutdownCts.Token);
             }
 
-            return transportConnectionInformation;
+            // The _acceptRequestsTask waits for this PerformConnectAsync completion before reading anything. As soon as
+            // it receives a request, it will cancel this inactivity check.
+            ScheduleInactivityCheck();
+
+            return (transportConnectionInformation, _shutdownRequestedTcs.Task);
         }
     }
 
@@ -251,11 +251,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
 
-            if (_connectTask is null)
-            {
-                _ = _closedTcs.TrySetResult(null); // disposing non-connected connection
-            }
-            else
+            if (_connectTask is not null)
             {
                 // Since we await _dispatchesCompleted.Task before disposing the transport connection (or disposing
                 // anything else), a dispatch can't get an IceRpcException(OperationAborted) when sending a response.
@@ -273,10 +269,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // Expected if any of these tasks failed or was canceled. Each task takes care of handling
                     // unexpected exceptions so there's no need to handle them here.
                 }
-
-                // We set the result after awaiting _shutdownTask, in case _shutdownTask was still running and about to
-                // complete successfully.
-                _ = _closedTcs.TrySetResult(new ObjectDisposedException($"{typeof(IceRpcProtocolConnection)}"));
             }
 
             // We didn't wait for _streams.Closed above. Invocations and the sending of payload continuation that are
@@ -756,8 +748,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 // We wait for the completion of the dispatches that we created.
                 await _dispatchesCompleted.Task.WaitAsync(cts.Token).ConfigureAwait(false);
-
-                _closedTcs.SetResult(null);
             }
             catch (OperationCanceledException)
             {
@@ -884,11 +874,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         // any request until _connectTask has completed successfully, and indirectly we won't make any invocation until
         // _connectTask has completed successfully. The creation of the _acceptRequestsTask is the last action taken by
         // _connectTask and as a result this await can't fail.
-        _ = await _connectTask!.ConfigureAwait(false);
-
-        // The inactivity check requests shutdown and we want to make sure we only request it after _connectTask completed
-        // successfully.
-        ScheduleInactivityCheck();
+        await _connectTask!.ConfigureAwait(false);
 
         try
         {
@@ -947,17 +933,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             // Expected, the associated cancellation token source was canceled.
         }
-        catch (IceRpcException exception)
+        catch (IceRpcException)
         {
             RefuseNewInvocations("The connection was lost");
-            _closedTcs.TrySetResult(exception);
+            _ = _shutdownRequestedTcs.TrySetResult();
             throw;
         }
         catch (Exception exception)
         {
             Debug.Fail($"The accept stream task failed with an unexpected exception: {exception}");
             RefuseNewInvocations("The connection was lost");
-            _closedTcs.TrySetResult(exception);
+            _ = _shutdownRequestedTcs.TrySetResult();
             throw;
         }
     }
@@ -1231,7 +1217,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         // Wait for _connectTask (which spawned the task running this method) to complete. This await can't fail.
         // This guarantees this method won't request a shutdown until after _connectTask completed successfully.
-        _ = await _connectTask!.ConfigureAwait(false);
+        await _connectTask!.ConfigureAwait(false);
 
         PipeReader remoteInput = _remoteControlStream!.Input!;
 

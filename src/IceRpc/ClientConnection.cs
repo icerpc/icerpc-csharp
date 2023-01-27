@@ -324,9 +324,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                     // The connection is refusing new invocations.
                 }
 
-                // Make sure connection is detached before we retry; we don't want to retry with the same connection.
-                // shutdownRequested is true because soon we'll always call ShutdownAsync on a connected connection.
-                _ = DisposeActiveConnectionAsync(connection, shutdownRequested: true);
+                // Make sure connection is no longer in _activeConnection before we retry.
+                _ = RemoveFromActiveAsync(connection);
                 connection = null;
             }
         }
@@ -427,13 +426,15 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         cts.CancelAfter(_connectTimeout);
 
         TransportConnectionInformation connectionInformation;
+        Task shutdownRequested;
         Task? connectTask = null;
 
         try
         {
             try
             {
-                connectionInformation = await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
+                (connectionInformation, shutdownRequested) = await connection.ConnectAsync(cts.Token)
+                    .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -488,7 +489,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         if (connectTask is null)
         {
-            _ = RemoveFromActiveAsync(connection);
+            _ = ShutdownWhenRequestedAsync(connection, shutdownRequested);
         }
         else
         {
@@ -524,43 +525,24 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        async Task RemoveFromActiveAsync(IProtocolConnection connection)
+        async Task ShutdownWhenRequestedAsync(IProtocolConnection connection, Task shutdownRequested)
         {
-            bool shutdownRequested;
-
-            try
-            {
-                shutdownRequested =
-                    await Task.WhenAny(connection.ShutdownRequested, connection.Closed).ConfigureAwait(false) ==
-                        connection.ShutdownRequested;
-            }
-            catch (ObjectDisposedException)
-            {
-                // someone else already disposed this connection. That's fine.
-                return;
-            }
-
-            await DisposeActiveConnectionAsync(connection, shutdownRequested).ConfigureAwait(false);
+            await shutdownRequested.ConfigureAwait(false);
+            await RemoveFromActiveAsync(connection).ConfigureAwait(false);
         }
     }
 
-    /// <summary>Optionally shuts down then disposes a connected connection, but only if the caller can detach the
-    /// connection and become its exclusive owner.</summary>
+    /// <summary>Removes the connection from _activeConnection, and when successful, shuts down and disposes this
+    /// connection.</summary>
     /// <param name="connection">The connected connection to shutdown and dispose.</param>
-    /// <param name="shutdownRequested">When <langword name="true"/>, shutdown the connection before disposing it.
-    /// </param>
-    /// <returns>A task that completes when this method became the exclusive owner of the connection and disposed; or
-    /// immediately if it cannot become the exclusive owner of the connection.</returns>
-    private Task DisposeActiveConnectionAsync(IProtocolConnection connection, bool shutdownRequested)
+    private Task RemoveFromActiveAsync(IProtocolConnection connection)
     {
-        CancellationToken cancellationToken;
         lock (_mutex)
         {
             if (_shutdownTask is null && _activeConnection?.Connection == connection)
             {
                 _activeConnection = null; // it's now our connection.
                 _detachedConnectionCount++;
-                cancellationToken = _disposedCts.Token;
             }
             else
             {
@@ -569,23 +551,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             }
         }
 
-        return PerformDisposeActiveConnectionAsync();
+        return ShutdownAndDisposeConnectionAsync();
 
-        async Task PerformDisposeActiveConnectionAsync()
+        async Task ShutdownAndDisposeConnectionAsync()
         {
-            if (shutdownRequested)
-            {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(_shutdownTimeout);
+            // _disposedCts is not disposed since we own a detachedConnectionCount
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
+            cts.CancelAfter(_shutdownTimeout);
 
-                try
-                {
-                    await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore connection shutdown failures
-                }
+            try
+            {
+                await connection.ShutdownAsync(cts.Token).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore connection shutdown failures
             }
 
             await connection.DisposeAsync().ConfigureAwait(false);

@@ -32,7 +32,7 @@ impl ModuleVisitor<'_> {
     fn module_code_block(&mut self, module: &Module, module_prefix: Option<String>) -> CodeBlock {
         let code_blocks = self.generated_code.remove_scoped(module);
 
-        let identifier = match module.get_attribute(false, match_cs_namespace) {
+        let identifier = match module.find_attribute(false, match_cs_namespace) {
             Some(namespace) => namespace,
             _ => module.identifier().to_owned(),
         };

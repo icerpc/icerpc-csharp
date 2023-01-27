@@ -47,7 +47,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
             "{}\n{} = {},",
             CommentTag::new("summary", doc_comment_message(enumerator)),
             enumerator.cs_identifier(Some(Case::Pascal)),
-            enumerator.value,
+            enumerator.value(),
         )));
     }
     code
@@ -98,7 +98,7 @@ private static readonly global::System.Collections.Generic.HashSet<{cs_type}> _e
                 enum_values = enum_def
                     .enumerators()
                     .iter()
-                    .map(|e| e.value.to_string())
+                    .map(|e| e.value().to_string())
                     .collect::<Vec<_>>()
                     .join(", "),
             )

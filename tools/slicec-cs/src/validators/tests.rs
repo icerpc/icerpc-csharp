@@ -1,8 +1,23 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::diagnostics::{Warning, WarningKind};
+use slice::diagnostics::{Diagnostic, Warning, WarningKind};
 
 use super::super::*;
+
+fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
+    let data = match slice::compile_from_strings(&[slice], None)
+        .and_then(patch_attributes)
+        .and_then(patch_comments)
+        .and_then(validate_cs_attributes)
+    {
+        Ok(data) => data,
+        Err(data) => data,
+    };
+
+    data.diagnostic_reporter
+        .into_diagnostics(&data.ast, &data.files)
+        .collect()
+}
 
 #[test]
 fn identifier_attribute_no_args() {
@@ -15,17 +30,13 @@ fn identifier_attribute_no_args() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
-        .and_then(patch_attributes)
-        .and_then(patch_comments)
-        .and_then(validate_cs_attributes)
-        .unwrap_err()
-        .diagnostic_reporter;
+    let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
     let argument = cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#;
     let expected = [Error::new(ErrorKind::MissingRequiredArgument { argument })];
-    std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+
+    std::iter::zip(expected, diagnostics)
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
 }
 
@@ -40,18 +51,13 @@ fn identifier_attribute_multiple_args() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
-        .and_then(patch_attributes)
-        .and_then(patch_comments)
-        .and_then(validate_cs_attributes)
-        .unwrap_err()
-        .diagnostic_reporter;
+    let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
     let expected = [Error::new(ErrorKind::TooManyArguments {
         expected: cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#,
     })];
-    std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+    std::iter::zip(expected, diagnostics)
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
 }
 
@@ -66,15 +72,10 @@ fn identifier_attribute_single_arg() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
-        .and_then(patch_attributes)
-        .and_then(patch_comments)
-        .and_then(validate_cs_attributes)
-        .unwrap()
-        .diagnostic_reporter;
+    let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
-    assert!(diagnostic_reporter.into_diagnostics().is_empty());
+    assert!(diagnostics.is_empty());
 }
 
 #[test]
@@ -86,16 +87,12 @@ fn identifier_attribute_invalid_on_modules() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
-        .and_then(patch_attributes)
-        .and_then(patch_comments)
-        .and_then(validate_cs_attributes)
-        .unwrap_err()
-        .diagnostic_reporter;
+    let diagnostics = parse_for_diagnostics(slice);
+
     // Assert
     let attribute = cs_attributes::IDENTIFIER.to_owned();
     let expected = [Error::new(ErrorKind::UnexpectedAttribute { attribute })];
-    std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+    std::iter::zip(expected, diagnostics)
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
 }
 
@@ -111,15 +108,10 @@ fn identifier_attribute_on_parameter() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
-        .and_then(patch_attributes)
-        .and_then(patch_comments)
-        .and_then(validate_cs_attributes)
-        .unwrap()
-        .diagnostic_reporter;
+    let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
-    assert_eq!(diagnostic_reporter.into_diagnostics().len(), 0);
+    assert_eq!(diagnostics.len(), 0);
 }
 
 #[test]
@@ -133,18 +125,13 @@ fn identifier_attribute_on_type_alias_fails() {
         ";
 
     // Act
-    let diagnostic_reporter = slice::compile_from_strings(&[slice], None)
-        .and_then(patch_attributes)
-        .and_then(patch_comments)
-        .and_then(validate_cs_attributes)
-        .unwrap()
-        .diagnostic_reporter;
+    let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
     let expected = [Warning::new(WarningKind::InconsequentialUseOfAttribute {
         attribute: cs_attributes::IDENTIFIER.to_owned(),
         kind: "typealias".to_owned(),
     })];
-    std::iter::zip(expected, diagnostic_reporter.into_diagnostics())
+    std::iter::zip(expected, diagnostics)
         .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
 }

@@ -196,7 +196,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
     let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
 
-    let generic_attribute = sequence_ref.get_attribute(false, match_cs_generic);
+    let generic_attribute = sequence_ref.find_attribute(false, match_cs_generic);
 
     if generic_attribute.is_none() && matches!(element_type.concrete_type(), Types::Sequence(_)) {
         // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]

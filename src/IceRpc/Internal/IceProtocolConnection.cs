@@ -15,11 +15,7 @@ namespace IceRpc.Internal;
 /// <summary>Implements <see cref="IProtocolConnection" /> for the ice protocol.</summary>
 internal sealed class IceProtocolConnection : IProtocolConnection
 {
-    public Task<Exception?> Closed => _closedTcs.Task;
-
     public ServerAddress ServerAddress => _duplexConnection.ServerAddress;
-
-    public Task ShutdownRequested => _shutdownRequestedTcs.Task;
 
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
@@ -29,11 +25,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private bool IsServer => _transportConnectionInformation is not null;
 
-    private readonly TaskCompletionSource<Exception?> _closedTcs = new();
     private IConnectionContext? _connectionContext; // non-null once the connection is established
-    private Task<TransportConnectionInformation>? _connectTask;
+    private Task? _connectTask;
     private readonly IDispatcher _dispatcher;
     private int _dispatchCount;
+    // We don't want the continuation to run from the dispatch or invocation thread.
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -52,7 +48,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly Timer _inactivityTimeoutTimer;
     private int _invocationCount;
     private string? _invocationRefusedMessage;
-    private bool _isClosedByPeer;
     private int _lastRequestId;
     private readonly int _maxFrameSize;
     private readonly MemoryPool<byte> _memoryPool;
@@ -65,6 +60,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
     private bool _refuseInvocations;
+
+    // Does ShutdownAsync send a close connection frame?
+    private bool _sendCloseConnectionFrame = true;
 
     private Task? _shutdownTask;
 
@@ -82,8 +80,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     // protected by _writeSemaphore
     private Task _writeTask = Task.CompletedTask;
 
-    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
+    public Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
+        CancellationToken cancellationToken)
     {
+        Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> result;
         lock (_mutex)
         {
             ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
@@ -93,11 +93,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot call connect more than once.");
             }
 
-            _connectTask = PerformConnectAsync();
+            result = PerformConnectAsync();
+            _connectTask = result;
         }
-        return _connectTask;
+        return result;
 
-        async Task<TransportConnectionInformation> PerformConnectAsync()
+        async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> PerformConnectAsync()
         {
             // Make sure we execute the function without holding the connection mutex lock.
             await Task.Yield();
@@ -195,7 +196,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _readFramesTask = ReadFramesAsync(_readFramesCts.Token);
             }
 
-            return transportConnectionInformation;
+            // The _readFramesTask waits for this PerformConnectAsync completion before reading anything. As soon as
+            // it receives a request, it will cancel this inactivity check.
+            ScheduleInactivityCheck();
+
+            return (transportConnectionInformation, _shutdownRequestedTcs.Task);
 
             static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
             {
@@ -241,11 +246,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // We don't lock _mutex since once _disposeTask is not null, _connectTask etc are immutable.
 
-            if (_connectTask is null)
-            {
-                _ = _closedTcs.TrySetResult(null); // disposing non-connected connection
-            }
-            else
+            if (_connectTask is not null)
             {
                 // Wait for all writes to complete. This can't take forever since all writes are canceled by
                 // _disposedCts.Token.
@@ -268,10 +269,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // Expected if any of these tasks failed or was canceled. Each task takes care of handling
                     // unexpected exceptions so there's no need to handle them here.
                 }
-
-                // We set the result after awaiting _shutdownTask, in case _shutdownTask was still running and about to
-                // complete successfully with "SetResult".
-                _ = _closedTcs.TrySetResult(new ObjectDisposedException($"{typeof(IceProtocolConnection)}"));
             }
 
             _duplexConnection.Dispose();
@@ -494,10 +491,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 ReadOnlySequence<byte> payloadBuffer,
                 SemaphoreLock semaphoreLock)
             {
-                using SemaphoreLock _ = semaphoreLock; // release semaphore when done
-
                 try
                 {
+                    using SemaphoreLock _ = semaphoreLock; // release semaphore when done
                     int payloadSize = checked((int)payloadBuffer.Length);
                     EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
@@ -506,9 +502,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     await _duplexConnectionWriter.WriteAsync(payloadBuffer, _disposedCts.Token)
                         .ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch
                 {
-                    AbortWrite(exception);
+                    WriteFailed();
                     throw;
                 }
                 finally
@@ -541,12 +537,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
-            _shutdownTask = PerformShutdownAsync(_isClosedByPeer);
+            _shutdownTask = PerformShutdownAsync(_sendCloseConnectionFrame);
         }
 
         return _shutdownTask;
 
-        async Task PerformShutdownAsync(bool closedByPeer)
+        async Task PerformShutdownAsync(bool sendCloseConnectionFrame)
         {
             await Task.Yield(); // exit mutex lock
 
@@ -574,15 +570,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // connection. _pingTask is immutable once _shutdownTask set. _pingTask can be canceled by DisposeAsync.
                 await _pingTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
-                if (closedByPeer)
-                {
-                    // _readFramesTask should be already completed or nearly completed.
-                    await _readFramesTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
-
-                    // The peer is waiting for us to abort the duplex connection; we oblige.
-                    _duplexConnection.Dispose();
-                }
-                else
+                if (sendCloseConnectionFrame)
                 {
                     // Send CloseConnection frame.
                     await SendControlFrameAsync(EncodeCloseConnectionFrame, shutdownCts.Token).ConfigureAwait(false);
@@ -593,9 +581,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // (including the CloseConnection frame) and we don't want to abort this reading.
                     await _readFramesTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
                 }
+                else
+                {
+                    // _readFramesTask should be already completed or nearly completed.
+                    await _readFramesTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
-                // It's safe to call SetResult: no other task can (Try)SetResult on _closedTcs at this stage.
-                _closedTcs.SetResult(null);
+                    // _readFramesTask succeeded means the peer is waiting for us to abort the duplex connection;
+                    // we oblige.
+                    _duplexConnection.Dispose();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -708,10 +702,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Canceled by DisposeAsync
                 throw;
             }
-            catch (IceRpcException exception)
+            catch (IceRpcException)
             {
                 // Expected if the connection was aborted.
-                AbortWrite(exception);
+                WriteFailed();
                 throw;
             }
             catch (Exception exception)
@@ -1009,20 +1003,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             throw new ArgumentException("The payload size is greater than int.MaxValue.", nameof(payload));
     }
 
-    /// <summary>Aborts write operations on this connection.</summary>
-    /// <remarks>Must be called outside the mutex lock.</remarks>
-    private void AbortWrite(Exception exception)
-    {
-        // We can't send new invocations without writing to the connection.
-        RefuseNewInvocations("The connection was lost because a write operation failed.");
-
-        // We can't send responses so these dispatches can be canceled.
-        _twowayDispatchesCts.Cancel();
-
-        // Completing Closed typically triggers an abrupt disposal of the connection.
-        _ = _closedTcs.TrySetResult(exception);
-    }
-
     /// <summary>Acquires exclusive access to _duplexConnectionWriter.</summary>
     /// <returns>A <see cref="SemaphoreLock" /> that releases the acquired semaphore in its Dispose method.</returns>
     private async ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
@@ -1145,9 +1125,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 int payloadSize = checked((int)payload.Length);
 
                 // Wait for writing of other frames to complete.
-                using SemaphoreLock _ = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
+                SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
+                    using SemaphoreLock _ = semaphoreLock;
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
 
                     // Write the payload and complete the source. It's much simpler than the WriteAsync in InvokeAsync
@@ -1161,7 +1142,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     _writeTask = Task.FromException(exception);
 
                     // The caller will log this failure.
-                    AbortWrite(exception);
+                    WriteFailed();
                     throw;
                 }
             }
@@ -1200,11 +1181,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // any request until _connectTask has completed successfully, and indirectly we won't make any invocation until
         // _connectTask has completed successfully. The creation of the _readFramesTask is the last action taken by
         // _connectTask and as a result this await can't fail.
-        _ = await _connectTask!.ConfigureAwait(false);
-
-        // The inactivity check requests shutdown and we want to make sure we only request it after _connectTask completed
-        // successfully.
-        ScheduleInactivityCheck();
+        await _connectTask!.ConfigureAwait(false);
 
         try
         {
@@ -1252,11 +1229,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                         lock (_mutex)
                         {
-                            _isClosedByPeer = true;
                             RefuseNewInvocations(
                                 "The connection was shut down because it received a CloseConnection frame from the peer.");
 
                             // By exiting the "read frames loop" below, we are refusing new dispatches as well.
+
+                            // Only one side sends the CloseConnection frame.
+                            _sendCloseConnectionFrame = false;
                         }
 
                         // Even though we're in the "read frames loop", it's ok to cancel CTS and a "synchronous" TCS
@@ -1324,11 +1303,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (OperationCanceledException)
         {
-            var exception = new IceRpcException(
+            ReadFailed();
+            throw new IceRpcException(
                 IceRpcError.ConnectionIdle,
                 "The connection was aborted because its underlying duplex connection did not receive any byte for too long.");
-            AbortRead(exception);
-            throw exception;
         }
         catch (IceRpcException exception) when (
             exception.IceRpcError == IceRpcError.ConnectionAborted &&
@@ -1337,44 +1315,46 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // The peer acknowledged receipt of the CloseConnection frame by aborting the duplex connection. Return.
             // See ShutdownAsync.
         }
-        catch (IceRpcException exception)
+        catch (IceRpcException)
         {
-            AbortRead(exception);
+            ReadFailed();
             throw;
         }
         catch (InvalidDataException exception)
         {
-            var rpcException = new IceRpcException(
+            ReadFailed();
+            throw new IceRpcException(
                 IceRpcError.ConnectionAborted,
                 "The connection was aborted by an ice protocol error.",
                 exception);
-
-            AbortRead(rpcException);
-            throw rpcException;
         }
         catch (Exception exception)
         {
             Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
-            AbortRead(exception);
+            ReadFailed();
             throw;
         }
 
-        // Aborts all activities that rely on reading the connection since we're about to exit the read frames loop.
-        void AbortRead(Exception exception)
+        // Takes appropriate action after a read failure.
+        void ReadFailed()
         {
             // We also prevent new oneway invocations even though they don't need to read the connection.
             RefuseNewInvocations("The connection was lost because a read operation failed.");
 
-            // It's ok to cancel CTS and a "synchronous" TCS below. We  won't be reading anything else so it's ok to ru
+            // It's ok to cancel CTS and a "synchronous" TCS below. We won't be reading anything else so it's ok to run
             // continuations synchronously.
 
             AbortTwowayInvocations(
                 IceRpcError.ConnectionAborted,
                 "The invocation was aborted because the connection was lost.");
 
-            // Completing Closed typically triggers an abrupt disposal of the connection, with invocations completing
-            // with OperationAborted as opposed to ConnectionAborted. That's why we do it last.
-            _ = _closedTcs.TrySetResult(exception);
+            lock (_mutex)
+            {
+                // Don't send a close connection frame since we can't wait for the peer's acknowledgment.
+                _sendCloseConnectionFrame = false;
+            }
+
+            _ = _shutdownRequestedTcs.TrySetResult();
         }
 
         // Aborts all pending twoway invocations. Must be called outside the mutex lock after setting _refuseInvocations
@@ -1603,7 +1583,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     }
 
     /// <summary>Sends a control frame. It takes care of acquiring and releasing the write lock and calls
-    /// <see cref="AbortWrite" /> if a failure occurs while writing to _duplexConnectionWriter.</summary>
+    /// <see cref="WriteFailed" /> if a failure occurs while writing to _duplexConnectionWriter.</summary>
     /// <param name="encode">Encodes the control frame.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private async ValueTask SendControlFrameAsync(
@@ -1622,18 +1602,33 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // until DisposeAsync.
         async Task PerformSendControlFrameAsync(SemaphoreLock semaphoreLock)
         {
-            using SemaphoreLock _ = semaphoreLock; // release when done
-
             try
             {
+                using SemaphoreLock _ = semaphoreLock; // release when done
                 encode(_duplexConnectionWriter);
                 await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch
             {
-                AbortWrite(exception);
+                WriteFailed();
                 throw;
             }
         }
+    }
+
+    /// <summary>Takes appropriate action after a write failure.</summary>
+    /// <remarks>Must be called outside the mutex lock.</remarks>
+    private void WriteFailed()
+    {
+        // We can't send new invocations without writing to the connection.
+        RefuseNewInvocations("The connection was lost because a write operation failed.");
+
+        // We can't send responses so these dispatches can be canceled.
+        _twowayDispatchesCts.Cancel();
+
+        // We don't change _sendClosedConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync to
+        // send CloseConnection - and fail.
+
+        _ = _shutdownRequestedTcs.TrySetResult();
     }
 }
