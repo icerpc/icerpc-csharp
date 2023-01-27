@@ -255,9 +255,9 @@ internal class DuplexConnectionReader : IAsyncDisposable
                     }
                     else
                     {
-                        // The peer gracefully shut down the connection but returned less data than expected, it's
-                        // considered as an error.
-                        throw new InvalidDataException("Received less data than expected.");
+                        // The connection was aborted or the peer gracefully shut down the connection but returned less
+                        // data than expected.
+                        throw new IceRpcException(IceRpcError.ConnectionAborted);
                     }
                 }
             }

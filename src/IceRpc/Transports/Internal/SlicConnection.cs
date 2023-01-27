@@ -1345,7 +1345,9 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     else
                     {
-                        throw new IceRpcException(IceRpcError.TruncatedData);
+                        // The duplex transport ReadAsync call returned an empty buffer. This indicates a peer
+                        // connection abort.
+                        throw new IceRpcException(IceRpcError.ConnectionAborted);
                     }
                 }
             }
