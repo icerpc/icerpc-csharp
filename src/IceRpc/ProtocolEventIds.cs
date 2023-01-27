@@ -15,17 +15,20 @@ public enum ProtocolEventIds
     /// </summary>
     ConnectionAcceptFailedAndContinue,
 
-    /// <summary>The connection connect attempt succeed.</summary>
+    /// <summary>The connection establishment completed successfully.</summary>
     ConnectionConnected,
 
-    /// <summary>The connection connect attempt failed.</summary>
+    /// <summary>The connection establishment failed. This is the last event for this connection.</summary>
     ConnectionConnectFailed,
 
-    /// <summary>A connection has been terminated because a failure.</summary>
-    ConnectionFailed,
+    /// <summary>A connected connection was disposed. This is the last event for this connection.</summary>
+    ConnectionDisposed,
 
-    /// <summary>A connection has been shutdown.</summary>
+    /// <summary>The shutdown of a connected connection completed successfully.</summary>
     ConnectionShutdown,
+
+    /// <summary>The shutdown of a connected connection failed.</summary>
+    ConnectionShutdownFailed,
 
     /// <summary>The listener starts accepting connections.</summary>
     StartAcceptingConnections,

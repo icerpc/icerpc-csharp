@@ -125,7 +125,7 @@ public sealed class ProtocolLoggerTests
     }
 
     [Test]
-    public async Task Log_connection_failed()
+    public async Task Log_connection_dispose_without_shutdown()
     {
         // Arrange
         var serverAddress = new ServerAddress(new Uri($"icerpc://colochost-{Guid.NewGuid()}"));
@@ -164,7 +164,7 @@ public sealed class ProtocolLoggerTests
         {
             entry = await serverLoggerFactory.Logger!.Entries.Reader.ReadAsync();
         }
-        while (entry.EventId != (int)ProtocolEventIds.ConnectionFailed);
+        while (entry.EventId != (int)ProtocolEventIds.ConnectionShutdownFailed);
 
         Assert.That(entry, Is.Not.Null);
         Assert.That(entry.State["Kind"], Is.EqualTo("Server"));
@@ -173,14 +173,14 @@ public sealed class ProtocolLoggerTests
         Assert.That(
             entry.State["RemoteNetworkAddress"]?.ToString(),
             Is.EqualTo(clientConnectionInformation.LocalNetworkAddress.ToString()));
-        Assert.That(entry.Exception, Is.InstanceOf<IceRpcException>());
+        Assert.That(entry.Exception, Is.InstanceOf<IceRpcException>()); // the shutdown failure
 
         Assert.That(clientLoggerFactory.Logger, Is.Not.Null);
         do
         {
             entry = await clientLoggerFactory.Logger!.Entries.Reader.ReadAsync();
         }
-        while (entry.EventId != (int)ProtocolEventIds.ConnectionFailed);
+        while (entry.EventId != (int)ProtocolEventIds.ConnectionDisposed);
 
         Assert.That(entry.State["Kind"], Is.EqualTo("Client"));
         Assert.That(
@@ -189,8 +189,6 @@ public sealed class ProtocolLoggerTests
         Assert.That(
             entry.State["RemoteNetworkAddress"],
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress));
-
-        Assert.That(entry.Exception, Is.InstanceOf<ObjectDisposedException>());
     }
 
     [Test]
