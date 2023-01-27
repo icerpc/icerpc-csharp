@@ -50,7 +50,7 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
                 // Disposing a connection without calling shutdown first count as an error.
                 _metrics.ConnectionFailure();
             }
-            _metrics.ConnectionDiconnected();
+            _metrics.ConnectionDisconnected();
         }
     }
 

@@ -84,7 +84,7 @@ internal sealed class Metrics : IDisposable
         Interlocked.Increment(ref _totalFailedConnections);
     }
 
-    internal void ConnectionDiconnected()
+    internal void ConnectionDisconnected()
     {
         Debug.Assert(_activeConnections > 0);
         Interlocked.Decrement(ref _activeConnections);

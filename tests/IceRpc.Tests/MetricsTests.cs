@@ -66,7 +66,7 @@ public class MetricsTests
                     metrics.ConnectSuccess();
                     metrics.ConnectStop();
                     metrics.ConnectionFailure();
-                    metrics.ConnectionDiconnected();
+                    metrics.ConnectionDisconnected();
 
                     listener.RecordObservableInstruments();
                 },
