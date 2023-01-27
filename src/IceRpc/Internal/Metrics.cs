@@ -78,6 +78,7 @@ internal sealed class Metrics : IDisposable
     internal void ConnectionFailure()
     {
         Debug.Assert(_totalFailedConnections >= 0);
+        Debug.Assert(_totalFailedConnections < _totalConnections);
         Interlocked.Increment(ref _totalFailedConnections);
     }
 

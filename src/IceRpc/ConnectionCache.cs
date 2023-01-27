@@ -111,18 +111,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             IEnumerable<IProtocolConnection> allConnections =
                 _pendingConnections.Values.Select(value => value.Connection).Concat(_activeConnections.Values);
 
+            // Wait for shutdown before disposing connections.
             try
             {
-                await Task.WhenAll(
-                    allConnections.Select(connection => connection.DisposeAsync().AsTask())
-                        .Append(_shutdownTask)
-                        .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
+                await _shutdownTask.ConfigureAwait(false);
             }
             catch
             {
-                // Ignore _shutdownTask failure or cancellation.
+                // Ignore exceptions.
             }
 
+            await Task.WhenAll(
+                allConnections
+                    .Select(connection => connection.DisposeAsync().AsTask())
+                    .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
             _disposedCts.Dispose();
         }
     }

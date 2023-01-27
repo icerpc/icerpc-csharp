@@ -225,22 +225,22 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             _disposedCts.Cancel();
 
-            // Since a pending connection is "detached", it's disposed via the connectTask, not directly by this method.
-
-            if (_activeConnection is not null)
-            {
-                await _activeConnection.Value.Connection.DisposeAsync().ConfigureAwait(false);
-            }
-
+            // Wait for shutdown before disposing connections.
             try
             {
-                await Task.WhenAll(
-                    _shutdownTask,
-                    _detachedConnectionsTcs.Task).ConfigureAwait(false);
+                await _shutdownTask.ConfigureAwait(false);
             }
             catch
             {
-                // ignore exceptions
+                // ignore exceptions.
+            }
+
+            // Since a pending connection is "detached", it's disposed via the connectTask, not directly by this method.
+            if (_activeConnection is not null)
+            {
+                await Task.WhenAll(
+                    _activeConnection.Value.Connection.DisposeAsync().AsTask(),
+                    _detachedConnectionsTcs.Task).ConfigureAwait(false);
             }
 
             _disposedCts.Dispose();

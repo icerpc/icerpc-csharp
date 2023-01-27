@@ -252,18 +252,20 @@ public sealed class Server : IAsyncDisposable
 
             if (_listenTask is not null)
             {
+                // Wait for shutdown before disposing connections.
                 try
                 {
-                    await Task.WhenAll(
-                        _connections.Select(connection => connection.DisposeAsync().AsTask())
-                            .Append(_listenTask)
-                            .Append(_shutdownTask)
-                            .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
+                    await Task.WhenAll(_listenTask, _shutdownTask).ConfigureAwait(false);
                 }
                 catch
                 {
-                    // Ignore exceptions. Each task is responsible to log/Debug.Fail on its exceptions.
+                    // Ignore exceptions.
                 }
+
+                await Task.WhenAll(
+                    _connections
+                        .Select(connection => connection.DisposeAsync().AsTask())
+                        .Append(_detachedConnectionsTcs.Task)).ConfigureAwait(false);
             }
 
             _disposedCts.Dispose();
