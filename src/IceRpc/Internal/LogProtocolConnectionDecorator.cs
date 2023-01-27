@@ -14,7 +14,9 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private bool IsServer => _remoteNetworkAddress is not null;
 
-    private volatile TransportConnectionInformation? _connectionInformation;
+    // _connectionInformation is not volatile because all correct callers of IProtocolConnection wait for ConnectAsync
+    // to complete before calling any other method on IProtocolConnection, including DisposeAsync.
+    private TransportConnectionInformation? _connectionInformation;
 
     private readonly IProtocolConnection _decoratee;
 
@@ -22,6 +24,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     private readonly EndPoint? _remoteNetworkAddress;
 
+    // _shutdownTask is volatile because it's possible (but rare) for ShutdownAsync and DisposeAsync to execute
+    // concurrently.
     private volatile Task? _shutdownTask;
 
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
@@ -70,12 +74,12 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             }
         }
 
-        if (_connectionInformation is TransportConnectionInformation connectionInformation)
+        if (_connectionInformation is not null)
         {
             _logger.LogConnectionDisposed(
                 IsServer,
-                connectionInformation.LocalNetworkAddress,
-                connectionInformation.RemoteNetworkAddress);
+                _connectionInformation.LocalNetworkAddress,
+                _connectionInformation.RemoteNetworkAddress);
         }
     }
 
@@ -90,27 +94,20 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
             return _shutdownTask;
         }
         // catch exceptions thrown synchronously by _decoratee.ShutdownAsync
-        catch (InvalidOperationException)
+        catch (Exception exception) when (_connectionInformation is not null)
         {
-            // Thrown if ConnectAsync wasn't called, or if ShutdownAsync is called twice.
+            LogShutdownFailed(exception, _connectionInformation);
             throw;
         }
-        catch (Exception exception)
-        {
-            LogShutdownFailed(exception);
-            throw;
-        }
+        // otherwise ConnectAsync was not called (a bug) and the exception is an InvalidOperationException or an
+        // ObjectDisposedException.
 
-        void LogShutdownFailed(Exception exception)
-        {
-            Debug.Assert(_connectionInformation is not null);
-
+        void LogShutdownFailed(Exception exception, TransportConnectionInformation connectionInformation) =>
             _logger.LogConnectionShutdownFailed(
                 IsServer,
-                _connectionInformation.LocalNetworkAddress,
-                _connectionInformation.RemoteNetworkAddress,
+                connectionInformation.LocalNetworkAddress,
+                connectionInformation.RemoteNetworkAddress,
                 exception);
-        }
 
         async Task PerformShutdownAsync(Task decorateeShutdownTask)
         {
@@ -125,14 +122,9 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
                     _connectionInformation.LocalNetworkAddress,
                     _connectionInformation.RemoteNetworkAddress);
             }
-            catch (InvalidOperationException)
+            catch (Exception exception) when (_connectionInformation is not null)
             {
-                // See above. A decorator can convert synchronous exceptions into asynchronous exceptions.
-                throw;
-            }
-            catch (Exception exception)
-            {
-                LogShutdownFailed(exception);
+                LogShutdownFailed(exception, _connectionInformation);
                 throw;
             }
         }
