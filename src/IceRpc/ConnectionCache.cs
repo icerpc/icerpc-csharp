@@ -174,7 +174,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
             if (_shutdownTask is not null)
             {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache was shut down.");
             }
         }
 
@@ -194,6 +194,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     lock (_mutex)
                     {
+                        if (_disposeTask is not null)
+                        {
+                            throw new IceRpcException(
+                                IceRpcError.OperationAborted,
+                                "The connection cache was disposed.");
+                        }
+
+                        if (_shutdownTask is not null)
+                        {
+                            throw new IceRpcException(
+                                IceRpcError.InvocationRefused,
+                                "The connection cache was shut down.");
+                        }
+
                         var enumerator = new ServerAddressEnumerator(serverAddressFeature);
                         while (enumerator.MoveNext())
                         {
@@ -235,7 +249,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
                         try
                         {
-                            connection = await GetActiveConnectionAsync(mainServerAddress).WaitAsync(cancellationToken)
+                            connection = await GetActiveConnectionAsync(mainServerAddress, cancellationToken)
                                 .ConfigureAwait(false);
                             break;
                         }
@@ -285,18 +299,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     // The connection is refusing new invocations.
                 }
 
-                lock (_mutex)
-                {
-                    if (_disposeTask is not null)
-                    {
-                        throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
-                    }
-
-                    if (_shutdownTask is not null)
-                    {
-                        throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
-                    }
-                }
+                // Make sure connection is no longer in _activeConnection before we retry.
+                _ = RemoveFromActiveAsync(connection);
             }
         }
     }
@@ -385,42 +389,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gets an active connection, by creating and connecting (if necessary) a new protocol connection.
-    /// </summary>
-    /// <returns>A connected connection.</returns>
-    private async Task<IProtocolConnection> GetActiveConnectionAsync(ServerAddress serverAddress)
-    {
-        (IProtocolConnection Connection, Task Task) pendingConnectionValue;
-
-        lock (_mutex)
-        {
-            if (_disposeTask is not null)
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
-            }
-            else if (_shutdownTask is not null)
-            {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
-            }
-
-            if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
-            {
-                return connection;
-            }
-
-            if (!_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
-            {
-                connection = _connectionFactory.CreateConnection(serverAddress);
-                _detachedConnectionCount++;
-                pendingConnectionValue = (connection, CreateConnectTask(connection));
-                _pendingConnections.Add(serverAddress, pendingConnectionValue);
-            }
-        }
-
-        await pendingConnectionValue.Task.ConfigureAwait(false);
-        return pendingConnectionValue.Connection;
-    }
-
     private async Task CreateConnectTask(IProtocolConnection connection)
     {
         await Task.Yield(); // exit mutex lock
@@ -470,7 +438,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (_shutdownTask is null)
             {
-                // the connection is now "attached" in _activeConnection
+                // the connection is now "attached" in _activeConnections
                 _activeConnections.Add(connection.ServerAddress, connection);
                 _detachedConnectionCount--;
             }
@@ -522,23 +490,80 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         async Task ShutdownWhenRequestedAsync(IProtocolConnection connection, Task shutdownRequested)
         {
             await shutdownRequested.ConfigureAwait(false);
+            await RemoveFromActiveAsync(connection).ConfigureAwait(false);
+        }
+    }
 
-            lock (_mutex)
+    /// <summary>Gets an active connection, by creating and connecting (if necessary) a new protocol connection.
+    /// </summary>
+    /// <param name="serverAddress">The server address of the connection.</param>
+    /// <param name="cancellationToken">The cancellation token of the invocation calling this method.</param>
+    /// <returns>A connected connection.</returns>
+    private Task<IProtocolConnection> GetActiveConnectionAsync(
+        ServerAddress serverAddress,
+        CancellationToken cancellationToken)
+    {
+        (IProtocolConnection Connection, Task ConnectTask) pendingConnectionValue;
+
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
             {
-                if (_shutdownTask is null)
-                {
-                    bool removed = _activeConnections.Remove(connection.ServerAddress);
-                    Debug.Assert(removed);
-                    _detachedConnectionCount++;
-                }
-                else
-                {
-                    // ConnectionCache.DisposeAsync is responsible to dispose this connection.
-                    return;
-                }
+                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+            }
+            else if (_shutdownTask is not null)
+            {
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
             }
 
-            // _disposedCts is not disposed since we own a _detachedConnectionCount
+            if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
+            {
+                return Task.FromResult(connection);
+            }
+
+            if (!_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
+            {
+                connection = _connectionFactory.CreateConnection(serverAddress);
+                _detachedConnectionCount++;
+                pendingConnectionValue = (connection, CreateConnectTask(connection));
+                _pendingConnections.Add(serverAddress, pendingConnectionValue);
+            }
+        }
+
+        return PerformGetActiveConnectionAsync();
+
+        async Task<IProtocolConnection> PerformGetActiveConnectionAsync()
+        {
+            // ConnectTask itself takes care of scheduling its exception observation when it fails.
+            await pendingConnectionValue.ConnectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return pendingConnectionValue.Connection;
+        }
+    }
+
+    /// <summary>Removes the connection from _activeConnections, and when successful, shuts down and disposes this
+    /// connection.</summary>
+    /// <param name="connection">The connected connection to shutdown and dispose.</param>
+    private Task RemoveFromActiveAsync(IProtocolConnection connection)
+    {
+        lock (_mutex)
+        {
+            if (_shutdownTask is null && _activeConnections.Remove(connection.ServerAddress))
+            {
+                // it's now our connection.
+                _detachedConnectionCount++;
+            }
+            else
+            {
+                // Another task owns this connection
+                return Task.CompletedTask;
+            }
+        }
+
+        return ShutdownAndDisposeConnectionAsync();
+
+        async Task ShutdownAndDisposeConnectionAsync()
+        {
+            // _disposedCts is not disposed since we own a detachedConnectionCount
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
             cts.CancelAfter(_shutdownTimeout);
 
