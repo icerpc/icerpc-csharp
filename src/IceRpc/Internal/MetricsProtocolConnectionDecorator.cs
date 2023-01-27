@@ -9,25 +9,26 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
     public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-    private readonly bool _logStart;
+    private readonly bool _connectStarted;
     private readonly IProtocolConnection _decoratee;
+    private bool _isConneceted;
+    private bool _isShutdown;
     private readonly Metrics _metrics;
-    private TransportConnectionInformation? _connectionInformation;
-    private Task? _shutdownTask;
 
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
     {
-        if (_logStart)
+        if (!_connectStarted)
         {
             _metrics.ConnectStart();
         }
         try
         {
-            (_connectionInformation, Task shutdownRequested) = await _decoratee.ConnectAsync(cancellationToken)
-                .ConfigureAwait(false);
+            (TransportConnectionInformation connectionInformation, Task shutdownRequested) =
+                await _decoratee.ConnectAsync(cancellationToken).ConfigureAwait(false);
             _metrics.ConnectSuccess();
-            return (_connectionInformation, shutdownRequested);
+            _isConneceted = true;
+            return (connectionInformation, shutdownRequested);
         }
         catch
         {
@@ -43,11 +44,11 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
     public async ValueTask DisposeAsync()
     {
         await _decoratee.DisposeAsync().ConfigureAwait(false);
-        if (_connectionInformation is not null)
+        if (_isConneceted)
         {
-            if (_shutdownTask is null)
+            if (!_isShutdown)
             {
-                // Disposing a connection without calling shutdown first count as an error.
+                // shutdown failed or didn't call shutdown at all.
                 _metrics.ConnectionFailure();
             }
             _metrics.ConnectionDisconnected();
@@ -59,29 +60,21 @@ internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 
     public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            _shutdownTask = _decoratee.ShutdownAsync(cancellationToken);
-            await _shutdownTask.ConfigureAwait(false);
-        }
-        catch
-        {
-            _metrics.ConnectionFailure();
-            throw;
-        }
+        await _decoratee.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+        _isShutdown = true;
     }
 
     /// <summary>A protocol connection decorator to log connection metrics.</summary>
     /// <param name="decoratee">The protocol connection decoratee.</param>
     /// <param name="metrics">The metrics object used to log the metrics.</param>
-    /// <param name="logStart">Whether or not to log the ConnectionStart and ConnectStart events. For server connections
-    /// these events are logged from a separate <see cref="Server.IConnector"/> decorator.</param>
+    /// <param name="connectStarted">Whether or not the ConnectStart events has be already logged. For server connections
+    /// the event is logged from a separate <see cref="Server.IConnector"/> decorator.</param>
     internal MetricsProtocolConnectionDecorator(
         IProtocolConnection decoratee,
         Metrics metrics,
-        bool logStart)
+        bool connectStarted)
     {
-        _logStart = logStart;
+        _connectStarted = connectStarted;
         _decoratee = decoratee;
         _metrics = metrics;
     }

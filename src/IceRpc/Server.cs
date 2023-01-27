@@ -793,7 +793,7 @@ public sealed class Server : IAsyncDisposable
                 new MetricsProtocolConnectionDecorator(
                     _decoratee.CreateProtocolConnection(transportConnectionInformation),
                     Metrics.ServerMetrics,
-                    logStart: false);
+                    connectStarted: true);
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
