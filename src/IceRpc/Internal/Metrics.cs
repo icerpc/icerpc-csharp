@@ -11,18 +11,19 @@ internal sealed class Metrics : IDisposable
     internal static readonly Metrics ClientMetrics = new("IceRpc.Client");
     internal static readonly Metrics ServerMetrics = new("IceRpc.Server");
 
-    // The number of active (accepted and connected) connections.
-    private long _currentConnections;
+    // The number of active connections.
+    private long _activeConnections;
 
     private readonly Meter _meter;
 
-    // The number of connections that were accepted and are being connected.
+    // The number of connections that are being connected.
     private long _pendingConnections;
 
-    // The number of connection that have been accepted and connected.
+    // The number of connection that have been created.
     private long _totalConnections;
 
-    // The number of connections that were accepted and failed later on.
+    // The number of connections that start connecting and failed to connect, or connected successfully but
+    // later terminate due to a failure.
     private long _totalFailedConnections;
 
     /// <inheritdoc/>
@@ -33,10 +34,10 @@ internal sealed class Metrics : IDisposable
         _meter = new Meter(meterName);
 
         _meter.CreateObservableUpDownCounter(
-            "current-connections",
-            () => Volatile.Read(ref _currentConnections),
+            "active-connections",
+            () => Volatile.Read(ref _activeConnections),
             "Connections",
-            "Current Connections");
+            "Active Connections");
 
         _meter.CreateObservableUpDownCounter(
             "pending-connections",
@@ -59,7 +60,9 @@ internal sealed class Metrics : IDisposable
 
     internal void ConnectStart()
     {
+        Debug.Assert(_totalConnections >= 0);
         Debug.Assert(_pendingConnections >= 0);
+        Interlocked.Increment(ref _totalConnections);
         Interlocked.Increment(ref _pendingConnections);
     }
 
@@ -71,8 +74,8 @@ internal sealed class Metrics : IDisposable
 
     internal void ConnectSuccess()
     {
-        Debug.Assert(_currentConnections >= 0);
-        Interlocked.Increment(ref _currentConnections);
+        Debug.Assert(_activeConnections >= 0);
+        Interlocked.Increment(ref _activeConnections);
     }
 
     internal void ConnectionFailure()
@@ -82,15 +85,9 @@ internal sealed class Metrics : IDisposable
         Interlocked.Increment(ref _totalFailedConnections);
     }
 
-    internal void ConnectionStart()
+    internal void ConnectionDisconnected()
     {
-        Debug.Assert(_totalConnections >= 0);
-        Interlocked.Increment(ref _totalConnections);
-    }
-
-    internal void ConnectionStop()
-    {
-        Debug.Assert(_currentConnections > 0);
-        Interlocked.Decrement(ref _currentConnections);
+        Debug.Assert(_activeConnections > 0);
+        Interlocked.Decrement(ref _activeConnections);
     }
 }
