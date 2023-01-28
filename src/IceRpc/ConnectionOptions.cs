@@ -118,8 +118,6 @@ public record class ConnectionOptions
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
     private const int IceMinFrameSize = 256;
-    private static readonly Action<Exception> _defaultFaultedTaskAction =
-        exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
 
     private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(30);
     private TimeSpan _inactivityTimeout = TimeSpan.FromSeconds(60);
