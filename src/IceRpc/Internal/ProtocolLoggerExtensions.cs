@@ -154,6 +154,40 @@ internal static partial class ProtocolLoggerExtensions
             exception);
 
     [LoggerMessage(
+        EventId = (int)ProtocolEventIds.DispatchFailed,
+        EventName = nameof(ProtocolEventIds.DispatchFailed),
+        Message = "Dispatch of '{Operation}' on '{Path}' from '{RemoteNetworkAddress}' failed")]
+    internal static partial void LogDispatchFailed(
+        this ILogger logger,
+        LogLevel logLevel,
+        string operation,
+        string path,
+        EndPoint remoteNetworkAddress,
+        Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)ProtocolEventIds.DispatchRefused,
+        EventName = nameof(ProtocolEventIds.DispatchRefused),
+        Message = "Refused dispatch from '{RemoteNetworkAddress}'")]
+    internal static partial void LogDispatchRefused(
+        this ILogger logger,
+        LogLevel logLevel,
+        EndPoint remoteNetworkAddress,
+        Exception exception);
+
+    [LoggerMessage(
+        EventId = (int)ProtocolEventIds.RequestPayloadContinuationFailed,
+        EventName = nameof(ProtocolEventIds.RequestPayloadContinuationFailed),
+        Message = "Invocation '{Operation}' on '{Path}' failed to send payload continuation to '{RemoteNetworkAddress}'")]
+    internal static partial void LogRequestPayloadContinuationFailed(
+        this ILogger logger,
+        LogLevel logLevel,
+        string operation,
+        string path,
+        EndPoint remoteNetworkAddress,
+        Exception exception);
+
+    [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StartAcceptingConnections),
         Level = LogLevel.Trace,

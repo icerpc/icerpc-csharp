@@ -69,6 +69,8 @@ public sealed class Server : IAsyncDisposable
             throw new ArgumentException($"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
 
+        logger ??= NullLogger.Instance;
+
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
 
         duplexServerTransport ??= IDuplexServerTransport.Default;
@@ -92,6 +94,7 @@ public sealed class Server : IAsyncDisposable
         _listenerFactory = () =>
         {
             // This is the composition root for the protocol and transport listeners.
+
             IConnectorListener listener;
             if (_serverAddress.Protocol == Protocol.Ice)
             {
@@ -103,7 +106,10 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool,
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceConnectorListener(transportListener, options.ConnectionOptions);
+
+                listener = new IceConnectorListener(
+                    transportListener,
+                    options.ConnectionOptions);
             }
             else
             {
@@ -118,7 +124,14 @@ public sealed class Server : IAsyncDisposable
                         Pool = options.ConnectionOptions.Pool
                     },
                     options.ServerAuthenticationOptions);
-                listener = new IceRpcConnectorListener(transportListener, options.ConnectionOptions);
+
+                ITaskExceptionObserver? taskExceptionObserver = logger == NullLogger.Instance ? null :
+                    new LogTaskExceptionObserver(logger);
+
+                listener = new IceRpcConnectorListener(
+                    transportListener,
+                    options.ConnectionOptions,
+                    taskExceptionObserver);
             }
 
             listener = new MetricsConnectorListenerDecorator(listener);
@@ -693,10 +706,10 @@ public sealed class Server : IAsyncDisposable
             return _decoratee.DisposeAsync();
         }
 
-        internal LogAndRetryConnectorListenerDecorator(IConnectorListener decoratee, ILogger? logger)
+        internal LogAndRetryConnectorListenerDecorator(IConnectorListener decoratee, ILogger logger)
         {
             _decoratee = decoratee;
-            _logger = logger ?? NullLogger.Instance;
+            _logger = logger;
             _logger.LogStartAcceptingConnections(ServerAddress);
         }
     }
@@ -904,26 +917,32 @@ public sealed class Server : IAsyncDisposable
 
         private readonly IListener<IMultiplexedConnection> _listener;
         private readonly ConnectionOptions _options;
+        private readonly ITaskExceptionObserver? _taskExceptionObserver;
 
         public async Task<(IConnector, EndPoint)> AcceptAsync(CancellationToken cancel)
         {
             (IMultiplexedConnection transportConnection, EndPoint remoteNetworkAddress) = await _listener.AcceptAsync(
                 cancel).ConfigureAwait(false);
-            return (new IceRpcConnector(transportConnection, _options), remoteNetworkAddress);
+            return (new IceRpcConnector(transportConnection, _options, _taskExceptionObserver), remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _listener.DisposeAsync();
 
-        internal IceRpcConnectorListener(IListener<IMultiplexedConnection> listener, ConnectionOptions options)
+        internal IceRpcConnectorListener(
+            IListener<IMultiplexedConnection> listener,
+            ConnectionOptions options,
+            ITaskExceptionObserver? taskExceptionObserver)
         {
             _listener = listener;
             _options = options;
+            _taskExceptionObserver = taskExceptionObserver;
         }
     }
 
     private class IceRpcConnector : IConnector
     {
         private readonly ConnectionOptions _options;
+        private readonly ITaskExceptionObserver? _taskExceptionObserver;
         private IMultiplexedConnection? _transportConnection;
 
         public Task<TransportConnectionInformation> ConnectTransportConnectionAsync(
@@ -937,7 +956,8 @@ public sealed class Server : IAsyncDisposable
             var protocolConnection = new IceRpcProtocolConnection(
                 _transportConnection!,
                 transportConnectionInformation,
-                _options);
+                _options,
+                _taskExceptionObserver);
             _transportConnection = null;
             return protocolConnection;
         }
@@ -951,10 +971,12 @@ public sealed class Server : IAsyncDisposable
 
         internal IceRpcConnector(
             IMultiplexedConnection transportConnection,
-            ConnectionOptions options)
+            ConnectionOptions options,
+            ITaskExceptionObserver? taskExceptionObserver)
         {
             _transportConnection = transportConnection;
             _options = options;
+            _taskExceptionObserver = taskExceptionObserver;
         }
     }
 }

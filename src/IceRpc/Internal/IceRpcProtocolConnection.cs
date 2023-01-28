@@ -35,7 +35,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly CancellationTokenSource _disposedCts = new();
 
     private Task? _disposeTask;
-    private readonly Action<Exception> _faultedTaskAction;
 
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
@@ -76,6 +75,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private int _streamCount;
     private readonly TaskCompletionSource _streamsClosed = new();
+
+    private readonly ITaskExceptionObserver? _taskExceptionObserver;
 
     private readonly IMultiplexedConnection _transportConnection;
 
@@ -490,6 +491,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                                     endStream: true,
                                     invocationCancellationToken).ConfigureAwait(false);
                             }
+                            catch (Exception exception) when (_taskExceptionObserver is not null)
+                            {
+                                _taskExceptionObserver.RequestPayloadContinuationFailed(
+                                    request,
+                                    _connectionContext!.TransportConnectionInformation,
+                                    exception);
+                            }
                             catch (OperationCanceledException exception) when (
                                 exception.CancellationToken == invocationCancellationToken)
                             {
@@ -508,7 +516,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             }
                             catch (Exception exception)
                             {
-                                _faultedTaskAction(exception);
+                                // This exception is unexpected when running the IceRPC test suite. A test that expects
+                                // such an exception must install a task exception observer.
+                                Debug.Fail($"Failed to send payload continuation of request {request}: {exception}");
+
+                                // If Debug is not enabled and there is no task exception observer, we rethrow to
+                                // generate an Unobserved Task Exception.
+                                throw;
                             }
                             finally
                             {
@@ -780,13 +794,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     internal IceRpcProtocolConnection(
         IMultiplexedConnection transportConnection,
         TransportConnectionInformation? transportConnectionInformation,
-        ConnectionOptions options)
+        ConnectionOptions options,
+        ITaskExceptionObserver? taskExceptionObserver)
     {
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
 
+        _taskExceptionObserver = taskExceptionObserver;
+
         _transportConnection = transportConnection;
         _dispatcher = options.Dispatcher;
-        _faultedTaskAction = options.FaultedTaskAction;
         _maxLocalHeaderSize = options.MaxIceRpcHeaderSize;
         _transportConnectionInformation = transportConnectionInformation;
 
@@ -987,27 +1003,37 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
 
         PipeReader? fieldsPipeReader = null;
+        IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
+        IceRpcRequestHeader header;
+
         PipeReader? streamInput = stream.Input;
         PipeWriter? streamOutput = stream.IsBidirectional ? stream.Output : null;
-        IncomingRequest? request = null;
         bool success = false;
+
         try
         {
-            ReadResult readResult = await streamInput.ReadSegmentAsync(
-                SliceEncoding.Slice2,
-                _maxLocalHeaderSize,
-                dispatchCts.Token).ConfigureAwait(false);
-
-            if (readResult.Buffer.IsEmpty)
+            try
             {
-                throw new InvalidDataException("Received icerpc request with empty header.");
+                ReadResult readResult = await streamInput.ReadSegmentAsync(
+                    SliceEncoding.Slice2,
+                    _maxLocalHeaderSize,
+                    dispatchCts.Token).ConfigureAwait(false);
+
+                if (readResult.Buffer.IsEmpty)
+                {
+                    throw new InvalidDataException("Received icerpc request with empty header.");
+                }
+
+                (header, fields, fieldsPipeReader) = DecodeHeader(readResult.Buffer);
+                streamInput.AdvanceTo(readResult.Buffer.End);
+            }
+            catch (Exception exception) when (_taskExceptionObserver is not null)
+            {
+                _taskExceptionObserver.DispatchRefused(_connectionContext!.TransportConnectionInformation, exception);
+                return; // success remains false
             }
 
-            (IceRpcRequestHeader header, IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, fieldsPipeReader) =
-                DecodeHeader(readResult.Buffer);
-            streamInput.AdvanceTo(readResult.Buffer.End);
-
-            request = new IncomingRequest(_connectionContext!)
+            using var request = new IncomingRequest(_connectionContext!)
             {
                 Fields = fields,
                 IsOneway = !stream.IsBidirectional,
@@ -1018,19 +1044,23 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             streamInput = null; // the request now owns streamInput
 
-            await PerformDispatchRequestAsync(request, dispatchCts.Token).ConfigureAwait(false);
+            try
+            {
+                await PerformDispatchRequestAsync(request, dispatchCts.Token).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (_taskExceptionObserver is not null)
+            {
+                _taskExceptionObserver.DispatchFailed(
+                    request,
+                    _connectionContext!.TransportConnectionInformation,
+                    exception);
+                return; // success remains false
+            }
             success = true;
         }
-        catch (IceRpcException exception) when (
-            exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.TruncatedData)
+        catch (IceRpcException exception) when (exception.IceRpcError is IceRpcError.ConnectionAborted)
         {
             // ConnectionAborted is expected when the peer aborts the connection.
-            // TruncatedData is expected when reading a request header. It can also be
-            // thrown when reading a response payload tied to an incoming IceRPC payload.
-        }
-        catch (InvalidDataException)
-        {
-            // This occurs when we can't decode the request header or encode the response header.
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken == dispatchCts.Token)
         {
@@ -1038,8 +1068,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            // not expected
-            _faultedTaskAction(exception);
+            // This exception is unexpected when running the IceRPC test suite. A test that expects this exception must
+            // install a task exception observer.
+            Debug.Fail($"Dispatch failed with an unexpected exception: {exception}");
+
+            // Generate unobserved task exception (UTE). If this exception is expected (e.g. an expected payload read
+            // exception) and the application wants to avoid this UTE, it must configure a non-null logger to install
+            // a task exception observer.
+            throw;
         }
         finally
         {
@@ -1057,7 +1093,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 streamInput?.Complete();
             }
             fieldsPipeReader?.Complete();
-            request?.Dispose();
 
             lock (_mutex)
             {
