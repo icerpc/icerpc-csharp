@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -265,6 +266,51 @@ public sealed class IceRpcProtocolConnectionTests
             () => connectCall(),
             Throws.InstanceOf<OperationCanceledException>().With.Property(
                 "CancellationToken").EqualTo(connectCts.Token));
+    }
+
+    /// <summary>Verifies that an invalid incoming request is refused.</summary>
+    [TestCase(new byte[] { 13 })]
+    [TestCase(new byte[] { 13, 3, 4 })]
+    [TestCase(new byte[] { 0 })]
+    public async Task Invalid_request_refused(byte[] invalidRequestBytes)
+    {
+        // Arrange
+        var taskExceptionObserver = new TestTaskExceptionObserver();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport()
+            .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+        IMultiplexedConnection clientTransportConnection = clientTransport.LastConnection;
+        IMultiplexedStream stream = await clientTransportConnection.CreateStreamAsync(bidirectional: true, default);
+
+        // Act - manufacture an invalid request by writing directly to the multiplexed connection.
+        stream.Output.Write(invalidRequestBytes);
+        await stream.Output.FlushAsync();
+        stream.Output.Complete();
+
+        // Assert
+        Assert.That(
+            async () => await taskExceptionObserver.DispatchRefusedException,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+
+        Assert.That(
+            async () => await stream.Input.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+
+        Assert.That(
+            async () =>
+            {
+                using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+                await sut.Client.InvokeAsync(request);
+            },
+            Throws.Nothing);
     }
 
     [Test]

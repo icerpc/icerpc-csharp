@@ -550,7 +550,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 if (readResult.Buffer.IsEmpty)
                 {
-                    throw new InvalidDataException("Received an icerpc response with an empty header.");
+                    throw new IceRpcException(
+                        IceRpcError.IceRpcError,
+                        "Received an icerpc response with an empty header.");
                 }
 
                 (StatusCode statusCode, string? errorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
@@ -572,6 +574,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // UnregisterInvocationAsync will dispose the invocationCts
                 _ = UnregisterInvocationAsync(stream);
                 return response;
+            }
+            catch (InvalidDataException exception)
+            {
+                throw new IceRpcException(
+                    IceRpcError.IceRpcError,
+                    "Received an icerpc response with an invalid header.",
+                    exception);
             }
             catch (OperationCanceledException)
             {
@@ -747,7 +756,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     if (!readResult.IsCompleted || !readResult.Buffer.IsEmpty)
                     {
-                        throw new InvalidDataException(
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
                             "Received bytes on the control stream after receiving the GoAway frame.");
                     }
 
@@ -1021,11 +1031,30 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 if (readResult.Buffer.IsEmpty)
                 {
-                    throw new InvalidDataException("Received icerpc request with empty header.");
+                    throw new IceRpcException(IceRpcError.IceRpcError, "Received icerpc request with empty header.");
                 }
 
                 (header, fields, fieldsPipeReader) = DecodeHeader(readResult.Buffer);
                 streamInput.AdvanceTo(readResult.Buffer.End);
+            }
+            catch (InvalidDataException exception)
+            {
+                var rpcException = new IceRpcException(
+                    IceRpcError.IceRpcError,
+                    "Received invalid icerpc request header.",
+                    exception);
+
+                if (_taskExceptionObserver is null)
+                {
+                    throw rpcException;
+                }
+                else
+                {
+                    _taskExceptionObserver.DispatchRefused(
+                        _connectionContext!.TransportConnectionInformation,
+                        rpcException);
+                    return;
+                }
             }
             catch (Exception exception) when (_taskExceptionObserver is not null)
             {
@@ -1058,9 +1087,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             success = true;
         }
-        catch (IceRpcException exception) when (exception.IceRpcError is IceRpcError.ConnectionAborted)
+        catch (IceRpcException exception) when (
+            exception.IceRpcError is IceRpcError.ConnectionAborted or IceRpcError.TruncatedData)
         {
             // ConnectionAborted is expected when the peer aborts the connection.
+            // TruncatedData is expected when reading a request header.
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken == dispatchCts.Token)
         {
@@ -1070,7 +1101,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             // This exception is unexpected when running the IceRPC test suite. A test that expects this exception must
             // install a task exception observer.
-            Debug.Fail($"Dispatch failed with an unexpected exception: {exception}");
+            Debug.Fail($"icerpc dispatch failed with an unexpected exception: {exception}");
 
             // Generate unobserved task exception (UTE). If this exception is expected (e.g. an expected payload read
             // exception) and the application wants to avoid this UTE, it must configure a non-null logger to install
@@ -1149,7 +1180,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     {
                         InvalidDataException => StatusCode.InvalidData,
                         IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
-                             StatusCode.TruncatedPayload,
+                            StatusCode.TruncatedPayload,
                         _ => StatusCode.UnhandledException
                     };
 

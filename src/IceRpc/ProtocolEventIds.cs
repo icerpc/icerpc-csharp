@@ -33,8 +33,7 @@ public enum ProtocolEventIds
     /// <summary>The dispatch started and failed to return a response.</summary>
     DispatchFailed,
 
-    /// <summary>The dispatch was refused because because the request header could not be decoded or the request type is
-    /// not supported.</summary>
+    /// <summary>The dispatch was refused before the incoming request could be read and decoded.</summary>
     DispatchRefused,
 
     /// <summary>The sending of the payload continuation of a request failed.</summary>

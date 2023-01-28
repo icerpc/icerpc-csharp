@@ -4,8 +4,8 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal;
 
-/// <summary>Allows users of <see cref="IceRpcProtocolConnection" /> to observe exceptions thrown by the main tasks
-/// created by <see cref="IceRpcProtocolConnection" />.</summary>
+/// <summary>Allows users of <see cref="IceRpcProtocolConnection" /> to observe exceptions thrown by tasks created by
+/// <see cref="IceRpcProtocolConnection" />.</summary>
 /// <remarks>The implementation must not throw any exception.</remarks>
 internal interface ITaskExceptionObserver
 {
@@ -18,7 +18,7 @@ internal interface ITaskExceptionObserver
         TransportConnectionInformation connectionInformation,
         Exception exception);
 
-    /// <summary>The dispatch was refused typically because the request header could not be decoded.</summary>
+    /// <summary>The dispatch was refused before the incoming request could be read and decoded.</summary>
     /// <param name="connectionInformation">Information about the connection that received the request.</param>
     /// <param name="exception">The exception that caused this refusal.</param>
     void DispatchRefused(TransportConnectionInformation connectionInformation, Exception exception);

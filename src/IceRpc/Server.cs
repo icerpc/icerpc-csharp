@@ -626,7 +626,7 @@ public sealed class Server : IAsyncDisposable
     public override string ToString() => _serverAddress.ToString();
 
     /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" /> and retries
-    /// accepts failures that represent a problem with the peer connection being accepted.</summary>
+    /// accept failures that represent a problem with the peer connection being accepted.</summary>
     private class LogAndRetryConnectorListenerDecorator : IConnectorListener
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;

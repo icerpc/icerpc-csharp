@@ -13,45 +13,35 @@ internal class LogTaskExceptionObserver : ITaskExceptionObserver
     public void DispatchFailed(
         IncomingRequest request,
         TransportConnectionInformation connectionInformation,
-        Exception exception)
-    {
-        LogLevel logLevel = exception is IceRpcException or OperationCanceledException ?
-            LogLevel.Debug : // expected
-            LogLevel.Warning; // not expected
-
+        Exception exception) =>
         _logger.LogDispatchFailed(
-            logLevel,
+            GetLogLevel(exception),
             request.Operation,
             request.Path,
             connectionInformation.RemoteNetworkAddress,
             exception);
-    }
 
-    public void DispatchRefused(TransportConnectionInformation connectionInformation, Exception exception)
-    {
-        LogLevel logLevel = exception is IceRpcException or OperationCanceledException ?
-            LogLevel.Debug : // expected
-            LogLevel.Warning; // not expected
-
-        _logger.LogDispatchRefused(logLevel, connectionInformation.RemoteNetworkAddress, exception);
-    }
+    public void DispatchRefused(TransportConnectionInformation connectionInformation, Exception exception) =>
+        _logger.LogDispatchRefused(GetLogLevel(exception), connectionInformation.RemoteNetworkAddress, exception);
 
     public void RequestPayloadContinuationFailed(
         OutgoingRequest request,
         TransportConnectionInformation connectionInformation,
-        Exception exception)
-    {
-        LogLevel logLevel = exception is IceRpcException or OperationCanceledException ?
-            LogLevel.Debug : // expected
-            LogLevel.Warning; // not expected
-
+        Exception exception) =>
         _logger.LogRequestPayloadContinuationFailed(
-            logLevel,
+            GetLogLevel(exception),
             request.Operation,
             request.ServiceAddress.Path,
             connectionInformation.RemoteNetworkAddress,
             exception);
-    }
 
     internal LogTaskExceptionObserver(ILogger logger) => _logger = logger;
-}
+
+    private static LogLevel GetLogLevel(Exception exception) =>
+        exception switch
+        {
+            OperationCanceledException => LogLevel.Debug, // expected
+            IceRpcException rpcException when rpcException.IceRpcError != IceRpcError.IceRpcError => LogLevel.Debug,
+            _ => LogLevel.Warning
+        };
+    }
