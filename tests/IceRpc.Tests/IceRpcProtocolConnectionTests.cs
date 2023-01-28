@@ -269,10 +269,11 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     /// <summary>Verifies that an invalid incoming request is refused.</summary>
-    [TestCase(new byte[] { 13 })]
-    [TestCase(new byte[] { 13, 3, 4 })]
-    [TestCase(new byte[] { 0 })]
-    public async Task Invalid_request_refused(byte[] invalidRequestBytes)
+    [TestCase(new byte[] { 13 }, true)]
+    [TestCase(new byte[] { 13, 3, 4 }, true)]
+    [TestCase(new byte[] { 13, 3, 4 }, false)]
+    [TestCase(new byte[] { 0 }, true)]
+    public async Task Invalid_request_refused(byte[] invalidRequestBytes, bool success)
     {
         // Arrange
         var taskExceptionObserver = new TestTaskExceptionObserver();
@@ -293,12 +294,13 @@ public sealed class IceRpcProtocolConnectionTests
         // Act - manufacture an invalid request by writing directly to the multiplexed connection.
         stream.Output.Write(invalidRequestBytes);
         await stream.Output.FlushAsync();
-        stream.Output.Complete();
+        stream.Output.CompleteOutput(success);
 
         // Assert
         Assert.That(
             async () => await taskExceptionObserver.DispatchRefusedException,
-            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
+                success ? IceRpcError.IceRpcError : IceRpcError.TruncatedData));
 
         Assert.That(
             async () => await stream.Input.ReadAsync(),

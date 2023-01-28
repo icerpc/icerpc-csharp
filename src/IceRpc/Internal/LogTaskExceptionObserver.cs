@@ -40,8 +40,17 @@ internal class LogTaskExceptionObserver : ITaskExceptionObserver
     private static LogLevel GetLogLevel(Exception exception) =>
         exception switch
         {
-            OperationCanceledException => LogLevel.Debug, // expected
-            IceRpcException rpcException when rpcException.IceRpcError != IceRpcError.IceRpcError => LogLevel.Debug,
+            // expected during shutdown for example
+            OperationCanceledException => LogLevel.Trace,
+
+            // expected and somewhat common (peer aborts connection)
+            IceRpcException rpcException when rpcException.IceRpcError is IceRpcError.ConnectionAborted =>
+                LogLevel.Trace,
+
+            // rare, for example a protocol error
+            IceRpcException => LogLevel.Debug,
+
+            // unexpected: from the application code (like a payload read exception) or bug in IceRpc
             _ => LogLevel.Warning
         };
     }
