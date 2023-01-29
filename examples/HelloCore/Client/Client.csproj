@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
+    <Compile Include="../StringCodec.cs" Link="StringCodec.cs" />
+  </ItemGroup>
+</Project>
