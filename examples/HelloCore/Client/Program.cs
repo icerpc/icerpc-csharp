@@ -5,7 +5,7 @@ using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
-// Constructs an outgoing request for the icerpc protocol.
+// Construct an outgoing request for the icerpc protocol.
 using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
 {
     Operation = "sayHelloCore",
@@ -15,7 +15,7 @@ using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
 // Make the invocation: we send the request using the client connection and then wait for the response.
 IncomingResponse response = await connection.InvokeAsync(request);
 
-// When the response's status code is Success, we can decode its payload.
+// When the response's status code is Success, we decode its payload.
 if (response.StatusCode == StatusCode.Success)
 {
     string greeting = await StringCodec.DecodePayloadStringAsync(response.Payload);

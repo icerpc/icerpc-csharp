@@ -6,8 +6,8 @@ using System.Text;
 
 namespace HelloCoreExample;
 
-/// <summary>Implements a simplistic encoder/decoder for strings. The core API uses <see cref="PipeReader" /> for all
-/// payloads.</summary>
+/// <summary>Implements a simplistic encoder/decoder for strings. It encodes strings into a <see cref="PipeReader" />
+/// and decodes strings from a <see cref="PipeReader" />.</summary>
 internal static class StringCodec
 {
     private static readonly UTF8Encoding _utf8 =
@@ -18,11 +18,13 @@ internal static class StringCodec
 
     internal static async Task<string> DecodePayloadStringAsync(PipeReader payload)
     {
-        // Assumes 100 UTF-8 bytes is the longest string we'll ever get.
+        // We assume 100 UTF-8 bytes is the longest string we'll ever get.
         ReadResult readResult = await payload.ReadAtLeastAsync(100);
 
         // See SliceDecoder.DecodeString for a complete implementation with error handling.
         string result = _utf8.GetString(readResult.Buffer);
+
+        payload.AdvanceTo(readResult.Buffer.End);
         await payload.CompleteAsync();
         return result;
     }
