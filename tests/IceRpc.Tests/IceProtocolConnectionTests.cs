@@ -266,9 +266,8 @@ public sealed class IceProtocolConnectionTests
         // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransport(clientFailureException: failureException)
-            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-            .AddIceProtocolTest()
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
@@ -284,32 +283,48 @@ public sealed class IceProtocolConnectionTests
         // Assert
         Assert.That(() =>
             invokeTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(
-                IceRpcError.InvocationCanceled));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled)
+                .And.With.Property("InnerException").EqualTo(failureException));
 
-        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.Exception.EqualTo(failureException));
+        Assert.That(
+            async () => await sut.Client.ShutdownAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted)
+                .And.With.Property("InnerException").EqualTo(failureException));
     }
 
     [Test]
-    public async Task Invoke_cancellation_on_transport_hang()
+    public async Task Invoke_cancellation_on_duplex_transport_hang([Values] bool oneway)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransport(clientHoldOperation: DuplexTransportOperation.Write)
-            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-            .AddIceProtocolTest()
             .BuildServiceProvider(validateScopes: true);
+
+        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-        using var invokeCts = new CancellationTokenSource(100);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice)) { IsOneway = oneway };
+        using var cts = new CancellationTokenSource();
+
+        Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
+        cts.Cancel();
+        await Task.Delay(TimeSpan.FromMilliseconds(20));
 
         // Act/Assert
-        Assert.That(
-            () => sut.Client.InvokeAsync(request, invokeCts.Token),
-            Throws.InstanceOf<OperationCanceledException>().With.Property(
-                "CancellationToken").EqualTo(invokeCts.Token));
+        Assert.That(invokeTask.IsCompleted, Is.False);
+
+        clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.None;
+
+        if (oneway)
+        {
+            Assert.That(async () => await invokeTask, Throws.Nothing);
+        }
+        else
+        {
+            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+        }
     }
 
     /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>

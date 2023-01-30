@@ -19,11 +19,19 @@ internal static class SemaphoreSlimExtensions
 }
 
 /// <summary>A simple helper for releasing a semaphore.</summary>
-internal readonly struct SemaphoreLock : IDisposable
+internal struct SemaphoreLock : IDisposable
 {
+    private bool _isDisposed;
     private readonly SemaphoreSlim _semaphore;
 
-    public void Dispose() => _semaphore.Release();
+    public void Dispose()
+    {
+        if (!_isDisposed)
+        {
+            _isDisposed = true;
+            _semaphore.Release();
+        }
+    }
 
     internal SemaphoreLock(SemaphoreSlim semaphore) => _semaphore = semaphore;
 }

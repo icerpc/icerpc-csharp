@@ -74,10 +74,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private readonly CancellationTokenSource _twowayDispatchesCts;
     private readonly Dictionary<int, TaskCompletionSource<PipeReader>> _twowayInvocations = new();
-    private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
-    // protected by _writeSemaphore
-    private Task _writeTask = Task.CompletedTask;
+    private Exception? _writeException; // protected by _writeSemaphore
+    private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
     public Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
@@ -252,8 +251,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // _disposedCts.Token.
                 await _writeSemaphore.WaitAsync().ConfigureAwait(false);
 
-                // _writeTask is now immutable.
-
                 try
                 {
                     await Task.WhenAll(
@@ -261,8 +258,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         _readFramesTask ?? Task.CompletedTask,
                         _pingTask,
                         _dispatchesAndInvocationsCompleted.Task,
-                        _shutdownTask,
-                        _writeTask).ConfigureAwait(false);
+                        _shutdownTask).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -336,9 +332,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 try
                 {
-                    // Wait for the writing of other frames to complete. We'll give this semaphoreLock to
-                    // SendRequestAsync.
-                    SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(invocationCts.Token)
+                    // Wait for the writing of other frames to complete.
+                    using SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(invocationCts.Token)
                         .ConfigureAwait(false);
 
                     // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
@@ -348,8 +343,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         if (_refuseInvocations)
                         {
-                            semaphoreLock.Dispose();
-
                             // It's InvocationCanceled and not InvocationRefused because we've read the payload.
                             throw new IceRpcException(IceRpcError.InvocationCanceled, _invocationRefusedMessage);
                         }
@@ -367,19 +360,21 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         }
                     }
 
-                    // _writeTask is protected by the write semaphore. SendRequestAsync does not throw synchronously.
-                    _writeTask = SendRequestAsync(request.Payload, payloadBuffer, semaphoreLock);
+                    int payloadSize = checked((int)payloadBuffer.Length);
 
                     try
                     {
-                        await _writeTask.WaitAsync(invocationCts.Token).ConfigureAwait(false);
+                        EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
+
+                        // We disable cancellation when writing to the duplex connection.
+                        await _duplexConnectionWriter.WriteAsync(payloadBuffer, _disposedCts.Token)
+                            .ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException exception) when (
-                        exception.CancellationToken == invocationCts.Token)
+                    catch (Exception exception)
                     {
-                        // From WaitAsync. _writeTask is running in the background and owns both the payload and the
-                        // semaphore. Detach request payload since it now belongs to _writeTask.
-                        request.Payload = InvalidPipeReader.Instance;
+                        _writeException = exception; // protected by semaphoreLock
+                        semaphoreLock.Dispose(); // release semaphore before calling WriteFailed()
+                        WriteFailed();
                         throw;
                     }
                 }
@@ -392,6 +387,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         IceRpcError.InvocationCanceled,
                         "Failed to send ice request.",
                         exception);
+                }
+                finally
+                {
+                    // We've read the payload (see ReadFullPayloadAsync) and we are now done with it.
+                    request.Payload.Complete();
                 }
 
                 if (request.IsOneway)
@@ -482,36 +482,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
 
                 frameReader?.Complete();
-            }
-
-            // Sends the request. SendRequestAsync owns payload and its payloadBuffer. It also owns the write semaphore
-            // lock.
-            async Task SendRequestAsync(
-                PipeReader payload,
-                ReadOnlySequence<byte> payloadBuffer,
-                SemaphoreLock semaphoreLock)
-            {
-                try
-                {
-                    using SemaphoreLock _ = semaphoreLock; // release semaphore when done
-                    int payloadSize = checked((int)payloadBuffer.Length);
-                    EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
-
-                    // WriteAsync can keeping running after the invocation was canceled by invocationCts. That's fine.
-                    // SendRequestAsync completes the payload and releases the write semaphore when it finishes.
-                    await _duplexConnectionWriter.WriteAsync(payloadBuffer, _disposedCts.Token)
-                        .ConfigureAwait(false);
-                }
-                catch
-                {
-                    WriteFailed();
-                    throw;
-                }
-                finally
-                {
-                    // SendRequestAsync owns payload and must complete it no matter what.
-                    payload.Complete();
-                }
             }
         }
     }
@@ -1009,16 +979,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     {
         SemaphoreLock semaphoreLock = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
 
-        try
-        {
-            // _writeTask is completed or nearly complete since we've just acquired _writeSemaphore (hence no need to
-            // add a WaitAsync). It throws an exception if the previous write failed.
-            await _writeTask.ConfigureAwait(false);
-        }
-        catch
+        // _writeException is protected by _writeSemaphore
+        if (_writeException is not null)
         {
             semaphoreLock.Dispose();
-            throw;
+
+            throw new IceRpcException(
+                IceRpcError.ConnectionAborted,
+                "The connection was aborted because a previous write operation failed.",
+                _writeException);
         }
 
         return semaphoreLock;
@@ -1125,23 +1094,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 int payloadSize = checked((int)payload.Length);
 
                 // Wait for writing of other frames to complete.
-                SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
+                using SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken)
+                    .ConfigureAwait(false);
                 try
                 {
-                    using SemaphoreLock _ = semaphoreLock;
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
 
-                    // Write the payload and complete the source. It's much simpler than the WriteAsync in InvokeAsync
-                    // because we can use _disposedCts.Token for this write.
+                    // We disable cancellation when writing the response to the duplex connection.
                     await _duplexConnectionWriter.WriteAsync(payload, _disposedCts.Token).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
-                    // We don't need a helper function here since we're using _disposedCts.Token. This "write task"
-                    // logically includes the EncodeResponseHeader.
-                    _writeTask = Task.FromException(exception);
-
-                    // The caller will log this failure.
+                    _writeException = exception; // protected by semaphoreLock
+                    semaphoreLock.Dispose(); // release semaphore before calling WriteFailed()
                     WriteFailed();
                     throw;
                 }
@@ -1592,38 +1557,30 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     /// <see cref="WriteFailed" /> if a failure occurs while writing to _duplexConnectionWriter.</summary>
     /// <param name="encode">Encodes the control frame.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    /// <remarks>If the cancellation token is canceled while writing to the duplex connection, the connection is
+    /// aborted.</remarks>
     private async ValueTask SendControlFrameAsync(
         Action<IBufferWriter<byte>> encode,
         CancellationToken cancellationToken)
     {
-        SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
+        using SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
 
-        // _writeTask is protected by the write semaphore
-        _writeTask = PerformSendControlFrameAsync(semaphoreLock); // does not throw synchronously
-
-        // _writeTask owns the write semaphore
-        await _writeTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        // PerformSendControlFrameAsync keeps running in the background when cancellation token is canceled and possibly
-        // until DisposeAsync.
-        async Task PerformSendControlFrameAsync(SemaphoreLock semaphoreLock)
+        try
         {
-            try
-            {
-                using SemaphoreLock _ = semaphoreLock; // release when done
-                encode(_duplexConnectionWriter);
-                await _duplexConnectionWriter.FlushAsync(_disposedCts.Token).ConfigureAwait(false);
-            }
-            catch
-            {
-                WriteFailed();
-                throw;
-            }
+            encode(_duplexConnectionWriter);
+            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _writeException = exception; // protected by semaphoreLock
+            semaphoreLock.Dispose(); // release semaphore before calling WriteFailed()
+            WriteFailed();
+            throw;
         }
     }
 
     /// <summary>Takes appropriate action after a write failure.</summary>
-    /// <remarks>Must be called outside the mutex lock.</remarks>
+    /// <remarks>Must be called outside the mutex lock and semaphore lock.</remarks>
     private void WriteFailed()
     {
         // We can't send new invocations without writing to the connection.
@@ -1632,8 +1589,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // We can't send responses so these dispatches can be canceled.
         _twowayDispatchesCts.Cancel();
 
-        // We don't change _sendClosedConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync to
-        // send CloseConnection - and fail.
+        // We don't change _sendClosedConnectionFrame. If the _readFrameTask is still running, we want ShutdownAsync
+        // to send CloseConnection - and fail.
 
         _ = _shutdownRequestedTcs.TrySetResult();
     }
