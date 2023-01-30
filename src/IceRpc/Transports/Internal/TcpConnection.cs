@@ -9,6 +9,11 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Transports.Internal;
 
+/// <summary>Implements <see cref="IDuplexConnection" /> for tcp with or without TLS.</summary>
+/// <remarks>Unlike Coloc, the Tcp transport is not a "checked" transport, which means it does not need to detect
+/// violations of the duplex transport contract or report such violations. It assumes its clients are sufficiently well
+/// tested to never violate this contract. As a result, this implementation does not throw
+/// <see cref="InvalidOperationException" />.</remarks>
 internal abstract class TcpConnection : IDuplexConnection
 {
     public ServerAddress ServerAddress { get; }
