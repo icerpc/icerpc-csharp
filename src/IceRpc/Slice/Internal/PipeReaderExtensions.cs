@@ -250,7 +250,7 @@ internal static class PipeReaderExtensions
         }
         else if (readResult.IsCompleted)
         {
-            throw new InvalidDataException("Received a Slice segment with truncated size.");
+            throw new InvalidDataException("Received a Slice segment with fewer bytes than promised.");
         }
         else
         {

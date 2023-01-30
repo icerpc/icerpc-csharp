@@ -169,8 +169,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             if (_pendingConnection is null)
             {
                 IProtocolConnection newConnection = _clientProtocolConnectionFactory.CreateConnection(ServerAddress);
-                connectTask = CreateConnectTask(newConnection, _disposedCts.Token, cancellationToken);
                 _detachedConnectionCount++;
+                connectTask = CreateConnectTask(newConnection, cancellationToken);
                 _pendingConnection = (newConnection, connectTask);
             }
             else
@@ -238,10 +238,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             // Since a pending connection is "detached", it's disposed via the connectTask, not directly by this method.
             if (_activeConnection is not null)
             {
-                await Task.WhenAll(
-                    _activeConnection.Value.Connection.DisposeAsync().AsTask(),
-                    _detachedConnectionsTcs.Task).ConfigureAwait(false);
+                await _activeConnection.Value.Connection.DisposeAsync().ConfigureAwait(false);
             }
+
+            await _detachedConnectionsTcs.Task.ConfigureAwait(false);
 
             _disposedCts.Dispose();
         }
@@ -410,19 +410,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Creates the connection establishment task for a pending connection.</summary>
     /// <param name="connection">The new pending connection to connect.</param>
-    /// <param name="disposedCancellationToken">The cancellation token of _disposedCts. It does not cancel this task but
-    /// makes it fail with an <see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" />.
-    /// </param>
     /// <param name="cancellationToken">The cancellation token that can cancel this task.</param>
     /// <returns>A task that completes successfully when the connection is connected.</returns>
     private async Task<TransportConnectionInformation> CreateConnectTask(
         IProtocolConnection connection,
-        CancellationToken disposedCancellationToken,
         CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, disposedCancellationToken);
+        // This task "owns" a detachedConnectionCount and as a result _disposedCts can't be disposed.
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
         cts.CancelAfter(_connectTimeout);
 
         TransportConnectionInformation connectionInformation;
@@ -440,7 +437,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (disposedCancellationToken.IsCancellationRequested)
+                if (_disposedCts.IsCancellationRequested)
                 {
                     throw new IceRpcException(
                         IceRpcError.OperationAborted,
@@ -585,7 +582,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <param name="cancellationToken">The cancellation token of the invocation calling this method.</param>
     /// <returns>A connected connection.</returns>
     /// <remarks>This method is called exclusively by <see cref="InvokeAsync" />.</remarks>
-    // TODO: rename corresponding ConnectionCache method currently named ConnectAsync.
     private Task<IProtocolConnection> GetActiveConnectionAsync(CancellationToken cancellationToken)
     {
         (IProtocolConnection Connection, Task<TransportConnectionInformation> ConnectTask) pendingConnectionValue;
@@ -609,12 +605,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             if (_pendingConnection is null)
             {
                 IProtocolConnection connection = _clientProtocolConnectionFactory.CreateConnection(ServerAddress);
+                _detachedConnectionCount++;
 
                 // We pass CancellationToken.None because the invocation cancellation should not cancel the connection
                 // establishment.
                 Task<TransportConnectionInformation> connectTask =
-                    CreateConnectTask(connection, _disposedCts.Token, CancellationToken.None);
-                _detachedConnectionCount++;
+                    CreateConnectTask(connection, CancellationToken.None);
                 _pendingConnection = (connection, connectTask);
             }
             pendingConnectionValue = _pendingConnection.Value;
