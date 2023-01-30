@@ -88,7 +88,9 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
                         _multiplexedConnectionOptions,
                         _clientAuthenticationOptions),
                     transportConnectionInformation: null,
-                    _connectionOptions);
+                    _connectionOptions,
+                    taskExceptionObserver: _logger == NullLogger.Instance ? null :
+                        new LogTaskExceptionObserver(_logger));
 
         connection = new MetricsProtocolConnectionDecorator(connection, Metrics.ClientMetrics, connectStarted: false);
 

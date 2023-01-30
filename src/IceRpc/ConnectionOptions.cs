@@ -14,15 +14,6 @@ public record class ConnectionOptions
     /// not accept requests.</value>
     public IDispatcher? Dispatcher { get; set; }
 
-    /// <summary>Gets or sets the action to execute when a task that IceRPC starts and does not await completes due to
-    /// an unhandled exception. This unhandled exception can correspond to a bug in IceRPC itself or to an exception
-    /// thrown by the application code called by IceRPC. For example, when a dispatch task sends a response provided by
-    /// the application and the reading of this response throws <c>MyException</c>, this action will be called with this
-    /// exception instance.</summary>
-    /// <value>The default action calls Assert and includes the exception in the Assert message.</value>
-    /// <seealso cref="TaskScheduler.UnobservedTaskException" />
-    public Action<Exception> FaultedTaskAction { get; set; } = _defaultFaultedTaskAction;
-
     /// <summary>Gets or sets the ice idle timeout. This timeout is used to monitor the transport connection health. If
     /// no data is received within this period, the transport connection is aborted. The default is 30s.</summary>
     public TimeSpan IceIdleTimeout
@@ -127,8 +118,6 @@ public record class ConnectionOptions
     internal const int DefaultMaxIceRpcHeaderSize = 16_383;
 
     private const int IceMinFrameSize = 256;
-    private static readonly Action<Exception> _defaultFaultedTaskAction =
-        exception => Debug.Fail($"IceRpc task completed due to an unhandled exception: {exception}");
 
     private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(30);
     private TimeSpan _inactivityTimeout = TimeSpan.FromSeconds(60);
