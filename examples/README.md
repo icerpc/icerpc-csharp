@@ -27,6 +27,15 @@ container.
 The Hello example shows how to create a minimal client and server application implementing the canonical "Hello World"
 example.
 
+## [HelloCore](./HelloCore/)
+
+The HelloCore example shows how to create a minimal client and server application using IceRPC's core API--without Slice
+definitions or generated code.
+
+## [HelloQuic](./HelloQuic/)
+
+The HelloQuic example is the Hello example updated to use the QUIC transport instead of the default TCP transport.
+
 ## [Interop](./Interop/)
 
 Contains example applications that shows how IceRPC interoperates with [ZeroC Ice][1].
