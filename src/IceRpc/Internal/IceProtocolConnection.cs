@@ -1304,10 +1304,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (OperationCanceledException)
         {
-            ReadFailed();
-            throw new IceRpcException(
+            var rpcException = new IceRpcException(
                 IceRpcError.ConnectionIdle,
                 "The connection was aborted because its underlying duplex connection did not receive any byte for too long.");
+            ReadFailed(rpcException);
+            throw rpcException;
         }
         catch (IceRpcException exception) when (
             exception.IceRpcError == IceRpcError.ConnectionAborted &&
@@ -1316,14 +1317,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // The peer acknowledged receipt of the CloseConnection frame by aborting the duplex connection. Return.
             // See ShutdownAsync.
         }
-        catch (IceRpcException)
+        catch (IceRpcException exception)
         {
-            ReadFailed();
+            ReadFailed(exception);
             throw;
         }
         catch (InvalidDataException exception)
         {
-            ReadFailed();
+            ReadFailed(exception);
             throw new IceRpcException(
                 IceRpcError.ConnectionAborted,
                 "The connection was aborted by an ice protocol error.",
@@ -1332,12 +1333,26 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         catch (Exception exception)
         {
             Debug.Fail($"The read frames task completed due to an unhandled exception: {exception}");
-            ReadFailed();
+            ReadFailed(exception);
             throw;
         }
 
+        // Aborts all pending twoway invocations. Must be called outside the mutex lock after setting _refuseInvocations
+        // to true.
+        void AbortTwowayInvocations(IceRpcError error, string message, Exception? exception = null)
+        {
+            Debug.Assert(_refuseInvocations);
+
+            // _twowayInvocations is immutable once _refuseInvocations is true.
+            foreach (TaskCompletionSource<PipeReader> responseCompletionSource in _twowayInvocations.Values)
+            {
+                // _twowayInvocations can hold completed completion sources.
+                _ = responseCompletionSource.TrySetException(new IceRpcException(error, message, exception));
+            }
+        }
+
         // Takes appropriate action after a read failure.
-        void ReadFailed()
+        void ReadFailed(Exception exception)
         {
             // We also prevent new oneway invocations even though they don't need to read the connection.
             RefuseNewInvocations("The connection was lost because a read operation failed.");
@@ -1347,7 +1362,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             AbortTwowayInvocations(
                 IceRpcError.ConnectionAborted,
-                "The invocation was aborted because the connection was lost.");
+                "The invocation was aborted because the connection was lost.",
+                exception);
 
             lock (_mutex)
             {
@@ -1356,20 +1372,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
 
             _ = _shutdownRequestedTcs.TrySetResult();
-        }
-
-        // Aborts all pending twoway invocations. Must be called outside the mutex lock after setting _refuseInvocations
-        // to true.
-        void AbortTwowayInvocations(IceRpcError error, string message)
-        {
-            Debug.Assert(_refuseInvocations);
-
-            // _twowayInvocations is immutable once _refuseInvocations is true.
-            foreach (TaskCompletionSource<PipeReader> responseCompletionSource in _twowayInvocations.Values)
-            {
-                // _twowayInvocations can hold completed completion sources.
-                _ = responseCompletionSource.TrySetException(new IceRpcException(error, message));
-            }
         }
     }
 
