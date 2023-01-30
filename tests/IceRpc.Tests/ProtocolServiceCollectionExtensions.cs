@@ -46,7 +46,8 @@ public static class ProtocolServiceCollectionExtensions
                 clientProtocolConnection: new IceRpcProtocolConnection(
                     provider.GetRequiredService<IMultiplexedConnection>(),
                     transportConnectionInformation: null,
-                    clientConnectionOptions ?? new()),
+                    clientConnectionOptions ?? new(),
+                    provider.GetService<ITaskExceptionObserver>()),
                 acceptServerConnectionAsync:
                     async (CancellationToken cancellationToken) =>
                     {
@@ -60,7 +61,8 @@ public static class ProtocolServiceCollectionExtensions
                         return new IceRpcProtocolConnection(
                             transportConnection,
                             transportConnectionInformation,
-                            serverConnectionOptions ?? new());
+                            serverConnectionOptions ?? new(),
+                            provider.GetService<ITaskExceptionObserver>());
                     },
                 listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 

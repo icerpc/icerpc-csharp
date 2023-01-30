@@ -30,6 +30,15 @@ public enum ProtocolEventIds
     /// <summary>The shutdown of a connected connection failed.</summary>
     ConnectionShutdownFailed,
 
+    /// <summary>The dispatch started and failed to return a response.</summary>
+    DispatchFailed,
+
+    /// <summary>The dispatch was refused before the incoming request could be read and decoded.</summary>
+    DispatchRefused,
+
+    /// <summary>The sending of the payload continuation of a request failed.</summary>
+    RequestPayloadContinuationFailed,
+
     /// <summary>The listener starts accepting connections.</summary>
     StartAcceptingConnections,
 

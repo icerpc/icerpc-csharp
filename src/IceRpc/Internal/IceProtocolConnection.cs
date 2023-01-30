@@ -42,7 +42,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
-    private readonly Action<Exception> _faultedTaskAction;
     private readonly TimeSpan _idleTimeout;
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
@@ -631,7 +630,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
         _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
-        _faultedTaskAction = options.FaultedTaskAction;
+
         _maxFrameSize = options.MaxIceFrameSize;
         _transportConnectionInformation = transportConnectionInformation;
 
@@ -1553,15 +1552,19 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                     catch (OperationCanceledException)
                     {
-                        // expected
+                        // expected when the connection is disposed or the request is canceled by the peer's shutdown
                     }
                     catch (IceRpcException exception) when (exception.IceRpcError is IceRpcError.ConnectionAborted)
                     {
-                        // ConnectionAborted is expected when the peer aborts the connection.
+                        // expected when the peer aborts the connection.
                     }
                     catch (Exception exception)
                     {
-                        _faultedTaskAction(exception);
+                        // With ice, a dispatch cannot throw an exception that comes from the application code:
+                        // any exception thrown when reading the response payload is converted into a DispatchException
+                        // response, and the response header has no field.
+                        Debug.Fail($"ice dispatch {request} failed with an unexpected exception: {exception}");
+                        throw;
                     }
                 },
                 CancellationToken.None);
