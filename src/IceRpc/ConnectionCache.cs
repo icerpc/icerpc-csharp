@@ -298,6 +298,22 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 {
                     // The connection is refusing new invocations.
                 }
+                catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
+                {
+                    lock (_mutex)
+                    {
+                        if (_disposeTask is null)
+                        {
+                            throw new IceRpcException(
+                                IceRpcError.ConnectionAborted,
+                                "The underlying connection was disposed while the invocation was in progress.");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
 
                 // Make sure connection is no longer in _activeConnection before we retry.
                 _ = RemoveFromActiveAsync(connection);
