@@ -333,8 +333,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 try
                 {
                     // Wait for the writing of other frames to complete.
-                    using SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(invocationCts.Token)
-                        .ConfigureAwait(false);
+                    using SemaphoreLock _ = await AcquireWriteLockAsync(invocationCts.Token).ConfigureAwait(false);
 
                     // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
                     // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
@@ -372,9 +371,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                     catch (Exception exception)
                     {
-                        _writeException = exception; // protected by semaphoreLock
-                        semaphoreLock.Dispose(); // release semaphore before calling WriteFailed()
-                        WriteFailed();
+                        WriteFailed(exception);
                         throw;
                     }
                 }
@@ -1094,8 +1091,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 int payloadSize = checked((int)payload.Length);
 
                 // Wait for writing of other frames to complete.
-                using SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                using SemaphoreLock _ = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
@@ -1105,9 +1101,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    _writeException = exception; // protected by semaphoreLock
-                    semaphoreLock.Dispose(); // release semaphore before calling WriteFailed()
-                    WriteFailed();
+                    WriteFailed(exception);
                     throw;
                 }
             }
@@ -1563,7 +1557,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         Action<IBufferWriter<byte>> encode,
         CancellationToken cancellationToken)
     {
-        using SemaphoreLock semaphoreLock = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
+        using SemaphoreLock _ = await AcquireWriteLockAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -1572,17 +1566,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            _writeException = exception; // protected by semaphoreLock
-            semaphoreLock.Dispose(); // release semaphore before calling WriteFailed()
-            WriteFailed();
+            WriteFailed(exception);
             throw;
         }
     }
 
     /// <summary>Takes appropriate action after a write failure.</summary>
-    /// <remarks>Must be called outside the mutex lock and semaphore lock.</remarks>
-    private void WriteFailed()
+    /// <remarks>Must be called outside the mutex lock but after acquiring _writeSemaphore.</remarks>
+    private void WriteFailed(Exception exception)
     {
+        Debug.Assert(_writeException is null);
+        _writeException = exception; // protected by _writeSemaphore
+
         // We can't send new invocations without writing to the connection.
         RefuseNewInvocations("The connection was lost because a write operation failed.");
 
