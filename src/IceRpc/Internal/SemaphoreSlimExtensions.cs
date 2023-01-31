@@ -19,6 +19,7 @@ internal static class SemaphoreSlimExtensions
 }
 
 /// <summary>A simple helper for releasing a semaphore.</summary>
+/// <remarks>The caller must be extremely careful to call Dispose at most once.</remarks>
 internal readonly struct SemaphoreLock : IDisposable
 {
     private readonly SemaphoreSlim _semaphore;
