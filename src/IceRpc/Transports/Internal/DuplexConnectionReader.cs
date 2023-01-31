@@ -14,8 +14,7 @@ internal class DuplexConnectionReader : IAsyncDisposable
     private readonly IDuplexConnection _connection;
     private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private readonly Timer _idleTimeoutTimer;
-    private readonly object _mutex = new();
-    private bool _isIdle;
+    private readonly object _mutex = new object();
     private readonly Pipe _pipe;
 
     public async ValueTask DisposeAsync()
@@ -39,17 +38,7 @@ internal class DuplexConnectionReader : IAsyncDisposable
             writerScheduler: PipeScheduler.Inline));
 
         // Setup a timer to abort the connection if it's idle for longer than the idle timeout.
-        _idleTimeoutTimer = new Timer(
-            _ =>
-            {
-                lock (_mutex)
-                {
-                    // Once we mark the connection as idle the timer cannot be reset, and ResetTimers will throw.
-                    _isIdle = true;
-                }
-
-                connectionIdleAction();
-            });
+        _idleTimeoutTimer = new Timer(_ => connectionIdleAction());
     }
 
     internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);
@@ -179,13 +168,7 @@ internal class DuplexConnectionReader : IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_isIdle)
-            {
-                // The idle timeout timer aborted the connection. Don't reset the timer and throw to ensure the calling
-                // read method doesn't return data.
-                throw new IceRpcException(IceRpcError.ConnectionIdle);
-            }
-            else if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
                 _idleTimeoutTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
             }
