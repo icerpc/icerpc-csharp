@@ -68,7 +68,7 @@ public class RouterTests
             }));
 
         router.Mount(path, new InlineDispatcher((current, cancellationToken) => new(new OutgoingResponse(current))));
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = path };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = path };
 
         // Act
         _ = await router.DispatchAsync(request);
@@ -107,7 +107,7 @@ public class RouterTests
                 currentPath = current.Path;
                 return new(new OutgoingResponse(current));
             }));
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = path };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = path };
 
         // Act
         _ = await router.DispatchAsync(request);
@@ -134,7 +134,7 @@ public class RouterTests
         var router = new Router();
 
         DispatchException? ex = Assert.ThrowsAsync<DispatchException>(
-            async () => await router.DispatchAsync(new IncomingRequest(FakeConnectionContext.IceRpc)));
+            async () => await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)));
 
         Assert.That(ex!.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
     }
@@ -172,7 +172,7 @@ public class RouterTests
                     calls.Add("middleware-4");
                     return new(new OutgoingResponse(request));
                 }));
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
 
         // Act
         _ = await router.DispatchAsync(request);
@@ -250,7 +250,7 @@ public class RouterTests
                     }));
             });
         });
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = path };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = path };
 
         // Act
         _ = await router.DispatchAsync(request);
@@ -268,7 +268,7 @@ public class RouterTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request)));
         var router = new Router();
         router.Mount("/", dispatcher);
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
 
         _ = await router.DispatchAsync(request);
         return router;

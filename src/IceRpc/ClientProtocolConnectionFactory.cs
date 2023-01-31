@@ -95,7 +95,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         connection = new MetricsProtocolConnectionDecorator(connection, Metrics.ClientMetrics, connectStarted: false);
 
         return _logger == NullLogger.Instance ? connection :
-            new LogProtocolConnectionDecorator(connection, remoteNetworkAddress: null, _logger);
+            new LogProtocolConnectionDecorator(connection, serverAddress, remoteNetworkAddress: null, _logger);
 #pragma warning restore CA2000
     }
 }

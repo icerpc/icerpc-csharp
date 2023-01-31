@@ -30,7 +30,7 @@ public class CompressorMiddlewareTests
         var sut = new CompressorMiddleware(dispatcher, compressionFormat);
         var outStream = new MemoryStream();
         var output = PipeWriter.Create(outStream);
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
 
         // Act
         OutgoingResponse response = await sut.DispatchAsync(request);
@@ -57,7 +57,7 @@ public class CompressorMiddlewareTests
     {
         using var dispatcher = new TestDispatcher();
         var sut = new CompressorMiddleware(dispatcher, CompressionFormat.Brotli);
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
 
         OutgoingResponse response = await sut.DispatchAsync(request);
 
@@ -82,7 +82,7 @@ public class CompressorMiddlewareTests
             return new(response);
         });
         var sut = new CompressorMiddleware(dispatcher, CompressionFormat.Brotli);
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
 
         var response = await sut.DispatchAsync(request, default);
 
@@ -145,7 +145,7 @@ public class CompressorMiddlewareTests
 
     private static IncomingRequest CreateRequestWitCompressionFormat(
         CompressionFormat compressionFormat) =>
-        new(FakeConnectionContext.IceRpc)
+        new(Protocol.IceRpc, FakeConnectionContext.Instance)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
             {

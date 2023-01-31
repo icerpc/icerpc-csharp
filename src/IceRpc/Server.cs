@@ -739,6 +739,7 @@ public sealed class Server : IAsyncDisposable
             TransportConnectionInformation transportConnectionInformation) =>
             new LogProtocolConnectionDecorator(
                 _decoratee.CreateProtocolConnection(transportConnectionInformation),
+                _serverAddress,
                 _remoteNetworkAddress,
                 _logger);
 

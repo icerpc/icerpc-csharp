@@ -17,7 +17,7 @@ public class DictionaryMappingTests
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
         };
@@ -39,7 +39,7 @@ public class DictionaryMappingTests
         PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
         };
@@ -63,7 +63,7 @@ public class DictionaryMappingTests
         // Act/Assert
         Assert.That(
             async () => await IDictionaryMappingOperations.Request.OpSingleParameterAsync(
-                new IncomingRequest(FakeConnectionContext.IceRpc)
+                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = requestPayload
                 },

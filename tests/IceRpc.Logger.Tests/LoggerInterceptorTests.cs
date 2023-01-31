@@ -12,7 +12,7 @@ public sealed class LoggerInterceptorTests
     public async Task Log_successful_request()
     {
         var invoker = new InlineInvoker(
-            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
+            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
@@ -29,10 +29,10 @@ public sealed class LoggerInterceptorTests
         Assert.That(entry.State["StatusCode"], Is.EqualTo(StatusCode.Success));
         Assert.That(
             entry.State["LocalNetworkAddress"],
-            Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.LocalNetworkAddress));
+            Is.EqualTo(FakeConnectionContext.Instance.TransportConnectionInformation.LocalNetworkAddress));
         Assert.That(
             entry.State["RemoteNetworkAddress"],
-            Is.EqualTo(FakeConnectionContext.IceRpc.TransportConnectionInformation.RemoteNetworkAddress));
+            Is.EqualTo(FakeConnectionContext.Instance.TransportConnectionInformation.RemoteNetworkAddress));
     }
 
     [Test]

@@ -42,7 +42,7 @@ public sealed class MetricsMiddlewareTests
 
         using var dispatchMetrics = new DispatchMetrics(meterName);
         var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new OperationCanceledException());
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         try
@@ -91,7 +91,7 @@ public sealed class MetricsMiddlewareTests
 
         using var dispatchMetrics = new DispatchMetrics(meterName);
         var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new InvalidOperationException());
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         try
@@ -134,7 +134,7 @@ public sealed class MetricsMiddlewareTests
 
         using var dispatchMetrics = new DispatchMetrics(meterName);
         using var dispatcher = new TestDispatcher();
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         var sut = new MetricsMiddleware(dispatcher, dispatchMetrics);
 
         await sut.DispatchAsync(request, default);

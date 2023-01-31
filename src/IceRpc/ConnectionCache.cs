@@ -222,7 +222,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                                         serverAddressFeature.AltServerAddresses
                                             .RemoveAt(enumerator.CurrentIndex - 1)
                                             .Insert(0, mainServerAddress);
+
                                     serverAddressFeature.ServerAddress = serverAddress;
+                                    mainServerAddress = serverAddress;
                                 }
                                 break; // for
                             }
@@ -300,7 +302,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
 
                 // Make sure connection is no longer in _activeConnection before we retry.
-                _ = RemoveFromActiveAsync(connection);
+                _ = RemoveFromActiveAsync(mainServerAddress, connection);
             }
         }
     }
@@ -389,7 +391,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
     }
 
-    private async Task CreateConnectTask(IProtocolConnection connection)
+    private async Task CreateConnectTask(IProtocolConnection connection, ServerAddress serverAddress)
     {
         await Task.Yield(); // exit mutex lock
 
@@ -426,8 +428,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             lock (_mutex)
             {
                 // connectTask is executing this method and about to throw.
-                connectTask = _pendingConnections[connection.ServerAddress].ConnectTask;
-                _pendingConnections.Remove(connection.ServerAddress);
+                connectTask = _pendingConnections[serverAddress].ConnectTask;
+                _pendingConnections.Remove(serverAddress);
             }
 
             _ = DisposePendingConnectionAsync(connection, connectTask);
@@ -439,20 +441,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             if (_shutdownTask is null)
             {
                 // the connection is now "attached" in _activeConnections
-                _activeConnections.Add(connection.ServerAddress, connection);
+                _activeConnections.Add(serverAddress, connection);
                 _detachedConnectionCount--;
             }
             else
             {
-                connectTask = _pendingConnections[connection.ServerAddress].ConnectTask;
+                connectTask = _pendingConnections[serverAddress].ConnectTask;
             }
-            bool removed = _pendingConnections.Remove(connection.ServerAddress);
+            bool removed = _pendingConnections.Remove(serverAddress);
             Debug.Assert(removed);
         }
 
         if (connectTask is null)
         {
-            _ = ShutdownWhenRequestedAsync(connection, shutdownRequested);
+            _ = ShutdownWhenRequestedAsync(connection, serverAddress, shutdownRequested);
         }
         else
         {
@@ -487,10 +489,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             }
         }
 
-        async Task ShutdownWhenRequestedAsync(IProtocolConnection connection, Task shutdownRequested)
+        async Task ShutdownWhenRequestedAsync(
+            IProtocolConnection connection,
+            ServerAddress serverAddress,
+            Task shutdownRequested)
         {
             await shutdownRequested.ConfigureAwait(false);
-            await RemoveFromActiveAsync(connection).ConfigureAwait(false);
+            await RemoveFromActiveAsync(serverAddress, connection).ConfigureAwait(false);
         }
     }
 
@@ -525,7 +530,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 connection = _connectionFactory.CreateConnection(serverAddress);
                 _detachedConnectionCount++;
-                pendingConnectionValue = (connection, CreateConnectTask(connection));
+                pendingConnectionValue = (connection, CreateConnectTask(connection, serverAddress));
                 _pendingConnections.Add(serverAddress, pendingConnectionValue);
             }
         }
@@ -542,12 +547,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Removes the connection from _activeConnections, and when successful, shuts down and disposes this
     /// connection.</summary>
-    /// <param name="connection">The connected connection to shutdown and dispose.</param>
-    private Task RemoveFromActiveAsync(IProtocolConnection connection)
+    /// <param name="serverAddress">The server address key in _activeConnections.</param>
+    /// <param name="connection">The connection to shutdown and dispose after removal.</param>
+    private Task RemoveFromActiveAsync(ServerAddress serverAddress, IProtocolConnection connection)
     {
         lock (_mutex)
         {
-            if (_shutdownTask is null && _activeConnections.Remove(connection.ServerAddress))
+            if (_shutdownTask is null && _activeConnections.Remove(serverAddress))
             {
                 // it's now our connection.
                 _detachedConnectionCount++;

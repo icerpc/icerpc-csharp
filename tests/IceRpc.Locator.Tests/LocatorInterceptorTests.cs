@@ -14,7 +14,7 @@ public class LocatorInterceptorTests
     public async Task Location_resolver_not_called_if_the_request_has_an_server_address()
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         await using var connection = new ClientConnection(new Uri("ice://localhost:10000"));
 
         var locationResolver = new NotCalledLocationResolver();
@@ -33,7 +33,7 @@ public class LocatorInterceptorTests
     public async Task Resolve_adapter_id()
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: true);
         var sut = new LocatorInterceptor(invoker, locationResolver);
@@ -56,7 +56,7 @@ public class LocatorInterceptorTests
     public async Task Resolve_well_known_proxy()
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var expected = new ServiceAddress(new Uri("ice://localhost:10000/foo"));
         var locationResolver = new MockLocationResolver(expected, adapterId: false);
         var sut = new LocatorInterceptor(invoker, locationResolver);
@@ -77,7 +77,7 @@ public class LocatorInterceptorTests
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var locationResolver = new MockCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(Protocol.Ice) { Path = "/foo" };
@@ -99,7 +99,7 @@ public class LocatorInterceptorTests
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Ice)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var locationResolver = new MockNonCachedLocationResolver();
         var sut = new LocatorInterceptor(invoker, locationResolver);
         var serviceAddress = new ServiceAddress(Protocol.Ice) { Path = "/foo" };

@@ -1490,7 +1490,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             dispatchTask = Task.Run(
                 async () =>
                 {
-                    using var request = new IncomingRequest(_connectionContext!)
+                    using var request = new IncomingRequest(Protocol.Ice, _connectionContext!)
                     {
                         Fields = fields,
                         Fragment = requestHeader.Fragment,

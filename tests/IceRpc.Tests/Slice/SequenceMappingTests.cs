@@ -17,7 +17,7 @@ public class SequenceMappingTests
             new int[] { 1, 2, 3 },
             new int[] { 1, 2, 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
         };
@@ -38,7 +38,7 @@ public class SequenceMappingTests
     {
         PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = responsePayload
         };
@@ -63,7 +63,7 @@ public class SequenceMappingTests
         // Assert
         Assert.That(
             async () => await ISequenceMappingOperations.Request.OpSingleParameterAsync(
-                new IncomingRequest(FakeConnectionContext.IceRpc)
+                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = requestPayload
                 },
@@ -87,7 +87,7 @@ public class SequenceMappingTests
             },
         };
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpStructNestedSequence(data)
         };
@@ -113,7 +113,7 @@ public class SequenceMappingTests
             },
         };
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = SequenceMappingOperationsProxy.Request.OpNumericTypeNestedSequence(data)
         };

@@ -7,8 +7,6 @@ namespace IceRpc.Internal;
 /// <summary>Provides a log decorator for protocol connections.</summary>
 internal class MetricsProtocolConnectionDecorator : IProtocolConnection
 {
-    public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
     private readonly bool _connectStarted;
     private readonly IProtocolConnection _decoratee;
     private bool _isConnected;

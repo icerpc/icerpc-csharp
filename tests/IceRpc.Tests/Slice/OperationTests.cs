@@ -318,7 +318,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryAsync(
-                new IncomingRequest(FakeConnectionContext.IceRpc)
+                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
                 },
@@ -339,7 +339,7 @@ public class OperationTests
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload
         };
@@ -363,7 +363,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryOptionalAsync(
-                new IncomingRequest(FakeConnectionContext.IceRpc)
+                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
                 },
@@ -385,7 +385,7 @@ public class OperationTests
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload
         };
@@ -409,7 +409,7 @@ public class OperationTests
         // Assert
         Assert.That(
             async () => await IMyOperationsA.Request.OpReadOnlyMemoryTaggedAsync(
-                new IncomingRequest(FakeConnectionContext.IceRpc)
+                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
                 },
@@ -431,7 +431,7 @@ public class OperationTests
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.IceRpc)
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
             Payload = payload
         };

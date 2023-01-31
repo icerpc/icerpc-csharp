@@ -51,7 +51,7 @@ public sealed class RetryInterceptorTests
                 new InlineInvoker((request, cancel) =>
                     Task.FromResult(new IncomingResponse(
                         request,
-                        FakeConnectionContext.IceRpc,
+                        FakeConnectionContext.Instance,
                         StatusCode.Unavailable,
                         "error message")))).SetName("Retry_with_other_replica(icerpc, StatusCode.Unavailable)");
 
@@ -60,7 +60,7 @@ public sealed class RetryInterceptorTests
                 new InlineInvoker((request, cancel) =>
                     Task.FromResult(new IncomingResponse(
                         request,
-                        FakeConnectionContext.Ice,
+                        FakeConnectionContext.Instance,
                         StatusCode.ServiceNotFound,
                         "error message")))).SetName("Retry_with_other_replica(ice, StatusCode.ServiceNotFound)");
 
@@ -85,7 +85,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
             }
         });
 
@@ -150,7 +150,7 @@ public sealed class RetryInterceptorTests
             return Task.FromResult(
                 new IncomingResponse(
                     request,
-                    FakeConnectionContext.IceRpc,
+                    FakeConnectionContext.Instance,
                     statusCode,
                     ""));
         });
@@ -207,7 +207,7 @@ public sealed class RetryInterceptorTests
             }
             else
             {
-                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+                return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
             }
         });
 
@@ -263,7 +263,7 @@ public sealed class RetryInterceptorTests
                 {
                     return new IncomingResponse(
                         request,
-                        request.Protocol == Protocol.IceRpc ? FakeConnectionContext.IceRpc : FakeConnectionContext.Ice,
+                        request.Protocol == Protocol.IceRpc ? FakeConnectionContext.Instance : FakeConnectionContext.Instance,
                         StatusCode.Success);
                 }
             }

@@ -1050,7 +1050,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 return; // success remains false
             }
 
-            using var request = new IncomingRequest(_connectionContext!)
+            using var request = new IncomingRequest(Protocol.IceRpc, _connectionContext!)
             {
                 Fields = fields,
                 IsOneway = !stream.IsBidirectional,

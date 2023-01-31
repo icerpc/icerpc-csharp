@@ -62,9 +62,10 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
     private OutgoingResponse? _response;
 
     /// <summary>Constructs an incoming request.</summary>
+    /// <param name="protocol">The protocol of this request.</param>
     /// <param name="connectionContext">The connection context of the connection that received this request.</param>
-    public IncomingRequest(IConnectionContext connectionContext)
-        : base(connectionContext)
+    public IncomingRequest(Protocol protocol, IConnectionContext connectionContext)
+        : base(protocol, connectionContext)
     {
     }
 

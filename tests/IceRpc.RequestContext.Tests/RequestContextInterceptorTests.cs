@@ -46,7 +46,7 @@ public sealed class RequestContextInterceptorTests
                        pipe.Reader.AdvanceTo(readResult.Buffer.End);
                    }
                }
-               return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+               return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
            }));
 
         await sut.InvokeAsync(request, default);
@@ -74,7 +74,7 @@ public sealed class RequestContextInterceptorTests
            new InlineInvoker((request, cancellationToken) =>
            {
                hasContextField = request.Fields.ContainsKey(RequestFieldKey.Context);
-               return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+               return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
            }));
         await sut.InvokeAsync(request, default);
 
