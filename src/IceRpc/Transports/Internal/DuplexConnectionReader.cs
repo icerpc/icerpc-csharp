@@ -15,7 +15,7 @@ internal class DuplexConnectionReader : IAsyncDisposable
     private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private readonly Timer _idleTimeoutTimer;
     private readonly object _mutex = new();
-    private bool _connectionLost;
+    private bool _isIdle;
     private readonly Pipe _pipe;
 
     public async ValueTask DisposeAsync()
@@ -44,9 +44,8 @@ internal class DuplexConnectionReader : IAsyncDisposable
             {
                 lock (_mutex)
                 {
-                    // Set _connectionLost to ensure ResetTimers fails. Timers can't be reset once the connection abort
-                    // is initiated.
-                    _connectionLost = true;
+                    // Once we mark the connection as idle the timer cannot be reset, and ResetTimers will throw.
+                    _isIdle = true;
                 }
 
                 connectionIdleAction();
@@ -180,10 +179,10 @@ internal class DuplexConnectionReader : IAsyncDisposable
     {
         lock (_mutex)
         {
-            if (_connectionLost)
+            if (_isIdle)
             {
-                // The idle timeout timer aborted the connection. Don't reset the timers and throw to ensure the
-                // calling read method doesn't return data.
+                // The idle timeout timer aborted the connection. Don't reset the timer and throw to ensure the calling
+                // read method doesn't return data.
                 throw new IceRpcException(IceRpcError.ConnectionIdle);
             }
             else if (_idleTimeout != Timeout.InfiniteTimeSpan)
