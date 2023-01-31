@@ -365,7 +365,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         EncodeRequestHeader(_duplexConnectionWriter, request, requestId, payloadSize);
 
-                        // We disable cancellation when writing to the duplex connection.
+                        // We write to the duplex connection with _disposedCts.Token instead of invocationCts.Token.
+                        // Canceling this write operation is fatal to the connection.
                         await _duplexConnectionWriter.WriteAsync(payloadBuffer, _disposedCts.Token)
                             .ConfigureAwait(false);
                     }
@@ -1096,7 +1097,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     EncodeResponseHeader(_duplexConnectionWriter, response, request, requestId, payloadSize);
 
-                    // We disable cancellation when writing the response to the duplex connection.
+                    // We write to the duplex connection with _disposedCts.Token instead of cancellationToken.
+                    // Canceling this write operation is fatal to the connection.
                     await _duplexConnectionWriter.WriteAsync(payload, _disposedCts.Token).ConfigureAwait(false);
                 }
                 catch (Exception exception)
