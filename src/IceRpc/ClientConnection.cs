@@ -331,7 +331,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
                         {
                             throw new IceRpcException(
                                 IceRpcError.ConnectionAborted,
-                                "The underlying connection was disposed.");
+                                "The underlying connection was disposed while the invocation was in progress.");
                         }
                         else
                         {
