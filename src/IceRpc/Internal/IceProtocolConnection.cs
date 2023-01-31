@@ -15,8 +15,6 @@ namespace IceRpc.Internal;
 /// <summary>Implements <see cref="IProtocolConnection" /> for the ice protocol.</summary>
 internal sealed class IceProtocolConnection : IProtocolConnection
 {
-    public ServerAddress ServerAddress => _duplexConnection.ServerAddress;
-
     private static readonly IDictionary<RequestFieldKey, ReadOnlySequence<byte>> _idempotentFields =
         new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>
         {
@@ -285,10 +283,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.Protocol != ServerAddress.Protocol)
+        if (request.Protocol != Protocol.Ice)
         {
             throw new InvalidOperationException(
-                $"Cannot send {request.Protocol} request on {ServerAddress.Protocol} connection.");
+                $"Cannot send {request.Protocol} request on {Protocol.Ice} connection.");
         }
 
         lock (_mutex)
@@ -1490,7 +1488,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             dispatchTask = Task.Run(
                 async () =>
                 {
-                    using var request = new IncomingRequest(_connectionContext!)
+                    using var request = new IncomingRequest(Protocol.Ice, _connectionContext!)
                     {
                         Fields = fields,
                         Fragment = requestHeader.Fragment,

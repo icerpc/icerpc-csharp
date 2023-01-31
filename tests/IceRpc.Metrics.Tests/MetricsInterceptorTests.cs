@@ -135,7 +135,7 @@ public sealed class MetricsInterceptorTests
 
         using var invocationMetrics = new InvocationMetrics(meterName);
         var invoker = new InlineInvoker(
-            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
+            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc) { Path = "/path" });
         var sut = new MetricsInterceptor(invoker, invocationMetrics);
 

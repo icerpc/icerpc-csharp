@@ -22,7 +22,7 @@ public sealed class RequestContextMiddlewareTests
         {
             encoded = readResult.Buffer;
         }
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc)
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
             {

@@ -9,10 +9,10 @@ namespace IceRpc.Transports.Internal;
 /// buffer into the receive buffer.</summary>
 internal abstract class ColocConnection : IDuplexConnection
 {
-    public ServerAddress ServerAddress { get; }
-
     private protected PipeReader? _reader;
     private protected int _state;
+
+    private readonly ServerAddress _serverAddress;
     private readonly PipeWriter _writer;
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
@@ -158,7 +158,7 @@ internal abstract class ColocConnection : IDuplexConnection
 
     public ColocConnection(ServerAddress serverAddress, PipeWriter writer)
     {
-        ServerAddress = serverAddress;
+        _serverAddress = serverAddress;
         _writer = writer;
     }
 
@@ -200,7 +200,7 @@ internal abstract class ColocConnection : IDuplexConnection
             throw new ObjectDisposedException($"{typeof(ColocConnection)}");
         }
 
-        var colocEndPoint = new ColocEndPoint(ServerAddress);
+        var colocEndPoint = new ColocEndPoint(_serverAddress);
         return new TransportConnectionInformation(colocEndPoint, colocEndPoint, null);
     }
 

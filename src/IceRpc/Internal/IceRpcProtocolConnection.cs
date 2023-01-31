@@ -13,8 +13,6 @@ namespace IceRpc.Internal;
 
 internal sealed class IceRpcProtocolConnection : IProtocolConnection
 {
-    public ServerAddress ServerAddress => _transportConnection.ServerAddress;
-
     private const int MaxGoAwayFrameBodySize = 16;
     private const int MaxSettingsFrameBodySize = 1024;
 
@@ -296,10 +294,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.Protocol != ServerAddress.Protocol)
+        if (request.Protocol != Protocol.IceRpc)
         {
             throw new InvalidOperationException(
-                $"Cannot send {request.Protocol} request on {ServerAddress.Protocol} connection.");
+                $"Cannot send {request.Protocol} request on {Protocol.IceRpc} connection.");
         }
 
         CancellationToken disposedCancellationToken;
@@ -1050,7 +1048,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 return; // success remains false
             }
 
-            using var request = new IncomingRequest(_connectionContext!)
+            using var request = new IncomingRequest(Protocol.IceRpc, _connectionContext!)
             {
                 Fields = fields,
                 IsOneway = !stream.IsBidirectional,

@@ -23,7 +23,7 @@ public sealed class DispatcherBuilderTests
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
 
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = "/foo" };
         _ = await dispatcher.DispatchAsync(request);
 
         Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(1));
@@ -41,7 +41,7 @@ public sealed class DispatcherBuilderTests
         var builder = new DispatcherBuilder(provider);
         builder.Mount<ITestService>("/");
         IDispatcher dispatcher = builder.Build();
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = "/foo" };
 
         _ = await dispatcher.DispatchAsync(request);
 
@@ -64,7 +64,7 @@ public sealed class DispatcherBuilderTests
         builder.UseMiddleware<UserMiddleware, IUser>();
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = "/foo" };
 
         _ = await dispatcher.DispatchAsync(request);
 
@@ -90,7 +90,7 @@ public sealed class DispatcherBuilderTests
         builder.UseMiddleware<TripleMiddleware, IUser, IDep2, IDep3>();
         builder.Map<ITestService>("/foo");
         IDispatcher dispatcher = builder.Build();
-        using var request = new IncomingRequest(FakeConnectionContext.IceRpc) { Path = "/foo" };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = "/foo" };
 
         _ = await dispatcher.DispatchAsync(request);
 

@@ -15,11 +15,6 @@ namespace IceRpc;
 /// <see cref="ShutdownAsync" /> or <see cref="DisposeAsync" />.</summary>
 public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport" /> property is always
-    /// non-null.</value>
-    public ServerAddress ServerAddress { get; }
-
     // The underlying protocol connection once successfully established.
     private (IProtocolConnection Connection, TransportConnectionInformation ConnectionInformation)? _activeConnection;
 
@@ -47,6 +42,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     private readonly TimeSpan _shutdownTimeout;
 
+    private readonly ServerAddress _serverAddress;
+
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
     /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
@@ -64,16 +61,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         duplexClientTransport ??= IDuplexClientTransport.Default;
         multiplexedClientTransport ??= IMultiplexedClientTransport.Default;
 
-        ServerAddress = options.ServerAddress ??
+        _serverAddress = options.ServerAddress ??
             throw new ArgumentException(
                 $"{nameof(ClientConnectionOptions.ServerAddress)} is not set",
                 nameof(options));
 
-        if (ServerAddress.Transport is null)
+        if (_serverAddress.Transport is null)
         {
-            ServerAddress = ServerAddress with
+            _serverAddress = _serverAddress with
             {
-                Transport = ServerAddress.Protocol == Protocol.Ice ?
+                Transport = _serverAddress.Protocol == Protocol.Ice ?
                     duplexClientTransport.Name : multiplexedClientTransport.Name
             };
         }
@@ -168,7 +165,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (_pendingConnection is null)
             {
-                IProtocolConnection newConnection = _clientProtocolConnectionFactory.CreateConnection(ServerAddress);
+                IProtocolConnection newConnection = _clientProtocolConnectionFactory.CreateConnection(_serverAddress);
                 _detachedConnectionCount++;
                 connectTask = CreateConnectTask(newConnection, cancellationToken);
                 _pendingConnection = (newConnection, connectTask);
@@ -285,21 +282,21 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             ServerAddress mainServerAddress,
             ImmutableList<ServerAddress> altServerAddresses)
         {
-            if (ServerAddressComparer.OptionalTransport.Equals(mainServerAddress, ServerAddress))
+            if (ServerAddressComparer.OptionalTransport.Equals(mainServerAddress, _serverAddress))
             {
                 return;
             }
 
             foreach (ServerAddress serverAddress in altServerAddresses)
             {
-                if (ServerAddressComparer.OptionalTransport.Equals(serverAddress, ServerAddress))
+                if (ServerAddressComparer.OptionalTransport.Equals(serverAddress, _serverAddress))
                 {
                     return;
                 }
             }
 
             throw new InvalidOperationException(
-                $"None of the request's server addresses matches this connection's server address: {ServerAddress}");
+                $"None of the request's server addresses matches this connection's server address: {_serverAddress}");
         }
 
         async Task<IncomingResponse> PerformInvokeAsync(IProtocolConnection? connection)
@@ -620,7 +617,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (_pendingConnection is null)
             {
-                IProtocolConnection connection = _clientProtocolConnectionFactory.CreateConnection(ServerAddress);
+                IProtocolConnection connection = _clientProtocolConnectionFactory.CreateConnection(_serverAddress);
                 _detachedConnectionCount++;
 
                 // We pass CancellationToken.None because the invocation cancellation should not cancel the connection

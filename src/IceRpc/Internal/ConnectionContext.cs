@@ -9,8 +9,6 @@ internal sealed class ConnectionContext : IConnectionContext
 {
     public IInvoker Invoker => _protocolConnection;
 
-    public ServerAddress ServerAddress => _protocolConnection.ServerAddress;
-
     public TransportConnectionInformation TransportConnectionInformation { get; }
 
     private readonly IProtocolConnection _protocolConnection;

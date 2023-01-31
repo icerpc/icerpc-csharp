@@ -16,8 +16,6 @@ namespace IceRpc.Transports.Internal;
 /// <see cref="InvalidOperationException" />.</remarks>
 internal abstract class TcpConnection : IDuplexConnection
 {
-    public ServerAddress ServerAddress { get; }
-
     internal abstract Socket Socket { get; }
 
     internal abstract SslStream? SslStream { get; }
@@ -245,12 +243,8 @@ internal abstract class TcpConnection : IDuplexConnection
         }
     }
 
-    private protected TcpConnection(
-        ServerAddress serverAddress,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize)
+    private protected TcpConnection(MemoryPool<byte> pool, int minimumSegmentSize)
     {
-        ServerAddress = serverAddress;
         _pool = pool;
         _minSegmentSize = minimumSegmentSize;
     }
@@ -290,7 +284,7 @@ internal class TcpClientConnection : TcpConnection
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         TcpClientTransportOptions options)
-        : base(serverAddress, pool, minimumSegmentSize)
+        : base(pool, minimumSegmentSize)
     {
         _addr = IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, serverAddress.Port) :
@@ -383,12 +377,11 @@ internal class TcpServerConnection : TcpConnection
     private SslStream? _sslStream;
 
     internal TcpServerConnection(
-        ServerAddress serverAddress,
         Socket socket,
         SslServerAuthenticationOptions? authenticationOptions,
         MemoryPool<byte> pool,
         int minimumSegmentSize)
-        : base(serverAddress, pool, minimumSegmentSize)
+        : base(pool, minimumSegmentSize)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;

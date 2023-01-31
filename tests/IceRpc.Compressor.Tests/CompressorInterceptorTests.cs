@@ -23,7 +23,7 @@ public class CompressorInterceptorTests
     {
         // Arrange
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, compressionFormat);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
@@ -54,7 +54,7 @@ public class CompressorInterceptorTests
     public async Task Compressor_interceptor_without_the_compress_feature_does_not_install_a_payload_writer_interceptor()
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, CompressionFormat.Brotli);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
@@ -72,7 +72,7 @@ public class CompressorInterceptorTests
     public async Task Compressor_interceptor_does_not_install_a_payload_writer_interceptor_if_the_request_is_already_compressed()
     {
         var invoker = new InlineInvoker((request, cancellationToken) =>
-            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)));
+            Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, CompressionFormat.Brotli);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
@@ -134,7 +134,7 @@ public class CompressorInterceptorTests
         CompressionFormat compressionFormat) =>
         new(
             request,
-            FakeConnectionContext.IceRpc,
+            FakeConnectionContext.Instance,
             StatusCode.Success,
             errorMessage: null,
             new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>

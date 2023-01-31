@@ -205,8 +205,6 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 
 public sealed class TestDuplexConnectionDecorator : IDuplexConnection
 {
-    public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
     public Task DisposeCalled => _disposeCalledTcs.Task;
 
     public DuplexTransportOperation FailOperation { get; set; }

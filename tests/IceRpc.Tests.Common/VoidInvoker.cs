@@ -10,7 +10,7 @@ public class VoidInvoker : IInvoker
 
     /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new IncomingResponse(request, FakeConnectionContext.FromProtocol(request.Protocol)));
+        Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
 
     private VoidInvoker()
     {

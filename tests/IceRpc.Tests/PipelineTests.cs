@@ -16,7 +16,7 @@ public class PipelineTests
         // Arrange
         var pipeline = new Pipeline()
             .Use(next => new InlineInvoker((request, cancellationToken) =>
-                Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc))))
+                Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance))))
             .Into(VoidInvoker.Instance);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         pipeline.InvokeAsync(request);
@@ -24,7 +24,7 @@ public class PipelineTests
         // Assert/Act
         Assert.Throws<InvalidOperationException>(
             () => pipeline.Use(next => new InlineInvoker((request, cancellationToken) =>
-                Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc)))));
+                Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)))));
     }
 
     /// <summary>Verifies that the pipeline interceptors are called in the expected order. That corresponds
@@ -57,7 +57,7 @@ public class PipelineTests
             .Use(next => new InlineInvoker((request, cancellationToken) =>
                 {
                     calls.Add("invoker-4");
-                    return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+                    return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
                 }))
              .Into(VoidInvoker.Instance);
 
@@ -83,7 +83,7 @@ public class PipelineTests
         pipeline.Use(next => new InlineInvoker((request, cancellationToken) =>
         {
             feature = request.Features.Get<string>();
-            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.IceRpc));
+            return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
         }));
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         pipeline.InvokeAsync(request);

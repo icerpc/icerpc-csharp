@@ -216,8 +216,6 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
         set => _lastStream = value;
     }
 
-    public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
     public Task DisposeCalled => _disposeCalledTcs.Task;
 
     public MultiplexedTransportOperation FailOperation { get; set; }

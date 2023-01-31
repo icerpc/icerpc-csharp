@@ -11,11 +11,6 @@ namespace IceRpc;
 /// <seealso cref="ClientProtocolConnectionFactory" />
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
-    /// <summary>Gets the server address of this connection.</summary>
-    /// <value>The server address of this connection. Its <see cref="ServerAddress.Transport" /> property is always
-    /// non-null.</value>
-    ServerAddress ServerAddress { get; }
-
     /// <summary>Establishes the connection to the peer.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection

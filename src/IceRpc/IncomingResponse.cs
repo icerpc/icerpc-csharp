@@ -72,15 +72,8 @@ public sealed class IncomingResponse : IncomingFrame
         string? errorMessage,
         IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
         PipeReader? fieldsPipeReader)
-        : base(connectionContext)
+        : base(request.Protocol, connectionContext)
     {
-        if (request.Protocol != connectionContext.ServerAddress.Protocol)
-        {
-            throw new ArgumentException(
-                "The protocol of the request does not match the protocol of the connection context.",
-                nameof(request));
-        }
-
         if (statusCode == StatusCode.Success)
         {
             if (errorMessage is not null)

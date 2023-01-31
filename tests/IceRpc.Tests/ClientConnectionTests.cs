@@ -207,17 +207,6 @@ public class ClientConnectionTests
         await callbackDispatcher.DispatchStart;
     }
 
-    /// <summary>Verifies that ClientConnection.ServerAddress.Transport property is set.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Connection_server_address_transport_property_is_set(Protocol protocol)
-    {
-        // Arrange
-        await using var clientConnection = new ClientConnection(new ServerAddress(protocol));
-
-        // Act/Assert
-        Assert.That(clientConnection.ServerAddress.Transport, Is.Not.Null);
-    }
-
     /// <summary>Verifies that InvokeAsync succeeds when there is a compatible server address.</summary>
     [TestCase("icerpc://testhost.com?transport=coloc")]
     [TestCase("icerpc://testhost.com:4062")]

@@ -21,7 +21,7 @@ public class InvokeAsyncTests
             ServiceAddress = new ServiceAddress(Protocol.IceRpc),
             Invoker = new InlineInvoker((request, cancellationToken) =>
                 Task.FromResult(
-                    new IncomingResponse(request, FakeConnectionContext.IceRpc) { Payload = responsePayload }))
+                    new IncomingResponse(request, FakeConnectionContext.Instance) { Payload = responsePayload }))
         };
 
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);

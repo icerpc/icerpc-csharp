@@ -10,8 +10,6 @@ namespace IceRpc.Internal;
 /// <summary>Provides a decorator that adds logging to the <see cref="IProtocolConnection" />.</summary>
 internal class LogProtocolConnectionDecorator : IProtocolConnection
 {
-    public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
     private bool IsServer => _remoteNetworkAddress is not null;
 
     // _connectionInformation is not volatile because all correct callers of IProtocolConnection.ConnectAsync wait for
@@ -24,6 +22,8 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
     private readonly ILogger _logger;
 
     private readonly EndPoint? _remoteNetworkAddress;
+
+    private readonly ServerAddress _serverAddress;
 
     public async Task<(TransportConnectionInformation ConnectionInformation, Task ShutdownRequested)> ConnectAsync(
         CancellationToken cancellationToken)
@@ -44,11 +44,11 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
         {
             if (_remoteNetworkAddress is null)
             {
-                _logger.LogConnectionConnectFailed(ServerAddress, exception);
+                _logger.LogConnectionConnectFailed(_serverAddress, exception);
             }
             else
             {
-                _logger.LogConnectionConnectFailed(ServerAddress, _remoteNetworkAddress, exception);
+                _logger.LogConnectionConnectFailed(_serverAddress, _remoteNetworkAddress, exception);
             }
             throw;
         }
@@ -96,11 +96,13 @@ internal class LogProtocolConnectionDecorator : IProtocolConnection
 
     internal LogProtocolConnectionDecorator(
         IProtocolConnection decoratee,
+        ServerAddress serverAddress,
         EndPoint? remoteNetworkAddress,
         ILogger logger)
     {
         _decoratee = decoratee;
         _logger = logger;
         _remoteNetworkAddress = remoteNetworkAddress;
+        _serverAddress = serverAddress;
     }
 }
