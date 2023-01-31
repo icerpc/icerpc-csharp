@@ -17,10 +17,6 @@ namespace IceRpc.Transports;
 /// </remarks>
 public interface IMultiplexedConnection : IAsyncDisposable
 {
-    /// <summary>Gets the server address of this connection. This server address Transport property is non-null.
-    /// </summary>
-    ServerAddress ServerAddress { get; }
-
     /// <summary>Accepts a remote stream.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The remote stream.</returns>

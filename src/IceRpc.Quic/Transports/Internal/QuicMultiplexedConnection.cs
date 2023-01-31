@@ -8,15 +8,12 @@ namespace IceRpc.Transports.Internal;
 /// <summary>The Quic multiplexed connection implements an <see cref="IMultiplexedConnection" />.</summary>
 internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 {
-    public ServerAddress ServerAddress { get; }
-
     private protected QuicConnection? _connection;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
 
-    private protected QuicMultiplexedConnection(ServerAddress serverAddress, MultiplexedConnectionOptions options)
+    private protected QuicMultiplexedConnection(MultiplexedConnectionOptions options)
     {
-        ServerAddress = serverAddress;
         _minSegmentSize = options.MinSegmentSize;
         _pool = options.Pool;
     }
@@ -112,10 +109,9 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
     }
 
     internal QuicMultiplexedClientConnection(
-        ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
         QuicClientConnectionOptions quicOptions)
-        : base(serverAddress, options) => _quicClientConnectionOptions = quicOptions;
+        : base(options) => _quicClientConnectionOptions = quicOptions;
 }
 
 internal class QuicMultiplexedServerConnection : QuicMultiplexedConnection
@@ -127,8 +123,7 @@ internal class QuicMultiplexedServerConnection : QuicMultiplexedConnection
             _connection.RemoteCertificate));
 
     internal QuicMultiplexedServerConnection(
-        ServerAddress serverAddress,
         QuicConnection connection,
         MultiplexedConnectionOptions options)
-        : base(serverAddress, options) => _connection = connection;
+        : base(options) => _connection = connection;
 }

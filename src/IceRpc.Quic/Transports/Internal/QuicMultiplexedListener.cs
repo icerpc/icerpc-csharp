@@ -20,9 +20,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         try
         {
             QuicConnection connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
-            return (
-                new QuicMultiplexedServerConnection(ServerAddress, connection, _options),
-                connection.RemoteEndPoint);
+            return (new QuicMultiplexedServerConnection(connection, _options), connection.RemoteEndPoint);
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
         {

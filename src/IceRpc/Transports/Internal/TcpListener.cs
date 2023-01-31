@@ -24,7 +24,6 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
             Socket acceptedSocket = await _socket.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
             var tcpConnection = new TcpServerConnection(
-                ServerAddress,
                 acceptedSocket,
                 _authenticationOptions,
                 _pool,

@@ -115,23 +115,6 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Connection_server_address_transport_property_is_set()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var transport = provider.GetRequiredService<IDuplexClientTransport>().Name;
-
-        // Act
-        using ClientServerDuplexConnection sut = await ConnectAndAcceptAsync(
-            provider.GetRequiredService<IListener<IDuplexConnection>>(),
-            provider.GetRequiredService<IDuplexConnection>());
-
-        // Assert
-        Assert.That(sut.ClientConnection.ServerAddress.Transport, Is.EqualTo(transport));
-        Assert.That(sut.ServerConnection.ServerAddress.Transport, Is.EqualTo(transport));
-    }
-
-    [Test]
     public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);

@@ -22,10 +22,6 @@ namespace IceRpc.Transports;
 /// </remarks>
 public interface IDuplexConnection : IDisposable
 {
-    /// <summary>Gets the server address of this connection. The Transport property of this server address is always
-    /// non-null.</summary>
-    ServerAddress ServerAddress { get; }
-
     /// <summary>Connects this connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully with transport connection information when the connection is

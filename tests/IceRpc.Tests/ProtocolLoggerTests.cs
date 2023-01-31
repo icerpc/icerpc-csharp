@@ -335,8 +335,6 @@ public sealed class ProtocolLoggerTests
     // A multiplexed connection decorator that always fail to connect
     private sealed class ConnectFailMultiplexedConnectionDecorator : IMultiplexedConnection
     {
-        public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
         private readonly IMultiplexedConnection _decoratee;
 
         public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
