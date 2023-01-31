@@ -58,8 +58,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // An invocation is pending once its stream is created and it remains pending until the request is fully sent
     // (oneway) or a response is received (twoway). _pendingInvocations does not "own" the invocation CTS: it's only
     // used to look it up.
-    private readonly LinkedList<(IMultiplexedStream Stream, CancellationTokenSource InvocationCts)> _pendingInvocations =
-        new();
+    private readonly LinkedList<(IMultiplexedStream, CancellationTokenSource)> _pendingInvocations = new();
 
     private Task? _readGoAwayTask;
 
@@ -344,8 +343,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             CancellationToken invocationCancellationToken = invocationCts.Token;
 
-            LinkedListNode<(IMultiplexedStream Stream, CancellationTokenSource InvocationCts)>? pendingInvocationNode =
-                null;
+            LinkedListNode<(IMultiplexedStream, CancellationTokenSource)>? pendingInvocationNode = null;
 
             IMultiplexedStream? stream = null;
             PipeReader? streamInput = null;
