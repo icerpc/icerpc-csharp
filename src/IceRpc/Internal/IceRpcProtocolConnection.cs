@@ -1317,8 +1317,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             RefuseNewInvocations("The connection was shut down because it received a GoAway frame from the peer.");
 
-            // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will
-            // throw IceRpcException(InvocationCanceled) which can be retried. Since _refuseInvocations is true,
+            // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
+            // IceRpcException(InvocationCanceled) which can be retried. Since _refuseInvocations is true,
             // _pendingInvocations is immutable at this point.
             foreach ((IMultiplexedStream stream, CancellationTokenSource invocationCts) in _pendingInvocations)
             {
@@ -1327,7 +1327,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         goAwayFrame.BidirectionalStreamId :
                         goAwayFrame.UnidirectionalStreamId))
                 {
-                    invocationCts.Cancel();
+                    try
+                    {
+                        invocationCts.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // the corresponding invocation already completed and disposed this invocationCts
+                    }
                 }
             }
 
