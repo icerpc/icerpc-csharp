@@ -45,15 +45,6 @@ internal class DuplexConnectionReader : IAsyncDisposable
             {
                 lock (_mutex)
                 {
-                    var currentTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
-                    if (_nextIdleTime > currentTime)
-                    {
-                        // The idle timeout has just been postponed or it run too earlier, we reschedule it to ensure it
-                        // runs again by _nextIdleTime.
-                        _idleTimeoutTimer?.Change(_nextIdleTime - currentTime, Timeout.InfiniteTimeSpan);
-                        return;
-                    }
-
                     // Set the next idle time to the infinite timeout to ensure ResetTimers fails. Timers can't be
                     // reset once the connection abort is initiated.
                     _nextIdleTime = Timeout.InfiniteTimeSpan;
