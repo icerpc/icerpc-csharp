@@ -5,23 +5,15 @@ encoding = 1;
 [cs::namespace("IceRpc")]
 module Ice;
 
-/// An administrative interface for process management. Managed servers must
-/// implement this interface.
-///
-/// A servant implementing this interface is a potential target
-/// for denial-of-service attacks, therefore proper security precautions
-/// should be taken. For example, the servant can use a UUID to make its
-/// identity harder to guess, and be registered in an object adapter with
-/// a secured server address.
+/// A server application managed by a locator implementation such as IceGrid hosts a Process service and registers a
+/// a proxy to this service with the locator registry. See TODO-LINK LocatorRegistry::setServerProcessProxy.
 interface Process
 {
-    /// Initiate a graceful shutdown.
+    /// Initiates a graceful shutdown of the server application.
     shutdown();
 
-    /// Write a message on the process' stdout or stderr.
-    ///
-    /// @param message The message.
-    ///
-    /// @param fd 1 for stdout, 2 for stderr.
+    /// Writes a message on the server application's stdout or stderr.
+    /// @param message The message to write.
+    /// @param fd '1' for stdout, '2' for stderr.
     writeMessage(message: string, fd: int32);
 }
