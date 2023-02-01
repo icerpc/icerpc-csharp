@@ -1372,8 +1372,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         completeFrameReader = false;
                     }
-                    // else _refuseInvocations is true (and _twowayInvocations is immutable) or this invocation
-                    // just completed and is about to remove itself from _twowayInvocations.
+                    // else this invocation just completed and is about to remove itself from _twowayInvocations,
+                    // or _twowayInvocations is immutable and contains entries for completed invocations.
                 }
                 // else the request ID carried by the response is bogus or corresponds to a request that was previously
                 // discarded (for example, because its deadline expired).
