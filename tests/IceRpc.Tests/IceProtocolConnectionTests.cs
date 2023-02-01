@@ -296,8 +296,9 @@ public sealed class IceProtocolConnectionTests
     public async Task Invoke_cancellation_on_duplex_transport_hang([Values] bool oneway)
     {
         // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice)
+            .AddProtocolTest(Protocol.Ice, dispatcher)
             .AddTestDuplexTransport(clientHoldOperation: DuplexTransportOperation.Write)
             .BuildServiceProvider(validateScopes: true);
 
