@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -136,13 +135,12 @@ public sealed class IceProtocolConnectionTests
             new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransport(
                 serverFailOperation: serverConnection ? operation : DuplexTransportOperation.None,
                 serverFailureException: exception,
                 clientFailOperation: serverConnection ? DuplexTransportOperation.None : operation,
                 clientFailureException: exception)
-            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-            .AddIceProtocolTest()
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -179,11 +177,10 @@ public sealed class IceProtocolConnectionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransport(
                 serverHoldOperation: serverConnection ? operation : DuplexTransportOperation.None,
                 clientHoldOperation: serverConnection ? DuplexTransportOperation.None : operation)
-            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-            .AddIceProtocolTest()
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -228,12 +225,8 @@ public sealed class IceProtocolConnectionTests
         // InvokeAsync and while it is still in course.
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
             .AddTestDuplexTransport(clientFailureException: failureException)
-            .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-            .AddIceProtocolTest(serverConnectionOptions: new ConnectionOptions
-            {
-                Dispatcher = dispatcher
-            })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();

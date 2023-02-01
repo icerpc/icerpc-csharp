@@ -179,13 +179,12 @@ public sealed class IceRpcProtocolConnectionTests
             new IceRpcException(IceRpcError.ConnectionRefused);
 
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransport(
                 serverFailOperation: serverConnection ? operation : MultiplexedTransportOperation.None,
                 serverFailureException: exception,
                 clientFailOperation: serverConnection ? MultiplexedTransportOperation.None : operation,
                 clientFailureException: exception)
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-            .AddIceRpcProtocolTest()
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -230,11 +229,10 @@ public sealed class IceRpcProtocolConnectionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransport(
                 serverHoldOperation: serverConnection ? operation : MultiplexedTransportOperation.None,
                 clientHoldOperation: serverConnection ? MultiplexedTransportOperation.None : operation)
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-            .AddIceRpcProtocolTest()
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -446,11 +444,8 @@ public sealed class IceRpcProtocolConnectionTests
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .AddTestMultiplexedTransport()
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-            .AddIceRpcProtocolTest(
-                clientConnectionOptions: new(),
-                serverConnectionOptions: new() { Dispatcher = dispatcher })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -550,9 +545,8 @@ public sealed class IceRpcProtocolConnectionTests
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
 
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransport(clientFailureException: failureException)
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-            .AddIceRpcProtocolTest(serverConnectionOptions: new() { Dispatcher = ServiceNotFoundDispatcher.Instance })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -589,9 +583,8 @@ public sealed class IceRpcProtocolConnectionTests
         var failureException = new Exception();
 
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransport(clientFailureException: failureException)
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-            .AddIceRpcProtocolTest(serverConnectionOptions: new() { Dispatcher = ServiceNotFoundDispatcher.Instance })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -612,23 +605,22 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(clientShutdownRequested.IsCompleted, Is.False);
     }
 
-    // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/2444
-    // [TestCase(false, MultiplexedTransportOperation.CreateStream)]
-    // [TestCase(true, MultiplexedTransportOperation.CreateStream)]
-    [TestCase(false, MultiplexedTransportOperation.AcceptStream)]
-    [TestCase(false, MultiplexedTransportOperation.StreamWrite)]
-    [TestCase(true, MultiplexedTransportOperation.StreamWrite)]
+    [TestCase(false, MultiplexedTransportOperation.CreateStream, IceRpcError.InvocationRefused)]
+    [TestCase(true, MultiplexedTransportOperation.CreateStream, IceRpcError.InvocationRefused)]
+    [TestCase(false, MultiplexedTransportOperation.AcceptStream, IceRpcError.InvocationCanceled)]
+    [TestCase(false, MultiplexedTransportOperation.StreamWrite, IceRpcError.InvocationCanceled)]
+    [TestCase(true, MultiplexedTransportOperation.StreamWrite, IceRpcError.InvocationCanceled)]
     public async Task Not_dispatched_request_gets_invocation_canceled_on_server_connection_shutdown(
         bool isOneway,
-        MultiplexedTransportOperation holdOperation)
+        MultiplexedTransportOperation holdOperation,
+        IceRpcError error)
     {
         // Arrange
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .AddTestMultiplexedTransport()
-            .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
-            .AddIceRpcProtocolTest(serverConnectionOptions: new() { Dispatcher = dispatcher })
             .BuildServiceProvider(validateScopes: true);
 
         var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
@@ -665,7 +657,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(invokeTask.IsCompleted, Is.False);
         Assert.That(
             () => invokeTask2,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(error));
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
         request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
