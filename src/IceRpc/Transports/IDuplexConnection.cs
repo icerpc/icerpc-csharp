@@ -5,19 +5,17 @@ using System.Security.Authentication;
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a duplex transport.</summary>
-/// <remarks>This interface is used by the IceRpc core, which provides a number of guarantees on how the methods of this
-/// interface are called:
+/// <remarks>This interface is used by the IceRPC core. The IceRPC core provides a number of guarantees on how it calls
+/// these methods:
 /// <list type="bullet">
-/// <item><description>the <see cref="ConnectAsync" /> method is always called first and once. No other methods are
-/// called until it completes.</description></item>
-/// <item><description>the <see cref="ReadAsync" /> method is never called while another <see cref="ReadAsync"/> is in
-/// progress. It can be called concurrently with a <see cref="WriteAsync"/> or <see cref="ShutdownAsync"/> call.
+/// <item><description>it calls the <see cref="ConnectAsync" /> method first and once. It does not call any other method
+/// until the connect task completes.</description></item>
+/// <item><description>it calls the <see cref="ReadAsync" /> and <see cref="WriteAsync" /> methods, sometimes
+/// concurrently. It does not make concurrent reads or concurrent writes.</description></item>
+/// <item><description>it can call the <see cref="ShutdownAsync" /> method once but not while a write is in progress.
 /// </description></item>
-/// <item><description>the <see cref="WriteAsync" /> method is never called while another <see cref="WriteAsync"/> is in
-/// progress. It's also never called after a <see cref="ShutdownAsync"/> call. It can be called concurrently with a <see
-/// cref="ReadAsync" /> call.</description></item>
-/// <item><description>the <see cref="ShutdownAsync" /> method is only called once and never called while a <see
-/// cref="WriteAsync" /> is in progress.</description></item>
+/// <item><description>it calls the <see cref="IDisposable.Dispose" /> method after the tasks returned by other methods
+/// have completed. It can call this method multiple times but not concurrently.</description></item>
 /// </list>
 /// </remarks>
 public interface IDuplexConnection : IDisposable
@@ -51,7 +49,7 @@ public interface IDuplexConnection : IDisposable
     /// </returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
-    /// shutting down, or a read operation is already in progress.</exception>
+    /// shutting down, or if a read operation is already in progress.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
