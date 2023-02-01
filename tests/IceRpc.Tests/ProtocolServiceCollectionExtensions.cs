@@ -9,66 +9,6 @@ namespace IceRpc.Tests;
 
 public static class ProtocolServiceCollectionExtensions
 {
-    public static IServiceCollection AddIceProtocolTest(
-        this IServiceCollection services,
-        ConnectionOptions? clientConnectionOptions = null,
-        ConnectionOptions? serverConnectionOptions = null) =>
-        services.AddSingleton(provider =>
-            new ClientServerProtocolConnection(
-                clientProtocolConnection: new IceProtocolConnection(
-                    provider.GetRequiredService<IDuplexConnection>(),
-                    transportConnectionInformation: null,
-                    clientConnectionOptions ?? new()),
-                acceptServerConnectionAsync:
-                    async (CancellationToken cancellationToken) =>
-                    {
-                        (IDuplexConnection transportConnection, _) =
-                            await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(
-                                cancellationToken);
-
-                        TransportConnectionInformation transportConnectionInformation =
-                            await transportConnection.ConnectAsync(cancellationToken);
-
-                        return new IceProtocolConnection(
-                            transportConnection,
-                            transportConnectionInformation,
-                            serverConnectionOptions ?? new());
-                    },
-                listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
-
-    public static IServiceCollection AddIceRpcProtocolTest(
-        this IServiceCollection services,
-        ConnectionOptions? clientConnectionOptions = null,
-        ConnectionOptions? serverConnectionOptions = null)
-    {
-        services.AddSingleton(provider =>
-            new ClientServerProtocolConnection(
-                clientProtocolConnection: new IceRpcProtocolConnection(
-                    provider.GetRequiredService<IMultiplexedConnection>(),
-                    transportConnectionInformation: null,
-                    clientConnectionOptions ?? new(),
-                    provider.GetService<ITaskExceptionObserver>()),
-                acceptServerConnectionAsync:
-                    async (CancellationToken cancellationToken) =>
-                    {
-                        (IMultiplexedConnection transportConnection, _) =
-                            await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(
-                                cancellationToken);
-
-                        TransportConnectionInformation transportConnectionInformation =
-                            await transportConnection.ConnectAsync(cancellationToken);
-
-                        return new IceRpcProtocolConnection(
-                            transportConnection,
-                            transportConnectionInformation,
-                            serverConnectionOptions ?? new(),
-                            provider.GetService<ITaskExceptionObserver>());
-                    },
-                listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
-
-        return services;
-    }
-
     public static IServiceCollection AddProtocolTest(
         this IServiceCollection services,
         Protocol protocol,
@@ -86,15 +26,59 @@ public static class ProtocolServiceCollectionExtensions
             services
                 .AddColocTransport()
                 .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
-                .AddIceProtocolTest(clientConnectionOptions, serverConnectionOptions);
+                .AddSingleton(provider =>
+                    new ClientServerProtocolConnection(
+                        clientProtocolConnection: new IceProtocolConnection(
+                            provider.GetRequiredService<IDuplexConnection>(),
+                            transportConnectionInformation: null,
+                            clientConnectionOptions ?? new()),
+                        acceptServerConnectionAsync:
+                            async (CancellationToken cancellationToken) =>
+                            {
+                                (IDuplexConnection transportConnection, _) =
+                                    await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(
+                                        cancellationToken);
+
+                                TransportConnectionInformation transportConnectionInformation =
+                                    await transportConnection.ConnectAsync(cancellationToken);
+
+                                return new IceProtocolConnection(
+                                    transportConnection,
+                                    transportConnectionInformation,
+                                    serverConnectionOptions ?? new());
+                            },
+                        listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
         }
         else
         {
             services
                 .AddColocTransport()
                 .AddSlicTransport()
-                .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"));
-            services.AddIceRpcProtocolTest(clientConnectionOptions, serverConnectionOptions);
+                .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+                .AddSingleton(provider =>
+                    new ClientServerProtocolConnection(
+                        clientProtocolConnection: new IceRpcProtocolConnection(
+                            provider.GetRequiredService<IMultiplexedConnection>(),
+                            transportConnectionInformation: null,
+                            clientConnectionOptions ?? new(),
+                            provider.GetService<ITaskExceptionObserver>()),
+                        acceptServerConnectionAsync:
+                            async (CancellationToken cancellationToken) =>
+                            {
+                                (IMultiplexedConnection transportConnection, _) =
+                                    await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(
+                                        cancellationToken);
+
+                                TransportConnectionInformation transportConnectionInformation =
+                                    await transportConnection.ConnectAsync(cancellationToken);
+
+                                return new IceRpcProtocolConnection(
+                                    transportConnection,
+                                    transportConnectionInformation,
+                                    serverConnectionOptions ?? new(),
+                                    provider.GetService<ITaskExceptionObserver>());
+                            },
+                        listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
         }
         return services;
     }
