@@ -273,14 +273,14 @@ internal class SlicConnection : IMultiplexedConnection
             // Enable the idle timeout checks after the connection establishment. The Ping frames sent by the keep alive
             // check are not expected until the Slic connection initialization completes. The idle timeout check uses
             // the smallest idle timeout.
-            TimeSpan keepAliveTimeout =
+            TimeSpan idleTimeout =
                 _peerIdleTimeout == Timeout.InfiniteTimeSpan ? _localIdleTimeout :
                 _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
                 _localIdleTimeout;
 
-            _duplexConnectionReader.EnableAliveCheck(keepAliveTimeout);
+            _duplexConnectionReader.SetIdleTimeout(idleTimeout);
             _duplexConnectionWriter.EnableKeepAlive(
-                keepAliveTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : keepAliveTimeout / 2);
+                idleTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : idleTimeout / 2);
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
 
@@ -451,7 +451,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             _duplexConnection.Dispose();
-            await _duplexConnectionReader.DisposeAsync().ConfigureAwait(false);
+            _duplexConnectionReader.Dispose();
             await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
 
             _disposedCts.Dispose();
@@ -515,14 +515,7 @@ internal class SlicConnection : IMultiplexedConnection
             options.MinSegmentSize,
             keepAliveAction);
 
-        _duplexConnectionReader = new DuplexConnectionReader(
-            duplexConnection,
-            options.Pool,
-            options.MinSegmentSize,
-            connectionIdleAction: () =>
-                Close(
-                    new IceRpcException(IceRpcError.ConnectionIdle),
-                    "The Slic connection was aborted because it did not receive any byte for too long."));
+        _duplexConnectionReader = new DuplexConnectionReader(duplexConnection, options.Pool, options.MinSegmentSize);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.

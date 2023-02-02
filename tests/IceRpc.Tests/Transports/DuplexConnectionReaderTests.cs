@@ -13,10 +13,8 @@ namespace IceRpc.Tests.Transports;
 [Parallelizable(scope: ParallelScope.All)]
 public class DuplexConnectionReaderTests
 {
-    // TODO: Add more tests
-
     [Test]
-    public async Task Abort_action_is_called_after_idle_timeout()
+    public async Task Connection_idle_after_idle_timeout()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -32,24 +30,23 @@ public class DuplexConnectionReaderTests
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        var tcs = new TaskCompletionSource<TimeSpan>();
-        await using var reader = new DuplexConnectionReader(
-            clientConnection,
-            MemoryPool<byte>.Shared,
-            4096,
-            connectionIdleAction: () => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
+        using var reader = new DuplexConnectionReader(clientConnection, MemoryPool<byte>.Shared, 4096);
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
+
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
-        reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
 
-        // Act
-        var abortCalledTime = await tcs.Task;
+        // Act/Assert
+        Assert.That(
+            async () => await reader.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
 
-        // Assert
-        Assert.That(abortCalledTime - startTime, Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+        Assert.That(
+            TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime,
+            Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
     }
 
     [Test]
-    public async Task Abort_action_is_called_after_idle_timeout_defer()
+    public async Task Connection_idle_after_idle_timeout_defer()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -65,24 +62,23 @@ public class DuplexConnectionReaderTests
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        var tcs = new TaskCompletionSource<TimeSpan>();
-        await using var reader = new DuplexConnectionReader(
-            clientConnection,
-            MemoryPool<byte>.Shared,
-            4096,
-            connectionIdleAction: () => tcs.SetResult(TimeSpan.FromMilliseconds(Environment.TickCount64)));
-        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
-        reader.EnableAliveCheck(TimeSpan.FromMilliseconds(500));
+        using var reader = new DuplexConnectionReader(clientConnection, MemoryPool<byte>.Shared, 4096);
+        reader.SetIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to defer the idle timeout
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
         ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
         reader.AdvanceTo(buffer.End);
 
-        // Act
-        TimeSpan abortCalledTime = await tcs.Task;
+        var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
-        // Assert
-        Assert.That(abortCalledTime - startTime, Is.GreaterThan(TimeSpan.FromMilliseconds(250)));
+        // Act/Assert
+        Assert.That(
+            async () => await reader.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
+
+        Assert.That(
+            TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime,
+            Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
     }
 }

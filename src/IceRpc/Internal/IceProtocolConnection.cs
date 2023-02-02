@@ -52,7 +52,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly object _mutex = new();
     private bool _pingEnabled = true;
     private Task _pingTask = Task.CompletedTask;
-    private readonly CancellationTokenSource _readFramesCts;
     private Task? _readFramesTask;
 
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
@@ -171,9 +170,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw;
             }
 
-            // Enable the idle timeout checks after the transport connection establishment. The sending of keep alive
-            // messages requires the connection to be established.
-            _duplexConnectionReader.EnableAliveCheck(_idleTimeout);
+            // The sending of keep alive messages requires the connection to be established.
             _duplexConnectionWriter.EnableKeepAlive(_idleTimeout / 2);
 
             // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
@@ -190,7 +187,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // This needs to be set before starting the read frames task below.
                 _connectionContext = new ConnectionContext(this, transportConnectionInformation);
 
-                _readFramesTask = ReadFramesAsync(_readFramesCts.Token);
+                _readFramesTask = ReadFramesAsync(_disposedCts.Token);
             }
 
             // The _readFramesTask waits for this PerformConnectAsync completion before reading anything. As soon as
@@ -268,11 +265,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             _duplexConnection.Dispose();
 
             // It's safe to dispose the reader/writer since no more threads are sending/receiving data.
-            await _duplexConnectionReader.DisposeAsync().ConfigureAwait(false);
+            _duplexConnectionReader.Dispose();
             await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
 
             _disposedCts.Dispose();
-            _readFramesCts.Dispose();
             _twowayDispatchesCts.Dispose();
 
             _dispatchSemaphore?.Dispose();
@@ -589,7 +585,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         TransportConnectionInformation? transportConnectionInformation,
         ConnectionOptions options)
     {
-        _readFramesCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
         _twowayDispatchesCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
 
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
@@ -628,11 +623,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
             });
-        _duplexConnectionReader = new DuplexConnectionReader(
-            duplexConnection,
-            _memoryPool,
-            _minSegmentSize,
-            connectionIdleAction: _readFramesCts.Cancel);
+        _duplexConnectionReader = new DuplexConnectionReader(duplexConnection, _memoryPool, _minSegmentSize);
+        _duplexConnectionReader.SetIdleTimeout(_idleTimeout);
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {
@@ -1256,17 +1248,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
             } // while
         }
-        catch (OperationCanceledException) when (_disposedCts.IsCancellationRequested)
-        {
-            // canceled by DisposeAsync, no need to throw anything
-        }
         catch (OperationCanceledException)
         {
-            var rpcException = new IceRpcException(
-                IceRpcError.ConnectionIdle,
-                "The connection was aborted because its underlying duplex connection did not receive any byte for too long.");
-            ReadFailed(rpcException);
-            throw rpcException;
+            // canceled by DisposeAsync, no need to throw anything
         }
         catch (IceRpcException exception) when (
             exception.IceRpcError == IceRpcError.ConnectionAborted &&

@@ -227,12 +227,8 @@ public class SlicTransportTests
             MemoryPool<byte>.Shared,
             4096,
             keepAliveAction: null);
-        await using var reader = new DuplexConnectionReader(
-            duplexClientConnection,
-            MemoryPool<byte>.Shared,
-            4096,
-            connectionIdleAction: () => { });
-        reader.EnableAliveCheck(TimeSpan.FromSeconds(60));
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+        reader.SetIdleTimeout(TimeSpan.FromSeconds(60)); // TODO: why are we setting this?
 
         // Act
         EncodeInitializeFrame(writer, version: 2);
