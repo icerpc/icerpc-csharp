@@ -553,7 +553,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <returns>The connection or null if none of the active connections matches the given addresses.</returns>
     /// <remarks>If the returned connection is not null, the returned ServerAddress represents the connection's
     /// ServerAddress and the returned AltServerAddresses contains the original AltServerAddresses unless one of
-    /// them is the connection's ServerAddres in which case it is replaced by the original main ServerAddress.
+    /// them is the connection's ServerAddress in which case it is replaced by the original main ServerAddress.
     /// </remarks>
     private (IProtocolConnection? Connection, ServerAddress ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) GetExistingConnection(
         ServerAddress mainServerAddress,
