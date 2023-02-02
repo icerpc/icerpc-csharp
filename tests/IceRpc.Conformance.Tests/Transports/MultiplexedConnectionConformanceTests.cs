@@ -166,6 +166,70 @@ public abstract class MultiplexedConnectionConformanceTests
         MultiplexedConformanceTestsHelper.CleanupStreams(await clientStream2Task);
     }
 
+    [Test]
+    public async Task Cancel_create_stream_which_is_blocked_after_max_streams_has_been_reached()
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+
+        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        ReadResult readResult = await serverStream1.Input.ReadAsync();
+        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        // Act/Assert
+        Assert.That(
+            async () => await clientConnection.CreateStreamAsync(bidirectional: true, cts.Token),
+            Throws.TypeOf<OperationCanceledException>());
+
+        MultiplexedConformanceTestsHelper.CleanupStreams(clientStream1, serverStream1);
+    }
+
+    [Test]
+    public async Task Create_stream_which_is_waiting_on_streams_semaphore_fails_when_connection_is_closed()
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        await using IMultiplexedConnection serverConnection =
+            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+
+        IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+
+        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        ReadResult readResult = await serverStream1.Input.ReadAsync();
+        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+
+        // Act/Assert
+        var createStreamTask = clientConnection.CreateStreamAsync(bidirectional: true, default).AsTask();
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        Assert.That(createStreamTask.IsCompleted, Is.False);
+        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(
+            async () => await createStreamTask,
+            Throws.TypeOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+
+        MultiplexedConformanceTestsHelper.CleanupStreams(clientStream1, serverStream1);
+    }
+
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
