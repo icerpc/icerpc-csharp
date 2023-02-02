@@ -127,7 +127,7 @@ internal class DuplexConnectionReader : IDisposable
     // Only called once.
     internal void SetIdleTimeout(TimeSpan idleTimeout)
     {
-        Debug.Assert(_readCts == null);
+        Debug.Assert(_readCts is null);
         _idleTimeout = idleTimeout;
         if (_idleTimeout != Timeout.InfiniteTimeSpan)
         {
@@ -222,19 +222,12 @@ internal class DuplexConnectionReader : IDisposable
 
         async ValueTask<int> PerformReadIntoAsync()
         {
-            if (!_readCts.TryReset())
-            {
-                // Should never happen: the caller should not keep reading once a ReadAsync failed.
-                Debug.Fail("A previous read operation exceeded the idle timeout");
-            }
-
-            _readCts.CancelAfter(_idleTimeout);
-            using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                _readCts);
-
             try
             {
+                using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
+                    cts => ((CancellationTokenSource)cts!).Cancel(),
+                    _readCts);
+                _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
                 return await _connection.ReadAsync(into, _readCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -244,6 +237,10 @@ internal class DuplexConnectionReader : IDisposable
                 throw new IceRpcException(
                     IceRpcError.ConnectionIdle,
                     $"The connection did not receive any byte for over {_idleTimeout.TotalSeconds} s.");
+            }
+            finally
+            {
+                _readCts.CancelAfter(Timeout.InfiniteTimeSpan); // disable idle timeout if not canceled
             }
         }
     }
