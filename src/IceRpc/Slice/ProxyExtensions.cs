@@ -223,7 +223,7 @@ public static class ProxyExtensions
         }
     }
 
-    /// <summary>Converts a proxy struct into another proxy struct. This convertion always succeeds.</summary>
+    /// <summary>Converts a proxy struct into another proxy struct. This conversion always succeeds.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source Proxy.</param>
     /// <returns>A new TProxy instance.</returns>
