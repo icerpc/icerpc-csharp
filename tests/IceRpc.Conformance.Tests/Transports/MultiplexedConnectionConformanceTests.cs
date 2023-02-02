@@ -167,7 +167,7 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    public async Task Cancel_create_stream_which_is_waiting_on_streams_semaphore()
+    public async Task Cancel_create_stream_which_is_blocked_after_max_streams_has_been_reached()
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
