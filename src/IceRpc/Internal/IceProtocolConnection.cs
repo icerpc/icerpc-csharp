@@ -607,7 +607,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
 
+        duplexConnection = new IdleTimeoutDuplexConnectionDecorator(duplexConnection)
+        {
+            IdleTimeout = _idleTimeout
+        };
         _duplexConnection = duplexConnection;
+        _duplexConnectionReader = new DuplexConnectionReader(duplexConnection, _memoryPool, _minSegmentSize);
+
         _duplexConnectionWriter = new DuplexConnectionWriter(
             duplexConnection,
             _memoryPool,
@@ -623,8 +629,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                 }
             });
-        _duplexConnectionReader = new DuplexConnectionReader(duplexConnection, _memoryPool, _minSegmentSize);
-        _duplexConnectionReader.SetIdleTimeout(_idleTimeout);
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {

@@ -40,7 +40,7 @@ internal class SlicConnection : IMultiplexedConnection
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly CancellationTokenSource _disposedCts = new();
     private Task? _disposeTask;
-    private readonly IDuplexConnection _duplexConnection;
+    private readonly IdleTimeoutDuplexConnectionDecorator _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private bool _isClosed;
@@ -278,7 +278,7 @@ internal class SlicConnection : IMultiplexedConnection
                 _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
                 _localIdleTimeout;
 
-            _duplexConnectionReader.SetIdleTimeout(idleTimeout);
+            _duplexConnection.IdleTimeout = idleTimeout;
             _duplexConnectionWriter.EnableKeepAlive(
                 idleTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : idleTimeout / 2);
 
@@ -480,7 +480,7 @@ internal class SlicConnection : IMultiplexedConnection
         _localIdleTimeout = slicOptions.IdleTimeout;
         _packetMaxSize = slicOptions.PacketMaxSize;
 
-        _duplexConnection = duplexConnection;
+        _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(duplexConnection);
 
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
         {

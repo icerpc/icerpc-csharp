@@ -12,16 +12,12 @@ namespace IceRpc.Transports.Internal;
 internal class DuplexConnectionReader : IDisposable
 {
     private readonly IDuplexConnection _connection;
-    private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private readonly Pipe _pipe;
-
-    private CancellationTokenSource? _readCts;
 
     public void Dispose()
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
-        _readCts?.Dispose();
     }
 
     internal DuplexConnectionReader(
@@ -91,7 +87,7 @@ internal class DuplexConnectionReader : IDisposable
                         buffer = buffer[0..byteCount];
                     }
 
-                    int read = await ReadIntoAsync(buffer, cancellationToken).ConfigureAwait(false);
+                    int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
@@ -123,17 +119,6 @@ internal class DuplexConnectionReader : IDisposable
     /// at least minimumSize bytes.</summary>
     internal ValueTask<ReadOnlySequence<byte>> ReadAtLeastAsync(int minimumSize, CancellationToken cancellationToken = default) =>
         ReadAsyncCore(minimumSize: minimumSize, canReturnEmptyBuffer: false, cancellationToken);
-
-    // Only called once.
-    internal void SetIdleTimeout(TimeSpan idleTimeout)
-    {
-        Debug.Assert(_readCts is null);
-        _idleTimeout = idleTimeout;
-        if (_idleTimeout != Timeout.InfiniteTimeSpan)
-        {
-            _readCts = new CancellationTokenSource();
-        }
-    }
 
     internal bool TryRead(out ReadOnlySequence<byte> buffer)
     {
@@ -178,7 +163,7 @@ internal class DuplexConnectionReader : IDisposable
             {
                 // Fill the pipe with data read from the connection.
                 Memory<byte> buffer = _pipe.Writer.GetMemory();
-                int read = await ReadIntoAsync(buffer, cancellationToken).ConfigureAwait(false);
+                int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
 
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;
@@ -214,34 +199,5 @@ internal class DuplexConnectionReader : IDisposable
         Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
 
         return readResult.Buffer;
-    }
-
-    private ValueTask<int> ReadIntoAsync(Memory<byte> into, CancellationToken cancellationToken)
-    {
-        return _readCts is null ? _connection.ReadAsync(into, cancellationToken) : PerformReadIntoAsync();
-
-        async ValueTask<int> PerformReadIntoAsync()
-        {
-            try
-            {
-                using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
-                    cts => ((CancellationTokenSource)cts!).Cancel(),
-                    _readCts);
-                _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
-                return await _connection.ReadAsync(into, _readCts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                throw new IceRpcException(
-                    IceRpcError.ConnectionIdle,
-                    $"The connection did not receive any byte for over {_idleTimeout.TotalSeconds} s.");
-            }
-            finally
-            {
-                _readCts.CancelAfter(Timeout.InfiniteTimeSpan); // disable idle timeout if not canceled
-            }
-        }
     }
 }
