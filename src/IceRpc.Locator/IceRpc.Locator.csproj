@@ -14,7 +14,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
-        <SliceCompile Include="../../slice/Ice/Locator.slice;../../slice/Ice/Process.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
+        <SliceCompile Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
         <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
           <PrivateAssets>all</PrivateAssets>
