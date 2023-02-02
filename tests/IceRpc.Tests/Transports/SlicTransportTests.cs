@@ -228,7 +228,6 @@ public class SlicTransportTests
             4096,
             keepAliveAction: null);
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
-        reader.SetIdleTimeout(TimeSpan.FromSeconds(60)); // TODO: why are we setting this?
 
         // Act
         EncodeInitializeFrame(writer, version: 2);
