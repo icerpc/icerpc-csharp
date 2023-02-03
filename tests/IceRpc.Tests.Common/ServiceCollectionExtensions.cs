@@ -11,6 +11,36 @@ namespace IceRpc.Tests.Common;
 
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host.</summary>
+    public static IServiceCollection AddClientServerColocTest(
+        this IServiceCollection services,
+        Protocol? protocol = null,
+        IDispatcher? dispatcher = null,
+        string? host = null)
+    {
+        protocol ??= Protocol.IceRpc;
+        host ??= "colochost";
+
+        var serverAddress = new ServerAddress(protocol) { Host = host };
+
+        // Note: the multiplexed transport is added by IceRpcServer/IceRpcClientConnection.
+        services
+            .AddColocTransport()
+            .AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance)
+            .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
+            .AddIceRpcClientConnection();
+
+        services.AddOptions<ServerOptions>().Configure(
+            options =>
+            {
+                options.ServerAddress = serverAddress;
+                options.ConnectionOptions.Dispatcher = dispatcher;
+            });
+        services.AddOptions<ClientConnectionOptions>().Configure(options => options.ServerAddress = serverAddress);
+        services.AddIceRpcServer();
+        return services;
+    }
+
     /// <summary>Installs the coloc duplex transport.</summary>
     public static IServiceCollection AddColocTransport(this IServiceCollection services) => services
         .AddSingleton<ColocTransportOptions>()
@@ -49,56 +79,4 @@ public static class ServiceCollectionExtensions
                     provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
                     provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>()));
-
-    /// <summary>Installs the Slic multiplexed transport.</summary>
-    public static IServiceCollection AddSlicTransport(this IServiceCollection services) => services
-        .AddSingleton<IMultiplexedServerTransport>(
-            provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
-        .AddSingleton<IMultiplexedClientTransport>(
-            provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()));
-
-    public static IServiceCollection AddSslAuthenticationOptions(this IServiceCollection services) => services
-        .AddSingleton(provider => new SslClientAuthenticationOptions
-        {
-            ClientCertificates = new X509CertificateCollection
-                    {
-                        new X509Certificate2("../../../certs/client.p12", "password")
-                    },
-            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-                certificate?.Issuer.Contains("Ice Tests CA", StringComparison.Ordinal) ?? false
-        })
-        .AddSingleton(provider => new SslServerAuthenticationOptions
-        {
-            ClientCertificateRequired = false,
-            ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-        });
-
-    public static IServiceCollection AddClientServerColocTest(
-        this IServiceCollection services,
-        Protocol? protocol = null,
-        IDispatcher? dispatcher = null,
-        string? host = null)
-    {
-        protocol ??= Protocol.IceRpc;
-        host ??= "colochost";
-
-        var serverAddress = new ServerAddress(protocol) { Host = host };
-
-        // Note: the multiplexed transport is added by IceRpcServer/IceRpcClientConnection.
-        services
-            .AddColocTransport()
-            .AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance)
-            .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
-            .AddIceRpcClientConnection();
-
-        services.AddOptions<ServerOptions>().Configure(
-            options =>
-            {
-                options.ServerAddress = serverAddress;
-                options.ConnectionOptions.Dispatcher = dispatcher;
-            });
-        services.AddOptions<ClientConnectionOptions>().Configure(options => options.ServerAddress = serverAddress);
-        services.AddIceRpcServer();
-        return services;
-    }
 }

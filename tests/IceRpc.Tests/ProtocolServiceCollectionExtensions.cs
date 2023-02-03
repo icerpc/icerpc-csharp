@@ -53,7 +53,10 @@ public static class ProtocolServiceCollectionExtensions
         {
             services
                 .AddColocTransport()
-                .AddSlicTransport()
+                .AddSingleton<IMultiplexedServerTransport>(
+                    provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
+                .AddSingleton<IMultiplexedClientTransport>(
+                    provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()))
                 .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
                 .AddSingleton(provider =>
                     new ClientServerProtocolConnection(
