@@ -55,7 +55,7 @@ public class SlicTransportTests
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        await using var _ = await ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act/Assert
         Assert.That(async () => await sut.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
@@ -182,7 +182,7 @@ public class SlicTransportTests
         var clientConnection = provider.GetRequiredService<SlicConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        var serverConnection = (SlicConnection)await acceptTask;
+        await using var serverConnection = (SlicConnection)await acceptTask;
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
         // Act
@@ -227,12 +227,7 @@ public class SlicTransportTests
             MemoryPool<byte>.Shared,
             4096,
             keepAliveAction: null);
-        await using var reader = new DuplexConnectionReader(
-            duplexClientConnection,
-            MemoryPool<byte>.Shared,
-            4096,
-            connectionIdleAction: () => { });
-        reader.EnableAliveCheck(TimeSpan.FromSeconds(60));
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
         EncodeInitializeFrame(writer, version: 2);
@@ -344,7 +339,7 @@ public class SlicTransportTests
         Task<IMultiplexedConnection> acceptTask = ConnectAndAcceptConnectionAsync(listener, clientConnection);
 
         // Act
-        var serverConnection = (SlicConnection)await acceptTask;
+        await using var serverConnection = (SlicConnection)await acceptTask;
 
         // Assert
         Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));

@@ -60,6 +60,8 @@ internal class SlicConnection : IMultiplexedConnection
     private Task _pingTask = Task.CompletedTask;
     private Task _pongTask = Task.CompletedTask;
     private Task? _readFramesTask;
+
+    private readonly Action<TimeSpan> _setIdleTimeout;
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
     private int _unidirectionalStreamCount;
     private SemaphoreSlim? _unidirectionalStreamSemaphore;
@@ -273,14 +275,14 @@ internal class SlicConnection : IMultiplexedConnection
             // Enable the idle timeout checks after the connection establishment. The Ping frames sent by the keep alive
             // check are not expected until the Slic connection initialization completes. The idle timeout check uses
             // the smallest idle timeout.
-            TimeSpan keepAliveTimeout =
+            TimeSpan idleTimeout =
                 _peerIdleTimeout == Timeout.InfiniteTimeSpan ? _localIdleTimeout :
                 _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
                 _localIdleTimeout;
 
-            _duplexConnectionReader.EnableAliveCheck(keepAliveTimeout);
+            _setIdleTimeout(idleTimeout);
             _duplexConnectionWriter.EnableKeepAlive(
-                keepAliveTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : keepAliveTimeout / 2);
+                idleTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : idleTimeout / 2);
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
 
@@ -420,7 +422,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch
             {
-                // Excepted if any of these tasks failed or was canceled. Each task takes care of handling unexpected
+                // Expected if any of these tasks failed or was canceled. Each task takes care of handling unexpected
                 // exceptions so there's no need to handle them here.
             }
 
@@ -451,7 +453,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
 
             _duplexConnection.Dispose();
-            await _duplexConnectionReader.DisposeAsync().ConfigureAwait(false);
+            _duplexConnectionReader.Dispose();
             await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
 
             _disposedCts.Dispose();
@@ -480,8 +482,6 @@ internal class SlicConnection : IMultiplexedConnection
         _localIdleTimeout = slicOptions.IdleTimeout;
         _packetMaxSize = slicOptions.PacketMaxSize;
 
-        _duplexConnection = duplexConnection;
-
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
         {
             SingleReader = true,
@@ -489,6 +489,12 @@ internal class SlicConnection : IMultiplexedConnection
         });
 
         _closedCancellationToken = _closedCts.Token;
+
+        var decoratedDuplexConnection = new IdleTimeoutDuplexConnectionDecorator(duplexConnection);
+        _setIdleTimeout = value => decoratedDuplexConnection.IdleTimeout = value;
+        _duplexConnection = decoratedDuplexConnection;
+
+        _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
 
         Action? keepAliveAction = null;
         if (!IsServer)
@@ -510,19 +516,10 @@ internal class SlicConnection : IMultiplexedConnection
         }
 
         _duplexConnectionWriter = new DuplexConnectionWriter(
-            duplexConnection,
+            _duplexConnection,
             options.Pool,
             options.MinSegmentSize,
             keepAliveAction);
-
-        _duplexConnectionReader = new DuplexConnectionReader(
-            duplexConnection,
-            options.Pool,
-            options.MinSegmentSize,
-            connectionIdleAction: () =>
-                Close(
-                    new IceRpcException(IceRpcError.ConnectionIdle),
-                    "The Slic connection was aborted because it did not receive any byte for too long."));
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first
         // initialize frame.
