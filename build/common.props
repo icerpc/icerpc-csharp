@@ -18,7 +18,7 @@
         <NetRuntimeVersion>7.0.0</NetRuntimeVersion>
         <!-- TODO update to 1.2 stable release https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187#issuecomment-1043221630 -->
         <StyleCopAnalyzersVersion>1.2.0-beta.435</StyleCopAnalyzersVersion>
-        <IceRpcBuilderVersion>0.1.0-preview8</IceRpcBuilderVersion>
+        <IceRpcBuilderVersion>0.1.0-preview9</IceRpcBuilderVersion>
         <!-- Slicec compiler location -->
         <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
         <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
