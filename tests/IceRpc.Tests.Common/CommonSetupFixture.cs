@@ -36,7 +36,7 @@ public sealed class CommonSetUpFixture
             Console.Error.WriteLine($"Tests triggered {_unobservedTaskExceptions.Count} unobserved task exceptions");
             foreach ((object? sender, Exception exception) in _unobservedTaskExceptions)
             {
-                Console.Error.WriteLine($"Unobserved task exception {sender}:\n{exception}");
+                Console.Error.WriteLine($"\n+++ Unobserved task exception {sender}:\n{exception}");
             }
         }
     }
