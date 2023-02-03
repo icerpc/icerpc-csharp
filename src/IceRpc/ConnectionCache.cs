@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
 
@@ -190,23 +189,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             while (true)
             {
                 IProtocolConnection? connection = null;
-
                 if (_preferExistingConnection)
                 {
-                    (connection, serverAddressFeature.ServerAddress, serverAddressFeature.AltServerAddresses) =
-                        GetExistingConnection(
-                            serverAddressFeature.ServerAddress.Value,
-                            serverAddressFeature.AltServerAddresses);
+                    connection = TryGetActiveConnection(serverAddressFeature);
                 }
-
-                if (connection is null)
-                {
-                    (connection, serverAddressFeature.ServerAddress, serverAddressFeature.AltServerAddresses) =
-                        await GetActiveConnectionAsync(
-                            serverAddressFeature.ServerAddress.Value,
-                            serverAddressFeature.AltServerAddresses,
-                            cancellationToken).ConfigureAwait(false);
-                }
+                connection ??= await GetActiveConnectionAsync(serverAddressFeature, cancellationToken)
+                    .ConfigureAwait(false);
 
                 try
                 {
@@ -438,38 +426,54 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Gets an active connection, by creating and connecting (if necessary) a new protocol connection.
     /// </summary>
-    /// <param name="mainServerAddress">The server address of the connection.</param>
-    /// <param name="altServerAddresses">The alt server addresses.</param>
+    /// <param name="serverAddressFeature">The server address feature.</param>
     /// <param name="cancellationToken">The cancellation token of the invocation calling this method.</param>
-    /// <returns>A connected connection.</returns>
-    /// <remarks>The returned ServerAddress represents the connection's ServerAddress and the returned AltServerAddresses
-    /// contains the new AltServerAddresses, with each failed connection attempt the ServerAddress of the attempt is
-    /// appended to the end of the AltServerAddresses and the first AltServerAddress is promoted to be the new main
-    /// ServerAddress.</remarks>
-    private async Task<(IProtocolConnection Connection, ServerAddress ServerAddress, ImmutableList<ServerAddress> AltServerAddresses)> GetActiveConnectionAsync(
-        ServerAddress mainServerAddress,
-        ImmutableList<ServerAddress> altServerAddresses,
+    private async Task<IProtocolConnection> GetActiveConnectionAsync(
+        IServerAddressFeature serverAddressFeature,
         CancellationToken cancellationToken)
     {
+        Debug.Assert(serverAddressFeature.ServerAddress is not null);
         Exception? connectionException = null;
-        var enumerator = new ServerAddressEnumerator(mainServerAddress, altServerAddresses);
+        (IProtocolConnection Connection, Task ConnectTask) pendingConnectionValue;
+        var enumerator = new ServerAddressEnumerator(serverAddressFeature);
         while (enumerator.MoveNext())
         {
+            ServerAddress serverAddress = enumerator.Current;
             if (enumerator.CurrentIndex > 0)
             {
-                // Rotate the server addresses before each new connection attempt after the initial attempt:
-                // the first alt server address becomes the main server address and the main server address
-                // becomes the last alt server address.
-                altServerAddresses = altServerAddresses.Add(mainServerAddress);
-                mainServerAddress = altServerAddresses[0];
-                altServerAddresses = altServerAddresses.RemoveAt(0);
+                // Rotate the server addresses before each new connection attempt after the initial attempt
+                serverAddressFeature.RotateAddresses();
             }
 
             try
             {
-                IProtocolConnection connection = await GetActiveConnectionAsync(mainServerAddress, cancellationToken)
-                    .ConfigureAwait(false);
-                return (connection, mainServerAddress, altServerAddresses);
+                lock (_mutex)
+                {
+                    if (_disposeTask is not null)
+                    {
+                        throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+                    }
+                    else if (_shutdownTask is not null)
+                    {
+                        throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                    }
+
+                    if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
+                    {
+                        return connection;
+                    }
+
+                    if (!_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
+                    {
+                        connection = _connectionFactory.CreateConnection(serverAddress);
+                        _detachedConnectionCount++;
+                        pendingConnectionValue = (connection, CreateConnectTask(connection, serverAddress));
+                        _pendingConnections.Add(serverAddress, pendingConnectionValue);
+                    }
+                }
+                // ConnectTask itself takes care of scheduling its exception observation when it fails.
+                await pendingConnectionValue.ConnectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return pendingConnectionValue.Connection;
             }
             catch (TimeoutException exception)
             {
@@ -496,102 +500,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
 
         Debug.Assert(connectionException is not null);
-        throw ExceptionUtil.Throw(connectionException);
-    }
-
-    /// <summary>Gets an active connection, by creating and connecting (if necessary) a new protocol connection.
-    /// </summary>
-    /// <param name="serverAddress">The server address of the connection.</param>
-    /// <param name="cancellationToken">The cancellation token of the invocation calling this method.</param>
-    /// <returns>A connected connection.</returns>
-    private Task<IProtocolConnection> GetActiveConnectionAsync(
-        ServerAddress serverAddress,
-        CancellationToken cancellationToken)
-    {
-        (IProtocolConnection Connection, Task ConnectTask) pendingConnectionValue;
-
-        lock (_mutex)
-        {
-            if (_disposeTask is not null)
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
-            }
-            else if (_shutdownTask is not null)
-            {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
-            }
-
-            if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
-            {
-                return Task.FromResult(connection);
-            }
-
-            if (!_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
-            {
-                connection = _connectionFactory.CreateConnection(serverAddress);
-                _detachedConnectionCount++;
-                pendingConnectionValue = (connection, CreateConnectTask(connection, serverAddress));
-                _pendingConnections.Add(serverAddress, pendingConnectionValue);
-            }
-        }
-
-        return PerformGetActiveConnectionAsync();
-
-        async Task<IProtocolConnection> PerformGetActiveConnectionAsync()
-        {
-            // ConnectTask itself takes care of scheduling its exception observation when it fails.
-            await pendingConnectionValue.ConnectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-            return pendingConnectionValue.Connection;
-        }
-    }
-
-    /// <summary>Gets an existing connection matching one of the specified addresses, if an active connection is found
-    /// matching one of the specified addresses the connection is returned otherwise the return connection is null.
-    /// </summary>
-    /// <param name="mainServerAddress">The main server address.</param>
-    /// <param name="altServerAddresses">The alternate server addresses.</param>
-    /// <returns>The connection or null if none of the active connections matches the given addresses.</returns>
-    /// <remarks>If the returned connection is not null, the returned ServerAddress represents the connection's
-    /// ServerAddress and the returned AltServerAddresses contains the original AltServerAddresses unless one of
-    /// them is the connection's ServerAddress in which case it is replaced by the original main ServerAddress.
-    /// </remarks>
-    private (IProtocolConnection? Connection, ServerAddress ServerAddress, ImmutableList<ServerAddress> AltServerAddresses) GetExistingConnection(
-        ServerAddress mainServerAddress,
-        ImmutableList<ServerAddress> altServerAddresses)
-    {
-        IProtocolConnection? connection = null;
-        lock (_mutex)
-        {
-            if (_disposeTask is not null)
-            {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
-            }
-
-            if (_shutdownTask is not null)
-            {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache was shut down.");
-            }
-
-            var enumerator = new ServerAddressEnumerator(mainServerAddress, altServerAddresses);
-            while (enumerator.MoveNext())
-            {
-                ServerAddress serverAddress = enumerator.Current;
-                if (_activeConnections.TryGetValue(serverAddress, out connection))
-                {
-                    if (enumerator.CurrentIndex > 0)
-                    {
-                        // This altServerAddress becomes the main server address, and the existing main
-                        // server address becomes the first alt server address.
-                        altServerAddresses = altServerAddresses
-                            .RemoveAt(enumerator.CurrentIndex - 1)
-                            .Insert(0, mainServerAddress);
-                        mainServerAddress = serverAddress;
-                    }
-                    break; // for
-                }
-            }
-            return (connection, mainServerAddress, altServerAddresses);
-        }
+        ExceptionDispatchInfo.Throw(connectionException);
+        Debug.Assert(false);
+        throw connectionException;
     }
 
     /// <summary>Removes the connection from _activeConnections, and when successful, shuts down and disposes this
@@ -640,6 +551,49 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     _detachedConnectionsTcs.SetResult();
                 }
             }
+        }
+    }
+
+    /// <summary>Gets an existing connection matching one of the addresses of the server address feature, if an active
+    /// connection is found matching any of the specified addresses the connection is returned otherwise null is
+    /// returned.</summary>
+    /// <param name="serverAddressFeature">The server address feature.</param>
+    /// <returns>The connection or null if none of the active connections matches any of the addresses of the server
+    /// address feature.</returns>
+    private IProtocolConnection? TryGetActiveConnection(IServerAddressFeature serverAddressFeature)
+    {
+        IProtocolConnection? connection = null;
+        lock (_mutex)
+        {
+            if (_disposeTask is not null)
+            {
+                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+            }
+
+            if (_shutdownTask is not null)
+            {
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache was shut down.");
+            }
+
+            var enumerator = new ServerAddressEnumerator(serverAddressFeature);
+            while (enumerator.MoveNext())
+            {
+                ServerAddress serverAddress = enumerator.Current;
+                if (_activeConnections.TryGetValue(serverAddress, out connection))
+                {
+                    if (enumerator.CurrentIndex > 0)
+                    {
+                        // This altServerAddress becomes the main server address, and the existing main
+                        // server address becomes the first alt server address.
+                        serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses
+                            .RemoveAt(enumerator.CurrentIndex - 1)
+                            .Insert(0, serverAddressFeature.ServerAddress!.Value);
+                        serverAddressFeature.ServerAddress = serverAddress;
+                    }
+                    break; // for
+                }
+            }
+            return connection;
         }
     }
 
@@ -693,10 +647,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             return false;
         }
 
-        internal ServerAddressEnumerator(ServerAddress mainServerAddress, IList<ServerAddress> altServerAddresses)
+        internal ServerAddressEnumerator(IServerAddressFeature serverAddressFeature)
         {
-            _mainServerAddress = mainServerAddress;
-            _altServerAddresses = altServerAddresses;
+            _mainServerAddress = serverAddressFeature.ServerAddress;
+            _altServerAddresses = serverAddressFeature.AltServerAddresses;
             if (_mainServerAddress is null)
             {
                 Count = 0;
