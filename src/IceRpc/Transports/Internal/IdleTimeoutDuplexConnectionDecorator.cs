@@ -38,7 +38,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
                 throw new IceRpcException(
                     IceRpcError.ConnectionIdle,
-                    $"The connection did not receive any byte for over {IdleTimeout.TotalSeconds} s.");
+                    $"The connection did not receive any bytes for over {IdleTimeout.TotalSeconds} s.");
             }
             finally
             {
