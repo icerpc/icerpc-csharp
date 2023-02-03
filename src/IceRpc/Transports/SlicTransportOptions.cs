@@ -13,7 +13,9 @@ public sealed record class SlicTransportOptions
     {
         get => _idleTimeout;
         set => _idleTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"The value '0' is not a valid for {nameof(IdleTimeout)} property.", nameof(value));
+            throw new ArgumentException(
+                $"The value '0' is not a valid for {nameof(IdleTimeout)} property.",
+                nameof(value));
     }
 
     /// <summary>Gets or sets the maximum packet size in bytes.</summary>
