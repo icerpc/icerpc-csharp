@@ -18,7 +18,7 @@ public class InvocationTests
         // Arrange
         using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher, Protocol.Ice)
+            .AddClientServerColocTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
@@ -44,7 +44,7 @@ public class InvocationTests
         // Arrange
         using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher)
+            .AddClientServerColocTest(dispatcher: dispatcher)
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
@@ -70,7 +70,7 @@ public class InvocationTests
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0x1, 0x2, 0x3 }));
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new InlineDispatcher(
+            .AddClientServerColocTest(dispatcher: new InlineDispatcher(
                 async (request, cancellationToken) =>
                 {
                     dispatchStartTcs.SetResult();

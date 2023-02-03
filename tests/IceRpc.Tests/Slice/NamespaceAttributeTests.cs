@@ -23,7 +23,7 @@ public class NamespaceAttributeTests
     public async Task Operation_with_types_using_cs_namespace_attribute()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new NamespaceOperations())
+            .AddClientServerColocTest(dispatcher: new NamespaceOperations())
             .AddIceRpcProxy<INamespaceOperationsProxy, NamespaceOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 

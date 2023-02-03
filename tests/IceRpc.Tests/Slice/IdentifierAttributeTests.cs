@@ -37,7 +37,7 @@ public class IdentifierAttributeTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new IdentifierOperations())
+            .AddClientServerColocTest(dispatcher: new IdentifierOperations())
             .AddIceRpcProxy<IREnamedInterfaceProxy, REnamedInterfaceProxy>()
             .BuildServiceProvider(validateScopes: true);
 

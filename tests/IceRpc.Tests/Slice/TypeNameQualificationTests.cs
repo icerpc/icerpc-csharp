@@ -17,7 +17,7 @@ public class TypeNameQualificationTests
     public async Task Operation_with_parameter_type_name_defined_in_multiple_modules()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new TypeNameQualification())
+            .AddClientServerColocTest(dispatcher: new TypeNameQualification())
             .AddIceRpcProxy<ITypeNameQualificationOperationsProxy, TypeNameQualificationOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 

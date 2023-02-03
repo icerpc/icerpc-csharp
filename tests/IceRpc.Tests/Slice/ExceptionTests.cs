@@ -471,7 +471,7 @@ public sealed class ExceptionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new Slice2ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperations(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -495,7 +495,7 @@ public sealed class ExceptionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new Slice2ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperations(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -513,7 +513,7 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new Slice1ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperations(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -536,7 +536,7 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new Slice1ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperations(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -559,7 +559,7 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new Slice1ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperations(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
