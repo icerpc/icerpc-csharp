@@ -4,6 +4,7 @@ using IceRpc.Features;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
@@ -191,7 +192,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 IProtocolConnection? connection = null;
                 if (_preferExistingConnection)
                 {
-                    connection = TryGetActiveConnection(serverAddressFeature);
+                    _ = TryGetActiveConnection(serverAddressFeature, out connection);
                 }
                 connection ??= await GetActiveConnectionAsync(serverAddressFeature, cancellationToken)
                     .ConfigureAwait(false);
@@ -554,17 +555,20 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <summary>Gets an existing connection matching one of the addresses of the server address feature, if an active
-    /// connection is found matching any of the specified addresses the connection is returned otherwise null is
-    /// returned.</summary>
+    /// <summary>Tries to get an existing connection matching one of the addresses of the server address feature.
+    /// </summary>
     /// <param name="serverAddressFeature">The server address feature.</param>
-    /// <returns>The connection or null if none of the active connections matches any of the addresses of the server
-    /// address feature.</returns>
-    private IProtocolConnection? TryGetActiveConnection(IServerAddressFeature serverAddressFeature)
+    /// <param name="connection">When this method returns <see langword="true" /> it contains an active connection,
+    /// otherwise, it is null.</param>
+    /// <returns><see langword="true" /> when an active connection matching any of the addresses of the server
+    /// address feature is found, otherwise, <see langword="false"/>.</returns>
+    private bool TryGetActiveConnection(
+        IServerAddressFeature serverAddressFeature,
+        [NotNullWhen(true)] out IProtocolConnection? connection)
     {
-        IProtocolConnection? connection = null;
         lock (_mutex)
         {
+            connection = null;
             if (_disposeTask is not null)
             {
                 throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
@@ -590,10 +594,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                             .Insert(0, serverAddressFeature.ServerAddress!.Value);
                         serverAddressFeature.ServerAddress = serverAddress;
                     }
-                    break; // for
+                    return true;
                 }
             }
-            return connection;
+            return false;
         }
     }
 

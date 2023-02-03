@@ -26,7 +26,7 @@ public static class ServerAddressFeatureExtensions
         feature.RemovedServerAddresses = feature.RemovedServerAddresses.Add(serverAddress);
     }
 
-    /// <summary>Rotate the server addresses the first alt server address becomes the main server address and the main
+    /// <summary>Rotates the server addresses the first alt server address becomes the main server address and the main
     /// server address becomes the last alt server address.</summary>
     /// <param name="feature">The server address feature.</param>
     public static void RotateAddresses(this IServerAddressFeature feature)
