@@ -25,4 +25,17 @@ public static class ServerAddressFeatureExtensions
         }
         feature.RemovedServerAddresses = feature.RemovedServerAddresses.Add(serverAddress);
     }
+
+    /// <summary>Rotates the server addresses the first alt server address becomes the main server address and the main
+    /// server address becomes the last alt server address.</summary>
+    /// <param name="feature">The server address feature.</param>
+    public static void RotateAddresses(this IServerAddressFeature feature)
+    {
+        if (feature.ServerAddress is not null && feature.AltServerAddresses.Count > 0)
+        {
+            feature.AltServerAddresses = feature.AltServerAddresses.Add(feature.ServerAddress.Value);
+            feature.ServerAddress = feature.AltServerAddresses[0];
+            feature.AltServerAddresses = feature.AltServerAddresses.RemoveAt(0);
+        }
+    }
 }

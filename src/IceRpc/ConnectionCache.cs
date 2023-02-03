@@ -4,6 +4,7 @@ using IceRpc.Features;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
@@ -182,110 +183,19 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            ServerAddress mainServerAddress = serverAddressFeature.ServerAddress!.Value;
+            Debug.Assert(serverAddressFeature.ServerAddress is not null);
 
             // When InvokeAsync (or ConnectAsync) throws an IceRpcException(InvocationRefused) we retry unless the
             // cache is being shutdown.
             while (true)
             {
                 IProtocolConnection? connection = null;
-
                 if (_preferExistingConnection)
                 {
-                    lock (_mutex)
-                    {
-                        if (_disposeTask is not null)
-                        {
-                            throw new IceRpcException(
-                                IceRpcError.OperationAborted,
-                                "The connection cache was disposed.");
-                        }
-
-                        if (_shutdownTask is not null)
-                        {
-                            throw new IceRpcException(
-                                IceRpcError.InvocationRefused,
-                                "The connection cache was shut down.");
-                        }
-
-                        var enumerator = new ServerAddressEnumerator(serverAddressFeature);
-                        while (enumerator.MoveNext())
-                        {
-                            ServerAddress serverAddress = enumerator.Current;
-                            if (_activeConnections.TryGetValue(serverAddress, out connection))
-                            {
-                                if (enumerator.CurrentIndex > 0)
-                                {
-                                    // This altServerAddress becomes the main server address, and the existing main
-                                    // server address becomes the first alt server address.
-                                    serverAddressFeature.AltServerAddresses =
-                                        serverAddressFeature.AltServerAddresses
-                                            .RemoveAt(enumerator.CurrentIndex - 1)
-                                            .Insert(0, mainServerAddress);
-
-                                    serverAddressFeature.ServerAddress = serverAddress;
-                                    mainServerAddress = serverAddress;
-                                }
-                                break; // for
-                            }
-                        }
-                    }
+                    _ = TryGetActiveConnection(serverAddressFeature, out connection);
                 }
-
-                if (connection is null)
-                {
-                    Exception? connectionException = null;
-                    var enumerator = new ServerAddressEnumerator(serverAddressFeature);
-                    while (enumerator.MoveNext())
-                    {
-                        if (enumerator.CurrentIndex > 0)
-                        {
-                            // Rotate the server addresses before each new connection attempt after the initial attempt:
-                            // the first alt server address becomes the main server address and the main server address
-                            // becomes the last alt server address.
-                            serverAddressFeature.ServerAddress = serverAddressFeature.AltServerAddresses[0];
-                            serverAddressFeature.AltServerAddresses =
-                                serverAddressFeature.AltServerAddresses.RemoveAt(0).Add(mainServerAddress);
-                            mainServerAddress = serverAddressFeature.ServerAddress.Value;
-                        }
-
-                        try
-                        {
-                            connection = await GetActiveConnectionAsync(mainServerAddress, cancellationToken)
-                                .ConfigureAwait(false);
-                            break;
-                        }
-                        catch (TimeoutException exception)
-                        {
-                            connectionException = exception;
-                        }
-                        catch (InvalidDataException exception)
-                        {
-                            connectionException = exception;
-                        }
-                        // TODO are there other IceRpcError errors besides IceRpcError.IceRpcError that we want to
-                        // let through.
-                        catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.IceRpcError)
-                        {
-                            // keep going unless the connection cache was disposed or shut down
-                            connectionException = exception;
-                            lock (_mutex)
-                            {
-                                if (_shutdownTask is not null)
-                                {
-                                    throw;
-                                }
-                            }
-                        }
-                    }
-
-                    if (connection is null)
-                    {
-                        Debug.Assert(connectionException is not null);
-                        ExceptionDispatchInfo.Throw(connectionException);
-                        Debug.Assert(false);
-                    }
-                }
+                connection ??= await GetActiveConnectionAsync(serverAddressFeature, cancellationToken)
+                    .ConfigureAwait(false);
 
                 try
                 {
@@ -318,7 +228,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                 }
 
                 // Make sure connection is no longer in _activeConnection before we retry.
-                _ = RemoveFromActiveAsync(mainServerAddress, connection);
+                _ = RemoveFromActiveAsync(serverAddressFeature.ServerAddress.Value, connection);
             }
         }
     }
@@ -517,48 +427,83 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Gets an active connection, by creating and connecting (if necessary) a new protocol connection.
     /// </summary>
-    /// <param name="serverAddress">The server address of the connection.</param>
+    /// <param name="serverAddressFeature">The server address feature.</param>
     /// <param name="cancellationToken">The cancellation token of the invocation calling this method.</param>
-    /// <returns>A connected connection.</returns>
-    private Task<IProtocolConnection> GetActiveConnectionAsync(
-        ServerAddress serverAddress,
+    private async Task<IProtocolConnection> GetActiveConnectionAsync(
+        IServerAddressFeature serverAddressFeature,
         CancellationToken cancellationToken)
     {
+        Debug.Assert(serverAddressFeature.ServerAddress is not null);
+        Exception? connectionException = null;
         (IProtocolConnection Connection, Task ConnectTask) pendingConnectionValue;
-
-        lock (_mutex)
+        var enumerator = new ServerAddressEnumerator(serverAddressFeature);
+        while (enumerator.MoveNext())
         {
-            if (_disposeTask is not null)
+            ServerAddress serverAddress = enumerator.Current;
+            if (enumerator.CurrentIndex > 0)
             {
-                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
-            }
-            else if (_shutdownTask is not null)
-            {
-                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                // Rotate the server addresses before each new connection attempt after the initial attempt
+                serverAddressFeature.RotateAddresses();
             }
 
-            if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
+            try
             {
-                return Task.FromResult(connection);
-            }
+                lock (_mutex)
+                {
+                    if (_disposeTask is not null)
+                    {
+                        throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+                    }
+                    else if (_shutdownTask is not null)
+                    {
+                        throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache is shut down.");
+                    }
 
-            if (!_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
+                    if (_activeConnections.TryGetValue(serverAddress, out IProtocolConnection? connection))
+                    {
+                        return connection;
+                    }
+
+                    if (!_pendingConnections.TryGetValue(serverAddress, out pendingConnectionValue))
+                    {
+                        connection = _connectionFactory.CreateConnection(serverAddress);
+                        _detachedConnectionCount++;
+                        pendingConnectionValue = (connection, CreateConnectTask(connection, serverAddress));
+                        _pendingConnections.Add(serverAddress, pendingConnectionValue);
+                    }
+                }
+                // ConnectTask itself takes care of scheduling its exception observation when it fails.
+                await pendingConnectionValue.ConnectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return pendingConnectionValue.Connection;
+            }
+            catch (TimeoutException exception)
             {
-                connection = _connectionFactory.CreateConnection(serverAddress);
-                _detachedConnectionCount++;
-                pendingConnectionValue = (connection, CreateConnectTask(connection, serverAddress));
-                _pendingConnections.Add(serverAddress, pendingConnectionValue);
+                connectionException = exception;
+            }
+            catch (InvalidDataException exception)
+            {
+                connectionException = exception;
+            }
+            // TODO are there other IceRpcError errors besides IceRpcError.IceRpcError that we want to
+            // let through.
+            catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.IceRpcError)
+            {
+                // keep going unless the connection cache was disposed or shut down
+                connectionException = exception;
+                lock (_mutex)
+                {
+                    if (_shutdownTask is not null)
+                    {
+                        throw;
+                    }
+                }
             }
         }
 
-        return PerformGetActiveConnectionAsync();
-
-        async Task<IProtocolConnection> PerformGetActiveConnectionAsync()
-        {
-            // ConnectTask itself takes care of scheduling its exception observation when it fails.
-            await pendingConnectionValue.ConnectTask.WaitAsync(cancellationToken).ConfigureAwait(false);
-            return pendingConnectionValue.Connection;
-        }
+        Debug.Assert(connectionException is not null);
+        ExceptionDispatchInfo.Throw(connectionException);
+        Debug.Assert(false);
+        throw connectionException;
     }
 
     /// <summary>Removes the connection from _activeConnections, and when successful, shuts down and disposes this
@@ -607,6 +552,52 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     _detachedConnectionsTcs.SetResult();
                 }
             }
+        }
+    }
+
+    /// <summary>Tries to get an existing connection matching one of the addresses of the server address feature.
+    /// </summary>
+    /// <param name="serverAddressFeature">The server address feature.</param>
+    /// <param name="connection">When this method returns <see langword="true" /> it contains an active connection,
+    /// otherwise, it is null.</param>
+    /// <returns><see langword="true" /> when an active connection matching any of the addresses of the server
+    /// address feature is found, otherwise, <see langword="false"/>.</returns>
+    private bool TryGetActiveConnection(
+        IServerAddressFeature serverAddressFeature,
+        [NotNullWhen(true)] out IProtocolConnection? connection)
+    {
+        lock (_mutex)
+        {
+            connection = null;
+            if (_disposeTask is not null)
+            {
+                throw new IceRpcException(IceRpcError.OperationAborted, "The connection cache was disposed.");
+            }
+
+            if (_shutdownTask is not null)
+            {
+                throw new IceRpcException(IceRpcError.InvocationRefused, "The connection cache was shut down.");
+            }
+
+            var enumerator = new ServerAddressEnumerator(serverAddressFeature);
+            while (enumerator.MoveNext())
+            {
+                ServerAddress serverAddress = enumerator.Current;
+                if (_activeConnections.TryGetValue(serverAddress, out connection))
+                {
+                    if (enumerator.CurrentIndex > 0)
+                    {
+                        // This altServerAddress becomes the main server address, and the existing main
+                        // server address becomes the first alt server address.
+                        serverAddressFeature.AltServerAddresses = serverAddressFeature.AltServerAddresses
+                            .RemoveAt(enumerator.CurrentIndex - 1)
+                            .Insert(0, serverAddressFeature.ServerAddress!.Value);
+                        serverAddressFeature.ServerAddress = serverAddress;
+                    }
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
