@@ -422,7 +422,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch
             {
-                // Excepted if any of these tasks failed or was canceled. Each task takes care of handling unexpected
+                // Expected if any of these tasks failed or was canceled. Each task takes care of handling unexpected
                 // exceptions so there's no need to handle them here.
             }
 
