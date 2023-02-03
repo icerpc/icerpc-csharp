@@ -93,8 +93,6 @@ public sealed class Server : IAsyncDisposable
 
         _listenerFactory = () =>
         {
-            // This is the composition root for the protocol and transport listeners.
-
             IConnectorListener listener;
             if (_serverAddress.Protocol == Protocol.Ice)
             {

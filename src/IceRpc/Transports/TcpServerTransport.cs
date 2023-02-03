@@ -29,9 +29,6 @@ public class TcpServerTransport : IDuplexServerTransport
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        // This is the composition root of the tcp server transport, where we install log decorators when logging
-        // is enabled.
-
         if (serverAddress.Params.Count > 0)
         {
             throw new ArgumentException(
