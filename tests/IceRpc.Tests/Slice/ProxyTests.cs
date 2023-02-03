@@ -112,7 +112,7 @@ public class ProxyTests
     public async Task Downcast_proxy_with_as_async_succeeds()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new MyDerivedInterface())
+            .AddClientServerColocTest(dispatcher: new MyDerivedInterface())
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
@@ -127,7 +127,7 @@ public class ProxyTests
     public async Task Downcast_proxy_with_as_async_fails()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new MyBaseInterface())
+            .AddClientServerColocTest(dispatcher: new MyBaseInterface())
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());

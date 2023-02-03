@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Builder;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,35 +11,6 @@ namespace IceRpc.Tests.Common;
 
 public static class ServiceCollectionExtensions
 {
-    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host.</summary>
-    public static IServiceCollection AddClientServerColocTest(
-        this IServiceCollection services,
-        Action<IDispatcherBuilder> configure,
-        Protocol protocol,
-        string host = "") =>
-        services.AddClientServerColocTest(protocol, host).AddIceRpcServer(configure);
-
-    /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host.</summary>
-    public static IServiceCollection AddClientServerColocTest(
-        this IServiceCollection services,
-        IDispatcher dispatcher,
-        Protocol protocol,
-        string host = "")
-    {
-        services.AddOptions<ServerOptions>().Configure(options => options.ConnectionOptions.Dispatcher = dispatcher);
-        return services.AddClientServerColocTest(protocol, host).AddIceRpcServer();
-    }
-
-    public static IServiceCollection AddClientServerColocTest(
-        this IServiceCollection services,
-        Action<IDispatcherBuilder> configure) =>
-        services.AddClientServerColocTest(configure, Protocol.IceRpc);
-
-    public static IServiceCollection AddClientServerColocTest(
-        this IServiceCollection services,
-        IDispatcher dispatcher) =>
-        services.AddClientServerColocTest(dispatcher, Protocol.IceRpc);
-
     /// <summary>Installs the coloc duplex transport.</summary>
     public static IServiceCollection AddColocTransport(this IServiceCollection services) => services
         .AddSingleton<ColocTransportOptions>()
@@ -103,12 +73,16 @@ public static class ServiceCollectionExtensions
             ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
         });
 
-    private static IServiceCollection AddClientServerColocTest(
+    public static IServiceCollection AddClientServerColocTest(
         this IServiceCollection services,
-        Protocol protocol,
-        string host)
+        Protocol? protocol = null,
+        IDispatcher? dispatcher = null,
+        string? host = null)
     {
-        var serverAddress = new ServerAddress(protocol) { Host = host.Length == 0 ? "colochost" : host };
+        protocol ??= Protocol.IceRpc;
+        host ??= "colochost";
+
+        var serverAddress = new ServerAddress(protocol) { Host = host };
 
         // Note: the multiplexed transport is added by IceRpcServer/IceRpcClientConnection.
         services
@@ -117,9 +91,14 @@ public static class ServiceCollectionExtensions
             .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
             .AddIceRpcClientConnection();
 
-        services.AddOptions<ServerOptions>().Configure(options => options.ServerAddress = serverAddress);
+        services.AddOptions<ServerOptions>().Configure(
+            options =>
+            {
+                options.ServerAddress = serverAddress;
+                options.ConnectionOptions.Dispatcher = dispatcher;
+            });
         services.AddOptions<ClientConnectionOptions>().Configure(options => options.ServerAddress = serverAddress);
-
+        services.AddIceRpcServer();
         return services;
     }
 }

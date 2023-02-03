@@ -21,7 +21,7 @@ public class FileScopeNamespaceAttributeTests
     public async Task Operation_with_types_using_cs_namespace_attribute()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(new FileScopeNamespaceOperations())
+            .AddClientServerColocTest(dispatcher: new FileScopeNamespaceOperations())
             .AddIceRpcProxy<IFileScopeNamespaceOperationsProxy, FileScopeNamespaceOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 

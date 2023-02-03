@@ -54,7 +54,7 @@ public class ClientConnectionTests
             options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
                 .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Connect)
                 .BuildServiceProvider(validateScopes: true);
 
@@ -77,7 +77,7 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
                 .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Connect)
                 .BuildServiceProvider(validateScopes: true);
 
@@ -188,14 +188,14 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             services.AddClientServerColocTest(
+                protocol,
                 new InlineDispatcher(
                     async (incomingRequest, cancellationToken) =>
                     {
                         using var outgoingRequest = new OutgoingRequest(new ServiceAddress(protocol));
                         await incomingRequest.ConnectionContext.Invoker.InvokeAsync(outgoingRequest, cancellationToken);
                         return new OutgoingResponse(incomingRequest);
-                    }),
-                protocol)
+                    }))
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
@@ -219,7 +219,7 @@ public class ClientConnectionTests
         // Arrange
         using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher, serviceAddress.Protocol!, host: "testhost.com")
+            .AddClientServerColocTest(serviceAddress.Protocol, dispatcher, host: "testhost.com")
             .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -263,7 +263,7 @@ public class ClientConnectionTests
         // Arrange
         using var dispatcher = new TestDispatcher();
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher, serverAddress.Protocol, host: serverAddress.Host)
+            .AddClientServerColocTest(serverAddress.Protocol, dispatcher, host: serverAddress.Host)
             .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -288,7 +288,7 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
                 .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Connect)
                 .BuildServiceProvider(validateScopes: true);
 
@@ -319,7 +319,7 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
                 .AddTestDuplexTransport()
                 .BuildServiceProvider(validateScopes: true);
 
@@ -353,7 +353,7 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
                 .AddSingleton(colocTransport.ClientTransport) // overwrite
                 .AddSingleton<IDuplexServerTransport>(serverTransport)
                 .BuildServiceProvider(validateScopes: true);

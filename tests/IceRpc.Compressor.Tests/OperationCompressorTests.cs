@@ -22,7 +22,8 @@ public class OperationGeneratedCodeTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<MyOperationsA>()
-            .AddClientServerColocTest(builder =>
+            .AddClientServerColocTest(Protocol.IceRpc)
+            .AddIceRpcServer(builder =>
             {
                 builder.UseCompressor(compressionFormat);
                 builder.Use(next => new InlineDispatcher(async (request, cancellationToken) =>
