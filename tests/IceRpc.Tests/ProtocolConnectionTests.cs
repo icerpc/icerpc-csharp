@@ -106,10 +106,9 @@ public sealed class ProtocolConnectionTests
 
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
-            // We want to make sure that no more than maxDispatches are executing this dispatcher. So
-            // we are tracking the maximum count here (before work) and decrement this count immediately in the
-            // "work". Without the decrement, the count (and max count) could be greater than
-            // maxDispatches.
+            // We want to make sure that no more than maxDispatches are executing this dispatcher. So we are tracking
+            // the maximum count here (before work) and decrement this count immediately in the "work". Without the
+            // decrement, the count (and max count) could be greater than maxDispatches.
             IncrementCount();
             startSemaphore.Release();
             await workSemaphore.WaitAsync(cancellationToken);
@@ -142,11 +141,15 @@ public sealed class ProtocolConnectionTests
                 MaxDispatches = maxDispatches
             });
 
-        // TODO: this configuration is very confusing. AddProtocolTest does not create a Server but use some
-        // ServerOptions and does not forward these ServerOptions to the underlying transport.
-        // We add "100" to make sure the limit does not come from MaxBidirectionalStreams.
-        services.AddOptions<MultiplexedConnectionOptions>().Configure(
-            options => options.MaxBidirectionalStreams = maxDispatches + 100);
+        if (protocol == Protocol.IceRpc)
+        {
+            // AddProtocolTest transmits the same MultiplexedConnectionOptions (with icerpc) to both the client
+            // connection and the server connection, regardless of the clientConnectionOptions/serverConnectionOptions
+            // parameters. We configure it to maxDispatches + 100 to make sure we don't indirectly limit max dispatches
+            // with MaxBidirectionalStreams.
+            services.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = maxDispatches + 100);
+        }
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
