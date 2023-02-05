@@ -20,6 +20,7 @@ interface MyOperationsA
     // Stream parameters and return alone
     opWithByteStreamArgumentAndReturn(p: stream uint8) -> stream uint8;
     opWithIntStreamArgumentAndReturn(p: stream int32) -> stream int32;
+    opWithOptIntStreamArgumentAndReturn(p: stream int32?) -> stream int32?;
     opWithStringStreamArgumentAndReturn(p: stream string) -> stream string;
 
     // Stream parameters and return along regular return and parameters

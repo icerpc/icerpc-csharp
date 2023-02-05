@@ -555,6 +555,11 @@ public class OperationTests
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
 
+        public ValueTask<IAsyncEnumerable<int?>> OpWithOptIntStreamArgumentAndReturnAsync(
+            IAsyncEnumerable<int?> p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
+
         public ValueTask<IAsyncEnumerable<string>> OpWithStringStreamArgumentAndReturnAsync(
             IAsyncEnumerable<string> p,
             IFeatureCollection features,
