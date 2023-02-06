@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace IceRpc.Builder;
 
 /// <summary>Extension methods for <see cref="IDispatcherBuilder" />.</summary>
-public static class DispatcherBuilderExtensions
+public static class MiddlewareDispatcherBuilderExtensions
 {
     /// <summary>Registers a middleware with one service dependency in its DispatchAsync method. Such a middleware
     /// implements <see cref="IMiddleware{TDep}" /> and provides a single constructor that accepts a dispatcher (the
