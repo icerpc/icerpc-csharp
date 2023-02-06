@@ -3,7 +3,7 @@
     "settings": {
       "documentationRules": {
         "companyName": "ZeroC",
-        "copyrightText": "Copyright (c) ZeroC, Inc. All rights reserved.",
+        "copyrightText": "Copyright (c) ZeroC, Inc.",
         "xmlHeader": false,
         "documentInterfaces": false,
         "documentExposedElements": true,

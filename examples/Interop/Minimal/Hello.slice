@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 // Use the Slice 1 encoding for compatibility with ZeroC Ice
 encoding = 1;

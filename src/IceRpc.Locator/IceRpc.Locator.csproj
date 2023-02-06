@@ -6,7 +6,7 @@
         <Authors>ZeroC</Authors>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
-        <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+        <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
         <Description>IceRPC locator interceptor.</Description>
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

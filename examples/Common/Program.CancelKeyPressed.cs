@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 // Extends Program to provide the CancelKeyPressed property.
 public static partial class Program

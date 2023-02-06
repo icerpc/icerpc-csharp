@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 using IceRpc.Logger;
 using Microsoft.Extensions.Logging;

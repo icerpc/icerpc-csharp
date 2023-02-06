@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 use crate::builders::{Builder, ContainerBuilder};
 use crate::cs_attributes::match_cs_namespace;

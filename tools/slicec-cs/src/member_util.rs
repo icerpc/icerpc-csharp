@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::cs_attributes::match_cs_attribute;

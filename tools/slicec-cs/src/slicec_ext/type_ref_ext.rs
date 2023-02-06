@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 use super::entity_ext::EntityExt;
 use super::interface_ext::InterfaceExt;

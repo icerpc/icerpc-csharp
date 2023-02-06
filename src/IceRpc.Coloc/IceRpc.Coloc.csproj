@@ -7,7 +7,7 @@
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <PackageIcon>logo.png</PackageIcon>
-        <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+        <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
         <Description>IceRPC C#/.NET SDK.</Description>
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

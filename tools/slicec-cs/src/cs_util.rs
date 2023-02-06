@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 /// Checks if the provided string is a C# keyword, and escapes it if necessary (by appending a '@').
 pub fn escape_keyword(identifier: &str) -> String {

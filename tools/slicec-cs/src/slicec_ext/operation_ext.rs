@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes::match_cs_encoded_result;
