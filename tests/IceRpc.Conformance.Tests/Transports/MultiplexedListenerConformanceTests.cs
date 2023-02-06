@@ -32,7 +32,11 @@ public abstract class MultiplexedListenerConformanceTests
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        var clientConnection = clientTransport.CreateConnection(
+            listener.ServerAddress,
+            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+            provider.GetService<SslClientAuthenticationOptions>());
 
         var acceptTask = listener.AcceptAsync(default);
         var clientConnectTask = clientConnection.ConnectAsync(default);

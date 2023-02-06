@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -24,16 +25,14 @@ public abstract class MultiplexedConnectionConformanceTests
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
 
-        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            serverInitiated ? serverConnection : clientConnection,
-            serverInitiated ? clientConnection : serverConnection);
+        using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            serverInitiated ? sut.Server : sut.Client,
+            serverInitiated ? sut.Client : sut.Server);
 
-        Assert.That(sut.LocalStream.Id, Is.EqualTo(sut.RemoteStream.Id));
+        Assert.That(streams.LocalStream.Id, Is.EqualTo(streams.RemoteStream.Id));
     }
 
     /// <summary>Verifies that accept stream calls can be canceled.</summary>
@@ -44,13 +43,11 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         using var cts = new CancellationTokenSource();
-        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(cts.Token);
+        ValueTask<IMultiplexedStream> acceptTask = sut.Server.AcceptStreamAsync(cts.Token);
         await Task.Delay(TimeSpan.FromMilliseconds(10)); // give a few ms for acceptTask to start
 
         // Act
@@ -65,8 +62,8 @@ public abstract class MultiplexedConnectionConformanceTests
             async () =>
             {
                 using var streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-                    clientConnection,
-                    serverConnection);
+                    sut.Client,
+                    sut.Server);
             },
             Throws.Nothing);
     }
@@ -85,16 +82,13 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        IMultiplexedConnection clientConnection =
-            provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        Task acceptStreamTask = serverConnection.AcceptStreamAsync(CancellationToken.None).AsTask();
+        Task acceptStreamTask = sut.Server.AcceptStreamAsync(CancellationToken.None).AsTask();
 
         // Act
-        await clientConnection.CloseAsync(closeError, CancellationToken.None);
+        await sut.Client.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
         IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask)!;
@@ -115,19 +109,17 @@ public abstract class MultiplexedConnectionConformanceTests
                 options => options.MaxUnidirectionalStreams = 1);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional, default);
+        IMultiplexedStream clientStream1 = await sut.Client.CreateStreamAsync(bidirectional, default);
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
 
-        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
         ReadResult readResult = await serverStream1.Input.ReadAsync();
         serverStream1.Input.AdvanceTo(readResult.Buffer.End);
 
-        ValueTask<IMultiplexedStream> clientStream2Task = clientConnection.CreateStreamAsync(bidirectional, default);
+        ValueTask<IMultiplexedStream> clientStream2Task = sut.Client.CreateStreamAsync(bidirectional, default);
         if (bidirectional)
         {
             serverStream1.Output.Complete();
@@ -175,15 +167,13 @@ public abstract class MultiplexedConnectionConformanceTests
                 options => options.MaxBidirectionalStreams = 1);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        IMultiplexedStream clientStream1 = await sut.Client.CreateStreamAsync(bidirectional: true, default);
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
 
-        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
         ReadResult readResult = await serverStream1.Input.ReadAsync();
         serverStream1.Input.AdvanceTo(readResult.Buffer.End);
 
@@ -191,7 +181,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Act/Assert
         Assert.That(
-            async () => await clientConnection.CreateStreamAsync(bidirectional: true, cts.Token),
+            async () => await sut.Client.CreateStreamAsync(bidirectional: true, cts.Token),
             Throws.TypeOf<OperationCanceledException>());
 
         MultiplexedConformanceTestsHelper.CleanupStreams(clientStream1, serverStream1);
@@ -206,23 +196,21 @@ public abstract class MultiplexedConnectionConformanceTests
                 options => options.MaxBidirectionalStreams = 1);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        IMultiplexedStream clientStream1 = await clientConnection.CreateStreamAsync(bidirectional: true, default);
+        IMultiplexedStream clientStream1 = await sut.Client.CreateStreamAsync(bidirectional: true, default);
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
 
-        IMultiplexedStream serverStream1 = await serverConnection.AcceptStreamAsync(default);
+        IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
         ReadResult readResult = await serverStream1.Input.ReadAsync();
         serverStream1.Input.AdvanceTo(readResult.Buffer.End);
 
         // Act/Assert
-        var createStreamTask = clientConnection.CreateStreamAsync(bidirectional: true, default).AsTask();
+        var createStreamTask = sut.Client.CreateStreamAsync(bidirectional: true, default).AsTask();
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(createStreamTask.IsCompleted, Is.False);
-        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
         Assert.That(
             async () => await createStreamTask,
             Throws.TypeOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
@@ -244,23 +232,21 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         // Act
-        await serverConnection.CloseAsync(closeError, CancellationToken.None);
+        await sut.Server.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
         IceRpcException? exception;
 
         exception = Assert.ThrowsAsync<IceRpcException>(
-            () => clientConnection.AcceptStreamAsync(CancellationToken.None).AsTask());
+            () => sut.Client.AcceptStreamAsync(CancellationToken.None).AsTask());
         Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
 
         exception = Assert.ThrowsAsync<IceRpcException>(
-            () => clientConnection.CreateStreamAsync(true, default).AsTask());
+            () => sut.Client.CreateStreamAsync(true, default).AsTask());
         Assert.That(exception!.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
@@ -275,13 +261,11 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        IMultiplexedConnection disposedConnection = disposeServerConnection ? serverConnection : clientConnection;
-        IMultiplexedConnection peerConnection = disposeServerConnection ? clientConnection : serverConnection;
+        IMultiplexedConnection disposedConnection = disposeServerConnection ? sut.Server : sut.Client;
+        IMultiplexedConnection peerConnection = disposeServerConnection ? sut.Client : sut.Server;
         IMultiplexedStream peerStream = await peerConnection.CreateStreamAsync(true, default).ConfigureAwait(false);
         await peerStream.Output.WriteAsync(_oneBytePayload); // Make sure the stream is started before DisposeAsync
 
@@ -314,19 +298,16 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         // Act/Assert
 
-        Assert.That(async () => await clientConnection.CloseAsync(
+        Assert.That(async () => await sut.Client.CloseAsync(
             MultiplexedConnectionCloseError.NoError,
             CancellationToken.None), Throws.Nothing);
 
-        Assert.That(async () => await serverConnection.CloseAsync(
+        Assert.That(async () => await sut.Server.CloseAsync(
             MultiplexedConnectionCloseError.NoError,
             CancellationToken.None), Throws.Nothing);
     }
@@ -337,17 +318,15 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        IMultiplexedConnection clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         // Act
-        Task clientCloseTask = clientConnection.CloseAsync(
+        Task clientCloseTask = sut.Client.CloseAsync(
             MultiplexedConnectionCloseError.NoError,
             CancellationToken.None);
 
-        Task serverCloseTask = serverConnection.CloseAsync(
+        Task serverCloseTask = sut.Server.CloseAsync(
             MultiplexedConnectionCloseError.NoError,
             CancellationToken.None);
 
@@ -365,7 +344,12 @@ public abstract class MultiplexedConnectionConformanceTests
             .BuildServiceProvider(validateScopes: true);
 
         using var cts = new CancellationTokenSource();
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        var clientConnection = clientTransport.CreateConnection(
+            listener.ServerAddress,
+            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+            provider.GetService<SslClientAuthenticationOptions>());
         var connectTask = clientConnection.ConnectAsync(cts.Token);
 
         // Act
@@ -495,30 +479,28 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection,
-            serverConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            sut.Client,
+            sut.Server);
 
         // Act
-        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
 
         // Assert
         // TODO: OperationAborted or ConnectionAborted? Or another code? See #2382.
         Assert.That(
-            async () => await clientConnection.CreateStreamAsync(true, default),
+            async () => await sut.Client.CreateStreamAsync(true, default),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         Assert.That(
-            async () => await clientConnection.AcceptStreamAsync(default),
+            async () => await sut.Client.AcceptStreamAsync(default),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         Assert.That(
-            async () => await sut.LocalStream.Input.ReadAsync(),
+            async () => await streams.LocalStream.Input.ReadAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         Assert.That(
-            async () => await sut.LocalStream.Output.WriteAsync(_oneBytePayload),
+            async () => await streams.LocalStream.Output.WriteAsync(_oneBytePayload),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
@@ -529,31 +511,29 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
-        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection,
-            serverConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+        using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            sut.Client,
+            sut.Server);
 
         // Act
-        await clientConnection.DisposeAsync();
+        await sut.Client.DisposeAsync();
 
         // Assert
         Assert.That(
-            async () => await clientConnection.CreateStreamAsync(true, default),
+            async () => await sut.Client.CreateStreamAsync(true, default),
             Throws.InstanceOf<ObjectDisposedException>());
         Assert.That(
-            async () => await clientConnection.AcceptStreamAsync(default),
+            async () => await sut.Client.AcceptStreamAsync(default),
             Throws.InstanceOf<ObjectDisposedException>());
 
         // TODO: OperationAborted or ConnectionAborted? Or another code? See #2382.
         Assert.That(
-            async () => await sut.LocalStream.Input.ReadAsync(),
+            async () => await streams.LocalStream.Input.ReadAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         Assert.That(
-            async () => await sut.LocalStream.Output.WriteAsync(_oneBytePayload),
+            async () => await streams.LocalStream.Output.WriteAsync(_oneBytePayload),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
@@ -565,21 +545,19 @@ public abstract class MultiplexedConnectionConformanceTests
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = 1);
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection,
-            serverConnection);
+        using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            sut.Client,
+            sut.Server);
 
-        ValueTask<IMultiplexedStream> acceptStreamTask = clientConnection.AcceptStreamAsync(default);
-        ValueTask<IMultiplexedStream> createStreamTask = clientConnection.CreateStreamAsync(true, default);
-        ValueTask<ReadResult> readTask = sut.LocalStream.Input.ReadAsync();
+        ValueTask<IMultiplexedStream> acceptStreamTask = sut.Client.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> createStreamTask = sut.Client.CreateStreamAsync(true, default);
+        ValueTask<ReadResult> readTask = streams.LocalStream.Input.ReadAsync();
 
         // Act
-        await clientConnection.DisposeAsync();
+        await sut.Client.DisposeAsync();
 
         // Assert
 
@@ -601,17 +579,15 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         // Act
-        await clientConnection.DisposeAsync();
+        await sut.Client.DisposeAsync();
 
         // Assert
         Assert.That(
-            async () => _ = await serverConnection.AcceptStreamAsync(default),
+            async () => _ = await sut.Server.AcceptStreamAsync(default),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
@@ -622,23 +598,21 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection,
-            serverConnection);
+        using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            sut.Client,
+            sut.Server);
 
         // Act
-        await serverConnection.DisposeAsync();
+        await sut.Server.DisposeAsync();
 
         // Assert
-        Assert.That(async () => await sut.RemoteStream.WritesClosed, Throws.Nothing);
-        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.Nothing);
-        Assert.That(async () => await sut.LocalStream.WritesClosed, Throws.Nothing);
-        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
+        Assert.That(async () => await streams.RemoteStream.WritesClosed, Throws.Nothing);
+        Assert.That(async () => await streams.RemoteStream.ReadsClosed, Throws.Nothing);
+        Assert.That(async () => await streams.LocalStream.WritesClosed, Throws.Nothing);
+        Assert.That(async () => await streams.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
     /// <summary>Write data until the transport flow control start blocking, at this point we start a read task and
@@ -651,21 +625,19 @@ public abstract class MultiplexedConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        using LocalAndRemoteStreams sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientConnection,
-            serverConnection);
-        sut.LocalStream.Input.Complete();
-        sut.RemoteStream.Output.Complete();
+        using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            sut.Client,
+            sut.Server);
+        streams.LocalStream.Input.Complete();
+        streams.RemoteStream.Output.Complete();
 
         Task<FlushResult> writeTask;
         while (true)
         {
-            writeTask = sut.LocalStream.Output.WriteAsync(payload).AsTask();
+            writeTask = streams.LocalStream.Output.WriteAsync(payload).AsTask();
             await Task.Delay(TimeSpan.FromMilliseconds(20));
             if (writeTask.IsCompleted)
             {
@@ -678,11 +650,11 @@ public abstract class MultiplexedConnectionConformanceTests
         }
 
         // Act
-        Task readTask = ReadAsync(sut.RemoteStream);
+        Task readTask = ReadAsync(streams.RemoteStream);
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
-        sut.LocalStream.Output.Complete();
+        streams.LocalStream.Output.Complete();
         Assert.That(async () => await readTask, Throws.Nothing);
 
         static async Task ReadAsync(IMultiplexedStream stream)
@@ -710,10 +682,8 @@ public abstract class MultiplexedConnectionConformanceTests
                 options => options.MaxBidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         const int payloadSize = 16 * 1024;
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
@@ -734,7 +704,7 @@ public abstract class MultiplexedConnectionConformanceTests
         // Act
         for (int i = 0; i < createStreamCount; ++i)
         {
-            tasks.Add(ServerReadWriteAsync(await serverConnection.AcceptStreamAsync(default)));
+            tasks.Add(ServerReadWriteAsync(await sut.Server.AcceptStreamAsync(default)));
         }
 
         // Assert
@@ -745,7 +715,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         async Task ClientReadWriteAsync()
         {
-            IMultiplexedStream stream = await clientConnection.CreateStreamAsync(true, default);
+            IMultiplexedStream stream = await sut.Client.CreateStreamAsync(true, default);
             await stream.Output.WriteAsync(payload);
             lock (mutex)
             {
@@ -803,10 +773,8 @@ public abstract class MultiplexedConnectionConformanceTests
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         const int payloadSize = 16 * 1024;
         byte[] payloadData = Enumerable.Range(0, payloadSize).Select(i => (byte)(i % 256)).ToArray();
@@ -826,7 +794,7 @@ public abstract class MultiplexedConnectionConformanceTests
         // Act
         for (int i = 0; i < createStreamCount; ++i)
         {
-            tasks.Add(ServerReadAsync(await serverConnection.AcceptStreamAsync(default)));
+            tasks.Add(ServerReadAsync(await sut.Server.AcceptStreamAsync(default)));
         }
 
         // Assert
@@ -837,7 +805,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         async Task ClientWriteAsync()
         {
-            IMultiplexedStream stream = await clientConnection.CreateStreamAsync(false, default);
+            IMultiplexedStream stream = await sut.Client.CreateStreamAsync(false, default);
             await stream.Output.WriteAsync(payload);
             lock (mutex)
             {
@@ -891,15 +859,13 @@ public abstract class MultiplexedConnectionConformanceTests
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
 
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        ValueTask<IMultiplexedStream> acceptStreamTask = clientConnection.AcceptStreamAsync(CancellationToken.None);
+        ValueTask<IMultiplexedStream> acceptStreamTask = sut.Client.AcceptStreamAsync(CancellationToken.None);
 
         // Act
-        await serverConnection.CloseAsync(closeError, CancellationToken.None);
+        await sut.Server.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
         Assert.That(
@@ -923,20 +889,18 @@ public abstract class MultiplexedConnectionConformanceTests
                 options => options.MaxBidirectionalStreams = 1);
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
 
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        await using IMultiplexedConnection serverConnection =
-            await MultiplexedConformanceTestsHelper.ConnectAndAcceptConnectionAsync(listener, clientConnection);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        IMultiplexedStream stream1 = await clientConnection.CreateStreamAsync(true, default);
+        IMultiplexedStream stream1 = await sut.Client.CreateStreamAsync(true, default);
         await stream1.Output.WriteAsync(_oneBytePayload, default); // Ensures the stream is started.
 
-        ValueTask<IMultiplexedStream> stream2CreateStreamTask = clientConnection.CreateStreamAsync(true, default);
+        ValueTask<IMultiplexedStream> stream2CreateStreamTask = sut.Client.CreateStreamAsync(true, default);
         await Task.Delay(100);
         Assert.That(stream2CreateStreamTask.IsCompleted, Is.False);
 
         // Act
-        await serverConnection.CloseAsync(closeError, CancellationToken.None);
+        await sut.Server.CloseAsync(closeError, CancellationToken.None);
 
         // Assert
         Assert.That(
@@ -961,6 +925,6 @@ public static class MultiplexedTransportServiceCollectionExtensions
                 listener.ServerAddress,
                 provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                 provider.GetService<SslClientAuthenticationOptions>());
-            return connection;
+            return new ClientServerMultiplexedConnection(connection, listener);
         });
 }
