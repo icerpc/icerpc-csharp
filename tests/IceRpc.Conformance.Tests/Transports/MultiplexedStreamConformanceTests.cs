@@ -90,11 +90,11 @@ public abstract class MultiplexedStreamConformanceTests
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
             .BuildServiceProvider(validateScopes: true);
-        await using IMultiplexedConnection sut = provider.GetRequiredService<IMultiplexedConnection>();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
         // Act/Assert
         Assert.That(
-            async () => await sut.CreateStreamAsync(bidirectional: true, default),
+            async () => await sut.Client.CreateStreamAsync(bidirectional: true, default),
             Throws.TypeOf<InvalidOperationException>());
     }
 

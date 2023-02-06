@@ -344,7 +344,12 @@ public abstract class MultiplexedConnectionConformanceTests
             .BuildServiceProvider(validateScopes: true);
 
         using var cts = new CancellationTokenSource();
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        var clientConnection = clientTransport.CreateConnection(
+            listener.ServerAddress,
+            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+            provider.GetService<SslClientAuthenticationOptions>());
         var connectTask = clientConnection.ConnectAsync(cts.Token);
 
         // Act
@@ -912,19 +917,14 @@ public abstract class MultiplexedConnectionConformanceTests
 public static class MultiplexedTransportServiceCollectionExtensions
 {
     public static IServiceCollection AddMultiplexedTransportTest(this IServiceCollection services) =>
-        services
-            .AddSingleton(provider =>
-            {
-                var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-                var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-                var connection = clientTransport.CreateConnection(
-                    listener.ServerAddress,
-                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetService<SslClientAuthenticationOptions>());
-                return connection;
-            })
-            .AddSingleton(provider =>
-                new ClientServerMultiplexedConnection(
-                    provider.GetRequiredService<IMultiplexedConnection>(),
-                    provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
+        services.AddSingleton(provider =>
+        {
+            var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+            var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+            var connection = clientTransport.CreateConnection(
+                listener.ServerAddress,
+                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                provider.GetService<SslClientAuthenticationOptions>());
+            return new ClientServerMultiplexedConnection(connection, listener);
+        });
 }
