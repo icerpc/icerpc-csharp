@@ -32,7 +32,11 @@ public static class SlicTransportServiceCollectionExtensions
             .AddSingleton<IMultiplexedClientTransport>(provider =>
                 new SlicClientTransport(
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("client"),
-                    provider.GetRequiredService<IDuplexClientTransport>()));
+                    provider.GetRequiredService<IDuplexClientTransport>()))
+            .AddSingleton(provider =>
+                new ClientServerMultiplexedConnection(
+                    provider.GetRequiredService<SlicConnection>(),
+                    provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         services.AddOptions<SlicTransportOptions>("client");
         services.AddOptions<SlicTransportOptions>("server");
