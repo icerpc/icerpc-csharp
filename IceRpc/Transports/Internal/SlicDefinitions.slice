@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc.
 
 // These definitions help with the encoding of Slic frames.
 [cs::internal]
