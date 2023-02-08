@@ -24,10 +24,10 @@ public class NamespaceAttributeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new NamespaceOperations())
-            .AddIceRpcProxy<INamespaceOperationsProxy, NamespaceOperationsProxy>()
+            .AddIceRpcProxy<INamespaceOperations, NamespaceOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        INamespaceOperationsProxy proxy = provider.GetRequiredService<INamespaceOperationsProxy>();
+        INamespaceOperations proxy = provider.GetRequiredService<INamespaceOperations>();
         provider.GetRequiredService<Server>().Listen();
 
         NamespaceAttribute.WithNamespace.N1.O2.S1 r =

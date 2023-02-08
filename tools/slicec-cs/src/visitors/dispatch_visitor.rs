@@ -30,7 +30,7 @@ impl Visitor for DispatchVisitor<'_> {
             r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />.
 {}"#,
             interface_def.cs_identifier(None),
-            interface_def.proxy_name(),
+            interface_def.interface_name(),
             doc_comment_message(interface_def),
         );
 

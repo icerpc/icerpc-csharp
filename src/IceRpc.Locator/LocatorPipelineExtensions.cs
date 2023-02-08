@@ -10,22 +10,20 @@ namespace IceRpc;
 /// </summary>
 public static class LocatorPipelineExtensions
 {
-    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator proxy.
-    /// </summary>
+    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="locator">The locator proxy used for the resolutions.</param>
+    /// <param name="locator">The locator used for the resolutions.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator) =>
+    public static Pipeline UseLocator(this Pipeline pipeline, ILocator locator) =>
         UseLocator(pipeline, locator, NullLoggerFactory.Instance);
 
-    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator proxy.
-    /// </summary>
+    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="locator">The locator proxy used for the resolutions.</param>
+    /// <param name="locator">The locator used for the resolutions.</param>
     /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
     /// <see cref="LocatorInterceptor" />.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocatorProxy locator, ILoggerFactory loggerFactory) =>
+    public static Pipeline UseLocator(this Pipeline pipeline, ILocator locator, ILoggerFactory loggerFactory) =>
         UseLocator(
             pipeline,
             new LocatorLocationResolver(

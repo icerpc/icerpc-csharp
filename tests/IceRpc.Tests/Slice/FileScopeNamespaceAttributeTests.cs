@@ -22,10 +22,10 @@ public class FileScopeNamespaceAttributeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new FileScopeNamespaceOperations())
-            .AddIceRpcProxy<IFileScopeNamespaceOperationsProxy, FileScopeNamespaceOperationsProxy>()
+            .AddIceRpcProxy<IFileScopeNamespaceOperations, FileScopeNamespaceOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IFileScopeNamespaceOperationsProxy proxy = provider.GetRequiredService<IFileScopeNamespaceOperationsProxy>();
+        IFileScopeNamespaceOperations proxy = provider.GetRequiredService<IFileScopeNamespaceOperations>();
         provider.GetRequiredService<Server>().Listen();
 
         S1 r = await proxy.Op1Async(new S1("10"));

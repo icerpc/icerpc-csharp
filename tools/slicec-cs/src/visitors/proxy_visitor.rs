@@ -22,13 +22,13 @@ pub struct ProxyVisitor<'a> {
 impl Visitor for ProxyVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
-        let proxy_interface = interface_def.proxy_name(); // IFooProxy
+        let interface = interface_def.interface_name(); // IFoo
         let proxy_impl: String = interface_def.proxy_implementation_name(); // FooProxy
         let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
-        let proxy_impl_bases: Vec<String> = vec![proxy_interface.clone(), "IProxy".to_owned()];
+        let proxy_impl_bases: Vec<String> = vec![interface.clone(), "IProxy".to_owned()];
 
         let all_base_impl: Vec<String> = all_bases
             .iter()
@@ -36,7 +36,7 @@ impl Visitor for ProxyVisitor<'_> {
             .collect();
 
         // proxy bases
-        let proxy_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_proxy_name(&namespace)).collect();
+        let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
 
         let summary_message = format!(
             r#"The client-side interface for Slice interface {}. <seealso cref="{}" />.
@@ -48,11 +48,11 @@ impl Visitor for ProxyVisitor<'_> {
 
         let mut code = CodeBlock::default();
         code.add_block(
-            &ContainerBuilder::new(&format!("{access} partial interface"), &proxy_interface)
+            &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
                 .add_comment("summary", &summary_message)
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
-                .add_bases(&proxy_bases)
+                .add_bases(&interface_bases)
                 .add_block(proxy_interface_operations(interface_def))
                 .build(),
         );
@@ -61,7 +61,7 @@ impl Visitor for ProxyVisitor<'_> {
             ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
 
         proxy_impl_builder.add_bases(&proxy_impl_bases)
-            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{proxy_interface}" /> by sending requests to a remote IceRPC service."#))
+            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{interface}" /> by sending requests to a remote IceRPC service."#))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_block(request_class(interface_def))
@@ -414,7 +414,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     class_builder.add_comment(
         "summary",
         &format!(
-            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}Proxy" />."#,
+            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}" />."#,
             interface_def.interface_name(),
         ),
     );

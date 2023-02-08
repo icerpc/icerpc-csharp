@@ -18,10 +18,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
@@ -32,10 +32,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyDerivedOperationsA())
-            .AddIceRpcProxy<IMyDerivedOperationsAProxy, MyDerivedOperationsAProxy>()
+            .AddIceRpcProxy<IMyDerivedOperationsA, MyDerivedOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyDerivedOperationsAProxy proxy = provider.GetRequiredService<IMyDerivedOperationsAProxy>();
+        IMyDerivedOperationsA proxy = provider.GetRequiredService<IMyDerivedOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         Assert.That(async () => await proxy.OpWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
@@ -46,10 +46,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         int r = await proxy.OpWithSingleParameterAndReturnValueAsync(10);
@@ -62,10 +62,10 @@ public class OperationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         (int r1, int r2) = await proxy.OpWithMultipleParametersAndReturnValuesAsync(10, 20);
@@ -80,10 +80,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         var data = new byte[] { 1, 2, 3 };
@@ -109,10 +109,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -146,10 +146,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -183,10 +183,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -223,10 +223,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -243,10 +243,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -262,10 +262,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -282,10 +282,10 @@ public class OperationTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new MyOperationsA())
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act
@@ -452,10 +452,10 @@ public class OperationTests
         var service = new MyTaggedOperations();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
-            .AddIceRpcProxy<IMyTaggedOperationsProxy, MyTaggedOperationsProxy>()
+            .AddIceRpcProxy<IMyTaggedOperations, MyTaggedOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyTaggedOperationsProxy proxy = provider.GetRequiredService<IMyTaggedOperationsProxy>();
+        IMyTaggedOperations proxy = provider.GetRequiredService<IMyTaggedOperations>();
         provider.GetRequiredService<Server>().Listen();
 
         await proxy.OpAsync(1, z: 10);
@@ -473,11 +473,11 @@ public class OperationTests
         var service = new MyTaggedOperationsReadOnlyMemoryParams();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
-            .AddIceRpcProxy<IMyTaggedOperationsReadOnlyMemoryParamsProxy, MyTaggedOperationsReadOnlyMemoryParamsProxy>()
+            .AddIceRpcProxy<IMyTaggedOperationsReadOnlyMemoryParams, MyTaggedOperationsReadOnlyMemoryParamsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyTaggedOperationsReadOnlyMemoryParamsProxy proxy =
-            provider.GetRequiredService<IMyTaggedOperationsReadOnlyMemoryParamsProxy>();
+        IMyTaggedOperationsReadOnlyMemoryParams proxy =
+            provider.GetRequiredService<IMyTaggedOperationsReadOnlyMemoryParams>();
         provider.GetRequiredService<Server>().Listen();
 
         await proxy.OpAsync(new int[] { 1 }, z: new int[] { 10 });
@@ -493,10 +493,10 @@ public class OperationTests
         var service = new MyOperationsA();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
         ServiceProxy receivedProxy = await proxy.OpWithProxyReturnValueAsync();
@@ -510,10 +510,10 @@ public class OperationTests
         var service = new MyOperationsA();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
-            .AddIceRpcProxy<IMyOperationsAProxy, MyOperationsAProxy>()
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsAProxy proxy = provider.GetRequiredService<IMyOperationsAProxy>();
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
         await proxy.OpWithProxyParameterAsync(ServiceProxy.FromPath("/hello"));
 

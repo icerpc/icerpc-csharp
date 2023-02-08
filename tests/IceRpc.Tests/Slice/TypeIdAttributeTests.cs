@@ -36,7 +36,7 @@ public sealed class TypeIdAttributeTests
     {
         [typeof(ServiceProxy)] = "::IceRpc::Slice::Service",
         [typeof(MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass",
-        [typeof(IMyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
+        [typeof(IMyInterface)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(IMyInterfaceService)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(MyException)] = null, // Slice2 exception
@@ -51,7 +51,7 @@ public sealed class TypeIdAttributeTests
     {
         [typeof(ServiceProxy)] = "/IceRpc.Slice.Service",
         [typeof(MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyClass",
-        [typeof(IMyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
+        [typeof(IMyInterface)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(IMyInterfaceService)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(Inner.MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myClass",
