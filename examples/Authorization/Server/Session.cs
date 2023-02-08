@@ -42,8 +42,8 @@ internal class TokenStore
     internal string? GetName(Guid token) => _sessions.TryGetValue(token, out string? name) ? name : null;
 }
 
-/// <summary>The implementation of the <see cref="ISessionManager" /> interface.</summary>
-internal class SessionManager : Service, ISessionManager
+/// <summary>The implementation of the <see cref="ISessionManagerService" /> interface.</summary>
+internal class SessionManager : Service, ISessionManagerService
 {
     private readonly TokenStore _tokenStore;
 

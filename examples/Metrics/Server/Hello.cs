@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace MetricsExample;
 
-internal class Hello : Service, IHello
+internal class Hello : Service, IHelloService
 {
     private volatile int _totalRequests;
     private bool _hasOutput;

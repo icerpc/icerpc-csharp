@@ -23,17 +23,14 @@ impl Visitor for ProxyVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
         let interface = interface_def.interface_name(); // IFoo
-        let proxy_impl: String = interface_def.proxy_implementation_name(); // FooProxy
+        let proxy_impl: String = interface_def.proxy_name(); // FooProxy
         let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
         let proxy_impl_bases: Vec<String> = vec![interface.clone(), "IProxy".to_owned()];
 
-        let all_base_impl: Vec<String> = all_bases
-            .iter()
-            .map(|b| b.scoped_proxy_implementation_name(&namespace))
-            .collect();
+        let all_base_impl: Vec<String> = all_bases.iter().map(|b| b.scoped_proxy_name(&namespace)).collect();
 
         // proxy bases
         let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
@@ -156,7 +153,7 @@ public {proxy_impl}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri, Slice
 public {proxy_impl}()
 {{
 }}"#,
-        proxy_impl = interface_def.proxy_implementation_name(),
+        proxy_impl = interface_def.proxy_name(),
     )
     .into()
 }
@@ -298,7 +295,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
     builder.set_body(
         format!(
             "(({base_proxy_impl})this).{async_name}({operation_params})",
-            base_proxy_impl = operation.parent().unwrap().proxy_implementation_name(),
+            base_proxy_impl = operation.parent().unwrap().proxy_name(),
             operation_params = operation_params.join(", "),
         )
         .into(),
