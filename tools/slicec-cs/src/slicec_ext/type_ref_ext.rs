@@ -54,7 +54,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 sequence_type_to_string(sequence_ref, namespace, context)
             }
             TypeRefs::Dictionary(dictionary_ref) => dictionary_type_to_string(dictionary_ref, namespace, context),
-            TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_keyword().to_owned(),
+            TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_type().to_owned(),
         };
 
         if self.is_optional && !ignore_optional {

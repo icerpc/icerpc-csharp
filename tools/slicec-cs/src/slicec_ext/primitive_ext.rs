@@ -7,7 +7,7 @@ pub trait PrimitiveExt {
     fn type_suffix(&self) -> &'static str;
 
     /// The C# keyword corresponding to the primitive type.
-    fn cs_keyword(&self) -> &'static str;
+    fn cs_type(&self) -> &'static str;
 }
 
 impl PrimitiveExt for Primitive {
@@ -34,7 +34,7 @@ impl PrimitiveExt for Primitive {
         }
     }
 
-    fn cs_keyword(&self) -> &'static str {
+    fn cs_type(&self) -> &'static str {
         match self {
             Primitive::Bool => "bool",
             Primitive::Int8 => "sbyte",
