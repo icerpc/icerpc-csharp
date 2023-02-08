@@ -52,7 +52,7 @@ impl PrimitiveExt for Primitive {
             Primitive::Float32 => "float",
             Primitive::Float64 => "double",
             Primitive::String => "string",
-            Primitive::ServiceAddress => "global::IceRpc.ServiceAddress",
+            Primitive::ServiceAddress => "IceRpc.ServiceAddress",
             Primitive::AnyClass => "SliceClass",
         }
     }
