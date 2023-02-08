@@ -21,7 +21,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         match self.concrete_type() {
             Types::Primitive(primitive) => !matches!(
                 primitive,
-                Primitive::String | Primitive::AnyClass | Primitive::ServiceAddress
+                Primitive::String | Primitive::AnyClass | Primitive::ServiceAddress,
             ),
             Types::Enum(_) | Types::Struct(_) | Types::Interface(_) => true,
             _ => false,

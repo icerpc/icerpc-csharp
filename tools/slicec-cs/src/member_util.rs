@@ -54,7 +54,14 @@ pub fn initialize_non_nullable_fields(members: &[&impl Member], field_type: Fiel
 
         let suppress = match data_type.concrete_type() {
             Types::Class(_) | Types::Sequence(_) | Types::Dictionary(_) => true,
-            Types::Primitive(primitive) if matches!(primitive, Primitive::String | Primitive::AnyClass) => true,
+            Types::Primitive(primitive)
+                if matches!(
+                    primitive,
+                    Primitive::String | Primitive::AnyClass | Primitive::ServiceAddress,
+                ) =>
+            {
+                true
+            }
             _ => false,
         };
 

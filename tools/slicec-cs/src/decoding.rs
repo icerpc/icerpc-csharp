@@ -65,7 +65,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 writeln!(code, "decoder.DecodeNullableProxy<{type_string}>();");
                 return code;
             }
-            Types::Primitive(p) if matches!(p, Primitive::ServiceAddress) && encoding == Encoding::Slice1 => {
+            Types::Primitive(Primitive::ServiceAddress) if encoding == Encoding::Slice1 => {
                 writeln!(code, "decoder.DecodeNullableServiceAddress();");
                 return code;
             }
@@ -352,13 +352,6 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
                 format!("(ref SliceDecoder decoder) => decoder.DecodeProxy<{type_name}>()")
             }
         }
-        TypeRefs::Primitive(p)
-            if matches!(p.definition(), Primitive::ServiceAddress)
-                && encoding == Encoding::Slice1
-                && type_ref.is_optional =>
-        {
-            "(ref SliceDecoder decoder) => decoder.DecodeNullableServiceAddress()".to_owned()
-        }
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             assert!(encoding == Encoding::Slice1);
@@ -373,10 +366,17 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
         }
         TypeRefs::Primitive(primitive_ref) => {
             // Primitive::AnyClass is handled above by is_class_type branch
-            format!(
-                "(ref SliceDecoder decoder) => decoder.Decode{}()",
-                primitive_ref.type_suffix(),
-            )
+            if matches!(primitive_ref.definition(), Primitive::ServiceAddress)
+                && encoding == Encoding::Slice1
+                && type_ref.is_optional
+            {
+                "(ref SliceDecoder decoder) => decoder.DecodeNullableServiceAddress()".to_owned()
+            } else {
+                format!(
+                    "(ref SliceDecoder decoder) => decoder.Decode{}()",
+                    primitive_ref.type_suffix(),
+                )
+            }
         }
         TypeRefs::Sequence(sequence_ref) => {
             format!(

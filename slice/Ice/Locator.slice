@@ -23,8 +23,8 @@ exception ObjectNotFoundException
 interface Locator
 {
     /// Finds a service by identity (path) and returns a dummy service address with the server address(es) that can be
-    /// used to reach this service. This dummy proxy can also carry no server address and require further resolution
-    /// using TODO-LINK findAdapterById.
+    /// used to reach this service. This dummy service address can also carry no server address and require further
+    /// resolution using TODO-LINK findAdapterById.
     /// @param path The path.
     /// @return A dummy service address, or null if a service with the requested identity (path) was not found.
     /// @throws ObjectNotFoundException Thrown if a service with the requested identity (path) was not found. The caller

@@ -69,8 +69,8 @@ fn encode_type(
         TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
             format!("{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);")
         }
-        TypeRefs::Primitive(p)
-            if matches!(p.definition(), Primitive::ServiceAddress)
+        TypeRefs::Primitive(primitive_ref)
+            if matches!(primitive_ref.definition(), Primitive::ServiceAddress)
                 && type_ref.is_optional
                 && encoding == Encoding::Slice1 =>
         {
