@@ -26,6 +26,15 @@ pub trait InterfaceExt: EntityExt {
         }
     }
 
+    fn scoped_service_name(&self, current_namespace: &str) -> String {
+        let namespace = self.namespace();
+        if namespace == current_namespace {
+            self.service_name()
+        } else {
+            format!("global::{}.{}", namespace, self.service_name())
+        }
+    }
+
     fn scoped_proxy_implementation_name(&self, current_namespace: &str) -> String {
         let namespace = self.namespace();
         if namespace == current_namespace {

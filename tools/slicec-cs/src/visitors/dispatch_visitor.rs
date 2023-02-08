@@ -20,6 +20,7 @@ pub struct DispatchVisitor<'a> {
 
 impl Visitor for DispatchVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
+        let namespace = interface_def.namespace();
         let bases = interface_def.base_interfaces();
         let service_name = interface_def.service_name();
         let access = interface_def.access_modifier();
@@ -38,7 +39,12 @@ impl Visitor for DispatchVisitor<'_> {
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def);
 
-        interface_builder.add_bases(&bases.iter().map(|b| b.service_name()).collect::<Vec<_>>());
+        interface_builder.add_bases(
+            &bases
+                .iter()
+                .map(|b| b.scoped_service_name(&namespace))
+                .collect::<Vec<_>>(),
+        );
 
         interface_builder
             .add_block(request_class(interface_def))
