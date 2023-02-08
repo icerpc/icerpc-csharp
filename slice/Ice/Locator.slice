@@ -6,7 +6,6 @@ encoding = 1;
 module Ice;
 
 typealias IdentityPath = IceRpc::Slice::IdentityPath;
-typealias Service = IceRpc::Slice::Service;
 
 /// This exception is thrown when an object adapter was not found.
 exception AdapterNotFoundException
@@ -23,22 +22,23 @@ exception ObjectNotFoundException
 /// object adapters.
 interface Locator
 {
-    /// Finds a service by identity (path) and returns a dummy proxy with the server address(es) that can be used to
-    /// reach this service. This dummy proxy can also carry no server address and require further resolution using
-    /// TODO-LINK findAdapterById.
+    /// Finds a service by identity (path) and returns a dummy service address with the server address(es) that can be
+    /// used to reach this service. This dummy service address can also carry no server address and require further
+    /// resolution using TODO-LINK findAdapterById.
     /// @param path The path.
-    /// @return A dummy proxy, or null if a service with the requested identity (path) was not found.
+    /// @return A dummy service address, or null if a service with the requested identity (path) was not found.
     /// @throws ObjectNotFoundException Thrown if a service with the requested identity (path) was not found. The caller
     /// should treat this exception like a null return value.
-    idempotent findObjectById(path: IdentityPath) -> Service? throws ObjectNotFoundException;
+    idempotent findObjectById(path: IdentityPath) -> ServiceAddress? throws ObjectNotFoundException;
 
-    /// Finds an object adapter by adapter ID and returns a proxy with the object adapter's server address(es).
+    /// Finds an object adapter by adapter ID and returns a dummy service address with the object adapter's server
+    /// address(es).
     /// @param id The adapter ID.
-    /// @return A dummy proxy with the adapter's server address(es), or null if an object adapter with adapter ID
-    /// {@link id} was not found.
+    /// @return A dummy service address with the adapter's server address(es), or null if an object adapter with adapter
+    /// ID {@link id} was not found.
     /// @throws AdapterNotFoundException Thrown if an object adapter with this adapter ID was not found. The caller
     /// should treat this exception like a null return value.
-    idempotent findAdapterById(id: string) -> Service? throws AdapterNotFoundException;
+    idempotent findAdapterById(id: string) -> ServiceAddress? throws AdapterNotFoundException;
 
     /// Gets the locator registry.
     /// @return The locator registry, or null if this locator has no associated registry.

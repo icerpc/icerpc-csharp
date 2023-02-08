@@ -29,6 +29,7 @@ impl PrimitiveExt for Primitive {
             Primitive::Float32 => "Float32",
             Primitive::Float64 => "Float64",
             Primitive::String => "String",
+            Primitive::ServiceAddress => "ServiceAddress",
             Primitive::AnyClass => "Class",
         }
     }
@@ -51,6 +52,7 @@ impl PrimitiveExt for Primitive {
             Primitive::Float32 => "float",
             Primitive::Float64 => "double",
             Primitive::String => "string",
+            Primitive::ServiceAddress => "IceRpc.ServiceAddress",
             Primitive::AnyClass => "SliceClass",
         }
     }

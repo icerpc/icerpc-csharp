@@ -52,10 +52,11 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
         {
             try
             {
-                ServiceProxy? proxy =
-                    await _locator.FindAdapterByIdAsync(location.Value, cancellationToken: cancellationToken).ConfigureAwait(false);
+                ServiceAddress? serviceAddress = await _locator.FindAdapterByIdAsync(
+                    location.Value,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
+                if (serviceAddress is not null)
                 {
                     return serviceAddress.Protocol == Protocol.Ice && serviceAddress.ServerAddress is not null ?
                         serviceAddress :
@@ -77,10 +78,11 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
         {
             try
             {
-                ServiceProxy? proxy =
-                    await _locator.FindObjectByIdAsync(location.Value, cancellationToken: cancellationToken).ConfigureAwait(false);
+                ServiceAddress? serviceAddress = await _locator.FindObjectByIdAsync(
+                    location.Value,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                if (proxy?.ServiceAddress is ServiceAddress serviceAddress)
+                if (serviceAddress is not null)
                 {
                     // findObjectById can return an indirect service address with an adapter ID
                     return serviceAddress.Protocol == Protocol.Ice &&
