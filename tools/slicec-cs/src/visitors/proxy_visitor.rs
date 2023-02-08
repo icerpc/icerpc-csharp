@@ -42,7 +42,7 @@ impl Visitor for ProxyVisitor<'_> {
             r#"The client-side interface for Slice interface {}. <seealso cref="{}" />.
 {}"#,
             interface_def.cs_identifier(None),
-            interface_def.interface_name(),
+            interface_def.service_name(),
             doc_comment_message(interface_def),
         );
 

@@ -21,9 +21,9 @@ pub struct DispatchVisitor<'a> {
 impl Visitor for DispatchVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let bases = interface_def.base_interfaces();
-        let interface_name = interface_def.interface_name();
+        let service_name = interface_def.service_name();
         let access = interface_def.access_modifier();
-        let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &interface_name);
+        let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &service_name);
 
         let summary_comment = format!(
             r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />.
@@ -38,7 +38,7 @@ impl Visitor for DispatchVisitor<'_> {
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def);
 
-        interface_builder.add_bases(&bases.iter().map(|b| b.interface_name()).collect::<Vec<_>>());
+        interface_builder.add_bases(&bases.iter().map(|b| b.service_name()).collect::<Vec<_>>());
 
         interface_builder
             .add_block(request_class(interface_def))
@@ -49,7 +49,7 @@ impl Visitor for DispatchVisitor<'_> {
                 format!(
                     "\
 private static readonly IActivator _defaultActivator =
-    SliceDecoder.GetActivator(typeof({interface_name}).Assembly);"
+    SliceDecoder.GetActivator(typeof({service_name}).Assembly);"
                 )
                 .into(),
             );
@@ -356,7 +356,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
         r#"
 [IceRpc.Slice.Operation("{name}")]
 protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
-    {interface_name} target,
+    {service_name} target,
     IceRpc.IncomingRequest request,
     global::System.Threading.CancellationToken cancellationToken)
 {{
@@ -364,7 +364,7 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
 }}
 "#,
         name = operation.cs_identifier(None),
-        interface_name = operation.parent().unwrap().interface_name(),
+        service_name = operation.parent().unwrap().service_name(),
         dispatch_body = operation_dispatch_body(operation).indent(),
     )
     .into()

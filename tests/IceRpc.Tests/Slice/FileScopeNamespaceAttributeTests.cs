@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Slice.FileScopeNamespaceAttribute.WithFileScopeNamespace;
 [Parallelizable(scope: ParallelScope.All)]
 public class FileScopeNamespaceAttributeTests
 {
-    public class FileScopeNamespaceOperations : Service, IFileScopeNamespaceOperations
+    public class FileScopeNamespaceOperations : Service, IFileScopeNamespaceOperationsService
     {
         public ValueTask<S1> Op1Async(S1 p, IFeatureCollection features, CancellationToken cancellationToken) =>
             new(p);

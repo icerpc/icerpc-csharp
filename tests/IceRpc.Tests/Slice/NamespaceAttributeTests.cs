@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class NamespaceAttributeTests
 {
-    public class NamespaceOperations : Service, INamespaceOperations
+    public class NamespaceOperations : Service, INamespaceOperationsService
     {
         public ValueTask<NamespaceAttribute.WithNamespace.N1.O2.S1> Op1Async(
             NamespaceAttribute.M1.M2.M3.S1 p,

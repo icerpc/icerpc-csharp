@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Slice.Identifiers;
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentifierAttributeTests
 {
-    public class IdentifierOperations : Service, IREnamedInterface
+    public class IdentifierOperations : Service, IREnamedInterfaceService
     {
         public ValueTask<(int, int)> REnamedOpAsync(
             REnamedStruct renamedParam,

@@ -34,6 +34,12 @@ pub trait InterfaceExt: EntityExt {
             format!("global::{}.{}", namespace, self.proxy_implementation_name())
         }
     }
+
+    /// The name of the generated C# service interface for this Slice interface.
+    /// eg. If the Slice interface is `Foo`, the C# service interface is `IFooService`.
+    fn service_name(&self) -> String {
+        self.interface_name() + "Service"
+    }
 }
 
 impl InterfaceExt for Interface {}

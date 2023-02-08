@@ -961,8 +961,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ICompactFormatOperations.Response.OpAnyClass(new MyClassB()) :
-            ICompactFormatOperations.Response.OpMyClass(new MyClassB());
+            ICompactFormatOperationsService.Response.OpAnyClass(new MyClassB()) :
+            ICompactFormatOperationsService.Response.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;
@@ -991,8 +991,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ISlicedFormatOperations.Response.OpAnyClass(new MyClassB()) :
-            ISlicedFormatOperations.Response.OpMyClass(new MyClassB());
+            ISlicedFormatOperationsService.Response.OpAnyClass(new MyClassB()) :
+            ISlicedFormatOperationsService.Response.OpMyClass(new MyClassB());
 
         // Assert
         ReadResult readResult;

@@ -130,7 +130,7 @@ public class CustomTransportTests
         }
     }
 
-    public class MyService : Service, IService
+    public class MyService : Service, IServiceService
     {
     }
 }

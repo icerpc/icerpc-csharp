@@ -570,7 +570,7 @@ public sealed class ExceptionTests
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
-    private sealed class Slice2ExceptionOperations : Service, ISlice2ExceptionOperations
+    private sealed class Slice2ExceptionOperations : Service, ISlice2ExceptionOperationsService
     {
         private readonly Exception _exception;
 
@@ -588,7 +588,7 @@ public sealed class ExceptionTests
             CancellationToken cancellationToken) => new(exception);
     }
 
-    private sealed class Slice1ExceptionOperations : Service, ISlice1ExceptionOperations
+    private sealed class Slice1ExceptionOperations : Service, ISlice1ExceptionOperationsService
     {
         private readonly Exception _exception;
 

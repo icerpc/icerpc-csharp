@@ -29,7 +29,7 @@ public class TypeNameQualificationTests
         Assert.That(r.V, Is.EqualTo("10"));
     }
 
-    private sealed class TypeNameQualification : Service, ITypeNameQualificationOperations
+    private sealed class TypeNameQualification : Service, ITypeNameQualificationOperationsService
     {
         public ValueTask<S> OpWithTypeNamesDefinedInMultipleModulesAsync(
             Inner.S s,

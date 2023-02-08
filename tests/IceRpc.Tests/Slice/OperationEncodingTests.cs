@@ -37,7 +37,7 @@ public class OperationEncodingTests
         };
 
         // Act
-        int decoded = await IMyOperationsB.Request.OpInt32Async(request, default);
+        int decoded = await IMyOperationsBService.Request.OpInt32Async(request, default);
 
         // Assert
         Assert.That(decoded, Is.EqualTo(10));
@@ -56,7 +56,7 @@ public class OperationEncodingTests
     public void Slice2_operation_encode_with_single_return()
     {
         // Act
-        PipeReader payload = IMyOperationsB.Response.OpInt32(10);
+        PipeReader payload = IMyOperationsBService.Response.OpInt32(10);
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
@@ -115,7 +115,7 @@ public class OperationEncodingTests
             Payload = Encode(10, "hello world!")
         };
 
-        var decoded = await IMyOperationsB.Request.OpInt32AndStringAsync(request, default);
+        var decoded = await IMyOperationsBService.Request.OpInt32AndStringAsync(request, default);
 
         Assert.That(decoded.P1, Is.EqualTo(10));
         Assert.That(decoded.P2, Is.EqualTo("hello world!"));
@@ -135,7 +135,7 @@ public class OperationEncodingTests
     [Test]
     public void Slice2_operation_encode_with_multiple_return()
     {
-        var payload = IMyOperationsB.Response.OpInt32AndString(10, "hello world!");
+        var payload = IMyOperationsBService.Response.OpInt32AndString(10, "hello world!");
 
         // Assert
         // readResult: 17 bytes payload + 4 bytes payload size
@@ -235,7 +235,7 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        (int r1, string r2, int? r3, string? r4) = await IMyOperationsB.Request.OpOptionalAsync(request, default);
+        (int r1, string r2, int? r3, string? r4) = await IMyOperationsBService.Request.OpOptionalAsync(request, default);
 
         Assert.That(r1, Is.EqualTo(p1));
         Assert.That(r2, Is.EqualTo(p2));
@@ -276,7 +276,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = IMyOperationsB.Response.OpOptional(p1, p2, p3, p4);
+        PipeReader payload = IMyOperationsBService.Response.OpOptional(p1, p2, p3, p4);
 
         // Assert
         // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
@@ -407,7 +407,7 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        (int r1, string r2, int? r3, string? r4) = await IMyOperationsB.Request.OpTaggedAsync(request, default);
+        (int r1, string r2, int? r3, string? r4) = await IMyOperationsBService.Request.OpTaggedAsync(request, default);
 
         Assert.That(r1, Is.EqualTo(p1));
         Assert.That(r2, Is.EqualTo(p2));
@@ -453,7 +453,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = IMyOperationsB.Response.OpTagged(p1, p2, p3, p4);
+        PipeReader payload = IMyOperationsBService.Response.OpTagged(p1, p2, p3, p4);
 
         // Assert
         // readResult: size + 4 bytes payload size

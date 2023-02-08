@@ -38,7 +38,7 @@ public sealed class ProtocolBridgingTests
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
             .AddIceRpcConnectionCache()
-            .AddSingleton<IProtocolBridgingTest>(targetService)
+            .AddSingleton<IProtocolBridgingTestService>(targetService)
             .AddSingleton(_ => new Forwarder(targetServiceProxy.ToProxy<ServiceProxy>()))
             .AddIceRpcServer(
                 "forwarder",
@@ -50,7 +50,7 @@ public sealed class ProtocolBridgingTests
                 builder => builder
                     .UseRequestContext()
                     .UseDispatchInformation()
-                    .Map<IProtocolBridgingTest>("/target"))
+                    .Map<IProtocolBridgingTestService>("/target"))
             .AddIceRpcInvoker(
                 builder => builder
                     .UseRequestContext()
@@ -112,7 +112,7 @@ public sealed class ProtocolBridgingTests
         }
     }
 
-    internal sealed class ProtocolBridgingTest : Service, IProtocolBridgingTest
+    internal sealed class ProtocolBridgingTest : Service, IProtocolBridgingTestService
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
