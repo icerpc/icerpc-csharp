@@ -65,6 +65,10 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 writeln!(code, "decoder.DecodeNullableProxy<{type_string}>();");
                 return code;
             }
+            Types::Primitive(p) if matches!(p, Primitive::ServiceAddress) && encoding == Encoding::Slice1 => {
+                writeln!(code, "decoder.DecodeNullableServiceAddress();");
+                return code;
+            }
             _ if data_type.is_class_type() => {
                 // does not use bit sequence
                 writeln!(code, "decoder.DecodeNullableClass<{type_string}>();");
@@ -347,6 +351,13 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
             } else {
                 format!("(ref SliceDecoder decoder) => decoder.DecodeProxy<{type_name}>()")
             }
+        }
+        TypeRefs::Primitive(p)
+            if matches!(p.definition(), Primitive::ServiceAddress)
+                && encoding == Encoding::Slice1
+                && type_ref.is_optional =>
+        {
+            "(ref SliceDecoder decoder) => decoder.DecodeNullableServiceAddress()".to_owned()
         }
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass

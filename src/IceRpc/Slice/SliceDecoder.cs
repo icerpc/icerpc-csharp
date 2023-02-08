@@ -299,50 +299,59 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
-    /// <returns>The decoded Proxy, or null.</returns>
-    public TProxy? DecodeNullableProxy<TProxy>() where TProxy : struct, IProxy
+    /// <returns>The decoded proxy, or null.</returns>
+    public TProxy? DecodeNullableProxy<TProxy>() where TProxy : struct, IProxy =>
+        DecodeNullableServiceAddress() is ServiceAddress serviceAddress ? CreateProxy<TProxy>(serviceAddress) : null;
+
+    /// <summary>Decodes a nullable service address (Slice1 only).</summary>
+    /// <returns>The decoded service address, or null.</returns>
+    public ServiceAddress? DecodeNullableServiceAddress()
     {
         if (Encoding != SliceEncoding.Slice1)
         {
             throw new InvalidOperationException($"Decoding a nullable Proxy with {Encoding} requires a bit sequence.");
         }
         string path = this.DecodeIdentityPath();
-        return path != "/" ? CreateProxy<TProxy>(DecodeServiceAddress(path)) : null;
+        return path != "/" ? DecodeServiceAddressCore(path) : null;
     }
 
     /// <summary>Decodes a proxy struct.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <returns>The decoded proxy struct.</returns>
-    public TProxy DecodeProxy<TProxy>() where TProxy : struct, IProxy
+    public TProxy DecodeProxy<TProxy>() where TProxy : struct, IProxy =>
+        Encoding == SliceEncoding.Slice1 ?
+            DecodeNullableProxy<TProxy>() ??
+                throw new InvalidDataException("Decoded null for a non-nullable proxy.") :
+           CreateProxy<TProxy>(DecodeServiceAddress());
+
+    /// <summary>Decodes a service address.</summary>
+    /// <returns>The decoded service address.</returns>
+    public ServiceAddress DecodeServiceAddress()
     {
         if (Encoding == SliceEncoding.Slice1)
         {
-            string path = this.DecodeIdentityPath();
-            return path != "/" ? CreateProxy<TProxy>(DecodeServiceAddress(path)) :
-                throw new InvalidDataException("Decoded null for a non-nullable proxy.");
+            return DecodeNullableServiceAddress() ??
+                throw new InvalidDataException("Decoded null for a non-nullable service address.");
         }
         else
         {
             string serviceAddressString = DecodeString();
-            ServiceAddress serviceAddress;
             try
             {
                 if (serviceAddressString.StartsWith('/'))
                 {
                     // relative service address
-                    serviceAddress = new ServiceAddress { Path = serviceAddressString };
+                    return new ServiceAddress { Path = serviceAddressString };
                 }
                 else
                 {
-                    serviceAddress = new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
+                    return new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
                 }
             }
             catch (Exception ex)
             {
                 throw new InvalidDataException("Received an invalid service address.", ex);
             }
-
-            return CreateProxy<TProxy>(serviceAddress);
         }
     }
 
@@ -996,7 +1005,7 @@ public ref partial struct SliceDecoder
     /// <summary>Helper method to decode a service address encoded with Slice1.</summary>
     /// <param name="path">The decoded path.</param>
     /// <returns>The decoded service address.</returns>
-    private ServiceAddress DecodeServiceAddress(string path)
+    private ServiceAddress DecodeServiceAddressCore(string path)
     {
         // With Slice1, a proxy is encoded as a kind of discriminated union with:
         // - Identity
@@ -1074,9 +1083,9 @@ public ref partial struct SliceDecoder
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            throw new InvalidDataException("Received invalid service address.", ex);
+            throw new InvalidDataException("Received invalid service address.", exception);
         }
     }
 
