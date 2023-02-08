@@ -13,7 +13,7 @@ public class ClientHostedService : BackgroundService
 
     private readonly ClientConnection _connection;
 
-    // A proxy to the remote Hello service.
+    // The IHello managed by the DI container.
     private readonly IHello _hello;
 
     // All the parameters are injected by the DI container.
