@@ -165,7 +165,7 @@ public interface ILocationResolver
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A tuple with a nullable dummy service address that holds the server addresses (if resolved), and a bool
     /// that indicates whether these server addresses were retrieved from the implementation's cache. ServiceAddress is
-    /// null whe the location resolver fails to resolve a location. When ServiceAddress is not null, its ServerAddress
+    /// null when the location resolver fails to resolve a location. When ServiceAddress is not null, its ServerAddress
     /// is not null.</returns>
     ValueTask<(ServiceAddress? ServiceAddress, bool FromCache)> ResolveAsync(
         Location location,
