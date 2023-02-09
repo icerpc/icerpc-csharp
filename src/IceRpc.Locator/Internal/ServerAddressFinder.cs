@@ -40,8 +40,8 @@ internal interface IServerAddressFinder
     Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken);
 }
 
-/// <summary>The main implementation of IServerAddressFinder. It uses a locator to "find" the server addresses.
-/// </summary>
+/// <summary>The main implementation of IServerAddressFinder. It uses an <see cref="ILocator"/> to "find" the server
+/// addresses.</summary>
 internal class LocatorServerAddressFinder : IServerAddressFinder
 {
     private readonly ILocator _locator;
