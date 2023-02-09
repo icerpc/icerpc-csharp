@@ -489,8 +489,12 @@ public class ServiceAddressTests
         var router = new Router();
         router.Map<ISendProxyTestService>(service);
         router.UseFeature<ISliceFeature>(
-            // TODO: need GenericProxy struct
-            new SliceFeature(proxyFactory: (serviceAddress, _) => new IceObjectProxy(pipeline, serviceAddress)));
+            new SliceFeature(proxyFactory: (serviceAddress, _) =>
+                new GenericProxy
+                {
+                    Invoker = pipeline,
+                    ServiceAddress = serviceAddress
+                }));
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: router)

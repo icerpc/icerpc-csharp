@@ -21,7 +21,7 @@ internal static class IncomingFrameExtensions
         this IncomingFrame frame,
         SliceEncoding encoding,
         ISliceFeature feature,
-        IProxy? templateProxy,
+        GenericProxy? templateProxy,
         DecodeFunc<T> decodeFunc,
         IActivator? activator,
         CancellationToken cancellationToken)

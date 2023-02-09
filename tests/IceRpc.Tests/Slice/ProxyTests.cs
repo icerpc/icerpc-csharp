@@ -139,7 +139,6 @@ public class ProxyTests
 
         Assert.That(derived, Is.Null);
     }
-    */
 
     private class MyBaseInterface : Service, IMyBaseInterfaceService
     {
@@ -148,4 +147,5 @@ public class ProxyTests
     private sealed class MyDerivedInterface : MyBaseInterface, IMyDerivedInterfaceService
     {
     }
+    */
 }

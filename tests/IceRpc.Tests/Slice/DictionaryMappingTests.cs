@@ -10,6 +10,12 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class DictionaryMappingTests
 {
+    private static readonly GenericProxy _invalidSender = new()
+    {
+        Invoker = NotImplementedInvoker.Instance,
+        ServiceAddress = null!
+    };
+
     [Test]
     public async Task Return_tuple_with_elements_using_cs_generic_attribute()
     {
@@ -26,7 +32,7 @@ public class DictionaryMappingTests
             await DictionaryMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                new PingableProxy(NotImplementedInvoker.Instance),
+                _invalidSender,
                 default);
 
         Assert.That(r1, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
@@ -47,7 +53,7 @@ public class DictionaryMappingTests
         CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
             response,
             request,
-            new PingableProxy(NotImplementedInvoker.Instance),
+            _invalidSender,
             default);
 
         Assert.That(r, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));

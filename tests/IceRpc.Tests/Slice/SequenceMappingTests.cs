@@ -10,6 +10,12 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceMappingTests
 {
+    private static readonly GenericProxy _invalidSender = new()
+    {
+        Invoker = NotImplementedInvoker.Instance,
+        ServiceAddress = null!
+    };
+
     [Test]
     public async Task Return_tuple_with_elements_using_cs_generic_attribute()
     {
@@ -26,7 +32,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                new PingableProxy(NotImplementedInvoker.Instance),
+                new GenericProxy { Invoker = NotImplementedInvoker.Instance, ServiceAddress = null! },
                 default);
 
         Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
@@ -48,7 +54,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
-                new PingableProxy(NotImplementedInvoker.Instance),
+                _invalidSender,
                 default);
 
         Assert.That(r, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
@@ -97,7 +103,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpStructNestedSequenceAsync(
                 response,
                 request,
-                new PingableProxy(NotImplementedInvoker.Instance),
+                _invalidSender,
                 default);
 
         Assert.That(await result, Is.EqualTo(data));
@@ -123,7 +129,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpNumericTypeNestedSequenceAsync(
                 response,
                 request,
-                new PingableProxy(NotImplementedInvoker.Instance),
+                _invalidSender,
                 default);
 
         Assert.That(await result, Is.EqualTo(data));

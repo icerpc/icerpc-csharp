@@ -48,12 +48,12 @@ public ref partial struct SliceDecoder
     // The maximum depth when decoding a class recursively.
     private readonly int _maxDepth;
 
-    private readonly Func<ServiceAddress, IProxy?, IProxy>? _proxyFactory;
+    private readonly Func<ServiceAddress, GenericProxy?, GenericProxy>? _proxyFactory;
 
     // The sequence reader.
     private SequenceReader<byte> _reader;
 
-    private readonly IProxy? _templateProxy;
+    private readonly GenericProxy? _templateProxy;
 
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
@@ -68,8 +68,8 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlySequence<byte> buffer,
         SliceEncoding encoding,
-        Func<ServiceAddress, IProxy?, IProxy>? proxyFactory = null,
-        IProxy? templateProxy = null,
+        Func<ServiceAddress, GenericProxy?, GenericProxy>? proxyFactory = null,
+        GenericProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
@@ -108,8 +108,8 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlyMemory<byte> buffer,
         SliceEncoding encoding,
-        Func<ServiceAddress, IProxy?, IProxy>? proxyFactory = null,
-        IProxy? templateProxy = null,
+        Func<ServiceAddress, GenericProxy?, GenericProxy>? proxyFactory = null,
+        GenericProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
@@ -776,7 +776,7 @@ public ref partial struct SliceDecoder
     {
         if (_proxyFactory is null)
         {
-            return _templateProxy is IProxy templateProxy ?
+            return _templateProxy is GenericProxy templateProxy ?
                 new TProxy
                 {
                     EncodeOptions = templateProxy.EncodeOptions,
@@ -789,7 +789,7 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            IProxy proxy = _proxyFactory(serviceAddress, _templateProxy);
+            GenericProxy proxy = _proxyFactory(serviceAddress, _templateProxy);
 
             return new TProxy
             {

@@ -18,7 +18,7 @@ namespace IceRpc.Slice;
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
-    IProxy sender,
+    GenericProxy sender,
     CancellationToken cancellationToken);
 
 /// <summary>A function that decodes the "void" return value from a Slice-encoded response.</summary>
@@ -31,7 +31,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 public delegate ValueTask ResponseDecodeFunc(
     IncomingResponse response,
     OutgoingRequest request,
-    IProxy sender,
+    GenericProxy sender,
     CancellationToken cancellationToken);
 
 /// <summary>Provides extension methods for interface <see cref="IProxy" /> and generated proxy structs that implement
@@ -45,17 +45,19 @@ public static class ProxyExtensions
         }.ToImmutableDictionary();
 
     /// <summary>Tests whether the target service implements the interface implemented by
-    /// <typeparamref name="TProxy" />. This method is a wrapper for <see cref="IIceObject.IceIsAAsync" />.</summary>
+    /// <typeparamref name="TProxy" />. This method is a wrapper for <see cref="IIceObject.IceIsAAsync" /> and as a
+    /// result is only meaningful when <typeparamref name="TProxy" /> is the proxy for a Slice1 interface.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source proxy being tested.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A new <typeparamref name="TProxy" /> instance, or null.</returns>
     public static async Task<TProxy?> AsAsync<TProxy>(
-        this IIceObjectProxy proxy,
+        this IProxy proxy,
         IFeatureCollection? features = null,
         CancellationToken cancellationToken = default) where TProxy : struct, IProxy =>
-        await proxy.IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancellationToken).ConfigureAwait(false) ?
+        await proxy.ToProxy<IceObjectProxy>().IceIsAAsync(typeof(TProxy).GetSliceTypeId()!, features, cancellationToken)
+            .ConfigureAwait(false) ?
             proxy.ToProxy<TProxy>() : null;
 
     /// <summary>Sends a request to a service and decodes the response.</summary>
@@ -128,7 +130,7 @@ public static class ProxyExtensions
                 return await responseDecodeFunc(
                     response,
                     request,
-                    proxy,
+                    GenericProxy.FromProxy(proxy),
                     cancellationToken).ConfigureAwait(false);
             }
             finally
@@ -212,7 +214,7 @@ public static class ProxyExtensions
                 await responseDecodeFunc(
                     response,
                     request,
-                    proxy,
+                    GenericProxy.FromProxy(proxy),
                     cancellationToken).ConfigureAwait(false);
             }
             finally

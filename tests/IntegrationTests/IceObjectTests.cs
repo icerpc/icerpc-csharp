@@ -17,7 +17,7 @@ public class IceObjectTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(Protocol.Parse(protocol), new MyService())
-            .AddIceRpcProxy<IIceObject, PingableProxy>(new Uri($"{protocol}:/service"))
+            .AddIceRpcProxy<IIceObject, IceObjectProxy>(new Uri($"{protocol}:/service"))
             .BuildServiceProvider(validateScopes: true);
         IIceObject proxy = provider.GetRequiredService<IIceObject>();
         Server server = provider.GetRequiredService<Server>();
@@ -25,11 +25,12 @@ public class IceObjectTests
 
         string[] ids = new string[]
         {
-            "::Ice::Object",
+            "::Ice::Object", "::IceRpc::IntegrationTests::Pingable"
         };
 
         Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
-        Assert.That(await proxy.IceIsAAsync("::IceRpc::Slice::Service"), Is.True);
+        Assert.That(await proxy.IceIsAAsync("::Ice::Object"), Is.True);
+        Assert.That(await proxy.IceIsAAsync("::IceRpc::IntegrationTests::Pingable"), Is.True);
         Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }

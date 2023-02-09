@@ -33,7 +33,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        IProxy sender,
+        GenericProxy sender,
         DecodeFunc<T> decodeReturnValue,
         DecodeExceptionFunc? decodeException = null,
         IActivator? defaultActivator = null,
@@ -88,7 +88,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        IProxy sender,
+        GenericProxy sender,
         DecodeExceptionFunc? decodeException = null,
         IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
@@ -118,7 +118,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         SliceEncoding encoding,
         ISliceFeature feature,
-        IProxy sender,
+        GenericProxy sender,
         DecodeExceptionFunc? decodeException,
         IActivator? activator,
         CancellationToken cancellationToken)

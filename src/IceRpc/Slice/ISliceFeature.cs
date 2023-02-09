@@ -26,5 +26,5 @@ public interface ISliceFeature
     int MaxSegmentSize { get; }
 
     /// <summary>Gets the proxy factory to use when decoding proxies in request or response payloads.</summary>
-    Func<ServiceAddress, IProxy?, IProxy>? ProxyFactory { get; }
+    Func<ServiceAddress, GenericProxy?, GenericProxy>? ProxyFactory { get; }
 }

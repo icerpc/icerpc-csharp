@@ -10,6 +10,12 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class InvokeAsyncTests
 {
+    private static readonly GenericProxy _invalidSender = new()
+    {
+        Invoker = NotImplementedInvoker.Instance,
+        ServiceAddress = null!
+    };
+
     /// <summary>Verifies that InvokeAsync completes the outgoing request and incoming response payloads.</summary>
     [Test]
     public async Task InvokeAsync_completes_all_payloads()
@@ -35,7 +41,7 @@ public class InvokeAsyncTests
                 response.DecodeVoidReturnValueAsync(
                     request,
                     SliceEncoding.Slice2,
-                    sut,
+                    _invalidSender,
                     cancellationToken: cancellationToken),
             features: null);
 
@@ -70,7 +76,7 @@ public class InvokeAsyncTests
                     response.DecodeVoidReturnValueAsync(
                         request,
                         SliceEncoding.Slice2,
-                        sut,
+                        _invalidSender,
                         cancellationToken: cancellationToken),
                 features: null),
             Throws.InstanceOf<InvalidDataException>());
