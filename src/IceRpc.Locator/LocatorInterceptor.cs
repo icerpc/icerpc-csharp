@@ -173,7 +173,7 @@ public interface ILocationResolver
         CancellationToken cancellationToken);
 }
 
-/// <summary>Implements <see cref="ILocationResolver" /> using a locator.</summary>
+/// <summary>Implements <see cref="ILocationResolver" /> using an <see cref="ILocator"/>.</summary>
 public class LocatorLocationResolver : ILocationResolver
 {
     private readonly ILocationResolver _locationResolver;
