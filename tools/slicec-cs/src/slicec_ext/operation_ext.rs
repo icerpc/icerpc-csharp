@@ -3,6 +3,7 @@
 use super::{EntityExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes::match_cs_encoded_result;
 use crate::cs_util::FieldType;
+use crate::slicec_ext::interface_ext::InterfaceExt;
 use crate::slicec_ext::member_ext::MemberExt;
 use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
 use slice::utils::code_gen_util::TypeContext;
@@ -29,7 +30,7 @@ impl OperationExt for Operation {
     fn encoded_result_struct(&self) -> String {
         format!(
             "{}.{}EncodedResult",
-            self.parent().unwrap().interface_name(),
+            self.parent().unwrap().service_name(),
             self.escape_identifier(),
         )
     }

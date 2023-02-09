@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class NamespaceAttributeTests
 {
-    public class NamespaceOperations : Service, INamespaceOperations
+    public class NamespaceOperations : Service, INamespaceOperationsService
     {
         public ValueTask<NamespaceAttribute.WithNamespace.N1.O2.S1> Op1Async(
             NamespaceAttribute.M1.M2.M3.S1 p,
@@ -24,10 +24,10 @@ public class NamespaceAttributeTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new NamespaceOperations())
-            .AddIceRpcProxy<INamespaceOperationsProxy, NamespaceOperationsProxy>()
+            .AddIceRpcProxy<INamespaceOperations, NamespaceOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        INamespaceOperationsProxy proxy = provider.GetRequiredService<INamespaceOperationsProxy>();
+        INamespaceOperations proxy = provider.GetRequiredService<INamespaceOperations>();
         provider.GetRequiredService<Server>().Listen();
 
         NamespaceAttribute.WithNamespace.N1.O2.S1 r =

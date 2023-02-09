@@ -13,7 +13,7 @@ public class SequenceMappingTests
     [Test]
     public async Task Return_tuple_with_elements_using_cs_generic_attribute()
     {
-        PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnTuple(
+        PipeReader responsePayload = ISequenceMappingOperationsService.Response.OpReturnTuple(
             new int[] { 1, 2, 3 },
             new int[] { 1, 2, 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -36,7 +36,8 @@ public class SequenceMappingTests
     [Test]
     public async Task Return_single_type_using_cs_generic_attribute()
     {
-        PipeReader responsePayload = ISequenceMappingOperations.Response.OpReturnSingleType(new int[] { 1, 2, 3 });
+        PipeReader responsePayload = ISequenceMappingOperationsService.Response.OpReturnSingleType(
+            new int[] { 1, 2, 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
         {
@@ -62,7 +63,7 @@ public class SequenceMappingTests
 
         // Assert
         Assert.That(
-            async () => await ISequenceMappingOperations.Request.OpSingleParameterAsync(
+            async () => await ISequenceMappingOperationsService.Request.OpSingleParameterAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = requestPayload

@@ -28,7 +28,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1:20
 pipeline.Into(connection);
 
 var proxy = new CrmProxy(pipeline);
-router.Map<IHello>(new Hello(proxy));
+router.Map<IHelloService>(new Hello(proxy));
 
 await using var server = new Server(router);
 server.Listen();

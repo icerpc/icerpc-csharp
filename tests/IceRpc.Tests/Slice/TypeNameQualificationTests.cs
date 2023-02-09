@@ -18,10 +18,10 @@ public class TypeNameQualificationTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new TypeNameQualification())
-            .AddIceRpcProxy<ITypeNameQualificationOperationsProxy, TypeNameQualificationOperationsProxy>()
+            .AddIceRpcProxy<ITypeNameQualificationOperations, TypeNameQualificationOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        ITypeNameQualificationOperationsProxy proxy = provider.GetRequiredService<ITypeNameQualificationOperationsProxy>();
+        ITypeNameQualificationOperations proxy = provider.GetRequiredService<ITypeNameQualificationOperations>();
         provider.GetRequiredService<Server>().Listen();
 
         var r = await proxy.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
@@ -29,7 +29,7 @@ public class TypeNameQualificationTests
         Assert.That(r.V, Is.EqualTo("10"));
     }
 
-    private sealed class TypeNameQualification : Service, ITypeNameQualificationOperations
+    private sealed class TypeNameQualification : Service, ITypeNameQualificationOperationsService
     {
         public ValueTask<S> OpWithTypeNamesDefinedInMultipleModulesAsync(
             Inner.S s,

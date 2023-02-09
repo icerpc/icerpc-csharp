@@ -17,7 +17,8 @@ var locator = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Lo
 var hello = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
 // Create a logger factory that logs to the console.
-using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+using ILoggerFactory loggerFactory = LoggerFactory.Create(
+    builder =>
     {
         builder.AddFilter("IceRpc", LogLevel.Information);
         builder.AddSimpleConsole(configure => configure.IncludeScopes = true);

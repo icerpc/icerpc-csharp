@@ -5,9 +5,9 @@ using IceRpc.Slice;
 
 namespace AuthorizationExample;
 
-/// <summary>The implementation of the IHelloAdmin interface. It is used to change the greeting and requires callers
-/// to be authenticated.</summary>
-internal class HelloAdmin : Service, IHelloAdmin
+/// <summary>A service that implements Slice interface HelloAdmin. It is used to change the greeting and requires
+/// callers to be authenticated.</summary>
+internal class HelloAdmin : Service, IHelloAdminService
 {
     private readonly Hello _hello;
 

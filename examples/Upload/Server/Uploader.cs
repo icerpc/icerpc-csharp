@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 
 namespace UploadExample;
 
-internal class Uploader : Service, IUploader
+internal class Uploader : Service, IUploaderService
 {
     public async ValueTask UploadImageAsync(
         PipeReader image,

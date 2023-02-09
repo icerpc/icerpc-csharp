@@ -37,7 +37,7 @@ pub trait EntityExt: Entity {
     /// Returns the interface name corresponding to this entity's identifier, without scoping.
     /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
     /// The name is always prefixed with 'I' and the first letter is always
-    /// capitalized. If the identifier is already in this format, it is returned unchanged.
+    /// capitalized.
     fn interface_name(&self) -> String;
 
     /// Returns the interface name corresponding to this entity's identifier, fully scoped.

@@ -6,7 +6,7 @@ using IceRpc;
 // Establish the connection to the server
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
-IHelloProxy hello = new HelloProxy(connection);
+var hello = new HelloProxy(connection);
 
 double requestsPerSecond = 20;
 Console.WriteLine($"Sending {requestsPerSecond} requests per second...");

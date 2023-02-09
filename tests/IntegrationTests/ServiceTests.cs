@@ -16,9 +16,9 @@ public class ServiceTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(Protocol.Parse(protocol), new Service())
-            .AddIceRpcProxy<IServiceProxy, ServiceProxy>(new Uri($"{protocol}:/service"))
+            .AddIceRpcProxy<IService, ServiceProxy>(new Uri($"{protocol}:/service"))
             .BuildServiceProvider(validateScopes: true);
-        IServiceProxy proxy = provider.GetRequiredService<IServiceProxy>();
+        IService proxy = provider.GetRequiredService<IService>();
         Server server = provider.GetRequiredService<Server>();
         server.Listen();
 

@@ -13,7 +13,7 @@ public class DictionaryMappingTests
     [Test]
     public async Task Return_tuple_with_elements_using_cs_generic_attribute()
     {
-        PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnTuple(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.OpReturnTuple(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -36,7 +36,7 @@ public class DictionaryMappingTests
     [Test]
     public async Task Return_type_using_cs_generic_attribute()
     {
-        PipeReader responsePayload = IDictionaryMappingOperations.Response.OpReturnSingleType(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.OpReturnSingleType(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -62,7 +62,7 @@ public class DictionaryMappingTests
 
         // Act/Assert
         Assert.That(
-            async () => await IDictionaryMappingOperations.Request.OpSingleParameterAsync(
+            async () => await IDictionaryMappingOperationsService.Request.OpSingleParameterAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = requestPayload

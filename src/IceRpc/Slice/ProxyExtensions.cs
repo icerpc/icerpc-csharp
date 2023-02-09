@@ -45,7 +45,7 @@ public static class ProxyExtensions
         }.ToImmutableDictionary();
 
     /// <summary>Tests whether the target service implements the interface implemented by the TProxy proxy. This
-    /// method is a wrapper for <see cref="IServiceProxy.IceIsAAsync" />.</summary>
+    /// method is a wrapper for <see cref="IService.IceIsAAsync" />.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source Proxy being tested.</param>
     /// <param name="features">The invocation features.</param>

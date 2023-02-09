@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 namespace RetryExample;
 
-internal class Hello : Service, IHello
+internal class Hello : Service, IHelloService
 {
     private readonly int _serverNumber;
 

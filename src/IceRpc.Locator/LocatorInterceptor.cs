@@ -173,16 +173,16 @@ public interface ILocationResolver
         CancellationToken cancellationToken);
 }
 
-/// <summary>Implements <see cref="ILocationResolver" /> using a locator proxy.</summary>
+/// <summary>Implements <see cref="ILocationResolver" /> using an <see cref="ILocator"/>.</summary>
 public class LocatorLocationResolver : ILocationResolver
 {
     private readonly ILocationResolver _locationResolver;
 
     /// <summary>Constructs a locator location resolver.</summary>
-    /// <param name="locator">The locator proxy.</param>
+    /// <param name="locator">The locator.</param>
     /// <param name="options">The locator options.</param>
     /// <param name="logger">The logger.</param>
-    public LocatorLocationResolver(ILocatorProxy locator, LocatorOptions options, ILogger logger)
+    public LocatorLocationResolver(ILocator locator, LocatorOptions options, ILogger logger)
     {
         // This is the composition root of this locator location resolver.
         if (options.Ttl != Timeout.InfiniteTimeSpan && options.RefreshThreshold >= options.Ttl)

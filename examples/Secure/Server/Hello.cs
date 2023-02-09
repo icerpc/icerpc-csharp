@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace HelloSecureExample;
 
-internal class Hello : Service, IHello
+internal class Hello : Service, IHelloService
 {
     public ValueTask<string> SayHelloAsync(
         string name,

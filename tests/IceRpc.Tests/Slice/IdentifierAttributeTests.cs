@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Slice.Identifiers;
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentifierAttributeTests
 {
-    public class IdentifierOperations : Service, IREnamedInterface
+    public class IdentifierOperations : Service, IREnamedInterfaceService
     {
         public ValueTask<(int, int)> REnamedOpAsync(
             REnamedStruct renamedParam,
@@ -38,10 +38,10 @@ public class IdentifierAttributeTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: new IdentifierOperations())
-            .AddIceRpcProxy<IREnamedInterfaceProxy, REnamedInterfaceProxy>()
+            .AddIceRpcProxy<IREnamedInterface, REnamedInterfaceProxy>()
             .BuildServiceProvider(validateScopes: true);
 
-        IREnamedInterfaceProxy proxy = provider.GetRequiredService<IREnamedInterfaceProxy>();
+        IREnamedInterface proxy = provider.GetRequiredService<IREnamedInterface>();
         provider.GetRequiredService<Server>().Listen();
 
         // Act / Assert

@@ -487,7 +487,7 @@ public class ServiceAddressTests
         var service = new SendProxyTest();
         var pipeline = new Pipeline();
         var router = new Router();
-        router.Map<ISendProxyTest>(service);
+        router.Map<ISendProxyTestService>(service);
         router.UseFeature<ISliceFeature>(
             new SliceFeature(serviceProxyFactory: (serviceAddress, _) => new ServiceProxy(pipeline, serviceAddress)));
 
@@ -634,13 +634,13 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.Protocol, Is.Null);
     }
 
-    private sealed class ReceiveProxyTest : Service, IReceiveProxyTest
+    private sealed class ReceiveProxyTest : Service, IReceiveProxyTestService
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
     }
 
-    private sealed class SendProxyTest : Service, ISendProxyTest
+    private sealed class SendProxyTest : Service, ISendProxyTestService
     {
         public SendProxyTestProxy? ReceivedProxy { get; private set; }
 
