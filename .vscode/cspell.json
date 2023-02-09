@@ -29,6 +29,7 @@
     "Oneway",
     "Parallelizable",
     "parameterless",
+    "Pingable",
     "Quic",
     "reportgenerator",
     "retryable",

@@ -5,8 +5,6 @@ encoding = 1;
 [cs::namespace("IceRpc")]
 module Ice;
 
-typealias IdentityPath = IceRpc::Slice::IdentityPath;
-
 /// This exception is thrown when an object adapter was not found.
 exception AdapterNotFoundException
 {
@@ -25,11 +23,11 @@ interface Locator
     /// Finds a service by identity (path) and returns a dummy service address with the server address(es) that can be
     /// used to reach this service. This dummy service address can also carry no server address and require further
     /// resolution using TODO-LINK findAdapterById.
-    /// @param path The path.
+    /// @param id The identity represented as a path.
     /// @return A dummy service address, or null if a service with the requested identity (path) was not found.
     /// @throws ObjectNotFoundException Thrown if a service with the requested identity (path) was not found. The caller
     /// should treat this exception like a null return value.
-    idempotent findObjectById(path: IdentityPath) -> ServiceAddress? throws ObjectNotFoundException;
+    idempotent findObjectById(id: IceRpc::Slice::IdentityPath) -> ServiceAddress? throws ObjectNotFoundException;
 
     /// Finds an object adapter by adapter ID and returns a dummy service address with the object adapter's server
     /// address(es).
