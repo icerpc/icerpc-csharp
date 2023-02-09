@@ -87,7 +87,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            serviceAddress is null ? null : new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+            serviceAddress is null ? null : new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeInt32(expected.A);
@@ -106,7 +106,7 @@ public sealed class StructTests
         var expected = new MyCompactStructWithNullableProxy(
             10,
             serviceAddress is null ? null :
-                new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+                new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
@@ -132,18 +132,18 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
-            I = new ServiceProxy?[]
+            I = new PingableProxy?[]
             {
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeSequence(
             expected.I,
-            (ref SliceEncoder encoder, ServiceProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
+            (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);
@@ -156,18 +156,18 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
-            I = new ServiceProxy?[]
+            I = new PingableProxy?[]
             {
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeSequenceWithBitSequence(
             expected.I,
-            (ref SliceEncoder encoder, ServiceProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
+            (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);
@@ -180,11 +180,11 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
-            I = new Dictionary<int, ServiceProxy?>
+            I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -192,7 +192,7 @@ public sealed class StructTests
         encoder.EncodeDictionary(
             expected.I,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            (ref SliceEncoder encoder, ServiceProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
+            (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         var value = new MyCompactStructWithDictionaryOfNullableProxies(ref decoder);
@@ -205,11 +205,11 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
-            I = new Dictionary<int, ServiceProxy?>
+            I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -217,7 +217,7 @@ public sealed class StructTests
         encoder.EncodeDictionaryWithBitSequence(
             expected.I,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
-            (ref SliceEncoder encoder, ServiceProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
+            (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyCompactStructWithDictionaryOfNullableProxies(ref decoder);
@@ -303,7 +303,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            serviceAddress is null ? null : new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+            serviceAddress is null ? null : new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
@@ -311,7 +311,7 @@ public sealed class StructTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.A));
-        Assert.That(decoder.DecodeNullableProxy<ServiceProxy>(), Is.EqualTo(expected.I));
+        Assert.That(decoder.DecodeNullableProxy<PingableProxy>(), Is.EqualTo(expected.I));
 
     }
 
@@ -321,7 +321,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            serviceAddress is null ? null : new ServiceProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+            serviceAddress is null ? null : new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
 
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
@@ -332,7 +332,7 @@ public sealed class StructTests
         var bitSequenceReader = decoder.GetBitSequenceReader(1);
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(expected.A));
         Assert.That(
-            bitSequenceReader.Read() ? decoder.DecodeProxy<ServiceProxy>() : (ServiceProxy?)null,
+            bitSequenceReader.Read() ? decoder.DecodeProxy<PingableProxy>() : (PingableProxy?)null,
             Is.EqualTo(expected.I));
     }
 
@@ -341,11 +341,11 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
-            I = new ServiceProxy?[]
+            I = new PingableProxy?[]
             {
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -355,7 +355,7 @@ public sealed class StructTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
         Assert.That(
-            decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeNullableProxy<ServiceProxy>()),
+            decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeNullableProxy<PingableProxy>()),
             Is.EqualTo(expected.I));
     }
 
@@ -364,11 +364,11 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithSequenceOfNullableProxies
         {
-            I = new ServiceProxy?[]
+            I = new PingableProxy?[]
             {
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 null,
-                new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -378,8 +378,8 @@ public sealed class StructTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(
-            decoder.DecodeSequenceWithBitSequence<ServiceProxy?>(
-                (ref SliceDecoder decoder) => decoder.DecodeProxy<ServiceProxy>()),
+            decoder.DecodeSequenceWithBitSequence<PingableProxy?>(
+                (ref SliceDecoder decoder) => decoder.DecodeProxy<PingableProxy>()),
             Is.EqualTo(expected.I));
     }
 
@@ -388,11 +388,11 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
-            I = new Dictionary<int, ServiceProxy?>
+            I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -403,9 +403,9 @@ public sealed class StructTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
         Assert.That(
             decoder.DecodeDictionary(
-                count => new Dictionary<int, ServiceProxy?>(count),
+                count => new Dictionary<int, PingableProxy?>(count),
                 (ref SliceDecoder decoder) => decoder.DecodeInt32(),
-                (ref SliceDecoder decoder) => decoder.DecodeNullableProxy<ServiceProxy>()),
+                (ref SliceDecoder decoder) => decoder.DecodeNullableProxy<PingableProxy>()),
             Is.EqualTo(expected.I));
     }
 
@@ -414,11 +414,11 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithDictionaryOfNullableProxies
         {
-            I = new Dictionary<int, ServiceProxy?>
+            I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
                 [2] = null,
-                [3] = new ServiceProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -429,9 +429,9 @@ public sealed class StructTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(
             decoder.DecodeDictionaryWithBitSequence(
-                count => new Dictionary<int, ServiceProxy?>(count),
+                count => new Dictionary<int, PingableProxy?>(count),
                 (ref SliceDecoder decoder) => decoder.DecodeInt32(),
-                (ref SliceDecoder decoder) => decoder.DecodeProxy<ServiceProxy>() as ServiceProxy?),
+                (ref SliceDecoder decoder) => decoder.DecodeProxy<PingableProxy>() as PingableProxy?),
             Is.EqualTo(expected.I));
     }
 }

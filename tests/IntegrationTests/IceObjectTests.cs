@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,28 +9,33 @@ using NUnit.Framework;
 namespace IceRpc.IntegrationTests;
 
 [Parallelizable(ParallelScope.All)]
-public class ServiceTests
+public class IceObjectTests
 {
-    /// <summary>Verifies the operations of <see cref="Service" />.</summary>
+    /// <summary>Verifies the operations of <see cref="IIceObject" />.</summary>
     [Test]
-    public async Task Service_operations([Values("ice", "icerpc")] string protocol)
+    public async Task Ice_operations([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(Protocol.Parse(protocol), new Service())
-            .AddIceRpcProxy<IService, ServiceProxy>(new Uri($"{protocol}:/service"))
+            .AddClientServerColocTest(Protocol.Parse(protocol), new MyService())
+            .AddIceRpcProxy<IIceObject, PingableProxy>(new Uri($"{protocol}:/service"))
             .BuildServiceProvider(validateScopes: true);
-        IService proxy = provider.GetRequiredService<IService>();
+        IIceObject proxy = provider.GetRequiredService<IIceObject>();
         Server server = provider.GetRequiredService<Server>();
         server.Listen();
 
         string[] ids = new string[]
         {
-            "::IceRpc::Slice::Service",
+            "::Ice::Object",
         };
 
         Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
         Assert.That(await proxy.IceIsAAsync("::IceRpc::Slice::Service"), Is.True);
         Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
+    }
+
+    private class MyService : Service, IPingableService
+    {
+        public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 }

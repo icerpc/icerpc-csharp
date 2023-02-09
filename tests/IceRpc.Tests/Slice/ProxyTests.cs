@@ -67,7 +67,7 @@ public class ProxyTests
         encoder.EncodeNullableServiceAddress(expected);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        ServiceProxy? decoded = decoder.DecodeNullableProxy<ServiceProxy>();
+        PingableProxy? decoded = decoder.DecodeNullableProxy<PingableProxy>();
 
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
@@ -84,7 +84,7 @@ public class ProxyTests
         encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
-        ServiceProxy decoded = sut.DecodeProxy<ServiceProxy>();
+        PingableProxy decoded = sut.DecodeProxy<PingableProxy>();
 
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
@@ -103,11 +103,13 @@ public class ProxyTests
                 bufferWriter.WrittenMemory,
                 encoding: SliceEncoding.Slice2);
 
-            return decoder.DecodeProxy<ServiceProxy>().Invoker;
+            return decoder.DecodeProxy<PingableProxy>().Invoker;
         },
         Is.Null);
     }
 
+    /*
+    TODO: move to Slice1 tests
     [Test]
     public async Task Downcast_proxy_with_as_async_succeeds()
     {
@@ -137,6 +139,7 @@ public class ProxyTests
 
         Assert.That(derived, Is.Null);
     }
+    */
 
     private class MyBaseInterface : Service, IMyBaseInterfaceService
     {

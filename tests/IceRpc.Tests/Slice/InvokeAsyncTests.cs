@@ -16,7 +16,7 @@ public class InvokeAsyncTests
     {
         var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
-        var sut = new ServiceProxy
+        var sut = new PingableProxy
         {
             ServiceAddress = new ServiceAddress(Protocol.IceRpc),
             Invoker = new InlineInvoker((request, cancellationToken) =>
@@ -51,7 +51,7 @@ public class InvokeAsyncTests
     [Test]
     public void InvokeAsync_completes_all_payloads_on_outgoing_exception()
     {
-        var sut = new ServiceProxy
+        var sut = new PingableProxy
         {
             ServiceAddress = new ServiceAddress(Protocol.IceRpc),
             Invoker = new InlineInvoker((request, cancellationToken) => throw new InvalidDataException("error"))

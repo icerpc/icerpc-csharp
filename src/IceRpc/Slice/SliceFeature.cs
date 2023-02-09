@@ -28,7 +28,7 @@ public sealed class SliceFeature : ISliceFeature
     public int MaxSegmentSize { get; }
 
     /// <inheritdoc/>
-    public Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory { get; }
+    public Func<ServiceAddress, IProxy?, IProxy>? ProxyFactory { get; }
 
     /// <summary>Constructs a Slice feature.</summary>
     /// <param name="activator">The activator.</param>
@@ -38,7 +38,7 @@ public sealed class SliceFeature : ISliceFeature
     /// <paramref name="defaultFeature" />.</param>
     /// <param name="maxDepth">The maximum depth. Use <c>-1</c> to get the default value.</param>
     /// <param name="maxSegmentSize">The maximum segment size. Use <c>-1</c> to get the default value.</param>
-    /// <param name="serviceProxyFactory">The service proxy factory.</param>
+    /// <param name="proxyFactory">The proxy factory.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. Null is equivalent to
     /// <see cref="Default" />.</param>
     public SliceFeature(
@@ -47,7 +47,7 @@ public sealed class SliceFeature : ISliceFeature
         int maxCollectionAllocation = -1,
         int maxDepth = -1,
         int maxSegmentSize = -1,
-        Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
+        Func<ServiceAddress, IProxy?, IProxy>? proxyFactory = null,
         ISliceFeature? defaultFeature = null)
     {
         defaultFeature ??= Default;
@@ -62,7 +62,7 @@ public sealed class SliceFeature : ISliceFeature
 
         MaxSegmentSize = maxSegmentSize >= 0 ? maxSegmentSize : defaultFeature.MaxSegmentSize;
 
-        ServiceProxyFactory = serviceProxyFactory ?? defaultFeature.ServiceProxyFactory;
+        ProxyFactory = proxyFactory ?? defaultFeature.ProxyFactory;
     }
 
     private class DefaultSliceFeature : ISliceFeature
@@ -77,6 +77,6 @@ public sealed class SliceFeature : ISliceFeature
 
         public int MaxSegmentSize => 1024 * 1024;
 
-        public Func<ServiceAddress, ServiceProxy?, ServiceProxy>? ServiceProxyFactory => null;
+        public Func<ServiceAddress, IProxy?, IProxy>? ProxyFactory => null;
     }
 }

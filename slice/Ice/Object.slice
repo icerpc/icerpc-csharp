@@ -1,0 +1,23 @@
+// Copyright (c) ZeroC, Inc.
+
+encoding = 1;
+
+[cs::namespace("IceRpc")]
+module Ice;
+
+/// All services that implement one or more Slice1 interface implicitly implement this interface.
+[cs::identifier("IceObject")]
+interface Object
+{
+    /// Gets the Slice type IDs of all the Slice1 interfaces implemented by the target service.
+    /// @return The Slice type IDs of all these Slice1 interfaces, sorted alphabetically.
+    ice_ids() -> sequence<string>;
+
+    /// Tests whether the target service implements the specified Slice1 interface.
+    /// @param id The Slice type ID of the Slice1 interface to test against.
+    /// @return True when the target service implements this interface; otherwise, false.
+    ice_isA(id: string) -> bool;
+
+    /// Pings the service.
+    ice_ping();
+}

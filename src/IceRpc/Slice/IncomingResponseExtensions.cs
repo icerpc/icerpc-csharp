@@ -33,7 +33,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        ServiceProxy sender,
+        IProxy sender,
         DecodeFunc<T> decodeReturnValue,
         DecodeExceptionFunc? decodeException = null,
         IActivator? defaultActivator = null,
@@ -88,7 +88,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        ServiceProxy sender,
+        IProxy sender,
         DecodeExceptionFunc? decodeException = null,
         IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
@@ -118,7 +118,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         SliceEncoding encoding,
         ISliceFeature feature,
-        ServiceProxy sender,
+        IProxy sender,
         DecodeExceptionFunc? decodeException,
         IActivator? activator,
         CancellationToken cancellationToken)
@@ -159,7 +159,7 @@ public static class IncomingResponseExtensions
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    feature.ServiceProxyFactory,
+                    feature.ProxyFactory,
                     sender,
                     maxCollectionAllocation: feature.MaxCollectionAllocation,
                     activator,
@@ -174,7 +174,7 @@ public static class IncomingResponseExtensions
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    feature.ServiceProxyFactory,
+                    feature.ProxyFactory,
                     sender,
                     maxCollectionAllocation: feature.MaxCollectionAllocation);
 

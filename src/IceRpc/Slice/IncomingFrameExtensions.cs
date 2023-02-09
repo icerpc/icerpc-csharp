@@ -102,7 +102,7 @@ public static class IncomingFrameExtensions
         this PipeReader payload,
         SliceEncoding encoding,
         DecodeFunc<T> decodeFunc,
-        ServiceProxy? templateProxy = null,
+        IProxy? templateProxy = null,
         ISliceFeature? sliceFeature = null)
     {
         sliceFeature ??= SliceFeature.Default;
@@ -114,7 +114,7 @@ public static class IncomingFrameExtensions
             var decoder = new SliceDecoder(
                 buffer,
                 encoding,
-                sliceFeature.ServiceProxyFactory,
+                sliceFeature.ProxyFactory,
                 templateProxy,
                 sliceFeature.MaxCollectionAllocation);
 

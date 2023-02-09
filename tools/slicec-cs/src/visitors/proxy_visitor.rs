@@ -28,7 +28,13 @@ impl Visitor for ProxyVisitor<'_> {
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
-        let proxy_impl_bases: Vec<String> = vec![interface.clone(), "IProxy".to_owned()];
+        let base_proxy_interface = if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+            "IIceObjectProxy".to_owned()
+        } else {
+            "IProxy".to_owned()
+        };
+
+        let proxy_impl_bases: Vec<String> = vec![interface.clone(), base_proxy_interface];
 
         let all_base_impl: Vec<String> = all_bases.iter().map(|b| b.scoped_proxy_name(&namespace)).collect();
 
@@ -459,7 +465,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", &comment_content);
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
-        builder.add_parameter("ServiceProxy", "sender", None, None);
+        builder.add_parameter("IProxy", "sender", None, None);
         builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancellationToken",

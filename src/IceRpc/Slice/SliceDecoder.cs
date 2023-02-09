@@ -48,17 +48,18 @@ public ref partial struct SliceDecoder
     // The maximum depth when decoding a class recursively.
     private readonly int _maxDepth;
 
+    private readonly Func<ServiceAddress, IProxy?, IProxy>? _proxyFactory;
+
     // The sequence reader.
     private SequenceReader<byte> _reader;
 
-    private readonly Func<ServiceAddress, ServiceProxy?, ServiceProxy>? _serviceProxyFactory;
-    private readonly ServiceProxy? _templateProxy;
+    private readonly IProxy? _templateProxy;
 
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="serviceProxyFactory">The service proxy factory.</param>
-    /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
+    /// <param name="proxyFactory">The proxy factory.</param>
+    /// <param name="templateProxy">The template proxy to give to <paramref name="proxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -67,8 +68,8 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlySequence<byte> buffer,
         SliceEncoding encoding,
-        Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
-        ServiceProxy? templateProxy = null,
+        Func<ServiceAddress, IProxy?, IProxy>? proxyFactory = null,
+        IProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
@@ -76,7 +77,7 @@ public ref partial struct SliceDecoder
         Encoding = encoding;
 
         _currentCollectionAllocation = 0;
-        _serviceProxyFactory = serviceProxyFactory;
+        _proxyFactory = proxyFactory;
         _templateProxy = templateProxy;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
@@ -97,8 +98,8 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="serviceProxyFactory">The service proxy factory.</param>
-    /// <param name="templateProxy">The template proxy to give to <paramref name="serviceProxyFactory" />.</param>
+    /// <param name="proxyFactory">The proxy factory.</param>
+    /// <param name="templateProxy">The template proxy to give to <paramref name="proxyFactory" />.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -107,15 +108,15 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlyMemory<byte> buffer,
         SliceEncoding encoding,
-        Func<ServiceAddress, ServiceProxy?, ServiceProxy>? serviceProxyFactory = null,
-        ServiceProxy? templateProxy = null,
+        Func<ServiceAddress, IProxy?, IProxy>? proxyFactory = null,
+        IProxy? templateProxy = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
         : this(
             new ReadOnlySequence<byte>(buffer),
             encoding,
-            serviceProxyFactory,
+            proxyFactory,
             templateProxy,
             maxCollectionAllocation,
             activator,
@@ -773,9 +774,9 @@ public ref partial struct SliceDecoder
 
     private TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress) where TProxy : struct, IProxy
     {
-        if (_serviceProxyFactory is null)
+        if (_proxyFactory is null)
         {
-            return _templateProxy is ServiceProxy templateProxy ?
+            return _templateProxy is IProxy templateProxy ?
                 new TProxy
                 {
                     EncodeOptions = templateProxy.EncodeOptions,
@@ -788,13 +789,13 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            ServiceProxy serviceProxy = _serviceProxyFactory(serviceAddress, _templateProxy);
+            IProxy proxy = _proxyFactory(serviceAddress, _templateProxy);
 
             return new TProxy
             {
-                EncodeOptions = serviceProxy.EncodeOptions,
-                Invoker = serviceProxy.Invoker,
-                ServiceAddress = serviceProxy.ServiceAddress
+                EncodeOptions = proxy.EncodeOptions,
+                Invoker = proxy.Invoker,
+                ServiceAddress = proxy.ServiceAddress
             };
         }
     }

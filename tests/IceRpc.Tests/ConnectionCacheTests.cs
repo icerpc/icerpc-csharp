@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
+using IceRpc.Tests.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
 
@@ -50,10 +50,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await new ServiceProxy(cache, new Uri("icerpc://bar")).IcePingAsync();
+        await new PingableProxy(cache, new Uri("icerpc://bar")).PingAsync();
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
+        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -92,7 +92,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://bar/?alt-server=foo")).IcePingAsync();
+        await new PingableProxy(pipeline, new Uri("icerpc://bar/?alt-server=foo")).PingAsync();
 
         // Assert
         Assert.That(selectedServerAddress?.Host, Is.EqualTo(serverAddress.Host));
@@ -138,7 +138,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
+        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -184,10 +184,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await new ServiceProxy(cache, new Uri("icerpc://bar")).IcePingAsync();
+        await new PingableProxy(cache, new Uri("icerpc://bar")).PingAsync();
 
         // Act
-        await new ServiceProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).IcePingAsync();
+        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
@@ -217,7 +217,7 @@ public sealed class ConnectionCacheTests
         await using var cache = new ConnectionCache(
             options: new(),
             multiplexedClientTransport: multiplexedClientTransport);
-        await new ServiceProxy(cache, new Uri("icerpc://foo")).IcePingAsync();
+        await new PingableProxy(cache, new Uri("icerpc://foo")).PingAsync();
 
         TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastConnection!;
         clientConnection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
