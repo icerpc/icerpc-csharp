@@ -64,7 +64,7 @@ public class Service : IDispatcher, IIceObjectService
                     }
                 }
 
-                // There is at least the 3 built-in operations
+                // There is at least the 3 ice_ operations
                 Debug.Assert(methods.Count >= 3);
 
                 foreach (Type interfaceType in type.GetInterfaces())
