@@ -10,14 +10,14 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class ServiceAddressEncodingDecodingTests
 {
-    [TestCase("icerpc://hello.zeroc.com/chatbot", SliceEncoding.Slice2, null)]
-    [TestCase("icerpc://hello.zeroc.com/chatbot", SliceEncoding.Slice1, null)]
-    [TestCase("ice://hello.zeroc.com/chatbot?transport=tcp#facet", SliceEncoding.Slice1, null)]
-    [TestCase("ice://hello.zeroc.com/chatbot", SliceEncoding.Slice1, "ice://hello.zeroc.com/chatbot?transport=tcp")]
+    [TestCase("icerpc://hello.zeroc.com/hello", SliceEncoding.Slice2, null)]
+    [TestCase("icerpc://hello.zeroc.com/hello", SliceEncoding.Slice1, null)]
+    [TestCase("ice://hello.zeroc.com/hello?transport=tcp#facet", SliceEncoding.Slice1, null)]
+    [TestCase("ice://hello.zeroc.com/hello", SliceEncoding.Slice1, "ice://hello.zeroc.com/hello?transport=tcp")]
     [TestCase(
-        "ice://hello.zeroc.com/chatbot?alt-server=[::1]?transport=ssl",
+        "ice://hello.zeroc.com/hello?alt-server=[::1]?transport=ssl",
         SliceEncoding.Slice1,
-        "ice://hello.zeroc.com/chatbot?transport=tcp&alt-server=[::1]?transport=ssl")]
+        "ice://hello.zeroc.com/hello?transport=tcp&alt-server=[::1]?transport=ssl")]
     public void Encode_decode_service_address(
         ServiceAddress value,
         SliceEncoding sliceEncoding,
@@ -34,9 +34,9 @@ public class ServiceAddressEncodingDecodingTests
     }
 
     [TestCase(null)]
-    [TestCase("icerpc://hello.zeroc.com/chatbot")]
-    [TestCase("ice://hello.zeroc.com/chatbot?transport=tcp#facet")]
-    [TestCase("ice://hello.zeroc.com/chatbot?transport=tcp&alt-server=[::1]?transport=ssl")]
+    [TestCase("icerpc://hello.zeroc.com/hello")]
+    [TestCase("ice://hello.zeroc.com/hello?transport=tcp#facet")]
+    [TestCase("ice://hello.zeroc.com/hello?transport=tcp&alt-server=[::1]?transport=ssl")]
     public void Encode_decode_nullable_service_address(ServiceAddress? value)
     {
         var buffer = new byte[256];
