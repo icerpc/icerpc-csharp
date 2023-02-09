@@ -45,8 +45,8 @@ public static class ProxyExtensions
         }.ToImmutableDictionary();
 
     /// <summary>Tests whether the target service implements the interface implemented by
-    /// <typeparamref name="TProxy" />. This method is a wrapper for <see cref="IIceObject.IceIsAAsync" /> and as a
-    /// result is only meaningful when <typeparamref name="TProxy" /> is the proxy for a Slice1 interface.</summary>
+    /// <typeparamref name="TProxy" />. This method is a wrapper for <see cref="IIceObject.IceIsAAsync" /> and may not
+    /// be implemented by all services.</summary>
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source proxy being tested.</param>
     /// <param name="features">The invocation features.</param>

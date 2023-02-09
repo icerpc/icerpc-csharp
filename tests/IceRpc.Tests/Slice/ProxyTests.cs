@@ -84,7 +84,7 @@ public class ProxyTests
         encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
-        PingableProxy decoded = sut.DecodeProxy<PingableProxy>();
+        var decoded = sut.DecodeProxy<GenericProxy>();
 
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
@@ -103,13 +103,11 @@ public class ProxyTests
                 bufferWriter.WrittenMemory,
                 encoding: SliceEncoding.Slice2);
 
-            return decoder.DecodeProxy<PingableProxy>().Invoker;
+            return decoder.DecodeProxy<GenericProxy>().Invoker;
         },
         Is.Null);
     }
 
-    /*
-    TODO: move to Slice1 tests
     [Test]
     public async Task Downcast_proxy_with_as_async_succeeds()
     {
@@ -147,5 +145,4 @@ public class ProxyTests
     private sealed class MyDerivedInterface : MyBaseInterface, IMyDerivedInterfaceService
     {
     }
-    */
 }

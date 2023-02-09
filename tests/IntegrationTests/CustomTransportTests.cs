@@ -72,7 +72,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
 public class CustomTransportTests
 {
     [Test]
-    public async Task CustomTransport_IcePingAsync()
+    public async Task CustomTransport_PingAsync()
     {
         await using var server = new Server(
             new ServerOptions
