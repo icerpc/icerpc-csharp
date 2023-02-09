@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace AuthorizationExample;
 
-/// <summary>The implementation of the IHelloService service.</summary>
+/// <summary>A service that implements Slice interface Hello.</summary>
 internal class Hello : Service, IHelloService
 {
     internal string Greeting { get; set; } = "Hello";
