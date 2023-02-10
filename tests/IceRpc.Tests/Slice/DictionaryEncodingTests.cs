@@ -35,7 +35,7 @@ public class DictionaryEncodingTests
     }
 
     [Test]
-    public void Encode_dictionary_with_bit_sequence()
+    public void Encode_dictionary_with_optional_value_type()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
@@ -45,7 +45,7 @@ public class DictionaryEncodingTests
             value => value % 2 == 0 ? $"value-{value}" : null);
 
         // Act
-        encoder.EncodeDictionaryWithBitSequence(
+        encoder.EncodeDictionaryWithOptionalValueType(
             expected,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             (ref SliceEncoder encoder, string? value) => encoder.EncodeString(value!));
@@ -53,11 +53,11 @@ public class DictionaryEncodingTests
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(decoder.DecodeSize(), Is.EqualTo(expected.Count));
-        BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(expected.Count);
+
         var value = new Dictionary<int, string?>();
         while (decoder.Consumed != buffer.WrittenMemory.Length)
         {
-            if (bitSequenceReader.Read())
+            if (decoder.DecodeBool())
             {
                 value.Add(decoder.DecodeInt32(), decoder.DecodeString());
             }

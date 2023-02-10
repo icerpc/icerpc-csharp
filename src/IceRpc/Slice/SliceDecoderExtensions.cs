@@ -44,7 +44,7 @@ public static class SliceDecoderExtensions
         }
     }
 
-    /// <summary>Decodes a dictionary with null values encoded using a bit sequence.</summary>
+    /// <summary>Decodes a dictionary with an optional value type (T? in Slice).</summary>
     /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
     /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
     /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
@@ -53,7 +53,7 @@ public static class SliceDecoderExtensions
     /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
     /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
     /// <returns>The dictionary decoded by this decoder.</returns>
-    public static TDictionary DecodeDictionaryWithBitSequence<TDictionary, TKey, TValue>(
+    public static TDictionary DecodeDictionaryWithOptionalValueType<TDictionary, TKey, TValue>(
         this ref SliceDecoder decoder,
         Func<int, TDictionary> dictionaryFactory,
         DecodeFunc<TKey> keyDecodeFunc,
@@ -68,13 +68,19 @@ public static class SliceDecoderExtensions
         }
         else
         {
-            BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
             decoder.IncreaseCollectionAllocation(count * (Unsafe.SizeOf<TKey>() + Unsafe.SizeOf<TValue?>()));
             TDictionary dictionary = dictionaryFactory(count);
             for (int i = 0; i < count; ++i)
             {
+                // Each entry is encoded like a:
+                // compact struct Pair
+                // {
+                //     key: Key,
+                //     value: Value?
+                // }
+                bool hasValue = decoder.DecodeBool();
                 TKey key = keyDecodeFunc(ref decoder);
-                TValue? value = bitSequenceReader.Read() ? valueDecodeFunc(ref decoder) : default;
+                TValue? value = hasValue ? valueDecodeFunc(ref decoder) : default;
                 dictionary.Add(key, value);
             }
             return dictionary;
@@ -166,14 +172,14 @@ public static class SliceDecoderExtensions
         }
     }
 
-    /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
+    /// <summary>Decodes a sequence where the element type is an optional Slice type (T?).</summary>
     /// <typeparam name="T">The type of the elements in the array.</typeparam>
     /// <param name="decoder">The Slice decoder.</param>
     /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
     /// <returns>An array of T.</returns>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
     /// types such as string?.</remarks>
-    public static T?[] DecodeSequenceWithBitSequence<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
+    public static T?[] DecodeSequenceOfOptionals<T>(this ref SliceDecoder decoder, DecodeFunc<T> decodeFunc)
     {
         int count = decoder.DecodeSize();
         if (count == 0)
@@ -193,14 +199,14 @@ public static class SliceDecoderExtensions
         }
     }
 
-    /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
+    /// <summary>Decodes a sequence where the element type is an optional Slice type (T?).</summary>
     /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
     /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
     /// <param name="decoder">The Slice decoder.</param>
     /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
     /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
     /// <returns>A TSequence.</returns>
-    public static TSequence DecodeSequenceWithBitSequence<TSequence, TElement>(
+    public static TSequence DecodeSequenceOfOptionals<TSequence, TElement>(
         this ref SliceDecoder decoder,
         Func<int, TSequence> sequenceFactory,
         DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>

@@ -37,7 +37,7 @@ public class DictionaryDecodingTests
     }
 
     [Test]
-    public void Decode_dictionary_with_bit_sequence()
+    public void Decode_dictionary_with_optional_value_type()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
@@ -46,10 +46,9 @@ public class DictionaryDecodingTests
             key => key,
             value => value % 2 == 0 ? null : $"value-{value}");
         encoder.EncodeSize(expected.Count);
-        var bitSequenceWriter = encoder.GetBitSequenceWriter(expected.Count);
         foreach ((int key, string? value) in expected)
         {
-            bitSequenceWriter.Write(value is not null);
+            encoder.EncodeBool(value is not null);
             encoder.EncodeInt32(key);
             if (value is not null)
             {
@@ -59,7 +58,7 @@ public class DictionaryDecodingTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         // Act
-        var decoded = decoder.DecodeDictionaryWithBitSequence(
+        var decoded = decoder.DecodeDictionaryWithOptionalValueType(
             count => new Dictionary<int, string?>(count),
             (ref SliceDecoder decoder) => decoder.DecodeInt32(),
             (ref SliceDecoder decoder) => decoder.DecodeString());
@@ -70,12 +69,12 @@ public class DictionaryDecodingTests
     }
 
     [Test]
-    public void Decode_dictionary_with_bit_sequence_exceeds_default_max_collection_allocation()
+    public void Decode_dictionary_with_null_values()
     {
-        var buffer = new MemoryBufferWriter(new byte[1024 * 4]);
+        var buffer = new MemoryBufferWriter(new byte[1024 * (1 + 2 + 8)]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (long?)null);
-        encoder.EncodeDictionaryWithBitSequence(
+        var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (long?)null); // all null values
+        encoder.EncodeDictionaryWithOptionalValueType(
             dict,
             (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value),
             (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
@@ -83,35 +82,8 @@ public class DictionaryDecodingTests
         Assert.That(
             () =>
             {
-                // The default max collection allocation here is a little over 8 * 1024 * 2 = 16K.
                 var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-                _ = sut.DecodeDictionaryWithBitSequence(
-                    count => new Dictionary<short, long?>(count),
-                    (ref SliceDecoder decoder) => decoder.DecodeInt16(),
-                    (ref SliceDecoder decoder) => decoder.DecodeInt64() as long?);
-            },
-            Throws.InstanceOf<InvalidDataException>());
-    }
-
-    [Test]
-    public void Decode_dictionary_with_bit_sequence_and_custom_max_collection_allocation()
-    {
-        var buffer = new MemoryBufferWriter(new byte[1024 * 2 + 256]);
-        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var dict = Enumerable.Range(0, 1024).ToDictionary(key => (short)key, value => (long?)null);
-        encoder.EncodeDictionaryWithBitSequence(
-            dict,
-            (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value),
-            (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
-
-        Assert.That(
-            () =>
-            {
-                var sut = new SliceDecoder(
-                    buffer.WrittenMemory,
-                    SliceEncoding.Slice2,
-                    maxCollectionAllocation: 1024 * (Unsafe.SizeOf<short>() + Unsafe.SizeOf<long?>()));
-                _ = sut.DecodeDictionaryWithBitSequence(
+                _ = sut.DecodeDictionaryWithOptionalValueType(
                     count => new Dictionary<short, long?>(count),
                     (ref SliceDecoder decoder) => decoder.DecodeInt16(),
                     (ref SliceDecoder decoder) => decoder.DecodeInt64() as long?);

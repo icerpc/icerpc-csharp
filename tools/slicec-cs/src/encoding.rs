@@ -305,7 +305,7 @@ fn encode_sequence(
     {value},
     {encode_action})",
             with_bit_sequence = if encoding != Encoding::Slice1 && element_type.is_optional {
-                "WithBitSequence"
+                "OfOptionals"
             } else {
                 ""
             },
@@ -331,7 +331,7 @@ fn encode_dictionary(
     {encode_key},
     {encode_value})",
         method = if encoding != Encoding::Slice1 && value_type.is_optional {
-            "EncodeDictionaryWithBitSequence"
+            "EncodeDictionaryWithOptionalValueType"
         } else {
             "EncodeDictionary"
         },
