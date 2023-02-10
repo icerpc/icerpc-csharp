@@ -6,7 +6,7 @@ using IceRpc.Slice;
 
 namespace RequestContextExample;
 
-internal class Hello : Service, IHelloService
+internal class Chatbot : Service, IHelloService
 {
     public ValueTask<string> SayHelloAsync(
         string name,

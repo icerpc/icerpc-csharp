@@ -7,18 +7,18 @@ namespace AuthorizationExample;
 
 /// <summary>A service that implements Slice interface HelloAdmin. It is used to change the greeting and requires
 /// callers to be authenticated.</summary>
-internal class HelloAdmin : Service, IHelloAdminService
+internal class ChatbotAdmin : Service, IHelloAdminService
 {
-    private readonly Hello _hello;
+    private readonly Chatbot _chatbot;
 
-    internal HelloAdmin(Hello hello) => _hello = hello;
+    internal ChatbotAdmin(Chatbot chatbot) => _chatbot = chatbot;
 
     public ValueTask ChangeGreetingAsync(
         string greeting,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        _hello.Greeting = greeting;
+        _chatbot.Greeting = greeting;
         return default;
     }
 }

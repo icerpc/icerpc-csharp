@@ -3,16 +3,16 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace GenericHostExample;
+namespace HelloSecureExample;
 
-public class Hello : Service, IHelloService
+internal class Chatbot : Service, IHelloService
 {
-    public async ValueTask<string> SayHelloAsync(
+    public ValueTask<string> SayHelloAsync(
         string name,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        await Console.Out.WriteLineAsync($"{name} says hello!");
+        Console.WriteLine($"{name} says hello!");
         return new($"Hello, {name}!");
     }
 }

@@ -18,7 +18,7 @@ if (!int.TryParse(args[0], out number))
 
 var serverAddress = new ServerAddress(new Uri($"icerpc://127.0.0.1:{10000 + number}/"));
 
-await using var server = new Server(new Hello(number), serverAddress);
+await using var server = new Server(new Chatbot(number), serverAddress);
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.

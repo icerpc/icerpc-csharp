@@ -5,7 +5,7 @@ using IceRpc;
 namespace HelloCoreExample;
 
 /// <summary>Implements a dispatcher for the sayHelloCore operation.</summary>
-internal class HelloCore : IDispatcher
+internal class Chatbot : IDispatcher
 {
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
