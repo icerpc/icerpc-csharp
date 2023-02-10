@@ -80,7 +80,7 @@ public class CustomTransportTests
                 ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom")),
                 ConnectionOptions = new()
                 {
-                    Dispatcher = new MyService()
+                    Dispatcher = new PingableService()
                 }
             },
             multiplexedServerTransport: new CustomServerTransport());
@@ -109,7 +109,7 @@ public class CustomTransportTests
                     ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
                     ConnectionOptions = new ConnectionOptions()
                     {
-                        Dispatcher = new MyService()
+                        Dispatcher = new PingableService()
                     }
                 },
                 multiplexedServerTransport: new CustomServerTransport());
@@ -133,7 +133,7 @@ public class CustomTransportTests
         }
     }
 
-    public class MyService : Service, IPingableService
+    public class PingableService : Service, IPingableService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }

@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Slice.FileScopeNamespaceAttribute.WithFileScopeNamespace;
 [Parallelizable(scope: ParallelScope.All)]
 public class FileScopeNamespaceAttributeTests
 {
-    public class FileScopeNamespaceOperations : Service, IFileScopeNamespaceOperationsService
+    public class FileScopeNamespaceOperationsService : Service, IFileScopeNamespaceOperationsService
     {
         public ValueTask<S1> Op1Async(S1 p, IFeatureCollection features, CancellationToken cancellationToken) =>
             new(p);
@@ -21,7 +21,7 @@ public class FileScopeNamespaceAttributeTests
     public async Task Operation_with_types_using_cs_namespace_attribute()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new FileScopeNamespaceOperations())
+            .AddClientServerColocTest(dispatcher: new FileScopeNamespaceOperationsService())
             .AddIceRpcProxy<IFileScopeNamespaceOperations, FileScopeNamespaceOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 

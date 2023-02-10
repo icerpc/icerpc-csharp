@@ -21,7 +21,7 @@ public class OperationGeneratedCodeTests
         bool compressResponseFeature = false;
 
         await using ServiceProvider provider = new ServiceCollection()
-            .AddSingleton<MyOperationsA>()
+            .AddSingleton<MyOperationsAService>()
             .AddClientServerColocTest(Protocol.IceRpc)
             .AddIceRpcServer(builder =>
             {
@@ -33,7 +33,7 @@ public class OperationGeneratedCodeTests
                         request.Features.Get<ICompressFeature>() is ICompressFeature compress && compress.Value;
                     return response;
                 }));
-                builder.Map<MyOperationsA>("/");
+                builder.Map<MyOperationsAService>("/");
             })
             .AddIceRpcInvoker(
                 builder => builder
@@ -61,7 +61,7 @@ public class OperationGeneratedCodeTests
         Assert.That(compressResponseFeature, Is.True);
     }
 
-    public class MyOperationsA : Service, IMyOperationsAService
+    public class MyOperationsAService : Service, IMyOperationsAService
     {
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,

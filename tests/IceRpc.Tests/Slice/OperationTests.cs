@@ -449,7 +449,7 @@ public class OperationTests
     [Test]
     public async Task Tagged_default_values()
     {
-        var service = new MyTaggedOperations();
+        var service = new MyTaggedOperationsService();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
             .AddIceRpcProxy<IMyTaggedOperations, MyTaggedOperationsProxy>()
@@ -470,7 +470,7 @@ public class OperationTests
     [Test]
     public async Task Proxy_tagged_default_values_with_readonly_memory_params()
     {
-        var service = new MyTaggedOperationsReadOnlyMemoryParams();
+        var service = new MyTaggedOperationsReadOnlyMemoryParamsService();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
             .AddIceRpcProxy<IMyTaggedOperationsReadOnlyMemoryParams, MyTaggedOperationsReadOnlyMemoryParamsProxy>()
@@ -635,7 +635,7 @@ public class OperationTests
 
     private sealed class MyDerivedOperationsA : MyOperationsA { }
 
-    private sealed class MyTaggedOperations : Service, IMyTaggedOperationsService
+    private sealed class MyTaggedOperationsService : Service, IMyTaggedOperationsService
     {
         internal int X { get; set; }
         internal int? Y { get; set; }
@@ -650,7 +650,7 @@ public class OperationTests
         }
     }
 
-    private sealed class MyTaggedOperationsReadOnlyMemoryParams : Service, IMyTaggedOperationsReadOnlyMemoryParamsService
+    private sealed class MyTaggedOperationsReadOnlyMemoryParamsService : Service, IMyTaggedOperationsReadOnlyMemoryParamsService
     {
         internal int[] X { get; set; } = Array.Empty<int>();
         internal int[]? Y { get; set; }

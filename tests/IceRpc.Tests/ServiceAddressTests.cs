@@ -484,7 +484,7 @@ public class ServiceAddressTests
     [Test]
     public async Task Proxy_invoker_is_set_through_slice_feature()
     {
-        var service = new SendProxyTest();
+        var service = new SendProxyTestService();
         var pipeline = new Pipeline();
         var router = new Router();
         router.Map<ISendProxyTestService>(service);
@@ -513,7 +513,7 @@ public class ServiceAddressTests
     [Test]
     public async Task Proxy_received_over_an_incoming_connection_has_null_invoker()
     {
-        var service = new SendProxyTest();
+        var service = new SendProxyTestService();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
             .BuildServiceProvider(validateScopes: true);
@@ -533,7 +533,7 @@ public class ServiceAddressTests
     public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new ReceiveProxyTest())
+            .AddClientServerColocTest(dispatcher: new ReceiveProxyTestService())
             .BuildServiceProvider(validateScopes: true);
 
         provider.GetRequiredService<Server>().Listen();
@@ -639,13 +639,13 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.Protocol, Is.Null);
     }
 
-    private sealed class ReceiveProxyTest : Service, IReceiveProxyTestService
+    private sealed class ReceiveProxyTestService : Service, IReceiveProxyTestService
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
     }
 
-    private sealed class SendProxyTest : Service, ISendProxyTestService
+    private sealed class SendProxyTestService : Service, ISendProxyTestService
     {
         public SendProxyTestProxy? ReceivedProxy { get; private set; }
 

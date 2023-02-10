@@ -17,7 +17,7 @@ public class TypeNameQualificationTests
     public async Task Operation_with_parameter_type_name_defined_in_multiple_modules()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new TypeNameQualification())
+            .AddClientServerColocTest(dispatcher: new TypeNameQualificationOperationsService())
             .AddIceRpcProxy<ITypeNameQualificationOperations, TypeNameQualificationOperationsProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -29,7 +29,7 @@ public class TypeNameQualificationTests
         Assert.That(r.V, Is.EqualTo("10"));
     }
 
-    private sealed class TypeNameQualification : Service, ITypeNameQualificationOperationsService
+    private sealed class TypeNameQualificationOperationsService : Service, ITypeNameQualificationOperationsService
     {
         public ValueTask<S> OpWithTypeNamesDefinedInMultipleModulesAsync(
             Inner.S s,
