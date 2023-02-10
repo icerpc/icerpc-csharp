@@ -6,14 +6,14 @@ using System.IO.Pipelines;
 
 namespace UploadExample;
 
-internal class Uploader : Service, IUploaderService
+internal class EarthImageStore : Service, IUploaderService
 {
     public async ValueTask UploadImageAsync(
         PipeReader image,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine("Downloading image...");
+        Console.WriteLine("Reading image...");
 
         // AsStream has a parameter `leaveOpen` which is set to `false` by default. When the stream is disposed, if
         // leaveOpen` is `false` then the PipeReader used to create the stream is completed.
@@ -28,6 +28,6 @@ internal class Uploader : Service, IUploaderService
         // Complete and cleanup the pipe reader.
         await image.CompleteAsync();
 
-        Console.WriteLine("Image downloaded");
+        Console.WriteLine("Image fully uploaded");
     }
 }
