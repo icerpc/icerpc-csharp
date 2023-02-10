@@ -78,7 +78,7 @@ public static class SliceDecoderExtensions
                 //     key: Key,
                 //     value: Value?
                 // }
-                bool hasValue = decoder.DecodeBool();
+                bool hasValue = decoder.DecodeBool(); // simplified bit sequence
                 TKey key = keyDecodeFunc(ref decoder);
                 TValue? value = hasValue ? valueDecodeFunc(ref decoder) : default;
                 dictionary.Add(key, value);

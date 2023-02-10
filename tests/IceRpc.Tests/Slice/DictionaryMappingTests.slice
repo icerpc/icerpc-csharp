@@ -13,7 +13,7 @@ interface DictionaryMappingOperations
     opSingleParameter(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>);
 }
 
-struct LargeStruct
+[cs::readonly] compact struct LargeStruct
 {
     X: int64,
 
