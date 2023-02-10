@@ -360,24 +360,13 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
-    /// <summary>Verifies that canceling an invocation while the request is being write, fails with
-    /// OperationCanceledException and lets the write finish in the background. The connection remains
-    /// active and subsequent request are not affected.</summary>
+    /// <summary>Verifies that canceling an invocation while the request is being written does not interrupt the write.
+    /// The connection remains active and subsequent request are not affected.</summary>
     [Test]
-    public async Task Invocation_cancellation_lets_payload_writing_continue_in_background()
+    public async Task Invocation_cancellation_does_not_interrupt_payload_writing()
     {
         // Arrange
-        var dispatchTcs = new TaskCompletionSource();
-        int dispatchCount = 0;
-        var dispatcher = new InlineDispatcher(
-            (request, cancel) =>
-            {
-                if (++dispatchCount == 2)
-                {
-                    dispatchTcs.SetResult();
-                }
-                return new(new OutgoingResponse(request));
-            });
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
@@ -409,12 +398,14 @@ public sealed class IceProtocolConnectionTests
 
         // Act
         cts.Cancel();
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
 
         // Assert
+        Assert.That(invokeTask1.IsCompleted, Is.False);
         clientTransport.LastConnection.HoldOperation = DuplexTransportOperation.None;
         Assert.That(async () => await invokeTask1, Throws.TypeOf<OperationCanceledException>());
+        dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask2, Throws.Nothing);
-        Assert.That(async () => await dispatchTcs.Task, Throws.Nothing);
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.
