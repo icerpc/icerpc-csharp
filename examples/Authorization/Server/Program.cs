@@ -3,7 +3,7 @@
 using AuthorizationExample;
 using IceRpc;
 
-var hello = new Hello();
+var chatbot = new Chatbot();
 var tokenStore = new TokenStore();
 
 var router = new Router();
@@ -15,11 +15,11 @@ router.Route("/helloAdmin", adminRouter =>
 {
     // Requires the session feature to be present in the request's feature collection.
     adminRouter.UseHasSession();
-    adminRouter.Map("/", new HelloAdmin(hello));
+    adminRouter.Map("/", new ChatbotAdmin(chatbot));
 });
 
 router.Map("/sessionManager", new SessionManager(tokenStore));
-router.Map("/hello", hello);
+router.Map("/hello", chatbot);
 
 await using var server = new Server(router);
 server.Listen();

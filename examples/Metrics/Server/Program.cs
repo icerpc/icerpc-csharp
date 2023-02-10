@@ -6,7 +6,7 @@ using IceRpc;
 // Add the metrics middleware to the dispatch pipeline.
 Router router = new Router().UseMetrics();
 
-router.Map<IHelloService>(new Hello());
+router.Map<IHelloService>(new Chatbot());
 
 await using var server = new Server(router);
 server.Listen();

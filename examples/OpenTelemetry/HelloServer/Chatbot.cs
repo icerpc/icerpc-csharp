@@ -5,11 +5,11 @@ using IceRpc.Slice;
 
 namespace OpenTelemetryExample;
 
-internal class Hello : Service, IHelloService
+internal class Chatbot : Service, IHelloService
 {
     private readonly ICrm _crm;
 
-    internal Hello(ICrm crm) => _crm = crm;
+    internal Chatbot(ICrm crm) => _crm = crm;
 
     public async ValueTask<string> SayHelloAsync(
         string name,

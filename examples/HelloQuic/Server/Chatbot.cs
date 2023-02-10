@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace HelloQuicExample;
 
-internal class Hello : Service, IHelloService
+internal class Chatbot : Service, IHelloService
 {
     public ValueTask<string> SayHelloAsync(
         string name,

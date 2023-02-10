@@ -11,7 +11,7 @@ var serverAuthenticationOptions = new SslServerAuthenticationOptions()
     ServerCertificate = new X509Certificate2("../../certs/server.p12", "password")
 };
 
-await using var server = new Server(new Hello(), serverAuthenticationOptions);
+await using var server = new Server(new Chatbot(), serverAuthenticationOptions);
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.

@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace GenericHostExample;
 
-public class Hello : Service, IHelloService
+public class Chatbot : Service, IHelloService
 {
     public async ValueTask<string> SayHelloAsync(
         string name,

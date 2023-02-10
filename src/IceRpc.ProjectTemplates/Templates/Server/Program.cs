@@ -1,7 +1,7 @@
 using HelloExample;
 using IceRpc;
 
-await using var server = new Server(new Hello());
+await using var server = new Server(new Chatbot());
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.

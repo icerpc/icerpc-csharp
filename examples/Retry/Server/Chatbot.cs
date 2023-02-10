@@ -7,11 +7,11 @@ using System.Security.Cryptography;
 
 namespace RetryExample;
 
-internal class Hello : Service, IHelloService
+internal class Chatbot : Service, IHelloService
 {
     private readonly int _serverNumber;
 
-    internal Hello(int serverNumber) => _serverNumber = serverNumber;
+    internal Chatbot(int serverNumber) => _serverNumber = serverNumber;
 
     public ValueTask<string> SayHelloAsync(
         string name,

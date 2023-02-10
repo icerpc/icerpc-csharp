@@ -5,7 +5,7 @@ using RequestContextExample;
 
 // Add the request context middleware to the dispatch pipeline.
 Router router = new Router().UseRequestContext();
-router.Map<IHelloService>(new Hello());
+router.Map<IHelloService>(new Chatbot());
 
 await using var server = new Server(router);
 server.Listen();

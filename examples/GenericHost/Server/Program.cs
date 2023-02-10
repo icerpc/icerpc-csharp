@@ -39,7 +39,7 @@ IHost host = Host.CreateDefaultBuilder(args)
             });
 
         // Add the Slice service that implements Slice interface `Hello`, as a singleton.
-        services.AddSingleton<IHelloService, Hello>();
+        services.AddSingleton<IHelloService, Chatbot>();
 
         // Add a server and configure the dispatcher using a dispatcher builder. The server uses the ServerOptions
         // provided by the IOptions<ServerOptions> singleton configured/bound above.
