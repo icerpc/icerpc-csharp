@@ -347,7 +347,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
                 response,
                 request,
-                new ServiceProxy(NotImplementedInvoker.Instance),
+                InvalidProxy.Instance,
                 default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
     }
@@ -393,7 +393,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
-                new ServiceProxy(NotImplementedInvoker.Instance),
+                InvalidProxy.Instance,
                 default),
             Is.EqualTo(p));
     }
@@ -439,7 +439,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
-                new ServiceProxy(NotImplementedInvoker.Instance),
+                InvalidProxy.Instance,
                 default),
             Is.EqualTo(p));
     }
@@ -499,7 +499,7 @@ public class OperationTests
         IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
 
-        ServiceProxy receivedProxy = await proxy.OpWithProxyReturnValueAsync();
+        PingableProxy receivedProxy = await proxy.OpWithProxyReturnValueAsync();
 
         Assert.That(receivedProxy.Invoker, Is.EqualTo(((IProxy)proxy).Invoker));
     }
@@ -515,7 +515,7 @@ public class OperationTests
 
         IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
         provider.GetRequiredService<Server>().Listen();
-        await proxy.OpWithProxyParameterAsync(ServiceProxy.FromPath("/hello"));
+        await proxy.OpWithProxyParameterAsync(PingableProxy.FromPath("/hello"));
 
         Assert.That(service.ReceivedProxy, Is.Not.Null);
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
@@ -523,7 +523,7 @@ public class OperationTests
 
     public class MyOperationsA : Service, IMyOperationsAService
     {
-        public ServiceProxy? ReceivedProxy;
+        public PingableProxy? ReceivedProxy;
 
         public ValueTask ContinueAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
@@ -620,7 +620,7 @@ public class OperationTests
             CancellationToken cancellationToken) => new(p1);
 
         public ValueTask OpWithProxyParameterAsync(
-            ServiceProxy service,
+            PingableProxy service,
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
@@ -628,9 +628,9 @@ public class OperationTests
             return default;
         }
 
-        public ValueTask<ServiceProxy> OpWithProxyReturnValueAsync(
+        public ValueTask<PingableProxy> OpWithProxyReturnValueAsync(
             IFeatureCollection features,
-            CancellationToken cancellationToken) => new(ServiceProxy.FromPath("/hello"));
+            CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
     }
 
     private sealed class MyDerivedOperationsA : MyOperationsA { }

@@ -21,7 +21,7 @@ internal static class IncomingFrameExtensions
         this IncomingFrame frame,
         SliceEncoding encoding,
         ISliceFeature feature,
-        ServiceProxy? templateProxy,
+        GenericProxy? templateProxy,
         DecodeFunc<T> decodeFunc,
         IActivator? activator,
         CancellationToken cancellationToken)
@@ -42,7 +42,7 @@ internal static class IncomingFrameExtensions
             var decoder = new SliceDecoder(
                 readResult.Buffer,
                 encoding,
-                feature.ServiceProxyFactory,
+                feature.ProxyFactory,
                 templateProxy,
                 feature.MaxCollectionAllocation,
                 activator,

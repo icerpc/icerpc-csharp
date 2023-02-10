@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
@@ -71,7 +72,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
 public class CustomTransportTests
 {
     [Test]
-    public async Task CustomTransport_IcePingAsync()
+    public async Task CustomTransport_PingAsync()
     {
         await using var server = new Server(
             new ServerOptions
@@ -93,8 +94,8 @@ public class CustomTransportTests
             },
             multiplexedClientTransport: new CustomClientTransport());
 
-        var proxy = new ServiceProxy(connection);
-        await proxy.IcePingAsync();
+        var proxy = new PingableProxy(connection);
+        await proxy.PingAsync();
     }
 
     [Test]
@@ -102,15 +103,17 @@ public class CustomTransportTests
     {
         // Custom transport handles any params that start with custom-
         {
-            await using var server = new Server(new ServerOptions
-            {
-                ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
-                ConnectionOptions = new ConnectionOptions()
+            await using var server = new Server(
+                new ServerOptions
                 {
-                    Dispatcher = new MyService()
-                }
-            },
+                    ServerAddress = new ServerAddress(new Uri("icerpc://127.0.0.1:0?transport=custom&custom-p=bar")),
+                    ConnectionOptions = new ConnectionOptions()
+                    {
+                        Dispatcher = new MyService()
+                    }
+                },
                 multiplexedServerTransport: new CustomServerTransport());
+
             ServerAddress serverAddress = server.Listen();
 
             await using var connection1 = new ClientConnection(
@@ -125,12 +128,13 @@ public class CustomTransportTests
                 },
                 multiplexedClientTransport: new CustomClientTransport());
 
-            var proxy = new ServiceProxy(connection1);
-            await proxy.IcePingAsync();
+            var proxy = new PingableProxy(connection1);
+            await proxy.PingAsync();
         }
     }
 
-    public class MyService : Service, IServiceService
+    public class MyService : Service, IPingableService
     {
+        public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 }

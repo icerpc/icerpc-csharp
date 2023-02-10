@@ -23,12 +23,12 @@ public sealed class ProtocolBridgingTests
         var forwarderServerAddress = new ServerAddress(new Uri($"{forwarderProtocol}://colochost1"));
         var targetServerAddress = new ServerAddress(new Uri($"{targetProtocol}://colochost2"));
 
-        var forwarderServiceProxy = new ProtocolBridgingTestProxy
+        var forwarderProxy = new ProtocolBridgingTestProxy
         {
             ServiceAddress = new(new Uri($"{forwarderServerAddress}forward"))
         };
 
-        var targetServiceProxy = new ProtocolBridgingTestProxy
+        var targetProxy = new ProtocolBridgingTestProxy
         {
             ServiceAddress = new(new Uri($"{targetServerAddress}target"))
         };
@@ -39,7 +39,7 @@ public sealed class ProtocolBridgingTests
             .AddColocTransport()
             .AddIceRpcConnectionCache()
             .AddSingleton<IProtocolBridgingTestService>(targetService)
-            .AddSingleton(_ => new Forwarder(targetServiceProxy.ToProxy<ServiceProxy>()))
+            .AddSingleton(_ => new Forwarder(targetProxy))
             .AddIceRpcServer(
                 "forwarder",
                 builder => builder
@@ -61,8 +61,8 @@ public sealed class ProtocolBridgingTests
 
         await using ServiceProvider serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-        forwarderServiceProxy = forwarderServiceProxy with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
-        targetServiceProxy = targetServiceProxy with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
+        forwarderProxy = forwarderProxy with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
+        targetProxy = targetProxy with { Invoker = serviceProvider.GetRequiredService<IInvoker>() };
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
@@ -71,7 +71,7 @@ public sealed class ProtocolBridgingTests
 
         // TODO: test with the other encoding; currently, the encoding is always slice2
 
-        ProtocolBridgingTestProxy newProxy = await TestProxyAsync(forwarderServiceProxy, direct: false);
+        ProtocolBridgingTestProxy newProxy = await TestProxyAsync(forwarderProxy, direct: false);
         Assert.That((object)newProxy.ServiceAddress.Protocol!.Name, Is.EqualTo(targetProtocol));
         _ = await TestProxyAsync(newProxy, direct: true);
 
@@ -155,7 +155,7 @@ public sealed class ProtocolBridgingTests
 
     public sealed class Forwarder : IDispatcher
     {
-        private readonly ServiceProxy _target;
+        private readonly IProxy _target;
 
         public async ValueTask<OutgoingResponse> DispatchAsync(
             IncomingRequest request,
@@ -204,6 +204,6 @@ public sealed class ProtocolBridgingTests
             }
         }
 
-        internal Forwarder(ServiceProxy target) => _target = target;
+        internal Forwarder(IProxy target) => _target = target;
     }
 }

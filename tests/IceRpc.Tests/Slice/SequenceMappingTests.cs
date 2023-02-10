@@ -26,7 +26,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnTupleAsync(
                 response,
                 request,
-                new ServiceProxy(NotImplementedInvoker.Instance),
+                new GenericProxy { Invoker = NotImplementedInvoker.Instance, ServiceAddress = null! },
                 default);
 
         Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
@@ -48,7 +48,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
-                new ServiceProxy(NotImplementedInvoker.Instance),
+                InvalidProxy.Instance,
                 default);
 
         Assert.That(r, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
@@ -97,7 +97,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpStructNestedSequenceAsync(
                 response,
                 request,
-                new ServiceProxy(NotImplementedInvoker.Instance),
+                InvalidProxy.Instance,
                 default);
 
         Assert.That(await result, Is.EqualTo(data));
@@ -123,7 +123,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpNumericTypeNestedSequenceAsync(
                 response,
                 request,
-                new ServiceProxy(NotImplementedInvoker.Instance),
+                InvalidProxy.Instance,
                 default);
 
         Assert.That(await result, Is.EqualTo(data));

@@ -459,7 +459,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment("summary", &comment_content);
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
-        builder.add_parameter("ServiceProxy", "sender", None, None);
+        builder.add_parameter("GenericProxy", "sender", None, None);
         builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancellationToken",

@@ -15,6 +15,7 @@
     </PropertyGroup>
     <ItemGroup>
       <SliceCompile Include="../../slice/$(AssemblyName)/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
+      <SliceCompile Include="../../slice/Ice/Object.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Slice/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />

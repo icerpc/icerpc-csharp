@@ -67,7 +67,7 @@ public class ProxyTests
         encoder.EncodeNullableServiceAddress(expected);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
-        ServiceProxy? decoded = decoder.DecodeNullableProxy<ServiceProxy>();
+        PingableProxy? decoded = decoder.DecodeNullableProxy<PingableProxy>();
 
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
@@ -84,7 +84,7 @@ public class ProxyTests
         encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
-        ServiceProxy decoded = sut.DecodeProxy<ServiceProxy>();
+        var decoded = sut.DecodeProxy<GenericProxy>();
 
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
@@ -103,7 +103,7 @@ public class ProxyTests
                 bufferWriter.WrittenMemory,
                 encoding: SliceEncoding.Slice2);
 
-            return decoder.DecodeProxy<ServiceProxy>().Invoker;
+            return decoder.DecodeProxy<GenericProxy>().Invoker;
         },
         Is.Null);
     }

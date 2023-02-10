@@ -34,7 +34,8 @@ public sealed class TypeIdAttributeTests
     /// <summary>A collection of types generated from Slice definitions and its expected type IDs.</summary>
     private static readonly Dictionary<Type, string?> _typeIds = new()
     {
-        [typeof(ServiceProxy)] = "::IceRpc::Slice::Service",
+        [typeof(IceObjectProxy)] = "::Ice::Object",
+        [typeof(PingableProxy)] = "::IceRpc::Tests::Slice::Pingable",
         [typeof(MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass",
         [typeof(IMyInterface)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
         [typeof(MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
@@ -49,7 +50,8 @@ public sealed class TypeIdAttributeTests
     /// <summary>A collection of types generated from Slice definitions and its expected default path.</summary>
     private static readonly Dictionary<Type, string> _defaultPaths = new()
     {
-        [typeof(ServiceProxy)] = "/IceRpc.Slice.Service",
+        [typeof(IceObjectProxy)] = "/Ice.Object",
+        [typeof(PingableProxy)] = "/IceRpc.Tests.Slice.Pingable",
         [typeof(MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyClass",
         [typeof(IMyInterface)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
         [typeof(MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
