@@ -12,3 +12,10 @@ interface DictionaryMappingOperations
 
     opSingleParameter(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>);
 }
+
+struct LargeStruct
+{
+    X: int64,
+
+    Y: int64
+}
