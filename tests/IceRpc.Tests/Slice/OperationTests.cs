@@ -13,12 +13,6 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class OperationTests
 {
-    private static readonly GenericProxy _invalidSender = new()
-    {
-        Invoker = NotImplementedInvoker.Instance,
-        ServiceAddress = null!
-    };
-
     [Test]
     public async Task Operation_without_parameters_and_void_return()
     {
@@ -353,7 +347,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
                 response,
                 request,
-                _invalidSender,
+                InvalidProxy.Instance,
                 default),
             Is.EqualTo(new int[] { 1, 2, 3 }));
     }
@@ -399,7 +393,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
-                _invalidSender,
+                InvalidProxy.Instance,
                 default),
             Is.EqualTo(p));
     }
@@ -445,7 +439,7 @@ public class OperationTests
             async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
-                _invalidSender,
+                InvalidProxy.Instance,
                 default),
             Is.EqualTo(p));
     }

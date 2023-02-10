@@ -10,12 +10,6 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceMappingTests
 {
-    private static readonly GenericProxy _invalidSender = new()
-    {
-        Invoker = NotImplementedInvoker.Instance,
-        ServiceAddress = null!
-    };
-
     [Test]
     public async Task Return_tuple_with_elements_using_cs_generic_attribute()
     {
@@ -54,7 +48,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
                 response,
                 request,
-                _invalidSender,
+                InvalidProxy.Instance,
                 default);
 
         Assert.That(r, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
@@ -103,7 +97,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpStructNestedSequenceAsync(
                 response,
                 request,
-                _invalidSender,
+                InvalidProxy.Instance,
                 default);
 
         Assert.That(await result, Is.EqualTo(data));
@@ -129,7 +123,7 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Response.OpNumericTypeNestedSequenceAsync(
                 response,
                 request,
-                _invalidSender,
+                InvalidProxy.Instance,
                 default);
 
         Assert.That(await result, Is.EqualTo(data));
