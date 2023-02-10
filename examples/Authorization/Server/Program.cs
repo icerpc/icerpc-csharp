@@ -18,7 +18,7 @@ router.Route("/helloAdmin", adminRouter =>
     adminRouter.Map("/", new ChatbotAdmin(chatbot));
 });
 
-router.Map("/sessionManager", new SessionManager(tokenStore));
+router.Map("/sessionManager", new SessionManagerService(tokenStore));
 router.Map("/hello", chatbot);
 
 await using var server = new Server(router);

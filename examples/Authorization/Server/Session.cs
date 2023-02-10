@@ -43,11 +43,11 @@ internal class TokenStore
 }
 
 /// <summary>The implementation of the <see cref="ISessionManagerService" /> interface.</summary>
-internal class SessionManager : Service, ISessionManagerService
+internal class SessionManagerService : Service, ISessionManagerService
 {
     private readonly TokenStore _tokenStore;
 
-    internal SessionManager(TokenStore tokenStore) => _tokenStore = tokenStore;
+    internal SessionManagerService(TokenStore tokenStore) => _tokenStore = tokenStore;
 
     public ValueTask<ReadOnlyMemory<byte>> CreateSessionAsync(
         string name,
