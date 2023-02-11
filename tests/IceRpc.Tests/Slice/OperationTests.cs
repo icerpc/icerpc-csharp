@@ -17,7 +17,7 @@ public class OperationTests
     public async Task Operation_without_parameters_and_void_return()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -31,7 +31,7 @@ public class OperationTests
     public async Task Operation_from_base_class()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyDerivedOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyDerivedOperationsAService())
             .AddIceRpcProxy<IMyDerivedOperationsA, MyDerivedOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -45,7 +45,7 @@ public class OperationTests
     public async Task Operation_with_single_parameter_and_return_value()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -61,7 +61,7 @@ public class OperationTests
     public async Task Operation_with_multiple_parameters_and_return_values()
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -79,7 +79,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -108,7 +108,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -145,7 +145,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -182,7 +182,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -222,7 +222,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -242,7 +242,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -261,7 +261,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -281,7 +281,7 @@ public class OperationTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyOperationsA())
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
             .BuildServiceProvider(validateScopes: true);
 
@@ -490,7 +490,7 @@ public class OperationTests
     [Test]
     public async Task Proxy_decoded_from_incoming_response_has_the_invoker_of_the_proxy_that_sent_the_request()
     {
-        var service = new MyOperationsA();
+        var service = new MyOperationsAService();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
@@ -507,7 +507,7 @@ public class OperationTests
     [Test]
     public async Task Proxy_decoded_from_incoming_request_has_a_null_invoker()
     {
-        var service = new MyOperationsA();
+        var service = new MyOperationsAService();
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(dispatcher: service)
             .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
@@ -521,7 +521,7 @@ public class OperationTests
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
     }
 
-    public class MyOperationsA : Service, IMyOperationsAService
+    public class MyOperationsAService : Service, IMyOperationsAService
     {
         public PingableProxy? ReceivedProxy;
 
@@ -633,7 +633,7 @@ public class OperationTests
             CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
     }
 
-    private sealed class MyDerivedOperationsA : MyOperationsA { }
+    private sealed class MyDerivedOperationsAService : MyOperationsAService { }
 
     private sealed class MyTaggedOperationsService : Service, IMyTaggedOperationsService
     {
