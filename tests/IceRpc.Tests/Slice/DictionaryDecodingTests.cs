@@ -17,12 +17,13 @@ public class DictionaryDecodingTests
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);
         var encoder = new SliceEncoder(buffer, encoding);
         var expected = Enumerable.Range(0, 1024).ToDictionary(key => key, value => $"value-{value}");
-        encoder.EncodeSize(expected.Count);
-        foreach ((int key, string value) in expected)
+
+        // A dictionary is encoded like a sequence.
+        encoder.EncodeSequence(expected, (ref SliceEncoder encoder, KeyValuePair<int, string> pair) =>
         {
-            encoder.EncodeInt32(key);
-            encoder.EncodeString(value);
-        }
+            encoder.EncodeInt32(pair.Key);
+            encoder.EncodeString(pair.Value);
+        });
         var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
 
         // Act
@@ -45,11 +46,11 @@ public class DictionaryDecodingTests
         var expected = Enumerable.Range(0, 1024).ToDictionary(
             key => key,
             value => value % 2 == 0 ? null : $"value-{value}");
-        encoder.EncodeSize(expected.Count);
-        foreach ((int key, string? value) in expected)
-        {
-            new KeyValuePair(key, value).Encode(ref encoder);
-        }
+
+        // A dictionary is encoded like a sequence.
+        encoder.EncodeSequence(expected, (ref SliceEncoder encoder, KeyValuePair<int, string?> pair) =>
+            new KeyValuePair(pair.Key, pair.Value).Encode(ref encoder));
+
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         // Act
