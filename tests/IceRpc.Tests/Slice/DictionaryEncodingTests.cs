@@ -57,14 +57,8 @@ public class DictionaryEncodingTests
         var value = new Dictionary<int, string?>();
         while (decoder.Consumed != buffer.WrittenMemory.Length)
         {
-            if (decoder.DecodeBool())
-            {
-                value.Add(decoder.DecodeInt32(), decoder.DecodeString());
-            }
-            else
-            {
-                value.Add(decoder.DecodeInt32(), null);
-            }
+            var keyValuePair = new KeyValuePair(ref decoder);
+            value.Add(keyValuePair.Key, keyValuePair.Value);
         }
         Assert.That(value, Is.EqualTo(expected));
     }

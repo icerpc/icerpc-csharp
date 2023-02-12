@@ -15,7 +15,13 @@ interface DictionaryMappingOperations
 
 [cs::readonly] compact struct LargeStruct
 {
-    X: int64,
+    x: int64,
 
-    Y: int64
+    y: int64
+}
+
+[cs::readonly] compact struct KeyValuePair
+{
+    Key: int32,
+    Value: string?,
 }

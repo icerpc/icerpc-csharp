@@ -48,12 +48,7 @@ public class DictionaryDecodingTests
         encoder.EncodeSize(expected.Count);
         foreach ((int key, string? value) in expected)
         {
-            encoder.EncodeBool(value is not null);
-            encoder.EncodeInt32(key);
-            if (value is not null)
-            {
-                encoder.EncodeString(value);
-            }
+            new KeyValuePair(key, value).Encode(ref encoder);
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
