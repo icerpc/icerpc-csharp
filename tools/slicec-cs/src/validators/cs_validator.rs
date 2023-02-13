@@ -253,4 +253,11 @@ impl Visitor for CsValidator<'_> {
             }
         }
     }
+
+    fn visit_enumerator(&mut self, enumerator: &Enumerator) {
+        validate_repeated_attributes(enumerator, self.diagnostic_reporter);
+        for (attribute, span) in &cs_attributes(&enumerator.attributes(false)) {
+            validate_common_attributes(attribute, span, self.diagnostic_reporter)
+        }
+    }
 }
