@@ -89,7 +89,7 @@ public class SequenceEncodingTests
         int?[] expected = Enumerable.Range(0, 1024).Select(i => i % 2 == 0 ? (int?)i : null).ToArray();
 
         // Act
-        sut.EncodeSequenceWithBitSequence(expected, (ref SliceEncoder encoder, int? value) => encoder.EncodeInt32(value!.Value));
+        sut.EncodeSequenceOfOptionals(expected, (ref SliceEncoder encoder, int? value) => encoder.EncodeInt32(value!.Value));
 
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);

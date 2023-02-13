@@ -12,3 +12,16 @@ interface DictionaryMappingOperations
 
     opSingleParameter(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>);
 }
+
+[cs::readonly] compact struct LargeStruct
+{
+    x: int64,
+
+    y: int64
+}
+
+[cs::readonly] compact struct KeyValuePair
+{
+    Key: int32,
+    Value: string?,
+}
