@@ -33,7 +33,7 @@ public sealed class ProtocolBridgingTests
             ServiceAddress = new(new Uri($"{targetServerAddress}target"))
         };
 
-        var targetService = new ProtocolBridgingTest(targetServerAddress);
+        var targetService = new ProtocolBridgingTestService(targetServerAddress);
 
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
@@ -112,13 +112,13 @@ public sealed class ProtocolBridgingTests
         }
     }
 
-    internal sealed class ProtocolBridgingTest : Service, IProtocolBridgingTestService
+    internal sealed class ProtocolBridgingTestService : Service, IProtocolBridgingTestService
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
         private readonly ServerAddress _publishedServerAddress;
 
-        public ProtocolBridgingTest(ServerAddress publishedServerAddress) => _publishedServerAddress = publishedServerAddress;
+        public ProtocolBridgingTestService(ServerAddress publishedServerAddress) => _publishedServerAddress = publishedServerAddress;
 
         public ValueTask<int> OpAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) =>
             new(x);

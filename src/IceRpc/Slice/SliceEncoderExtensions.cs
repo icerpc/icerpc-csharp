@@ -32,14 +32,14 @@ public static class SliceEncoderExtensions
         }
     }
 
-    /// <summary>Encodes a dictionary with null values encoded using a bit sequence.</summary>
+    /// <summary>Encodes a dictionary with an optional value type (T? in Slice).</summary>
     /// <typeparam name="TKey">The dictionary key type.</typeparam>
     /// <typeparam name="TValue">The dictionary value type.</typeparam>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="v">The dictionary to encode.</param>
     /// <param name="keyEncodeAction">The encode action for the keys.</param>
     /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-    public static void EncodeDictionaryWithBitSequence<TKey, TValue>(
+    public static void EncodeDictionaryWithOptionalValueType<TKey, TValue>(
         this ref SliceEncoder encoder,
         IEnumerable<KeyValuePair<TKey, TValue>> v,
         EncodeAction<TKey> keyEncodeAction,
@@ -50,12 +50,17 @@ public static class SliceEncoderExtensions
         encoder.EncodeSize(count);
         if (count > 0)
         {
-            BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
             foreach ((TKey key, TValue value) in v)
             {
-                keyEncodeAction(ref encoder, key);
+                // Each entry is encoded like a:
+                // compact struct Pair
+                // {
+                //     key: Key,
+                //     value: Value?
+                // }
+                encoder.EncodeBool(value is not null); // simplified bit sequence
 
-                bitSequenceWriter.Write(value is not null);
+                keyEncodeAction(ref encoder, key);
                 if (value is not null)
                 {
                     valueEncodeAction(ref encoder, value);
@@ -111,13 +116,13 @@ public static class SliceEncoderExtensions
         }
     }
 
-    /// <summary>Encodes a sequence with null values encoded using a bit sequence.</summary>
+    /// <summary>Encodes a sequence where the element type is an optional Slice type (T?).</summary>
     /// <typeparam name="T">The nullable type of the sequence elements.</typeparam>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="v">The sequence to encode.</param>
     /// <param name="encodeAction">The encode action for a non-null value.</param>
     /// <remarks>This method always encodes a bit sequence.</remarks>
-    public static void EncodeSequenceWithBitSequence<T>(
+    public static void EncodeSequenceOfOptionals<T>(
         this ref SliceEncoder encoder,
         IEnumerable<T> v,
         EncodeAction<T> encodeAction)

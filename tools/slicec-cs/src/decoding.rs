@@ -169,11 +169,11 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, 
         );
     }
 
-    // Use a bit sequence if encoding is not Slice1 and the value type is optional
+    // Use WithOptionalValueType method if encoding is not Slice1 and the value type is optional
     if encoding != Encoding::Slice1 && value_type.is_optional {
         format!(
             "\
-decoder.DecodeDictionaryWithBitSequence(
+decoder.DecodeDictionaryWithOptionalValueType(
     size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
@@ -250,7 +250,7 @@ decoder.DecodeSequence(
                     write!(
                         code,
                         "\
-decoder.DecodeSequenceWithBitSequence(
+decoder.DecodeSequenceOfOptionals(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
                         sequence_type = sequence_ref.cs_type_string(namespace, TypeContext::Decode, true),
@@ -285,7 +285,7 @@ new {}(
         write!(
             code,
             "\
-decoder.DecodeSequenceWithBitSequence(
+decoder.DecodeSequenceOfOptionals(
     {})",
             decode_func(element_type, namespace, encoding).indent(),
         )

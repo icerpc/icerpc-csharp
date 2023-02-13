@@ -471,7 +471,7 @@ public sealed class ExceptionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperationsService(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -495,7 +495,7 @@ public sealed class ExceptionTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperationsService(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -513,7 +513,7 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -536,7 +536,7 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -559,7 +559,7 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperations(throwException))
+            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
             .BuildServiceProvider(validateScopes: true);
 
         var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
@@ -570,11 +570,11 @@ public sealed class ExceptionTests
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
-    private sealed class Slice2ExceptionOperations : Service, ISlice2ExceptionOperationsService
+    private sealed class Slice2ExceptionOperationsService : Service, ISlice2ExceptionOperationsService
     {
         private readonly Exception _exception;
 
-        public Slice2ExceptionOperations(Exception exception) => _exception = exception;
+        public Slice2ExceptionOperationsService(Exception exception) => _exception = exception;
 
         public ValueTask OpThrowsMyExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
@@ -588,11 +588,11 @@ public sealed class ExceptionTests
             CancellationToken cancellationToken) => new(exception);
     }
 
-    private sealed class Slice1ExceptionOperations : Service, ISlice1ExceptionOperationsService
+    private sealed class Slice1ExceptionOperationsService : Service, ISlice1ExceptionOperationsService
     {
         private readonly Exception _exception;
 
-        public Slice1ExceptionOperations(Exception exception) => _exception = exception;
+        public Slice1ExceptionOperationsService(Exception exception) => _exception = exception;
 
         public ValueTask OpThrowsAnyExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;

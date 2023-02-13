@@ -165,7 +165,7 @@ public sealed class StructTests
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        encoder.EncodeSequenceWithBitSequence(
+        encoder.EncodeSequenceOfOptionals(
             expected.I,
             (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
@@ -214,7 +214,7 @@ public sealed class StructTests
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        encoder.EncodeDictionaryWithBitSequence(
+        encoder.EncodeDictionaryWithOptionalValueType(
             expected.I,
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
@@ -378,7 +378,7 @@ public sealed class StructTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(
-            decoder.DecodeSequenceWithBitSequence<PingableProxy?>(
+            decoder.DecodeSequenceOfOptionals<PingableProxy?>(
                 (ref SliceDecoder decoder) => decoder.DecodeProxy<PingableProxy>()),
             Is.EqualTo(expected.I));
     }
@@ -428,7 +428,7 @@ public sealed class StructTests
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
         Assert.That(
-            decoder.DecodeDictionaryWithBitSequence(
+            decoder.DecodeDictionaryWithOptionalValueType(
                 count => new Dictionary<int, PingableProxy?>(count),
                 (ref SliceDecoder decoder) => decoder.DecodeInt32(),
                 (ref SliceDecoder decoder) => decoder.DecodeProxy<PingableProxy>() as PingableProxy?),

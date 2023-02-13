@@ -78,7 +78,7 @@ public class SequenceDecodingTests
         var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         // Act
-        int?[] decoded = sut.DecodeSequenceWithBitSequence<int?>((ref SliceDecoder decoder) => decoder.DecodeInt32());
+        int?[] decoded = sut.DecodeSequenceOfOptionals<int?>((ref SliceDecoder decoder) => decoder.DecodeInt32());
 
         // Assert
         Assert.That(decoded, Is.EqualTo(expected));
@@ -90,7 +90,7 @@ public class SequenceDecodingTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         long?[] seq = new long?[100];
-        encoder.EncodeSequenceWithBitSequence(
+        encoder.EncodeSequenceOfOptionals(
             seq,
             (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
 
@@ -98,7 +98,7 @@ public class SequenceDecodingTests
             () =>
             {
                 var sut = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-                _ = sut.DecodeSequenceWithBitSequence<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
+                _ = sut.DecodeSequenceOfOptionals<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
             },
             Throws.InstanceOf<InvalidDataException>());
     }
@@ -147,7 +147,7 @@ public class SequenceDecodingTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         long?[] seq = new long?[100];
-        encoder.EncodeSequenceWithBitSequence(
+        encoder.EncodeSequenceOfOptionals(
             seq,
             (ref SliceEncoder encoder, long? value) => encoder.EncodeInt64(value!.Value));
 
@@ -158,7 +158,7 @@ public class SequenceDecodingTests
                     buffer.WrittenMemory,
                     SliceEncoding.Slice2,
                     maxCollectionAllocation: seq.Length * Unsafe.SizeOf<long?>());
-                _ = sut.DecodeSequenceWithBitSequence<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
+                _ = sut.DecodeSequenceOfOptionals<long?>((ref SliceDecoder decoder) => decoder.DecodeInt64());
             },
             Throws.Nothing);
     }
