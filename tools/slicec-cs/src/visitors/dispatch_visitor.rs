@@ -31,11 +31,11 @@ impl Visitor for DispatchVisitor<'_> {
 {}"#,
             interface_def.cs_identifier(None),
             interface_def.interface_name(),
-            doc_comment_message(interface_def),
+            doc_comment_message(interface_def).unwrap_or_default(),
         );
 
         interface_builder
-            .add_comment("summary", &summary_comment)
+            .add_comment("summary", summary_comment)
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def);
 
@@ -131,7 +131,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment(
             "summary",
-            &format!(
+            format!(
                 "Decodes the argument{s} of operation {operation_identifier}.",
                 s = if parameters.len() == 1 { "" } else { "s" },
                 operation_identifier = operation.escape_identifier(),
@@ -197,7 +197,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder
             .add_comment(
                 "summary",
-                &format!("Creates a response payload for operation {}.", &operation_name),
+                format!("Creates a response payload for operation {}.", &operation_name),
             )
             .add_comment("returns", "A new response payload.");
 
@@ -207,7 +207,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                     &param.cs_type_string(namespace, TypeContext::Encode, false),
                     "returnValue",
                     None,
-                    Some("The operation return value"),
+                    Some("The operation return value".to_owned()),
                 );
             }
             _ => {
@@ -226,7 +226,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             "SliceEncodeOptions?",
             "encodeOptions",
             Some("null"),
-            Some("The Slice encode options."),
+            Some("The Slice encode options.".to_owned()),
         );
 
         builder.set_body(encode_operation(operation, true, "return"));
@@ -348,7 +348,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
         &(operation.escape_identifier_with_suffix("Async")),
         FunctionType::Declaration,
     )
-    .add_comment("summary", doc_comment_message(operation))
+    .add_optional_comment("summary", doc_comment_message(operation))
     .add_operation_parameters(operation, TypeContext::Decode)
     .add_container_attributes(operation)
     .build()

@@ -18,7 +18,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
 
     container_builder.add_comment(
         "summary",
-        &format!("Helper record struct used to encode the return value of {operation_name} operation."),
+        format!("Helper record struct used to encode the return value of {operation_name} operation."),
     );
 
     container_builder.add_block(
@@ -34,7 +34,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
 
     constructor_builder.add_comment(
         "summary",
-        &format!(
+        format!(
             r#"Constructs a new <see cref="{struct_name}" /> instance that
 immediately encodes the return value of operation {operation_name}."#
         ),

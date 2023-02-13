@@ -32,7 +32,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
     )
-    .add_comment("summary", doc_comment_message(enum_def))
+    .add_optional_comment("summary", doc_comment_message(enum_def))
     .add_container_attributes(enum_def)
     .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))
@@ -42,10 +42,12 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
 fn enum_values(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
     for enumerator in enum_def.enumerators() {
+        let summary = doc_comment_message(enumerator).map(|message| CommentTag::new("summary", message).to_string());
+
         // Use CodeBlock here in case the comment is empty. It automatically whitespace
         code.add_block(&CodeBlock::from(format!(
             "{}\n{} = {},",
-            CommentTag::new("summary", doc_comment_message(enumerator)),
+            summary.unwrap_or_default(),
             enumerator.cs_identifier(Some(Case::Pascal)),
             enumerator.value(),
         )));
@@ -69,7 +71,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
 
     builder.add_comment(
         "summary",
-        &format!(
+        format!(
             r#"Provides an extension method for creating {} <see cref="{escaped_identifier}" /> from {} <see cref="{cs_type}" />"#,
             in_definite::get_a_or_an(&escaped_identifier),
             in_definite::get_a_or_an(&cs_type),
@@ -117,7 +119,7 @@ private static readonly global::System.Collections.Generic.HashSet<{cs_type}> _e
             format!("this {cs_type}").as_str(),
             "value",
             None,
-            Some("The value being converted."),
+            Some("The value being converted.".to_owned()),
         )
         .add_comment(
             "summary",
@@ -125,8 +127,7 @@ private static readonly global::System.Collections.Generic.HashSet<{cs_type}> _e
                 r#"
 Converts a <see cref="{cs_type}" /> into the corresponding <see cref="{escaped_identifier}" />
 enumerator."#
-            )
-            .as_str(),
+            ),
         )
         .add_comment("returns", "The enumerator.")
         .set_body(if enum_def.is_unchecked {
@@ -175,7 +176,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     builder.add_comment(
         "summary",
-        &format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
+        format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
     );
 
     // Enum encoding
@@ -210,7 +211,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     builder.add_comment(
         "summary",
-        &format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
+        format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
     );
 
     let underlying_extensions_class = format!(

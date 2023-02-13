@@ -32,7 +32,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             &escaped_identifier,
         );
         builder
-            .add_comment("summary", doc_comment_message(struct_def))
+            .add_optional_comment("summary", doc_comment_message(struct_def))
             .add_container_attributes(struct_def);
 
         builder.add_block(
@@ -52,7 +52,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
         main_constructor.add_comment(
             "summary",
-            &format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" />."#),
+            format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" />."#),
         );
 
         for member in &members {
@@ -62,7 +62,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     .cs_type_string(&namespace, TypeContext::DataMember, false),
                 member.parameter_name().as_str(),
                 None,
-                Some(doc_comment_message(*member)),
+                doc_comment_message(*member),
             );
         }
         main_constructor.set_body({
@@ -106,9 +106,9 @@ impl<'a> Visitor for StructVisitor<'a> {
             )
             .add_comment(
                 "summary",
-                &format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> from a decoder."#),
+                format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> from a decoder."#),
             )
-            .add_parameter("ref SliceDecoder", "decoder", None, Some("The decoder."))
+            .add_parameter("ref SliceDecoder", "decoder", None, Some("The decoder.".to_owned()))
             .set_body(decode_body)
             .build(),
         );
@@ -139,7 +139,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 FunctionType::BlockBody,
             )
             .add_comment("summary", "Encodes the fields of this struct.")
-            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder.".to_owned()))
             .set_body(encode_body)
             .build(),
         );

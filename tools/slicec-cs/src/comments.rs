@@ -53,18 +53,18 @@ impl fmt::Display for CommentTag {
     }
 }
 
-pub fn doc_comment_message(entity: &dyn Entity) -> &str {
-    entity.comment().map_or("", |comment| &comment.overview)
+pub fn doc_comment_message(entity: &dyn Entity) -> Option<String> {
+    entity.comment().map(|comment| comment.overview.clone())
 }
 
 // TODO: the `DocComment` message for an operation parameter should be the same as the `DocComment`
 // for the operation param
-pub fn operation_parameter_doc_comment<'a>(operation: &'a Operation, parameter_name: &str) -> Option<&'a str> {
+pub fn operation_parameter_doc_comment(operation: &Operation, parameter_name: &str) -> Option<String> {
     operation.comment().and_then(|comment| {
         comment
             .params
             .iter()
             .find(|(param, _)| param == parameter_name)
-            .map(|(_, description)| description.as_str())
+            .map(|(_, description)| description.clone())
     })
 }

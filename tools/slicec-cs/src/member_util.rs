@@ -25,7 +25,9 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
 
     let attributes = data_member.attributes(false).into_iter().filter_map(match_cs_attribute);
 
-    prelude.writeln(&CommentTag::new("summary", doc_comment_message(data_member)));
+    if let Some(comment) = doc_comment_message(data_member) {
+        prelude.writeln(&CommentTag::new("summary", comment))
+    }
     prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
     if let Some(obsolete) = data_member.obsolete_attribute(true) {
         prelude.writeln(&format!("[{obsolete}]"));

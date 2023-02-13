@@ -99,14 +99,16 @@ pub trait AttributeBuilder {
 }
 
 pub trait CommentBuilder {
-    fn add_comment(&mut self, tag: &str, content: &str) -> &mut Self;
+    fn add_comment(&mut self, tag: &str, content: impl Into<String>) -> &mut Self;
+
+    fn add_optional_comment(&mut self, tag: &str, content: Option<String>) -> &mut Self;
 
     fn add_comment_with_attribute(
         &mut self,
         tag: &str,
         attribute_name: &str,
         attribute_value: &str,
-        content: &str,
+        content: impl Into<String>,
     ) -> &mut Self;
 }
 
@@ -192,8 +194,15 @@ impl AttributeBuilder for ContainerBuilder {
 }
 
 impl CommentBuilder for ContainerBuilder {
-    fn add_comment(&mut self, tag: &str, content: &str) -> &mut Self {
-        self.comments.push(CommentTag::new(tag, content));
+    fn add_comment(&mut self, tag: &str, content: impl Into<String>) -> &mut Self {
+        self.comments.push(CommentTag::new(tag, content.into()));
+        self
+    }
+
+    fn add_optional_comment(&mut self, tag: &str, content: Option<String>) -> &mut Self {
+        if let Some(comment) = content {
+            self.comments.push(CommentTag::new(tag, comment));
+        }
         self
     }
 
@@ -202,13 +211,13 @@ impl CommentBuilder for ContainerBuilder {
         tag: &str,
         attribute_name: &str,
         attribute_value: &str,
-        content: &str,
+        content: impl Into<String>,
     ) -> &mut Self {
         self.comments.push(CommentTag::with_tag_attribute(
             tag,
             attribute_name,
             attribute_value,
-            content,
+            content.into(),
         ));
         self
     }
@@ -268,7 +277,7 @@ impl FunctionBuilder {
         param_type: &str,
         param_name: &str,
         default_value: Option<&str>,
-        doc_comment: Option<&str>,
+        doc_comment: Option<String>,
     ) -> &mut Self {
         self.parameters.push(format!(
             "{param_type} {param_name}{default_value}",
@@ -343,7 +352,7 @@ impl FunctionBuilder {
                     "IceRpc.Features.IFeatureCollection",
                     &escape_parameter_name(&parameters, "features"),
                     None,
-                    Some("The dispatch features"),
+                    Some("The dispatch features".to_owned()),
                 );
             }
             TypeContext::Encode => {
@@ -351,7 +360,7 @@ impl FunctionBuilder {
                     "IceRpc.Features.IFeatureCollection?",
                     &escape_parameter_name(&parameters, "features"),
                     Some("null"),
-                    Some("The invocation features."),
+                    Some("The invocation features.".to_owned()),
                 );
             }
             _ => panic!("Unexpected context value"),
@@ -365,7 +374,7 @@ impl FunctionBuilder {
             } else {
                 None
             },
-            Some("A cancellation token that receives the cancellation requests."),
+            Some("A cancellation token that receives the cancellation requests.".to_owned()),
         );
 
         if let Some(comment) = operation.comment() {
@@ -530,8 +539,15 @@ impl AttributeBuilder for FunctionBuilder {
 }
 
 impl CommentBuilder for FunctionBuilder {
-    fn add_comment(&mut self, tag: &str, content: &str) -> &mut Self {
-        self.comments.push(CommentTag::new(tag, content));
+    fn add_comment(&mut self, tag: &str, content: impl Into<String>) -> &mut Self {
+        self.comments.push(CommentTag::new(tag, content.into()));
+        self
+    }
+
+    fn add_optional_comment(&mut self, tag: &str, content: Option<String>) -> &mut Self {
+        if let Some(comment) = content {
+            self.comments.push(CommentTag::new(tag, comment));
+        }
         self
     }
 
@@ -540,13 +556,13 @@ impl CommentBuilder for FunctionBuilder {
         tag: &str,
         attribute_name: &str,
         attribute_value: &str,
-        content: &str,
+        content: impl Into<String>,
     ) -> &mut Self {
         self.comments.push(CommentTag::with_tag_attribute(
             tag,
             attribute_name,
             attribute_value,
-            content,
+            content.into(),
         ));
         self
     }
