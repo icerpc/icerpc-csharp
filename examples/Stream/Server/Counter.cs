@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace StreamExample;
 
-internal class NumberStream : Service, INumberStreamService
+internal class Counter : Service, INumberStreamService
 {
     public async ValueTask StreamDataAsync(
         IAsyncEnumerable<int> numbers,
