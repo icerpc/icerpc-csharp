@@ -34,11 +34,6 @@ impl CommentTag {
 
 impl fmt::Display for CommentTag {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.content.is_empty() {
-            // If the comment has no content don't write anything.
-            return Ok(());
-        }
-
         let attribute = match (&self.attribute_name, &self.attribute_value) {
             (Some(name), Some(value)) => format!(r#" {name}="{value}""#),
             _ => "".to_owned(),
@@ -54,7 +49,13 @@ impl fmt::Display for CommentTag {
 }
 
 pub fn doc_comment_message(entity: &dyn Entity) -> Option<String> {
-    entity.comment().map(|comment| comment.overview.clone())
+    entity.comment().and_then(|comment| {
+        if comment.overview.is_empty() {
+            None
+        } else {
+            Some(comment.overview.clone())
+        }
+    })
 }
 
 // TODO: the `DocComment` message for an operation parameter should be the same as the `DocComment`
