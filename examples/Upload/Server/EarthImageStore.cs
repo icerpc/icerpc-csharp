@@ -28,6 +28,6 @@ internal class EarthImageStore : Service, IUploaderService
         // Complete and cleanup the pipe reader.
         await image.CompleteAsync();
 
-        Console.WriteLine("Image fully uploaded");
+        Console.WriteLine("Image fully read and saved to disk.");
     }
 }
