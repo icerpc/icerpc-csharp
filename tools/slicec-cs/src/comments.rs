@@ -13,19 +13,19 @@ pub struct CommentTag {
 }
 
 impl CommentTag {
-    pub fn new(tag: &str, content: &str) -> Self {
+    pub fn new(tag: &str, content: String) -> Self {
         Self {
             tag: tag.to_owned(),
-            content: content.to_owned(),
+            content,
             attribute_name: None,
             attribute_value: None,
         }
     }
 
-    pub fn with_tag_attribute(tag: &str, attribute_name: &str, attribute_value: &str, content: &str) -> Self {
+    pub fn with_tag_attribute(tag: &str, attribute_name: &str, attribute_value: &str, content: String) -> Self {
         Self {
             tag: tag.to_owned(),
-            content: content.to_owned(),
+            content,
             attribute_name: Some(attribute_name.to_owned()),
             attribute_value: Some(attribute_value.to_owned()),
         }
