@@ -16,7 +16,7 @@ public class IceObjectTests
     public async Task Ice_operations([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(Protocol.Parse(protocol), new MyService())
+            .AddClientServerColocTest(Protocol.Parse(protocol), new PingableService())
             .AddIceRpcProxy<IIceObject, IceObjectProxy>(new Uri($"{protocol}:/service"))
             .BuildServiceProvider(validateScopes: true);
         IIceObject proxy = provider.GetRequiredService<IIceObject>();
@@ -35,7 +35,7 @@ public class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    private class MyService : Service, IPingableService
+    private class PingableService : Service, IPingableService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
