@@ -4,5 +4,4 @@ module IceRpc::Tests::Slice;
 
 interface MyBaseInterface {}
 
-
 interface MyDerivedInterface : MyBaseInterface {}
