@@ -40,13 +40,13 @@ impl Visitor for ProxyVisitor<'_> {
 {}"#,
             interface_def.cs_identifier(None),
             interface_def.service_name(),
-            doc_comment_message(interface_def),
+            doc_comment_message(interface_def).unwrap_or_default(),
         );
 
         let mut code = CodeBlock::default();
         code.add_block(
             &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
-                .add_comment("summary", &summary_message)
+                .add_comment("summary", summary_message)
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
                 .add_bases(&interface_bases)
@@ -58,7 +58,7 @@ impl Visitor for ProxyVisitor<'_> {
             ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
 
         proxy_impl_builder.add_bases(&proxy_impl_bases)
-            .add_comment("summary", &format!(r#"Proxy record struct. It implements <see cref="{interface}" /> by sending requests to a remote IceRPC service."#))
+            .add_comment("summary", format!(r#"Proxy record struct. It implements <see cref="{interface}" /> by sending requests to a remote IceRPC service."#))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_block(request_class(interface_def))
@@ -317,7 +317,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
                 FunctionType::Declaration,
             )
             .add_container_attributes(operation)
-            .add_comment("summary", doc_comment_message(operation))
+            .add_optional_comment("summary", doc_comment_message(operation))
             .add_operation_parameters(operation, TypeContext::Encode)
             .build(),
         );
@@ -360,7 +360,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment(
             "summary",
-            &format!(
+            format!(
                 "Creates the request payload for operation {}.",
                 operation.cs_identifier(None),
             ),
@@ -379,12 +379,12 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             "SliceEncodeOptions?",
             "encodeOptions",
             Some("null"),
-            Some("The Slice encode options."),
+            Some("The Slice encode options.".to_owned()),
         );
 
         builder.add_comment(
             "returns",
-            &format!(
+            format!(
                 "The payload encoded with <see cref=\"{}\" />.",
                 operation.encoding.to_cs_encoding(),
             ),
@@ -410,7 +410,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
     class_builder.add_comment(
         "summary",
-        &format!(
+        format!(
             r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}" />."#,
             interface_def.interface_name(),
         ),
@@ -456,7 +456,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                 operation.cs_identifier(None),
             )
         };
-        builder.add_comment("summary", &comment_content);
+        builder.add_comment("summary", comment_content);
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
         builder.add_parameter("GenericProxy", "sender", None, None);

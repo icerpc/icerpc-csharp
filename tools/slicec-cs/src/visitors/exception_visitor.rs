@@ -34,7 +34,7 @@ impl Visitor for ExceptionVisitor<'_> {
         let mut exception_class_builder = ContainerBuilder::new(&format!("{access} partial class"), &exception_name);
 
         exception_class_builder
-            .add_comment("summary", doc_comment_message(exception_def))
+            .add_optional_comment("summary", doc_comment_message(exception_def))
             .add_container_attributes(exception_def);
 
         if exception_def.supported_encodings().supports(&Encoding::Slice1) {
@@ -215,7 +215,7 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
 
     ctor_builder.add_comment(
         "summary",
-        &format!(r#"Constructs a new instance of <see cref="{}" />."#, &exception_name),
+        format!(r#"Constructs a new instance of <see cref="{}" />."#, &exception_name),
     );
 
     for member in &all_data_members {
@@ -225,7 +225,7 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
                 .cs_type_string(namespace, TypeContext::DataMember, false),
             member.parameter_name().as_str(),
             None,
-            Some(doc_comment_message(*member)),
+            doc_comment_message(*member),
         );
     }
     ctor_builder.add_base_parameters(&base_parameters);
@@ -235,14 +235,14 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
             "string?",
             &message_parameter_name,
             Some("null"),
-            Some("A message that describes the exception."),
+            Some("A message that describes the exception.".to_owned()),
         )
         .add_base_parameter(&message_parameter_name)
         .add_parameter(
             "global::System.Exception?",
             &inner_exception_parameter_name,
             Some("null"),
-            Some("The exception that is the cause of the current exception."),
+            Some("The exception that is the cause of the current exception.".to_owned()),
         )
         .add_base_parameter(&inner_exception_parameter_name);
 

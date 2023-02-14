@@ -13,19 +13,19 @@ pub struct CommentTag {
 }
 
 impl CommentTag {
-    pub fn new(tag: &str, content: &str) -> Self {
+    pub fn new(tag: &str, content: String) -> Self {
         Self {
             tag: tag.to_owned(),
-            content: content.to_owned(),
+            content,
             attribute_name: None,
             attribute_value: None,
         }
     }
 
-    pub fn with_tag_attribute(tag: &str, attribute_name: &str, attribute_value: &str, content: &str) -> Self {
+    pub fn with_tag_attribute(tag: &str, attribute_name: &str, attribute_value: &str, content: String) -> Self {
         Self {
             tag: tag.to_owned(),
-            content: content.to_owned(),
+            content,
             attribute_name: Some(attribute_name.to_owned()),
             attribute_value: Some(attribute_value.to_owned()),
         }
@@ -34,11 +34,6 @@ impl CommentTag {
 
 impl fmt::Display for CommentTag {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.content.is_empty() {
-            // If the comment has no content don't write anything.
-            return Ok(());
-        }
-
         let attribute = match (&self.attribute_name, &self.attribute_value) {
             (Some(name), Some(value)) => format!(r#" {name}="{value}""#),
             _ => "".to_owned(),
@@ -53,18 +48,24 @@ impl fmt::Display for CommentTag {
     }
 }
 
-pub fn doc_comment_message(entity: &dyn Entity) -> &str {
-    entity.comment().map_or("", |comment| &comment.overview)
+pub fn doc_comment_message(entity: &dyn Entity) -> Option<String> {
+    entity.comment().and_then(|comment| {
+        if comment.overview.is_empty() {
+            None
+        } else {
+            Some(comment.overview.clone())
+        }
+    })
 }
 
 // TODO: the `DocComment` message for an operation parameter should be the same as the `DocComment`
 // for the operation param
-pub fn operation_parameter_doc_comment<'a>(operation: &'a Operation, parameter_name: &str) -> Option<&'a str> {
+pub fn operation_parameter_doc_comment(operation: &Operation, parameter_name: &str) -> Option<String> {
     operation.comment().and_then(|comment| {
         comment
             .params
             .iter()
             .find(|(param, _)| param == parameter_name)
-            .map(|(_, description)| description.as_str())
+            .map(|(_, description)| description.clone())
     })
 }

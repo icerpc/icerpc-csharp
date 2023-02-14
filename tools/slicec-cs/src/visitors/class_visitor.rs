@@ -49,7 +49,7 @@ impl Visitor for ClassVisitor<'_> {
         let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
         class_builder
-            .add_comment("summary", doc_comment_message(class_def))
+            .add_optional_comment("summary", doc_comment_message(class_def))
             .add_type_id_attribute(class_def)
             .add_compact_type_id_attribute(class_def)
             .add_container_attributes(class_def);
@@ -94,7 +94,7 @@ impl Visitor for ClassVisitor<'_> {
         class_builder.add_block(constructor(
             &class_name,
             &access,
-            &constructor_summary,
+            constructor_summary.clone(),
             &namespace,
             &members,
             &base_members,
@@ -106,7 +106,7 @@ impl Visitor for ClassVisitor<'_> {
             class_builder.add_block(constructor(
                 &class_name,
                 &access,
-                &constructor_summary,
+                constructor_summary,
                 &namespace,
                 &non_default_members,
                 &non_default_base_members,
@@ -146,7 +146,7 @@ impl Visitor for ClassVisitor<'_> {
 fn constructor(
     escaped_name: &str,
     access: &str,
-    summary_comment: &str,
+    summary_comment: String,
     namespace: &str,
     members: &[&DataMember],
     base_members: &[&DataMember],
@@ -166,7 +166,7 @@ fn constructor(
                 .cs_type_string(namespace, TypeContext::DataMember, false),
             &member.parameter_name(),
             None,
-            Some(doc_comment_message(*member)),
+            doc_comment_message(*member),
         );
     }
 
