@@ -2,7 +2,6 @@
 
 mod attribute_patcher;
 mod builders;
-mod comment_patcher;
 mod comments;
 mod cs_attributes;
 mod cs_options;
@@ -17,7 +16,6 @@ mod validators;
 mod visitors;
 
 use attribute_patcher::patch_attributes;
-use comment_patcher::patch_comments;
 use cs_options::CsOptions;
 use generated_code::GeneratedCode;
 use slice::clap::Parser;
@@ -48,7 +46,6 @@ fn try_main() -> CompilationResult {
     let slice_options = &options.slice_options;
     let mut compilation_data = slice::compile_from_options(slice_options)
         .and_then(patch_attributes)
-        .and_then(patch_comments)
         .and_then(validate_cs_attributes)?;
 
     if !slice_options.dry_run {
