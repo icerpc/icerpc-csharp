@@ -28,6 +28,7 @@ class MyDerivedClassWithTaggedMembers : MyClassWithTaggedMembers {
 }
 
 class MyDerivedCompactClass(789) : MyCompactClass {}
+
 [format(Compact)]
 interface CompactFormatOperations {
     OpAnyClass(p1: AnyClass) -> AnyClass;
