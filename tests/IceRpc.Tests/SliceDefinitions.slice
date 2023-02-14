@@ -2,12 +2,10 @@
 
 module IceRpc::Tests;
 
-interface ReceiveProxyTest
-{
+interface ReceiveProxyTest {
     receiveProxy() -> ReceiveProxyTest;
 }
 
-interface SendProxyTest
-{
+interface SendProxyTest {
     sendProxy(proxy: SendProxyTest);
 }

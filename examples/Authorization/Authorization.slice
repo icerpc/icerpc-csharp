@@ -5,23 +5,20 @@ module AuthorizationExample;
 /// The authorization token
 typealias Token = sequence<uint8>;
 
-interface SessionManager
-{
+interface SessionManager {
     /// Creates a new session token.
     /// @param name The user name.
     /// @return The token.
     createSession(name: string) -> Token;
 }
 
-interface HelloAdmin
-{
+interface HelloAdmin {
     /// Changes the greeting returned by the Hello service.
     /// @param greeting The new greeting.
     changeGreeting(greeting: string);
 }
 
-interface Hello
-{
+interface Hello {
     /// Gets the greeting message.
     /// @return The greeting message.
     sayHello() -> string;

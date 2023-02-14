@@ -7,24 +7,17 @@ module Ice;
 
 /// This exception is thrown when a server application tries to register server addresses for an object adapter that is
 /// already active.
-exception AdapterAlreadyActiveException
-{
-}
+exception AdapterAlreadyActiveException {}
 
 /// This exception is thrown when the provided replica group is invalid.
-exception InvalidReplicaGroupIdException
-{
-}
+exception InvalidReplicaGroupIdException {}
 
 /// This exception is thrown when a server was not found.
-exception ServerNotFoundException
-{
-}
+exception ServerNotFoundException {}
 
 /// A server application registers the server addresses of its indirect object adapters with the LocatorRegistry
 /// service.
-interface LocatorRegistry
-{
+interface LocatorRegistry {
     /// Registers or unregisters the server addresses of an object adapter.
     /// @param id The adapter ID.
     /// @param proxy A dummy service address created by the object adapter. proxy carries the object adapter's server

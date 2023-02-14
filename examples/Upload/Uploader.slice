@@ -2,7 +2,6 @@
 
 module UploadExample;
 
-interface Uploader
-{
+interface Uploader {
     uploadImage(image: stream uint8);
 }

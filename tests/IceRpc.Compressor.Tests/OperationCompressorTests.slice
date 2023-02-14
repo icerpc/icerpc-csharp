@@ -3,8 +3,7 @@
 module IceRpc::Compressor::Tests;
 
 // Used for testing the generated code corresponding to proxy and dispatch visitors.
-interface MyOperationsA
-{
+interface MyOperationsA {
     // Compress attribute
     [compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32;
 }

@@ -4,17 +4,14 @@ encoding = 1;
 
 module IceRpc::Tests::ReferencedAssemblies;
 
-class ClassC : ClassB
-{
+class ClassC : ClassB {
     cValue: string,
 }
 
-class CompactClassC(3) : CompactClassB
-{
+class CompactClassC(3) : CompactClassB {
     cValue: string,
 }
 
-exception ExceptionC : ExceptionB
-{
+exception ExceptionC : ExceptionB {
     cValue: string,
 }

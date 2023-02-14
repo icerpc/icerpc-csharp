@@ -4,50 +4,37 @@ encoding = 1;
 
 module IceRpc::Tests::Slice;
 
-class MyClassA
-{
+class MyClassA {
     theB: MyClassB?,
     theC: MyClassC?,
 }
 
-class MyClassB : MyClassA
-{
+class MyClassB : MyClassA {
     theA: MyClassA?,
 }
 
-class MyClassC
-{
+class MyClassC {
     theB: MyClassB?,
 }
 
-class MyCompactClass(15)
-{
-}
-
-class MyClassWithTaggedMembers
-{
+class MyCompactClass(15) {}
+class MyClassWithTaggedMembers {
     a: tag(10) int32?
 }
 
-class MyDerivedClassWithTaggedMembers : MyClassWithTaggedMembers
-{
+class MyDerivedClassWithTaggedMembers : MyClassWithTaggedMembers {
     b: tag(20) string?
 }
 
-class MyDerivedCompactClass(789) : MyCompactClass
-{
-}
-
+class MyDerivedCompactClass(789) : MyCompactClass {}
 [format(Compact)]
-interface CompactFormatOperations
-{
+interface CompactFormatOperations {
     OpAnyClass(p1: AnyClass) -> AnyClass;
     OpMyClass(p1: MyClassA) -> MyClassA;
 }
 
 [format(Sliced)]
-interface SlicedFormatOperations
-{
+interface SlicedFormatOperations {
     OpAnyClass(p1: AnyClass) -> AnyClass;
     OpMyClass(p1: MyClassA) -> MyClassA;
 }

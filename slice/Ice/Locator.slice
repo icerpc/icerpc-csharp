@@ -6,20 +6,15 @@ encoding = 1;
 module Ice;
 
 /// This exception is thrown when an object adapter was not found.
-exception AdapterNotFoundException
-{
-}
+exception AdapterNotFoundException {}
 
 /// This exception is thrown when a service with the specified identity (path) was not found.
-exception ObjectNotFoundException
-{
-}
+exception ObjectNotFoundException {}
 
 /// Client applications use the {@link Locator} service to resolve Ice indirect proxies. This service also allows server
 /// applications to retrieve a proxy to the associated TODO-LINK LocatorRegistry service where they can register their
 /// object adapters.
-interface Locator
-{
+interface Locator {
     /// Finds a service by identity (path) and returns a dummy service address with the server address(es) that can be
     /// used to reach this service. This dummy service address can also carry no server address and require further
     /// resolution using TODO-LINK findAdapterById.

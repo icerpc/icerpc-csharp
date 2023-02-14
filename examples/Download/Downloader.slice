@@ -2,7 +2,6 @@
 
 module DownloadExample;
 
-interface Downloader
-{
+interface Downloader {
     downloadImage() -> stream uint8;
 }

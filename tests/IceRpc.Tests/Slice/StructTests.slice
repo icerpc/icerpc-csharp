@@ -2,22 +2,19 @@
 
 module IceRpc::Tests::Slice;
 
-struct MyStruct
-{
+struct MyStruct {
     i: int32,
     j: int32,
 }
 
-struct MyStructWithOptionalMembers
-{
+struct MyStructWithOptionalMembers {
     i: int32,
     j: int32,
     k: int32?,
     l: int32?
 }
 
-compact struct MyCompactStruct
-{
+compact struct MyCompactStruct {
     i: int32,
     j: int32,
 }

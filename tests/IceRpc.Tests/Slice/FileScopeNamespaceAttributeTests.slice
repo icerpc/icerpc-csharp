@@ -3,12 +3,10 @@
 [cs::namespace("IceRpc.Tests.Slice.FileScopeNamespaceAttribute.WithFileScopeNamespace")]
 module WithFileScopeNamespace;
 
-struct S1
-{
+struct S1 {
     i: string,
 }
 
-interface FileScopeNamespaceOperations
-{
+interface FileScopeNamespaceOperations {
     op1(p: S1) -> S1;
 }
