@@ -8,8 +8,7 @@ module IceRpc::Internal;
 // These definitions help with the encoding of ice frames.
 
 /// Each ice frame has a type identified by this enumeration.
-enum IceFrameType
-{
+enum IceFrameType {
     Request = 0,
     RequestBatch = 1,
     Reply = 2,
@@ -19,8 +18,7 @@ enum IceFrameType
 
 /// The ice frame prologue
 [cs::readonly]
-compact struct IcePrologue
-{
+compact struct IcePrologue {
     magic1: uint8,
     magic2: uint8,
     magic3: uint8,
@@ -36,8 +34,7 @@ compact struct IcePrologue
 
 /// Determines the retry behavior an invocation in case of a (potentially) recoverable error. OperationMode is
 /// sent with each ice request to allow the server to verify the assumptions made by the caller.
-enum OperationMode
-{
+enum OperationMode {
     /// Ordinary operations have <code>Normal</code> mode. These operations can modify object state; invoking such
     /// an operation twice in a row may have different semantics than invoking it once. The Ice run time guarantees
     /// that it will not violate at-most-once semantics for <code>Normal</code> operations.
@@ -56,8 +53,7 @@ enum OperationMode
 /// The payload of most request and response frames starts with an encapsulation header that specifies the size of
 /// the encapsulation and its encoding.
 [cs::readonly]
-compact struct EncapsulationHeader
-{
+compact struct EncapsulationHeader {
     encapsulationSize: int32,
     payloadEncodingMajor: uint8,
     payloadEncodingMinor: uint8,
@@ -69,8 +65,7 @@ compact struct EncapsulationHeader
 /// - a request header (below)
 /// - a request payload, with encapsulationSize - 6 bytes
 [cs::readonly]
-compact struct IceRequestHeader
-{
+compact struct IceRequestHeader {
     path: Slice::IdentityPath,
     fragment: IceRpc::Slice::Internal::Fragment,
     operation: string,
@@ -87,8 +82,7 @@ compact struct IceRequestHeader
 /// - a reply status
 /// - when reply status is OK or UserException, an encapsulation header followed by a response payload, with
 /// encapsulationSize - 6 bytes
-enum ReplyStatus
-{
+enum ReplyStatus {
     /// A successful reply message.
     Ok = 0,
 
@@ -117,8 +111,7 @@ enum ReplyStatus
 /// The data carried by a RequestFailedException (ObjectNotExistException, FacetNotExistException or
 /// OperationNotExistException).
 [cs::readonly]
-compact struct RequestFailedExceptionData
-{
+compact struct RequestFailedExceptionData {
     path: Slice::IdentityPath,
     fragment: Slice::Internal::Fragment,
     operation: string,

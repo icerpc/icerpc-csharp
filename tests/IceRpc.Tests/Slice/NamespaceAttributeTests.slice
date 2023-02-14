@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 [cs::namespace("IceRpc.Tests.Slice.NamespaceAttribute.WithNamespace")]
-module WithNamespace
-{
+module WithNamespace {
     module N1
     {
         [cs::namespace("O2")]
@@ -18,8 +17,7 @@ module WithNamespace
 
 // Verify that a top level module which contains __only__ submodules works
 [cs::namespace("IceRpc.Tests.Slice.NamespaceAttribute.M1")]
-module M0
-{
+module M0 {
     module M2::M3
     {
         struct S1
@@ -29,8 +27,7 @@ module M0
     }
 }
 
-module IceRpc::Tests::Slice
-{
+module IceRpc::Tests::Slice {
     interface NamespaceOperations
     {
         op1(p: M0::M2::M3::S1) -> WithNamespace::N1::N2::S1;

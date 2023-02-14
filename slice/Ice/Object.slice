@@ -8,8 +8,7 @@ module Ice;
 /// Provides 3 ice_ operations. Services implemented with Ice or that offer compatibility with Ice implement this
 /// interface.
 [cs::identifier("IceObject")]
-interface Object
-{
+interface Object {
     /// Gets the Slice type IDs of all the interfaces implemented by the target service.
     /// @return The Slice type IDs of all these interfaces, sorted alphabetically.
     ice_ids() -> sequence<string>;

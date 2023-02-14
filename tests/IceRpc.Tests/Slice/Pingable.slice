@@ -5,7 +5,6 @@ encoding = 1;
 module IceRpc::Tests::Slice;
 
 // A simple interface reused by several tests.
-interface Pingable
-{
+interface Pingable {
     ping();
 }

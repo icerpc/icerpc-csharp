@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace
-{
+module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace {
     interface MyInterface {}
     exception MyException {}
     compact struct MyStruct {

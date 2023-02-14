@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice
-{
+module IceRpc::Tests::Slice {
     struct S
     {
         v: string,

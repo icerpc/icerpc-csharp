@@ -2,16 +2,14 @@
 
 module IceRpc::Tests::Slice;
 
-exception MyExceptionWithOptionalMembers
-{
+exception MyExceptionWithOptionalMembers {
     i: int32,
     j: int32,
     k: int32?,
     l: int32?
 }
 
-interface Slice2ExceptionOperations
-{
+interface Slice2ExceptionOperations {
     opThrowsMyException() throws MyException;
 
     opThrowsNothing();

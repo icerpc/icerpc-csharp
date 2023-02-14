@@ -2,7 +2,6 @@
 
 module OpenTelemetryExample;
 
-interface CRM
-{
+interface CRM {
     tryAddCustomer(name: string) -> bool;
 }

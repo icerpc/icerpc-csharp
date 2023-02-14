@@ -3,8 +3,7 @@
 module IceRpc::Tests::Slice;
 
 // Used for testing the generated code corresponding to proxy and dispatch visitors.
-interface MyOperationsA
-{
+interface MyOperationsA {
     // No parameters and void return
     opWithoutParametersAndVoidReturn();
 
@@ -55,12 +54,10 @@ interface MyOperationsA
 
 interface MyDerivedOperationsA : MyOperationsA {}
 
-interface MyTaggedOperations
-{
+interface MyTaggedOperations {
     op(x: int32, y: tag(1) int32?, z: tag(2) int32?);
 }
 
-interface MyTaggedOperationsReadOnlyMemoryParams
-{
+interface MyTaggedOperationsReadOnlyMemoryParams {
     op(x: sequence<int32>, y: tag(1) sequence<int32>?, z: tag(2) sequence<int32>?);
 }

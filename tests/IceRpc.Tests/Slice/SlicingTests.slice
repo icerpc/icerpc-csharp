@@ -4,62 +4,50 @@ encoding = 1;
 
 module IceRpc::Tests::Slice;
 
-class SlicingBaseClass
-{
+class SlicingBaseClass {
     m1: string,
 }
 
-class SlicingDerivedClass : SlicingBaseClass
-{
+class SlicingDerivedClass : SlicingBaseClass {
     m2: string,
 }
 
-class SlicingMostDerivedClass : SlicingDerivedClass
-{
+class SlicingMostDerivedClass : SlicingDerivedClass {
     m3: string,
 }
 
-class SlicingCompactBaseClass(1)
-{
+class SlicingCompactBaseClass(1) {
     m1: string,
 }
 
-class SlicingCompactDerivedClass(2) : SlicingCompactBaseClass
-{
+class SlicingCompactDerivedClass(2) : SlicingCompactBaseClass {
     m2: string,
 }
 
-class SlicingCompactMostDerivedClass(3) : SlicingCompactDerivedClass
-{
+class SlicingCompactMostDerivedClass(3) : SlicingCompactDerivedClass {
     m3: string,
 }
 
-exception SlicingBaseException
-{
+exception SlicingBaseException {
     m1: string,
 }
 
-exception SlicingDerivedException : SlicingBaseException
-{
+exception SlicingDerivedException : SlicingBaseException {
     m2: string,
 }
 
-exception SlicingMostDerivedException : SlicingDerivedException
-{
+exception SlicingMostDerivedException : SlicingDerivedException {
     m3: string,
 }
 
-class SlicingPreservedClass : SlicingBaseClass
-{
+class SlicingPreservedClass : SlicingBaseClass {
     m2: string,
 }
 
-class SlicingPreservedDerivedClass1 : SlicingPreservedClass
-{
+class SlicingPreservedDerivedClass1 : SlicingPreservedClass {
     m3: SlicingBaseClass,
 }
 
-class SlicingPreservedDerivedClass2(56) : SlicingPreservedClass
-{
+class SlicingPreservedDerivedClass2(56) : SlicingPreservedClass {
     m3: SlicingBaseClass,
 }

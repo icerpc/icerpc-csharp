@@ -3,8 +3,7 @@
 module IceRpc::Tests::Slice;
 
 // Used for testing the generated Request and Response classes.
-interface MyOperationsB
-{
+interface MyOperationsB {
     // Single input parameter and return value
     opInt32(p1: int32) -> int32;
 

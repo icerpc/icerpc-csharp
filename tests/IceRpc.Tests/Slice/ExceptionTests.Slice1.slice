@@ -4,28 +4,24 @@ encoding = 1;
 
 module IceRpc::Tests::Slice;
 
-exception MyException
-{
+exception MyException {
     i: int32,
     j: int32,
 }
 
-exception MyExceptionWithTaggedMembers
-{
+exception MyExceptionWithTaggedMembers {
     i: int32,
     j: int32,
     k: tag(1) int32?,
     l: tag(255) int32?
 }
 
-exception MyDerivedException : MyException
-{
+exception MyDerivedException : MyException {
     k: int32,
     l: int32,
 }
 
-interface Slice1ExceptionOperations
-{
+interface Slice1ExceptionOperations {
     opThrowsAnyException() throws AnyException;
 
     opThrowsMyException() throws MyException;

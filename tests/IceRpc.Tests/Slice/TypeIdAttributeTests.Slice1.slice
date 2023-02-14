@@ -2,8 +2,7 @@
 
 encoding = 1;
 
-module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace
-{
+module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace {
     class MyClass {}
 
     /// The constructs in the inner module doesn't use the same case convention that

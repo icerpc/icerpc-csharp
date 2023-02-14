@@ -4,8 +4,7 @@ module IceRpc;
 
 /// The status code indicates whether the dispatch of a request has completed successfully, and, if not, which error
 /// occurred. It's carried by responses.
-unchecked enum StatusCode : varuint62
-{
+unchecked enum StatusCode : varuint62 {
     /// The dispatch completed successfully.
     Success = 0,
 

@@ -2,7 +2,6 @@
 
 module MetricsExample;
 
-interface Hello
-{
+interface Hello {
     sayHello();
 }

@@ -2,8 +2,7 @@
 
 module IceRpc::Tests::Slice;
 
-interface SequenceMappingOperations
-{
+interface SequenceMappingOperations {
     opReturnTuple() ->
         (r1: [cs::generic("CustomSequence")] sequence<int32>,
          r2: [cs::generic("CustomSequence")] sequence<int32>);

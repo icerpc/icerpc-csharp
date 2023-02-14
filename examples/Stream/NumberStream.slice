@@ -2,7 +2,6 @@
 
 module StreamExample;
 
-interface NumberStream
-{
+interface NumberStream {
     streamData(numbers: stream int32);
 }

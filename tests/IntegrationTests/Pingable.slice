@@ -4,7 +4,6 @@ encoding = 1;
 
 module IceRpc::IntegrationTests;
 
-interface Pingable
-{
+interface Pingable {
     ping();
 }

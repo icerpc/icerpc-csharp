@@ -2,13 +2,11 @@
 
 module IceRpc::IntegrationTests;
 
-exception ProtocolBridgingException
-{
+exception ProtocolBridgingException {
     number: int32,
 }
 
-interface ProtocolBridgingTest
-{
+interface ProtocolBridgingTest {
     // Simple operations
     op(x: int32) -> int32;
     opVoid();

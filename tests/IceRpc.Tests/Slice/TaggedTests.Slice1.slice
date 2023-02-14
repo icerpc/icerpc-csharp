@@ -4,21 +4,18 @@ encoding = 1;
 
 module IceRpc::Tests::Slice::Tagged::Slice1;
 
-compact struct FixedLengthStruct
-{
+compact struct FixedLengthStruct {
     x: int32,
     y: int32,
 }
 
-compact struct VarLengthStruct
-{
+compact struct VarLengthStruct {
     s: string
 }
 
 enum MyEnum { One, Two }
 
-class ClassWithTaggedMembers
-{
+class ClassWithTaggedMembers {
     a: tag(1) uint8?,              // Uses F1 tag format
     b: tag(2) int16?,              // Uses F2 tag format
     c: tag(3) int32?,              // Uses F4 tag format
