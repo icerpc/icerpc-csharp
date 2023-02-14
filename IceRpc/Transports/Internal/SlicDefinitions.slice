@@ -5,8 +5,7 @@
 module IceRpc::Transports::Internal;
 
 /// The Slic frame types
-enum FrameType : uint8
-{
+enum FrameType : uint8 {
     /// The initialization frame is sent by the client-side Slic connection on connection establishment.
     Initialize = 1,
 
@@ -47,18 +46,21 @@ enum FrameType : uint8
 
 /// The keys for supported Slic connection parameters exchanged with the Initialize and
 /// InitializeAck frames.
-unchecked enum ParameterKey : varuint62
-{
+unchecked enum ParameterKey : varuint62 {
     /// The maximum number of bidirectional streams. The peer shouldn't open more streams than the maximum defined
     /// by this parameter.
     MaxBidirectionalStreams = 0,
+
     /// The maximum number of unidirectional streams. The peer shouldn't open more streams than the maximum defined
     /// by this parameter.
     MaxUnidirectionalStreams = 1,
+
     /// The idle timeout in milliseconds. If the connection is inactive for longer than the idle timeout it will be closed.
     IdleTimeout = 2,
+
     /// The maximum Slic packet size in bytes.
     PacketMaxSize = 3,
+
     /// The pause writer threshold in bytes. The peer should stop sending data when this limit is reached.
     PauseWriterThreshold = 4,
 }
@@ -67,8 +69,7 @@ typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>;
 
 /// The Slic initialize frame body.
 [cs::readonly]
-compact struct InitializeBody
-{
+compact struct InitializeBody {
     /// The application protocol name.
     applicationProtocolName: string,
 
@@ -78,8 +79,7 @@ compact struct InitializeBody
 
 /// The Slic initialize acknowledgment frame body.
 [cs::readonly]
-compact struct InitializeAckBody
-{
+compact struct InitializeAckBody {
     /// The parameters.
     parameters: ParameterFields,
 }
@@ -89,16 +89,14 @@ compact struct InitializeAckBody
 /// should send back a new Initialize frame with a version matching one of the versions provided by the Version
 /// frame body.
 [cs::readonly]
-compact struct VersionBody
-{
+compact struct VersionBody {
     /// The supported Slic versions.
     versions: sequence<varuint62>,
 }
 
 /// The body of a Slic close frame. This frame is sent when the connection is explicitly closed.
 [cs::readonly]
-compact struct CloseBody
-{
+compact struct CloseBody {
     /// The application error code indicating the reason of the closure.
     applicationErrorCode: varuint62,
 }
@@ -106,16 +104,14 @@ compact struct CloseBody
 /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in
 /// the stream.
 [cs::readonly]
-compact struct StreamResetBody
-{
+compact struct StreamResetBody {
     /// The application error code indicating the reason of the reset.
     applicationErrorCode: varuint62,
 }
 
 /// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
 [cs::readonly]
-compact struct StreamConsumedBody
-{
+compact struct StreamConsumedBody {
     /// The size of the consumed data.
     size: varuint62,
 }
@@ -123,8 +119,7 @@ compact struct StreamConsumedBody
 /// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver is no longer
 /// interested in receiving data.
 [cs::readonly]
-compact struct StreamStopSendingBody
-{
+compact struct StreamStopSendingBody {
     /// The application error code indicating the reason why the peer no longer needs to receive data.
     applicationErrorCode: varuint62,
 }
