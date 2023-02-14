@@ -20,7 +20,8 @@ enum MyEnumWithCustomEnumerators {
     Enum3 = 30,
 }
 
-[cs::attribute("System.Flags")] unchecked enum MyUncheckedEnum : uint32 {
+[cs::attribute("System.Flags")]
+unchecked enum MyUncheckedEnum : uint32 {
     E0 = 1,
     E1 = 2,
     E2 = 4,
