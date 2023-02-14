@@ -18,6 +18,7 @@ class MyClassC {
 }
 
 class MyCompactClass(15) {}
+
 class MyClassWithTaggedMembers {
     a: tag(10) int32?
 }
