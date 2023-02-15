@@ -395,7 +395,7 @@ public abstract class MultiplexedStreamConformanceTests
         // Assert
 
         // Reads aren't closed before the data is read.
-        Assert.That(async () => await sut.LocalStream.ReadsClosed.IsCompleted, Is.False);
+        Assert.That(sut.LocalStream.ReadsClosed.IsCompleted, Is.False);
         ReadResult readResult = await sut.LocalStream.Input.ReadAsync();
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
 
