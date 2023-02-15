@@ -19,36 +19,36 @@ exception ServerNotFoundException {}
 /// service.
 interface LocatorRegistry {
     /// Registers or unregisters the server addresses of an object adapter.
-    /// @param id The adapter ID.
-    /// @param proxy A dummy service address created by the object adapter. proxy carries the object adapter's server
+    /// @param id: The adapter ID.
+    /// @param proxy: A dummy service address created by the object adapter. proxy carries the object adapter's server
     /// addresses. The locator considers an object adapter to be active after it has registered its server addresses.
     /// When proxy is null, the server addresses are unregistered and the locator considers the object adapter inactive.
-    /// @throws AdapterNotFoundException Thrown if the locator only allows registered object adapters to register
+    /// @throws AdapterNotFoundException: Thrown if the locator only allows registered object adapters to register
     /// their active server addresses and no object adapter with this adapter ID was registered with the locator.
-    /// @throws AdapterAlreadyActiveException Thrown if an object adapter with the same adapter ID has already
+    /// @throws AdapterAlreadyActiveException: Thrown if an object adapter with the same adapter ID has already
     /// registered its server addresses.
     // Note: idempotent is not correct but kept for backwards compatibility with old implementations.
-    idempotent setAdapterDirectProxy(id: string, proxy: ServiceAddress?);
+    idempotent setAdapterDirectProxy(id: string, proxy: ServiceAddress?) throws AnyException;
 
     /// Registers or unregisters the server addresses of an object adapter. This object adapter is a member of a replica
     /// group.
-    /// @param adapterId The adapter ID.
-    /// @param replicaGroupId The replica group ID.
-    /// @param proxy A dummy service address created by the object adapter. proxy carries the object adapter's server
+    /// @param adapterId: The adapter ID.
+    /// @param replicaGroupId: The replica group ID.
+    /// @param proxy: A dummy service address created by the object adapter. proxy carries the object adapter's server
     /// addresses. The locator considers an object adapter to be active after it has registered its server addresses.
     /// When proxy is null, the server addresses are unregistered and the locator considers the object adapter inactive.
-    /// @throws AdapterNotFoundException Thrown if the locator only allows registered object adapters to register
+    /// @throws AdapterNotFoundException: Thrown if the locator only allows registered object adapters to register
     /// their active server addresses and no object adapter with this adapter ID was registered with the locator.
-    /// @throws AdapterAlreadyActiveException Thrown if an object adapter with the same adapter ID has already
+    /// @throws AdapterAlreadyActiveException: Thrown if an object adapter with the same adapter ID has already
     /// registered its server addresses.
-    /// @throws InvalidReplicaGroupIdException Thrown if the given replica group does not match the replica group
+    /// @throws InvalidReplicaGroupIdException: Thrown if the given replica group does not match the replica group
     /// associated with the adapter ID in the locator's database.
     // Note: idempotent is not correct but kept for backwards compatibility with old implementations.
-    idempotent setReplicatedAdapterDirectProxy(adapterId: string, replicaGroupId: string, proxy: ServiceAddress?);
+    idempotent setReplicatedAdapterDirectProxy(adapterId: string, replicaGroupId: string, proxy: ServiceAddress?) throws AnyException;
 
-    /// Registers a proxy for the TODO-LINK Process service of a server application.
-    /// @param serverId The server ID.
-    /// @param proxy A proxy for the Process service of the server application.
-    /// @throws ServerNotFoundException Thrown if the locator does not know a server application with this server ID.
-    idempotent setServerProcessProxy(serverId: string, proxy: Process);
+    /// Registers a proxy for the {@link Process} service of a server application.
+    /// @param serverId: The server ID.
+    /// @param proxy: A proxy for the Process service of the server application.
+    /// @throws ServerNotFoundException: Thrown if the locator does not know a server application with this server ID.
+    idempotent setServerProcessProxy(serverId: string, proxy: Process) throws AnyException;
 }
