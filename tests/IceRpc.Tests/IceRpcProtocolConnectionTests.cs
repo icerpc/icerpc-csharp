@@ -1329,7 +1329,12 @@ public sealed class IceRpcProtocolConnectionTests
                 catch (Exception exception)
                 {
                     _completeTaskCompletionSource.TrySetException(exception);
-                    throw;
+
+                    // Don't rethrow if the response is returned first, it would lead to an UTE.
+                    if (!_returnResponseFirst)
+                    {
+                        throw;
+                    }
                 }
                 finally
                 {
