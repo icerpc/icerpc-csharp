@@ -390,7 +390,7 @@ impl FunctionBuilder {
                     for return_tag in multiple {
                         // TODO add references to the types/identifiers here later!
                         let message = format_message(&return_tag.message, |link| link.get_formatted_link(&operation.namespace()));
-                        content = content + "<item><description>" + &message + "</description></item>\n";
+                        content = content + "<item><description>" + message.trim_end() + "</description></item>\n";
                     }
                     content += "</list>\n";
 

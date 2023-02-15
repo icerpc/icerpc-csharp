@@ -219,9 +219,12 @@ pub trait EntityExt: Entity {
             }
             // Add a see-also comment tag for each '@see' tag in the comment.
             for see_tag in &comment.see {
-                let linked_entity = see_tag.linked_entity().unwrap();
-                let link = linked_entity.escape_scoped_identifier(&self.namespace());
-                comments.push(CommentTag::with_tag_attribute("seealso", "cref", &link, String::new()));
+                // We re-use `get_formatted_link` to correctly generate the link, then rip out the link.
+                let formatted_link = see_tag.linked_entity().unwrap().get_formatted_link(&self.namespace());
+                // The formatted link is always of the form `<tag attribute="link" />`.
+                // We get the link from this by splitting the string on '"' characters, and taking the 2nd element.
+                let link = formatted_link.split('"').nth(1).unwrap();
+                comments.push(CommentTag::with_tag_attribute("seealso", "cref", link, String::new()));
             }
         }
         comments
