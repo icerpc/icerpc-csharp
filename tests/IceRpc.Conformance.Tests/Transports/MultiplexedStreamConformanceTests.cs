@@ -393,11 +393,22 @@ public abstract class MultiplexedStreamConformanceTests
             CancellationToken.None);;
 
         // Assert
-        ReadResult readResult = await sut.LocalStream.Input.ReadAsync();
 
+        // Reads aren't closed before the data is read.
+        Assert.That(async () => await sut.LocalStream.ReadsClosed.IsCompleted, Is.False);
+        ReadResult readResult = await sut.LocalStream.Input.ReadAsync();
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
-        Assert.That(readResult.IsCompleted, Is.True);
+
+        // Make sure the data can be consumed from the reader even when reads are closed.
         Assert.That(readResult.Buffer.Length, Is.EqualTo(emptyPayload ? 0 : 1));
+        sut.LocalStream.Input.AdvanceTo(readResult.Buffer.End);
+        if (!readResult.IsCompleted)
+        {
+            // A multiplexed transport implementation might not necessarily report the reader completion with the last
+            // piece of data sent even if the data and the EOS were sent at the same time (it's the case of Quic).
+            readResult = await sut.LocalStream.Input.ReadAsync();
+        }
+        Assert.That(readResult.IsCompleted, Is.True);
     }
 
     [Test]
