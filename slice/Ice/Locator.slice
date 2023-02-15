@@ -11,24 +11,24 @@ exception AdapterNotFoundException {}
 /// This exception is thrown when a service with the specified identity (path) was not found.
 exception ObjectNotFoundException {}
 
-/// Client applications use the {@link Locator} service to resolve Ice indirect proxies. This service also allows server
-/// applications to retrieve a proxy to the associated {@link LocatorRegistry} service where they can register their
-/// object adapters.
+/// Client applications use the {@link Locator} service to resolve Ice indirect proxies. This service also allows
+/// server applications to retrieve a proxy to the associated {@link LocatorRegistry} service where they can register
+/// their object adapters.
 interface Locator {
     /// Finds a service by identity (path) and returns a dummy service address with the server address(es) that can be
     /// used to reach this service. This dummy service address can also carry no server address and require further
     /// resolution using {@link findAdapterById}.
     /// @param id: The identity represented as a path.
     /// @returns: A dummy service address, or null if a service with the requested identity (path) was not found.
-    /// @throws ObjectNotFoundException: Thrown if a service with the requested identity (path) was not found. The caller
-    /// should treat this exception like a null return value.
+    /// @throws ObjectNotFoundException: Thrown if a service with the requested identity (path) was not found. The
+    /// caller should treat this exception like a null return value.
     idempotent findObjectById(id: IceRpc::Slice::IdentityPath) -> ServiceAddress? throws ObjectNotFoundException;
 
     /// Finds an object adapter by adapter ID and returns a dummy service address with the object adapter's server
     /// address(es).
     /// @param id: The adapter ID.
-    /// @returns: A dummy service address with the adapter's server address(es), or null if an object adapter with adapter
-    /// ID {@link id} was not found.
+    /// @returns: A dummy service address with the adapter's server address(es), or null if an object adapter with
+    /// adapter ID {@link id} was not found.
     /// @throws AdapterNotFoundException: Thrown if an object adapter with this adapter ID was not found. The caller
     /// should treat this exception like a null return value.
     idempotent findAdapterById(id: string) -> ServiceAddress? throws AdapterNotFoundException;

@@ -198,7 +198,7 @@ pub trait EntityExt: Entity {
 
     /// If this entity has a doc comment with an overview on it, this returns the overview formatted as a C# summary,
     /// with any links resolved to the appropriate C# tag. Otherwise this returns `None`.
-    fn formatted_doc_comment_summary(self: &Self) -> Option<String> {
+    fn formatted_doc_comment_summary(&self) -> Option<String> {
         self.comment().and_then(|comment| {
             comment.overview.as_ref().map(|overview| {
                 format_message(&overview.message, |link| link.get_formatted_link(&self.namespace()))

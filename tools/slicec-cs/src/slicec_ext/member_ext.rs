@@ -45,7 +45,8 @@ impl<T: Member> MemberExt for T {
 pub trait ParameterExt {
     fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
 
-    /// TODO THIS IS IT!
+    /// Returns the message of the `@param` tag corresponding to this parameter from the operation it's part of.
+    /// If the operation has no doc comment, or a matching `@param` tag, this returns `None`.
     fn formatted_parameter_doc_comment(&self) -> Option<String>;
 }
 
