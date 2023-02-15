@@ -9,67 +9,6 @@ use slice::grammar::Entity;
 pub trait EntityExt: Entity {
     // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified
     // casing or the identifier specified by the cs::identifier attribute if present.
-    fn cs_identifier(&self, case: Option<Case>) -> String;
-
-    /// Escapes and returns the definition's identifier, without any scoping.
-    /// If the identifier is a C# keyword, a '@' prefix is appended to it.
-    fn escape_identifier(&self) -> String;
-    fn escape_identifier_with_prefix(&self, prefix: &str) -> String;
-    fn escape_identifier_with_suffix(&self, suffix: &str) -> String;
-    fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String;
-
-    /// Escapes and returns the definition's identifier, fully scoped.
-    /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
-    /// Note: Case style is applied to all scope segments, not just the last one.
-    ///
-    /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
-    /// one.
-    fn escape_scoped_identifier(&self, current_namespace: &str) -> String;
-    fn escape_scoped_identifier_with_prefix(&self, suffix: &str, current_namespace: &str) -> String;
-    fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str) -> String;
-    fn escape_scoped_identifier_with_prefix_and_suffix(
-        &self,
-        prefix: &str,
-        suffix: &str,
-        current_namespace: &str,
-    ) -> String;
-
-    /// Returns the interface name corresponding to this entity's identifier, without scoping.
-    /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
-    /// The name is always prefixed with 'I' and the first letter is always
-    /// capitalized.
-    fn interface_name(&self) -> String;
-
-    /// Returns the interface name corresponding to this entity's identifier, fully scoped.
-    fn scoped_interface_name(&self, current_namespace: &str) -> String;
-
-    fn obsolete_attribute(&self, check_parent: bool) -> Option<String>;
-
-    /// The helper name
-    fn helper_name(&self, current_namespace: &str) -> String;
-
-    /// The C# namespace
-    fn namespace(&self) -> String;
-
-    /// The C# Type ID attribute.
-    fn type_id_attribute(&self) -> String;
-
-    /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
-    /// attribute otherwise returns "public".
-    fn access_modifier(&self) -> String;
-
-    /// Returns the C# readonly modifier if this entity has the cs::readonly attribute otherwise
-    /// returns None.
-    fn readonly_modifier(&self) -> Option<String>;
-
-    /// Returns the C# modifiers for this entity.
-    fn modifiers(&self) -> String;
-}
-
-impl<T> EntityExt for T
-where
-    T: Entity + ?Sized,
-{
     fn cs_identifier(&self, case: Option<Case>) -> String {
         let identifier_attribute = self.attributes(false).into_iter().find_map(match_cs_identifier);
 
@@ -88,14 +27,20 @@ where
         escape_keyword(&self.cs_identifier(Some(Case::Pascal)))
     }
 
+    /// Appends the provided prefix to the definition's identifier, without any scoping.
+    /// If the resulting string is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier_with_prefix(&self, prefix: &str) -> String {
         escape_keyword(&format!("{}{}", prefix, self.cs_identifier(Some(Case::Pascal))))
     }
 
+    /// Concatenates the provided suffix on the definition's identifier, without any scoping.
+    /// If the resulting string is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String {
         escape_keyword(&format!("{}{}", self.cs_identifier(Some(Case::Pascal)), suffix))
     }
 
+    /// Applies the provided prefix and suffix to the definition's identifier, without any scoping.
+    /// If the resulting string is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
         escape_keyword(&format!("{prefix}{}{suffix}", self.cs_identifier(Some(Case::Pascal))))
     }
@@ -110,6 +55,11 @@ where
         scoped_identifier(&self.escape_identifier(), &self.namespace(), current_namespace)
     }
 
+    /// Appends the provided prefix to the definition's identifier, fully scoped.
+    /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
+    /// Note: The case style is applied to all scope segments, not just the last one.
+    ///
+    /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
     fn escape_scoped_identifier_with_prefix(&self, prefix: &str, current_namespace: &str) -> String {
         scoped_identifier(
             &self.escape_identifier_with_prefix(prefix),
@@ -118,6 +68,11 @@ where
         )
     }
 
+    /// Concatenates the provided suffix on the definition's identifier, with scoping.
+    /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
+    /// Note: The case style is applied to all scope segments, not just the last one.
+    ///
+    /// If the provided namespace is non-empty, the identifier's scope is qualified relative to it.
     fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str) -> String {
         scoped_identifier(
             &self.escape_identifier_with_suffix(suffix),
@@ -126,6 +81,11 @@ where
         )
     }
 
+    /// Applies the provided prefix and suffix to the definition's identifier, with scoping.
+    /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
+    /// Note: The case style is applied to all scope segments, not just the last one.
+    ///
+    /// If the provided namespace is non-empty, the identifier's scope is qualified relative to it.
     fn escape_scoped_identifier_with_prefix_and_suffix(
         &self,
         prefix: &str,
@@ -139,15 +99,15 @@ where
         )
     }
 
-    /// The helper name for this Entity
-    fn helper_name(&self, namespace: &str) -> String {
-        self.escape_scoped_identifier_with_suffix("Helper", namespace)
-    }
-
+    /// Returns the interface name corresponding to this entity's identifier, without scoping.
+    /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
+    /// The name is always prefixed with 'I' and the first letter is always
+    /// capitalized.
     fn interface_name(&self) -> String {
         format!("I{}", self.cs_identifier(Some(Case::Pascal)))
     }
 
+    /// Returns the interface name corresponding to this entity's identifier, fully scoped.
     fn scoped_interface_name(&self, current_namespace: &str) -> String {
         let namespace = self.namespace();
         if current_namespace == namespace {
@@ -157,7 +117,23 @@ where
         }
     }
 
-    /// The C# namespace of this Entity
+    fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
+        self.get_deprecation(check_parent).map(|attribute| {
+            let reason = if let Some(argument) = attribute {
+                argument
+            } else {
+                format!("This {} has been deprecated", self.kind())
+            };
+            format!(r#"global::System.Obsolete("{reason}")"#)
+        })
+    }
+
+    /// The helper name
+    fn helper_name(&self, current_namespace: &str) -> String {
+        self.escape_scoped_identifier_with_suffix("Helper", current_namespace)
+    }
+
+    /// The C# namespace of this entity.
     fn namespace(&self) -> String {
         let module_scope = &self.raw_scope().module_scope;
 
@@ -183,21 +159,13 @@ where
             .join(".")
     }
 
-    fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
-        self.get_deprecation(check_parent).map(|attribute| {
-            let reason = if let Some(argument) = attribute {
-                argument
-            } else {
-                format!("This {} has been deprecated", self.kind())
-            };
-            format!(r#"global::System.Obsolete("{reason}")"#)
-        })
-    }
-
+    /// The C# Type ID attribute.
     fn type_id_attribute(&self) -> String {
         format!(r#"IceRpc.Slice.TypeId("::{}")"#, self.module_scoped_identifier())
     }
 
+    /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
+    /// attribute otherwise returns "public".
     fn access_modifier(&self) -> String {
         if self.attributes(true).into_iter().find_map(match_cs_internal).is_some() {
             "internal".to_owned()
@@ -206,6 +174,8 @@ where
         }
     }
 
+    /// Returns the C# readonly modifier if this entity has the cs::readonly attribute otherwise
+    /// returns None.
     fn readonly_modifier(&self) -> Option<String> {
         // Readonly is only valid for structs
         if self.attributes(true).into_iter().find_map(match_cs_readonly).is_some() {
@@ -215,6 +185,7 @@ where
         }
     }
 
+    /// Returns the C# modifiers for this entity.
     fn modifiers(&self) -> String {
         if let Some(readonly) = self.readonly_modifier() {
             self.access_modifier() + " " + &readonly
@@ -223,6 +194,8 @@ where
         }
     }
 }
+
+impl<T: Entity + ?Sized> EntityExt for T {}
 
 fn scoped_identifier(identifier: &str, identifier_namespace: &str, current_namespace: &str) -> String {
     if current_namespace == identifier_namespace {
