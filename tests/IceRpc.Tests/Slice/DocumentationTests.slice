@@ -3,7 +3,7 @@
 module IceRpc::Tests::Slice;
 
 /// This is the summary of an interface
-/// It is is unrelated to {@link InterfaceLink}.
+/// It is unrelated to {@link InterfaceLink}.
 /// @see InterfaceLink::operationLink
 interface MyInterface {
     /// This interface tests the generated documentation.
