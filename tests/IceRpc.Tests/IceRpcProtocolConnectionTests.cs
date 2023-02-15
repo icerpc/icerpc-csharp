@@ -1202,15 +1202,15 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestDuplexTransport()
+            .AddTestMultiplexedTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var serverTransport = provider.GetRequiredService<TestDuplexServerTransportDecorator>();
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
-        // Hold server reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
+        // Hold the remote control stream reads after the connection is established to prevent shutdown to proceed.
+        serverTransport.LastAcceptedConnection.LastStream.HoldOperation = MultiplexedTransportOperation.StreamRead;
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
