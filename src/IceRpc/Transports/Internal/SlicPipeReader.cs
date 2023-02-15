@@ -63,8 +63,6 @@ internal class SlicPipeReader : PipeReader
     {
         ThrowIfCompleted();
 
-        _stream.ThrowIfConnectionClosed();
-
         ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
@@ -88,8 +86,6 @@ internal class SlicPipeReader : PipeReader
     public override bool TryRead(out ReadResult result)
     {
         ThrowIfCompleted();
-
-        _stream.ThrowIfConnectionClosed();
 
         if (_pipe.Reader.TryRead(out result))
         {
