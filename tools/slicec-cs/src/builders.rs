@@ -2,14 +2,14 @@
 
 use std::collections::HashMap;
 
-use crate::comments::{operation_parameter_doc_comment, CommentTag};
+use crate::comments::CommentTag;
 use crate::cs_attributes::match_cs_attribute;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 use slice::grammar::{Class, Commentable, Encoding, Entity, Operation};
 use slice::supported_encodings::SupportedEncodings;
-use slice::utils::code_gen_util::TypeContext;
+use slice::utils::code_gen_util::{format_message, TypeContext};
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
@@ -101,8 +101,6 @@ pub trait AttributeBuilder {
 pub trait CommentBuilder {
     fn add_comment(&mut self, tag: &str, content: impl Into<String>) -> &mut Self;
 
-    fn add_optional_comment(&mut self, tag: &str, content: Option<String>) -> &mut Self;
-
     fn add_comment_with_attribute(
         &mut self,
         tag: &str,
@@ -110,6 +108,8 @@ pub trait CommentBuilder {
         attribute_value: &str,
         content: impl Into<String>,
     ) -> &mut Self;
+
+    fn add_comments(&mut self, comments: Vec<CommentTag>) -> &mut Self;
 }
 
 #[derive(Clone, Debug)]
@@ -199,13 +199,6 @@ impl CommentBuilder for ContainerBuilder {
         self
     }
 
-    fn add_optional_comment(&mut self, tag: &str, content: Option<String>) -> &mut Self {
-        if let Some(comment) = content {
-            self.comments.push(CommentTag::new(tag, comment));
-        }
-        self
-    }
-
     fn add_comment_with_attribute(
         &mut self,
         tag: &str,
@@ -219,6 +212,11 @@ impl CommentBuilder for ContainerBuilder {
             attribute_value,
             content.into(),
         ));
+        self
+    }
+
+    fn add_comments(&mut self, comments: Vec<CommentTag>) -> &mut Self {
+        self.comments.extend(comments);
         self
     }
 }
@@ -330,10 +328,6 @@ impl FunctionBuilder {
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
 
-            // TODO: it would be better if we could use parameter.comment() to get the parameter
-            // comment instead
-            let parameter_comment = operation_parameter_doc_comment(operation, &parameter.cs_identifier(None));
-
             self.add_parameter(
                 &parameter_type,
                 &parameter_name,
@@ -342,7 +336,7 @@ impl FunctionBuilder {
                 } else {
                     None
                 },
-                parameter_comment,
+                parameter.formatted_parameter_doc_comment(),
             );
         }
 
@@ -378,8 +372,41 @@ impl FunctionBuilder {
         );
 
         if let Some(comment) = operation.comment() {
-            if let Some(return_comment) = &comment.returns {
-                self.add_comment("returns", return_comment);
+            // Generate documentation for any '@returns' tags on the operation.
+            match comment.returns.as_slice() {
+                // Do nothing if there's no return tags.
+                [] => {}
+
+                // If there's a single return tag, generate a normal `returns` message.
+                [single] => {
+                    let message = format_message(&single.message, |link| link.get_formatted_link(&operation.namespace()));
+                    self.add_comment("returns", message);
+                }
+
+                // If there's multiple return tags, this function returns a tuple.
+                // We generate a returns message that lists the elements of the tuple as a bulleted list.
+                multiple => {
+                    let mut content = "A tuple containing:\n<list type=\"bullet\">\n".to_owned();
+                    for return_tag in multiple {
+                        // TODO add references to the types/identifiers here later!
+                        let message = format_message(&return_tag.message, |link| link.get_formatted_link(&operation.namespace()));
+                        content = content + "<item><description>" + &message + "</description></item>\n";
+                    }
+                    content += "</list>\n";
+
+                    self.add_comment("returns", content);
+                }
+            }
+
+            // Generate documentation for any '@throws' tags on the operation.
+            for throws_tag in &comment.throws {
+                let message = format_message(&throws_tag.message, |link| link.get_formatted_link(&operation.namespace()));
+                if let Some(exception) = throws_tag.thrown_type() {
+                    let exception_name = exception.escape_scoped_identifier(&operation.namespace());
+                    self.add_comment_with_attribute("exception", "cref", &exception_name, message);
+                } else {
+                    self.add_comment("exception", message);
+                }
             }
         }
 
@@ -544,13 +571,6 @@ impl CommentBuilder for FunctionBuilder {
         self
     }
 
-    fn add_optional_comment(&mut self, tag: &str, content: Option<String>) -> &mut Self {
-        if let Some(comment) = content {
-            self.comments.push(CommentTag::new(tag, comment));
-        }
-        self
-    }
-
     fn add_comment_with_attribute(
         &mut self,
         tag: &str,
@@ -564,6 +584,11 @@ impl CommentBuilder for FunctionBuilder {
             attribute_value,
             content.into(),
         ));
+        self
+    }
+
+    fn add_comments(&mut self, comments: Vec<CommentTag>) -> &mut Self {
+        self.comments.extend(comments);
         self
     }
 }

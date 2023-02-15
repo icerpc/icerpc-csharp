@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
-use crate::comments::doc_comment_message;
 use crate::cs_util::*;
 use crate::decoding::decode_data_members;
 use crate::encoding::encode_data_members;
@@ -49,7 +48,7 @@ impl Visitor for ClassVisitor<'_> {
         let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
         class_builder
-            .add_optional_comment("summary", doc_comment_message(class_def))
+            .add_comments(class_def.formatted_doc_comment())
             .add_type_id_attribute(class_def)
             .add_compact_type_id_attribute(class_def)
             .add_container_attributes(class_def);
@@ -166,7 +165,7 @@ fn constructor(
                 .cs_type_string(namespace, TypeContext::DataMember, false),
             &member.parameter_name(),
             None,
-            doc_comment_message(*member),
+            member.formatted_doc_comment_summary(),
         );
     }
 

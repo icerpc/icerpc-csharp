@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
-use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
@@ -32,7 +31,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
     )
-    .add_optional_comment("summary", doc_comment_message(enum_def))
+    .add_comments(enum_def.formatted_doc_comment())
     .add_container_attributes(enum_def)
     .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))
@@ -42,15 +41,20 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
 fn enum_values(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
     for enumerator in enum_def.enumerators() {
-        let summary = doc_comment_message(enumerator).map(|message| CommentTag::new("summary", message).to_string());
+        let mut declaration = CodeBlock::default();
 
-        // Use CodeBlock here in case the comment is empty. It automatically whitespace
-        code.add_block(&CodeBlock::from(format!(
-            "{}\n{} = {},",
-            summary.unwrap_or_default(),
+        for comment_tag in enumerator.formatted_doc_comment() {
+            declaration.writeln(&comment_tag);
+        }
+
+        writeln!(
+            declaration,
+            "{} = {},",
             enumerator.cs_identifier(Some(Case::Pascal)),
-            enumerator.value(),
-        )));
+            enumerator.value()
+        );
+
+        code.add_block(&declaration);
     }
     code
 }

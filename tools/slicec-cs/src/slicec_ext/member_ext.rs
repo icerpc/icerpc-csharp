@@ -4,8 +4,8 @@ use super::{EntityExt, TypeRefExt};
 use crate::cs_util::{escape_keyword, mangle_name, FieldType};
 
 use slice::convert_case::Case;
-use slice::grammar::{Member, Parameter, Types};
-use slice::utils::code_gen_util::TypeContext;
+use slice::grammar::*;
+use slice::utils::code_gen_util::{format_message, TypeContext};
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;
@@ -44,6 +44,9 @@ impl<T: Member> MemberExt for T {
 
 pub trait ParameterExt {
     fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
+
+    /// TODO THIS IS IT!
+    fn formatted_parameter_doc_comment(&self) -> Option<String>;
 }
 
 impl ParameterExt for Parameter {
@@ -58,6 +61,18 @@ impl ParameterExt for Parameter {
         } else {
             self.data_type().cs_type_string(namespace, context, ignore_optional)
         }
+    }
+
+    fn formatted_parameter_doc_comment(&self) -> Option<String> {
+        // Check if this parameter's parent operation had a doc comment on it.
+        self.parent().unwrap().comment().and_then(|comment| {
+            // If it did, search the comment for a '@param' tag with this parameter's identifier and return it.
+            comment
+                .params
+                .iter()
+                .find(|param_tag| param_tag.identifier.value == self.identifier())
+                .map(|param_tag| format_message(&param_tag.message, |link| link.get_formatted_link(&self.namespace())))
+        })
     }
 }
 

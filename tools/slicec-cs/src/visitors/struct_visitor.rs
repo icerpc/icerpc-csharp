@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
-use crate::comments::doc_comment_message;
 use crate::cs_util::FieldType;
 use crate::decoding::*;
 use crate::encoding::*;
@@ -32,7 +31,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             &escaped_identifier,
         );
         builder
-            .add_optional_comment("summary", doc_comment_message(struct_def))
+            .add_comments(struct_def.formatted_doc_comment())
             .add_container_attributes(struct_def);
 
         builder.add_block(
@@ -62,7 +61,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     .cs_type_string(&namespace, TypeContext::DataMember, false),
                 member.parameter_name().as_str(),
                 None,
-                doc_comment_message(*member),
+                member.formatted_doc_comment_summary(),
             );
         }
         main_constructor.set_body({
