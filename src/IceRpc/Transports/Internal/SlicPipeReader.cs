@@ -187,14 +187,6 @@ internal class SlicPipeReader : PipeReader
 
             if (endStream)
             {
-                // If it's not a remote stream and the peer is done sending data, we can complete reads right away to
-                // allow a new stream to be opened. There's no need to wait for the buffered data or end of stream to be
-                // consumed. This will also prevent the sending of a stop sending frame when this reader is completed
-                // before all the data is consumed.
-                if (!_stream.IsRemote && dataSize == 0)
-                {
-                    _stream.TrySetReadsCompleted();
-                }
                 _pipe.Writer.Complete();
             }
             else

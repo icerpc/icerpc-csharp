@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
@@ -346,7 +347,7 @@ public abstract class MultiplexedStreamConformanceTests
     }
 
     [Test]
-    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed([Values(false, true)] bool abort)
+    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed([Values(false, true)] bool success)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -360,15 +361,15 @@ public abstract class MultiplexedStreamConformanceTests
             true);
 
         // Act
-        sut.RemoteStream.Output.Complete(abort ? new Exception() : null);
+        sut.RemoteStream.Output.CompleteOutput(success);
 
         // Assert
-        if (!abort)
+        if (success)
         {
             // The stream read side only completes once EOS is consumed.
-            ReadResult readResult = await sut.LocalStream.Input.ReadAsync();
-            Assert.That(readResult.IsCompleted, Is.True);
+            _ = await sut.LocalStream.Input.ReadAsync();
         }
+
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
@@ -390,24 +391,19 @@ public abstract class MultiplexedStreamConformanceTests
         await ((ReadOnlySequencePipeWriter)sut.RemoteStream.Output).WriteAsync(
             emptyPayload ? ReadOnlySequence<byte>.Empty : new ReadOnlySequence<byte>(_oneBytePayload),
             endStream: true,
-            CancellationToken.None);;
+            CancellationToken.None);
 
         // Assert
 
-        // Reads aren't closed before the data is read.
-        ReadResult readResult = await sut.LocalStream.Input.ReadAsync();
-        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
+        // Reads aren't closed before the data or EOS is consumed.
+        Assert.That(sut.LocalStream.ReadsClosed.IsCompleted, Is.False);
 
-        // Make sure the data can be consumed from the reader even when reads are closed.
-        Assert.That(readResult.Buffer.Length, Is.EqualTo(emptyPayload ? 0 : 1));
+        // Consume the data and EOS to ensure reads are closed after.
+        ReadResult readResult = await sut.LocalStream.Input.ReadAsync();
         sut.LocalStream.Input.AdvanceTo(readResult.Buffer.End);
-        if (!readResult.IsCompleted)
-        {
-            // A multiplexed transport implementation might not necessarily report the reader completion with the last
-            // piece of data sent even if the data and the EOS were sent at the same time (it's the case of Quic).
-            readResult = await sut.LocalStream.Input.ReadAsync();
-        }
-        Assert.That(readResult.IsCompleted, Is.True);
+
+        // Reads should be closed at this point.
+        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
     [Test]
