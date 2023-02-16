@@ -8,11 +8,10 @@ namespace IceRpc.Transports.Internal;
 
 /// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
 /// PipeWriter.</summary>
-internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
+internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
-    private readonly IDuplexConnection _connection;
-    private TimeSpan _keepAlivePeriod = Timeout.InfiniteTimeSpan;
-    private readonly Timer? _keepAliveTimer;
+    internal IDuplexConnection DuplexConnection { get; set; }
+
     private readonly Pipe _pipe;
     private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
 
@@ -20,14 +19,10 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
-        if (_keepAliveTimer is not null)
-        {
-            await _keepAliveTimer.DisposeAsync().ConfigureAwait(false);
-        }
     }
 
     /// <inheritdoc/>
@@ -41,39 +36,14 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     /// <param name="pool">The memory pool to use.</param>
     /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref name="pool"/>.
     /// </param>
-    /// <param name="keepAliveAction">When not null, the action to take to keep a higher-level connection alive. This
-    /// action must write to this duplex connection writer.</param>
-    internal DuplexConnectionWriter(
-        IDuplexConnection connection,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize,
-        Action? keepAliveAction)
+    internal DuplexConnectionWriter(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
     {
-        _connection = connection;
+        DuplexConnection = connection;
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: 0,
             writerScheduler: PipeScheduler.Inline));
-
-        if (keepAliveAction is not null)
-        {
-            _keepAliveTimer = new Timer(_ => keepAliveAction());
-        }
-    }
-
-    /// <summary>Enables the sending of keep alive messages. Keep alive messages are sent every keepAlivePeriod if no
-    /// data is sent.</summary>
-    internal void EnableKeepAlive(TimeSpan keepAlivePeriod)
-    {
-        if (_keepAliveTimer is not null)
-        {
-            _keepAlivePeriod = keepAlivePeriod;
-
-            // This timer is not periodic because we schedule a new "keep alive" after each successful write. See
-            // comment below.
-            _keepAliveTimer.Change(keepAlivePeriod, Timeout.InfiniteTimeSpan);
-        }
     }
 
     /// <summary>Flush the buffered data.</summary>
@@ -116,7 +86,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
 
         try
         {
-            ValueTask task = _connection.WriteAsync(_sendBuffers, cancellationToken);
+            ValueTask task = DuplexConnection.WriteAsync(_sendBuffers, cancellationToken);
             if (cancellationToken.CanBeCanceled && !task.IsCompleted)
             {
                 await task.AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -125,11 +95,6 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
             {
                 await task.ConfigureAwait(false);
             }
-
-            // After each successful write, we schedule one ping (keep alive) at _keepAlivePeriod in the future. Since
-            // each ping is itself a write, if there is no application activity at all, we'll send successive pings at
-            // _keepAlivePeriod intervals.
-            _keepAliveTimer?.Change(_keepAlivePeriod, Timeout.InfiniteTimeSpan);
         }
         catch (ObjectDisposedException exception)
         {

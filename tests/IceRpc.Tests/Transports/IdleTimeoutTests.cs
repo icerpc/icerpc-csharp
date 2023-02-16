@@ -29,10 +29,7 @@ public class IdleTimeoutTests
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        clientConnection = new IdleTimeoutDuplexConnectionDecorator(clientConnection)
-        {
-            IdleTimeout = TimeSpan.FromMilliseconds(500)
-        };
+        clientConnection = new IdleTimeoutDuplexConnectionDecorator(clientConnection, TimeSpan.FromMilliseconds(500));
 
         // Write and read data to the connection
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
