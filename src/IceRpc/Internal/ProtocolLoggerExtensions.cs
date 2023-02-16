@@ -30,11 +30,11 @@ internal static partial class ProtocolLoggerExtensions
         Exception exception);
 
     [LoggerMessage(
-        EventId = (int)ProtocolEventIds.ConnectionAcceptFailedAndContinue,
-        EventName = nameof(ProtocolEventIds.ConnectionAcceptFailedAndContinue),
+        EventId = (int)ProtocolEventIds.ConnectionAcceptFailedWithRetryableException,
+        EventName = nameof(ProtocolEventIds.ConnectionAcceptFailedWithRetryableException),
         Level = LogLevel.Trace,
         Message = "Listener '{ServerAddress}' failed to accept a new connection but continues accepting connections")]
-    internal static partial void LogConnectionAcceptFailedAndContinue(
+    internal static partial void LogConnectionAcceptFailedWithRetryableException(
         this ILogger logger,
         ServerAddress serverAddress,
         Exception exception);
