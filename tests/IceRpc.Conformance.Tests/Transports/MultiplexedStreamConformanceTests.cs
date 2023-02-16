@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
@@ -346,7 +347,7 @@ public abstract class MultiplexedStreamConformanceTests
     }
 
     [Test]
-    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed([Values(false, true)] bool abort)
+    public async Task Stream_local_reads_are_closed_when_remote_output_is_completed([Values(false, true)] bool success)
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .AddMultiplexedTransportTest()
@@ -360,14 +361,48 @@ public abstract class MultiplexedStreamConformanceTests
             true);
 
         // Act
-        sut.RemoteStream.Output.Complete(abort ? new Exception() : null);
+        sut.RemoteStream.Output.CompleteOutput(success);
 
         // Assert
-        if (!abort)
+        if (success)
         {
-            // The stream read side only completes once the data or EOS is consumed.
+            // The stream read side only completes once EOS is consumed.
             _ = await sut.LocalStream.Input.ReadAsync();
         }
+
+        Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Stream_local_reads_are_closed_when_remote_sends_end_of_stream([Values] bool emptyPayload)
+    {
+        await using ServiceProvider provider = CreateServiceCollection()
+            .AddMultiplexedTransportTest()
+            .BuildServiceProvider(validateScopes: true);
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+
+        using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
+            clientServerConnection.Client,
+            clientServerConnection.Server,
+            true);
+
+        // Act
+        await ((ReadOnlySequencePipeWriter)sut.RemoteStream.Output).WriteAsync(
+            emptyPayload ? ReadOnlySequence<byte>.Empty : new ReadOnlySequence<byte>(_oneBytePayload),
+            endStream: true,
+            CancellationToken.None);
+
+        // Assert
+
+        // Reads aren't closed before the data or EOS is consumed.
+        Assert.That(sut.LocalStream.ReadsClosed.IsCompleted, Is.False);
+
+        // Consume the data and EOS to ensure reads are closed after.
+        ReadResult readResult = await sut.LocalStream.Input.ReadAsync();
+        sut.LocalStream.Input.AdvanceTo(readResult.Buffer.End);
+
+        // Reads should be closed at this point.
         Assert.That(async () => await sut.LocalStream.ReadsClosed, Throws.Nothing);
     }
 
@@ -616,32 +651,6 @@ public abstract class MultiplexedStreamConformanceTests
         Assert.That(
             async () => await clientStream.Input.ReadAsync(new CancellationToken(canceled: true)),
             Throws.InstanceOf<OperationCanceledException>());
-    }
-
-    /// <summary>Ensures that remote input is closed when the we complete the local output.</summary>
-    [Test]
-    public async Task Stream_read_returns_completed_result_after_completing_local_output(
-        [Values(false, true)] bool isBidirectional)
-    {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
-        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await clientServerConnection.AcceptAndConnectAsync();
-
-        using var sut = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
-            clientServerConnection.Client,
-            clientServerConnection.Server,
-            isBidirectional);
-
-        // Act
-        sut.LocalStream.Output.Complete();
-        ReadResult readResult = await sut.RemoteStream.Input.ReadAsync(default);
-
-        // Assert
-        Assert.That(readResult.IsCompleted, Is.True);
-        sut.RemoteStream.Input.AdvanceTo(readResult.Buffer.End);
-        Assert.That(async () => await sut.RemoteStream.ReadsClosed, Throws.Nothing);
     }
 
     [Test]

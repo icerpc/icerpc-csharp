@@ -989,7 +989,7 @@ public sealed class ProtocolConnectionTests
         bool closeClientSide)
     {
         // Arrange
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        using var dispatcher = new TestDispatcher(responsePayload: new byte[10], holdDispatchCount: 1);
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
@@ -1019,11 +1019,11 @@ public sealed class ProtocolConnectionTests
         dispatcher.ReleaseDispatch();
 
         Assert.That(async () => await invokeTask, Throws.Nothing);
-
-        // Complete the response, shutdown could hang otherwise if the response stream reading side is not closed.
-        (await invokeTask).Payload.Complete();
-
         Assert.That(async () => await shutdownTask, Throws.Nothing);
+
+        IncomingResponse response = await invokeTask;
+        ReadResult readResult = await response.Payload.ReadAsync();
+        Assert.That(readResult.Buffer.Length, Is.EqualTo(10));
     }
 
     /// <summary>Verifies that a client connection shutdown cancels left-over dispatches in the server.</summary>

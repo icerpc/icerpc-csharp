@@ -265,7 +265,8 @@ public class ServerTests
             server.Listen(),
             multiplexedClientTransport: multiplexedClientTransport);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        await clientConnection.InvokeAsync(request);
+        IncomingResponse response = await clientConnection.InvokeAsync(request);
+        response.Payload.Complete();
 
         TestMultiplexedConnectionDecorator serverConnection = multiplexedServerTransport.LastAcceptedConnection!;
         serverConnection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
