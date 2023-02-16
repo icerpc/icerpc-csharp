@@ -13,7 +13,7 @@ public enum ProtocolEventIds
 
     /// <summary>The protocol listener failed to accept a new connection but continues accepting more connections.
     /// </summary>
-    ConnectionAcceptFailedAndContinue,
+    ConnectionAcceptFailedWithRetryableException,
 
     /// <summary>The connection establishment completed successfully.</summary>
     ConnectionConnected,

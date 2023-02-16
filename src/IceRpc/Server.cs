@@ -329,7 +329,7 @@ public sealed class Server : IAsyncDisposable
                     await pendingConnectionSemaphore.WaitAsync(_shutdownCts.Token).ConfigureAwait(false);
 
                     IConnector? connector = null;
-                    while (connector is null)
+                    do
                     {
                         try
                         {
@@ -340,6 +340,7 @@ public sealed class Server : IAsyncDisposable
                             // continue
                         }
                     }
+                    while (connector is null);
 
                     // We don't wait for the connection to be activated or shutdown. This could take a while for some
                     // transports such as TLS based transports where the handshake requires few round trips between the
@@ -379,12 +380,10 @@ public sealed class Server : IAsyncDisposable
                         CancellationToken.None); // the task must run to dispose the connector.
                 }
             }
-            catch (OperationCanceledException)
+            catch
             {
-                // The AcceptAsync call can fail with OperationCanceledException during shutdown once the shutdown
-                // cancellation token is canceled.
+                // Ignore. Exceptions thrown by listener.AcceptAsync are logged by the log decorator when appropriate.
             }
-            // other exceptions thrown by listener.AcceptAsync are logged by listener via a log decorator
             finally
             {
                 await listener.DisposeAsync().ConfigureAwait(false);
@@ -683,7 +682,7 @@ public sealed class Server : IAsyncDisposable
             }
             catch (Exception exception) when (IsRetryableAcceptException(exception))
             {
-                _logger.LogConnectionAcceptFailedAndContinue(ServerAddress, exception);
+                _logger.LogConnectionAcceptFailedWithRetryableException(ServerAddress, exception);
                 throw;
             }
             catch (Exception exception)
