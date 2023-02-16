@@ -69,6 +69,8 @@ public sealed class Server : IAsyncDisposable
             throw new ArgumentException($"{nameof(ServerOptions.ConnectionOptions.Dispatcher)} cannot be null");
         }
 
+        logger ??= NullLogger.Instance;
+
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
 
         duplexServerTransport ??= IDuplexServerTransport.Default;
@@ -124,11 +126,11 @@ public sealed class Server : IAsyncDisposable
                 listener = new IceRpcConnectorListener(
                     transportListener,
                     options.ConnectionOptions,
-                    logger == null ? null : new LogTaskExceptionObserver(logger));
+                    logger == NullLogger.Instance ? null : new LogTaskExceptionObserver(logger));
             }
 
             listener = new MetricsConnectorListenerDecorator(listener);
-            if (logger is not null)
+            if (logger != NullLogger.Instance)
             {
                 listener = new LogConnectorListenerDecorator(listener, logger);
             }
