@@ -170,21 +170,26 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw;
             }
 
-            // The sending of keep alive messages requires the connection to be established.
-            _duplexConnection = new KeepAliveDuplexConnectionDecorator(
-                _duplexConnection,
-                _idleTimeout / 2,
-                () =>
-                {
-                    lock (_mutex)
+            // Enable the idle timeout checks and pings after the connection establishment. Pings are not expected until
+            // the connection establishment completes.
+            if (_idleTimeout != Timeout.InfiniteTimeSpan)
+            {
+                _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(
+                    _duplexConnection,
+                    _idleTimeout,
+                    () =>
                     {
-                        if (_pingTask.IsCompletedSuccessfully && _pingEnabled)
+                        lock (_mutex)
                         {
-                            _pingTask = PingAsync(_disposedCts.Token);
+                            if (_pingTask.IsCompletedSuccessfully && _pingEnabled)
+                            {
+                                _pingTask = PingAsync(_disposedCts.Token);
+                            }
                         }
-                    }
-                });
-            _duplexConnectionWriter.DuplexConnection = _duplexConnection;
+                    });
+                _duplexConnectionReader.DuplexConnection = _duplexConnection;
+                _duplexConnectionWriter.DuplexConnection = _duplexConnection;
+            }
 
             // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
             // DisposeAsync. Once _disposeTask is not null, _readFramesTask is immutable.
@@ -652,7 +657,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
 
-        _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(duplexConnection, _idleTimeout);
+        _duplexConnection = duplexConnection;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, _memoryPool, _minSegmentSize);
         _duplexConnectionWriter = new DuplexConnectionWriter(_duplexConnection,  _memoryPool,  _minSegmentSize);
 

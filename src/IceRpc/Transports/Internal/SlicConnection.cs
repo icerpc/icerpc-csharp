@@ -281,16 +281,11 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(_duplexConnection, idleTimeout);
-                _duplexConnectionReader.DuplexConnection = _duplexConnection;
-
-                // Only client connections send ping frames when idle to keep the connection alive.
+                Action? keepAliveAction = null;
                 if (!IsServer)
                 {
-                    _duplexConnection = new KeepAliveDuplexConnectionDecorator(
-                        _duplexConnection,
-                        idleTimeout / 2,
-                        () =>
+                    // Only client connections send ping frames when idle to keep the connection alive.
+                    keepAliveAction = () =>
                         {
                             lock (_mutex)
                             {
@@ -302,9 +297,15 @@ internal class SlicConnection : IMultiplexedConnection
                                     _pingTask = SendPingFrameAsync();
                                 }
                             }
-                        });
-                    _duplexConnectionWriter.DuplexConnection = _duplexConnection;
+                        };
                 }
+
+                _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(
+                    _duplexConnection,
+                    idleTimeout,
+                    keepAliveAction);
+                _duplexConnectionReader.DuplexConnection = _duplexConnection;
+                _duplexConnectionWriter.DuplexConnection = _duplexConnection;
             }
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
@@ -905,6 +906,13 @@ internal class SlicConnection : IMultiplexedConnection
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
                 "The MaxUnidirectionalStreams Slic connection parameter is missing.");
+        }
+
+        if (_peerIdleTimeout == TimeSpan.Zero)
+        {
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                "The IdleTimeout Slic connection parameter is invalid, it must be superior to 0 s.");
         }
 
         if (PeerPacketMaxSize < 1024)
