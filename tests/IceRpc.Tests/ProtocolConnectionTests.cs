@@ -1021,7 +1021,8 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await invokeTask, Throws.Nothing);
         Assert.That(async () => await shutdownTask, Throws.Nothing);
 
-        ReadResult readResult = await (await invokeTask).Payload.ReadAsync();
+        IncomingResponse response = await invokeTask;
+        ReadResult readResult = await response.Payload.ReadAsync();
         Assert.That(readResult.Buffer.Length, Is.EqualTo(10));
     }
 
