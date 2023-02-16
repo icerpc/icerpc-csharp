@@ -322,7 +322,7 @@ public class ServerTests
         // Act/Assert
 
         // Since the test transport accepts the connection and immediately disposes it before throwing the failure
-        // exception, we expect connection establishment to failure with ConnectionAborted.
+        // exception, the connection establishment fail with ConnectionAborted is expected here.
         Assert.That(
             () => clientConnection.ConnectAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
@@ -357,12 +357,12 @@ public class ServerTests
         // Act/Assert
 
         // Since the test transport accepts the connection and immediately disposes it before throwing the failure
-        // exception, we expect connection establishment to failure with ConnectionAborted.
+        // exception, the connection establishment fail with ConnectionAborted is expected here.
         Assert.That(
             () => clientConnection.ConnectAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
-        // The server listener is disposed on accept fatal failure so the connection establishment results in a
+        // The server listener is disposed on an accept fatal failure so the next connection establishment results in a
         // connection refused error.
         Assert.That(
             () => clientConnection.ConnectAsync(),
