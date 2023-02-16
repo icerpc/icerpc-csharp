@@ -202,9 +202,9 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
             private set => _lastAcceptedConnection = value;
         }
 
+        private readonly IListener<IMultiplexedConnection> _decoratee;
         private TaskCompletionSource _holdAcceptTcs = new();
         private MultiplexedTransportOperation _holdOperation;
-        private readonly IListener<IMultiplexedConnection> _decoratee;
         private TestMultiplexedConnectionDecorator? _lastAcceptedConnection;
 
         public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
