@@ -4,12 +4,25 @@ using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Security.Authentication;
 
 namespace IceRpc.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class ServerTests
 {
+    public static IEnumerable<Exception> AcceptNonFatalException { get; } = new Exception[]
+    {
+        new IceRpcException(IceRpcError.IceRpcError),
+        new AuthenticationException()
+    };
+
+    public static IEnumerable<Exception> AcceptFatalException { get; } = new Exception[]
+    {
+        new IceRpcException(IceRpcError.OperationAborted),
+        new Exception(),
+    };
+
     /// <summary>Verifies that calling <see cref="Server.Listen" /> more than once fails with
     /// <see cref="InvalidOperationException" /> exception.</summary>
     [Test]
@@ -282,5 +295,77 @@ public class ServerTests
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
         serverConnection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
         await disposeTask;
+    }
+
+    [TestCaseSource(nameof(AcceptNonFatalException))]
+    public async Task Server_continues_accepting_connections_on_non_fatal_accept_exception(Exception exception)
+    {
+        // Arrange
+
+        var colocTransport = new ColocTransport();
+        var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
+            new SlicServerTransport(colocTransport.ServerTransport),
+            failureException: exception);
+        var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
+
+        await using var server = new Server(
+            dispatcher: ServiceNotFoundDispatcher.Instance,
+            serverAddress: new ServerAddress(new Uri("icerpc://foo")),
+            multiplexedServerTransport: multiplexedServerTransport);
+
+        await using var clientConnection = new ClientConnection(
+            server.Listen(),
+            multiplexedClientTransport: multiplexedClientTransport);
+
+        multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.Accept;
+
+        // Act/Assert
+
+        // Since the test transport accepts the connection and immediately disposes it before throwing the failure
+        // exception, we expect connection establishment to failure with ConnectionAborted.
+        Assert.That(
+            () => clientConnection.ConnectAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.None;
+
+        Assert.That(() => clientConnection.ConnectAsync(), Throws.Nothing);
+    }
+
+    [TestCaseSource(nameof(AcceptFatalException))]
+    public async Task Server_stops_accepting_connections_on_fatal_accept_exception(Exception exception)
+    {
+        // Arrange
+
+        var colocTransport = new ColocTransport();
+        var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
+            new SlicServerTransport(colocTransport.ServerTransport),
+            failureException: exception);
+        var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
+
+        await using var server = new Server(
+            dispatcher: ServiceNotFoundDispatcher.Instance,
+            serverAddress: new ServerAddress(new Uri("icerpc://foo")),
+            multiplexedServerTransport: multiplexedServerTransport);
+
+        await using var clientConnection = new ClientConnection(
+            server.Listen(),
+            multiplexedClientTransport: multiplexedClientTransport);
+
+        multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.Accept;
+
+        // Act/Assert
+
+        // Since the test transport accepts the connection and immediately disposes it before throwing the failure
+        // exception, we expect connection establishment to failure with ConnectionAborted.
+        Assert.That(
+            () => clientConnection.ConnectAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        // The server listener is disposed on accept fatal failure so the connection establishment results in a
+        // connection refused error.
+        Assert.That(
+            () => clientConnection.ConnectAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
     }
 }

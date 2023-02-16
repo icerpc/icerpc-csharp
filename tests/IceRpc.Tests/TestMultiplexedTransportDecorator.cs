@@ -12,13 +12,14 @@ namespace IceRpc.Tests.Common;
 public enum MultiplexedTransportOperation
 {
     None = 0,
-    AcceptStream = 1,
-    CreateStream = 2,
-    Connect = 4,
-    Close = 8,
-    DisposeAsync = 16,
-    StreamRead = 32,
-    StreamWrite = 64,
+    Accept = 1,
+    AcceptStream = 2,
+    CreateStream = 4,
+    Connect = 8,
+    Close = 16,
+    DisposeAsync = 32,
+    StreamRead = 64,
+    StreamWrite = 128,
 }
 
 #pragma warning disable CA1001 // _lastConnection is disposed by the caller.
@@ -173,8 +174,27 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
         internal MultiplexedTransportOperation FailOperation { get; set; }
+
         internal Exception FailureException { get; set; } = new Exception();
-        internal MultiplexedTransportOperation HoldOperation { get; set; }
+
+        internal MultiplexedTransportOperation HoldOperation
+        {
+            get => _holdOperation;
+
+            set
+            {
+                _holdOperation = value;
+
+                if (_holdOperation.HasFlag(MultiplexedTransportOperation.Accept))
+                {
+                    _holdAcceptTcs = new();
+                }
+                else
+                {
+                    _holdAcceptTcs.TrySetResult();
+                }
+            }
+        }
 
         internal TestMultiplexedConnectionDecorator LastAcceptedConnection
         {
@@ -182,6 +202,8 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
             private set => _lastAcceptedConnection = value;
         }
 
+        private TaskCompletionSource _holdAcceptTcs = new();
+        private MultiplexedTransportOperation _holdOperation;
         private readonly IListener<IMultiplexedConnection> _decoratee;
         private TestMultiplexedConnectionDecorator? _lastAcceptedConnection;
 
@@ -190,6 +212,13 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         {
             (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
+
+            if (FailOperation.HasFlag(MultiplexedTransportOperation.Accept))
+            {
+                await connection.DisposeAsync();
+                throw FailureException;
+            }
+            await _holdAcceptTcs.Task.WaitAsync(cancellationToken);
 
             var testConnection = new TestMultiplexedConnectionDecorator(connection)
                 {
