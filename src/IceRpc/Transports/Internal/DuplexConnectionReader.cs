@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal;
 /// not a PipeReader.</summary>
 internal class DuplexConnectionReader : IDisposable
 {
-    private readonly IDuplexConnection _duplexConnection;
+    private readonly IDuplexConnection _connection;
     private readonly Pipe _pipe;
 
     public void Dispose()
@@ -27,7 +27,7 @@ internal class DuplexConnectionReader : IDisposable
     /// </param>
     internal DuplexConnectionReader(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
     {
-        _duplexConnection = connection;
+        _connection = connection;
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
@@ -89,7 +89,7 @@ internal class DuplexConnectionReader : IDisposable
                         buffer = buffer[0..byteCount];
                     }
 
-                    int read = await _duplexConnection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                    int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
@@ -165,7 +165,7 @@ internal class DuplexConnectionReader : IDisposable
             {
                 // Fill the pipe with data read from the connection.
                 Memory<byte> buffer = _pipe.Writer.GetMemory();
-                int read = await _duplexConnection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                int read = await _connection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
 
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;

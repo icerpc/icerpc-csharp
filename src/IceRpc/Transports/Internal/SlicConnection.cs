@@ -907,7 +907,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
-                "The IdleTimeout Slic connection parameter is invalid, it must be superior to 0 s.");
+                "The IdleTimeout Slic connection parameter is invalid, it must be greater than 0 s.");
         }
 
         if (PeerPacketMaxSize < 1024)

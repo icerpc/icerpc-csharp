@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Internal;
 /// PipeWriter.</summary>
 internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
-    private readonly IDuplexConnection _duplexConnection;
+    private readonly IDuplexConnection _connection;
     private readonly Pipe _pipe;
     private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
 
@@ -37,7 +37,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     /// </param>
     internal DuplexConnectionWriter(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
     {
-        _duplexConnection = connection;
+        _connection = connection;
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
@@ -85,7 +85,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 
         try
         {
-            ValueTask task = _duplexConnection.WriteAsync(_sendBuffers, cancellationToken);
+            ValueTask task = _connection.WriteAsync(_sendBuffers, cancellationToken);
             if (cancellationToken.CanBeCanceled && !task.IsCompleted)
             {
                 await task.AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
