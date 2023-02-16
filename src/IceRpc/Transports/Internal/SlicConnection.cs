@@ -40,7 +40,7 @@ internal class SlicConnection : IMultiplexedConnection
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly CancellationTokenSource _disposedCts = new();
     private Task? _disposeTask;
-    private IDuplexConnection _duplexConnection;
+    private readonly IdleTimeoutDuplexConnectionDecorator _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
     private bool _isClosed;
@@ -281,31 +281,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                Action? keepAliveAction = null;
-                if (!IsServer)
-                {
-                    // Only client connections send ping frames when idle to keep the connection alive.
-                    keepAliveAction = () =>
-                        {
-                            lock (_mutex)
-                            {
-                                // Send a new ping frame if the previous frame was sent and the connection is not closed
-                                // or being close. The check for _isClosed ensures _pingTask is not reassigned once the
-                                // connection is closed.
-                                if (_pingTask.IsCompleted && !_isClosed)
-                                {
-                                    _pingTask = SendPingFrameAsync();
-                                }
-                            }
-                        };
-                }
-
-                _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(
-                    _duplexConnection,
-                    idleTimeout,
-                    keepAliveAction);
-                _duplexConnectionReader.DuplexConnection = _duplexConnection;
-                _duplexConnectionWriter.DuplexConnection = _duplexConnection;
+                _duplexConnection.EnableIdleTimeout(idleTimeout);
             }
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
@@ -324,28 +300,6 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 decoder.Skip(frameSize - (int)decoder.Consumed);
                 return (version, null);
-            }
-        }
-
-        async Task SendPingFrameAsync()
-        {
-            await Task.Yield(); // Exit mutex lock
-            try
-            {
-                await SendFrameAsync(FrameType.Ping, encode: null, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected if the connection was closed.
-            }
-            catch (IceRpcException)
-            {
-                // Expected if the connection failed.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"ping task failed with an unexpected exception: {exception}");
-                throw;
             }
         }
     }
@@ -536,7 +490,26 @@ internal class SlicConnection : IMultiplexedConnection
 
         _closedCancellationToken = _closedCts.Token;
 
-        _duplexConnection = duplexConnection;
+        Action? keepAliveAction = null;
+        if (!IsServer)
+        {
+            // Only client connections send ping frames when idle to keep the connection alive.
+            keepAliveAction = () =>
+                {
+                    lock (_mutex)
+                    {
+                        // Send a new ping frame if the previous frame was sent and the connection is not closed
+                        // or being close. The check for _isClosed ensures _pingTask is not reassigned once the
+                        // connection is closed.
+                        if (_pingTask.IsCompleted && !_isClosed)
+                        {
+                            _pingTask = SendPingFrameAsync();
+                        }
+                    }
+                };
+        }
+
+        _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(duplexConnection, keepAliveAction);
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
         _duplexConnectionWriter = new DuplexConnectionWriter(_duplexConnection, options.Pool, options.MinSegmentSize);
 
@@ -555,6 +528,28 @@ internal class SlicConnection : IMultiplexedConnection
         {
             _nextBidirectionalId = 0;
             _nextUnidirectionalId = 2;
+        }
+
+        async Task SendPingFrameAsync()
+        {
+            await Task.Yield(); // Exit mutex lock
+            try
+            {
+                await SendFrameAsync(FrameType.Ping, encode: null, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected if the connection was closed.
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the connection failed.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"ping task failed with an unexpected exception: {exception}");
+                throw;
+            }
         }
     }
 

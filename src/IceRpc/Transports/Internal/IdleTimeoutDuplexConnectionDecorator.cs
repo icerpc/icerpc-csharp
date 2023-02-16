@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Diagnostics;
+
 namespace IceRpc.Transports.Internal;
 
 /// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over idle timeout and <see
@@ -8,7 +10,7 @@ namespace IceRpc.Transports.Internal;
 internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 {
     private readonly IDuplexConnection _decoratee;
-    private readonly TimeSpan _idleTimeout;
+    private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private readonly Timer? _keepAliveTimer;
     private readonly CancellationTokenSource _readCts = new();
 
@@ -24,53 +26,69 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         _keepAliveTimer?.Dispose();
     }
 
-    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+    public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        try
-        {
-            using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                _readCts);
-            _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
-            return await _decoratee.ReadAsync(buffer, _readCts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        return _idleTimeout == Timeout.InfiniteTimeSpan ?
+            _decoratee.ReadAsync(buffer, cancellationToken) :
+            PerformReadAsync();
 
-            throw new IceRpcException(
-                IceRpcError.ConnectionIdle,
-                $"The connection did not receive any bytes for over {_idleTimeout.TotalSeconds} s.");
-        }
-        finally
+        async ValueTask<int> PerformReadAsync()
         {
-            _readCts.CancelAfter(Timeout.InfiniteTimeSpan); // disable idle timeout if not canceled
+            try
+            {
+                using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
+                    cts => ((CancellationTokenSource)cts!).Cancel(),
+                    _readCts);
+                _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
+                return await _decoratee.ReadAsync(buffer, _readCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                throw new IceRpcException(
+                    IceRpcError.ConnectionIdle,
+                    $"The connection did not receive any bytes for over {_idleTimeout.TotalSeconds} s.");
+            }
+            finally
+            {
+                _readCts.CancelAfter(Timeout.InfiniteTimeSpan); // disable idle timeout if not canceled
+            }
         }
     }
 
     public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
 
-    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
+    public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
-        await _decoratee.WriteAsync(buffers, cancellationToken).ConfigureAwait(false);
+        return _idleTimeout == Timeout.InfiniteTimeSpan ?
+            _decoratee.WriteAsync(buffers, cancellationToken) :
+            PerformWriteAsync();
 
-        // After each successful write, we schedule one ping (keep alive) at _idleTimeout / 2 in the future. Since each
-        // ping is itself a write, if there is no application activity at all, we'll send successive pings at
-        // _idleTimeout / 2 intervals.
-        _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+        async ValueTask PerformWriteAsync()
+        {
+            await _decoratee.WriteAsync(buffers, cancellationToken).ConfigureAwait(false);
+
+            // After each successful write, we schedule one ping (keep alive) at _idleTimeout / 2 in the future. Since
+            // each ping is itself a write, if there is no application activity at all, we'll send successive pings at
+            // _idleTimeout / 2 intervals.
+            _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+        }
     }
 
-    internal IdleTimeoutDuplexConnectionDecorator(
-        IDuplexConnection decoratee,
-        TimeSpan idleTimeout,
-        Action? keepAliveAction)
+    internal IdleTimeoutDuplexConnectionDecorator(IDuplexConnection decoratee, Action? keepAliveAction)
     {
         _decoratee = decoratee;
-        _idleTimeout = idleTimeout;
         if (keepAliveAction is not null)
         {
             _keepAliveTimer = new Timer(_ => keepAliveAction());
-            _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
         }
+    }
+
+    internal void EnableIdleTimeout(TimeSpan idleTimeout)
+    {
+        Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
+        _idleTimeout = idleTimeout;
+        _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
     }
 }

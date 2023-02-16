@@ -11,8 +11,7 @@ namespace IceRpc.Transports.Internal;
 /// not a PipeReader.</summary>
 internal class DuplexConnectionReader : IDisposable
 {
-    internal IDuplexConnection DuplexConnection { get; set; }
-
+    private readonly IDuplexConnection _duplexConnection;
     private readonly Pipe _pipe;
 
     public void Dispose()
@@ -21,13 +20,14 @@ internal class DuplexConnectionReader : IDisposable
         _pipe.Reader.Complete();
     }
 
-    internal DuplexConnectionReader(
-        IDuplexConnection connection,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize)
+    /// <summary>Constructs a duplex connection reader.</summary>
+    /// <param name="connection">The duplex connection to reader from.</param>
+    /// <param name="pool">The memory pool to use.</param>
+    /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref name="pool"/>.
+    /// </param>
+    internal DuplexConnectionReader(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
     {
-        DuplexConnection = connection;
-
+        _duplexConnection = connection;
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
@@ -89,7 +89,7 @@ internal class DuplexConnectionReader : IDisposable
                         buffer = buffer[0..byteCount];
                     }
 
-                    int read = await DuplexConnection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                    int read = await _duplexConnection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
                     bufferWriter.Advance(read);
                     byteCount -= read;
 
@@ -165,7 +165,7 @@ internal class DuplexConnectionReader : IDisposable
             {
                 // Fill the pipe with data read from the connection.
                 Memory<byte> buffer = _pipe.Writer.GetMemory();
-                int read = await DuplexConnection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                int read = await _duplexConnection.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
 
                 _pipe.Writer.Advance(read);
                 minimumSize -= read;

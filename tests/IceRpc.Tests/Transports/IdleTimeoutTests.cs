@@ -22,17 +22,16 @@ public class IdleTimeoutTests
             .BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
+        using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
+            provider.GetRequiredService<IDuplexConnection>(),
+            keepAliveAction: null);
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        clientConnection = new IdleTimeoutDuplexConnectionDecorator(
-            clientConnection,
-            TimeSpan.FromMilliseconds(500),
-            keepAliveAction: null);
+        clientConnection.EnableIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to the connection
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
@@ -49,8 +48,6 @@ public class IdleTimeoutTests
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime,
             Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
-
-        clientConnection.Dispose();
     }
 
     [Test]
@@ -63,18 +60,17 @@ public class IdleTimeoutTests
             .BuildServiceProvider(validateScopes: true);
 
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
+        using var semaphore = new SemaphoreSlim(0, 1);
+        using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
+            provider.GetRequiredService<IDuplexConnection>(),
+            keepAliveAction: () => semaphore.Release());
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        using var semaphore = new SemaphoreSlim(0, 1);
-        clientConnection = new IdleTimeoutDuplexConnectionDecorator(
-            clientConnection,
-            TimeSpan.FromMilliseconds(500),
-            keepAliveAction: () => semaphore.Release());
+        clientConnection.EnableIdleTimeout(TimeSpan.FromMilliseconds(500));
 
         // Write and read data.
         await clientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
@@ -88,7 +84,5 @@ public class IdleTimeoutTests
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime,
             Is.LessThan(TimeSpan.FromMilliseconds(500)));
-
-        clientConnection.Dispose();
     }
 }
