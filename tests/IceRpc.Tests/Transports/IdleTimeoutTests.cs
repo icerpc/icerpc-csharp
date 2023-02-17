@@ -24,14 +24,13 @@ public class IdleTimeoutTests
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
-            provider.GetRequiredService<IDuplexConnection>(),
-            keepAliveAction: null);
+            provider.GetRequiredService<IDuplexConnection>());
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        clientConnection.EnableIdleTimeout(TimeSpan.FromMilliseconds(500));
+        clientConnection.Enable(TimeSpan.FromMilliseconds(500), keepAliveAction: null);
 
         // Write and read data to the connection
         await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
@@ -63,14 +62,13 @@ public class IdleTimeoutTests
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         using var semaphore = new SemaphoreSlim(0, 1);
         using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
-            provider.GetRequiredService<IDuplexConnection>(),
-            keepAliveAction: () => semaphore.Release());
+            provider.GetRequiredService<IDuplexConnection>());
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
 
-        clientConnection.EnableIdleTimeout(TimeSpan.FromMilliseconds(500));
+        clientConnection.Enable(TimeSpan.FromMilliseconds(500), keepAliveAction: () => semaphore.Release());
 
         // Write and read data.
         await clientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);

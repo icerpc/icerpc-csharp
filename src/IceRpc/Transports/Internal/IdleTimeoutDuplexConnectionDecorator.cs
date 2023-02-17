@@ -5,13 +5,13 @@ using System.Diagnostics;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over idle timeout and <see
-/// cref="WriteAsync" /> to enable the keep alive timer. The keep alive action is ran every (idle timeout) / 2 period.
-/// Both sides of the connection are expected to use the same idle timeout.</summary>
+/// cref="WriteAsync" /> to schedule the keep alive timer after (idleTimeout / 2) on a successfull write. Both sides of
+/// the connection are expected to use the same idle timeout.</summary>
 internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 {
     private readonly IDuplexConnection _decoratee;
     private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
-    private readonly Timer? _keepAliveTimer;
+    private Timer? _keepAliveTimer;
     private readonly CancellationTokenSource _readCts = new();
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
@@ -76,19 +76,19 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         }
     }
 
-    internal IdleTimeoutDuplexConnectionDecorator(IDuplexConnection decoratee, Action? keepAliveAction)
+    internal IdleTimeoutDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
+
+    /// <summary>Enables the read idle timeout and the keep alive.</summary>.
+    internal void Enable(TimeSpan idleTimeout, Action? keepAliveAction)
     {
-        _decoratee = decoratee;
+        Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
+
+        _idleTimeout = idleTimeout;
+
         if (keepAliveAction is not null)
         {
             _keepAliveTimer = new Timer(_ => keepAliveAction());
+            _keepAliveTimer.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
         }
-    }
-
-    internal void EnableIdleTimeout(TimeSpan idleTimeout)
-    {
-        Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
-        _idleTimeout = idleTimeout;
-        _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
     }
 }

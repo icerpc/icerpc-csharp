@@ -37,9 +37,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly CancellationTokenSource _disposedCts = new();
 
     private Task? _disposeTask;
-    private readonly IdleTimeoutDuplexConnectionDecorator _duplexConnection;
+    private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly DuplexConnectionWriter _duplexConnectionWriter;
+    private readonly Action<TimeSpan, Action?> _enableIdleTimeoutAndKeepAlive;
     private readonly TimeSpan _idleTimeout;
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
@@ -174,7 +175,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // the connection establishment completes.
             if (_idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                _duplexConnection.EnableIdleTimeout(_idleTimeout);
+                _enableIdleTimeoutAndKeepAlive(_idleTimeout, KeepAlive);
             }
 
             // We assign _readFramesTask with _mutex locked to make sure this assignment occurs before the start of
@@ -210,6 +211,49 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             {
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
                 return (new IcePrologue(ref decoder), decoder.Consumed);
+            }
+        }
+
+        void KeepAlive()
+        {
+            lock (_mutex)
+            {
+                if (_pingTask.IsCompletedSuccessfully && _pingEnabled)
+                {
+                    _pingTask = SendValidateConnectionFrameAsync(_disposedCts.Token);
+                }
+            }
+
+            async Task SendValidateConnectionFrameAsync(CancellationToken cancellationToken)
+            {
+                // Make sure we execute the function without holding the connection mutex lock.
+                await Task.Yield();
+
+                try
+                {
+                    await SendControlFrameAsync(EncodeValidateConnectionFrame, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Canceled by DisposeAsync
+                    throw;
+                }
+                catch (IceRpcException)
+                {
+                    // Expected, typically the peer aborted the connection.
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    Debug.Fail($"The ping task completed due to an unhandled exception: {exception}");
+                    throw;
+                }
+
+                static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
+                {
+                    var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
+                    IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
+                }
             }
         }
     }
@@ -611,19 +655,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         _memoryPool = options.Pool;
         _minSegmentSize = options.MinSegmentSize;
 
-        _duplexConnection = new IdleTimeoutDuplexConnectionDecorator(
-            duplexConnection,
-            () =>
-            {
-                lock (_mutex)
-                {
-                    if (_pingTask.IsCompletedSuccessfully && _pingEnabled)
-                    {
-                        _pingTask = PingAsync(_disposedCts.Token);
-                    }
-                }
-            });
+        var duplexConnectionDecorator = new IdleTimeoutDuplexConnectionDecorator(duplexConnection);
+        _enableIdleTimeoutAndKeepAlive = duplexConnectionDecorator.Enable;
 
+        _duplexConnection = duplexConnectionDecorator;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, _memoryPool, _minSegmentSize);
         _duplexConnectionWriter = new DuplexConnectionWriter(_duplexConnection,  _memoryPool,  _minSegmentSize);
 
@@ -647,38 +682,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _shutdownRequestedTcs.TrySetResult();
             }
         });
-
-        async Task PingAsync(CancellationToken cancellationToken)
-        {
-            // Make sure we execute the function without holding the connection mutex lock.
-            await Task.Yield();
-
-            try
-            {
-                await SendControlFrameAsync(EncodeValidateConnectionFrame, cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Canceled by DisposeAsync
-                throw;
-            }
-            catch (IceRpcException)
-            {
-                // Expected, typically the peer aborted the connection.
-                throw;
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"The ping task completed due to an unhandled exception: {exception}");
-                throw;
-            }
-
-            static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
-            {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice1);
-                IceDefinitions.ValidateConnectionFrame.Encode(ref encoder);
-            }
-        }
     }
 
     /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully
