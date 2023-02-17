@@ -169,21 +169,28 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         {
             await _listenerOperations.CheckAsync(DuplexTransportOperations.Accept, cancellationToken);
 
-            (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
-                await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-
             try
             {
-                await _listenerOperations.CheckAsync(DuplexTransportOperations.Accept, cancellationToken);
-            }
-            catch
-            {
-                connection.Dispose();
-                throw;
-            }
+                (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
+                    await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
-            LastAcceptedConnection = new TestDuplexConnectionDecorator(connection, ConnectionOperationsOptions);
-            return (LastAcceptedConnection, remoteNetworkAddress);
+                try
+                {
+                    await _listenerOperations.CheckAsync(DuplexTransportOperations.Accept, cancellationToken);
+                }
+                catch
+                {
+                    connection.Dispose();
+                    throw;
+                }
+
+                LastAcceptedConnection = new TestDuplexConnectionDecorator(connection, ConnectionOperationsOptions);
+                return (LastAcceptedConnection, remoteNetworkAddress);
+            }
+            finally
+            {
+                _listenerOperations.Called(DuplexTransportOperations.Accept);
+            }
         }
 
         public async ValueTask DisposeAsync()

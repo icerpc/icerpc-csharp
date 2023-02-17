@@ -40,7 +40,7 @@ public class TransportOperations<T> where T : struct, Enum
             {
                 if (!_holdOperationsTcsMap.TryGetValue(operation, out TaskCompletionSource? tcs))
                 {
-                    tcs = new TaskCompletionSource();
+                    tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                     _holdOperationsTcsMap.Add(operation, tcs);
                 }
 
@@ -64,8 +64,18 @@ public class TransportOperations<T> where T : struct, Enum
     private T _holdOperations;
     private readonly Dictionary<T, TaskCompletionSource> _holdOperationsTcsMap = new();
 
-    /// <summary>Returns a task which can be awaited to wait for the given operation to be called.</summary>
+    /// <summary>Returns a task which can be awaited to wait for the given operation to be called. If the operation has
+    /// already been called, the returned task is a completed task.</summary>
     public Task CalledTask(T operation) => _calledOperationsTcsMap[operation].Task;
+
+    /// <summary>Returns a task which can be awaited to wait for the given operation to be called. The returned task is
+    /// never completed. It will complete once the operation is called.</summary>
+    public Task NewCalledTask(T operation)
+    {
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _calledOperationsTcsMap[operation] = tcs;
+        return tcs.Task;
+    }
 
     internal TransportOperations(T holdOperations, T failOperations, Exception? failureException = null)
     {

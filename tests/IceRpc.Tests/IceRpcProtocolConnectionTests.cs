@@ -640,6 +640,7 @@ public sealed class IceRpcProtocolConnectionTests
     [TestCase(false, MultiplexedTransportOperations.AcceptStream, IceRpcError.InvocationCanceled)]
     [TestCase(false, MultiplexedTransportOperations.StreamWrite, IceRpcError.InvocationCanceled)]
     [TestCase(true, MultiplexedTransportOperations.StreamWrite, IceRpcError.InvocationCanceled)]
+    [Repeat(1000)]
     public async Task Not_dispatched_request_gets_invocation_canceled_on_server_connection_shutdown(
         bool isOneway,
         MultiplexedTransportOperations holdOperation,
@@ -664,22 +665,36 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask = sut.Client.InvokeAsync(request1);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
-        // Don't accept the next stream.
+        var clientConnection = clientTransport.LastCreatedConnection;
+        var serverConnection = serverTransport.LastAcceptedConnection;
+
+        Task waitTask = Task.CompletedTask;
         switch (holdOperation)
         {
             case MultiplexedTransportOperations.AcceptStream:
-                serverTransport.LastAcceptedConnection.Operations.Hold = holdOperation;
+                serverConnection.Operations.Hold = holdOperation;
+                waitTask = serverConnection.Operations.NewCalledTask(holdOperation);
                 break;
             case MultiplexedTransportOperations.CreateStream:
-                clientTransport.LastCreatedConnection.Operations.Hold = holdOperation;
+                clientConnection.Operations.Hold = holdOperation;
                 break;
             case MultiplexedTransportOperations.StreamWrite:
-                clientTransport.LastCreatedConnection.StreamOperationsOptions = new() { Hold = holdOperation };
+                clientConnection.StreamOperationsOptions = new() { Hold = holdOperation };
+                waitTask = clientConnection.GetNextStreamAsync();
                 break;
         }
 
         using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { IsOneway = isOneway };
         var invokeTask2 = sut.Client.InvokeAsync(request2);
+
+        // Either wait for accept stream to be called of the invocation stream to be created.
+        await waitTask;
+
+        if (holdOperation == MultiplexedTransportOperations.StreamWrite)
+        {
+            // Wait for the WriteAsync call to be initiated before to shutdown the server connection.
+            await clientConnection.LastStream.Operations.CalledTask(holdOperation);
+        }
 
         // Act
         Task shutdownTask = sut.Server.ShutdownAsync();
@@ -692,7 +707,7 @@ public sealed class IceRpcProtocolConnectionTests
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
         request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
-        Assert.That(() => shutdownTask, Throws.Nothing);
+        await shutdownTask;
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>

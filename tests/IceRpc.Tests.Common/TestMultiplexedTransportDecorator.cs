@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Security;
@@ -230,6 +231,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 
     private readonly IMultiplexedConnection _decoratee;
     private TestMultiplexedStreamDecorator? _lastStream;
+    private TaskCompletionSource<TestMultiplexedStreamDecorator>? _streamTcs = null;
 
     /// <inheritdoc/>
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
@@ -240,6 +242,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
             await _decoratee.AcceptStreamAsync(cancellationToken),
             StreamOperationsOptions);
         _lastStream = stream;
+        _streamTcs?.TrySetResult(_lastStream);
 
         // Check again fail/hold condition in case the configuration was changed while AcceptStreamAsync was pending.
         await Operations.CheckAsync(MultiplexedTransportOperations.AcceptStream, cancellationToken);
@@ -258,6 +261,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
             await _decoratee.CreateStreamAsync(bidirectional, cancellationToken),
             StreamOperationsOptions);
         _lastStream = stream;
+        _streamTcs?.TrySetResult(_lastStream);
         return stream;
     }
 
@@ -285,6 +289,16 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
         await Operations.CheckAsync(MultiplexedTransportOperations.Dispose, CancellationToken.None);
         await _decoratee.DisposeAsync();
         Operations.Complete();
+    }
+
+    /// <summary>Returns a task that will complete when a new stream is accepted or created.</summary>
+    public Task<TestMultiplexedStreamDecorator> GetNextStreamAsync()
+    {
+        if (_streamTcs is null || _streamTcs.Task.IsCompleted)
+        {
+            _streamTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+        return _streamTcs.Task;
     }
 
     internal TestMultiplexedConnectionDecorator(
@@ -350,7 +364,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     }
 }
 
-internal sealed class TestPipeWriter : PipeWriter
+internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
 {
     private readonly PipeWriter _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
@@ -379,8 +393,36 @@ internal sealed class TestPipeWriter : PipeWriter
         ReadOnlyMemory<byte> source,
         CancellationToken cancellationToken)
     {
+        _operations.Called(MultiplexedTransportOperations.StreamWrite);
         await _operations.CheckAsync(MultiplexedTransportOperations.StreamWrite, cancellationToken);
         return await _decoratee.WriteAsync(source, cancellationToken);
+    }
+
+    public override async ValueTask<FlushResult> WriteAsync(
+        ReadOnlySequence<byte> source,
+        bool endStream,
+        CancellationToken cancellationToken)
+    {
+        _operations.Called(MultiplexedTransportOperations.StreamWrite);
+        await _operations.CheckAsync(MultiplexedTransportOperations.StreamWrite, cancellationToken);
+
+        if (_decoratee is ReadOnlySequencePipeWriter readonlySequenceWriter)
+        {
+            return await readonlySequenceWriter.WriteAsync(source, endStream, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            FlushResult flushResult = default;
+            foreach (ReadOnlyMemory<byte> buffer in source)
+            {
+                flushResult = await _decoratee.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+                if (flushResult.IsCompleted || flushResult.IsCanceled)
+                {
+                    break;
+                }
+            }
+            return flushResult;
+        }
     }
 
     internal TestPipeWriter(
