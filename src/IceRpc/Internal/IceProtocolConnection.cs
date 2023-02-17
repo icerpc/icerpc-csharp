@@ -56,7 +56,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
     private bool _refuseInvocations;
 
-    // When not null, schedules one keep-alive in _idleTimeout / 2.
+    // When not null, schedules one keep-alive action in options.IdleTimeout / 2.
     private readonly Action? _scheduleKeepAlive;
 
     // Does ShutdownAsync send a close connection frame?
@@ -120,7 +120,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // Send ValidateConnection frame.
                     await SendControlFrameAsync(EncodeValidateConnectionFrame, connectCts.Token).ConfigureAwait(false);
 
-                    // The SendControlFrameAsync "write" schedules a keep-alive when the idle timeout is not infinite.
+                    // The SendControlFrameAsync is a "write" that schedules a keep-alive when the idle timeout is not
+                    // infinite.
                 }
                 else
                 {
