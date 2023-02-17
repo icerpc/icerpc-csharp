@@ -62,13 +62,14 @@ public class IdleTimeoutTests
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
         using var semaphore = new SemaphoreSlim(0, 1);
         using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
-            provider.GetRequiredService<IDuplexConnection>());
+            provider.GetRequiredService<IDuplexConnection>(),
+            TimeSpan.FromMilliseconds(500),
+            keepAliveAction: () => semaphore.Release());
+
         Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
-
-        clientConnection.Enable(TimeSpan.FromMilliseconds(500), keepAliveAction: () => semaphore.Release());
 
         // Write and read data.
         await clientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
