@@ -7,7 +7,7 @@ namespace IceRpc.Transports;
 public sealed record class SlicTransportOptions
 {
     /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no
-    /// data is received within the idle timeout period, the transport connection is aborted. The default is 60s.
+    /// data is received within the idle timeout period, the transport connection is aborted. The default is 30s.
     /// </summary>
     public TimeSpan IdleTimeout
     {
@@ -53,7 +53,7 @@ public sealed record class SlicTransportOptions
             value;
     }
 
-    private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _idleTimeout = TimeSpan.FromSeconds(30);
     // The default packet size matches the SSL record maximum data size to avoid fragmentation of the Slic packet
     // when using SSL.
     private int _packetMaxSize = 16384;

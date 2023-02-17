@@ -20,10 +20,12 @@ internal class DuplexConnectionReader : IDisposable
         _pipe.Reader.Complete();
     }
 
-    internal DuplexConnectionReader(
-        IDuplexConnection connection,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize)
+    /// <summary>Constructs a duplex connection reader.</summary>
+    /// <param name="connection">The duplex connection to reader from.</param>
+    /// <param name="pool">The memory pool to use.</param>
+    /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref name="pool"/>.
+    /// </param>
+    internal DuplexConnectionReader(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
