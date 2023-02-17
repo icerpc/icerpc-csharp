@@ -2,6 +2,7 @@
 
 namespace IceRpc.Tests.Common;
 
+/// <summary>A test fixture that is responsible for the common shared setup.</summary>
 public sealed class CommonSetUpFixture
 {
     private static readonly EventHandler<UnobservedTaskExceptionEventArgs> _handler = HandleUnobservedTaskException;
@@ -19,12 +20,14 @@ public sealed class CommonSetUpFixture
 
     private static readonly List<(object?, Exception)> _unobservedTaskExceptions = new();
 
+    /// <summary>The common setup for all tests.</summary>
     public static void OneTimeSetUp()
     {
         AssertTraceListener.Setup();
         TaskScheduler.UnobservedTaskException += _handler;
     }
 
+    /// <summary>The common tear down for all tests.</summary>
     public static void OneTimeTearDown()
     {
         GC.Collect();

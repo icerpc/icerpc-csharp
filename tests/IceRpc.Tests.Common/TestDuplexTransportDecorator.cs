@@ -7,6 +7,8 @@ using System.Net.Security;
 
 namespace IceRpc.Tests.Common;
 
+#pragma warning disable CS1591 // TODO fix with #2704
+
 [Flags]
 public enum DuplexTransportOperation
 {
