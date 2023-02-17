@@ -456,7 +456,7 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastConnection;
-        clientConnection.HoldOperation = MultiplexedTransportOperation.CreateStream;
+        clientConnection.Operations.Hold = MultiplexedTransportOperation.CreateStream;
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
@@ -555,7 +555,7 @@ public sealed class IceRpcProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        clientTransport.LastConnection.FailOperation = operation;
+        clientTransport.LastConnection.Operations.Fail = operation;
 
         // Act/Assert
         if (operation == MultiplexedTransportOperation.CreateStream)
@@ -593,7 +593,7 @@ public sealed class IceRpcProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        clientTransport.LastConnection.HoldOperation = operation;
+        clientTransport.LastConnection.Operations.Hold = operation;
 
         using var invokeCts = new CancellationTokenSource(100);
 
@@ -639,11 +639,11 @@ public sealed class IceRpcProtocolConnectionTests
         {
             case MultiplexedTransportOperation.AcceptStream:
             case MultiplexedTransportOperation.StreamRead:
-                serverTransport.LastAcceptedConnection.HoldOperation = holdOperation;
+                serverTransport.LastAcceptedConnection.Operations.Hold = holdOperation;
                 break;
             case MultiplexedTransportOperation.CreateStream:
             case MultiplexedTransportOperation.StreamWrite:
-                clientTransport.LastConnection.HoldOperation = holdOperation;
+                clientTransport.LastConnection.Operations.Hold = holdOperation;
                 break;
         }
 
@@ -1210,7 +1210,7 @@ public sealed class IceRpcProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         // Hold the remote control stream reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.LastStream.HoldOperation = MultiplexedTransportOperation.StreamRead;
+        serverTransport.LastAcceptedConnection.LastStream.Operations.Hold = MultiplexedTransportOperation.StreamRead;
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));

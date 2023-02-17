@@ -11,10 +11,12 @@ namespace IceRpc.Tests.Common;
 public enum DuplexTransportOperation
 {
     None = 0,
-    Connect = 1,
-    Read = 2,
-    Shutdown = 4,
-    Write = 8
+    Accept = 1,
+    Connect = 2,
+    Dispose = 4,
+    Read = 8,
+    Shutdown = 16,
+    Write = 32,
 }
 
 #pragma warning disable CA1001 // _lastConnection is disposed by the caller.
@@ -39,15 +41,11 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        var connection = new TestDuplexConnectionDecorator(_decoratee.CreateConnection(
-            serverAddress,
-            options,
-            clientAuthenticationOptions))
-        {
-            HoldOperation = _holdOperation,
-            FailOperation = _failOperation,
-            FailureException = _failureException
-        };
+        var connection = new TestDuplexConnectionDecorator(
+            _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
+            _holdOperation,
+            _failOperation,
+            _failureException);
         _lastConnection = connection;
         return connection;
     }
@@ -71,56 +69,7 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
 public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 #pragma warning restore CA1001
 {
-    public DuplexTransportOperation FailOperation
-    {
-        get => _listener?.FailOperation ?? _failOperation;
-
-        set
-        {
-            if (_listener is null)
-            {
-                _failOperation = value;
-            }
-            else
-            {
-                _listener.FailOperation = value;
-            }
-        }
-    }
-
-    public Exception FailureException
-    {
-        get => _listener?.FailureException ?? _failureException;
-
-        set
-        {
-            if (_listener is null)
-            {
-                _failureException = value;
-            }
-            else
-            {
-                _listener.FailureException = value;
-            }
-        }
-    }
-
-    public DuplexTransportOperation HoldOperation
-    {
-        get => _listener?.HoldOperation ?? _holdOperation;
-
-        set
-        {
-            if (_listener is null)
-            {
-                _holdOperation = value;
-            }
-            else
-            {
-                _listener.HoldOperation = value;
-            }
-        }
-    }
+    public TestTransportOperationHelper<DuplexTransportOperation> Operations;
 
     public string Name => _decoratee.Name;
 
@@ -128,9 +77,6 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
 
     private readonly IDuplexServerTransport _decoratee;
-    private DuplexTransportOperation _failOperation;
-    private Exception _failureException;
-    private DuplexTransportOperation _holdOperation;
     private TestDuplexListenerDecorator? _listener;
 
     public TestDuplexServerTransportDecorator(
@@ -140,9 +86,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         Exception? failureException = null)
     {
         _decoratee = decoratee;
-        _holdOperation = holdOperation;
-        _failOperation = failOperation;
-        _failureException = failureException ?? new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
+        Operations = new(holdOperation, failOperation, failureException);
     }
 
     public IListener<IDuplexConnection> Listen(
@@ -156,12 +100,8 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         }
 
         _listener = new TestDuplexListenerDecorator(
-            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions))
-            {
-                HoldOperation = _holdOperation,
-                FailOperation = _failOperation,
-                FailureException = _failureException
-            };
+            _decoratee.Listen(serverAddress, options, serverAuthenticationOptions),
+            Operations);
 
         return _listener;
     }
@@ -169,10 +109,6 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
     private class TestDuplexListenerDecorator : IListener<IDuplexConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
-
-        internal DuplexTransportOperation HoldOperation { get; set; }
-        internal DuplexTransportOperation FailOperation { get; set; }
-        internal Exception FailureException { get; set; } = new Exception();
 
         internal TestDuplexConnectionDecorator LastAcceptedConnection
         {
@@ -182,137 +118,80 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 
         private readonly IListener<IDuplexConnection> _decoratee;
         private TestDuplexConnectionDecorator? _lastAcceptedConnection;
+        private readonly TestTransportOperationHelper<DuplexTransportOperation> _operations;
 
         public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
         {
+            await _operations.CheckAsync(DuplexTransportOperation.Accept, cancellationToken);
+
             (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-            LastAcceptedConnection = new TestDuplexConnectionDecorator(connection)
-                {
-                    HoldOperation = HoldOperation,
-                    FailOperation = FailOperation,
-                    FailureException = FailureException
-                };
+
+            try
+            {
+                await _operations.CheckAsync(DuplexTransportOperation.Accept, cancellationToken);
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+
+            LastAcceptedConnection = new TestDuplexConnectionDecorator(
+                    connection,
+                    _operations.Hold,
+                    _operations.Fail,
+                    _operations.FailureException);
             return (LastAcceptedConnection, remoteNetworkAddress);
         }
 
         public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
 
-        internal TestDuplexListenerDecorator(IListener<IDuplexConnection> decoratee) => _decoratee = decoratee;
+        internal TestDuplexListenerDecorator(
+            IListener<IDuplexConnection> decoratee,
+            TestTransportOperationHelper<DuplexTransportOperation> operations)
+        {
+            _decoratee = decoratee;
+            _operations = operations;
+        }
     }
 }
 
 public sealed class TestDuplexConnectionDecorator : IDuplexConnection
 {
-    public Task DisposeCalled => _disposeCalledTcs.Task;
-
-    public DuplexTransportOperation FailOperation { get; set; }
-
-    public Exception FailureException { get; set; } = new Exception();
-
-    public DuplexTransportOperation HoldOperation
-    {
-        get => _holdOperation;
-        set
-        {
-            _holdOperation = value;
-
-            if (_holdOperation.HasFlag(DuplexTransportOperation.Connect))
-            {
-                _holdConnectTcs = new();
-            }
-            else
-            {
-                _holdConnectTcs.TrySetResult();
-            }
-
-            if (_holdOperation.HasFlag(DuplexTransportOperation.Shutdown))
-            {
-                _holdShutdownTcs = new();
-            }
-            else
-            {
-                _holdShutdownTcs.TrySetResult();
-            }
-
-            if (_holdOperation.HasFlag(DuplexTransportOperation.Read))
-            {
-                _holdReadTcs = new();
-            }
-            else
-            {
-                _holdReadTcs.TrySetResult();
-            }
-
-            if (_holdOperation.HasFlag(DuplexTransportOperation.Write))
-            {
-                _holdWriteTcs = new();
-            }
-            else
-            {
-                _holdWriteTcs.TrySetResult();
-            }
-        }
-    }
+    public TestTransportOperationHelper<DuplexTransportOperation> Operations { get; }
 
     private readonly IDuplexConnection _decoratee;
-    private readonly TaskCompletionSource _disposeCalledTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private TaskCompletionSource _holdConnectTcs = new();
-    private DuplexTransportOperation _holdOperation;
-    private TaskCompletionSource _holdReadTcs = new();
-    private TaskCompletionSource _holdShutdownTcs = new();
-    private TaskCompletionSource _holdWriteTcs = new();
 
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        if (FailOperation.HasFlag(DuplexTransportOperation.Connect))
-        {
-            throw FailureException;
-        }
-        await _holdConnectTcs.Task.WaitAsync(cancellationToken);
+        await Operations.CheckAsync(DuplexTransportOperation.Connect, cancellationToken);
         return await _decoratee.ConnectAsync(cancellationToken);
     }
 
     public void Dispose()
     {
-        _disposeCalledTcs.TrySetResult();
+        Operations.Called(DuplexTransportOperation.Dispose);
         _decoratee.Dispose();
-
-        _holdConnectTcs.TrySetResult();
-        _holdReadTcs.TrySetResult();
-        _holdShutdownTcs.TrySetResult();
-        _holdWriteTcs.TrySetResult();
+        Operations.Complete();
     }
 
     public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        await CheckFailAndHoldAsync();
+        await Operations.CheckAsync(DuplexTransportOperation.Read, cancellationToken);
 
         int count = await _decoratee.ReadAsync(buffer, cancellationToken);
 
         // Check again fail/hold condition in case the configuration was changed while AcceptAsync was pending.
-        await CheckFailAndHoldAsync();
+        await Operations.CheckAsync(DuplexTransportOperation.Read, cancellationToken);
 
         return count;
-
-        async Task CheckFailAndHoldAsync()
-        {
-            if (FailOperation.HasFlag(DuplexTransportOperation.Read))
-            {
-                throw FailureException;
-            }
-            await _holdReadTcs.Task.WaitAsync(cancellationToken);
-        }
     }
 
     public async Task ShutdownAsync(CancellationToken cancellationToken)
     {
-        if (FailOperation.HasFlag(DuplexTransportOperation.Shutdown))
-        {
-            throw FailureException;
-        }
-        await _holdShutdownTcs.Task.WaitAsync(cancellationToken);
+        await Operations.CheckAsync(DuplexTransportOperation.Shutdown, cancellationToken);
         await _decoratee.ShutdownAsync(cancellationToken);
     }
 
@@ -320,16 +199,19 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
         IReadOnlyList<ReadOnlyMemory<byte>> buffers,
         CancellationToken cancellationToken)
     {
-        if (FailOperation.HasFlag(DuplexTransportOperation.Write))
-        {
-            throw FailureException;
-        }
-        await _holdWriteTcs.Task.WaitAsync(cancellationToken);
-
+        await Operations.CheckAsync(DuplexTransportOperation.Write, cancellationToken);
         await _decoratee.WriteAsync(buffers, cancellationToken);
     }
 
-    internal TestDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
+    internal TestDuplexConnectionDecorator(
+        IDuplexConnection decoratee,
+        DuplexTransportOperation holdOperation = DuplexTransportOperation.None,
+        DuplexTransportOperation failOperation = DuplexTransportOperation.None,
+        Exception? failureException = null)
+    {
+        _decoratee = decoratee;
+        Operations = new(holdOperation, failOperation, failureException);
+    }
 }
 
 public static class TestDuplexTransportServiceCollectionExtensions

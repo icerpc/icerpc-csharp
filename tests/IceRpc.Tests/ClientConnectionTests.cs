@@ -331,7 +331,7 @@ public class ClientConnectionTests
         await connection.ConnectAsync();
         await serverTransport.LastAcceptedConnection.ConnectAsync(default);
         // Hold server reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
+        serverTransport.LastAcceptedConnection.Operations.Hold = DuplexTransportOperation.Read;
 
         Task shutdownTask = connection.ShutdownAsync();
 
@@ -364,7 +364,7 @@ public class ClientConnectionTests
         await connection.ConnectAsync();
         await serverTransport.LastAcceptedConnection.ConnectAsync(default);
         // Hold server reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.HoldOperation = DuplexTransportOperation.Read;
+        serverTransport.LastAcceptedConnection.Operations.Hold = DuplexTransportOperation.Read;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         Task shutdownTask = connection.ShutdownAsync(cts.Token);

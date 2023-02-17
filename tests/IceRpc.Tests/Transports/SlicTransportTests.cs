@@ -488,14 +488,14 @@ public class SlicTransportTests
         using var writeCts = new CancellationTokenSource();
 
         // Act
-        duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
+        duplexClientConnection.Operations.Hold = DuplexTransportOperation.Write;
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[1], writeCts.Token);
         writeCts.Cancel();
         await Task.Delay(TimeSpan.FromMilliseconds(10));
 
         // Assert
         Assert.That(writeTask.IsCompleted, Is.False);
-        duplexClientConnection.HoldOperation = DuplexTransportOperation.None;
+        duplexClientConnection.Operations.Hold = DuplexTransportOperation.None;
         Assert.That(async () => await writeTask, Throws.Nothing);
 
         CompleteStreams(localStream, remoteStream);
