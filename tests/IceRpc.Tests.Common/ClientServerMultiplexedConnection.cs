@@ -8,8 +8,10 @@ namespace IceRpc.Tests.Common;
 /// ensures the connections are correctly disposed.</summary>
 public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
 {
+    /// <summary>Gets the client connection.</summary>
     public IMultiplexedConnection Client { get; }
 
+    /// <summary>Gets the server connection.</summary>
     public IMultiplexedConnection Server
     {
         get => _server ?? throw new InvalidOperationException("server connection not initialized");
@@ -19,6 +21,9 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
     private readonly IListener<IMultiplexedConnection> _listener;
     private IMultiplexedConnection? _server;
 
+    /// <summary>Accepts and connects a new connection.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The accepted connection.</returns>
     public async Task<IMultiplexedConnection> AcceptAsync(CancellationToken cancellationToken = default)
     {
         (_server, _) = await _listener.AcceptAsync(cancellationToken);
@@ -26,9 +31,13 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
         return _server;
     }
 
+    /// <summary>Connects the client connection, and accepts and connect the server connection.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes when both connections are connected.</returns>
     public Task AcceptAndConnectAsync(CancellationToken cancellationToken = default) =>
         Task.WhenAll(AcceptAsync(cancellationToken), Client.ConnectAsync(cancellationToken));
 
+    /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
         await Client.DisposeAsync();
@@ -40,6 +49,9 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
         await _listener.DisposeAsync();
     }
 
+    /// <summary>Constructs a new <see cref="ClientServerMultiplexedConnection"/>.</summary>
+    /// <param name="clientConnection">The client connection.</param>
+    /// <param name="listener">The listener.</param>
     public ClientServerMultiplexedConnection(
         IMultiplexedConnection clientConnection,
         IListener<IMultiplexedConnection> listener)

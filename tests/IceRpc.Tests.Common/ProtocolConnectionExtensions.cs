@@ -2,6 +2,7 @@
 
 namespace IceRpc.Tests.Common;
 
+/// <summary>A class that provide extensions methods for <see cref="IProtocolConnection"/>.</summary>
 public static class ProtocolConnectionExtensions
 {
     /// <summary>Shuts down this connection when shutdownRequested completes.</summary>

@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <!-- Missing XML comment for publicly visible type or member. -->
+    <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

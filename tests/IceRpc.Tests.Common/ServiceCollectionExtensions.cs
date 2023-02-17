@@ -5,10 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Common;
 
+/// <summary>Extension methods for setting up IceRPC tests in an <see cref="IServiceCollection" />.</summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>Adds Server and ClientConnection singletons, with the server listening on the specified host.</summary>
