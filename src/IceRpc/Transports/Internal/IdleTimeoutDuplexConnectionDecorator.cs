@@ -72,23 +72,39 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
             // After each successful write, we schedule one ping (keep alive) at _idleTimeout / 2 in the future. Since
             // each ping is itself a write, if there is no application activity at all, we'll send successive pings at
             // _idleTimeout / 2 intervals.
-            _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+            ScheduleKeepAlive();
         }
     }
 
     internal IdleTimeoutDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
 
-    /// <summary>Enables the read idle timeout and the keep alive.</summary>.
+    internal IdleTimeoutDuplexConnectionDecorator(
+        IDuplexConnection decoratee,
+        TimeSpan idleTimeout,
+        Action keepAliveAction)
+        : this(decoratee)
+    {
+        Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
+        _idleTimeout = idleTimeout;
+        _keepAliveTimer = new Timer(_ => keepAliveAction());
+    }
+
+    /// <summary>Enables the read idle timeout and the scheduling of one keep alive after each write; also schedules one
+    /// keep-alive.</summary>.
     internal void Enable(TimeSpan idleTimeout, Action? keepAliveAction)
     {
         Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
+        Debug.Assert(_keepAliveTimer is null);
 
         _idleTimeout = idleTimeout;
 
         if (keepAliveAction is not null)
         {
             _keepAliveTimer = new Timer(_ => keepAliveAction());
-            _keepAliveTimer.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+            ScheduleKeepAlive();
         }
     }
+
+    /// <summary>Schedules one keep alive in idleTimeout / 2.</summary>
+    internal void ScheduleKeepAlive() => _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
 }
