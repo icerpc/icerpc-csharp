@@ -91,6 +91,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             }
             catch
             {
+                // Workaround for https://github.com/dotnet/runtime/issues/78641.
             }
         }
     }
