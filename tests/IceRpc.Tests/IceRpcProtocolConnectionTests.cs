@@ -640,7 +640,6 @@ public sealed class IceRpcProtocolConnectionTests
     [TestCase(false, MultiplexedTransportOperations.AcceptStream, IceRpcError.InvocationCanceled)]
     [TestCase(false, MultiplexedTransportOperations.StreamWrite, IceRpcError.InvocationCanceled)]
     [TestCase(true, MultiplexedTransportOperations.StreamWrite, IceRpcError.InvocationCanceled)]
-    [Repeat(1000)]
     public async Task Not_dispatched_request_gets_invocation_canceled_on_server_connection_shutdown(
         bool isOneway,
         MultiplexedTransportOperations holdOperation,

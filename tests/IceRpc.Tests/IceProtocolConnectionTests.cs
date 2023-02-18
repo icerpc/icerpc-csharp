@@ -303,21 +303,26 @@ public sealed class IceProtocolConnectionTests
             .AddTestDuplexTransport(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Write })
             .BuildServiceProvider(validateScopes: true);
 
-        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
-
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+
+        var clientConnection = provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+        Task writeCalledTask = clientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
+
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice)) { IsOneway = oneway };
         using var cts = new CancellationTokenSource();
 
         Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
+
+        // Wait for the invocation to start writing the request before cancelling the invocation.
+        await writeCalledTask;
+
         cts.Cancel();
-        await Task.Delay(TimeSpan.FromMilliseconds(20));
 
         // Act/Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
 
-        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperations.None;
+        clientConnection.Operations.Hold = DuplexTransportOperations.None;
 
         if (oneway)
         {
@@ -379,10 +384,9 @@ public sealed class IceProtocolConnectionTests
             .AddTestDuplexTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
-
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         await sut.ConnectAsync();
+
         using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
         {
             Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
@@ -394,13 +398,17 @@ public sealed class IceProtocolConnectionTests
         };
 
         using var cts = new CancellationTokenSource();
+
         // Hold writes to ensure the invocation blocks writing the request.
-        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperations.Write;
+        var clientConnection = provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+        clientConnection.Operations.Hold = DuplexTransportOperations.Write;
+        Task writeCalledTask = clientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
 
         Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1, cts.Token);
         Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request1, default);
-        // Delay to let the connection write start.
-        await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+        // Wait for the connection write to start.
+        await writeCalledTask;
 
         // Act
         cts.Cancel();
@@ -408,7 +416,7 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(invokeTask1.IsCompleted, Is.False);
-        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperations.None;
+        clientConnection.Operations.Hold = DuplexTransportOperations.None;
         Assert.That(async () => await invokeTask1, Throws.TypeOf<OperationCanceledException>());
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask2, Throws.Nothing);

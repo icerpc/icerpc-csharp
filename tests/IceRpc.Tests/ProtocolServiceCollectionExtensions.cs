@@ -46,8 +46,7 @@ public static class ProtocolServiceCollectionExtensions
                                     transportConnection,
                                     transportConnectionInformation,
                                     serverConnectionOptions ?? new());
-                            },
-                        listener: provider.GetRequiredService<IListener<IDuplexConnection>>()));
+                            }));
         }
         else
         {
@@ -80,8 +79,7 @@ public static class ProtocolServiceCollectionExtensions
                                     transportConnectionInformation,
                                     serverConnectionOptions ?? new(),
                                     provider.GetService<ITaskExceptionObserver>());
-                            },
-                        listener: provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
+                            }));
         }
         return services;
     }
@@ -100,7 +98,6 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
     }
 
     private readonly Func<CancellationToken, Task<IProtocolConnection>> _acceptServerConnectionAsync;
-    private readonly IAsyncDisposable _listener;
     private IProtocolConnection? _server;
 
     public async Task<(Task ClientShutdownRequested, Task ServerShutdownRequested)> ConnectAsync(
@@ -145,15 +142,11 @@ internal sealed class ClientServerProtocolConnection : IAsyncDisposable
         }
     }
 
-    public ValueTask DisposeListenerAsync() => _listener.DisposeAsync();
-
     internal ClientServerProtocolConnection(
         IProtocolConnection clientProtocolConnection,
-        Func<CancellationToken, Task<IProtocolConnection>> acceptServerConnectionAsync,
-        IAsyncDisposable listener)
+        Func<CancellationToken, Task<IProtocolConnection>> acceptServerConnectionAsync)
     {
         _acceptServerConnectionAsync = acceptServerConnectionAsync;
-        _listener = listener;
         Client = clientProtocolConnection;
     }
 }

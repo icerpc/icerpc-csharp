@@ -166,15 +166,15 @@ public class TransportOperations<T> where T : struct, Enum
     /// <see cref="FailureException" /> is raised. It also marks the operation as called.</summary>
     internal Task CheckAsync(T operation, CancellationToken cancellationToken)
     {
-        if (Fail.HasFlag(operation))
-        {
-            throw FailureException;
-        }
         // Get the hold task completion source before notifying the test that the operation was called. If the test
         // updates the hold configure after the notification, we'll still use the hold configuration setup before the
         // operation is called.
         TaskCompletionSource tcs = _holdOperationsTcsMap[operation];
         Called(operation);
+        if (Fail.HasFlag(operation))
+        {
+            throw FailureException;
+        }
         return tcs.Task.WaitAsync(cancellationToken);
     }
 

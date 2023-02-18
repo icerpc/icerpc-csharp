@@ -605,25 +605,36 @@ public sealed class ProtocolConnectionTests
     public async Task Dispose_aborts_connect(Protocol protocol)
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
+        var services = new ServiceCollection().AddProtocolTest(protocol);
+        if (protocol == Protocol.Ice)
+        {
+            services.AddTestDuplexTransport(clientOperationsOptions:
+                new()
+                {
+                    Fail = DuplexTransportOperations.Connect
+                });
+        }
+        else
+        {
+            services.AddTestMultiplexedTransport(clientOperationsOptions:
+                new()
+                {
+                    Fail = MultiplexedTransportOperations.Connect
+                });
+        }
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
-        // TODO: temporary
-        if (protocol == Protocol.IceRpc)
-        {
-            Task connectTask = sut.Client.ConnectAsync(default);
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        Task connectTask = sut.Client.ConnectAsync(default);
 
-            // Act
-            await sut.Client.DisposeAsync();
+        // Act
+        await sut.Client.DisposeAsync();
 
-            // Assert
-            Assert.That(
-                async () => await connectTask,
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-        }
+        // Assert
+        Assert.That(
+            async () => await connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     /// <summary>Ensures that the sending of a request after shutdown fails with <see cref="IceRpcException" />.
@@ -923,17 +934,32 @@ public sealed class ProtocolConnectionTests
     public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
+        var services = new ServiceCollection().AddProtocolTest(protocol);
+        if (protocol == Protocol.Ice)
+        {
+            services.AddTestDuplexTransport(clientOperationsOptions:
+                new()
+                {
+                    Fail = DuplexTransportOperations.Connect
+                });
+        }
+        else
+        {
+            services.AddTestMultiplexedTransport(clientOperationsOptions:
+                new()
+                {
+                    Fail = MultiplexedTransportOperations.Connect
+                });
+        }
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
 
         Task connectTask = sut.Client.ConnectAsync(default);
-        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give ConnectAsync the time to start
-        await sut.DisposeListenerAsync(); // dispose the listener to trigger the connection establishment failure.
 
         // Act/Assert
         Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
+        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Ensure that ShutdownAsync fails when ConnectAsync is in progress.</summary>

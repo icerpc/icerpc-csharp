@@ -57,6 +57,18 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
 
     private readonly IMultiplexedClientTransport _decoratee;
     private TestMultiplexedConnectionDecorator? _lastConnection;
+    private Action<TestMultiplexedConnectionDecorator>? _onCreateConnection;
+
+    /// <summary>Constructs a <see cref="TestMultiplexedClientTransportDecorator" />.</summary>
+    /// <param name="decoratee">The decorated client transport.</param>
+    /// <param name="operationsOptions">The transport operations options.</param>
+    public TestMultiplexedClientTransportDecorator(
+        IMultiplexedClientTransport decoratee,
+        TransportOperationsOptions<MultiplexedTransportOperations>? operationsOptions = null)
+    {
+        _decoratee = decoratee;
+        ConnectionOperationsOptions = operationsOptions ?? new();
+    }
 
     /// <inheritdoc/>
     public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
@@ -71,19 +83,14 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
             _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
             ConnectionOperationsOptions);
         _lastConnection = connection;
+        _onCreateConnection?.Invoke(connection);
         return connection;
     }
 
-    /// <summary>Constructs a <see cref="TestMultiplexedClientTransportDecorator" />.</summary>
-    /// <param name="decoratee">The decorated client transport.</param>
-    /// <param name="operationsOptions">The transport operations options.</param>
-    public TestMultiplexedClientTransportDecorator(
-        IMultiplexedClientTransport decoratee,
-        TransportOperationsOptions<MultiplexedTransportOperations>? operationsOptions = null)
-    {
-        _decoratee = decoratee;
-        ConnectionOperationsOptions = operationsOptions ?? new();
-    }
+    /// <summary>Sets a callback to be notified when a connection is created.</summary>
+    /// <param name="onCreateConnection">The callback action.</param>
+    public void OnCreateConnection(Action<TestMultiplexedConnectionDecorator> onCreateConnection) =>
+        _onCreateConnection = onCreateConnection;
 }
 
 /// <summary>A <see cref="IMultiplexedServerTransport" /> decorator to create decorated <see
@@ -240,8 +247,11 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                 _lastStream = stream;
                 if (Operations.Fail.HasFlag(MultiplexedTransportOperations.AcceptStream))
                 {
-                    // Cleanup the stream if the operation is going to fail after completion.
-                    stream.Output.Complete();
+                    // Cleanup the stream if the operation is not configure to fail.
+                    if (stream.IsBidirectional)
+                    {
+                        stream.Output.Complete();
+                    }
                     stream.Input.Complete();
                 }
                 _onAcceptStream?.Invoke(_lastStream);
@@ -258,14 +268,17 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
             async ValueTask<IMultiplexedStream> () =>
             {
                 var stream = new TestMultiplexedStreamDecorator(
-                    await _decoratee.AcceptStreamAsync(cancellationToken),
+                    await _decoratee.CreateStreamAsync(bidirectional, cancellationToken),
                     StreamOperationsOptions);
                 _lastStream = stream;
                 if (Operations.Fail.HasFlag(MultiplexedTransportOperations.CreateStream))
                 {
-                    // Cleanup the stream if the operation is going to fail after completion.
+                    // Cleanup the stream if the operation is not configure to fail.
                     stream.Output.Complete();
-                    stream.Input.Complete();
+                    if (stream.IsBidirectional)
+                    {
+                        stream.Input.Complete();
+                    }
                 }
                 _onCreateStream?.Invoke(_lastStream);
                 return stream;
@@ -340,7 +353,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     public bool IsStarted => _decoratee.IsStarted;
 
     /// <inheritdoc/>
-    public PipeWriter Output => _output ?? throw new InvalidOperationException("No output for unidirectional stream.");
+    public PipeWriter Output => _output ?? throw new InvalidOperationException($"No output for unidirectional stream.");
 
     /// <inheritdoc/>
     public Task ReadsClosed => _decoratee.ReadsClosed;
