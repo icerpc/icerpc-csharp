@@ -183,7 +183,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
                         ConnectionOperationsOptions);
                     if (_listenerOperations.Fail.HasFlag(MultiplexedTransportOperations.Accept))
                     {
-                        // Dispose the connection if the operation is going to fail after completion.
+                        // Dispose the connection if the operation is configured to fail.
                         await connection.DisposeAsync();
                     }
                     return (LastAcceptedConnection, remoteNetworkAddress);
@@ -240,7 +240,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                 _lastStream = stream;
                 if (Operations.Fail.HasFlag(MultiplexedTransportOperations.AcceptStream))
                 {
-                    // Cleanup the stream if the operation is not configure to fail.
+                    // Cleanup the stream if the operation is configured to fail.
                     if (stream.IsBidirectional)
                     {
                         stream.Output.Complete();

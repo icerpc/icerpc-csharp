@@ -601,45 +601,6 @@ public sealed class ProtocolConnectionTests
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Dispose_aborts_connect(Protocol protocol)
-    {
-        // Arrange
-        var services = new ServiceCollection().AddProtocolTest(protocol);
-
-        // TODO: Consider adding test transport interfaces instead to allow tests to not depend on a specific transport
-        // API.
-        if (protocol == Protocol.Ice)
-        {
-            services.AddTestDuplexTransport(clientOperationsOptions:
-                new()
-                {
-                    Hold = DuplexTransportOperations.Connect
-                });
-        }
-        else
-        {
-            services.AddTestMultiplexedTransport(clientOperationsOptions:
-                new()
-                {
-                    Hold = MultiplexedTransportOperations.Connect
-                });
-        }
-
-        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
-        Task connectTask = sut.Client.ConnectAsync(default);
-
-        // Act
-        await sut.Client.DisposeAsync();
-
-        // Assert
-        Assert.That(
-            async () => await connectTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-    }
-
     /// <summary>Ensures that the sending of a request after shutdown fails with <see cref="IceRpcException" />.
     /// </summary>
     [Test, TestCaseSource(nameof(Protocols))]
@@ -930,42 +891,6 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await shutdownTask, Throws.Nothing);
-    }
-
-    /// <summary>Ensure that ShutdownAsync fails if ConnectAsync fails.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
-    {
-        // Arrange
-        var services = new ServiceCollection().AddProtocolTest(protocol);
-
-        // TODO: Consider adding test transport interfaces instead to allow tests to not depend on a specific transport
-        // API.
-        if (protocol == Protocol.Ice)
-        {
-            services.AddTestDuplexTransport(clientOperationsOptions:
-                new()
-                {
-                    Fail = DuplexTransportOperations.Connect
-                });
-        }
-        else
-        {
-            services.AddTestMultiplexedTransport(clientOperationsOptions:
-                new()
-                {
-                    Fail = MultiplexedTransportOperations.Connect
-                });
-        }
-
-        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
-        Task connectTask = sut.Client.ConnectAsync(default);
-
-        // Act/Assert
-        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
-        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Ensure that ShutdownAsync fails when ConnectAsync is in progress.</summary>

@@ -84,6 +84,32 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
+    [Test]
+    public async Task Dispose_aborts_connect()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport(clientOperationsOptions:
+                new()
+                {
+                    Hold = MultiplexedTransportOperations.Connect
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        Task connectTask = sut.Client.ConnectAsync(default);
+
+        // Act
+        await sut.Client.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => await connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+    }
+
     /// <summary>Verifies that disposing a server connection aborts the incoming request underlying stream.
     /// </summary>
     [Test]
@@ -1243,6 +1269,29 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
+    }
+
+    /// <summary>Ensure that ShutdownAsync fails if ConnectAsync fails.</summary>
+    [Test]
+    public async Task Shutdown_fails_if_connect_fails()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport(clientOperationsOptions:
+                new()
+                {
+                    Fail = MultiplexedTransportOperations.Connect
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        Task connectTask = sut.Client.ConnectAsync(default);
+
+        // Act/Assert
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
+        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Verifies that a shutdown can be canceled when the server transport ShutdownAsync is hung.</summary>

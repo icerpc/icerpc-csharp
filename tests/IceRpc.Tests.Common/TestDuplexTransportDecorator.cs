@@ -177,7 +177,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
                         ConnectionOperationsOptions);
                     if (_listenerOperations.Fail.HasFlag(DuplexTransportOperations.Accept))
                     {
-                        // Dispose the connection if the operation is going to fail after completion.
+                        // Dispose the connection if the operation is configured to fail.
                         connection.Dispose();
                     }
                     return (LastAcceptedConnection, remoteNetworkAddress);

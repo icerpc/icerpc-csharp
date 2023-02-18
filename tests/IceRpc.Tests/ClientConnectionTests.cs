@@ -285,18 +285,11 @@ public class ClientConnectionTests
         await using ServiceProvider provider =
             new ServiceCollection()
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
-                .AddTestDuplexTransport(serverOperationsOptions: new() { Hold = DuplexTransportOperations.Connect })
+                .AddTestDuplexTransport(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Connect })
                 .BuildServiceProvider(validateScopes: true);
 
-        Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
-        var listenerOperations = provider.GetRequiredService<TestDuplexServerTransportDecorator>().ListenerOperations;
-
-        server.Listen();
-
-        Task acceptCalledTask = listenerOperations.GetCalledTask(DuplexTransportOperations.Accept);
         Task connectTask = connection.ConnectAsync();
-        await acceptCalledTask;
 
         // Act
         await connection.DisposeAsync();
