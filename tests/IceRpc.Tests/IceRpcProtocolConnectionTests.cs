@@ -679,7 +679,19 @@ public sealed class IceRpcProtocolConnectionTests
                 break;
             case MultiplexedTransportOperations.StreamWrite:
                 clientConnection.StreamOperationsOptions = new() { Hold = holdOperation };
-                clientConnection.OnCreateStream(stream => waitTask = stream.Operations.GetCalledTask(holdOperation));
+                // Wait for the stream creation and the stream write call.
+                var tcs = new TaskCompletionSource();
+                clientConnection.OnCreateStream(stream =>
+                    {
+                        Task writeCalledTask = stream.Operations.GetCalledTask(holdOperation);
+                        Task.Run(
+                            async () =>
+                            {
+                                await writeCalledTask;
+                                tcs.SetResult();
+                            });
+                    });
+                waitTask = tcs.Task;
                 break;
         }
 
