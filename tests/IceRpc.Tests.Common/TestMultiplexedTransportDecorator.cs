@@ -353,7 +353,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     public bool IsStarted => _decoratee.IsStarted;
 
     /// <inheritdoc/>
-    public PipeWriter Output => _output ?? throw new InvalidOperationException($"No output for unidirectional stream.");
+    public PipeWriter Output => _output ?? throw new InvalidOperationException("No output for unidirectional stream.");
 
     /// <inheritdoc/>
     public Task ReadsClosed => _decoratee.ReadsClosed;

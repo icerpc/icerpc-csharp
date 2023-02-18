@@ -606,12 +606,15 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var services = new ServiceCollection().AddProtocolTest(protocol);
+
+        // TODO: Consider adding test transport interfaces instead to allow tests to not depend on a specific transport
+        // API.
         if (protocol == Protocol.Ice)
         {
             services.AddTestDuplexTransport(clientOperationsOptions:
                 new()
                 {
-                    Fail = DuplexTransportOperations.Connect
+                    Hold = DuplexTransportOperations.Connect
                 });
         }
         else
@@ -619,7 +622,7 @@ public sealed class ProtocolConnectionTests
             services.AddTestMultiplexedTransport(clientOperationsOptions:
                 new()
                 {
-                    Fail = MultiplexedTransportOperations.Connect
+                    Hold = MultiplexedTransportOperations.Connect
                 });
         }
 
@@ -935,6 +938,9 @@ public sealed class ProtocolConnectionTests
     {
         // Arrange
         var services = new ServiceCollection().AddProtocolTest(protocol);
+
+        // TODO: Consider adding test transport interfaces instead to allow tests to not depend on a specific transport
+        // API.
         if (protocol == Protocol.Ice)
         {
             services.AddTestDuplexTransport(clientOperationsOptions:

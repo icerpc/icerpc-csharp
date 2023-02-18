@@ -311,16 +311,17 @@ public class ServerTests
             serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 
+        // Wait for accept to be called to configure the failure in order to trigger the failure after the connection
+        // is accepted by the decorated transport.
         Task acceptCalledTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
             MultiplexedTransportOperations.Accept);
+        var serverAddress = server.Listen();
+        await acceptCalledTask;
+        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 
         await using var clientConnection = new ClientConnection(
-            server.Listen(),
+            serverAddress,
             multiplexedClientTransport: multiplexedClientTransport);
-
-        await acceptCalledTask;
-
-        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 
         // Act/Assert
 
@@ -351,21 +352,23 @@ public class ServerTests
             serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 
+        // Wait for accept to be called to configure the failure in order to trigger the failure after the connection
+        // is accepted by the decorated transport.
         Task acceptCalledTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
             MultiplexedTransportOperations.Accept);
+        var serverAddress = server.Listen();
+        await acceptCalledTask;
+        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 
         await using var clientConnection = new ClientConnection(
-            server.Listen(),
+            serverAddress,
             multiplexedClientTransport: multiplexedClientTransport);
-
-        await acceptCalledTask;
-
-        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 
         // Act/Assert
 
         // Since the test transport accepts the connection and immediately disposes it before throwing the failure
         // exception, the connection establishment failing with ConnectionAborted is expected here.
+
         Assert.That(
             () => clientConnection.ConnectAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
