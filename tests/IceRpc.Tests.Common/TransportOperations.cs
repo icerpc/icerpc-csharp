@@ -61,33 +61,23 @@ public class TransportOperations<T> where T : struct, Enum
     }
 
     private readonly Dictionary<T, TaskCompletionSource> _calledOperationsTcsMap = new();
+    private readonly Dictionary<T, TaskCompletionSource> _completedOperationsTcsMap = new();
     private T _holdOperations;
     private readonly Dictionary<T, TaskCompletionSource> _holdOperationsTcsMap = new();
 
-    /// <summary>Returns a task which can be awaited to wait for the given operation to be called. If the operation has
-    /// already been called, the returned task is a completed task.</summary>
-    public Task CalledTask(T operation) => _calledOperationsTcsMap[operation].Task;
+    /// <summary>Gets a task which can be awaited to wait for the given operation to be called. The task must be
+    /// obtained before the operation is called. It can't be obtained again until the operation is called.</summary>
+    /// <param name="operation">The operation for which the task will complete when the operation is called.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the task has already been returned and the operation has
+    /// not been called yet. The caller should only obtain a new task after the operation has been called.</exception>
+    public Task GetCalledTask(T operation) => TransportOperations<T>.GetTask(operation, _calledOperationsTcsMap);
 
-    /// <summary>Returns a task which can be awaited to wait for the given operation to be called. The returned task is
-    /// never completed. It will complete once the operation is called.</summary>
-    public Task NewCalledTask(T operation)
-    {
-        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _calledOperationsTcsMap[operation] = tcs;
-        return tcs.Task;
-    }
-
-    internal TransportOperations(T holdOperations, T failOperations, Exception? failureException = null)
-    {
-        Hold = holdOperations;
-        Fail = failOperations;
-        FailureException = failureException ?? new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
-
-        foreach (T operation in Enum.GetValues(typeof(T)))
-        {
-            _calledOperationsTcsMap[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        }
-    }
+    /// <summary>Gets a task which can be awaited to wait for the given operation to complete. The task must be
+    /// obtained before the operation is called. It can't be obtained again until the operation is completed.</summary>
+    /// <param name="operation">The operation for which the task will complete when the operation completes.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the task has already been returned and the operation has
+    /// not been called yet. The caller should only obtain a new task after the operation has been called.</exception>
+    public Task GetCompletedTask(T operation) => TransportOperations<T>.GetTask(operation, _completedOperationsTcsMap);
 
     internal TransportOperations(TransportOperationsOptions<T> options)
     {
@@ -96,11 +86,80 @@ public class TransportOperations<T> where T : struct, Enum
         FailureException =
             options.FailureException ??
             new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
+    }
 
-        foreach (T operation in Enum.GetValues(typeof(T)))
+    internal async Task CallAsync(T operation, Func<Task> callAsyncFunc, CancellationToken cancellationToken)
+    {
+        await CheckAsync(operation, cancellationToken);
+        try
         {
-            _calledOperationsTcsMap[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            await callAsyncFunc();
+            // Check again hold/failure in case the configuration was changed after the completion of the operation.
+            await CheckAsync(operation, cancellationToken);
         }
+        finally
+        {
+            Completed(operation);
+        }
+    }
+
+    internal async Task<TResult> CallAsync<TResult>(
+        T operation,
+        Func<Task<TResult>> callAsyncFunc,
+        CancellationToken cancellationToken)
+    {
+        await CheckAsync(operation, cancellationToken);
+        try
+        {
+            TResult result = await callAsyncFunc();
+            // Check again hold/failure in case the configuration was changed after the completion of the operation.
+            await CheckAsync(operation, cancellationToken);
+            return result;
+        }
+        finally
+        {
+            Completed(operation);
+        }
+    }
+
+    internal async ValueTask CallAsync(
+        T operation,
+        Func<ValueTask> callAsyncFunc,
+        CancellationToken cancellationToken) =>
+        await CallAsync(operation, () => callAsyncFunc().AsTask(), cancellationToken);
+
+    internal async ValueTask<TResult> CallAsync<TResult>(
+        T operation,
+        Func<ValueTask<TResult>> callAsyncFunc,
+        CancellationToken cancellationToken) =>
+        await CallAsync(operation, () => callAsyncFunc().AsTask(), cancellationToken);
+
+    internal void CallDispose(T disposeOperation, IDisposable disposable)
+    {
+        CheckAsync(disposeOperation, CancellationToken.None).Wait();
+        try
+        {
+            disposable.Dispose();
+        }
+        finally
+        {
+            Completed(disposeOperation);
+        }
+        Complete();
+    }
+
+    internal async ValueTask CallDisposeAsync(T disposeOperation, IAsyncDisposable disposable)
+    {
+        CheckAsync(disposeOperation, CancellationToken.None).Wait();
+        try
+        {
+            await disposable.DisposeAsync();
+        }
+        finally
+        {
+            Completed(disposeOperation);
+        }
+        Complete();
     }
 
     /// <summary>Checks if the operation should fail and if it should be held. If the operation is configured to fail,
@@ -111,12 +170,31 @@ public class TransportOperations<T> where T : struct, Enum
         {
             throw FailureException;
         }
+        // Get the hold task completion source before notifying the test that the operation was called. If the test
+        // updates the hold configure after the notification, we'll still use the hold configuration setup before the
+        // operation is called.
+        TaskCompletionSource tcs = _holdOperationsTcsMap[operation];
         Called(operation);
-        return _holdOperationsTcsMap[operation].Task.WaitAsync(cancellationToken);
+        return tcs.Task.WaitAsync(cancellationToken);
     }
 
     /// <summary>Completes the called task for the given operation.</summary>
-    internal void Called(T operation) => _calledOperationsTcsMap[operation].TrySetResult();
+    internal void Called(T operation)
+    {
+        if (_calledOperationsTcsMap.TryGetValue(operation, out TaskCompletionSource? tcs))
+        {
+            tcs.TrySetResult();
+        }
+    }
+
+    /// <summary>Completes the completed task for the given operation.</summary>
+    internal void Completed(T operation)
+    {
+        if (_completedOperationsTcsMap.TryGetValue(operation, out TaskCompletionSource? tcs))
+        {
+            tcs.TrySetResult();
+        }
+    }
 
     internal void Complete()
     {
@@ -126,7 +204,28 @@ public class TransportOperations<T> where T : struct, Enum
         }
         foreach ((T operation, TaskCompletionSource tcs) in _calledOperationsTcsMap)
         {
-            tcs.TrySetResult();
+            tcs.TrySetException(new Exception($"The operation {operation} was not called."));
         }
+        foreach ((T operation, TaskCompletionSource tcs) in _completedOperationsTcsMap)
+        {
+            tcs.TrySetException(new Exception($"The operation {operation} was not called."));
+        }
+    }
+
+    private static Task GetTask(T operation, Dictionary<T, TaskCompletionSource> map)
+    {
+        if (map.TryGetValue(operation, out TaskCompletionSource? tcs) && !tcs.Task.IsCompleted)
+        {
+            throw new InvalidOperationException(
+                $"Can't get twice a completed task for {operation} if the previous task is not completed.");
+        }
+        else
+        {
+            map.Remove(operation);
+        }
+
+        tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        map.Add(operation, tcs);
+        return tcs.Task;
     }
 }

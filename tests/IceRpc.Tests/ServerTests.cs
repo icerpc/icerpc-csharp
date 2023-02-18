@@ -235,6 +235,7 @@ public class ServerTests
 
         await clientConnection1.ConnectAsync();
         var testConnection = testDuplexServerTransport.LastAcceptedConnection;
+        Task disposeCalledTask = testConnection.Operations.GetCalledTask(DuplexTransportOperations.Dispose);
 
         // Act/Assert
         Assert.That(
@@ -244,7 +245,7 @@ public class ServerTests
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
         Assert.That(() => clientConnection1.ShutdownAsync(), Throws.Nothing);
-        await testConnection.Operations.CalledTask(DuplexTransportOperations.Dispose);
+        await disposeCalledTask;
         // Add a small delay to ensure the sever decremented the connection count after disposing the connection.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(() => clientConnection3.ConnectAsync(), Throws.Nothing);
@@ -278,6 +279,7 @@ public class ServerTests
 
         TestMultiplexedConnectionDecorator serverConnection = multiplexedServerTransport.LastAcceptedConnection!;
         serverConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
+        Task disposeCalledTask = serverConnection.Operations.GetCalledTask(MultiplexedTransportOperations.Dispose);
 
         // Shutdown the client connection to trigger the background server connection disposal.
         await clientConnection.ShutdownAsync();
@@ -286,7 +288,7 @@ public class ServerTests
         ValueTask disposeTask = server.DisposeAsync();
 
         // Assert
-        await serverConnection.Operations.CalledTask(MultiplexedTransportOperations.Dispose);
+        await disposeCalledTask;
         using var cts = new CancellationTokenSource(100);
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
         serverConnection.Operations.Hold = MultiplexedTransportOperations.None; // Release dispose
@@ -309,11 +311,14 @@ public class ServerTests
             serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 
+        Task acceptCalledTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
+            MultiplexedTransportOperations.Accept);
+
         await using var clientConnection = new ClientConnection(
             server.Listen(),
             multiplexedClientTransport: multiplexedClientTransport);
 
-        await multiplexedServerTransport.ListenerOperations.CalledTask(MultiplexedTransportOperations.Accept);
+        await acceptCalledTask;
 
         multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 
@@ -346,11 +351,14 @@ public class ServerTests
             serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 
+        Task acceptCalledTask = multiplexedServerTransport.ListenerOperations.GetCalledTask(
+            MultiplexedTransportOperations.Accept);
+
         await using var clientConnection = new ClientConnection(
             server.Listen(),
             multiplexedClientTransport: multiplexedClientTransport);
 
-        await multiplexedServerTransport.ListenerOperations.CalledTask(MultiplexedTransportOperations.Accept);
+        await acceptCalledTask;
 
         multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 

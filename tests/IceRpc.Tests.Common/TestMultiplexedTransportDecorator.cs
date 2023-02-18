@@ -170,34 +170,28 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         private TestMultiplexedConnectionDecorator? _lastAcceptedConnection;
         private readonly TransportOperations<MultiplexedTransportOperations> _listenerOperations;
 
-        public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
-            CancellationToken cancellationToken)
-        {
-            await _listenerOperations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
+        public Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken) =>
+            _listenerOperations.CallAsync(
+                MultiplexedTransportOperations.Accept,
+                async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> () =>
+                {
+                    (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
+                        await _decoratee.AcceptAsync(cancellationToken);
+                    LastAcceptedConnection = new TestMultiplexedConnectionDecorator(
+                        connection,
+                        ConnectionOperationsOptions);
+                    if (_listenerOperations.Fail.HasFlag(MultiplexedTransportOperations.Accept))
+                    {
+                        // Dispose the connection if the operation is going to fail after completion.
+                        await connection.DisposeAsync();
+                    }
+                    return (LastAcceptedConnection, remoteNetworkAddress);
+                },
+                cancellationToken);
 
-            (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
-                await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-
-            try
-            {
-                await _listenerOperations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
-            }
-            catch
-            {
-                await connection.DisposeAsync();
-                throw;
-            }
-
-            LastAcceptedConnection = new TestMultiplexedConnectionDecorator(connection, ConnectionOperationsOptions);
-            return (LastAcceptedConnection, remoteNetworkAddress);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _listenerOperations.CheckAsync(MultiplexedTransportOperations.Dispose, CancellationToken.None);
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _listenerOperations.Complete();
-        }
+        public ValueTask DisposeAsync() =>
+            _listenerOperations.CallDisposeAsync(MultiplexedTransportOperations.Dispose, _decoratee);
 
         internal TestMultiplexedListenerDecorator(
             IListener<IMultiplexedConnection> decoratee,
@@ -231,75 +225,86 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 
     private readonly IMultiplexedConnection _decoratee;
     private TestMultiplexedStreamDecorator? _lastStream;
-    private TaskCompletionSource<TestMultiplexedStreamDecorator>? _streamTcs = null;
+    private Action<TestMultiplexedStreamDecorator>? _onAcceptStream;
+    private Action<TestMultiplexedStreamDecorator>? _onCreateStream;
 
     /// <inheritdoc/>
-    public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(MultiplexedTransportOperations.AcceptStream, cancellationToken);
-
-        var stream = new TestMultiplexedStreamDecorator(
-            await _decoratee.AcceptStreamAsync(cancellationToken),
-            StreamOperationsOptions);
-        _lastStream = stream;
-        _streamTcs?.TrySetResult(_lastStream);
-
-        // Check again fail/hold condition in case the configuration was changed while AcceptStreamAsync was pending.
-        await Operations.CheckAsync(MultiplexedTransportOperations.AcceptStream, cancellationToken);
-
-        return stream;
-    }
+    public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            MultiplexedTransportOperations.AcceptStream,
+            async ValueTask<IMultiplexedStream> () =>
+            {
+                var stream = new TestMultiplexedStreamDecorator(
+                    await _decoratee.AcceptStreamAsync(cancellationToken),
+                    StreamOperationsOptions);
+                _lastStream = stream;
+                if (Operations.Fail.HasFlag(MultiplexedTransportOperations.AcceptStream))
+                {
+                    // Cleanup the stream if the operation is going to fail after completion.
+                    stream.Output.Complete();
+                    stream.Input.Complete();
+                }
+                _onAcceptStream?.Invoke(_lastStream);
+                return stream;
+            },
+            cancellationToken);
 
     /// <inheritdoc/>
-    public async ValueTask<IMultiplexedStream> CreateStreamAsync(
+    public ValueTask<IMultiplexedStream> CreateStreamAsync(
         bool bidirectional,
-        CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(MultiplexedTransportOperations.CreateStream, cancellationToken);
-
-        var stream = new TestMultiplexedStreamDecorator(
-            await _decoratee.CreateStreamAsync(bidirectional, cancellationToken),
-            StreamOperationsOptions);
-        _lastStream = stream;
-        _streamTcs?.TrySetResult(_lastStream);
-        return stream;
-    }
-
-    /// <inheritdoc/>
-    public async Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(MultiplexedTransportOperations.Close, cancellationToken);
-
-        await _decoratee.CloseAsync(closeError, cancellationToken);
-
-        // Release CreateStream and AcceptStream
-        Operations.Hold &= ~(MultiplexedTransportOperations.CreateStream | MultiplexedTransportOperations.AcceptStream);
-    }
+        CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            MultiplexedTransportOperations.CreateStream,
+            async ValueTask<IMultiplexedStream> () =>
+            {
+                var stream = new TestMultiplexedStreamDecorator(
+                    await _decoratee.AcceptStreamAsync(cancellationToken),
+                    StreamOperationsOptions);
+                _lastStream = stream;
+                if (Operations.Fail.HasFlag(MultiplexedTransportOperations.CreateStream))
+                {
+                    // Cleanup the stream if the operation is going to fail after completion.
+                    stream.Output.Complete();
+                    stream.Input.Complete();
+                }
+                _onCreateStream?.Invoke(_lastStream);
+                return stream;
+            },
+            cancellationToken);
 
     /// <inheritdoc/>
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(MultiplexedTransportOperations.Connect, cancellationToken);
-        return await _decoratee.ConnectAsync(cancellationToken);
-    }
+    public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            MultiplexedTransportOperations.Close,
+            async Task () =>
+            {
+                await _decoratee.CloseAsync(closeError, cancellationToken);
+
+                // Release CreateStream and AcceptStream
+                Operations.Hold &=
+                    ~(MultiplexedTransportOperations.CreateStream | MultiplexedTransportOperations.AcceptStream);
+            },
+            cancellationToken);
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
-    {
-        await Operations.CheckAsync(MultiplexedTransportOperations.Dispose, CancellationToken.None);
-        await _decoratee.DisposeAsync();
-        Operations.Complete();
-    }
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            MultiplexedTransportOperations.Connect,
+            () => _decoratee.ConnectAsync(cancellationToken),
+            cancellationToken);
 
-    /// <summary>Returns a task that will complete when a new stream is accepted or created.</summary>
-    public Task<TestMultiplexedStreamDecorator> GetNextStreamAsync()
-    {
-        if (_streamTcs is null || _streamTcs.Task.IsCompleted)
-        {
-            _streamTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        }
-        return _streamTcs.Task;
-    }
+    /// <inheritdoc/>
+    public ValueTask DisposeAsync() => Operations.CallDisposeAsync(MultiplexedTransportOperations.Dispose, _decoratee);
+
+    /// <summary>Sets a callback to be notified when a stream is accepted.</summary>
+    /// <param name="onAcceptStream">The callback action.</param>
+    public void OnAcceptStream(Action<TestMultiplexedStreamDecorator> onAcceptStream) =>
+        _onAcceptStream = onAcceptStream;
+
+    /// <summary>Sets a callback to be notified when a stream is created.</summary>
+    /// <param name="onCreateStream">The callback action.</param>
+    public void OnCreateStream(Action<TestMultiplexedStreamDecorator> onCreateStream) =>
+        _onCreateStream = onCreateStream;
 
     internal TestMultiplexedConnectionDecorator(
         IMultiplexedConnection decoratee,
@@ -379,51 +384,54 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
         _decoratee.Complete(exception);
     }
 
-    public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
-    {
-        await _operations.CheckAsync(MultiplexedTransportOperations.StreamWrite, cancellationToken);
-        return await _decoratee.FlushAsync(cancellationToken);
-    }
+    public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
+        _operations.CallAsync(
+            MultiplexedTransportOperations.StreamWrite,
+            () => _decoratee.FlushAsync(cancellationToken),
+            cancellationToken);
 
     public override Memory<byte> GetMemory(int sizeHint = 0) => _decoratee.GetMemory(sizeHint);
 
     public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
 
-    public override async ValueTask<FlushResult> WriteAsync(
+    public override ValueTask<FlushResult> WriteAsync(
         ReadOnlyMemory<byte> source,
-        CancellationToken cancellationToken)
-    {
-        _operations.Called(MultiplexedTransportOperations.StreamWrite);
-        await _operations.CheckAsync(MultiplexedTransportOperations.StreamWrite, cancellationToken);
-        return await _decoratee.WriteAsync(source, cancellationToken);
-    }
+        CancellationToken cancellationToken) =>
+        _operations.CallAsync(
+            MultiplexedTransportOperations.StreamWrite,
+            () => _decoratee.WriteAsync(source, cancellationToken),
+            cancellationToken);
 
-    public override async ValueTask<FlushResult> WriteAsync(
+    public override ValueTask<FlushResult> WriteAsync(
         ReadOnlySequence<byte> source,
         bool endStream,
-        CancellationToken cancellationToken)
-    {
-        _operations.Called(MultiplexedTransportOperations.StreamWrite);
-        await _operations.CheckAsync(MultiplexedTransportOperations.StreamWrite, cancellationToken);
-
-        if (_decoratee is ReadOnlySequencePipeWriter readonlySequenceWriter)
-        {
-            return await readonlySequenceWriter.WriteAsync(source, endStream, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            FlushResult flushResult = default;
-            foreach (ReadOnlyMemory<byte> buffer in source)
+        CancellationToken cancellationToken) =>
+        _operations.CallAsync(
+            MultiplexedTransportOperations.StreamWrite,
+            async ValueTask<FlushResult> () =>
             {
-                flushResult = await _decoratee.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-                if (flushResult.IsCompleted || flushResult.IsCanceled)
+                if (_decoratee is ReadOnlySequencePipeWriter readonlySequenceWriter)
                 {
-                    break;
+                    return await readonlySequenceWriter.WriteAsync(
+                        source,
+                        endStream,
+                        cancellationToken).ConfigureAwait(false);
                 }
-            }
-            return flushResult;
-        }
-    }
+                else
+                {
+                    FlushResult flushResult = default;
+                    foreach (ReadOnlyMemory<byte> buffer in source)
+                    {
+                        flushResult = await _decoratee.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+                        if (flushResult.IsCompleted || flushResult.IsCanceled)
+                        {
+                            break;
+                        }
+                    }
+                    return flushResult;
+                }
+            },
+            cancellationToken);
 
     internal TestPipeWriter(
         PipeWriter decoratee,
@@ -452,23 +460,13 @@ internal sealed class TestPipeReader : PipeReader
         _decoratee.Complete(exception);
     }
 
-    public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
-    {
-        await _operations.CheckAsync(MultiplexedTransportOperations.StreamRead, cancellationToken);
+    public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken) =>
+        _operations.CallAsync(
+            MultiplexedTransportOperations.StreamRead,
+            () => _decoratee.ReadAsync(cancellationToken),
+            cancellationToken);
 
-        ReadResult result = await _decoratee.ReadAsync(cancellationToken);
-
-        // Check again fail/hold condition in case the configuration was changed while ReadAsync was pending.
-        await _operations.CheckAsync(MultiplexedTransportOperations.StreamRead, cancellationToken);
-
-        return result;
-    }
-
-    public override bool TryRead(out ReadResult result)
-    {
-        result = new ReadResult();
-        return false;
-    }
+    public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
 
     internal TestPipeReader(
         PipeReader decoratee,

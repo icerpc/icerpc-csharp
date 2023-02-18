@@ -673,28 +673,22 @@ public sealed class IceRpcProtocolConnectionTests
         {
             case MultiplexedTransportOperations.AcceptStream:
                 serverConnection.Operations.Hold = holdOperation;
-                waitTask = serverConnection.Operations.NewCalledTask(holdOperation);
+                waitTask = serverConnection.Operations.GetCalledTask(holdOperation);
                 break;
             case MultiplexedTransportOperations.CreateStream:
                 clientConnection.Operations.Hold = holdOperation;
                 break;
             case MultiplexedTransportOperations.StreamWrite:
                 clientConnection.StreamOperationsOptions = new() { Hold = holdOperation };
-                waitTask = clientConnection.GetNextStreamAsync();
+                clientConnection.OnCreateStream(stream => waitTask = stream.Operations.GetCalledTask(holdOperation));
                 break;
         }
 
         using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { IsOneway = isOneway };
         var invokeTask2 = sut.Client.InvokeAsync(request2);
 
-        // Either wait for accept stream to be called of the invocation stream to be created.
+        // Either wait for accept stream or stream write to be called before calling shutdown.
         await waitTask;
-
-        if (holdOperation == MultiplexedTransportOperations.StreamWrite)
-        {
-            // Wait for the WriteAsync call to be initiated before to shutdown the server connection.
-            await clientConnection.LastStream.Operations.CalledTask(holdOperation);
-        }
 
         // Act
         Task shutdownTask = sut.Server.ShutdownAsync();
