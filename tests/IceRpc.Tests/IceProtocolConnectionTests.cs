@@ -226,10 +226,10 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestMultiplexedTransport(clientOperationsOptions:
+            .AddTestDuplexTransport(clientOperationsOptions:
                 new()
                 {
-                    Hold = MultiplexedTransportOperations.Connect
+                    Hold = DuplexTransportOperations.Connect
                 })
             .BuildServiceProvider(validateScopes: true);
 
