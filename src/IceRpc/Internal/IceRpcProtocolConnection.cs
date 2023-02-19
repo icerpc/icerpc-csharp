@@ -986,14 +986,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             async Task CancelDispatchOnWritesClosedAsync()
             {
-                try
-                {
-                    await stream.WritesClosed.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignored.
-                }
+                await stream.WritesClosed.ConfigureAwait(false);
                 dispatchCts.Cancel();
             }
         }
@@ -1099,7 +1092,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             if (cancelDispatchOnWritesClosedTask is not null)
             {
-                dispatchCts.Cancel();
                 await cancelDispatchOnWritesClosedTask.ConfigureAwait(false);
             }
 
