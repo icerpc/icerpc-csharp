@@ -174,15 +174,18 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (initializeBody is null)
                     {
-                        throw new NotSupportedException(
-                            $"Received initialize frame with unsupported Slic version '{version}'.");
+                        throw new IceRpcException(
+                            IceRpcError.ConnectionAborted,
+                            $"The connection was aborted because the peer's Slic version '{version}' is not supported.");
                     }
 
                     // Check the application protocol and set the parameters.
                     string protocolName = initializeBody.Value.ApplicationProtocolName;
                     if (!Protocol.TryParse(protocolName, out Protocol? protocol) || protocol != Protocol.IceRpc)
                     {
-                        throw new NotSupportedException($"The application protocol '{protocolName}' is not supported.");
+                        throw new IceRpcException(
+                            IceRpcError.ConnectionAborted,
+                            $"The connection was aborted because the peer's application protocol '{protocolName}' is not supported.");
                     }
 
                     DecodeParameters(initializeBody.Value.Parameters);
