@@ -237,7 +237,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 
     /// <inheritdoc/>
     public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
-            Operations.CallAsync(
+        Operations.CallAsync(
             MultiplexedTransportOperations.AcceptStream,
             async ValueTask<IMultiplexedStream> () =>
             {

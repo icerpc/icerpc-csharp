@@ -259,7 +259,7 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(
                     IceRpcError.ConnectionAborted,
-                    "The connection was aborted by because of an unsupported Slic protocol feature.",
+                    "The connection was aborted because of an unsupported Slic protocol feature.",
                     exception);
             }
             catch (InvalidDataException exception)
@@ -1451,7 +1451,7 @@ internal class SlicConnection : IMultiplexedConnection
                 IceRpcError.ConnectionAborted,
                 "The connection was aborted by a Slic protocol error.",
                 exception);
-            Close(rpcException, "The connection was aborted by a Slic protocol error.", IceRpcError.ConnectionAborted);
+            Close(rpcException, rpcException.Message, IceRpcError.ConnectionAborted);
             throw rpcException;
         }
         catch (Exception exception)

@@ -77,8 +77,11 @@ public sealed class ProtocolConnectionTests
 
                 yield return new TestCaseData(
                     protocol,
-                    (IProtocolConnection connection) =>
-                        connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
+                    async (IProtocolConnection connection) =>
+                        {
+                            using var request = new OutgoingRequest(new ServiceAddress(protocol));
+                            await connection.InvokeAsync(request);
+                        },
                     true).SetName($"InvokeAsync {protocol} {{m}}");
 
                 yield return new TestCaseData(
