@@ -20,11 +20,6 @@ public static class SlicTransportServiceCollectionExtensions
                     new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
                     provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
                     provider.GetService<SslServerAuthenticationOptions>()))
-            .AddSingleton(provider =>
-                (SlicConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
-                    provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
-                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetService<SslClientAuthenticationOptions>()))
             .AddSingleton<IMultiplexedServerTransport>(provider =>
                 new SlicServerTransport(
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("server"),
@@ -35,7 +30,10 @@ public static class SlicTransportServiceCollectionExtensions
                     provider.GetRequiredService<IDuplexClientTransport>()))
             .AddSingleton(provider =>
                 new ClientServerMultiplexedConnection(
-                    provider.GetRequiredService<SlicConnection>(),
+                    provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
+                        provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
+                        provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+                        provider.GetService<SslClientAuthenticationOptions>()),
                     provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
 
         services.AddOptions<SlicTransportOptions>("client");
