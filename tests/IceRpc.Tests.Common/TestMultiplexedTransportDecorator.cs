@@ -41,12 +41,19 @@ public enum MultiplexedTransportOperations
     StreamWrite = 128,
 }
 
+/// <summary>A property bag used to configure a <see cref="TransportOperations{DuplexTransportOperations}" />.</summary>
+public record class MultiplexedTransportOperationsOptions : TransportOperationsOptions<MultiplexedTransportOperations>
+{
+    /// <summary>The stream read decorator.</summary>
+    public Func<PipeReader, PipeReader>? StreamInputDecorator { get; set; }
+}
+
 /// <summary>A <see cref="IMultiplexedClientTransport" /> decorator to create decorated <see
 /// cref="IMultiplexedConnection" /> client connections and to get to the last created connection.</summary>
 public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClientTransport
 {
     /// <summary>The operations options used to create client connections.</summary>
-    public TransportOperationsOptions<MultiplexedTransportOperations> ConnectionOperationsOptions { get; set; }
+    public MultiplexedTransportOperationsOptions ConnectionOperationsOptions { get; set; }
 
     /// <summary>The last created connection.</summary>
     public TestMultiplexedConnectionDecorator LastCreatedConnection =>
@@ -63,7 +70,7 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     /// <param name="operationsOptions">The transport operations options.</param>
     public TestMultiplexedClientTransportDecorator(
         IMultiplexedClientTransport decoratee,
-        TransportOperationsOptions<MultiplexedTransportOperations>? operationsOptions = null)
+        MultiplexedTransportOperationsOptions? operationsOptions = null)
     {
         _decoratee = decoratee;
         ConnectionOperationsOptions = operationsOptions ?? new();
@@ -93,7 +100,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 #pragma warning restore CA1001
 {
     /// <summary>The operations options used to create server connections.</summary>
-    public TransportOperationsOptions<MultiplexedTransportOperations> ConnectionOperationsOptions
+    public MultiplexedTransportOperationsOptions ConnectionOperationsOptions
     {
         get => _listener?.ConnectionOperationsOptions ?? _connectionOperationsOptions;
 
@@ -121,7 +128,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     /// cref="IListener{IMultiplexedConnection}" /> operations.</summary>
     public TransportOperations<MultiplexedTransportOperations> ListenerOperations { get; }
 
-    private TransportOperationsOptions<MultiplexedTransportOperations> _connectionOperationsOptions;
+    private MultiplexedTransportOperationsOptions _connectionOperationsOptions;
     private readonly IMultiplexedServerTransport _decoratee;
     private TestMultiplexedListenerDecorator? _listener;
 
@@ -130,7 +137,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     /// <param name="operationsOptions">The transport operations options.</param>
     public TestMultiplexedServerTransportDecorator(
         IMultiplexedServerTransport decoratee,
-        TransportOperationsOptions<MultiplexedTransportOperations>? operationsOptions = null)
+        MultiplexedTransportOperationsOptions? operationsOptions = null)
     {
         _decoratee = decoratee;
         _connectionOperationsOptions = operationsOptions ?? new();
@@ -158,7 +165,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
-        internal TransportOperationsOptions<MultiplexedTransportOperations> ConnectionOperationsOptions { get; set; }
+        internal MultiplexedTransportOperationsOptions ConnectionOperationsOptions { get; set; }
 
         internal TestMultiplexedConnectionDecorator LastAcceptedConnection
         {
@@ -196,7 +203,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         internal TestMultiplexedListenerDecorator(
             IListener<IMultiplexedConnection> decoratee,
             TransportOperations<MultiplexedTransportOperations> operations,
-            TransportOperationsOptions<MultiplexedTransportOperations> connectionOperationsOptions)
+            MultiplexedTransportOperationsOptions connectionOperationsOptions)
         {
             _decoratee = decoratee;
             ConnectionOperationsOptions = connectionOperationsOptions;
@@ -217,7 +224,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     }
 
     /// <summary>The operations options used to create streams.</summary>
-    public TransportOperationsOptions<MultiplexedTransportOperations> StreamOperationsOptions { get; set; }
+    public MultiplexedTransportOperationsOptions StreamOperationsOptions { get; set; }
 
     /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperations}" /> used by this connection
     /// operations.</summary>
@@ -230,7 +237,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 
     /// <inheritdoc/>
     public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken) =>
-        Operations.CallAsync(
+            Operations.CallAsync(
             MultiplexedTransportOperations.AcceptStream,
             async ValueTask<IMultiplexedStream> () =>
             {
@@ -314,7 +321,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 
     internal TestMultiplexedConnectionDecorator(
         IMultiplexedConnection decoratee,
-        TransportOperationsOptions<MultiplexedTransportOperations> operationsOptions)
+        MultiplexedTransportOperationsOptions operationsOptions)
     {
         _decoratee = decoratee;
         StreamOperationsOptions = operationsOptions;
@@ -360,7 +367,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 
     internal TestMultiplexedStreamDecorator(
         IMultiplexedStream decoratee,
-        TransportOperationsOptions<MultiplexedTransportOperations> operationsOptions)
+        MultiplexedTransportOperationsOptions operationsOptions)
     {
         _decoratee = decoratee;
         Operations = new(operationsOptions);
@@ -370,7 +377,19 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
         }
         if (IsRemote || IsBidirectional)
         {
-            _input = new TestPipeReader(decoratee.Input, Operations);
+            if (operationsOptions.StreamInputDecorator is null)
+            {
+                _input = new TestPipeReader(decoratee.Input, Operations);
+            }
+            else
+            {
+                // The decorator might not actually decorate the stream input so we provide the stream input to the
+                // test pipe reader to ensure it will be completed.
+                _input = new TestPipeReader(
+                    operationsOptions.StreamInputDecorator(decoratee.Input),
+                    Operations,
+                    decoratee.Input);
+            }
         }
     }
 }
@@ -452,6 +471,7 @@ internal sealed class TestPipeReader : PipeReader
 {
     private readonly PipeReader _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
+    private readonly PipeReader? _streamInput;
 
     public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
 
@@ -464,6 +484,7 @@ internal sealed class TestPipeReader : PipeReader
     {
         _operations.Hold &= ~MultiplexedTransportOperations.StreamRead;
         _decoratee.Complete(exception);
+        _streamInput?.Complete(exception);
     }
 
     public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken) =>
@@ -476,10 +497,12 @@ internal sealed class TestPipeReader : PipeReader
 
     internal TestPipeReader(
         PipeReader decoratee,
-        TransportOperations<MultiplexedTransportOperations> operations)
+        TransportOperations<MultiplexedTransportOperations> operations,
+        PipeReader? streamInput = null)
     {
         _decoratee = decoratee;
         _operations = operations;
+        _streamInput = streamInput;
     }
 }
 
@@ -490,8 +513,8 @@ public static class TestMultiplexedTransportServiceCollectionExtensions
     /// <summary>Installs the test multiplexed transport.</summary>
     public static IServiceCollection AddTestMultiplexedTransport(
         this IServiceCollection services,
-        TransportOperationsOptions<MultiplexedTransportOperations>? clientOperationsOptions = null,
-        TransportOperationsOptions<MultiplexedTransportOperations>? serverOperationsOptions = null) => services
+        MultiplexedTransportOperationsOptions? clientOperationsOptions = null,
+        MultiplexedTransportOperationsOptions? serverOperationsOptions = null) => services
             .AddColocTransport()
             .AddSingleton(provider =>
                 new TestMultiplexedClientTransportDecorator(

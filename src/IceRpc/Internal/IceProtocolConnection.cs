@@ -160,7 +160,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             catch (InvalidDataException exception)
             {
                 throw new IceRpcException(
-                    IceRpcError.ConnectionAborted,
+                    IceRpcError.IceRpcError,
                     "The connection was aborted by an ice protocol error.",
                     exception);
             }

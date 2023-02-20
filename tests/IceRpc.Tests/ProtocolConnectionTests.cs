@@ -614,10 +614,11 @@ public sealed class ProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         Task shutdownTask = sut.Client.ShutdownAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act/Assert
         Assert.That(
-            async () => await sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
+            async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationRefused));
     }
 

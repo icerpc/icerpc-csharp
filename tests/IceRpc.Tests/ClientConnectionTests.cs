@@ -226,10 +226,11 @@ public class ClientConnectionTests
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
         server.Listen();
+        using var request = new OutgoingRequest(serviceAddress);
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress), default),
+            async () => await connection.InvokeAsync(request, default),
             Throws.Nothing);
     }
 
@@ -246,10 +247,11 @@ public class ClientConnectionTests
     {
         // Arrange
         await using var connection = new ClientConnection(serverAddress);
+        using var request = new OutgoingRequest(serviceAddress);
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
+            async () => await connection.InvokeAsync(request),
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -270,10 +272,11 @@ public class ClientConnectionTests
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
 
         server.Listen();
+        using var request = new OutgoingRequest(serviceAddress);
 
         // Assert
         Assert.That(
-            async () => await connection.InvokeAsync(new OutgoingRequest(serviceAddress)),
+            async () => await connection.InvokeAsync(request),
             Throws.TypeOf<InvalidOperationException>());
     }
 
