@@ -118,16 +118,16 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
-    [TestCase(false, false, DuplexTransportOperation.Connect)]
-    [TestCase(false, false, DuplexTransportOperation.Read)]
-    [TestCase(false, true, DuplexTransportOperation.Connect)]
-    [TestCase(true, false, DuplexTransportOperation.Connect)]
-    [TestCase(true, false, DuplexTransportOperation.Write)]
-    [TestCase(true, true, DuplexTransportOperation.Connect)]
+    [TestCase(false, false, DuplexTransportOperations.Connect)]
+    [TestCase(false, false, DuplexTransportOperations.Read)]
+    [TestCase(false, true, DuplexTransportOperations.Connect)]
+    [TestCase(true, false, DuplexTransportOperations.Connect)]
+    [TestCase(true, false, DuplexTransportOperations.Write)]
+    [TestCase(true, true, DuplexTransportOperations.Connect)]
     public async Task Connect_exception_handling_on_transport_failure(
         bool serverConnection,
         bool authenticationException,
-        DuplexTransportOperation operation)
+        DuplexTransportOperations operation)
     {
         // Arrange
         Exception exception = authenticationException ?
@@ -137,10 +137,16 @@ public sealed class IceProtocolConnectionTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransport(
-                serverFailOperation: serverConnection ? operation : DuplexTransportOperation.None,
-                serverFailureException: exception,
-                clientFailOperation: serverConnection ? DuplexTransportOperation.None : operation,
-                clientFailureException: exception)
+                clientOperationsOptions: new TransportOperationsOptions<DuplexTransportOperations>
+                    {
+                        Fail = serverConnection ? DuplexTransportOperations.None : operation,
+                        FailureException = exception
+                    },
+                serverOperationsOptions: new TransportOperationsOptions<DuplexTransportOperations>
+                    {
+                        Fail = serverConnection ? operation : DuplexTransportOperations.None,
+                        FailureException = exception
+                    })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -169,18 +175,18 @@ public sealed class IceProtocolConnectionTests
         Assert.That(caughtException, Is.EqualTo(exception));
     }
 
-    [TestCase(false, DuplexTransportOperation.Connect)]
-    [TestCase(false, DuplexTransportOperation.Read)]
-    [TestCase(true, DuplexTransportOperation.Connect)]
-    [TestCase(true, DuplexTransportOperation.Write)]
-    public async Task Connect_cancellation_on_transport_hang(bool serverConnection, DuplexTransportOperation operation)
+    [TestCase(false, DuplexTransportOperations.Connect)]
+    [TestCase(false, DuplexTransportOperations.Read)]
+    [TestCase(true, DuplexTransportOperations.Connect)]
+    [TestCase(true, DuplexTransportOperations.Write)]
+    public async Task Connect_cancellation_on_transport_hang(bool serverConnection, DuplexTransportOperations operation)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransport(
-                serverHoldOperation: serverConnection ? operation : DuplexTransportOperation.None,
-                clientHoldOperation: serverConnection ? DuplexTransportOperation.None : operation)
+                serverOperationsOptions: new() { Hold = serverConnection ? operation : DuplexTransportOperations.None },
+                clientOperationsOptions: new() { Hold = serverConnection ? DuplexTransportOperations.None : operation })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -226,7 +232,7 @@ public sealed class IceProtocolConnectionTests
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .AddTestDuplexTransport(clientFailureException: failureException)
+            .AddTestDuplexTransport(clientOperationsOptions: new() { FailureException = failureException })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
@@ -239,7 +245,7 @@ public sealed class IceProtocolConnectionTests
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         // Wait for the dispatch to start, to ensure the transport read failure happens after we make the invocation.
         await dispatcher.DispatchStart;
-        clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperation.Read;
+        clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperations.Read;
         dispatcher.ReleaseDispatch();
 
         // Assert
@@ -260,7 +266,7 @@ public sealed class IceProtocolConnectionTests
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransport(clientFailureException: failureException)
+            .AddTestDuplexTransport(clientOperationsOptions: new() { FailureException = failureException })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
@@ -268,7 +274,7 @@ public sealed class IceProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         _ = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-        clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperation.Write;
+        clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperations.Write;
 
         // Act
         var invokeTask = sut.Client.InvokeAsync(request);
@@ -294,7 +300,7 @@ public sealed class IceProtocolConnectionTests
         using var dispatcher = new TestDispatcher(holdDispatchCount: oneway ? 0 : 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .AddTestDuplexTransport(clientHoldOperation: DuplexTransportOperation.Write)
+            .AddTestDuplexTransport(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Write })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
@@ -311,7 +317,7 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
 
-        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperation.None;
+        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperations.None;
 
         if (oneway)
         {
@@ -389,7 +395,7 @@ public sealed class IceProtocolConnectionTests
 
         using var cts = new CancellationTokenSource();
         // Hold writes to ensure the invocation blocks writing the request.
-        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperation.Write;
+        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperations.Write;
 
         Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1, cts.Token);
         Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request1, default);
@@ -402,7 +408,7 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(invokeTask1.IsCompleted, Is.False);
-        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperation.None;
+        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperations.None;
         Assert.That(async () => await invokeTask1, Throws.TypeOf<OperationCanceledException>());
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask2, Throws.Nothing);

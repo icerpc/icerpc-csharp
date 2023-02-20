@@ -156,22 +156,22 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
-    [TestCase(false, false, MultiplexedTransportOperation.Connect)]
-    [TestCase(false, false, MultiplexedTransportOperation.CreateStream)]
-    [TestCase(false, false, MultiplexedTransportOperation.AcceptStream)]
-    [TestCase(false, false, MultiplexedTransportOperation.StreamRead)]
-    [TestCase(false, false, MultiplexedTransportOperation.StreamWrite)]
-    [TestCase(false, true, MultiplexedTransportOperation.Connect)]
-    [TestCase(true, false, MultiplexedTransportOperation.Connect)]
-    [TestCase(true, false, MultiplexedTransportOperation.CreateStream)]
-    [TestCase(true, false, MultiplexedTransportOperation.AcceptStream)]
-    [TestCase(true, false, MultiplexedTransportOperation.StreamRead)]
-    [TestCase(true, false, MultiplexedTransportOperation.StreamWrite)]
-    [TestCase(true, true, MultiplexedTransportOperation.Connect)]
+    [TestCase(false, false, MultiplexedTransportOperations.Connect)]
+    [TestCase(false, false, MultiplexedTransportOperations.CreateStream)]
+    [TestCase(false, false, MultiplexedTransportOperations.AcceptStream)]
+    [TestCase(false, false, MultiplexedTransportOperations.StreamRead)]
+    [TestCase(false, false, MultiplexedTransportOperations.StreamWrite)]
+    [TestCase(false, true, MultiplexedTransportOperations.Connect)]
+    [TestCase(true, false, MultiplexedTransportOperations.Connect)]
+    [TestCase(true, false, MultiplexedTransportOperations.CreateStream)]
+    [TestCase(true, false, MultiplexedTransportOperations.AcceptStream)]
+    [TestCase(true, false, MultiplexedTransportOperations.StreamRead)]
+    [TestCase(true, false, MultiplexedTransportOperations.StreamWrite)]
+    [TestCase(true, true, MultiplexedTransportOperations.Connect)]
     public async Task Connect_exception_handling_on_transport_failure(
         bool serverConnection,
         bool authenticationException,
-        MultiplexedTransportOperation operation)
+        MultiplexedTransportOperations operation)
     {
         // Arrange
         Exception exception = authenticationException ?
@@ -181,10 +181,16 @@ public sealed class IceRpcProtocolConnectionTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransport(
-                serverFailOperation: serverConnection ? operation : MultiplexedTransportOperation.None,
-                serverFailureException: exception,
-                clientFailOperation: serverConnection ? MultiplexedTransportOperation.None : operation,
-                clientFailureException: exception)
+                serverOperationsOptions: new()
+                    {
+                        Fail = serverConnection ? operation : MultiplexedTransportOperations.None,
+                        FailureException = exception
+                    },
+                clientOperationsOptions: new()
+                    {
+                        Fail = serverConnection ? MultiplexedTransportOperations.None : operation,
+                        FailureException = exception
+                    })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -213,26 +219,32 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(connectCall, Throws.Exception.EqualTo(exception));
     }
 
-    [TestCase(false, MultiplexedTransportOperation.Connect)]
-    [TestCase(false, MultiplexedTransportOperation.CreateStream)]
-    [TestCase(false, MultiplexedTransportOperation.AcceptStream)]
-    [TestCase(false, MultiplexedTransportOperation.StreamRead)]
-    [TestCase(false, MultiplexedTransportOperation.StreamWrite)]
-    [TestCase(true, MultiplexedTransportOperation.Connect)]
-    [TestCase(true, MultiplexedTransportOperation.CreateStream)]
-    [TestCase(true, MultiplexedTransportOperation.AcceptStream)]
-    [TestCase(true, MultiplexedTransportOperation.StreamRead)]
-    [TestCase(true, MultiplexedTransportOperation.StreamWrite)]
+    [TestCase(false, MultiplexedTransportOperations.Connect)]
+    [TestCase(false, MultiplexedTransportOperations.CreateStream)]
+    [TestCase(false, MultiplexedTransportOperations.AcceptStream)]
+    [TestCase(false, MultiplexedTransportOperations.StreamRead)]
+    [TestCase(false, MultiplexedTransportOperations.StreamWrite)]
+    [TestCase(true, MultiplexedTransportOperations.Connect)]
+    [TestCase(true, MultiplexedTransportOperations.CreateStream)]
+    [TestCase(true, MultiplexedTransportOperations.AcceptStream)]
+    [TestCase(true, MultiplexedTransportOperations.StreamRead)]
+    [TestCase(true, MultiplexedTransportOperations.StreamWrite)]
     public async Task Connect_cancellation_on_transport_hang(
         bool serverConnection,
-        MultiplexedTransportOperation operation)
+        MultiplexedTransportOperations operation)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransport(
-                serverHoldOperation: serverConnection ? operation : MultiplexedTransportOperation.None,
-                clientHoldOperation: serverConnection ? MultiplexedTransportOperation.None : operation)
+                serverOperationsOptions: new()
+                    {
+                        Hold = serverConnection ? operation : MultiplexedTransportOperations.None
+                    },
+                clientOperationsOptions: new()
+                    {
+                        Hold = serverConnection ? MultiplexedTransportOperations.None : operation
+                    })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -456,7 +468,7 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
         TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastCreatedConnection;
-        clientConnection.Operations.Hold = MultiplexedTransportOperation.CreateStream;
+        clientConnection.Operations.Hold = MultiplexedTransportOperations.CreateStream;
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
@@ -534,10 +546,10 @@ public sealed class IceRpcProtocolConnectionTests
             Is.EqualTo(exception));
     }
 
-    [TestCase(MultiplexedTransportOperation.CreateStream)]
-    [TestCase(MultiplexedTransportOperation.StreamWrite)]
-    [TestCase(MultiplexedTransportOperation.StreamRead)]
-    public async Task Invoke_exception_handling_on_transport_failure(MultiplexedTransportOperation operation)
+    [TestCase(MultiplexedTransportOperations.CreateStream)]
+    [TestCase(MultiplexedTransportOperations.StreamWrite)]
+    [TestCase(MultiplexedTransportOperations.StreamRead)]
+    public async Task Invoke_exception_handling_on_transport_failure(MultiplexedTransportOperations operation)
     {
         // Arrange
 
@@ -546,7 +558,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(clientFailureException: failureException)
+            .AddTestMultiplexedTransport()
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -555,10 +567,21 @@ public sealed class IceRpcProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        clientTransport.LastCreatedConnection.Operations.Fail = operation;
+        if (operation == MultiplexedTransportOperations.CreateStream)
+        {
+            clientTransport.LastCreatedConnection.Operations.Fail = operation;
+        }
+        else
+        {
+            clientTransport.LastCreatedConnection.StreamOperationsOptions = new()
+                {
+                    Fail = operation,
+                    FailureException = failureException
+                };
+        }
 
         // Act/Assert
-        if (operation == MultiplexedTransportOperation.CreateStream)
+        if (operation == MultiplexedTransportOperations.CreateStream)
         {
             Assert.That(
                 () => sut.Client.InvokeAsync(request),
@@ -572,10 +595,10 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    [TestCase(MultiplexedTransportOperation.CreateStream)]
-    [TestCase(MultiplexedTransportOperation.StreamWrite)]
-    [TestCase(MultiplexedTransportOperation.StreamRead)]
-    public async Task Invoke_cancellation_on_transport_hang(MultiplexedTransportOperation operation)
+    [TestCase(MultiplexedTransportOperations.CreateStream)]
+    [TestCase(MultiplexedTransportOperations.StreamWrite)]
+    [TestCase(MultiplexedTransportOperations.StreamRead)]
+    public async Task Invoke_cancellation_on_transport_hang(MultiplexedTransportOperations operation)
     {
         // Arrange
 
@@ -584,7 +607,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(clientFailureException: failureException)
+            .AddTestMultiplexedTransport(clientOperationsOptions: new() { FailureException = failureException })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -593,7 +616,14 @@ public sealed class IceRpcProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        clientTransport.LastCreatedConnection.Operations.Hold = operation;
+        if (operation == MultiplexedTransportOperations.CreateStream)
+        {
+            clientTransport.LastCreatedConnection.Operations.Hold = operation;
+        }
+        else
+        {
+            clientTransport.LastCreatedConnection.StreamOperationsOptions = new() { Hold = operation };
+        }
 
         using var invokeCts = new CancellationTokenSource(100);
 
@@ -605,14 +635,14 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(clientShutdownRequested.IsCompleted, Is.False);
     }
 
-    [TestCase(false, MultiplexedTransportOperation.CreateStream, IceRpcError.InvocationRefused)]
-    [TestCase(true, MultiplexedTransportOperation.CreateStream, IceRpcError.InvocationRefused)]
-    [TestCase(false, MultiplexedTransportOperation.AcceptStream, IceRpcError.InvocationCanceled)]
-    [TestCase(false, MultiplexedTransportOperation.StreamWrite, IceRpcError.InvocationCanceled)]
-    [TestCase(true, MultiplexedTransportOperation.StreamWrite, IceRpcError.InvocationCanceled)]
+    [TestCase(false, MultiplexedTransportOperations.CreateStream, IceRpcError.InvocationRefused)]
+    [TestCase(true, MultiplexedTransportOperations.CreateStream, IceRpcError.InvocationRefused)]
+    [TestCase(false, MultiplexedTransportOperations.AcceptStream, IceRpcError.InvocationCanceled)]
+    [TestCase(false, MultiplexedTransportOperations.StreamWrite, IceRpcError.InvocationCanceled)]
+    [TestCase(true, MultiplexedTransportOperations.StreamWrite, IceRpcError.InvocationCanceled)]
     public async Task Not_dispatched_request_gets_invocation_canceled_on_server_connection_shutdown(
         bool isOneway,
-        MultiplexedTransportOperation holdOperation,
+        MultiplexedTransportOperations holdOperation,
         IceRpcError error)
     {
         // Arrange
@@ -637,13 +667,14 @@ public sealed class IceRpcProtocolConnectionTests
         // Don't accept the next stream.
         switch (holdOperation)
         {
-            case MultiplexedTransportOperation.AcceptStream:
-            case MultiplexedTransportOperation.StreamRead:
+            case MultiplexedTransportOperations.AcceptStream:
                 serverTransport.LastAcceptedConnection.Operations.Hold = holdOperation;
                 break;
-            case MultiplexedTransportOperation.CreateStream:
-            case MultiplexedTransportOperation.StreamWrite:
+            case MultiplexedTransportOperations.CreateStream:
                 clientTransport.LastCreatedConnection.Operations.Hold = holdOperation;
+                break;
+            case MultiplexedTransportOperations.StreamWrite:
+                clientTransport.LastCreatedConnection.StreamOperationsOptions = new() { Hold = holdOperation };
                 break;
         }
 
@@ -1210,7 +1241,7 @@ public sealed class IceRpcProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         // Hold the remote control stream reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.LastStream.Operations.Hold = MultiplexedTransportOperation.StreamRead;
+        serverTransport.LastAcceptedConnection.LastStream.Operations.Hold = MultiplexedTransportOperations.StreamRead;
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));

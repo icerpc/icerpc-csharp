@@ -2,17 +2,31 @@
 
 namespace IceRpc.Tests.Common;
 
-/// <summary>A template class to configure the behavior of operations from transport interfaces.</summary>
-public sealed class TestTransportOperationHelper<T> where T : struct, Enum
+/// <summary>A property bag used to configure a <see cref="TransportOperations{T}" />.</summary>
+public record struct TransportOperationsOptions<T> where T: struct, Enum
 {
-    /// <summary>The transport operations configured to fail.</summary>
+    /// <summary>The operations configured to fail.</summary>
+    public T Fail { get; set; }
+
+    /// <summary>The exception raised by operations configured to fail.</summary>
+    public Exception? FailureException { get; set; }
+
+    /// <summary>The operations configured to block. An operation will unblock once it's configured to no longer
+    /// block.</summary>
+    public T Hold { get; set; }
+}
+
+/// <summary>A class to control the behavior of an operation from a transport interface.</summary>
+public class TransportOperations<T> where T : struct, Enum
+{
+    /// <summary>The operations configured to fail.</summary>
     public T Fail { get; set; }
 
     /// <summary>The exception raised by operations configured to fail.</summary>
     public Exception FailureException { get; set; }
 
-    /// <summary>The transport operations configured to block. An operation will unblock once it's configured to no
-    /// longer block.</summary>
+    /// <summary>The operations configured to block. An operation will unblock once it's configured to no longer
+    /// block.</summary>
     public T Hold
     {
         get => _holdOperations;
@@ -48,11 +62,25 @@ public sealed class TestTransportOperationHelper<T> where T : struct, Enum
     /// <summary>Returns a task which can be awaited to wait for the given operation to be called.</summary>
     public Task CalledTask(T operation) => _calledOperationsTcsMap[operation].Task;
 
-    internal TestTransportOperationHelper(T holdOperations, T failOperations, Exception? failureException = null)
+    internal TransportOperations(T holdOperations, T failOperations, Exception? failureException = null)
     {
         Hold = holdOperations;
         Fail = failOperations;
         FailureException = failureException ?? new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
+
+        foreach (T operation in Enum.GetValues(typeof(T)))
+        {
+            _calledOperationsTcsMap[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+    }
+
+    internal TransportOperations(TransportOperationsOptions<T> options)
+    {
+        Hold = options.Hold;
+        Fail = options.Fail;
+        FailureException =
+            options.FailureException ??
+            new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
 
         foreach (T operation in Enum.GetValues(typeof(T)))
         {

@@ -8,48 +8,54 @@ using System.Net.Security;
 
 namespace IceRpc.Tests.Common;
 
-/// <summary>This enumeration describes the multiplexed transport operations. It's used as a set of flags to specify an
-/// enumeration value for multiple operations.</summary>
+/// <summary>This enumeration describes the multiplexed transport operations.</summary>
 [Flags]
-public enum MultiplexedTransportOperation
+public enum MultiplexedTransportOperations
 {
     /// <summary>The no-operation enumerator value.</summary>
     None = 0,
+
     /// <summary>The <see cref="IListener{IMultiplexedConnection}.AcceptAsync" /> operation.</summary>
     Accept = 1,
+
     /// <summary>The <see cref="IMultiplexedConnection.AcceptStreamAsync" /> operation.</summary>
     AcceptStream = 2,
+
     /// <summary>The <see cref="IMultiplexedConnection.CreateStreamAsync" /> operation.</summary>
     CreateStream = 4,
+
     /// <summary>The <see cref="IMultiplexedConnection.ConnectAsync" /> operation.</summary>
     Connect = 8,
+
     /// <summary>The <see cref="IMultiplexedConnection.CloseAsync" /> operation.</summary>
     Close = 16,
+
     /// <summary>The <see cref="IAsyncDisposable.DisposeAsync" /> operation.</summary>
     Dispose = 32,
+
     /// <summary>The <see cref="PipeReader.ReadAsync" /> operation.</summary>
     StreamRead = 64,
+
     /// <summary>The <see cref="PipeWriter.WriteAsync" /> or <see cref="PipeWriter.FlushAsync" /> operation.</summary>
     StreamWrite = 128,
 }
 
 /// <summary>A <see cref="IMultiplexedClientTransport" /> decorator to create decorated <see
-/// cref="IMultiplexedConnection" /> client connections. It also provides access to the last created connection.
-/// </summary>
+/// cref="IMultiplexedConnection" /> client connections and to get to the last created connection.</summary>
 public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClientTransport
 {
+    /// <summary>The operations options used to create client connections.</summary>
+    public TransportOperationsOptions<MultiplexedTransportOperations> ConnectionOperationsOptions { get; set; }
+
     /// <summary>The last created connection.</summary>
     public TestMultiplexedConnectionDecorator LastCreatedConnection =>
         _lastConnection ?? throw new InvalidOperationException("Call CreateConnection first.");
 
-    private readonly IMultiplexedClientTransport _decoratee;
-    private readonly MultiplexedTransportOperation _failOperations;
-    private readonly Exception _failureException = new();
-    private readonly MultiplexedTransportOperation _holdOperations;
-    private TestMultiplexedConnectionDecorator? _lastConnection;
-
     /// <inheritdoc/>
     public string Name => _decoratee.Name;
+
+    private readonly IMultiplexedClientTransport _decoratee;
+    private TestMultiplexedConnectionDecorator? _lastConnection;
 
     /// <inheritdoc/>
     public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
@@ -62,40 +68,47 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     {
         var connection = new TestMultiplexedConnectionDecorator(
             _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
-            _holdOperations,
-            _failOperations,
-            _failureException);
+            ConnectionOperationsOptions);
         _lastConnection = connection;
         return connection;
     }
 
     /// <summary>Constructs a <see cref="TestMultiplexedClientTransportDecorator" />.</summary>
     /// <param name="decoratee">The decorated client transport.</param>
-    /// <param name="holdOperations">The operations to hold for connection created with this transport.</param>
-    /// <param name="failOperations">The operations that will fail for connections created with this transport.</param>
-    /// <param name="failureException">The exception to raise for operations configured to fail. If not specified, an
-    /// <see cref="IceRpcException" /> exception with the <see cref="IceRpcError.IceRpcError" /> error code is
-    /// used.</param>
+    /// <param name="operationsOptions">The transport operations options.</param>
     public TestMultiplexedClientTransportDecorator(
         IMultiplexedClientTransport decoratee,
-        MultiplexedTransportOperation holdOperations = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation failOperations = MultiplexedTransportOperation.None,
-        Exception? failureException = null)
+        TransportOperationsOptions<MultiplexedTransportOperations>? operationsOptions = null)
     {
         _decoratee = decoratee;
-        _holdOperations = holdOperations;
-        _failOperations = failOperations;
-        _failureException = failureException ?? new IceRpcException(IceRpcError.IceRpcError, "Test transport failure");
+        ConnectionOperationsOptions = operationsOptions ?? new();
     }
 }
 
 /// <summary>A <see cref="IMultiplexedServerTransport" /> decorator to create decorated <see
-/// cref="IMultiplexedConnection" /> server connections. It also provides access to the last accepted connection and
-/// allows to configure the behavior of the listener and the operations inherited by connections.</summary>
+/// cref="IMultiplexedConnection" /> server connections and to get the last accepted connection.</summary>
 #pragma warning disable CA1001 // _listener is disposed by Listen caller.
 public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTransport
 #pragma warning restore CA1001
 {
+    /// <summary>The operations options used to create server connections.</summary>
+    public TransportOperationsOptions<MultiplexedTransportOperations> ConnectionOperationsOptions
+    {
+        get => _listener?.ConnectionOperationsOptions ?? _connectionOperationsOptions;
+
+        set
+        {
+            if (_listener is null)
+            {
+                _connectionOperationsOptions = value;
+            }
+            else
+            {
+                _listener.ConnectionOperationsOptions = value;
+            }
+        }
+    }
+
     /// <summary>The last accepted connection.</summary>
     public TestMultiplexedConnectionDecorator LastAcceptedConnection =>
         _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
@@ -103,29 +116,24 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     /// <inheritdoc/>
     public string Name => _decoratee.Name;
 
-    /// <summary>The <see cref="TestTransportOperationHelper{MultiplexedTransportOperation}" /> used by the server
-    /// transport <see cref="IListener{IMultiplexedConnection}" /> operations and inherited by accepted
-    /// connections.</summary>
-    public TestTransportOperationHelper<MultiplexedTransportOperation> Operations { get; }
+    /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperations}" /> used by the <see
+    /// cref="IListener{IMultiplexedConnection}" /> operations.</summary>
+    public TransportOperations<MultiplexedTransportOperations> ListenerOperations { get; }
 
+    private TransportOperationsOptions<MultiplexedTransportOperations> _connectionOperationsOptions;
     private readonly IMultiplexedServerTransport _decoratee;
     private TestMultiplexedListenerDecorator? _listener;
 
     /// <summary>Constructs a <see cref="TestMultiplexedServerTransportDecorator" />.</summary>
     /// <param name="decoratee">The decorated server transport.</param>
-    /// <param name="holdOperations">The operations to hold for connection created with this transport.</param>
-    /// <param name="failOperations">The operations that will fail for connections created with this transport.</param>
-    /// <param name="failureException">The exception to raise for operations configured to fail. If not specified, an
-    /// <see cref="IceRpcException" /> exception with the <see cref="IceRpcError.IceRpcError" /> error code is
-    /// used.</param>
+    /// <param name="operationsOptions">The transport operations options.</param>
     public TestMultiplexedServerTransportDecorator(
         IMultiplexedServerTransport decoratee,
-        MultiplexedTransportOperation holdOperations = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation failOperations = MultiplexedTransportOperation.None,
-        Exception? failureException = null)
+        TransportOperationsOptions<MultiplexedTransportOperations>? operationsOptions = null)
     {
         _decoratee = decoratee;
-        Operations = new(holdOperations, failOperations, failureException);
+        _connectionOperationsOptions = operationsOptions ?? new();
+        ListenerOperations = new(_connectionOperationsOptions);
     }
 
     /// <inheritdoc/>
@@ -140,13 +148,16 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         }
         _listener = new TestMultiplexedListenerDecorator(
             _decoratee.Listen(serverAddress, options, serverAuthenticationOptions),
-            Operations);
+            ListenerOperations,
+            _connectionOperationsOptions);
         return _listener;
     }
 
     private class TestMultiplexedListenerDecorator : IListener<IMultiplexedConnection>
     {
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        internal TransportOperationsOptions<MultiplexedTransportOperations> ConnectionOperationsOptions { get; set; }
 
         internal TestMultiplexedConnectionDecorator LastAcceptedConnection
         {
@@ -156,19 +167,19 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
         private readonly IListener<IMultiplexedConnection> _decoratee;
         private TestMultiplexedConnectionDecorator? _lastAcceptedConnection;
-        private readonly TestTransportOperationHelper<MultiplexedTransportOperation> _operations;
+        private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 
         public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
         {
-            await _operations.CheckAsync(MultiplexedTransportOperation.Accept, cancellationToken);
+            await _operations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
 
             (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
             try
             {
-                await _operations.CheckAsync(MultiplexedTransportOperation.Accept, cancellationToken);
+                await _operations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
             }
             catch
             {
@@ -176,11 +187,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
                 throw;
             }
 
-            LastAcceptedConnection = new TestMultiplexedConnectionDecorator(
-                connection,
-                _operations.Hold,
-                _operations.Fail,
-                _operations.FailureException);
+            LastAcceptedConnection = new TestMultiplexedConnectionDecorator(connection, ConnectionOperationsOptions);
             return (LastAcceptedConnection, remoteNetworkAddress);
         }
 
@@ -188,9 +195,11 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
         internal TestMultiplexedListenerDecorator(
             IListener<IMultiplexedConnection> decoratee,
-            TestTransportOperationHelper<MultiplexedTransportOperation> operations)
+            TransportOperations<MultiplexedTransportOperations> operations,
+            TransportOperationsOptions<MultiplexedTransportOperations> connectionOperationsOptions)
         {
             _decoratee = decoratee;
+            ConnectionOperationsOptions = connectionOperationsOptions;
             _operations = operations;
         }
     }
@@ -200,15 +209,18 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 /// provide access to the last created <see cref="IMultiplexedStream" /> stream.</summary>
 public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 {
+    /// <summary>The operations options used to create streams.</summary>
+    public TransportOperationsOptions<MultiplexedTransportOperations> StreamOperationsOptions { get; set; }
+
     public TestMultiplexedStreamDecorator LastStream
     {
         get => _lastStream ?? throw new InvalidOperationException("No stream created yet.");
         set => _lastStream = value;
     }
 
-    /// <summary>The <see cref="TestTransportOperationHelper{MultiplexedTransportOperation}" /> used by this connection
-    /// operations and inherited by streams created or accepted by this connection.</summary>
-    public TestTransportOperationHelper<MultiplexedTransportOperation> Operations { get; }
+    /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperations}" /> used by this connection
+    /// operations.</summary>
+    public TransportOperations<MultiplexedTransportOperations> Operations { get; }
 
     private readonly IMultiplexedConnection _decoratee;
     private TestMultiplexedStreamDecorator? _lastStream;
@@ -216,17 +228,15 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     /// <inheritdoc/>
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
-        await Operations.CheckAsync(MultiplexedTransportOperation.AcceptStream, cancellationToken);
+        await Operations.CheckAsync(MultiplexedTransportOperations.AcceptStream, cancellationToken);
 
         var stream = new TestMultiplexedStreamDecorator(
             await _decoratee.AcceptStreamAsync(cancellationToken),
-            Operations.Hold,
-            Operations.Fail,
-            Operations.FailureException);
+            StreamOperationsOptions);
         _lastStream = stream;
 
         // Check again fail/hold condition in case the configuration was changed while AcceptStreamAsync was pending.
-        await Operations.CheckAsync(MultiplexedTransportOperation.AcceptStream, cancellationToken);
+        await Operations.CheckAsync(MultiplexedTransportOperations.AcceptStream, cancellationToken);
 
         return stream;
     }
@@ -236,13 +246,11 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
         bool bidirectional,
         CancellationToken cancellationToken)
     {
-        await Operations.CheckAsync(MultiplexedTransportOperation.CreateStream, cancellationToken);
+        await Operations.CheckAsync(MultiplexedTransportOperations.CreateStream, cancellationToken);
 
         var stream = new TestMultiplexedStreamDecorator(
             await _decoratee.CreateStreamAsync(bidirectional, cancellationToken),
-            Operations.Hold,
-            Operations.Fail,
-            Operations.FailureException);
+            StreamOperationsOptions);
         _lastStream = stream;
         return stream;
     }
@@ -250,45 +258,44 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     /// <inheritdoc/>
     public async Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
     {
-        await Operations.CheckAsync(MultiplexedTransportOperation.Close, cancellationToken);
+        await Operations.CheckAsync(MultiplexedTransportOperations.Close, cancellationToken);
 
         await _decoratee.CloseAsync(closeError, cancellationToken);
 
         // Release CreateStream and AcceptStream
-        Operations.Hold &= ~(MultiplexedTransportOperation.CreateStream | MultiplexedTransportOperation.AcceptStream);
+        Operations.Hold &= ~(MultiplexedTransportOperations.CreateStream | MultiplexedTransportOperations.AcceptStream);
     }
 
     /// <inheritdoc/>
     public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        await Operations.CheckAsync(MultiplexedTransportOperation.Connect, cancellationToken);
+        await Operations.CheckAsync(MultiplexedTransportOperations.Connect, cancellationToken);
         return await _decoratee.ConnectAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        await Operations.CheckAsync(MultiplexedTransportOperation.Dispose, CancellationToken.None);
+        await Operations.CheckAsync(MultiplexedTransportOperations.Dispose, CancellationToken.None);
         await _decoratee.DisposeAsync();
         Operations.Complete();
     }
 
     internal TestMultiplexedConnectionDecorator(
         IMultiplexedConnection decoratee,
-        MultiplexedTransportOperation holdOperation = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation failOperation = MultiplexedTransportOperation.None,
-        Exception? failureException = null)
+        TransportOperationsOptions<MultiplexedTransportOperations> operationsOptions)
     {
         _decoratee = decoratee;
-        Operations = new(holdOperation, failOperation, failureException);
+        StreamOperationsOptions = operationsOptions;
+        Operations = new(operationsOptions);
     }
 }
 
 public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 {
-    /// <summary>The <see cref="TestTransportOperationHelper{MultiplexedTransportOperation}" /> used by this stream
+    /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperation}" /> used by this stream
     /// <see cref="Input"/> and <see cref="Output"/> operations.</summary>
-    public TestTransportOperationHelper<MultiplexedTransportOperation> Operations { get; }
+    public TransportOperations<MultiplexedTransportOperations> Operations { get; }
 
     /// <inheritdoc/>
     public ulong Id => _decoratee.Id;
@@ -320,12 +327,10 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 
     internal TestMultiplexedStreamDecorator(
         IMultiplexedStream decoratee,
-        MultiplexedTransportOperation holdOperation = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation failOperation = MultiplexedTransportOperation.None,
-        Exception? failureException = null)
+        TransportOperationsOptions<MultiplexedTransportOperations> operationsOptions)
     {
         _decoratee = decoratee;
-        Operations = new(holdOperation, failOperation, failureException);
+        Operations = new(operationsOptions);
         if (!IsRemote || IsBidirectional)
         {
             _output = new TestPipeWriter(decoratee.Output, Operations);
@@ -340,7 +345,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 internal sealed class TestPipeWriter : PipeWriter
 {
     private readonly PipeWriter _decoratee;
-    private readonly TestTransportOperationHelper<MultiplexedTransportOperation> _operations;
+    private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 
     public override void Advance(int bytes) => _decoratee.Advance(bytes);
 
@@ -348,13 +353,13 @@ internal sealed class TestPipeWriter : PipeWriter
 
     public override void Complete(Exception? exception)
     {
-        _operations.Hold &= ~MultiplexedTransportOperation.StreamWrite;
+        _operations.Hold &= ~MultiplexedTransportOperations.StreamWrite;
         _decoratee.Complete(exception);
     }
 
     public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
     {
-        await _operations.CheckAsync(MultiplexedTransportOperation.StreamWrite, cancellationToken);
+        await _operations.CheckAsync(MultiplexedTransportOperations.StreamWrite, cancellationToken);
         return await _decoratee.FlushAsync(cancellationToken);
     }
 
@@ -366,13 +371,13 @@ internal sealed class TestPipeWriter : PipeWriter
         ReadOnlyMemory<byte> source,
         CancellationToken cancellationToken)
     {
-        await _operations.CheckAsync(MultiplexedTransportOperation.StreamWrite, cancellationToken);
+        await _operations.CheckAsync(MultiplexedTransportOperations.StreamWrite, cancellationToken);
         return await _decoratee.WriteAsync(source, cancellationToken);
     }
 
     internal TestPipeWriter(
         PipeWriter decoratee,
-        TestTransportOperationHelper<MultiplexedTransportOperation> operations)
+        TransportOperations<MultiplexedTransportOperations> operations)
     {
         _decoratee = decoratee;
         _operations = operations;
@@ -382,7 +387,7 @@ internal sealed class TestPipeWriter : PipeWriter
 internal sealed class TestPipeReader : PipeReader
 {
     private readonly PipeReader _decoratee;
-    private readonly TestTransportOperationHelper<MultiplexedTransportOperation> _operations;
+    private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 
     public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
 
@@ -393,18 +398,18 @@ internal sealed class TestPipeReader : PipeReader
 
     public override void Complete(Exception? exception = null)
     {
-        _operations.Hold &= ~MultiplexedTransportOperation.StreamRead;
+        _operations.Hold &= ~MultiplexedTransportOperations.StreamRead;
         _decoratee.Complete(exception);
     }
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
     {
-        await _operations.CheckAsync(MultiplexedTransportOperation.StreamRead, cancellationToken);
+        await _operations.CheckAsync(MultiplexedTransportOperations.StreamRead, cancellationToken);
 
         ReadResult result = await _decoratee.ReadAsync(cancellationToken);
 
         // Check again fail/hold condition in case the configuration was changed while ReadAsync was pending.
-        await _operations.CheckAsync(MultiplexedTransportOperation.StreamRead, cancellationToken);
+        await _operations.CheckAsync(MultiplexedTransportOperations.StreamRead, cancellationToken);
 
         return result;
     }
@@ -417,7 +422,7 @@ internal sealed class TestPipeReader : PipeReader
 
     internal TestPipeReader(
         PipeReader decoratee,
-        TestTransportOperationHelper<MultiplexedTransportOperation> operations)
+        TransportOperations<MultiplexedTransportOperations> operations)
     {
         _decoratee = decoratee;
         _operations = operations;
@@ -429,27 +434,19 @@ public static class TestMultiplexedTransportServiceCollectionExtensions
     /// <summary>Installs the test multiplexed transport.</summary>
     public static IServiceCollection AddTestMultiplexedTransport(
         this IServiceCollection services,
-        MultiplexedTransportOperation clientHoldOperation = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation clientFailOperation = MultiplexedTransportOperation.None,
-        Exception? clientFailureException = null,
-        MultiplexedTransportOperation serverHoldOperation = MultiplexedTransportOperation.None,
-        MultiplexedTransportOperation serverFailOperation = MultiplexedTransportOperation.None,
-        Exception? serverFailureException = null) => services
+        TransportOperationsOptions<MultiplexedTransportOperations>? clientOperationsOptions = null,
+        TransportOperationsOptions<MultiplexedTransportOperations>? serverOperationsOptions = null) => services
             .AddColocTransport()
             .AddSingleton(provider =>
                 new TestMultiplexedClientTransportDecorator(
                     new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()),
-                    holdOperations: clientHoldOperation,
-                    failOperations: clientFailOperation,
-                    failureException: clientFailureException))
+                    clientOperationsOptions))
             .AddSingleton<IMultiplexedClientTransport>(provider =>
                 provider.GetRequiredService<TestMultiplexedClientTransportDecorator>())
             .AddSingleton(provider =>
                 new TestMultiplexedServerTransportDecorator(
                     new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()),
-                    holdOperations: serverHoldOperation,
-                    failOperations: serverFailOperation,
-                    failureException: serverFailureException))
+                    serverOperationsOptions))
             .AddSingleton<IMultiplexedServerTransport>(provider =>
                 provider.GetRequiredService<TestMultiplexedServerTransportDecorator>());
 }
