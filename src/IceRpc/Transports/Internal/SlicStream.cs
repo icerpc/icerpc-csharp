@@ -370,8 +370,6 @@ internal class SlicStream : IMultiplexedStream
         _writesClosedTcs.TrySetResult();
     }
 
-    internal void ThrowIfConnectionClosed() => _connection.ThrowIfClosed();
-
     internal bool TrySetReadsCompleted()
     {
         if (TrySetState(State.ReadsCompleted))
