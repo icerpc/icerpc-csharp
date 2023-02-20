@@ -1029,6 +1029,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     IceRpcError.IceRpcError,
                     "Received invalid icerpc request header.",
                     exception);
+
                 if (_taskExceptionObserver is null)
                 {
                     throw rpcException;

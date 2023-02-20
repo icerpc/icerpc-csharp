@@ -170,13 +170,14 @@ public class SlicTransportTests
 
         Task connectTask;
         Task? clientConnectTask = null;
+        using var clientConnectCts = new CancellationTokenSource();
         if (clientSide)
         {
             connectTask = sut.AcceptAndConnectAsync();
         }
         else
         {
-            clientConnectTask = sut.Client.ConnectAsync(default);
+            clientConnectTask = sut.Client.ConnectAsync(clientConnectCts.Token);
             connectTask = sut.AcceptAsync();
         }
 
@@ -187,12 +188,12 @@ public class SlicTransportTests
 
         if (clientConnectTask is not null)
         {
-            await sut.Client.DisposeAsync();
+            clientConnectCts.Cancel();
             try
             {
                 await clientConnectTask;
             }
-            catch
+            catch (OperationCanceledException)
             {
             }
         }
@@ -383,32 +384,6 @@ public class SlicTransportTests
 
         // Act/Assert
         Assert.That(async () => await sut.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
-    }
-
-    [Test]
-    public async Task Dispose_aborts_connect()
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddSlicTest()
-            .AddTestDuplexTransport(clientOperationsOptions:
-                new()
-                {
-                    Hold = DuplexTransportOperations.Connect
-                })
-            .BuildServiceProvider(validateScopes: true);
-
-        ClientServerMultiplexedConnection sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-
-        Task connectTask = sut.Client.ConnectAsync(default);
-
-        // Act
-        await sut.Client.DisposeAsync();
-
-        // Assert
-        Assert.That(
-            async () => await connectTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
     }
 
     [Test]

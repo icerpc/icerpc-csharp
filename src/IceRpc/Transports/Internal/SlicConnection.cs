@@ -119,11 +119,6 @@ internal class SlicConnection : IMultiplexedConnection
         {
             await Task.Yield(); // Exit mutex lock
 
-            // _disposedCts is not disposed at this point because DisposeAsync waits for the completion of _connectTask.
-            using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken,
-                _disposedCts.Token);
-
             // Connect the duplex connection.
             TransportConnectionInformation transportConnectionInformation;
             TimeSpan peerIdleTimeout = TimeSpan.MaxValue;
@@ -131,14 +126,14 @@ internal class SlicConnection : IMultiplexedConnection
 
             try
             {
-                transportConnectionInformation = await _duplexConnection.ConnectAsync(connectCts.Token)
+                transportConnectionInformation = await _duplexConnection.ConnectAsync(cancellationToken)
                     .ConfigureAwait(false);
 
                 // Initialize the Slic connection.
                 if (IsServer)
                 {
                     // Read the Initialize frame sent by the client.
-                    header = await ReadFrameHeaderAsync(connectCts.Token).ConfigureAwait(false);
+                    header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
 
                     if (header is null || header.Value.FrameSize == 0)
                     {
@@ -153,7 +148,7 @@ internal class SlicConnection : IMultiplexedConnection
                     (ulong version, InitializeBody? initializeBody) = await ReadAndDecodeFrameAsync(
                         header.Value.FrameSize,
                         (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
-                        connectCts.Token).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
 
                     if (version != 1)
                     {
@@ -162,10 +157,10 @@ internal class SlicConnection : IMultiplexedConnection
                         await SendFrameAsync(
                             FrameType.Version,
                             new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
-                            connectCts.Token).ConfigureAwait(false);
+                            cancellationToken).ConfigureAwait(false);
 
                         // Read again the Initialize frame sent by the client.
-                        header = await ReadFrameHeaderAsync(connectCts.Token).ConfigureAwait(false);
+                        header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
                         if (header is null || header.Value.FrameSize == 0)
                         {
                             throw new InvalidDataException("Received invalid Slic initialize frame.");
@@ -174,7 +169,7 @@ internal class SlicConnection : IMultiplexedConnection
                         (version, initializeBody) = await ReadAndDecodeFrameAsync(
                             header.Value.FrameSize,
                             (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
-                            connectCts.Token).ConfigureAwait(false);
+                            cancellationToken).ConfigureAwait(false);
                     }
 
                     if (initializeBody is null)
@@ -196,7 +191,7 @@ internal class SlicConnection : IMultiplexedConnection
                     await SendFrameAsync(
                         FrameType.InitializeAck,
                         new InitializeAckBody(EncodeParameters()).Encode,
-                        connectCts.Token).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -210,10 +205,10 @@ internal class SlicConnection : IMultiplexedConnection
                             encoder.EncodeVarUInt62(SlicDefinitions.V1);
                             initializeBody.Encode(ref encoder);
                         },
-                        connectCts.Token).ConfigureAwait(false);
+                        cancellationToken).ConfigureAwait(false);
 
                     // Read back either the InitializeAck or Version frame.
-                    header = await ReadFrameHeaderAsync(connectCts.Token).ConfigureAwait(false);
+                    header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
                     if (header is null || header.Value.FrameSize == 0)
                     {
                         throw new InvalidDataException("Received invalid Slic initialize ack frame.");
@@ -225,7 +220,7 @@ internal class SlicConnection : IMultiplexedConnection
                             InitializeAckBody initializeAckBody = await ReadAndDecodeFrameAsync(
                                 header.Value.FrameSize,
                                 (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
-                                connectCts.Token).ConfigureAwait(false);
+                                cancellationToken).ConfigureAwait(false);
 
                             DecodeParameters(initializeAckBody.Parameters);
                             break;
@@ -234,7 +229,7 @@ internal class SlicConnection : IMultiplexedConnection
                             VersionBody versionBody = await ReadAndDecodeFrameAsync(
                                 header.Value.FrameSize,
                                 (ref SliceDecoder decoder) => new VersionBody(ref decoder),
-                                connectCts.Token).ConfigureAwait(false);
+                                cancellationToken).ConfigureAwait(false);
 
                             // We currently only support V1
                             throw new NotSupportedException(
