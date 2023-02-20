@@ -6,13 +6,13 @@ encoding = 1;
 module Ice;
 
 /// A server application managed by a locator implementation such as IceGrid hosts a Process service and registers a
-/// proxy to this service with the locator registry. See TODO-LINK LocatorRegistry::setServerProcessProxy.
+/// proxy to this service with the locator registry. See {@link LocatorRegistry::setServerProcessProxy}.
 interface Process {
     /// Initiates a graceful shutdown of the server application.
     shutdown();
 
     /// Writes a message on the server application's stdout or stderr.
-    /// @param message The message to write.
-    /// @param fd '1' for stdout, '2' for stderr.
+    /// @param message: The message to write.
+    /// @param fd: '1' for stdout, '2' for stderr.
     writeMessage(message: string, fd: int32);
 }
