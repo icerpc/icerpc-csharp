@@ -76,8 +76,14 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         }
     }
 
+    /// <summary>Constructs a decorator that does nothing until it is enabled by a call to <see cref="Enable" />.
+    /// </summary>
     internal IdleTimeoutDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
 
+    /// <summary>Constructs a decorator that ensures a call to <see cref="ReadAsync" /> will fail after idleTimeout.
+    /// This decorator also schedules a keepAliveAction after each write (see <see cref="ScheduleKeepAlive" />).
+    /// </summary>
+    /// <remarks>Do not call <see cref="Enable" /> on a decorator constructed with this constructor.</remarks>
     internal IdleTimeoutDuplexConnectionDecorator(
         IDuplexConnection decoratee,
         TimeSpan idleTimeout,
