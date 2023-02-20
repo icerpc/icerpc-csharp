@@ -1,0 +1,23 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Tests::Slice;
+
+/// This is the summary of an interface
+/// It is unrelated to {@link InterfaceLink}.
+/// @see InterfaceLink::operationLink
+interface MyInterface {
+    /// This interface tests the generated documentation.
+    /// It can throw a {@link ThrownException}.
+    /// @param s: A test string.
+    /// @returns b: Can be true or false.
+    /// @returns i: An integer.
+    /// @throws ThrownException: If the operation fails.
+    /// @see MyInterface
+    myOperation(s: string) -> (b: bool, i: int32) throws ThrownException;
+}
+
+interface InterfaceLink {
+    operationLink();
+}
+
+exception ThrownException {}

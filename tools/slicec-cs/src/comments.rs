@@ -2,14 +2,12 @@
 
 use std::{char, fmt};
 
-use slice::grammar::{Commentable, Entity, Operation};
-
 #[derive(Clone, Debug)]
 pub struct CommentTag {
-    tag: String,
-    content: String,
-    attribute_name: Option<String>,
-    attribute_value: Option<String>,
+    pub tag: String,
+    pub content: String,
+    pub attribute_name: Option<String>,
+    pub attribute_value: Option<String>,
 }
 
 impl CommentTag {
@@ -39,33 +37,11 @@ impl fmt::Display for CommentTag {
             _ => "".to_owned(),
         };
 
-        write!(
-            f,
-            "/// <{tag}{attribute}>{content}</{tag}>",
-            tag = self.tag,
-            content = self.content.trim_matches(char::is_whitespace).replace('\n', "\n/// "),
-        )
-    }
-}
-
-pub fn doc_comment_message(entity: &dyn Entity) -> Option<String> {
-    entity.comment().and_then(|comment| {
-        if comment.overview.is_empty() {
-            None
+        let content = self.content.trim_matches(char::is_whitespace).replace('\n', "\n/// ");
+        if content.is_empty() {
+            write!(f, "/// <{tag}{attribute} />", tag = self.tag)
         } else {
-            Some(comment.overview.clone())
+            write!(f, "/// <{tag}{attribute}>{content}</{tag}>", tag = self.tag)
         }
-    })
-}
-
-// TODO: the `DocComment` message for an operation parameter should be the same as the `DocComment`
-// for the operation param
-pub fn operation_parameter_doc_comment(operation: &Operation, parameter_name: &str) -> Option<String> {
-    operation.comment().and_then(|comment| {
-        comment
-            .params
-            .iter()
-            .find(|(param, _)| param == parameter_name)
-            .map(|(_, description)| description.clone())
-    })
+    }
 }
