@@ -232,8 +232,9 @@ internal class SlicConnection : IMultiplexedConnection
                                 cancellationToken).ConfigureAwait(false);
 
                             // We currently only support V1
-                            throw new NotSupportedException(
-                                $"Unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'.");
+                            throw new IceRpcException(
+                                IceRpcError.ConnectionAborted,
+                                $"The connection was aborted because the peer's Slic version(s) '{string.Join(", ", versionBody.Versions)}' are not supported.");
 
                         default:
                             throw new InvalidDataException(
@@ -241,28 +242,16 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                 }
             }
-            catch (OperationCanceledException)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                Debug.Assert(_disposedCts.Token.IsCancellationRequested);
-                throw new IceRpcException(
-                    IceRpcError.OperationAborted,
-                    "The connection establishment was aborted because the connection was disposed.");
-            }
-            catch (NotSupportedException exception)
-            {
-                throw new IceRpcException(
-                    IceRpcError.ConnectionAborted,
-                    "The connection was aborted because of an unsupported Slic protocol feature.",
-                    exception);
-            }
             catch (InvalidDataException exception)
             {
                 throw new IceRpcException(
                     IceRpcError.ConnectionAborted,
                     "The connection was aborted by a Slic protocol error.",
                     exception);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (AuthenticationException)
             {
