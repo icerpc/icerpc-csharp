@@ -5,10 +5,12 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net;
+using System.Net.Security;
 using System.Security.Authentication;
 
 namespace IceRpc.Tests.Transports;
@@ -212,6 +214,87 @@ public class SlicTransportTests
             () => connectCall(),
             Throws.InstanceOf<OperationCanceledException>().With.Property(
                 "CancellationToken").EqualTo(connectCts.Token));
+    }
+
+    /// <summary>Verifies that disabling the idle timeout doesn't abort the connection if it's idle.</summary>
+    [Test]
+    public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
+    {
+        // Arrange
+        var services = new ServiceCollection().AddSlicTest();
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.IdleTimeout = Timeout.InfiniteTimeSpan);
+        services.AddOptions<SlicTransportOptions>("client").Configure(
+            options => options.IdleTimeout = Timeout.InfiniteTimeSpan);
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+
+        await using var clientConnection = clientTransport.CreateConnection(
+            listener.ServerAddress,
+            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+            provider.GetService<SslClientAuthenticationOptions>());
+
+        var connectTask = clientConnection.ConnectAsync(default);
+        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
+
+        _ = await serverConnection.ConnectAsync(default);
+        _ = await connectTask;
+
+        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        // Assert
+        Assert.That(acceptTask.IsCompleted, Is.False);
+        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(async () => await acceptTask, Throws.InstanceOf<IceRpcException>());
+    }
+
+    /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
+    [Test]
+    public async Task Connection_with_idle_timeout_is_not_aborted_when_idle(
+        [Values(true, false)] bool serverIdleTimeout)
+    {
+        // Arrange
+        var services = new ServiceCollection().AddSlicTest();
+        var idleTimeout = TimeSpan.FromSeconds(1);
+        if (serverIdleTimeout)
+        {
+            services.AddOptions<SlicTransportOptions>("server").Configure(options => options.IdleTimeout = idleTimeout);
+        }
+        else
+        {
+            services.AddOptions<SlicTransportOptions>("client").Configure(options => options.IdleTimeout = idleTimeout);
+        }
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        await using var clientConnection = clientTransport.CreateConnection(
+            listener.ServerAddress,
+            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+            provider.GetService<SslClientAuthenticationOptions>());
+
+        var connectTask = clientConnection.ConnectAsync(default);
+        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
+
+        _ = await serverConnection.ConnectAsync(default);
+        _ = await connectTask;
+
+        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+
+        // Act
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.That(acceptTask.IsCompleted, Is.False);
+        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(async () => await acceptTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server
