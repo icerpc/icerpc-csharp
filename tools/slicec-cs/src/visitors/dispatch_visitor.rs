@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
-use crate::comments::{doc_comment_message, operation_parameter_doc_comment};
 use crate::cs_util::*;
 use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
@@ -26,16 +25,14 @@ impl Visitor for DispatchVisitor<'_> {
         let access = interface_def.access_modifier();
         let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &service_name);
 
-        let summary_comment = format!(
-            r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />.
-{}"#,
+        let summary = format!(
+            r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />."#,
             interface_def.cs_identifier(None),
             interface_def.interface_name(),
-            doc_comment_message(interface_def).unwrap_or_default(),
         );
 
         interface_builder
-            .add_comment("summary", summary_comment)
+            .add_comments(interface_def.formatted_doc_comment_with_summary(summary))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def);
 
@@ -216,7 +213,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                         &param.cs_type_string(namespace, TypeContext::Encode, false),
                         &param.parameter_name(),
                         None,
-                        operation_parameter_doc_comment(operation, &param.cs_identifier(None)),
+                        param.formatted_parameter_doc_comment(),
                     );
                 }
             }
@@ -345,10 +342,10 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
     FunctionBuilder::new(
         "public",
         &operation.return_task(true),
-        &(operation.escape_identifier_with_suffix("Async")),
+        &operation.escape_identifier_with_suffix("Async"),
         FunctionType::Declaration,
     )
-    .add_optional_comment("summary", doc_comment_message(operation))
+    .add_comments(operation.formatted_doc_comment())
     .add_operation_parameters(operation, TypeContext::Decode)
     .add_container_attributes(operation)
     .build()

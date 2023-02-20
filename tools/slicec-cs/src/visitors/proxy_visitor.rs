@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
-use crate::comments::{operation_parameter_doc_comment, *};
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
@@ -35,18 +34,16 @@ impl Visitor for ProxyVisitor<'_> {
         // proxy bases
         let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
 
-        let summary_message = format!(
-            r#"The client-side interface for Slice interface {}. <seealso cref="{}" />.
-{}"#,
+        let summary = format!(
+            r#"The client-side interface for Slice interface {}. <seealso cref="{}" />."#,
             interface_def.cs_identifier(None),
             interface_def.service_name(),
-            doc_comment_message(interface_def).unwrap_or_default(),
         );
 
         let mut code = CodeBlock::default();
         code.add_block(
             &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
-                .add_comment("summary", summary_message)
+                .add_comments(interface_def.formatted_doc_comment_with_summary(summary))
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
                 .add_bases(&interface_bases)
@@ -317,7 +314,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
                 FunctionType::Declaration,
             )
             .add_container_attributes(operation)
-            .add_optional_comment("summary", doc_comment_message(operation))
+            .add_comments(operation.formatted_doc_comment())
             .add_operation_parameters(operation, TypeContext::Encode)
             .build(),
         );
@@ -371,7 +368,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
                 &param.cs_type_string(namespace, TypeContext::Encode, false),
                 &param.parameter_name(),
                 None,
-                operation_parameter_doc_comment(operation, &param.cs_identifier(None)),
+                param.formatted_parameter_doc_comment(),
             );
         }
 

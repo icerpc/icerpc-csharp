@@ -262,6 +262,8 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     }
 }
 
+/// <summary>Extension methods for setting up the test duplex transport in an <see cref="IServiceCollection"
+/// />.</summary>
 public static class TestDuplexTransportServiceCollectionExtensions
 {
     /// <summary>Installs the test duplex transport.</summary>

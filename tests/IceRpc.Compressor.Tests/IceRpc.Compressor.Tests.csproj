@@ -21,4 +21,8 @@
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- Missing XML comment for publicly visible type or member. -->
+    <NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
 </Project>

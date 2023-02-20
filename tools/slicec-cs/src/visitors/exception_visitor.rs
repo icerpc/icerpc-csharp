@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
-use crate::comments::doc_comment_message;
 use crate::cs_util::*;
 use crate::decoding::decode_data_members;
 use crate::encoding::encode_data_members;
@@ -34,7 +33,7 @@ impl Visitor for ExceptionVisitor<'_> {
         let mut exception_class_builder = ContainerBuilder::new(&format!("{access} partial class"), &exception_name);
 
         exception_class_builder
-            .add_optional_comment("summary", doc_comment_message(exception_def))
+            .add_comments(exception_def.formatted_doc_comment())
             .add_container_attributes(exception_def);
 
         if exception_def.supported_encodings().supports(&Encoding::Slice1) {
@@ -225,7 +224,7 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
                 .cs_type_string(namespace, TypeContext::DataMember, false),
             member.parameter_name().as_str(),
             None,
-            doc_comment_message(*member),
+            member.formatted_doc_comment_summary(),
         );
     }
     ctor_builder.add_base_parameters(&base_parameters);

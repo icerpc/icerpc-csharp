@@ -8,10 +8,12 @@ namespace IceRpc.Tests.Common;
 /// <summary>A memory pool with "poisoned" memory and small buffers.</summary>
 public class TestMemoryPool : MemoryPool<byte>
 {
+    /// <inheritdoc/>
     public override int MaxBufferSize { get; }
 
     private readonly ConcurrentStack<Memory<byte>> _stack = new();
 
+    /// <inheritdoc/>
     public override IMemoryOwner<byte> Rent(int minBufferSize = -1)
     {
         if (minBufferSize > MaxBufferSize)
@@ -23,11 +25,14 @@ public class TestMemoryPool : MemoryPool<byte>
         return new MemoryOwner(this);
     }
 
+    /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
         // no-op
     }
 
+    /// <summary>Construct a new test memory pool.</summary>
+    /// <param name="maxBufferSize">The max buffer size.</param>
     public TestMemoryPool(int maxBufferSize) => MaxBufferSize = maxBufferSize;
 
     private sealed class MemoryOwner : IMemoryOwner<byte>

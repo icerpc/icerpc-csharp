@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::comments::{doc_comment_message, CommentTag};
 use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
@@ -25,8 +24,8 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
 
     let attributes = data_member.attributes(false).into_iter().filter_map(match_cs_attribute);
 
-    if let Some(comment) = doc_comment_message(data_member) {
-        prelude.writeln(&CommentTag::new("summary", comment))
+    for comment_tag in data_member.formatted_doc_comment() {
+        prelude.writeln(&comment_tag)
     }
     prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
     if let Some(obsolete) = data_member.obsolete_attribute(true) {

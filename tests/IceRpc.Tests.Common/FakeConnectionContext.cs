@@ -8,10 +8,13 @@ namespace IceRpc.Tests.Common;
 /// <summary>Provides a fake implementation of <see cref="IConnectionContext" />.</summary>
 public sealed class FakeConnectionContext : IConnectionContext
 {
+    /// <summary>The fake connection context singleton instance.</summary>
     public static IConnectionContext Instance { get; } = new FakeConnectionContext();
 
+    /// <inheritdoc/>
     public IInvoker Invoker => NotImplementedInvoker.Instance;
 
+    /// <inheritdoc/>
     public TransportConnectionInformation TransportConnectionInformation =>
         new(IPEndPoint.Parse(LocalAddress), IPEndPoint.Parse(RemoteAddress), null);
 
