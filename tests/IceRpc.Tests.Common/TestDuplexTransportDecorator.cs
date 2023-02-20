@@ -28,9 +28,7 @@ public enum DuplexTransportOperation
     Write = 32,
 }
 
-#pragma warning disable CA1001 // _lastConnection is disposed by the caller.
 public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
-#pragma warning restore CA1001
 {
     /// <summary>The last created connection.</summary>
     public TestDuplexConnectionDecorator LastCreatedConnection =>
@@ -224,7 +222,7 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
 
         int count = await _decoratee.ReadAsync(buffer, cancellationToken);
 
-        // Check again fail/hold condition in case the configuration was changed while AcceptAsync was pending.
+        // Check again fail/hold condition in case the configuration was changed while ReadAsync was pending.
         await Operations.CheckAsync(DuplexTransportOperation.Read, cancellationToken);
 
         return count;

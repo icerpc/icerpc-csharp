@@ -23,10 +23,10 @@ public sealed class TestTransportOperationHelper<T> where T : struct, Enum
 
             foreach (T operation in Enum.GetValues(typeof(T)))
             {
-                if (!_holdOperationsTcs.TryGetValue(operation, out TaskCompletionSource? tcs))
+                if (!_holdOperationsTcsMap.TryGetValue(operation, out TaskCompletionSource? tcs))
                 {
                     tcs = new TaskCompletionSource();
-                    _holdOperationsTcs.Add(operation, tcs);
+                    _holdOperationsTcsMap.Add(operation, tcs);
                 }
 
                 if (!_holdOperations.HasFlag(operation))
@@ -35,18 +35,18 @@ public sealed class TestTransportOperationHelper<T> where T : struct, Enum
                 }
                 else if (tcs.Task.IsCompleted)
                 {
-                    _holdOperationsTcs[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _holdOperationsTcsMap[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
             }
         }
     }
 
-    private readonly Dictionary<T, TaskCompletionSource> _calledOperationsTcs = new();
+    private readonly Dictionary<T, TaskCompletionSource> _calledOperationsTcsMap = new();
     private T _holdOperations;
-    private readonly Dictionary<T, TaskCompletionSource> _holdOperationsTcs = new();
+    private readonly Dictionary<T, TaskCompletionSource> _holdOperationsTcsMap = new();
 
     /// <summary>Returns a task which can be awaited to wait for the given operation to be called.</summary>
-    public Task CalledTask(T operation) => _calledOperationsTcs[operation].Task;
+    public Task CalledTask(T operation) => _calledOperationsTcsMap[operation].Task;
 
     internal TestTransportOperationHelper(T holdOperations, T failOperations, Exception? failureException = null)
     {
@@ -56,11 +56,12 @@ public sealed class TestTransportOperationHelper<T> where T : struct, Enum
 
         foreach (T operation in Enum.GetValues(typeof(T)))
         {
-            _calledOperationsTcs[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _calledOperationsTcsMap[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
         }
     }
 
-    /// <summary>Marks the operation as called, checks if the operation should fail and it should be held.</summary>
+    /// <summary>Checks if the operation should fail and if it should be held. It also marks the operation as
+    /// called.</summary>
     internal Task CheckAsync(T operation, CancellationToken cancellationToken)
     {
         if (Fail.HasFlag(operation))
@@ -68,19 +69,19 @@ public sealed class TestTransportOperationHelper<T> where T : struct, Enum
             throw FailureException;
         }
         Called(operation);
-        return _holdOperationsTcs[operation].Task.WaitAsync(cancellationToken);
+        return _holdOperationsTcsMap[operation].Task.WaitAsync(cancellationToken);
     }
 
     /// <summary>Completes the operation called task.</summary>
-    internal void Called(T operation) => _calledOperationsTcs[operation].TrySetResult();
+    internal void Called(T operation) => _calledOperationsTcsMap[operation].TrySetResult();
 
     internal void Complete()
     {
-        foreach (TaskCompletionSource tcs in _holdOperationsTcs.Values)
+        foreach (TaskCompletionSource tcs in _holdOperationsTcsMap.Values)
         {
             tcs.TrySetResult();
         }
-        foreach ((T operation, TaskCompletionSource tcs) in _calledOperationsTcs)
+        foreach ((T operation, TaskCompletionSource tcs) in _calledOperationsTcsMap)
         {
             tcs.TrySetResult();
         }

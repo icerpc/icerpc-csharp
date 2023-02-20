@@ -33,12 +33,10 @@ public enum MultiplexedTransportOperation
     StreamWrite = 128,
 }
 
-#pragma warning disable CA1001 // _lastConnection is disposed by the caller.
 /// <summary>A <see cref="IMultiplexedClientTransport" /> decorator to create decorated <see
 /// cref="IMultiplexedConnection" /> client connections. It also provides access to the last created connection.
 /// </summary>
 public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClientTransport
-#pragma warning restore CA1001
 {
     /// <summary>The last created connection.</summary>
     public TestMultiplexedConnectionDecorator LastCreatedConnection =>
@@ -62,10 +60,8 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        var connection = new TestMultiplexedConnectionDecorator(_decoratee.CreateConnection(
-            serverAddress,
-            options,
-            clientAuthenticationOptions),
+        var connection = new TestMultiplexedConnectionDecorator(
+            _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
             _holdOperations,
             _failOperations,
             _failureException);
@@ -229,7 +225,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
             Operations.FailureException);
         _lastStream = stream;
 
-        // Check again fail/hold condition in case the configuration was changed while AcceptAsync was pending.
+        // Check again fail/hold condition in case the configuration was changed while AcceptStreamAsync was pending.
         await Operations.CheckAsync(MultiplexedTransportOperation.AcceptStream, cancellationToken);
 
         return stream;
