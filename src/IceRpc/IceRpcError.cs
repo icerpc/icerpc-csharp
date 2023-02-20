@@ -41,7 +41,7 @@ public enum IceRpcError
     NoConnection,
 
     /// <summary>The operation was aborted because an underlying resource (connection, stream) was disposed while this
-    /// operation was running.</summary>
+    /// operation was running or because the resource state no longer allows processing the operation.</summary>
     OperationAborted,
 
     /// <summary>The server rejected the connection establishment attempt because it already has too many connections.
