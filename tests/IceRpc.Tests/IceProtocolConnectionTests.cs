@@ -239,7 +239,7 @@ public sealed class IceProtocolConnectionTests
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         // Wait for the dispatch to start, to ensure the transport read failure happens after we make the invocation.
         await dispatcher.DispatchStart;
-        clientTransport!.LastConnection.Operations.Fail = DuplexTransportOperation.Read;
+        clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperation.Read;
         dispatcher.ReleaseDispatch();
 
         // Assert
@@ -268,7 +268,7 @@ public sealed class IceProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         _ = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-        clientTransport!.LastConnection.Operations.Fail = DuplexTransportOperation.Write;
+        clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperation.Write;
 
         // Act
         var invokeTask = sut.Client.InvokeAsync(request);
@@ -311,7 +311,7 @@ public sealed class IceProtocolConnectionTests
         // Act/Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
 
-        clientTransport.LastConnection.Operations.Hold = DuplexTransportOperation.None;
+        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperation.None;
 
         if (oneway)
         {
@@ -389,7 +389,7 @@ public sealed class IceProtocolConnectionTests
 
         using var cts = new CancellationTokenSource();
         // Hold writes to ensure the invocation blocks writing the request.
-        clientTransport.LastConnection.Operations.Hold = DuplexTransportOperation.Write;
+        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperation.Write;
 
         Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1, cts.Token);
         Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request1, default);
@@ -402,7 +402,7 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(invokeTask1.IsCompleted, Is.False);
-        clientTransport.LastConnection.Operations.Hold = DuplexTransportOperation.None;
+        clientTransport.LastCreatedConnection.Operations.Hold = DuplexTransportOperation.None;
         Assert.That(async () => await invokeTask1, Throws.TypeOf<OperationCanceledException>());
         dispatcher.ReleaseDispatch();
         Assert.That(async () => await invokeTask2, Throws.Nothing);

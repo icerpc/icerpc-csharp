@@ -286,7 +286,7 @@ public sealed class IceRpcProtocolConnectionTests
         await sut.ConnectAsync();
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
-        IMultiplexedConnection clientTransportConnection = clientTransport.LastConnection;
+        IMultiplexedConnection clientTransportConnection = clientTransport.LastCreatedConnection;
         IMultiplexedStream stream = await clientTransportConnection.CreateStreamAsync(bidirectional: true, default);
 
         // Act - manufacture an invalid request by writing directly to the multiplexed connection.
@@ -455,7 +455,7 @@ public sealed class IceRpcProtocolConnectionTests
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
 
-        TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastConnection;
+        TestMultiplexedConnectionDecorator clientConnection = clientTransport.LastCreatedConnection;
         clientConnection.Operations.Hold = MultiplexedTransportOperation.CreateStream;
 
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -555,7 +555,7 @@ public sealed class IceRpcProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        clientTransport.LastConnection.Operations.Fail = operation;
+        clientTransport.LastCreatedConnection.Operations.Fail = operation;
 
         // Act/Assert
         if (operation == MultiplexedTransportOperation.CreateStream)
@@ -593,7 +593,7 @@ public sealed class IceRpcProtocolConnectionTests
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
-        clientTransport.LastConnection.Operations.Hold = operation;
+        clientTransport.LastCreatedConnection.Operations.Hold = operation;
 
         using var invokeCts = new CancellationTokenSource(100);
 
@@ -643,7 +643,7 @@ public sealed class IceRpcProtocolConnectionTests
                 break;
             case MultiplexedTransportOperation.CreateStream:
             case MultiplexedTransportOperation.StreamWrite:
-                clientTransport.LastConnection.Operations.Hold = holdOperation;
+                clientTransport.LastCreatedConnection.Operations.Hold = holdOperation;
                 break;
         }
 

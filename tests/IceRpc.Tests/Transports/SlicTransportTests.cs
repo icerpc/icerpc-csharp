@@ -480,7 +480,7 @@ public class SlicTransportTests
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
-        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastConnection;
+        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastCreatedConnection;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(sut.Client, sut.Server);

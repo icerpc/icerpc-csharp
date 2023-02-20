@@ -2,12 +2,17 @@
 
 namespace IceRpc.Tests.Common;
 
+/// <summary>A template class to configure the behavior of operations from transport interfaces.</summary>
 public sealed class TestTransportOperationHelper<T> where T : struct, Enum
 {
+    /// <summary>The transport operations configured to fail.</summary>
     public T Fail { get; set; }
 
+    /// <summary>The exception raised by operations configured to fail.</summary>
     public Exception FailureException { get; set; }
 
+    /// <summary>The transport operations configured to block. An operation will unblock once it's configured to no
+    /// longer block.</summary>
     public T Hold
     {
         get => _holdOperations;
@@ -40,7 +45,7 @@ public sealed class TestTransportOperationHelper<T> where T : struct, Enum
     private T _holdOperations;
     private readonly Dictionary<T, TaskCompletionSource> _holdOperationsTcs = new();
 
-    /// <summary>Returns the called task to await the given operation to be called.</summary>
+    /// <summary>Returns a task which can be awaited to wait for the given operation to be called.</summary>
     public Task CalledTask(T operation) => _calledOperationsTcs[operation].Task;
 
     internal TestTransportOperationHelper(T holdOperations, T failOperations, Exception? failureException = null)

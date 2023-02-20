@@ -149,7 +149,7 @@ public class ServerTests
         var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 });
         var serverTransport = new SlicServerTransport(new TestDuplexServerTransportDecorator(
             colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Connect));
+            holdOperations: DuplexTransportOperation.Connect));
         var clientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(

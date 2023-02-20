@@ -219,7 +219,7 @@ public sealed class ConnectionCacheTests
             multiplexedClientTransport: multiplexedClientTransport);
         await new PingableProxy(cache, new Uri("icerpc://foo")).PingAsync();
 
-        TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastConnection!;
+        TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastCreatedConnection!;
         clientConnection.Operations.Hold = MultiplexedTransportOperation.Dispose;
 
         // Shutdown the server to trigger the background client connection shutdown and disposal.
