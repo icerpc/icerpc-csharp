@@ -37,11 +37,11 @@ impl fmt::Display for CommentTag {
             _ => "".to_owned(),
         };
 
-        write!(
-            f,
-            "/// <{tag}{attribute}>{content}</{tag}>",
-            tag = self.tag,
-            content = self.content.trim_matches(char::is_whitespace).replace('\n', "\n/// "),
-        )
+        let content = self.content.trim_matches(char::is_whitespace).replace('\n', "\n/// ");
+        if content.is_empty() {
+            write!(f, "/// <{tag}{attribute} />", tag = self.tag)
+        } else {
+            write!(f, "/// <{tag}{attribute}>{content}</{tag}>", tag = self.tag)
+        }
     }
 }
