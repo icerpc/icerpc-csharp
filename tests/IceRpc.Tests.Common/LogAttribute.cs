@@ -83,7 +83,6 @@ public sealed class LogAttributeLoggerFactory : ILoggerFactory
     }
 }
 
-
 /// <summary>An attribute used by tests classes and methods to enable logging.</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public sealed class LogAttribute : PropertyAttribute

@@ -167,19 +167,19 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 
         private readonly IListener<IMultiplexedConnection> _decoratee;
         private TestMultiplexedConnectionDecorator? _lastAcceptedConnection;
-        private readonly TransportOperations<MultiplexedTransportOperations> _operations;
+        private readonly TransportOperations<MultiplexedTransportOperations> _listenerOperations;
 
         public async Task<(IMultiplexedConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
             CancellationToken cancellationToken)
         {
-            await _operations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
+            await _listenerOperations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
 
             (IMultiplexedConnection connection, EndPoint remoteNetworkAddress) =
                 await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
             try
             {
-                await _operations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
+                await _listenerOperations.CheckAsync(MultiplexedTransportOperations.Accept, cancellationToken);
             }
             catch
             {
@@ -191,7 +191,12 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
             return (LastAcceptedConnection, remoteNetworkAddress);
         }
 
-        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+        public async ValueTask DisposeAsync()
+        {
+            await _listenerOperations.CheckAsync(MultiplexedTransportOperations.Dispose, CancellationToken.None);
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _listenerOperations.Complete();
+        }
 
         internal TestMultiplexedListenerDecorator(
             IListener<IMultiplexedConnection> decoratee,
@@ -200,7 +205,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         {
             _decoratee = decoratee;
             ConnectionOperationsOptions = connectionOperationsOptions;
-            _operations = operations;
+            _listenerOperations = operations;
         }
     }
 }
@@ -209,14 +214,15 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 /// provide access to the last created <see cref="IMultiplexedStream" /> stream.</summary>
 public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 {
-    /// <summary>The operations options used to create streams.</summary>
-    public TransportOperationsOptions<MultiplexedTransportOperations> StreamOperationsOptions { get; set; }
-
+    /// <summary>The last stream either created or accepted by this connection.</summary>
     public TestMultiplexedStreamDecorator LastStream
     {
         get => _lastStream ?? throw new InvalidOperationException("No stream created yet.");
         set => _lastStream = value;
     }
+
+    /// <summary>The operations options used to create streams.</summary>
+    public TransportOperationsOptions<MultiplexedTransportOperations> StreamOperationsOptions { get; set; }
 
     /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperations}" /> used by this connection
     /// operations.</summary>
@@ -291,6 +297,8 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     }
 }
 
+/// <summary>An <see cref="IMultiplexedStream" /> decorator to configure the behavior of stream input and output
+/// operations.</summary>
 public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 {
     /// <summary>The <see cref="TransportOperations{MultiplexedTransportOperation}" /> used by this stream
@@ -429,6 +437,8 @@ internal sealed class TestPipeReader : PipeReader
     }
 }
 
+/// <summary>Extension methods for setting up the test multiplexed transport in an <see cref="IServiceCollection"
+/// />.</summary>
 public static class TestMultiplexedTransportServiceCollectionExtensions
 {
     /// <summary>Installs the test multiplexed transport.</summary>

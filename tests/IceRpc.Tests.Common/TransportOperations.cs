@@ -88,8 +88,8 @@ public class TransportOperations<T> where T : struct, Enum
         }
     }
 
-    /// <summary>Checks if the operation should fail and if it should be held. It also marks the operation as
-    /// called.</summary>
+    /// <summary>Checks if the operation should fail and if it should be held. If the operation is configured to fail,
+    /// <see cref="FailureException" /> is raised. It also marks the operation as called.</summary>
     internal Task CheckAsync(T operation, CancellationToken cancellationToken)
     {
         if (Fail.HasFlag(operation))
@@ -100,7 +100,7 @@ public class TransportOperations<T> where T : struct, Enum
         return _holdOperationsTcsMap[operation].Task.WaitAsync(cancellationToken);
     }
 
-    /// <summary>Completes the operation called task.</summary>
+    /// <summary>Completes the called task for the given operation.</summary>
     internal void Called(T operation) => _calledOperationsTcsMap[operation].TrySetResult();
 
     internal void Complete()

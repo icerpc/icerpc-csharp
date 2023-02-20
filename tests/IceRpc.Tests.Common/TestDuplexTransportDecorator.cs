@@ -186,7 +186,12 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
             return (LastAcceptedConnection, remoteNetworkAddress);
         }
 
-        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+        public async ValueTask DisposeAsync()
+        {
+            await _listenerOperations.CheckAsync(DuplexTransportOperations.Dispose, CancellationToken.None);
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
+            _listenerOperations.Complete();
+        }
 
         internal TestDuplexListenerDecorator(
             IListener<IDuplexConnection> decoratee,
