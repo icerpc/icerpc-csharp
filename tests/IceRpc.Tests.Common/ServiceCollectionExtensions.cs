@@ -120,11 +120,8 @@ public static class ServiceCollectionExtensions
         }
         if (descriptor.Lifetime != ServiceLifetime.Singleton)
         {
-            throw new NotSupportedException("Only services registered the singleton lifetime are supported.");
+            throw new NotSupportedException("Only services registered with the singleton lifetime are supported.");
         }
-
-        // Remove the service registration from the service collection.
-        services.Remove(descriptor);
 
         // Register the service decorator implementation.
         services.AddSingleton(provider => decorateFunc((TService)factory(provider)));
