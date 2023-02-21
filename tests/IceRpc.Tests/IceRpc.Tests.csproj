@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
@@ -22,6 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Quic\IceRpc.Quic.csproj" />
+    <ProjectReference Include="..\IceRpc.Quic.Tests\IceRpc.Quic.Tests.csproj" />
     <ProjectReference Include="..\IceRpc.Conformance.Tests\IceRpc.Conformance.Tests.csproj" />
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
     <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\A\A.csproj" />

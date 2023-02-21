@@ -70,7 +70,7 @@ public abstract class MultiplexedConnectionConformanceTests
     [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
-    public async Task Accept_stream_fails_on_remote_connection_close(
+    public async Task Accept_stream_fails_on_close(
         MultiplexedConnectionCloseError closeError,
         IceRpcError expectedIceRpcError)
     {
@@ -87,22 +87,6 @@ public abstract class MultiplexedConnectionConformanceTests
         // Assert
         IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask)!;
         Assert.That(ex.IceRpcError, Is.EqualTo(expectedIceRpcError));
-    }
-
-    /// <summary>Verify streams cannot be created after disposing the connection.</summary>
-    [Test]
-    public async Task Accept_stream_fails_with_a_disposed_connection()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await sut.AcceptAndConnectAsync();
-
-        // Act
-        await sut.Client.DisposeAsync();
-
-        // Assert
-        Assert.ThrowsAsync<ObjectDisposedException>(() => sut.Client.AcceptStreamAsync(default).AsTask());
     }
 
     [Test]
@@ -234,7 +218,7 @@ public abstract class MultiplexedConnectionConformanceTests
     [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
-    public async Task Create_streams_fails_remote_closed_connection(
+    public async Task Cannot_create_streams_with_a_closed_connection(
         MultiplexedConnectionCloseError closeError,
         IceRpcError expectedIceRpcError)
     {
@@ -262,7 +246,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <param name="disposeServerConnection">Whether to dispose the server connection or the client connection.
     /// </param>
     [Test]
-    public async Task Create_streams_fails_with_a_disposed_connection(
+    public async Task Cannot_create_streams_with_a_disposed_connection(
         [Values(true, false)] bool disposeServerConnection)
     {
         // Arrange

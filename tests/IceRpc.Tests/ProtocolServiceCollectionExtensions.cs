@@ -52,9 +52,11 @@ public static class ProtocolServiceCollectionExtensions
         else
         {
             services
-                .AddColocTransport()
-                .AddSlicTransport()
-                .AddMultiplexedTransportTest()
+                // .AddColocTransport()
+                // .AddSlicTransport()
+                // .AddMultiplexedTransportTest()
+                .AddQuicTransport()
+                .AddMultiplexedTransportTest(new Uri("icerpc://127.0.0.1:0/"))
                 .AddSingleton(provider =>
                     new ClientServerProtocolConnection(
                         clientProtocolConnection: new IceRpcProtocolConnection(
