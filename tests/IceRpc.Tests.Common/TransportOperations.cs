@@ -2,7 +2,8 @@
 
 namespace IceRpc.Tests.Common;
 
-/// <summary>A property bag used to configure a <see cref="TransportOperations{T}" />.</summary>
+/// <summary>A property bag used to configure a <see cref="TransportOperations{T}" />. The enum template parameter is
+/// expected to be a flags enumeration that can specify multiple operations.</summary>
 public record struct TransportOperationsOptions<T> where T: struct, Enum
 {
     /// <summary>The operations configured to fail.</summary>
@@ -16,7 +17,7 @@ public record struct TransportOperationsOptions<T> where T: struct, Enum
     public T Hold { get; set; }
 }
 
-/// <summary>A class to control the behavior of an operation from a transport interface.</summary>
+/// <summary>A class to control the behavior of the operations from a transport interface.</summary>
 public class TransportOperations<T> where T : struct, Enum
 {
     /// <summary>The operations configured to fail.</summary>
@@ -45,10 +46,14 @@ public class TransportOperations<T> where T : struct, Enum
 
                 if (!_holdOperations.HasFlag(operation))
                 {
+                    // The operation is no longer part of the set of operations that must be held. We complete its TCS
+                    // to eventually unblock threads waiting for the operation to complete.
                     tcs.TrySetResult();
                 }
                 else if (tcs.Task.IsCompleted)
                 {
+                    // If the operation is part of the set of operations that must be held and its TCS is completed,
+                    // we create a new TCS to ensure that the operation will block when called.
                     _holdOperationsTcsMap[operation] = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
             }
