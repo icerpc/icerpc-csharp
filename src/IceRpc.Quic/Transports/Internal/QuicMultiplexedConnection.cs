@@ -30,7 +30,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         try
         {
             QuicStream stream = await _connection.AcceptInboundStreamAsync(cancellationToken).ConfigureAwait(false);
-            return new QuicMultiplexedStream(stream, isRemote: true, _pool, _minSegmentSize, ThrowIfClosed);
+            return new QuicMultiplexedStream(stream, isRemote: true, _pool, _minSegmentSize, ThrowIfClosedOrDisposed);
         }
         catch (QuicException exception)
         {
@@ -82,7 +82,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             isRemote: false,
             _pool,
             _minSegmentSize,
-            ThrowIfClosed);
+            ThrowIfClosedOrDisposed);
     }
 
     public async ValueTask DisposeAsync()
@@ -102,7 +102,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         }
     }
 
-    internal void ThrowIfClosed()
+    private void ThrowIfClosedOrDisposed()
     {
         if (_isClosed)
         {
