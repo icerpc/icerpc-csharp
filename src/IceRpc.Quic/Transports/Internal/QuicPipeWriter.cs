@@ -13,6 +13,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 
     private bool _isCompleted;
     private readonly Action _completeCallback;
+    private readonly Action _throwIfConnectionClosed;
     private readonly int _minSegmentSize;
 
     // We use a helper Pipe instead of a StreamPipeWriter over _stream because StreamPipeWriter does not provide a
@@ -79,6 +80,8 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         {
             throw new InvalidOperationException("Writing is not allowed once the writer is completed.");
         }
+
+        _throwIfConnectionClosed();
 
         try
         {
@@ -177,11 +180,17 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         }
     }
 
-    internal QuicPipeWriter(QuicStream stream, MemoryPool<byte> pool, int minSegmentSize, Action completeCallback)
+    internal QuicPipeWriter(
+        QuicStream stream,
+        MemoryPool<byte> pool,
+        int minSegmentSize,
+        Action completeCallback,
+        Action throwIfConnectionClosed)
     {
         _stream = stream;
         _minSegmentSize = minSegmentSize;
         _completeCallback = completeCallback;
+        _throwIfConnectionClosed = throwIfConnectionClosed;
 
         // Create a pipe that never pauses on flush or write. The QuicPipeWriter will pause the flush or write if the
         // Quic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to avoid

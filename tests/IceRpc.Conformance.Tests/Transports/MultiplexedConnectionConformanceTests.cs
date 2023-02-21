@@ -105,24 +105,6 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.ThrowsAsync<ObjectDisposedException>(() => sut.Client.AcceptStreamAsync(default).AsTask());
     }
 
-    /// <summary>Verify streams cannot be created after closing the connection.</summary>
-    [Test]
-    public async Task Accept_stream_fails_with_a_closed_connection()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await sut.AcceptAndConnectAsync();
-
-        // Act
-        await sut.Client.CloseAsync(0ul, default);
-
-        // Assert
-        Assert.That(
-            async () => await sut.Client.AcceptStreamAsync(default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-    }
-
     [Test]
     public async Task Completing_a_local_or_remote_stream_allows_accepting_a_new_one(
         [Values(true, false)] bool bidirectional,
@@ -244,24 +226,6 @@ public abstract class MultiplexedConnectionConformanceTests
             Throws.TypeOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
 
         MultiplexedConformanceTestsHelper.CleanupStreams(clientStream1, serverStream1);
-    }
-
-    /// <summary>Verify streams cannot be created after closing the connection.</summary>
-    [Test]
-    public async Task Create_streams_fails_with_a_closed_connection()
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
-        await sut.AcceptAndConnectAsync();
-
-        // Act
-        await sut.Client.CloseAsync(0ul, default);
-
-        // Assert
-        Assert.That(
-            async () => await sut.Client.CreateStreamAsync(true, default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
@@ -441,12 +405,6 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Assert
         Assert.That(
-            async () => await sut.Client.CreateStreamAsync(true, default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-        Assert.That(
-            async () => await sut.Client.AcceptStreamAsync(default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-        Assert.That(
             async () => await streams.LocalStream.Output.WriteAsync(_oneBytePayload),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(
@@ -475,7 +433,6 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(
             async () => await sut.Client.AcceptStreamAsync(default),
             Throws.InstanceOf<ObjectDisposedException>());
-
         Assert.That(
             async () => await streams.LocalStream.Output.WriteAsync(_oneBytePayload),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));

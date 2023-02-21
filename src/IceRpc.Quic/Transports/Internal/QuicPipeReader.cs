@@ -14,6 +14,7 @@ internal class QuicPipeReader : PipeReader
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
     private readonly Action _completeCallback;
+    private readonly Action _throwIfConnectionClosed;
     private readonly PipeReader _pipeReader;
     private readonly QuicStream _stream;
 
@@ -43,6 +44,8 @@ internal class QuicPipeReader : PipeReader
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
+        _throwIfConnectionClosed();
+
         try
         {
             return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -65,10 +68,16 @@ internal class QuicPipeReader : PipeReader
     // QuicException.
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
-    internal QuicPipeReader(QuicStream stream, MemoryPool<byte> pool, int minimumSegmentSize, Action completeCallback)
+    internal QuicPipeReader(
+        QuicStream stream,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize,
+        Action completeCallback,
+        Action throwIfConnectionClosed)
     {
         _stream = stream;
         _completeCallback = completeCallback;
+        _throwIfConnectionClosed = throwIfConnectionClosed;
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
