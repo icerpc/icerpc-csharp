@@ -219,8 +219,8 @@ public sealed class ConnectionCacheTests
             multiplexedClientTransport: multiplexedClientTransport);
         await new PingableProxy(cache, new Uri("icerpc://foo")).PingAsync();
 
-        TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastConnection!;
-        clientConnection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
+        TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastCreatedConnection!;
+        clientConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
 
         // Shutdown the server to trigger the background client connection shutdown and disposal.
         await server.ShutdownAsync();
@@ -229,10 +229,10 @@ public sealed class ConnectionCacheTests
         ValueTask disposeTask = cache.DisposeAsync();
 
         // Assert
-        await clientConnection.DisposeCalled;
+        await clientConnection.Operations.CalledTask(MultiplexedTransportOperations.Dispose);
         using var cts = new CancellationTokenSource(100);
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
-        clientConnection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
+        clientConnection.Operations.Hold = MultiplexedTransportOperations.None; // Release dispose
         await disposeTask;
     }
 }

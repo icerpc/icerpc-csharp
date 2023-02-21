@@ -27,10 +27,8 @@ public class TestLogger : ILogger
     /// <inheritdoc/>
     public string Category { get; }
 
-
     /// <summary>The logger scope.</summary>
     public Dictionary<string, object?> CurrentScope { get; internal set; } = new();
-
 
     /// <summary>A <see cref="Channel{TestLoggerEntry}"/> where the logger write each entry that has been logged.
     /// </summary>
@@ -81,7 +79,6 @@ public class TestLogger : ILogger
         internal Scope(TestLogger logger) => _logger = logger;
     }
 };
-
 
 /// <summary>An implementation of <see cref="ILoggerFactory"/> for creating <see cref="TestLogger"/> instances.
 /// </summary>

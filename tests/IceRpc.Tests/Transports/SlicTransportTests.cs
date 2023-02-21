@@ -59,18 +59,18 @@ public class SlicTransportTests
         Assert.That(async () => await sut.Client.ConnectAsync(default), Throws.TypeOf<InvalidOperationException>());
     }
 
-    [TestCase(false, false, DuplexTransportOperation.Connect)]
-    [TestCase(false, false, DuplexTransportOperation.Read)]
-    [TestCase(false, false, DuplexTransportOperation.Write)]
-    [TestCase(false, true, DuplexTransportOperation.Connect)]
-    [TestCase(true, false, DuplexTransportOperation.Connect)]
-    [TestCase(true, false, DuplexTransportOperation.Write)]
-    [TestCase(true, false, DuplexTransportOperation.Read)]
-    [TestCase(true, true, DuplexTransportOperation.Connect)]
+    [TestCase(false, false, DuplexTransportOperations.Connect)]
+    [TestCase(false, false, DuplexTransportOperations.Read)]
+    [TestCase(false, false, DuplexTransportOperations.Write)]
+    [TestCase(false, true, DuplexTransportOperations.Connect)]
+    [TestCase(true, false, DuplexTransportOperations.Connect)]
+    [TestCase(true, false, DuplexTransportOperations.Write)]
+    [TestCase(true, false, DuplexTransportOperations.Read)]
+    [TestCase(true, true, DuplexTransportOperations.Connect)]
     public async Task Connect_exception_handling_on_transport_failure(
         bool serverSide,
         bool authenticationException,
-        DuplexTransportOperation operation)
+        DuplexTransportOperations operation)
     {
         // Arrange
         Exception exception = authenticationException ?
@@ -80,10 +80,16 @@ public class SlicTransportTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .AddTestDuplexTransport(
-                clientFailOperation: serverSide ? DuplexTransportOperation.None : operation,
-                clientFailureException: exception,
-                serverFailOperation: serverSide ? operation : DuplexTransportOperation.None,
-                serverFailureException: exception)
+                clientOperationsOptions: new()
+                    {
+                        Fail = serverSide ? DuplexTransportOperations.None : operation,
+                        FailureException = exception
+                    },
+                serverOperationsOptions: new()
+                    {
+                        Fail = serverSide ? operation : DuplexTransportOperations.None,
+                        FailureException = exception
+                    })
             .BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
@@ -137,20 +143,20 @@ public class SlicTransportTests
         Assert.That(caughtException, Is.EqualTo(exception));
     }
 
-    [TestCase(false, DuplexTransportOperation.Connect)]
-    [TestCase(false, DuplexTransportOperation.Read)]
-    [TestCase(false, DuplexTransportOperation.Write)]
-    [TestCase(true, DuplexTransportOperation.Connect)]
-    [TestCase(true, DuplexTransportOperation.Write)]
-    [TestCase(true, DuplexTransportOperation.Read)]
-    public async Task Connect_cancellation_on_transport_hang(bool serverSide, DuplexTransportOperation operation)
+    [TestCase(false, DuplexTransportOperations.Connect)]
+    [TestCase(false, DuplexTransportOperations.Read)]
+    [TestCase(false, DuplexTransportOperations.Write)]
+    [TestCase(true, DuplexTransportOperations.Connect)]
+    [TestCase(true, DuplexTransportOperations.Write)]
+    [TestCase(true, DuplexTransportOperations.Read)]
+    public async Task Connect_cancellation_on_transport_hang(bool serverSide, DuplexTransportOperations operation)
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .AddTestDuplexTransport(
-                clientHoldOperation: serverSide ? DuplexTransportOperation.None : operation,
-                serverHoldOperation: serverSide ? operation : DuplexTransportOperation.None)
+                clientOperationsOptions: new() { Hold = serverSide ? DuplexTransportOperations.None : operation },
+                serverOperationsOptions: new() { Hold = serverSide ? operation : DuplexTransportOperations.None })
             .BuildServiceProvider(validateScopes: true);
 
         var clientConnection = provider.GetRequiredService<SlicConnection>();
@@ -216,7 +222,7 @@ public class SlicTransportTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport(serverHoldOperation: DuplexTransportOperation.Shutdown)
+            .AddTestDuplexTransport(serverOperationsOptions: new() { Hold = DuplexTransportOperations.Shutdown })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -470,7 +476,9 @@ public class SlicTransportTests
         // Arrange
 
         var colocTransport = new ColocTransport();
-        var clientTransport = new TestDuplexClientTransportDecorator(colocTransport.ClientTransport);
+        var clientTransport = new TestDuplexClientTransportDecorator(
+            colocTransport.ClientTransport,
+            operationsOptions: new());
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
@@ -480,7 +488,7 @@ public class SlicTransportTests
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
-        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastConnection;
+        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastCreatedConnection;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
@@ -488,14 +496,14 @@ public class SlicTransportTests
         using var writeCts = new CancellationTokenSource();
 
         // Act
-        duplexClientConnection.HoldOperation = DuplexTransportOperation.Write;
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
         ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[1], writeCts.Token);
         writeCts.Cancel();
         await Task.Delay(TimeSpan.FromMilliseconds(10));
 
         // Assert
         Assert.That(writeTask.IsCompleted, Is.False);
-        duplexClientConnection.HoldOperation = DuplexTransportOperation.None;
+        duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
         Assert.That(async () => await writeTask, Throws.Nothing);
 
         CompleteStreams(localStream, remoteStream);

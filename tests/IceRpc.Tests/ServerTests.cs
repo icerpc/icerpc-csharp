@@ -124,14 +124,9 @@ public class ServerTests
         Assert.That(async () => await connection1.ConnectAsync(), Throws.Nothing);
 
         // Make sure the connection refusal is aborted if the server side transport CloseAsync call hangs or fails.
-        if (failure)
-        {
-            multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.Close;
-        }
-        else
-        {
-            multiplexedServerTransport.HoldOperation = MultiplexedTransportOperation.Close;
-        }
+        multiplexedServerTransport.ConnectionOperationsOptions = failure ?
+            new() { Fail = MultiplexedTransportOperations.Close } :
+            new() { Hold = MultiplexedTransportOperations.Close };
 
         // Act / Assert
         Assert.That(
@@ -149,7 +144,7 @@ public class ServerTests
         var colocTransport = new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 });
         var serverTransport = new SlicServerTransport(new TestDuplexServerTransportDecorator(
             colocTransport.ServerTransport,
-            holdOperation: DuplexTransportOperation.Connect));
+            operationsOptions: new() { Hold = DuplexTransportOperations.Connect }));
         var clientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
@@ -249,7 +244,7 @@ public class ServerTests
         // Shutdown the first connection. This should allow the second connection to be accepted once it's been disposed
         // thus removed from the server's connection list.
         Assert.That(() => clientConnection1.ShutdownAsync(), Throws.Nothing);
-        await testConnection.DisposeCalled;
+        await testConnection.Operations.CalledTask(DuplexTransportOperations.Dispose);
         // Add a small delay to ensure the sever decremented the connection count after disposing the connection.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(() => clientConnection3.ConnectAsync(), Throws.Nothing);
@@ -282,7 +277,7 @@ public class ServerTests
         response.Payload.Complete();
 
         TestMultiplexedConnectionDecorator serverConnection = multiplexedServerTransport.LastAcceptedConnection!;
-        serverConnection.HoldOperation = MultiplexedTransportOperation.DisposeAsync;
+        serverConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
 
         // Shutdown the client connection to trigger the background server connection disposal.
         await clientConnection.ShutdownAsync();
@@ -291,10 +286,10 @@ public class ServerTests
         ValueTask disposeTask = server.DisposeAsync();
 
         // Assert
-        await serverConnection.DisposeCalled;
+        await serverConnection.Operations.CalledTask(MultiplexedTransportOperations.Dispose);
         using var cts = new CancellationTokenSource(100);
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
-        serverConnection.HoldOperation = MultiplexedTransportOperation.None; // Release dispose
+        serverConnection.Operations.Hold = MultiplexedTransportOperations.None; // Release dispose
         await disposeTask;
     }
 
@@ -306,7 +301,7 @@ public class ServerTests
         var colocTransport = new ColocTransport();
         var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
             new SlicServerTransport(colocTransport.ServerTransport),
-            failureException: exception);
+            operationsOptions: new () { FailureException = exception});
         var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
@@ -318,7 +313,9 @@ public class ServerTests
             server.Listen(),
             multiplexedClientTransport: multiplexedClientTransport);
 
-        multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.Accept;
+        await multiplexedServerTransport.ListenerOperations.CalledTask(MultiplexedTransportOperations.Accept);
+
+        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 
         // Act/Assert
 
@@ -328,7 +325,7 @@ public class ServerTests
             () => clientConnection.ConnectAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
-        multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.None;
+        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.None;
 
         Assert.That(() => clientConnection.ConnectAsync(), Throws.Nothing);
     }
@@ -341,7 +338,7 @@ public class ServerTests
         var colocTransport = new ColocTransport();
         var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
             new SlicServerTransport(colocTransport.ServerTransport),
-            failureException: exception);
+            operationsOptions: new() { FailureException = exception });
         var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
@@ -353,12 +350,14 @@ public class ServerTests
             server.Listen(),
             multiplexedClientTransport: multiplexedClientTransport);
 
-        multiplexedServerTransport.FailOperation = MultiplexedTransportOperation.Accept;
+        await multiplexedServerTransport.ListenerOperations.CalledTask(MultiplexedTransportOperations.Accept);
+
+        multiplexedServerTransport.ListenerOperations.Fail = MultiplexedTransportOperations.Accept;
 
         // Act/Assert
 
         // Since the test transport accepts the connection and immediately disposes it before throwing the failure
-        // exception, the connection establishment fail with ConnectionAborted is expected here.
+        // exception, the connection establishment failing with ConnectionAborted is expected here.
         Assert.That(
             () => clientConnection.ConnectAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
