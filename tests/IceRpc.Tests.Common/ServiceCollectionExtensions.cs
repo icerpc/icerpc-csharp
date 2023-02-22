@@ -90,43 +90,37 @@ public static class ServiceCollectionExtensions
                 return new ClientServerMultiplexedConnection(connection, listener);
             });
 
-    /// <summary>Installs a <typeparamref name="TServiceDecorator" /> singleton service decorator for the last
-    /// registered <typeparamref name="TService" /> service. The decorator replaces the last registered
-    /// <typeparamref name="TService" /> and also registers the <typeparamref name="TServiceDecorator" /> decorator
-    /// service.</summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="decorateFunc">The function to decorate the registered service.</param>
-    /// <typeparam name="TService">The service type to decorate.</typeparam>
-    /// <typeparam name="TServiceDecorator">The service decorator type.</typeparam>
-    /// <exception cref="ArgumentException">Thrown if no <typeparamref name="TService" /> service is registered with
-    /// this service collection or if the service is not a singleton service or was not registered with a <see
-    /// cref="ServiceDescriptor.ImplementationFactory"/>.</exception>
-    public static void AddSingletonDecorator<TService, TServiceDecorator>(
+    /// <summary>Installs a transport decorator for the last registered transport.</summary>
+    internal static void AddSingletonTransportDecorator<TTransportService, TTransportDecoratorService>(
         this IServiceCollection services,
-        Func<TService, TServiceDecorator> decorateFunc)
-        where TService : class where TServiceDecorator : class, TService
+        Func<TTransportService, TTransportDecoratorService> decorateFunc)
+        where TTransportService : class where TTransportDecoratorService : class, TTransportService
     {
-        // Find the last TService service registered with this service collection.
-        ServiceDescriptor? descriptor = services.LastOrDefault(desc => desc!.ServiceType == typeof(TService), null);
+        // Find the last TTransportService transport service registered with this service collection.
+        ServiceDescriptor? descriptor = services.LastOrDefault(
+            desc => desc!.ServiceType == typeof(TTransportService),
+            null);
         if (descriptor is null)
         {
-            throw new ArgumentException($"No {typeof(TService)} service is registered");
+            throw new ArgumentException($"No {typeof(TTransportService)} service is registered");
         }
 
         Func<IServiceProvider, object>? factory = descriptor.ImplementationFactory;
         if (factory is null)
         {
-            throw new ArgumentException("Only services registered with an implementation factory are supported.");
+            throw new ArgumentException(
+                "Only transport services registered with an implementation factory are supported.");
         }
         if (descriptor.Lifetime != ServiceLifetime.Singleton)
         {
-            throw new NotSupportedException("Only services registered with the singleton lifetime are supported.");
+            throw new NotSupportedException(
+                "Only transport services registered with the singleton lifetime are supported.");
         }
 
-        // Register the service decorator implementation.
-        services.AddSingleton(provider => decorateFunc((TService)factory(provider)));
+        // Register the transport service decorator implementation.
+        _ = services.AddSingleton(provider => decorateFunc((TTransportService)factory(provider)));
 
-        // Register the service interface.
-        services.AddSingleton<TService>(provider => provider.GetRequiredService<TServiceDecorator>());
+        // Register the transport service interface.
+        services.AddSingleton<TTransportService>(provider => provider.GetRequiredService<TTransportDecoratorService>());
     }
 }

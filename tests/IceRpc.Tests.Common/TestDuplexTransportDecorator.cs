@@ -269,9 +269,9 @@ public static class TestDuplexTransportDecoratorServiceCollectionExtensions
         DuplexTransportOperationsOptions? clientOperationsOptions = null,
         DuplexTransportOperationsOptions? serverOperationsOptions = null)
     {
-        services.AddSingletonDecorator<IDuplexClientTransport, TestDuplexClientTransportDecorator>(
+        services.AddSingletonTransportDecorator<IDuplexClientTransport, TestDuplexClientTransportDecorator>(
             clientTransport => new TestDuplexClientTransportDecorator(clientTransport, clientOperationsOptions));
-        services.AddSingletonDecorator<IDuplexServerTransport, TestDuplexServerTransportDecorator>(
+        services.AddSingletonTransportDecorator<IDuplexServerTransport, TestDuplexServerTransportDecorator>(
             serverTransport => new TestDuplexServerTransportDecorator(serverTransport, serverOperationsOptions));
         return services;
     }

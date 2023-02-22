@@ -516,9 +516,9 @@ public static class TestMultiplexedTransportDecoratorServiceCollectionExtensions
         MultiplexedTransportOperationsOptions? clientOperationsOptions = null,
         MultiplexedTransportOperationsOptions? serverOperationsOptions = null)
     {
-        services.AddSingletonDecorator<IMultiplexedClientTransport, TestMultiplexedClientTransportDecorator>(
+        services.AddSingletonTransportDecorator<IMultiplexedClientTransport, TestMultiplexedClientTransportDecorator>(
             clientTransport => new TestMultiplexedClientTransportDecorator(clientTransport, clientOperationsOptions));
-        services.AddSingletonDecorator<IMultiplexedServerTransport, TestMultiplexedServerTransportDecorator>(
+        services.AddSingletonTransportDecorator<IMultiplexedServerTransport, TestMultiplexedServerTransportDecorator>(
             serverTransport => new TestMultiplexedServerTransportDecorator(serverTransport, serverOperationsOptions));
         return services;
     }
