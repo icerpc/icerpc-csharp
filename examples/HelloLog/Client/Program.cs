@@ -1,15 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using HelloLogExample;
 using IceRpc;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
-using var loggerFactory = LoggerFactory.Create(
-    builder => builder
-        .AddSimpleConsole(configure => configure.IncludeScopes = true)
-        .AddFilter("IceRpc", LogLevel.Trace));
+using ILoggerFactory loggerFactory = LoggerFactory.Create(
+    builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Trace));
 
 // Create a client connection with a logger created for class IceRpc.ClientConnection (it's just a recommended pattern,
 // not a requirement).
