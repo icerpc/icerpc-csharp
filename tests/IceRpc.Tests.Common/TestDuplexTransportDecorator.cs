@@ -50,6 +50,17 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
     private readonly IDuplexClientTransport _decoratee;
     private TestDuplexConnectionDecorator? _lastConnection;
 
+    /// <summary>Constructs a <see cref="TestDuplexClientTransportDecorator" />.</summary>
+    /// <param name="decoratee">The decorated client transport.</param>
+    /// <param name="operationsOptions">The connection operations options.</param>
+    public TestDuplexClientTransportDecorator(
+        IDuplexClientTransport decoratee,
+        TransportOperationsOptions<DuplexTransportOperations>? operationsOptions = null)
+    {
+        _decoratee = decoratee;
+        ConnectionOperationsOptions = operationsOptions ?? new();
+    }
+
     /// <inheritdoc/>
     public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
 
@@ -64,17 +75,6 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
             ConnectionOperationsOptions);
         _lastConnection = connection;
         return connection;
-    }
-
-    /// <summary>Constructs a <see cref="TestDuplexClientTransportDecorator" />.</summary>
-    /// <param name="decoratee">The decorated client transport.</param>
-    /// <param name="operationsOptions">The connection operations options.</param>
-    public TestDuplexClientTransportDecorator(
-        IDuplexClientTransport decoratee,
-        TransportOperationsOptions<DuplexTransportOperations>? operationsOptions = null)
-    {
-        _decoratee = decoratee;
-        ConnectionOperationsOptions = operationsOptions ?? new();
     }
 }
 
@@ -164,34 +164,28 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         private TestDuplexConnectionDecorator? _lastAcceptedConnection;
         private readonly TransportOperations<DuplexTransportOperations> _listenerOperations;
 
-        public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
-            CancellationToken cancellationToken)
-        {
-            await _listenerOperations.CheckAsync(DuplexTransportOperations.Accept, cancellationToken);
+        public Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken) =>
+            _listenerOperations.CallAsync(
+                DuplexTransportOperations.Accept,
+                async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> () =>
+                {
+                    (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
+                        await _decoratee.AcceptAsync(cancellationToken);
+                    LastAcceptedConnection = new TestDuplexConnectionDecorator(
+                        connection,
+                        ConnectionOperationsOptions);
+                    if (_listenerOperations.Fail.HasFlag(DuplexTransportOperations.Accept))
+                    {
+                        // Dispose the connection if the operation is configured to fail.
+                        connection.Dispose();
+                    }
+                    return (LastAcceptedConnection, remoteNetworkAddress);
+                },
+                cancellationToken);
 
-            (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
-                await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
-
-            try
-            {
-                await _listenerOperations.CheckAsync(DuplexTransportOperations.Accept, cancellationToken);
-            }
-            catch
-            {
-                connection.Dispose();
-                throw;
-            }
-
-            LastAcceptedConnection = new TestDuplexConnectionDecorator(connection, ConnectionOperationsOptions);
-            return (LastAcceptedConnection, remoteNetworkAddress);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _listenerOperations.CheckAsync(DuplexTransportOperations.Dispose, CancellationToken.None);
-            await _decoratee.DisposeAsync().ConfigureAwait(false);
-            _listenerOperations.Complete();
-        }
+        public ValueTask DisposeAsync() =>
+            _listenerOperations.CallDisposeAsync(DuplexTransportOperations.Dispose, _decoratee);
 
         internal TestDuplexListenerDecorator(
             IListener<IDuplexConnection> decoratee,
@@ -215,48 +209,35 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     private readonly IDuplexConnection _decoratee;
 
     /// <inheritdoc/>
-    public async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(DuplexTransportOperations.Connect, cancellationToken);
-        return await _decoratee.ConnectAsync(cancellationToken);
-    }
+    public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            DuplexTransportOperations.Connect,
+            () => _decoratee.ConnectAsync(cancellationToken),
+            cancellationToken);
 
     /// <inheritdoc/>
-    public void Dispose()
-    {
-        Operations.Called(DuplexTransportOperations.Dispose);
-        _decoratee.Dispose();
-        Operations.Complete();
-    }
+    public void Dispose() => Operations.CallDispose(DuplexTransportOperations.Dispose, _decoratee);
 
     /// <inheritdoc/>
-    public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(DuplexTransportOperations.Read, cancellationToken);
-
-        int count = await _decoratee.ReadAsync(buffer, cancellationToken);
-
-        // Check again fail/hold condition in case the configuration was changed while ReadAsync was pending.
-        await Operations.CheckAsync(DuplexTransportOperations.Read, cancellationToken);
-
-        return count;
-    }
+    public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            DuplexTransportOperations.Read,
+            () => _decoratee.ReadAsync(buffer, cancellationToken),
+            cancellationToken);
 
     /// <inheritdoc/>
-    public async Task ShutdownAsync(CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(DuplexTransportOperations.Shutdown, cancellationToken);
-        await _decoratee.ShutdownAsync(cancellationToken);
-    }
+    public Task ShutdownAsync(CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            DuplexTransportOperations.Shutdown,
+            () => _decoratee.ShutdownAsync(cancellationToken),
+            cancellationToken);
 
     /// <inheritdoc/>
-    public async ValueTask WriteAsync(
-        IReadOnlyList<ReadOnlyMemory<byte>> buffers,
-        CancellationToken cancellationToken)
-    {
-        await Operations.CheckAsync(DuplexTransportOperations.Write, cancellationToken);
-        await _decoratee.WriteAsync(buffers, cancellationToken);
-    }
+    public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken) =>
+        Operations.CallAsync(
+            DuplexTransportOperations.Write,
+            () => _decoratee.WriteAsync(buffers, cancellationToken),
+            cancellationToken);
 
     internal TestDuplexConnectionDecorator(
         IDuplexConnection decoratee,

@@ -84,6 +84,32 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
     }
 
+    [Test]
+    public async Task Dispose_aborts_connect()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport(clientOperationsOptions:
+                new()
+                {
+                    Hold = MultiplexedTransportOperations.Connect
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        Task connectTask = sut.Client.ConnectAsync(default);
+
+        // Act
+        await sut.Client.DisposeAsync();
+
+        // Assert
+        Assert.That(
+            async () => await connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+    }
+
     /// <summary>Verifies that disposing a server connection aborts the incoming request underlying stream.
     /// </summary>
     [Test]
@@ -664,22 +690,42 @@ public sealed class IceRpcProtocolConnectionTests
         var invokeTask = sut.Client.InvokeAsync(request1);
         await dispatcher.DispatchStart; // Wait for the dispatch to start
 
-        // Don't accept the next stream.
+        var clientConnection = clientTransport.LastCreatedConnection;
+        var serverConnection = serverTransport.LastAcceptedConnection;
+
+        Task waitTask = Task.CompletedTask;
         switch (holdOperation)
         {
             case MultiplexedTransportOperations.AcceptStream:
-                serverTransport.LastAcceptedConnection.Operations.Hold = holdOperation;
+                serverConnection.Operations.Hold = holdOperation;
+                waitTask = serverConnection.Operations.GetCalledTask(holdOperation);
                 break;
             case MultiplexedTransportOperations.CreateStream:
-                clientTransport.LastCreatedConnection.Operations.Hold = holdOperation;
+                clientConnection.Operations.Hold = holdOperation;
                 break;
             case MultiplexedTransportOperations.StreamWrite:
-                clientTransport.LastCreatedConnection.StreamOperationsOptions = new() { Hold = holdOperation };
+                clientConnection.StreamOperationsOptions = new() { Hold = holdOperation };
+                // Wait for the stream creation and the stream write call.
+                var tcs = new TaskCompletionSource();
+                clientConnection.OnCreateStream(stream =>
+                    {
+                        Task writeCalledTask = stream.Operations.GetCalledTask(holdOperation);
+                        Task.Run(
+                            async () =>
+                            {
+                                await writeCalledTask;
+                                tcs.SetResult();
+                            });
+                    });
+                waitTask = tcs.Task;
                 break;
         }
 
         using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc)) { IsOneway = isOneway };
         var invokeTask2 = sut.Client.InvokeAsync(request2);
+
+        // Either wait for accept stream or stream write to be called before calling shutdown.
+        await waitTask;
 
         // Act
         Task shutdownTask = sut.Server.ShutdownAsync();
@@ -692,7 +738,7 @@ public sealed class IceRpcProtocolConnectionTests
         dispatcher.ReleaseDispatch();
         Assert.That(() => invokeTask, Throws.Nothing);
         request1.Dispose(); // Necessary to prevent shutdown to wait for the response payload completion.
-        Assert.That(() => shutdownTask, Throws.Nothing);
+        await shutdownTask;
     }
 
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
@@ -1223,6 +1269,29 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             response.Fields.DecodeValue((ResponseFieldKey)1000, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expectedValue));
+    }
+
+    /// <summary>Ensure that ShutdownAsync fails if ConnectAsync fails.</summary>
+    [Test]
+    public async Task Shutdown_fails_if_connect_fails()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport(clientOperationsOptions:
+                new()
+                {
+                    Fail = MultiplexedTransportOperations.Connect
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        Task connectTask = sut.Client.ConnectAsync(default);
+
+        // Act/Assert
+        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
+        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Verifies that a shutdown can be canceled when the server transport ShutdownAsync is hung.</summary>

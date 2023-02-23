@@ -601,31 +601,6 @@ public sealed class ProtocolConnectionTests
         Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
     }
 
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Dispose_aborts_connect(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
-        // TODO: temporary
-        if (protocol == Protocol.IceRpc)
-        {
-            Task connectTask = sut.Client.ConnectAsync(default);
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-
-            // Act
-            await sut.Client.DisposeAsync();
-
-            // Assert
-            Assert.That(
-                async () => await connectTask,
-                Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-        }
-    }
-
     /// <summary>Ensures that the sending of a request after shutdown fails with <see cref="IceRpcException" />.
     /// </summary>
     [Test, TestCaseSource(nameof(Protocols))]
@@ -916,24 +891,6 @@ public sealed class ProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await shutdownTask, Throws.Nothing);
-    }
-
-    /// <summary>Ensure that ShutdownAsync fails if ConnectAsync fails.</summary>
-    [Test, TestCaseSource(nameof(Protocols))]
-    public async Task Shutdown_fails_if_connect_fails(Protocol protocol)
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(protocol)
-            .BuildServiceProvider(validateScopes: true);
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-
-        Task connectTask = sut.Client.ConnectAsync(default);
-        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give ConnectAsync the time to start
-        await sut.DisposeListenerAsync(); // dispose the listener to trigger the connection establishment failure.
-
-        // Act/Assert
-        Assert.That(async () => await sut.Client.ShutdownAsync(), Throws.InvalidOperationException);
     }
 
     /// <summary>Ensure that ShutdownAsync fails when ConnectAsync is in progress.</summary>
