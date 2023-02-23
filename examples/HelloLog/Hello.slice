@@ -1,0 +1,7 @@
+// Copyright (c) ZeroC, Inc.
+
+module HelloLogExample;
+
+interface Hello {
+    sayHello(name: string) -> string;
+}

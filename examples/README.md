@@ -36,6 +36,10 @@ definitions or generated code.
 
 The HelloQuic example is the Hello example updated to use the QUIC transport instead of the default TCP transport.
 
+## [HelloLog](./HelloLog/)
+
+The HelloLog example is the Hello example updated to include logging.
+
 ## [Interop](./Interop/)
 
 Contains example applications that shows how IceRPC interoperates with [ZeroC Ice][1].

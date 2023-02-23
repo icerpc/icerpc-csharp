@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <SliceCompile Include="../Hello.slice" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
+  </ItemGroup>
+</Project>
