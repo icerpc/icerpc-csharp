@@ -190,6 +190,11 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         _stream = stream;
         _minSegmentSize = minSegmentSize;
         _completeCallback = completeCallback;
+
+        // This callback is used to check if the connection is closed or disposed before calling WriteAsync on the Quic
+        // stream. This check works around the use of the QuicError.OperationAborted error code for both reporting the
+        // abortion of the in-progress write call and for reporting a closed connection before the operation process
+        // starts. In this later case, we want to report ConnectionAborted.
         _throwIfConnectionClosedOrDisposed = throwIfConnectionClosedOrDisposed;
 
         // Create a pipe that never pauses on flush or write. The QuicPipeWriter will pause the flush or write if the
