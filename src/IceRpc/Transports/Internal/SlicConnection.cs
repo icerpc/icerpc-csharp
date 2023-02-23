@@ -63,6 +63,10 @@ internal class SlicConnection : IMultiplexedConnection
     private Task? _readFramesTask;
 
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
+    private int _streamSemaphoreWaitCount;
+    private readonly TaskCompletionSource _streamSemaphoreWaitClosed =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private int _unidirectionalStreamCount;
     private SemaphoreSlim? _unidirectionalStreamSemaphore;
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
@@ -224,7 +228,6 @@ internal class SlicConnection : IMultiplexedConnection
                                 header.Value.FrameSize,
                                 (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
                                 cancellationToken).ConfigureAwait(false);
-
                             DecodeParameters(initializeAckBody.Parameters);
                             break;
 
@@ -405,18 +408,28 @@ internal class SlicConnection : IMultiplexedConnection
                 // TODO: Or ConnectionAborted? See #2382
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
-        }
 
-        using var createStreamCts = CancellationTokenSource.CreateLinkedTokenSource(
-            _closedCancellationToken,
-            cancellationToken);
+            ++_streamSemaphoreWaitCount;
+        }
 
         try
         {
-            SemaphoreSlim streamCountSemaphore = bidirectional ?
-                _bidirectionalStreamSemaphore! :
-                _unidirectionalStreamSemaphore!;
-            await streamCountSemaphore.WaitAsync(createStreamCts.Token).ConfigureAwait(false);
+            using var createStreamCts = CancellationTokenSource.CreateLinkedTokenSource(
+                _closedCancellationToken,
+                cancellationToken);
+
+            SemaphoreSlim? streamCountSemaphore = bidirectional ?
+                _bidirectionalStreamSemaphore :
+                _unidirectionalStreamSemaphore;
+
+            if (streamCountSemaphore is null)
+            {
+                await Task.Delay(-1, createStreamCts.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                await streamCountSemaphore.WaitAsync(createStreamCts.Token).ConfigureAwait(false);
+            }
 
             // TODO: Cache SlicStream
             return new SlicStream(this, bidirectional, remote: false);
@@ -427,6 +440,17 @@ internal class SlicConnection : IMultiplexedConnection
 
             Debug.Assert(_isClosed);
             throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
+        }
+        finally
+        {
+            lock (_mutex)
+            {
+                --_streamSemaphoreWaitCount;
+                if (_isClosed && _streamSemaphoreWaitCount == 0)
+                {
+                    _streamSemaphoreWaitClosed.SetResult();
+                }
+            }
         }
     }
 
@@ -453,6 +477,7 @@ internal class SlicConnection : IMultiplexedConnection
                     _connectTask ?? Task.CompletedTask,
                     _readFramesTask ?? Task.CompletedTask,
                     _writeSemaphore.WaitAsync(CancellationToken.None),
+                    _streamSemaphoreWaitClosed.Task,
                     _pingTask,
                     _pongTask,
                     _closeTask ?? Task.CompletedTask).ConfigureAwait(false);
@@ -653,7 +678,7 @@ internal class SlicConnection : IMultiplexedConnection
     {
         Debug.Assert(!source1.IsEmpty || endStream);
 
-        if (_bidirectionalStreamSemaphore is null)
+        if (_connectTask is null)
         {
             throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
         }
@@ -834,6 +859,10 @@ internal class SlicConnection : IMultiplexedConnection
             _isClosed = true;
             _closedMessage = closeMessage;
             _peerCloseError = peerCloseError;
+            if (_streamSemaphoreWaitCount == 0)
+            {
+                _streamSemaphoreWaitClosed.SetResult();
+            }
         }
 
         // Cancel pending CreateStreamAsync, AcceptStreamAsync and writes on the connection.
@@ -849,6 +878,8 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void DecodeParameters(IDictionary<ParameterKey, IList<byte>> parameters)
     {
+        int? peerPacketMaxSize = null;
+        int? peerPauseWriterThreshold = null;
         foreach ((ParameterKey key, IList<byte> buffer) in parameters)
         {
             switch (key)
@@ -856,64 +887,78 @@ internal class SlicConnection : IMultiplexedConnection
                 case ParameterKey.MaxBidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
-                    // Max count must be greater than 0
-                    _bidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
+                    if (value > 0)
+                    {
+                        _bidirectionalStreamSemaphore = new SemaphoreSlim(value, value);
+                    }
                     break;
                 }
                 case ParameterKey.MaxUnidirectionalStreams:
                 {
                     int value = DecodeParamValue(buffer);
-                    // Max count must be greater than 0
-                    _unidirectionalStreamSemaphore = new SemaphoreSlim(value, value == 0 ? 1 : value);
+                    if (value > 0)
+                    {
+                        _unidirectionalStreamSemaphore = new SemaphoreSlim(value, value);
+                    }
                     break;
                 }
                 case ParameterKey.IdleTimeout:
                 {
                     _peerIdleTimeout = TimeSpan.FromMilliseconds(DecodeParamValue(buffer));
+                    if (_peerIdleTimeout == TimeSpan.Zero)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            "The IdleTimeout Slic connection parameter is invalid, it must be greater than 0 s.");
+                    }
                     break;
                 }
                 case ParameterKey.PacketMaxSize:
                 {
-                    PeerPacketMaxSize = DecodeParamValue(buffer);
+                    peerPacketMaxSize = DecodeParamValue(buffer);
+                    if (peerPacketMaxSize < 1024)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            $"The PacketMaxSize Slic connection parameter is invalid, it must be greater than 1KB.");
+                    }
                     break;
                 }
                 case ParameterKey.PauseWriterThreshold:
                 {
-                    PeerPauseWriterThreshold = DecodeParamValue(buffer);
+                    peerPauseWriterThreshold = DecodeParamValue(buffer);
+                    if (peerPauseWriterThreshold < 1024)
+                    {
+                        throw new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            $"The PauseWriterThreshold Slic connection parameter is invalid, it must be greater than 1KB.");
+                    }
                     break;
                 }
                 // Ignore unsupported parameter.
             }
         }
 
-        // Now, ensure required parameters are set.
-
-        if (_bidirectionalStreamSemaphore is null)
+        if (peerPacketMaxSize is null)
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
-                "The MaxBidirectionalStreams Slic connection parameter is missing.");
+                $"The peer didn't send the required PacketMaxSize Slic connection parameter.");
+        }
+        else
+        {
+            PeerPacketMaxSize = peerPacketMaxSize.Value;
         }
 
-        if (_unidirectionalStreamSemaphore is null)
+        if (peerPauseWriterThreshold is null)
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
-                "The MaxUnidirectionalStreams Slic connection parameter is missing.");
+                $"The peer didn't send the required PauseWriterThreshold Slic connection parameter.");
         }
-
-        if (_peerIdleTimeout == TimeSpan.Zero)
+        else
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                "The IdleTimeout Slic connection parameter is invalid, it must be greater than 0 s.");
-        }
-
-        if (PeerPacketMaxSize < 1024)
-        {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The value '{PeerPacketMaxSize}' is not valid for the PacketMaxSize Slic connection parameter.");
+            PeerPauseWriterThreshold = peerPauseWriterThreshold.Value;
         }
 
         // all parameter values are currently integers in the range 0..Int32Max encoded as varuint62.
@@ -931,16 +976,25 @@ internal class SlicConnection : IMultiplexedConnection
     {
         var parameters = new List<KeyValuePair<ParameterKey, IList<byte>>>
         {
-            EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_maxBidirectionalStreams),
-            EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_maxUnidirectionalStreams),
+            // Required parameters.
             EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
             EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
         };
 
+        // Optional parameters.
         if (_localIdleTimeout != Timeout.InfiniteTimeSpan)
         {
             parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)_localIdleTimeout.TotalMilliseconds));
         }
+        if (_maxBidirectionalStreams > 0)
+        {
+            parameters.Add(EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_maxBidirectionalStreams));
+        }
+        if (_maxUnidirectionalStreams > 0)
+        {
+            parameters.Add(EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_maxUnidirectionalStreams));
+        }
+
         return new Dictionary<ParameterKey, IList<byte>>(parameters);
 
         static KeyValuePair<ParameterKey, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
@@ -1455,6 +1509,9 @@ internal class SlicConnection : IMultiplexedConnection
         {
             throw new InvalidOperationException("Cannot start a stream whose writes are already completed");
         }
+
+        // The _nextBidirectionalId and _nextUnidirectionalId field can be safely updated below, they are protected by
+        // the write semaphore.
 
         if (stream.IsBidirectional)
         {
