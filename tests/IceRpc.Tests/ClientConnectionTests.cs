@@ -282,23 +282,14 @@ public class ClientConnectionTests
     public async Task Dispose_aborts_connect()
     {
         // Arrange
-        var services = new ServiceCollection();
-        services.AddOptions<ClientConnectionOptions>().Configure(
-            options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
-
         await using ServiceProvider provider =
-            services
+            new ServiceCollection()
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
-                .AddTestDuplexTransport(serverOperationsOptions: new() { Hold = DuplexTransportOperations.Connect })
+                .AddTestDuplexTransport(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Connect })
                 .BuildServiceProvider(validateScopes: true);
 
-        Server server = provider.GetRequiredService<Server>();
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
-
-        server.Listen();
-
         Task connectTask = connection.ConnectAsync();
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Act
         await connection.DisposeAsync();

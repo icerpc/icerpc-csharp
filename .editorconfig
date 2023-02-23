@@ -230,4 +230,4 @@ dotnet_naming_style.begin_with__.word_separator =
 dotnet_naming_style.begin_with__.capitalization = camel_case
 
 # License header
-file_header_template = Copyright (c) ZeroC, Inc. All rights reserved.
+file_header_template = Copyright (c) ZeroC, Inc.
