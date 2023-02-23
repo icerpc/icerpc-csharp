@@ -8,11 +8,11 @@ using IceRpc;
 using ILoggerFactory loggerFactory = LoggerFactory.Create(
     builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Trace));
 
-// Create a client connection with a logger created for class IceRpc.ClientConnection (it's just a recommended pattern,
-// not a requirement).
-await using var connection = new ClientConnection(
-    new Uri("icerpc://127.0.0.1"),
-    logger: loggerFactory.CreateLogger<ClientConnection>());
+// Create a logger for category `IceRpc.ClientConnection`.
+ILogger logger = loggerFactory.CreateLogger<ClientConnection>();
+
+// Create a client connection that logs messages using logger.
+await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"), logger: logger);
 
 var helloProxy = new HelloProxy(connection);
 string greeting = await helloProxy.SayHelloAsync(Environment.UserName);

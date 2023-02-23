@@ -8,8 +8,12 @@ using IceRpc;
 using ILoggerFactory loggerFactory = LoggerFactory.Create(
     builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Trace));
 
-// Create a server with a logger created for class IceRpc.Server (it's just a recommended pattern, not a requirement).
-await using var server = new Server(new Chatbot(), logger: loggerFactory.CreateLogger<Server>());
+// Create a logger for category `IceRpc.Server`.
+ILogger logger = loggerFactory.CreateLogger<Server>();
+
+// Create a server that logs messages using logger.
+await using var server = new Server(new Chatbot(), logger: logger);
+
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
