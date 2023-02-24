@@ -47,6 +47,12 @@ internal class QuicPipeReader : PipeReader
         {
             return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+        {
+            // Workaround for https://github.com/dotnet/runtime/issues/82594
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
         catch (QuicException exception)
         {
             throw exception.ToIceRpcException();
