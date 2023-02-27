@@ -2,6 +2,10 @@
 
 module HelloExample;
 
+/// Represents a greeting factory.
 interface Hello {
-    sayHello(name: string) -> string;
+    /// Creates a "hello" greeting.
+    /// @param to: The name of the person to greet.
+    /// @returns: The greeting.
+    sayHello(to: string) -> string;
 }
