@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 // A simple interface reused by several tests.
 interface Pingable {
-    ping();
+    ping()
 }

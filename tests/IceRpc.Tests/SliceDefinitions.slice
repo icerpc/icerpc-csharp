@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests;
+module IceRpc::Tests
 
 interface ReceiveProxyTest {
-    receiveProxy() -> ReceiveProxyTest;
+    receiveProxy() -> ReceiveProxyTest
 }
 
 interface SendProxyTest {
-    sendProxy(proxy: SendProxyTest);
+    sendProxy(proxy: SendProxyTest)
 }

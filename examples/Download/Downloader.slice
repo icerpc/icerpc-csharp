@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-module DownloadExample;
+module DownloadExample
 
 interface Downloader {
-    downloadImage() -> stream uint8;
+    downloadImage() -> stream uint8
 }

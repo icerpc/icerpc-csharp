@@ -1,53 +1,53 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 class SlicingBaseClass {
-    m1: string,
+    m1: string
 }
 
 class SlicingDerivedClass : SlicingBaseClass {
-    m2: string,
+    m2: string
 }
 
 class SlicingMostDerivedClass : SlicingDerivedClass {
-    m3: string,
+    m3: string
 }
 
 class SlicingCompactBaseClass(1) {
-    m1: string,
+    m1: string
 }
 
 class SlicingCompactDerivedClass(2) : SlicingCompactBaseClass {
-    m2: string,
+    m2: string
 }
 
 class SlicingCompactMostDerivedClass(3) : SlicingCompactDerivedClass {
-    m3: string,
+    m3: string
 }
 
 exception SlicingBaseException {
-    m1: string,
+    m1: string
 }
 
 exception SlicingDerivedException : SlicingBaseException {
-    m2: string,
+    m2: string
 }
 
 exception SlicingMostDerivedException : SlicingDerivedException {
-    m3: string,
+    m3: string
 }
 
 class SlicingPreservedClass : SlicingBaseClass {
-    m2: string,
+    m2: string
 }
 
 class SlicingPreservedDerivedClass1 : SlicingPreservedClass {
-    m3: SlicingBaseClass,
+    m3: SlicingBaseClass
 }
 
 class SlicingPreservedDerivedClass2(56) : SlicingPreservedClass {
-    m3: SlicingBaseClass,
+    m3: SlicingBaseClass
 }

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-module OpenTelemetryExample;
+module OpenTelemetryExample
 
 interface CRM {
-    tryAddCustomer(name: string) -> bool;
+    tryAddCustomer(name: string) -> bool
 }

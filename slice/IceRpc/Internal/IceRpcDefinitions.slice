@@ -1,18 +1,18 @@
 // Copyright (c) ZeroC, Inc.
 
 [cs::internal]
-module IceRpc::Internal;
+module IceRpc::Internal
 
 // These definitions help with the encoding of icerpc frames.
 
 /// Each icerpc control frame has a type identified by this enumeration.
 enum IceRpcControlFrameType : uint8 {
     /// The Settings frame is sent by each peer on connection establishment to exchange settings.
-    Settings = 0,
+    Settings = 0
 
     /// The GoAway frame is sent to notify the peer that the connection is being shutdown. The shutdown initiator
     /// sends it as soon as the connection is shutdown. The receiver sends back a GoAway frame in return.
-    GoAway = 1,
+    GoAway = 1
 }
 
 /// Each icerpc request frame consists of:
@@ -21,9 +21,9 @@ enum IceRpcControlFrameType : uint8 {
 /// - a request payload
 [cs::readonly]
 compact struct IceRpcRequestHeader {
-    path: string,
-    operation: string,
-    // fields: dictionary<RequestFieldKey, sequence<uint8>>, (encoded/decoded manually)
+    path: string
+    operation: string
+    // fields: dictionary<RequestFieldKey, sequence<uint8>> (encoded/decoded manually)
 }
 
 /// Each icerpc response frame consists of:
@@ -32,20 +32,20 @@ compact struct IceRpcRequestHeader {
 /// - a response payload
 [cs::readonly]
 compact struct IceRpcResponseHeader {
-    statusCode: StatusCode,
-    // errorMessage: string, // only present when StatusCode > Success
-    // fields: dictionary<ResponseFieldKey, sequence<uint8>>, (encoded/decoded manually)
+    statusCode: StatusCode
+    // errorMessage: string // only present when StatusCode > Success
+    // fields: dictionary<ResponseFieldKey, sequence<uint8>> (encoded/decoded manually)
 }
 
 /// The settings frame is sent by each peer on connection establishment to exchange settings.
 [cs::readonly]
 compact struct IceRpcSettings {
-    value: dictionary<IceRpcSettingKey, varuint62>,
+    value: dictionary<IceRpcSettingKey, varuint62>
 }
 
 /// The keys for Settings entries.
 unchecked enum IceRpcSettingKey : varuint62 {
-    MaxHeaderSize = 0,
+    MaxHeaderSize = 0
 }
 
 /// The GoAway frame is sent on connection shutdown to notify the peer that it shouldn't send additional requests and to
@@ -53,6 +53,6 @@ unchecked enum IceRpcSettingKey : varuint62 {
 /// or otherwise processed, and as a result can be safely retried.
 [cs::readonly]
 compact struct IceRpcGoAway {
-    bidirectionalStreamId: varuint62,
-    unidirectionalStreamId: varuint62,
+    bidirectionalStreamId: varuint62
+    unidirectionalStreamId: varuint62
 }

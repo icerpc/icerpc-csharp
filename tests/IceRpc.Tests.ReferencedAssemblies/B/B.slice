@@ -1,17 +1,17 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::Tests::ReferencedAssemblies;
+module IceRpc::Tests::ReferencedAssemblies
 
 class ClassB : ClassA {
-    bValue: string,
+    bValue: string
 }
 
 class CompactClassB(2) : CompactClassA {
-    bValue: string,
+    bValue: string
 }
 
 exception ExceptionB : ExceptionA {
-    bValue: string,
+    bValue: string
 }

@@ -1,36 +1,36 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 enum MyEnum {
-    Enum1,
-    Enum2,
-    Enum3,
+    Enum1
+    Enum2
+    Enum3
 }
 
 enum MyFixedLengthEnum : int16 {
-    SEnum1,
-    SEnum2,
+    SEnum1
+    SEnum2
     SEnum3
 }
 
 enum MyEnumWithCustomEnumerators {
-    Enum1 = -10,
-    Enum2 = 20,
-    Enum3 = 30,
+    Enum1 = -10
+    Enum2 = 20
+    Enum3 = 30
 }
 
 [cs::attribute("System.Flags")]
 unchecked enum MyUncheckedEnum : uint32 {
-    E0 = 1,
-    E1 = 2,
-    E2 = 4,
-    E3 = 8,
-    E4 = 16,
+    E0 = 1
+    E1 = 2
+    E2 = 4
+    E3 = 8
+    E4 = 16
 }
 
 interface EnumOperations {
-    opCheckedEnumSeq(p1: sequence<MyEnum>);
-    opCheckedEnumWithFixedLengthSeq(p1: sequence<MyFixedLengthEnum>);
-    opUncheckedEnumSeq(p1: sequence<MyUncheckedEnum>);
+    opCheckedEnumSeq(p1: sequence<MyEnum>)
+    opCheckedEnumWithFixedLengthSeq(p1: sequence<MyFixedLengthEnum>)
+    opUncheckedEnumSeq(p1: sequence<MyUncheckedEnum>)
 }
