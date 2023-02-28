@@ -11,11 +11,11 @@ namespace HelloExample;
 internal class Chatbot : Service, IHelloService
 {
     public ValueTask<string> SayHelloAsync(
-        string to,
+        string name,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Fulfilling sayHello request {{ to = '{to}' }}");
-        return new($"Hello, {to}!");
+        Console.WriteLine($"Fulfilling sayHello request {{ name = '{name}' }}");
+        return new($"Hello, {name}!");
     }
 }
