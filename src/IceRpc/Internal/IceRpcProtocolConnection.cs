@@ -1061,13 +1061,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                OutgoingResponse response = await PerformDispatchRequestAsync(
-                    request,
-                    dispatchCts.Token).ConfigureAwait(false);
+                OutgoingResponse response = await PerformDispatchRequestAsync(request, dispatchCts.Token)
+                    .ConfigureAwait(false);
 
                 if (!request.IsOneway)
                 {
-                    // Send the response.
                     Debug.Assert(streamOutput is not null);
                     EncodeHeader(response);
 
