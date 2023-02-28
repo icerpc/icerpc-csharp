@@ -1061,7 +1061,53 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                await PerformDispatchRequestAsync(request, dispatchCts.Token).ConfigureAwait(false);
+                OutgoingResponse response = await PerformDispatchRequestAsync(
+                    request,
+                    dispatchCts.Token).ConfigureAwait(false);
+
+                if (!request.IsOneway)
+                {
+                    // Send the response.
+                    Debug.Assert(streamOutput is not null);
+                    EncodeHeader(response);
+
+                    PipeWriter payloadWriter = response.GetPayloadWriter(streamOutput);
+
+                    // We give flushResult an initial "failed" value, in case the first CopyFromAsync throws.
+                    var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
+
+                    try
+                    {
+                        // We don't use dispatchCts.Token here because it's canceled shortly afterwards. This works
+                        // around https://github.com/dotnet/runtime/issues/82704 where the stream would otherwise be
+                        // aborted after the successful write. It's also fine to just use _disposedCts.Token: if writes
+                        // are closed because the peer is not longer interested in the response, the write operations
+                        // will raise an IceRpcException(StreamAborted) which is ignored.
+
+                        bool hasContinuation = response.PayloadContinuation is not null;
+
+                        flushResult = await payloadWriter.CopyFromAsync(
+                            response.Payload,
+                            stream.WritesClosed,
+                            endStream: !hasContinuation,
+                            _disposedCts.Token).ConfigureAwait(false);
+
+                        if (!flushResult.IsCompleted && !flushResult.IsCanceled && hasContinuation)
+                        {
+                            flushResult = await payloadWriter.CopyFromAsync(
+                                response.PayloadContinuation!,
+                                stream.WritesClosed,
+                                endStream: true,
+                                _disposedCts.Token).ConfigureAwait(false);
+                        }
+                    }
+                    finally
+                    {
+                        payloadWriter.CompleteOutput(success: !flushResult.IsCanceled);
+                        response.Payload.Complete();
+                        response.PayloadContinuation?.Complete();
+                    }
+                }
             }
             catch (Exception exception) when (_taskExceptionObserver is not null)
             {
@@ -1123,7 +1169,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
         }
 
-        async Task PerformDispatchRequestAsync(IncomingRequest request, CancellationToken cancellationToken)
+        async Task<OutgoingResponse> PerformDispatchRequestAsync(
+            IncomingRequest request,
+            CancellationToken cancellationToken)
         {
             Debug.Assert(_dispatcher is not null);
 
@@ -1151,11 +1199,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         "The dispatcher did not return the last response created for this request.");
                 }
             }
-            catch when (request.IsOneway)
-            {
-                // No reply for oneway requests or if the connection is disposed.
-                return;
-            }
             catch (OperationCanceledException exception) when (cancellationToken == exception.CancellationToken)
             {
                 throw;
@@ -1181,77 +1224,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 response = new OutgoingResponse(request, dispatchException);
             }
 
-            if (request.IsOneway)
-            {
-                return;
-            }
-
-            Debug.Assert(streamOutput is not null);
-
-            EncodeHeader();
-
-            PipeWriter payloadWriter = response.GetPayloadWriter(streamOutput);
-
-            // We give flushResult an initial "failed" value, in case the first CopyFromAsync throws.
-            var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
-
-            try
-            {
-                // We don't use cancellationToken (= dispatchCts.Token) here because it's canceled shortly after this
-                // method returns. This works around https://github.com/dotnet/runtime/issues/82704 where the stream
-                // would otherwise be aborted after the successful write. It's also fine to just use _disposedCts.Token,
-                // if writes are closed because the peer is not longer interested in the response, the write operations
-                // will raise an IceRpcException(StreamAborted) which is ignored.
-
-                bool hasContinuation = response.PayloadContinuation is not null;
-
-                flushResult = await payloadWriter.CopyFromAsync(
-                    response.Payload,
-                    stream.WritesClosed,
-                    endStream: !hasContinuation,
-                    _disposedCts.Token).ConfigureAwait(false);
-
-                if (!flushResult.IsCompleted && !flushResult.IsCanceled && hasContinuation)
-                {
-                    flushResult = await payloadWriter.CopyFromAsync(
-                        response.PayloadContinuation!,
-                        stream.WritesClosed,
-                        endStream: true,
-                        _disposedCts.Token).ConfigureAwait(false);
-                }
-            }
-            finally
-            {
-                payloadWriter.CompleteOutput(success: !flushResult.IsCanceled);
-                response.Payload.Complete();
-                response.PayloadContinuation?.Complete();
-            }
-
-            void EncodeHeader()
-            {
-                var encoder = new SliceEncoder(streamOutput, SliceEncoding.Slice2);
-
-                // Write the IceRpc response header.
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
-                int headerStartPos = encoder.EncodedByteCount;
-
-                encoder.EncodeStatusCode(response.StatusCode);
-                if (response.StatusCode > StatusCode.Success)
-                {
-                    encoder.EncodeString(response.ErrorMessage!);
-                }
-
-                encoder.EncodeDictionary(
-                    response.Fields,
-                    (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
-                    (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                        value.Encode(ref encoder, _headerSizeLength));
-
-                // We're done with the header encoding, write the header size.
-                int headerSize = encoder.EncodedByteCount - headerStartPos;
-                CheckPeerHeaderSize(headerSize);
-                SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
-            }
+            return response;
         }
 
         static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
@@ -1263,6 +1236,32 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
             return (header, fields, pipeReader);
+        }
+
+        void EncodeHeader(OutgoingResponse response)
+        {
+            var encoder = new SliceEncoder(streamOutput, SliceEncoding.Slice2);
+
+            // Write the IceRpc response header.
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
+            int headerStartPos = encoder.EncodedByteCount;
+
+            encoder.EncodeStatusCode(response.StatusCode);
+            if (response.StatusCode > StatusCode.Success)
+            {
+                encoder.EncodeString(response.ErrorMessage!);
+            }
+
+            encoder.EncodeDictionary(
+                response.Fields,
+                (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
+                (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                    value.Encode(ref encoder, _headerSizeLength));
+
+            // We're done with the header encoding, write the header size.
+            int headerSize = encoder.EncodedByteCount - headerStartPos;
+            CheckPeerHeaderSize(headerSize);
+            SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
         }
     }
 
