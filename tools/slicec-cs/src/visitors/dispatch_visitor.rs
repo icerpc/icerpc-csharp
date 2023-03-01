@@ -204,7 +204,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                     &param.cs_type_string(namespace, TypeContext::Encode, false),
                     "returnValue",
                     None,
-                    Some("The operation return value".to_owned()),
+                    Some("The operation return value.".to_owned()),
                 );
             }
             _ => {
