@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-module StreamExample;
+module StreamExample
 
 interface NumberStream {
-    streamData(numbers: stream int32);
+    streamData(numbers: stream int32)
 }

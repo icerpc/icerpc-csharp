@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 struct MyStructWithTaggedMembers {
-    a: tag(1) uint8?,
-    b: tag(2) MyStruct?,
-    c: tag(3) MyEnum?,
-    d: tag(4) sequence<uint8>?,
-    e: tag(5) string?,
+    a: tag(1) uint8?
+    b: tag(2) MyStruct?
+    c: tag(3) MyEnum?
+    d: tag(4) sequence<uint8>?
+    e: tag(5) string?
 }

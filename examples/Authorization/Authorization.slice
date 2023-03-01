@@ -1,25 +1,25 @@
 // Copyright (c) ZeroC, Inc.
 
-module AuthorizationExample;
+module AuthorizationExample
 
 /// The authorization token
-typealias Token = sequence<uint8>;
+typealias Token = sequence<uint8>
 
 interface SessionManager {
     /// Creates a new session token.
     /// @param name: The user name.
     /// @returns: The token.
-    createSession(name: string) -> Token;
+    createSession(name: string) -> Token
 }
 
 interface HelloAdmin {
     /// Changes the greeting returned by the Hello service.
     /// @param greeting: The new greeting.
-    changeGreeting(greeting: string);
+    changeGreeting(greeting: string)
 }
 
 interface Hello {
     /// Gets the greeting message.
     /// @returns: The greeting message.
-    sayHello() -> string;
+    sayHello() -> string
 }

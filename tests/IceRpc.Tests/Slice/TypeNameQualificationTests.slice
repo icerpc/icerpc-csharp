@@ -3,19 +3,19 @@
 module IceRpc::Tests::Slice {
     struct S
     {
-        v: string,
+        v: string
     }
 
     module Inner
     {
         struct S
         {
-            v: int32,
+            v: int32
         }
     }
 
     interface TypeNameQualificationOperations
     {
-        opWithTypeNamesDefinedInMultipleModules(s: Inner::S) -> S;
+        opWithTypeNamesDefinedInMultipleModules(s: Inner::S) -> S
     }
 }

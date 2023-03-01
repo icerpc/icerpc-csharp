@@ -22,7 +22,7 @@ fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
 fn identifier_attribute_no_args() {
     // Arrange
     let slice = "
-            module Test;
+            module Test
 
             [cs::identifier()]
             struct S {}
@@ -43,7 +43,7 @@ fn identifier_attribute_no_args() {
 fn identifier_attribute_multiple_args() {
     // Arrange
     let slice = "
-            module Test;
+            module Test
 
             [cs::identifier(\"Foo\", \"Bar\")]
             struct S {}
@@ -64,7 +64,7 @@ fn identifier_attribute_multiple_args() {
 fn identifier_attribute_single_arg() {
     // Arrange
     let slice = "
-            module Test;
+            module Test
 
             [cs::identifier(\"Foo\")]
             struct S {}
@@ -82,7 +82,7 @@ fn identifier_attribute_invalid_on_modules() {
     // Arrange
     let slice = "
             [cs::identifier(\"Foo\")]
-            module Test;
+            module Test
         ";
 
     // Act
@@ -99,10 +99,10 @@ fn identifier_attribute_invalid_on_modules() {
 fn identifier_attribute_on_parameter() {
     // Arrange
     let slice = "
-            module Test;
+            module Test
 
             interface I {
-                op([cs::identifier(\"newParam\")] myParam: int32);
+                op([cs::identifier(\"newParam\")] myParam: int32)
             }
         ";
 
@@ -117,10 +117,10 @@ fn identifier_attribute_on_parameter() {
 fn identifier_attribute_on_type_alias_fails() {
     // Arrange
     let slice = "
-            module Test;
+            module Test
 
             [cs::identifier(\"Foo\")]
-            typealias S = int32;
+            typealias S = int32
         ";
 
     // Act

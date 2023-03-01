@@ -1,16 +1,16 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 interface SequenceMappingOperations {
     opReturnTuple() ->
-        (r1: [cs::generic("CustomSequence")] sequence<int32>,
-         r2: [cs::generic("CustomSequence")] sequence<int32>);
+        (r1: [cs::generic("CustomSequence")] sequence<int32>
+         r2: [cs::generic("CustomSequence")] sequence<int32>)
 
-    opReturnSingleType() -> [cs::generic("CustomSequence")] sequence<int32>;
+    opReturnSingleType() -> [cs::generic("CustomSequence")] sequence<int32>
 
-    opSingleParameter(p: [cs::generic("CustomSequence")] sequence<int32>);
+    opSingleParameter(p: [cs::generic("CustomSequence")] sequence<int32>)
 
-    opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>;
-    opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>;
+    opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>
+    opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>
 }

@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 compact struct MyCompactStructWithNullableProxy {
-    a: int32,
+    a: int32
     i: Pingable?
 }
 

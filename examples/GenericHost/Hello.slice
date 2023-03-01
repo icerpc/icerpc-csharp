@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-module GenericHostExample;
+module GenericHostExample
 
 interface Hello {
-    sayHello(name: string) -> string;
+    sayHello(name: string) -> string
 }

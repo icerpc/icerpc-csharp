@@ -1,5 +1,5 @@
-module HelloExample;
+module HelloExample
 
 interface Hello {
-    sayHello(name: string) -> string;
+    sayHello(name: string) -> string
 }

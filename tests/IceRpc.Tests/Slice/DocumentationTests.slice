@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 /// This is the summary of an interface
 /// It is unrelated to {@link InterfaceLink}.
@@ -13,11 +13,11 @@ interface MyInterface {
     /// @returns i: An integer.
     /// @throws ThrownException: If the operation fails.
     /// @see MyInterface
-    myOperation(s: string) -> (b: bool, i: int32) throws ThrownException;
+    myOperation(s: string) -> (b: bool, i: int32) throws ThrownException
 }
 
 interface InterfaceLink {
-    operationLink();
+    operationLink()
 }
 
 exception ThrownException {}
