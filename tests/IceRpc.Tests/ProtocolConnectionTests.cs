@@ -77,8 +77,11 @@ public sealed class ProtocolConnectionTests
 
                 yield return new TestCaseData(
                     protocol,
-                    (IProtocolConnection connection) =>
-                        connection.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
+                    async (IProtocolConnection connection) =>
+                        {
+                            using var request = new OutgoingRequest(new ServiceAddress(protocol));
+                            await connection.InvokeAsync(request);
+                        },
                     true).SetName($"InvokeAsync {protocol} {{m}}");
 
                 yield return new TestCaseData(
@@ -614,10 +617,11 @@ public sealed class ProtocolConnectionTests
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
         Task shutdownTask = sut.Client.ShutdownAsync();
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
 
         // Act/Assert
         Assert.That(
-            async () => await sut.Client.InvokeAsync(new OutgoingRequest(new ServiceAddress(protocol))),
+            async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationRefused));
     }
 

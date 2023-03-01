@@ -145,6 +145,60 @@ public class SlicTransportTests
         Assert.That(caughtException, Is.EqualTo(exception));
     }
 
+    [Test]
+    public async Task Connect_exception_handling_on_protocol_error([Values(false, true)] bool clientSide)
+    {
+        // Arrange
+        var operationsOptions = new DuplexTransportOperationsOptions()
+        {
+            ReadDecorator = async (decoratee, buffer, cancellationToken) =>
+                {
+                    int count = await decoratee.ReadAsync(buffer, cancellationToken);
+                    buffer.Span[0] = 0xFF; // Bogus frame type.
+                    return count;
+                }
+        };
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransport(
+                serverOperationsOptions: clientSide ? null : operationsOptions,
+                clientOperationsOptions: clientSide ? operationsOptions : null)
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+
+        Task connectTask;
+        Task? clientConnectTask = null;
+        using var clientConnectCts = new CancellationTokenSource();
+        if (clientSide)
+        {
+            connectTask = sut.AcceptAndConnectAsync();
+        }
+        else
+        {
+            clientConnectTask = sut.Client.ConnectAsync(clientConnectCts.Token);
+            connectTask = sut.AcceptAsync();
+        }
+
+        // Assert
+        Assert.That(
+            () => connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        if (clientConnectTask is not null)
+        {
+            clientConnectCts.Cancel();
+            try
+            {
+                await clientConnectTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+    }
+
     [TestCase(false, DuplexTransportOperations.Connect)]
     [TestCase(false, DuplexTransportOperations.Read)]
     [TestCase(false, DuplexTransportOperations.Write)]
@@ -330,6 +384,43 @@ public class SlicTransportTests
 
         // Act/Assert
         Assert.That(async () => await sut.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public async Task ReadFrames_exception_handling_on_protocol_error()
+    {
+        // Arrange
+        bool invalidRead = false;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransport(
+                serverOperationsOptions: new DuplexTransportOperationsOptions()
+                {
+                    ReadDecorator = async (decoratee, buffer, cancellationToken) =>
+                        {
+                            int count = await decoratee.ReadAsync(buffer, cancellationToken);
+                            if (invalidRead)
+                            {
+                                buffer.Span[0] = 0xFF; // Bogus frame type.
+                            }
+                            return count;
+                        }
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        invalidRead = true;
+        IMultiplexedStream stream = await sut.Client.CreateStreamAsync(bidirectional: false, default);
+
+        // Act
+        _ = await stream.Output.WriteAsync(new byte[1], default);
+
+        // Assert
+        Assert.That(
+            () => sut.Server.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]

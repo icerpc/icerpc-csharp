@@ -304,6 +304,63 @@ public sealed class IceRpcProtocolConnectionTests
                 "CancellationToken").EqualTo(connectCts.Token));
     }
 
+    [Test]
+    public async Task Connect_exception_handling_on_protocol_error()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport(
+                clientOperationsOptions: new MultiplexedTransportOperationsOptions()
+                {
+                    StreamInputDecorator = _ => PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xFF }))
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        // Act
+        Task connectTask = sut.ConnectAsync();
+
+        // Assert
+        Assert.That(
+            () => connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
+    [Test]
+    public async Task Dispatch_exception_handling_on_protocol_error()
+    {
+        // Arrange
+        bool invalidRead = false;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport(
+                serverOperationsOptions: new MultiplexedTransportOperationsOptions()
+                {
+                    StreamInputDecorator = decoratee =>
+                        invalidRead ? PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xFF })) : decoratee
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        invalidRead = true; // Ensure that the incoming request header is bogus.
+
+        // Act
+        Task invokeTask = sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(
+            () => invokeTask,
+            // The server closed the output, this results in a TruncatedData error.
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+    }
+
     /// <summary>Verifies that an invalid incoming request is refused.</summary>
     [TestCase(new byte[] { 13 }, true)]
     [TestCase(new byte[] { 13, 3, 4 }, true)]
@@ -575,7 +632,7 @@ public sealed class IceRpcProtocolConnectionTests
     [TestCase(MultiplexedTransportOperations.CreateStream)]
     [TestCase(MultiplexedTransportOperations.StreamWrite)]
     [TestCase(MultiplexedTransportOperations.StreamRead)]
-    public async Task Invoke_exception_handling_on_transport_failure(MultiplexedTransportOperations operation)
+    public async Task Invocation_exception_handling_on_transport_failure(MultiplexedTransportOperations operation)
     {
         // Arrange
 
@@ -624,7 +681,7 @@ public sealed class IceRpcProtocolConnectionTests
     [TestCase(MultiplexedTransportOperations.CreateStream)]
     [TestCase(MultiplexedTransportOperations.StreamWrite)]
     [TestCase(MultiplexedTransportOperations.StreamRead)]
-    public async Task Invoke_cancellation_on_transport_hang(MultiplexedTransportOperations operation)
+    public async Task Invocation_cancellation_on_transport_hang(MultiplexedTransportOperations operation)
     {
         // Arrange
 
@@ -659,6 +716,38 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.InstanceOf<OperationCanceledException>().With.Property(
                 "CancellationToken").EqualTo(invokeCts.Token));
         Assert.That(clientShutdownRequested.IsCompleted, Is.False);
+    }
+
+    [Test]
+    public async Task Invocation_exception_handling_on_protocol_error()
+    {
+        // Arrange
+        bool invalidRead = false;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransport(
+                clientOperationsOptions: new MultiplexedTransportOperationsOptions()
+                {
+                    StreamInputDecorator = decoratee =>
+                        invalidRead ? PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xFF })) : decoratee
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        invalidRead = true; // Ensure that the invocation multiplexed stream returns a bogus header for the response.
+
+        // Act
+        Task invokeTask = sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(
+            () => invokeTask,
+            // The decoding of the response throws InvalidDataException which is reported as an IceRpcError.IceRpcError
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
     [TestCase(false, MultiplexedTransportOperations.CreateStream, IceRpcError.InvocationRefused)]
