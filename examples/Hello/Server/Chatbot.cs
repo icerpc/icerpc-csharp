@@ -15,7 +15,7 @@ internal class Chatbot : Service, IHelloService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Fulfilling sayHello request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching sayHello request {{ name = '{name}' }}");
         return new($"Hello, {name}!");
     }
 }
