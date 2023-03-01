@@ -134,6 +134,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     // Read the Initialize frame sent by the client.
                     header = await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
+
                     if (header is null || header.Value.FrameSize == 0)
                     {
                         throw new InvalidDataException("Received invalid Slic initialize frame.");
@@ -144,7 +145,7 @@ internal class SlicConnection : IMultiplexedConnection
                         throw new InvalidDataException($"Received unexpected Slic frame: '{header.Value.FrameType}'.");
                     }
 
-                    (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
+                    (ulong version, InitializeBody? initializeBody) = await ReadAndDecodeFrameAsync(
                         header.Value.FrameSize,
                         (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
                         cancellationToken).ConfigureAwait(false);
@@ -165,7 +166,7 @@ internal class SlicConnection : IMultiplexedConnection
                             throw new InvalidDataException("Received invalid Slic initialize frame.");
                         }
 
-                        (version, initializeBody) = await ReadFrameAsync(
+                        (version, initializeBody) = await ReadAndDecodeFrameAsync(
                             header.Value.FrameSize,
                             (ref SliceDecoder decoder) => DecodeInitialize(ref decoder, header.Value.FrameSize),
                             cancellationToken).ConfigureAwait(false);
@@ -173,15 +174,18 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (initializeBody is null)
                     {
-                        throw new NotSupportedException(
-                            $"Received initialize frame with unsupported Slic version '{version}'.");
+                        throw new IceRpcException(
+                            IceRpcError.ConnectionAborted,
+                            $"The connection was aborted because the peer's Slic version '{version}' is not supported.");
                     }
 
                     // Check the application protocol and set the parameters.
                     string protocolName = initializeBody.Value.ApplicationProtocolName;
                     if (!Protocol.TryParse(protocolName, out Protocol? protocol) || protocol != Protocol.IceRpc)
                     {
-                        throw new NotSupportedException($"The application protocol '{protocolName}' is not supported.");
+                        throw new IceRpcException(
+                            IceRpcError.ConnectionAborted,
+                            $"The connection was aborted because the peer's application protocol '{protocolName}' is not supported.");
                     }
 
                     DecodeParameters(initializeBody.Value.Parameters);
@@ -216,7 +220,7 @@ internal class SlicConnection : IMultiplexedConnection
                     switch (header.Value.FrameType)
                     {
                         case FrameType.InitializeAck:
-                            InitializeAckBody initializeAckBody = await ReadFrameAsync(
+                            InitializeAckBody initializeAckBody = await ReadAndDecodeFrameAsync(
                                 header.Value.FrameSize,
                                 (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder),
                                 cancellationToken).ConfigureAwait(false);
@@ -225,27 +229,21 @@ internal class SlicConnection : IMultiplexedConnection
                             break;
 
                         case FrameType.Version:
-                            VersionBody versionBody = await ReadFrameAsync(
+                            VersionBody versionBody = await ReadAndDecodeFrameAsync(
                                 header.Value.FrameSize,
                                 (ref SliceDecoder decoder) => new VersionBody(ref decoder),
                                 cancellationToken).ConfigureAwait(false);
 
                             // We currently only support V1
-                            throw new NotSupportedException(
-                                $"Unsupported Slic versions '{string.Join(", ", versionBody.Versions)}'.");
+                            throw new IceRpcException(
+                                IceRpcError.ConnectionAborted,
+                                $"The connection was aborted because the peer's Slic version(s) '{string.Join(", ", versionBody.Versions)}' are not supported.");
 
                         default:
                             throw new InvalidDataException(
                                 $"Received unexpected Slic frame: '{header.Value.FrameType}'.");
                     }
                 }
-            }
-            catch (NotSupportedException exception)
-            {
-                throw new IceRpcException(
-                    IceRpcError.ConnectionAborted,
-                    "The connection was aborted by because of an unsupported Slic protocol feature.",
-                    exception);
             }
             catch (InvalidDataException exception)
             {
@@ -254,11 +252,11 @@ internal class SlicConnection : IMultiplexedConnection
                     "The connection was aborted by a Slic protocol error.",
                     exception);
             }
-            catch (AuthenticationException)
+            catch (OperationCanceledException)
             {
                 throw;
             }
-            catch (OperationCanceledException)
+            catch (AuthenticationException)
             {
                 throw;
             }
@@ -954,7 +952,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private async ValueTask<T> ReadFrameAsync<T>(
+    private async ValueTask<T> ReadAndDecodeFrameAsync<T>(
         int size,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancellationToken)
@@ -980,7 +978,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             case FrameType.Close:
             {
-                CloseBody closeBody = await ReadFrameAsync(
+                CloseBody closeBody = await ReadAndDecodeFrameAsync(
                     size,
                     (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                     cancellationToken).ConfigureAwait(false);
@@ -1157,7 +1155,7 @@ internal class SlicConnection : IMultiplexedConnection
                         "Received invalid Slic stream consumed frame, frame too large.");
                 }
 
-                StreamConsumedBody consumed = await ReadFrameAsync(
+                StreamConsumedBody consumed = await ReadAndDecodeFrameAsync(
                     size,
                     (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
                     cancellationToken).ConfigureAwait(false);
@@ -1184,7 +1182,7 @@ internal class SlicConnection : IMultiplexedConnection
                         "Received invalid Slic stream reset frame, frame too large.");
                 }
 
-                StreamResetBody streamReset = await ReadFrameAsync(
+                StreamResetBody streamReset = await ReadAndDecodeFrameAsync(
                     size,
                     (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
                     cancellationToken).ConfigureAwait(false);
@@ -1210,7 +1208,7 @@ internal class SlicConnection : IMultiplexedConnection
                         "Received invalid Slic stream stop sending frame, frame too large.");
                 }
 
-                StreamStopSendingBody streamStopSending = await ReadFrameAsync(
+                StreamStopSendingBody streamStopSending = await ReadAndDecodeFrameAsync(
                     size,
                     (ref SliceDecoder decoder) => new StreamStopSendingBody(ref decoder),
                     cancellationToken).ConfigureAwait(false);
@@ -1433,6 +1431,15 @@ internal class SlicConnection : IMultiplexedConnection
         {
             Close(exception, "The connection was lost.", IceRpcError.ConnectionAborted);
             throw;
+        }
+        catch (InvalidDataException exception)
+        {
+            var rpcException = new IceRpcException(
+                IceRpcError.ConnectionAborted,
+                "The connection was aborted by a Slic protocol error.",
+                exception);
+            Close(rpcException, rpcException.Message, IceRpcError.ConnectionAborted);
+            throw rpcException;
         }
         catch (Exception exception)
         {

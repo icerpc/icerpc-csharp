@@ -4,7 +4,7 @@
 [cs::internal]
 module IceRpc::Transports::Internal
 
-/// The Slic frame types
+/// The Slic frame types.
 enum FrameType : uint8 {
     /// The initialization frame is sent by the client-side Slic connection on connection establishment.
     Initialize = 1

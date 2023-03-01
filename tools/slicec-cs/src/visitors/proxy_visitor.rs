@@ -61,8 +61,8 @@ impl Visitor for ProxyVisitor<'_> {
             .add_block(request_class(interface_def))
             .add_block(response_class(interface_def))
             .add_block(format!(r#"
-/// <summary>The default service address for services that implement Slice interface <c>{interface_name}</c>. Its
-/// protocol is icerpc and its path is computed from the Slice interface name.</summary>
+/// <summary>Gets the default service address for services that implement Slice interface <c>{interface_name}</c>.
+/// Its protocol is icerpc and its path is computed from the Slice interface name.</summary>
 public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
     new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultPath() }};
 
