@@ -1,11 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Net;
 
 namespace IceRpc.Tests.Transports;
 

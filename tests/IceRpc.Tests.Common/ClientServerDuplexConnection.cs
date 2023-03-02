@@ -4,27 +4,27 @@ using IceRpc.Transports;
 
 namespace IceRpc.Tests.Common;
 
-/// <summary>A helper class to connect and provide access to a client and server multiplexed connections. It also
-/// ensures the connections are correctly disposed.</summary>
-public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
+/// <summary>A helper class to connect and provide access to a client and server duplex connections. It also ensures the
+/// connections are correctly disposed.</summary>
+public sealed class ClientServerDuplexConnection : IAsyncDisposable
 {
     /// <summary>Gets the client connection.</summary>
-    public IMultiplexedConnection Client { get; }
+    public IDuplexConnection Client { get; }
 
     /// <summary>Gets the server connection.</summary>
-    public IMultiplexedConnection Server
+    public IDuplexConnection Server
     {
         get => _server ?? throw new InvalidOperationException("server connection not initialized");
         private set => _server = value;
     }
 
-    private readonly IListener<IMultiplexedConnection> _listener;
-    private IMultiplexedConnection? _server;
+    private readonly IListener<IDuplexConnection> _listener;
+    private IDuplexConnection? _server;
 
     /// <summary>Accepts and connects the server connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The accepted server connection and connection information.</returns>
-    public async Task<(IMultiplexedConnection, TransportConnectionInformation)> AcceptAsync(
+    public async Task<(IDuplexConnection, TransportConnectionInformation)> AcceptAsync(
         CancellationToken cancellationToken = default)
     {
         (_server, _) = await _listener.AcceptAsync(cancellationToken);
@@ -38,23 +38,17 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
         Task.WhenAll(AcceptAsync(cancellationToken), Client.ConnectAsync(cancellationToken));
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        await Client.DisposeAsync();
-
-        if (_server is not null)
-        {
-            await _server.DisposeAsync();
-        }
-        await _listener.DisposeAsync();
+        Client.Dispose();
+        _server?.Dispose();
+        return _listener.DisposeAsync();
     }
 
-    /// <summary>Constructs a new <see cref="ClientServerMultiplexedConnection"/>.</summary>
+    /// <summary>Constructs a new <see cref="ClientServerDuplexConnection"/>.</summary>
     /// <param name="clientConnection">The client connection.</param>
     /// <param name="listener">The listener.</param>
-    public ClientServerMultiplexedConnection(
-        IMultiplexedConnection clientConnection,
-        IListener<IMultiplexedConnection> listener)
+    public ClientServerDuplexConnection(IDuplexConnection clientConnection, IListener<IDuplexConnection> listener)
     {
         _listener = listener;
         Client = clientConnection;

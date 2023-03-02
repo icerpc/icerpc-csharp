@@ -5,12 +5,9 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Net;
-using System.Net.Security;
 using System.Security.Authentication;
 
 namespace IceRpc.Tests.Transports;
@@ -602,6 +599,7 @@ public class SlicTransportTests
             stream.Input.Complete();
         }
     }
+
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedConnection localConnection,
         IMultiplexedConnection remoteConnection,

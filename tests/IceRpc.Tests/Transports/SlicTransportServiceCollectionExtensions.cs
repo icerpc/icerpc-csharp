@@ -7,13 +7,12 @@ using Microsoft.Extensions.Options;
 
 namespace IceRpc.Tests.Transports;
 
-public static class SlicTransportServiceCollectionExtensions
+internal static class SlicTransportServiceCollectionExtensions
 {
-    public static IServiceCollection AddSlicTest(this IServiceCollection services) =>
+    internal static IServiceCollection AddSlicTest(this IServiceCollection services) =>
         services.AddMultiplexedTransportTest().AddSlicTransport();
 
-    /// <summary>Installs the Slic transport.</summary>
-    public static IServiceCollection AddSlicTransport(this IServiceCollection serviceCollection)
+    internal static IServiceCollection AddSlicTransport(this IServiceCollection serviceCollection)
     {
         IServiceCollection services = serviceCollection
             .AddColocTransport()
