@@ -257,8 +257,6 @@ public static class TestDuplexTransportServiceCollectionExtensions
         this IServiceCollection services,
         TransportOperationsOptions<DuplexTransportOperations>? clientOperationsOptions = null,
         TransportOperationsOptions<DuplexTransportOperations>? serverOperationsOptions = null) => services
-        .AddSingleton<ColocTransportOptions>()
-        .AddSingleton(provider => new ColocTransport(provider.GetRequiredService<ColocTransportOptions>()))
         .AddSingleton(provider =>
             new TestDuplexClientTransportDecorator(
                 provider.GetRequiredService<ColocTransport>().ClientTransport,

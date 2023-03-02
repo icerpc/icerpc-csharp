@@ -530,21 +530,16 @@ public class SlicTransportTests
     public async Task Stream_write_cancellation_does_not_cancel_write_if_writing_data_on_duplex_connection()
     {
         // Arrange
-
-        var colocTransport = new ColocTransport();
-        var clientTransport = new TestDuplexClientTransportDecorator(
-            colocTransport.ClientTransport,
-            operationsOptions: new());
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddSingleton(colocTransport.ServerTransport)
-            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .AddTestDuplexTransport()
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
-        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastCreatedConnection;
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
