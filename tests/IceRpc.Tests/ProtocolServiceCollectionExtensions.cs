@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
+using IceRpc.Tests.Transports;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,22 +26,21 @@ public static class ProtocolServiceCollectionExtensions
         {
             services
                 .AddColocTransport()
-                .AddDuplexTransportClientServerTest(new Uri("ice://colochost"))
+                .AddDuplexTransportTest()
                 .AddSingleton(provider =>
                     new ClientServerProtocolConnection(
                         clientProtocolConnection: new IceProtocolConnection(
-                            provider.GetRequiredService<IDuplexConnection>(),
+                            provider.GetRequiredService<ClientServerDuplexConnection>().Client,
                             transportConnectionInformation: null,
                             clientConnectionOptions ?? new()),
                         acceptServerConnectionAsync:
                             async (CancellationToken cancellationToken) =>
                             {
-                                (IDuplexConnection transportConnection, _) =
-                                    await provider.GetRequiredService<IListener<IDuplexConnection>>().AcceptAsync(
+                                IDuplexConnection transportConnection;
+                                TransportConnectionInformation transportConnectionInformation;
+                                (transportConnection, transportConnectionInformation) =
+                                    await provider.GetRequiredService<ClientServerDuplexConnection>().AcceptAsync(
                                         cancellationToken);
-
-                                TransportConnectionInformation transportConnectionInformation =
-                                    await transportConnection.ConnectAsync(cancellationToken);
 
                                 return new IceProtocolConnection(
                                     transportConnection,
@@ -52,10 +52,7 @@ public static class ProtocolServiceCollectionExtensions
         {
             services
                 .AddColocTransport()
-                .AddSingleton<IMultiplexedServerTransport>(
-                    provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
-                .AddSingleton<IMultiplexedClientTransport>(
-                    provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()))
+                .AddSlicTransport()
                 .AddMultiplexedTransportTest()
                 .AddSingleton(provider =>
                     new ClientServerProtocolConnection(

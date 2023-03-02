@@ -21,9 +21,9 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
     private readonly IListener<IMultiplexedConnection> _listener;
     private IMultiplexedConnection? _server;
 
-    /// <summary>Accepts and connects a new connection.</summary>
+    /// <summary>Accepts and connects the server connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>The accepted connection.</returns>
+    /// <returns>The accepted server connection and connection information.</returns>
     public async Task<(IMultiplexedConnection, TransportConnectionInformation)> AcceptAsync(
         CancellationToken cancellationToken = default)
     {
@@ -31,7 +31,7 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
         return (_server, await _server.ConnectAsync(cancellationToken));
     }
 
-    /// <summary>Connects the client connection, and accepts and connect the server connection.</summary>
+    /// <summary>Connects the client connection, accepts the server connection and connects it.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when both connections are connected.</returns>
     public Task AcceptAndConnectAsync(CancellationToken cancellationToken = default) =>

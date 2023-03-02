@@ -64,6 +64,27 @@ public static class ServiceCollectionExtensions
                     provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>()));
 
+    /// <summary>Adds Listener and ClientServerDuplexConnection singletons, with the listener listening on the
+    /// specified server address.</summary>
+    public static IServiceCollection AddDuplexTransportTest(
+        this IServiceCollection services,
+        Uri? serverAddressUri = null) => services
+            .AddSingleton(provider =>
+                provider.GetRequiredService<IDuplexServerTransport>().Listen(
+                    new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost")),
+                    provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
+                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>()))
+            .AddSingleton(provider =>
+            {
+                var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
+                var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+                var connection = clientTransport.CreateConnection(
+                    listener.ServerAddress,
+                    provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
+                    provider.GetService<SslClientAuthenticationOptions>());
+                return new ClientServerDuplexConnection(connection, listener);
+            });
+
     /// <summary>Adds Listener and ClientServerMultiplexedConnection singletons, with the listener listening on the
     /// specified server address.</summary>
     public static IServiceCollection AddMultiplexedTransportTest(
