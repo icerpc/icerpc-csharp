@@ -56,23 +56,22 @@ public static class ProtocolServiceCollectionExtensions
                     provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
                 .AddSingleton<IMultiplexedClientTransport>(
                     provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()))
-                .AddMultiplexedTransportClientServerTest(new Uri("icerpc://colochost"))
+                .AddMultiplexedTransportTest()
                 .AddSingleton(provider =>
                     new ClientServerProtocolConnection(
                         clientProtocolConnection: new IceRpcProtocolConnection(
-                            provider.GetRequiredService<IMultiplexedConnection>(),
+                            provider.GetRequiredService<ClientServerMultiplexedConnection>().Client,
                             transportConnectionInformation: null,
                             clientConnectionOptions ?? new(),
                             provider.GetService<ITaskExceptionObserver>()),
                         acceptServerConnectionAsync:
                             async (CancellationToken cancellationToken) =>
                             {
-                                (IMultiplexedConnection transportConnection, _) =
-                                    await provider.GetRequiredService<IListener<IMultiplexedConnection>>().AcceptAsync(
+                                IMultiplexedConnection transportConnection;
+                                TransportConnectionInformation transportConnectionInformation;
+                                (transportConnection, transportConnectionInformation) =
+                                    await provider.GetRequiredService<ClientServerMultiplexedConnection>().AcceptAsync(
                                         cancellationToken);
-
-                                TransportConnectionInformation transportConnectionInformation =
-                                    await transportConnection.ConnectAsync(cancellationToken);
 
                                 return new IceRpcProtocolConnection(
                                     transportConnection,

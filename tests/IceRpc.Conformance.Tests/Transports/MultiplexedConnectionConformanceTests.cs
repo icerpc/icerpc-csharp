@@ -830,18 +830,3 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 }
-
-public static class MultiplexedTransportServiceCollectionExtensions
-{
-    public static IServiceCollection AddMultiplexedTransportTest(this IServiceCollection services) =>
-        services.AddSingleton(provider =>
-        {
-            var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-            var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-            var connection = clientTransport.CreateConnection(
-                listener.ServerAddress,
-                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                provider.GetService<SslClientAuthenticationOptions>());
-            return new ClientServerMultiplexedConnection(connection, listener);
-        });
-}

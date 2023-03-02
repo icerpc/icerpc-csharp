@@ -64,19 +64,24 @@ public static class ServiceCollectionExtensions
                     provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
                     provider.GetService<SslClientAuthenticationOptions>()));
 
-    /// <summary>Adds Listener and IMultiplexedConnection singletons, with the listener listening on the specified
-    /// server address and the client connection connecting to the listener's server address.</summary>
-    public static IServiceCollection AddMultiplexedTransportClientServerTest(
+    /// <summary>Adds Listener and ClientServerMultiplexedConnection singletons, with the listener listening on the
+    /// specified server address.</summary>
+    public static IServiceCollection AddMultiplexedTransportTest(
         this IServiceCollection services,
-        Uri serverAddressUri) => services
+        Uri? serverAddressUri = null) => services
             .AddSingleton(provider =>
                 provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
-                    new ServerAddress(serverAddressUri),
+                    new ServerAddress(serverAddressUri ?? new Uri("icerpc://colochost")),
                     provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
-                    provider.GetService<SslServerAuthenticationOptions>()))
+                    serverAuthenticationOptions: provider.GetService<SslServerAuthenticationOptions>()))
             .AddSingleton(provider =>
-                provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
-                    provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
+            {
+                var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+                var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+                var connection = clientTransport.CreateConnection(
+                    listener.ServerAddress,
                     provider.GetService<IOptions<MultiplexedConnectionOptions>>()?.Value ?? new(),
-                    provider.GetService<SslClientAuthenticationOptions>()));
+                    provider.GetService<SslClientAuthenticationOptions>());
+                return new ClientServerMultiplexedConnection(connection, listener);
+            });
 }

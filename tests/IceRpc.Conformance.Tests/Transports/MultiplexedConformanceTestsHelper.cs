@@ -27,26 +27,6 @@ internal static class MultiplexedConformanceTestsHelper
         }
     }
 
-    internal static async Task<IMultiplexedConnection> ConnectAndAcceptConnectionAsync(
-        IListener<IMultiplexedConnection> listener,
-        IMultiplexedConnection connection)
-    {
-        var connectTask = connection.ConnectAsync(default);
-        var acceptTask = listener.AcceptAsync(default);
-        if (connectTask.IsFaulted)
-        {
-            await connectTask;
-        }
-        if (acceptTask.IsFaulted)
-        {
-            await acceptTask;
-        }
-        var serverConnection = (await acceptTask).Connection;
-        await serverConnection.ConnectAsync(default);
-        await connectTask;
-        return serverConnection;
-    }
-
     internal static async Task<LocalAndRemoteStreams> CreateAndAcceptStreamAsync(
         IMultiplexedConnection localConnection,
         IMultiplexedConnection remoteConnection,
