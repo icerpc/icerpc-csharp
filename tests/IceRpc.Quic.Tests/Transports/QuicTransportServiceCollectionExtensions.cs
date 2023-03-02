@@ -15,7 +15,7 @@ public static class QuicTransportServiceCollectionExtensions
     public static IServiceCollection AddQuicTest(this IServiceCollection services) =>
         services.AddMultiplexedTransportTest(new Uri("icerpc://127.0.0.1:0/")).AddQuicTransport();
 
-    internal static IServiceCollection AddQuicTransport(this IServiceCollection services)
+    public static IServiceCollection AddQuicTransport(this IServiceCollection services)
     {
         services.AddSingleton(provider => new SslClientAuthenticationOptions
              {
