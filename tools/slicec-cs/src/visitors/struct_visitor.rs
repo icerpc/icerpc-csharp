@@ -39,7 +39,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 .iter()
                 .map(|m| data_member_declaration(m, FieldType::NonMangled))
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join("\n\n")
                 .into(),
         );
 

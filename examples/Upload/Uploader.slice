@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-module UploadExample;
+module UploadExample
 
 interface Uploader {
-    uploadImage(image: stream uint8);
+    uploadImage(image: stream uint8)
 }

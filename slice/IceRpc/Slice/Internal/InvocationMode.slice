@@ -1,25 +1,25 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
 [cs::internal]
-module IceRpc::Slice::Internal;
+module IceRpc::Slice::Internal
 
 /// A service address encoded with Slice1 includes an InvocationMode which specifies the behavior when sending requests to that service.
 /// When encoding a service address, IceRPC always uses Twoway.
 enum InvocationMode {
     /// This is the default invocation mode; a request using this mode always expects a response.
-    Twoway,
+    Twoway
 
     /// Not used by IceRPC.
-    Oneway,
+    Oneway
 
     /// Not used by IceRPC.
-    BatchOneway,
+    BatchOneway
 
     /// Not used by IceRPC.
-    Datagram,
+    Datagram
 
     /// Not used by IceRPC.
-    BatchDatagram,
+    BatchDatagram
 }

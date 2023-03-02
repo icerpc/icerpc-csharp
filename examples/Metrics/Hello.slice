@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-module MetricsExample;
+module MetricsExample
 
 interface Hello {
-    sayHello();
+    sayHello()
 }

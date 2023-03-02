@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::Tests;
+module IceRpc::Tests
 
 exception MyException {}
 exception MyDerivedException : MyException {}

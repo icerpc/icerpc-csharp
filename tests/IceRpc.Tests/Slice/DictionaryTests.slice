@@ -1,24 +1,24 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 interface DictionaryMappingOperations {
     opReturnTuple() ->
-        (r1: [cs::generic("CustomDictionary")] dictionary<int32, int32>,
-         r2: [cs::generic("CustomDictionary")] dictionary<int32, int32>);
+        (r1: [cs::generic("CustomDictionary")] dictionary<int32, int32>
+         r2: [cs::generic("CustomDictionary")] dictionary<int32, int32>)
 
-    opReturnSingleType() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>;
+    opReturnSingleType() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>
 
-    opSingleParameter(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>);
+    opSingleParameter(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>)
 }
 
 [cs::readonly] compact struct LargeStruct {
-    x: int64,
+    x: int64
 
     y: int64
 }
 
 [cs::readonly] compact struct KeyValuePair {
-    Key: int32,
-    Value: string?,
+    Key: int32
+    Value: string?
 }

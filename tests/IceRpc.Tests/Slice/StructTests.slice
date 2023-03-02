@@ -1,20 +1,20 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 struct MyStruct {
-    i: int32,
-    j: int32,
+    i: int32
+    j: int32
 }
 
 struct MyStructWithOptionalMembers {
-    i: int32,
-    j: int32,
-    k: int32?,
+    i: int32
+    j: int32
+    k: int32?
     l: int32?
 }
 
 compact struct MyCompactStruct {
-    i: int32,
-    j: int32,
+    i: int32
+    j: int32
 }

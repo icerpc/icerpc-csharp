@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::IntegrationTests;
+module IceRpc::IntegrationTests
 
 interface Pingable {
-    ping();
+    ping()
 }

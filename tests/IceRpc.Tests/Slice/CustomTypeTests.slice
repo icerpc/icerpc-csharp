@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 [cs::custom("MyCustomType")]
-custom CustomType;
+custom CustomType
 
 compact struct StructWithCustomTypeMember {
     m: CustomType

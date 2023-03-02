@@ -1,7 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
-module HelloExample;
+module HelloExample
 
+/// Represents a simple greeter.
 interface Hello {
-    sayHello(name: string) -> string;
+    /// Creates a personalized "hello" greeting.
+    /// @param name: The name of the person to greet.
+    /// @returns: The greeting.
+    sayHello(name: string) -> string
 }
