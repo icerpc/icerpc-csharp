@@ -48,22 +48,6 @@ public static class ServiceCollectionExtensions
         .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
         .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
 
-    /// <summary>Adds Listener and IDuplexConnection singletons, with the listener listening on the specified server
-    /// address and the client connection connecting to the listener's server address.</summary>
-    public static IServiceCollection AddDuplexTransportClientServerTest(
-        this IServiceCollection services,
-        Uri serverAddressUri) => services
-            .AddSingleton(provider =>
-                provider.GetRequiredService<IDuplexServerTransport>().Listen(
-                    new ServerAddress(serverAddressUri),
-                    provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
-                    provider.GetService<SslServerAuthenticationOptions>()))
-            .AddSingleton(provider =>
-                provider.GetRequiredService<IDuplexClientTransport>().CreateConnection(
-                    provider.GetRequiredService<IListener<IDuplexConnection>>().ServerAddress,
-                    provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
-                    provider.GetService<SslClientAuthenticationOptions>()));
-
     /// <summary>Adds Listener and ClientServerDuplexConnection singletons, with the listener listening on the
     /// specified server address.</summary>
     public static IServiceCollection AddDuplexTransportTest(

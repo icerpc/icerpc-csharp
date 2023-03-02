@@ -12,21 +12,24 @@ namespace IceRpc.Tests.Transports;
 [Parallelizable(ParallelScope.All)]
 public class ColocConnectionConformanceTests : DuplexConnectionConformanceTests
 {
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseColoc();
+    protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
+        new ServiceCollection().AddColocTest(listenBacklog);
 }
 
 /// <summary>Conformance tests for the coloc transport listener.</summary>
 [Parallelizable(ParallelScope.All)]
 public class ColocListenerConformanceTests : DuplexListenerConformanceTests
 {
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseColoc();
+    protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
+        new ServiceCollection().AddColocTest(listenBacklog);
 }
 
-internal static class ColocTransportConformanceTestsServiceCollection
+internal static class ColocTransportServiceCollectionExtensions
 {
-    internal static IServiceCollection UseColoc(this IServiceCollection serviceCollection) =>
+    internal static IServiceCollection AddColocTest(this IServiceCollection serviceCollection, int? listenBacklog) =>
         serviceCollection
-            .AddDuplexTransportClientServerTest(new Uri("icerpc://colochost/"))
+            .AddDuplexTransportTest(new Uri("icerpc://colochost/"))
             .AddColocTransport()
-            .AddSingleton(_ => new ColocTransport(new ColocTransportOptions { ListenBacklog = 1 }));
+            .AddSingleton<ColocTransportOptions>(
+                _ => listenBacklog is null ? new() : new() { ListenBacklog = listenBacklog.Value });
 }

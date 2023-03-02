@@ -16,6 +16,5 @@ public class SlicTransportSslAuthenticationConformanceTests : MultiplexedTranspo
         new ServiceCollection()
             .AddMultiplexedTransportTest(new Uri("icerpc://127.0.0.1:0/"))
             .AddSlicTransport()
-            .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport())
-            .AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport());
+            .AddTcpTransport();
 }

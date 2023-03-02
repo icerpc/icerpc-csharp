@@ -12,24 +12,32 @@ namespace IceRpc.Tests.Transports;
 [Parallelizable(ParallelScope.All)]
 public class TcpConnectionConformanceTests : DuplexConnectionConformanceTests
 {
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseTcp();
+    protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
+        new ServiceCollection().AddTcpTest(listenBacklog);
 }
 
 /// <summary>Conformance tests for the tcp transport listener.</summary>
 [Parallelizable(ParallelScope.All)]
 public class TcpListenerConformanceTests : DuplexListenerConformanceTests
 {
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseTcp();
+    protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
+        new ServiceCollection().AddTcpTest(listenBacklog);
 }
 
-internal static class TcpTransportConformanceTestsServiceCollection
+internal static class TcpTransportServiceCollectionExtensions
 {
-    internal static IServiceCollection UseTcp(this IServiceCollection serviceCollection) =>
+    public static IServiceCollection AddTcpTest(this IServiceCollection services, int? listenBacklog) => services
+        .AddDuplexTransportTest(new Uri("icerpc://127.0.0.1:0/"))
+        .AddTcpTransport()
+        .AddSingleton<TcpServerTransportOptions>(
+            _ => listenBacklog is null ? new() : new() { ListenBacklog = listenBacklog.Value });
+
+    internal static IServiceCollection AddTcpTransport(this IServiceCollection serviceCollection) =>
         serviceCollection
-            .AddDuplexTransportClientServerTest(new Uri("icerpc://127.0.0.1:0/"))
-            .AddSingleton<IDuplexServerTransport>(provider => new TcpServerTransport(new TcpServerTransportOptions
-            {
-                ListenBacklog = 1
-            }))
-            .AddSingleton<IDuplexClientTransport>(provider => new TcpClientTransport());
+            .AddSingleton<TcpClientTransportOptions>()
+            .AddSingleton<TcpServerTransportOptions>()
+            .AddSingleton<IDuplexServerTransport>(
+                provider => new TcpServerTransport(provider.GetRequiredService<TcpServerTransportOptions>()))
+            .AddSingleton<IDuplexClientTransport>(
+                provider => new TcpClientTransport(provider.GetRequiredService<TcpClientTransportOptions>()));
 }
