@@ -24,7 +24,7 @@ public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTe
     }
 
     /// <summary>Creates the service collection used for Quic connection conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTransport();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
 
 [Parallelizable(ParallelScope.All)]
@@ -43,7 +43,7 @@ public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
     }
 
     /// <summary>Creates the service collection used for Quic stream conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTransport();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
 
 [Parallelizable(ParallelScope.All)]
@@ -59,5 +59,5 @@ public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
     }
 
     /// <summary>Creates the service collection used for Quic listener conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTransport();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
