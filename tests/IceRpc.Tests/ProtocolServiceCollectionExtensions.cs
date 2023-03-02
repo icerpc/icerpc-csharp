@@ -37,14 +37,14 @@ public static class ProtocolServiceCollectionExtensions
                         acceptServerConnectionAsync:
                             async (CancellationToken cancellationToken) =>
                             {
-                                IDuplexConnection transportConnection;
-                                TransportConnectionInformation transportConnectionInformation;
-                                (transportConnection, transportConnectionInformation) =
-                                    await provider.GetRequiredService<ClientServerDuplexConnection>().AcceptAsync(
-                                        cancellationToken);
+                                ClientServerDuplexConnection clientServerConnection =
+                                    provider.GetRequiredService<ClientServerDuplexConnection>();
+
+                                TransportConnectionInformation transportConnectionInformation =
+                                    await clientServerConnection.AcceptAsync(cancellationToken);
 
                                 return new IceProtocolConnection(
-                                    transportConnection,
+                                    clientServerConnection.Server,
                                     transportConnectionInformation,
                                     serverConnectionOptions ?? new());
                             }));
@@ -65,14 +65,14 @@ public static class ProtocolServiceCollectionExtensions
                         acceptServerConnectionAsync:
                             async (CancellationToken cancellationToken) =>
                             {
-                                IMultiplexedConnection transportConnection;
-                                TransportConnectionInformation transportConnectionInformation;
-                                (transportConnection, transportConnectionInformation) =
-                                    await provider.GetRequiredService<ClientServerMultiplexedConnection>().AcceptAsync(
-                                        cancellationToken);
+                                ClientServerMultiplexedConnection clientServerConnection =
+                                    provider.GetRequiredService<ClientServerMultiplexedConnection>();
+
+                                TransportConnectionInformation transportConnectionInformation =
+                                    await clientServerConnection.AcceptAsync(cancellationToken);
 
                                 return new IceRpcProtocolConnection(
-                                    transportConnection,
+                                    clientServerConnection.Server,
                                     transportConnectionInformation,
                                     serverConnectionOptions ?? new(),
                                     provider.GetService<ITaskExceptionObserver>());

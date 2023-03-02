@@ -24,11 +24,10 @@ public sealed class ClientServerDuplexConnection : IAsyncDisposable
     /// <summary>Accepts and connects the server connection.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The accepted server connection and connection information.</returns>
-    public async Task<(IDuplexConnection, TransportConnectionInformation)> AcceptAsync(
-        CancellationToken cancellationToken = default)
+    public async Task<TransportConnectionInformation> AcceptAsync(CancellationToken cancellationToken = default)
     {
         (_server, _) = await _listener.AcceptAsync(cancellationToken);
-        return (_server, await _server.ConnectAsync(cancellationToken));
+        return await _server.ConnectAsync(cancellationToken);
     }
 
     /// <summary>Connects the client connection and accepts and connects the server connection.</summary>
