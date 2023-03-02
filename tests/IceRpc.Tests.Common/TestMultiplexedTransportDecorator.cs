@@ -508,23 +508,20 @@ internal sealed class TestPipeReader : PipeReader
 
 /// <summary>Extension methods for setting up the test multiplexed transport in an <see cref="IServiceCollection"
 /// />.</summary>
-public static class TestMultiplexedTransportServiceCollectionExtensions
+public static class TestMultiplexedTransportDecoratorServiceCollectionExtensions
 {
-    /// <summary>Installs the test multiplexed transport (based on the Slic transport).</summary>
-    public static IServiceCollection AddTestMultiplexedTransport(
+    /// <summary>Installs the test multiplexed transport decorator.</summary>
+    public static IServiceCollection AddTestMultiplexedTransportDecorator(
         this IServiceCollection services,
         MultiplexedTransportOperationsOptions? clientOperationsOptions = null,
-        MultiplexedTransportOperationsOptions? serverOperationsOptions = null) => services
-            .AddSingleton(provider =>
-                new TestMultiplexedClientTransportDecorator(
-                    new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()),
-                    clientOperationsOptions))
-            .AddSingleton<IMultiplexedClientTransport>(provider =>
-                provider.GetRequiredService<TestMultiplexedClientTransportDecorator>())
-            .AddSingleton(provider =>
-                new TestMultiplexedServerTransportDecorator(
-                    new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()),
-                    serverOperationsOptions))
-            .AddSingleton<IMultiplexedServerTransport>(provider =>
-                provider.GetRequiredService<TestMultiplexedServerTransportDecorator>());
+        MultiplexedTransportOperationsOptions? serverOperationsOptions = null)
+    {
+        services.AddSingletonDecorator<IMultiplexedClientTransport, TestMultiplexedClientTransportDecorator>(
+            services.Last(descriptor => descriptor.ServiceType == typeof(IMultiplexedClientTransport)),
+            clientTransport => new TestMultiplexedClientTransportDecorator(clientTransport, clientOperationsOptions));
+        services.AddSingletonDecorator<IMultiplexedServerTransport, TestMultiplexedServerTransportDecorator>(
+            services.Last(descriptor => descriptor.ServiceType == typeof(IMultiplexedServerTransport)),
+            serverTransport => new TestMultiplexedServerTransportDecorator(serverTransport, serverOperationsOptions));
+        return services;
+    }
 }

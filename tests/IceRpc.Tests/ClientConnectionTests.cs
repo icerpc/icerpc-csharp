@@ -55,7 +55,11 @@ public class ClientConnectionTests
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
-                .AddTestDuplexTransport(serverOperationsOptions: new() { Hold = DuplexTransportOperations.Connect })
+                .AddTestDuplexTransportDecorator(
+                    serverOperationsOptions: new()
+                    {
+                        Hold = DuplexTransportOperations.Connect
+                    })
                 .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -78,7 +82,11 @@ public class ClientConnectionTests
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
-                .AddTestDuplexTransport(serverOperationsOptions: new() { Hold = DuplexTransportOperations.Connect })
+                .AddTestDuplexTransportDecorator(
+                    serverOperationsOptions: new()
+                    {
+                        Hold = DuplexTransportOperations.Connect
+                    })
                 .BuildServiceProvider(validateScopes: true);
 
         Server server = provider.GetRequiredService<Server>();
@@ -288,7 +296,11 @@ public class ClientConnectionTests
         await using ServiceProvider provider =
             new ServiceCollection()
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
-                .AddTestDuplexTransport(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Connect })
+                .AddTestDuplexTransportDecorator(
+                    clientOperationsOptions: new()
+                    {
+                        Hold = DuplexTransportOperations.Connect
+                    })
                 .BuildServiceProvider(validateScopes: true);
 
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
@@ -314,7 +326,7 @@ public class ClientConnectionTests
         await using ServiceProvider provider =
             services
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
-                .AddTestDuplexTransport()
+                .AddTestDuplexTransportDecorator()
                 .BuildServiceProvider(validateScopes: true);
 
         var serverTransport = provider.GetRequiredService<TestDuplexServerTransportDecorator>();

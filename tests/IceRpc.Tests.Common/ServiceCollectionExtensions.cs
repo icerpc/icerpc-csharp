@@ -89,4 +89,35 @@ public static class ServiceCollectionExtensions
                     provider.GetService<SslClientAuthenticationOptions>());
                 return new ClientServerMultiplexedConnection(connection, listener);
             });
+
+    /// <summary>Installs a service decorator.</summary>
+    /// <exception cref="InvalidOperationException">Thrown if the service to decorator is not registered as a singleton
+    /// or with an implementation factory (<see cref="ServiceDescriptor.ImplementationFactory"/>).</exception>
+    public static void AddSingletonDecorator<TService, TServiceDecorator>(
+        this IServiceCollection services,
+        ServiceDescriptor descriptor,
+        Func<TService, TServiceDecorator> decorateFunc)
+        where TService : class where TServiceDecorator : class, TService
+    {
+        Func<IServiceProvider, object>? factory = descriptor.ImplementationFactory;
+        if (factory is null)
+        {
+            throw new InvalidOperationException(
+                "The service to decorate is not registered with an implementation factory.");
+        }
+        if (descriptor.Lifetime != ServiceLifetime.Singleton)
+        {
+            throw new InvalidOperationException(
+                "The service to decorate is not registered with the singleton lifetime.");
+        }
+
+        // Remove the service registration from the service collection.
+        services.Remove(descriptor);
+
+        // Register the service decorator implementation.
+        services.AddSingleton(provider => decorateFunc((TService)factory(provider)));
+
+        // Register the service interface.
+        services.AddSingleton<TService>(provider => provider.GetRequiredService<TServiceDecorator>());
+    }
 }

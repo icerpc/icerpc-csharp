@@ -261,23 +261,20 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
 
 /// <summary>Extension methods for setting up the test duplex transport in an <see cref="IServiceCollection"
 /// />.</summary>
-public static class TestDuplexTransportServiceCollectionExtensions
+public static class TestDuplexTransportDecoratorServiceCollectionExtensions
 {
-    /// <summary>Installs the test duplex transport.</summary>
-    public static IServiceCollection AddTestDuplexTransport(
+    /// <summary>Installs the test duplex transport decorator.</summary>
+    public static IServiceCollection AddTestDuplexTransportDecorator(
         this IServiceCollection services,
         DuplexTransportOperationsOptions? clientOperationsOptions = null,
-        DuplexTransportOperationsOptions? serverOperationsOptions = null) => services
-        .AddSingleton(provider =>
-            new TestDuplexClientTransportDecorator(
-                provider.GetRequiredService<ColocTransport>().ClientTransport,
-                clientOperationsOptions))
-        .AddSingleton<IDuplexClientTransport>(provider =>
-            provider.GetRequiredService<TestDuplexClientTransportDecorator>())
-        .AddSingleton(provider =>
-            new TestDuplexServerTransportDecorator(
-                provider.GetRequiredService<ColocTransport>().ServerTransport,
-                serverOperationsOptions))
-        .AddSingleton<IDuplexServerTransport>(provider =>
-            provider.GetRequiredService<TestDuplexServerTransportDecorator>());
+        DuplexTransportOperationsOptions? serverOperationsOptions = null)
+    {
+        services.AddSingletonDecorator<IDuplexClientTransport, TestDuplexClientTransportDecorator>(
+            services.Last(descriptor => descriptor.ServiceType == typeof(IDuplexClientTransport)),
+            clientTransport => new TestDuplexClientTransportDecorator(clientTransport, clientOperationsOptions));
+        services.AddSingletonDecorator<IDuplexServerTransport, TestDuplexServerTransportDecorator>(
+            services.Last(descriptor => descriptor.ServiceType == typeof(IDuplexServerTransport)),
+            serverTransport => new TestDuplexServerTransportDecorator(serverTransport, serverOperationsOptions));
+        return services;
+    }
 }
