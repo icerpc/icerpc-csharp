@@ -9,6 +9,8 @@ namespace IceRpc.Transports.Internal;
 internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 {
     private protected QuicConnection? _connection;
+    private volatile bool _isClosed;
+    private volatile bool _isDisposed;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
 
@@ -42,6 +44,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         try
         {
+            _isClosed = true;
             if (_connection is not null)
             {
                 await _connection.CloseAsync((long)closeError, cancellationToken).ConfigureAwait(false);
@@ -83,6 +86,8 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 
     public async ValueTask DisposeAsync()
     {
+        _isDisposed = true;
+
         if (_connection is not null)
         {
             try
@@ -93,6 +98,18 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             {
                 // Workaround for https://github.com/dotnet/runtime/issues/78641.
             }
+        }
+    }
+
+    internal void ThrowIfClosed()
+    {
+        if (_isClosed)
+        {
+            throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was closed.");
+        }
+        else if (_isDisposed)
+        {
+            throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was disposed.");
         }
     }
 }

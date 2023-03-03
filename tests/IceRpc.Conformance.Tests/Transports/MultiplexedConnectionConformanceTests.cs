@@ -70,7 +70,7 @@ public abstract class MultiplexedConnectionConformanceTests
     [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
-    public async Task Accept_stream_fails_on_close(
+    public async Task Accept_stream_fails_on_remote_connection_close(
         MultiplexedConnectionCloseError closeError,
         IceRpcError expectedIceRpcError)
     {
@@ -87,6 +87,40 @@ public abstract class MultiplexedConnectionConformanceTests
         // Assert
         IceRpcException ex = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask)!;
         Assert.That(ex.IceRpcError, Is.EqualTo(expectedIceRpcError));
+    }
+
+    /// <summary>Verify streams cannot be created after disposing the connection.</summary>
+    [Test]
+    public async Task Accept_stream_fails_with_a_disposed_connection()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        // Act
+        await sut.Client.DisposeAsync();
+
+        // Assert
+        Assert.ThrowsAsync<ObjectDisposedException>(() => sut.Client.AcceptStreamAsync(default).AsTask());
+    }
+
+    /// <summary>Verify streams cannot be created after closing the connection.</summary>
+    [Test]
+    public async Task Accept_stream_fails_with_a_closed_connection()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        // Act
+        await sut.Client.CloseAsync(0ul, default);
+
+        // Assert
+        Assert.That(
+            async () => await sut.Client.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]
@@ -212,13 +246,31 @@ public abstract class MultiplexedConnectionConformanceTests
         MultiplexedConformanceTestsHelper.CleanupStreams(clientStream1, serverStream1);
     }
 
+    /// <summary>Verify streams cannot be created after closing the connection.</summary>
+    [Test]
+    public async Task Create_streams_fails_with_a_closed_connection()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        // Act
+        await sut.Client.CloseAsync(0ul, default);
+
+        // Assert
+        Assert.That(
+            async () => await sut.Client.CreateStreamAsync(true, default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
     /// <summary>Verify streams cannot be created after closing down the connection.</summary>
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
     [TestCase(MultiplexedConnectionCloseError.Refused, IceRpcError.ConnectionRefused)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
     [TestCase((MultiplexedConnectionCloseError)255, IceRpcError.ConnectionAborted)]
-    public async Task Cannot_create_streams_with_a_closed_connection(
+    public async Task Create_streams_fails_remote_closed_connection(
         MultiplexedConnectionCloseError closeError,
         IceRpcError expectedIceRpcError)
     {
@@ -246,7 +298,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <param name="disposeServerConnection">Whether to dispose the server connection or the client connection.
     /// </param>
     [Test]
-    public async Task Cannot_create_streams_with_a_disposed_connection(
+    public async Task Create_streams_fails_with_a_disposed_connection(
         [Values(true, false)] bool disposeServerConnection)
     {
         // Arrange
