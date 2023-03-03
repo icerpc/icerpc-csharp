@@ -2,6 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -229,7 +230,7 @@ public class StreamTests
         EncodeSegment(pipe.Writer);
         await pipe.Writer.FlushAsync();
 
-        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
+        var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
         // Act
         IAsyncEnumerable<MyEnum> values = payload.ToAsyncEnumerable<MyEnum>(
@@ -262,7 +263,7 @@ public class StreamTests
         EncodeData(pipe.Writer);
         await pipe.Writer.FlushAsync();
 
-        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
+        var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
         // Act
         IAsyncEnumerable<MyEnum> values = payload.ToAsyncEnumerable<MyEnum>(
@@ -292,7 +293,7 @@ public class StreamTests
         EncodeData(pipe.Writer);
         _ = await pipe.Writer.FlushAsync();
 
-        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
+        var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
         using var cts = new CancellationTokenSource();
         CancellationToken cancel = cts.Token;
@@ -342,7 +343,7 @@ public class StreamTests
         EncodeData(pipe.Writer);
         _ = await pipe.Writer.FlushAsync();
 
-        var payload = new WaitForCompletionPipeReaderDecorator(pipe.Reader);
+        var payload = new PayloadPipeReaderDecorator(pipe.Reader);
         int count = 0;
 
         IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
@@ -383,37 +384,5 @@ public class StreamTests
             encoder.EncodeInt32(30);
             encoder.EncodeInt32(40);
         }
-    }
-
-    private sealed class WaitForCompletionPipeReaderDecorator : PipeReader
-    {
-        public Task Completed => _completionTcs.Task;
-
-        private readonly PipeReader _decoratee;
-        private readonly TaskCompletionSource _completionTcs = new();
-
-        internal WaitForCompletionPipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
-
-        public override void AdvanceTo(SequencePosition consumed) => _decoratee.AdvanceTo(consumed);
-
-        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
-            _decoratee.AdvanceTo(consumed, examined);
-
-        public override void CancelPendingRead() => _decoratee.CancelPendingRead();
-        public override void Complete(Exception? exception = null)
-        {
-            if (exception is not null)
-            {
-                _completionTcs.SetException(exception);
-            }
-            else
-            {
-                _completionTcs.SetResult();
-            }
-            _decoratee.Complete(exception);
-        }
-        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
-            _decoratee.ReadAsync(cancellationToken);
-        public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
     }
 }
