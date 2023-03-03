@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 [cs::identifier("REnamedStruct")]
 struct OriginalStruct {
-    [cs::identifier("renamedX")] x: int32,
+    [cs::identifier("renamedX")] x: int32
 }
 
 [cs::identifier("REnamedInterface")]
@@ -12,9 +12,9 @@ interface OriginalInterface {
     [cs::identifier("REnamedOp")]
     op([cs::identifier("renamedParam")] myParam: OriginalStruct) ->
         (
-            [cs::identifier("renamedReturnOne")] myReturnOne: int32,
+            [cs::identifier("renamedReturnOne")] myReturnOne: int32
             [cs::identifier("renamedReturnTwo")] myReturnTwo: int32
-        );
+        )
 }
 
 [cs::identifier("REnamedEnum")]

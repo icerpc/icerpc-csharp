@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Transports;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net.Security;
@@ -30,15 +30,12 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                 })
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
 
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
-        var clientConnectTask = clientConnection.ConnectAsync(default);
-        (IDuplexConnection serverConnection, _) = await listener.AcceptAsync(default);
-        var serverConnectTask = serverConnection.ConnectAsync(default);
+        var clientConnectTask = sut.Client.ConnectAsync(default);
+        var serverConnectTask = sut.AcceptAsync();
         byte[] buffer = new byte[1];
 
         // Act/Assert
@@ -48,9 +45,9 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         var ex = Assert.ThrowsAsync<IceRpcException>(
             async () =>
             {
-                clientConnection.Dispose();
+                sut.Client.Dispose();
                 await serverConnectTask;
-                await serverConnection.ReadAsync(new byte[1], CancellationToken.None);
+                await sut.Server.ReadAsync(new byte[1], CancellationToken.None);
             });
         Assert.That(ex!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
     }
@@ -80,15 +77,12 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                 })
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
 
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
-        var clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await listener.AcceptAsync(default)).Connection;
-        var serverConnectTask = serverConnection.ConnectAsync(default);
+        var clientConnectTask = sut.Client.ConnectAsync(default);
+        var serverConnectTask = sut.AcceptAsync();
         await clientConnectTask;
 
         // Act/Assert
@@ -99,8 +93,8 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         Assert.That(
             async () =>
             {
-                serverConnection.Dispose();
-                await clientConnection.ReadAsync(new byte[1], CancellationToken.None);
+                sut.Server.Dispose();
+                await sut.Client.ReadAsync(new byte[1], CancellationToken.None);
             },
             Throws.TypeOf<IceRpcException>());
     }

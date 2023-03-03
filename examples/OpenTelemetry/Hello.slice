@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-module OpenTelemetryExample;
+module OpenTelemetryExample
 
 interface Hello {
-    sayHello(name: string) -> string;
+    sayHello(name: string) -> string
 }

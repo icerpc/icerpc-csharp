@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::Slice;
+module IceRpc::Slice
 
 /// The path of a service, encoded as an Ice identity.
 [cs::custom("string")]
-custom IdentityPath;
+custom IdentityPath

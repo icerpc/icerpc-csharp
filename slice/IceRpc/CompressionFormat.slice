@@ -1,15 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc;
+module IceRpc
 
 /// The compression format of a payload.
 unchecked enum CompressionFormat : uint8 {
     /// Reserved value which should not be encoded.
-    NotCompressed = 0,
+    NotCompressed = 0
 
     /// The payload is compressed using the deflate format.
-    Deflate = 1,
+    Deflate = 1
 
     /// The payload is compressed using the brotli format.
-    Brotli = 2,
+    Brotli = 2
 }

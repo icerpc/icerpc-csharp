@@ -1,63 +1,63 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 // Used for testing the generated code corresponding to proxy and dispatch visitors.
 interface MyOperationsA {
     // No parameters and void return
-    opWithoutParametersAndVoidReturn();
+    opWithoutParametersAndVoidReturn()
 
     // Single parameter and return
-    opWithSingleParameterAndReturnValue(p: int32) -> int32;
+    opWithSingleParameterAndReturnValue(p: int32) -> int32
 
     // Multiple parameter and return
-    opWithMultipleParametersAndReturnValues(p1: int32, p2: int32) -> (r1: int32, r2: int32);
+    opWithMultipleParametersAndReturnValues(p1: int32, p2: int32) -> (r1: int32, r2: int32)
 
     // Compress attribute
-    [compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32;
+    [compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32
 
     // Stream parameters and return alone
-    opWithByteStreamArgumentAndReturn(p: stream uint8) -> stream uint8;
-    opWithIntStreamArgumentAndReturn(p: stream int32) -> stream int32;
-    opWithStringStreamArgumentAndReturn(p: stream string) -> stream string;
+    opWithByteStreamArgumentAndReturn(p: stream uint8) -> stream uint8
+    opWithIntStreamArgumentAndReturn(p: stream int32) -> stream int32
+    opWithStringStreamArgumentAndReturn(p: stream string) -> stream string
 
     // Stream parameters and return along regular return and parameters
-    opWithBothRegularAndStreamParameterAndReturn(p1: int32, p2: stream int32) -> (r1: int32, r2: stream int32);
+    opWithBothRegularAndStreamParameterAndReturn(p1: int32, p2: stream int32) -> (r1: int32, r2: stream int32)
 
     // idempotent operation
-    idempotent idempotentOp();
+    idempotent idempotentOp()
 
     // cancel and features as regular parameter names
-    opWithSpecialParameterNames(cancel: int32, features: int32);
+    opWithSpecialParameterNames(cancel: int32, features: int32)
 
     // Encoded result
-    [cs::encodedResult] opWithSingleReturnValueAndEncodedResultAttribute() -> sequence<int32>;
-    [cs::encodedResult] opWithMultipleReturnValuesAndEncodedResultAttribute() -> (r1: sequence<int32>, r2: sequence<int32>);
-    [cs::encodedResult] opWithStreamReturnAndEncodedResultAttribute() -> (r1: sequence<int32>, r2: stream int32);
+    [cs::encodedResult] opWithSingleReturnValueAndEncodedResultAttribute() -> sequence<int32>
+    [cs::encodedResult] opWithMultipleReturnValuesAndEncodedResultAttribute() -> (r1: sequence<int32>, r2: sequence<int32>)
+    [cs::encodedResult] opWithStreamReturnAndEncodedResultAttribute() -> (r1: sequence<int32>, r2: stream int32)
 
     // C# keyword as operation name
-    continue();
+    continue()
 
     // ReadOnlyMemory input parameters and return values
-    opReadOnlyMemory(p1: sequence<int32>) -> sequence<int32>;
+    opReadOnlyMemory(p1: sequence<int32>) -> sequence<int32>
 
     // ReadOnlyMemory optional input parameters and return values
-    opReadOnlyMemoryOptional(p1: sequence<int32>?) -> sequence<int32>?;
+    opReadOnlyMemoryOptional(p1: sequence<int32>?) -> sequence<int32>?
 
     // ReadOnlyMemory tagged input parameters and return values
-    opReadOnlyMemoryTagged(p1: tag(1) sequence<int32>?) -> tag(1) sequence<int32>?;
+    opReadOnlyMemoryTagged(p1: tag(1) sequence<int32>?) -> tag(1) sequence<int32>?
 
     // Proxy parameter and return value
-    opWithProxyParameter(service: Pingable);
-    opWithProxyReturnValue() -> Pingable;
+    opWithProxyParameter(service: Pingable)
+    opWithProxyReturnValue() -> Pingable
 }
 
 interface MyDerivedOperationsA : MyOperationsA {}
 
 interface MyTaggedOperations {
-    op(x: int32, y: tag(1) int32?, z: tag(2) int32?);
+    op(x: int32, y: tag(1) int32?, z: tag(2) int32?)
 }
 
 interface MyTaggedOperationsReadOnlyMemoryParams {
-    op(x: sequence<int32>, y: tag(1) sequence<int32>?, z: tag(2) sequence<int32>?);
+    op(x: sequence<int32>, y: tag(1) sequence<int32>?, z: tag(2) sequence<int32>?)
 }

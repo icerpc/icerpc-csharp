@@ -76,7 +76,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         format!(
-            r#"Provides an extension method for creating {} <see cref="{escaped_identifier}" /> from {} <see cref="{cs_type}" />"#,
+            r#"Provides an extension method for creating {} <see cref="{escaped_identifier}" /> from {} <see cref="{cs_type}" />."#,
             in_definite::get_a_or_an(&escaped_identifier),
             in_definite::get_a_or_an(&cs_type),
         ),
@@ -145,7 +145,7 @@ enumerator."#
                 check_enum = match use_set {
                     true => "_enumeratorValues.Contains(value)".to_owned(),
                     false => format!(
-                        "{min_value} <= value && value <= {max_value}",
+                        "value is >= {min_value} and <= {max_value}",
                         min_value = min_max_values.unwrap().0,
                         max_value = min_max_values.unwrap().1,
                     ),

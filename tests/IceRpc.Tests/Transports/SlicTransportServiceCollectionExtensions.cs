@@ -2,41 +2,28 @@
 
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System.Net.Security;
 
 namespace IceRpc.Tests.Transports;
 
-public static class SlicTransportServiceCollectionExtensions
+internal static class SlicTransportServiceCollectionExtensions
 {
-    public static IServiceCollection AddSlicTest(this IServiceCollection services)
+    internal static IServiceCollection AddSlicTest(this IServiceCollection services) =>
+        services.AddMultiplexedTransportTest().AddSlicTransport();
+
+    internal static IServiceCollection AddSlicTransport(this IServiceCollection serviceCollection)
     {
-        services
+        IServiceCollection services = serviceCollection
             .AddColocTransport()
-            .AddSingleton(provider =>
-                provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
-                    new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
-                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetService<SslServerAuthenticationOptions>()))
-            .AddSingleton(provider =>
-                (SlicConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
-                    provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
-                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetService<SslClientAuthenticationOptions>()))
-            .AddSingleton<IMultiplexedServerTransport>(provider =>
-                new SlicServerTransport(
+            .AddSingleton<IMultiplexedServerTransport>(
+                provider => new SlicServerTransport(
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("server"),
                     provider.GetRequiredService<IDuplexServerTransport>()))
-            .AddSingleton<IMultiplexedClientTransport>(provider =>
-                new SlicClientTransport(
+            .AddSingleton<IMultiplexedClientTransport>(
+                provider => new SlicClientTransport(
                     provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("client"),
-                    provider.GetRequiredService<IDuplexClientTransport>()))
-            .AddSingleton(provider =>
-                new ClientServerMultiplexedConnection(
-                    provider.GetRequiredService<SlicConnection>(),
-                    provider.GetRequiredService<IListener<IMultiplexedConnection>>()));
+                    provider.GetRequiredService<IDuplexClientTransport>()));
 
         services.AddOptions<SlicTransportOptions>("client");
         services.AddOptions<SlicTransportOptions>("server");

@@ -1,28 +1,28 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::IntegrationTests;
+module IceRpc::IntegrationTests
 
 exception ProtocolBridgingException {
-    number: int32,
+    number: int32
 }
 
 interface ProtocolBridgingTest {
     // Simple operations
-    op(x: int32) -> int32;
-    opVoid();
+    op(x: int32) -> int32
+    opVoid()
 
     // Oneway operation
-    [oneway] opOneway(x: int32);
+    [oneway] opOneway(x: int32)
 
     // Operation that throws an exception
-    opException() throws ProtocolBridgingException;
+    opException() throws ProtocolBridgingException
 
     // Operation that throws ServiceNotFoundException (one of the special ice system exceptions)
-    opServiceNotFoundException();
+    opServiceNotFoundException()
 
     // Check the context is correctly forwarded
-    opContext();
+    opContext()
 
     // Operation that returns a new proxy to the same target
-    opNewProxy() -> ProtocolBridgingTest;
+    opNewProxy() -> ProtocolBridgingTest
 }

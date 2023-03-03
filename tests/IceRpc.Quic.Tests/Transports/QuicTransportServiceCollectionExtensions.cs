@@ -12,33 +12,25 @@ namespace IceRpc.Tests.Transports;
 
 public static class QuicTransportServiceCollectionExtensions
 {
-    public static IServiceCollection AddQuicTest(this IServiceCollection services)
+    public static IServiceCollection AddQuicTest(this IServiceCollection services) =>
+        services.AddMultiplexedTransportTest(new Uri("icerpc://127.0.0.1:0/")).AddQuicTransport();
+
+    public static IServiceCollection AddQuicTransport(this IServiceCollection services)
     {
-        services
-            .AddSingleton(provider => new SslClientAuthenticationOptions
-            {
-                ClientCertificates = new X509CertificateCollection
+        services.AddSingleton(provider => new SslClientAuthenticationOptions
+             {
+                 ClientCertificates = new X509CertificateCollection
                     {
                         new X509Certificate2("../../../certs/client.p12", "password")
                     },
-                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-                    certificate?.Issuer.Contains("Ice Tests CA", StringComparison.Ordinal) ?? false
+                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                     certificate?.Issuer.Contains("Ice Tests CA", StringComparison.Ordinal) ?? false
             })
             .AddSingleton(provider => new SslServerAuthenticationOptions
             {
                 ClientCertificateRequired = false,
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             })
-            .AddSingleton(provider =>
-                provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
-                    new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
-                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetRequiredService<SslServerAuthenticationOptions>()))
-            .AddSingleton(provider =>
-                (QuicMultiplexedConnection)provider.GetRequiredService<IMultiplexedClientTransport>().CreateConnection(
-                    provider.GetRequiredService<IListener<IMultiplexedConnection>>().ServerAddress,
-                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetRequiredService<SslClientAuthenticationOptions>()))
             .AddSingleton<IMultiplexedServerTransport>(provider =>
                 new QuicServerTransport(
                     provider.GetRequiredService<IOptionsMonitor<QuicServerTransportOptions>>().Get("server")))

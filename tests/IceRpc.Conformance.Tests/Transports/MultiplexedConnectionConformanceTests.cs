@@ -21,9 +21,7 @@ public abstract class MultiplexedConnectionConformanceTests
     [Test]
     public async Task Accept_a_stream([Values(true, false)] bool serverInitiated)
     {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
@@ -40,9 +38,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Accept_stream_cancellation()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -79,9 +75,7 @@ public abstract class MultiplexedConnectionConformanceTests
         IceRpcError expectedIceRpcError)
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -102,7 +96,7 @@ public abstract class MultiplexedConnectionConformanceTests
         [Values(true, false)] bool remote)
     {
         // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        IServiceCollection serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
             bidirectional ?
                 options => options.MaxBidirectionalStreams = 1 :
@@ -162,7 +156,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Cancel_create_stream_which_is_blocked_after_max_streams_has_been_reached()
     {
         // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        IServiceCollection serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = 1);
 
@@ -191,7 +185,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Create_stream_which_is_waiting_on_streams_semaphore_fails_when_connection_is_closed()
     {
         // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        IServiceCollection serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = 1);
 
@@ -229,9 +223,7 @@ public abstract class MultiplexedConnectionConformanceTests
         IceRpcError expectedIceRpcError)
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -258,9 +250,7 @@ public abstract class MultiplexedConnectionConformanceTests
         [Values(true, false)] bool disposeServerConnection)
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -295,9 +285,7 @@ public abstract class MultiplexedConnectionConformanceTests
     [Test]
     public async Task Close_connection()
     {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -315,9 +303,7 @@ public abstract class MultiplexedConnectionConformanceTests
     [Test]
     public async Task Close_connection_simultaneously_on_both_sides()
     {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -339,9 +325,7 @@ public abstract class MultiplexedConnectionConformanceTests
     [Test]
     public async Task Connect_cancellation()
     {
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
 
         using var cts = new CancellationTokenSource();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
@@ -393,9 +377,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Connection_operations_fail_with_connection_aborted_error_after_close()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
         using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
@@ -425,9 +407,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Connection_operations_fail_with_connection_aborted_error_after_dispose()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
         using LocalAndRemoteStreams streams = await MultiplexedConformanceTestsHelper.CreateAndAcceptStreamAsync(
@@ -458,7 +438,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Connection_dispose_aborts_pending_operations_with_operation_aborted_error()
     {
         // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        IServiceCollection serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = 1);
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -493,9 +473,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Disposing_the_client_connection_aborts_the_server_connection()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -512,9 +490,7 @@ public abstract class MultiplexedConnectionConformanceTests
     public async Task Disposing_the_connection_closes_the_streams()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -539,9 +515,7 @@ public abstract class MultiplexedConnectionConformanceTests
     {
         // Arrange
         var payload = new byte[1024 * 64];
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -594,7 +568,7 @@ public abstract class MultiplexedConnectionConformanceTests
         const int streamMaxCount = 16;
         const int createStreamCount = 32;
 
-        var serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        var serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = streamMaxCount);
 
@@ -685,7 +659,7 @@ public abstract class MultiplexedConnectionConformanceTests
         const int streamMaxCount = 16;
         const int createStreamCount = 32;
 
-        var serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        var serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxUnidirectionalStreams = streamMaxCount);
 
@@ -772,9 +746,7 @@ public abstract class MultiplexedConnectionConformanceTests
         IceRpcError expectedIceRpcError)
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
@@ -801,7 +773,7 @@ public abstract class MultiplexedConnectionConformanceTests
         IceRpcError expectedIceRpcError)
     {
         // Arrange
-        IServiceCollection serviceCollection = CreateServiceCollection().AddMultiplexedTransportTest();
+        IServiceCollection serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
                 options => options.MaxBidirectionalStreams = 1);
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
@@ -829,19 +801,4 @@ public abstract class MultiplexedConnectionConformanceTests
 
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
-}
-
-public static class MultiplexedTransportServiceCollectionExtensions
-{
-    public static IServiceCollection AddMultiplexedTransportTest(this IServiceCollection services) =>
-        services.AddSingleton(provider =>
-        {
-            var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-            var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-            var connection = clientTransport.CreateConnection(
-                listener.ServerAddress,
-                provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                provider.GetService<SslClientAuthenticationOptions>());
-            return new ClientServerMultiplexedConnection(connection, listener);
-        });
 }

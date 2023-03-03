@@ -33,12 +33,19 @@ public enum DuplexTransportOperations
     Write = 32,
 }
 
+/// <summary>A property bag used to configure a <see cref="TransportOperations{DuplexTransportOperations}" />.</summary>
+public record class DuplexTransportOperationsOptions : TransportOperationsOptions<DuplexTransportOperations>
+{
+    /// <summary>The connection read decorator.</summary>
+    public Func<IDuplexConnection, Memory<byte>, CancellationToken, ValueTask<int>>? ReadDecorator { get; set; }
+}
+
 /// <summary>A <see cref="IDuplexClientTransport" /> decorator to create decorated <see cref="IDuplexConnection" />
 /// client connections and to get to the last created connection.</summary>
 public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
 {
     /// <summary>The operations options used to create client connections.</summary>
-    public TransportOperationsOptions<DuplexTransportOperations> ConnectionOperationsOptions { get; set; }
+    public DuplexTransportOperationsOptions ConnectionOperationsOptions { get; set; }
 
     /// <summary>The last created connection.</summary>
     public TestDuplexConnectionDecorator LastCreatedConnection =>
@@ -55,7 +62,7 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
     /// <param name="operationsOptions">The connection operations options.</param>
     public TestDuplexClientTransportDecorator(
         IDuplexClientTransport decoratee,
-        TransportOperationsOptions<DuplexTransportOperations>? operationsOptions = null)
+        DuplexTransportOperationsOptions? operationsOptions = null)
     {
         _decoratee = decoratee;
         ConnectionOperationsOptions = operationsOptions ?? new();
@@ -85,7 +92,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 #pragma warning restore CA1001
 {
     /// <summary>The operations options used to create server connections.</summary>
-    public TransportOperationsOptions<DuplexTransportOperations> ConnectionOperationsOptions
+    public DuplexTransportOperationsOptions ConnectionOperationsOptions
     {
         get => _listener?.ConnectionOperationsOptions ?? _connectionOperationsOptions;
 
@@ -113,7 +120,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
     /// cref="IListener{IDuplexConnection}" /> operations.</summary>
     public TransportOperations<DuplexTransportOperations> ListenerOperations;
 
-    private TransportOperationsOptions<DuplexTransportOperations> _connectionOperationsOptions;
+    private DuplexTransportOperationsOptions _connectionOperationsOptions;
     private readonly IDuplexServerTransport _decoratee;
     private TestDuplexListenerDecorator? _listener;
 
@@ -122,7 +129,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
     /// <param name="operationsOptions">The transport operations options.</param>
     public TestDuplexServerTransportDecorator(
         IDuplexServerTransport decoratee,
-        TransportOperationsOptions<DuplexTransportOperations>? operationsOptions = null)
+        DuplexTransportOperationsOptions? operationsOptions = null)
     {
         _decoratee = decoratee;
         _connectionOperationsOptions = operationsOptions ?? new();
@@ -150,7 +157,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
 
     private class TestDuplexListenerDecorator : IListener<IDuplexConnection>
     {
-        public TransportOperationsOptions<DuplexTransportOperations> ConnectionOperationsOptions { get; set; }
+        public DuplexTransportOperationsOptions ConnectionOperationsOptions { get; set; }
 
         public ServerAddress ServerAddress => _decoratee.ServerAddress;
 
@@ -190,7 +197,7 @@ public class TestDuplexServerTransportDecorator : IDuplexServerTransport
         internal TestDuplexListenerDecorator(
             IListener<IDuplexConnection> decoratee,
             TransportOperations<DuplexTransportOperations> listenerOperations,
-            TransportOperationsOptions<DuplexTransportOperations> operationsOptions)
+            DuplexTransportOperationsOptions operationsOptions)
         {
             _decoratee = decoratee;
             _listenerOperations = listenerOperations;
@@ -207,6 +214,7 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     public TransportOperations<DuplexTransportOperations> Operations { get; }
 
     private readonly IDuplexConnection _decoratee;
+    private readonly Func<IDuplexConnection, Memory<byte>, CancellationToken, ValueTask<int>>? _readDecorator;
 
     /// <inheritdoc/>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
@@ -222,7 +230,9 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
         Operations.CallAsync(
             DuplexTransportOperations.Read,
-            () => _decoratee.ReadAsync(buffer, cancellationToken),
+            () => _readDecorator == null ?
+                _decoratee.ReadAsync(buffer, cancellationToken) :
+                _readDecorator(_decoratee, buffer, cancellationToken),
             cancellationToken);
 
     /// <inheritdoc/>
@@ -241,10 +251,11 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
 
     internal TestDuplexConnectionDecorator(
         IDuplexConnection decoratee,
-        TransportOperationsOptions<DuplexTransportOperations> operationOptions)
+        DuplexTransportOperationsOptions operationsOptions)
     {
         _decoratee = decoratee;
-        Operations = new(operationOptions);
+        _readDecorator = operationsOptions.ReadDecorator;
+        Operations = new(operationsOptions);
     }
 }
 
@@ -255,10 +266,8 @@ public static class TestDuplexTransportServiceCollectionExtensions
     /// <summary>Installs the test duplex transport.</summary>
     public static IServiceCollection AddTestDuplexTransport(
         this IServiceCollection services,
-        TransportOperationsOptions<DuplexTransportOperations>? clientOperationsOptions = null,
-        TransportOperationsOptions<DuplexTransportOperations>? serverOperationsOptions = null) => services
-        .AddSingleton<ColocTransportOptions>()
-        .AddSingleton(provider => new ColocTransport(provider.GetRequiredService<ColocTransportOptions>()))
+        DuplexTransportOperationsOptions? clientOperationsOptions = null,
+        DuplexTransportOperationsOptions? serverOperationsOptions = null) => services
         .AddSingleton(provider =>
             new TestDuplexClientTransportDecorator(
                 provider.GetRequiredService<ColocTransport>().ClientTransport,

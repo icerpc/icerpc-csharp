@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -31,10 +32,10 @@ public abstract class DuplexListenerConformanceTests
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        var clientConnection = provider.GetRequiredService<IDuplexConnection>();
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
 
         Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
-        var clientConnectTask = clientConnection.ConnectAsync(default);
+        var clientConnectTask = sut.Client.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         var serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
@@ -92,7 +93,10 @@ public abstract class DuplexListenerConformanceTests
     public async Task Connect_fails_if_listener_is_disposed()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+
+        // We limit the connection backlog to avoid creating too many connections.
+        await using ServiceProvider provider = CreateServiceCollection(listenBacklog: 1)
+            .BuildServiceProvider(validateScopes: true);
         IListener<IDuplexConnection> listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
         var clientTransport = provider.GetRequiredService<IDuplexClientTransport>();
 
@@ -168,5 +172,6 @@ public abstract class DuplexListenerConformanceTests
     }
 
     /// <summary>Creates the service collection used for the duplex listener transport conformance tests.</summary>
-    protected abstract IServiceCollection CreateServiceCollection();
+    /// <param name="listenBacklog">The length of the server queue for accepting new connections.</param>
+    protected abstract IServiceCollection CreateServiceCollection(int? listenBacklog = null);
 }

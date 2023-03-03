@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1;
+encoding = 1
 
-module IceRpc::Tests::Slice;
+module IceRpc::Tests::Slice
 
 [cs::identifier("REnamedClass")]
 class OriginalClass {
-    [cs::identifier("renamedX")] x: int32,
+    [cs::identifier("renamedX")] x: int32
 }
 
 [cs::identifier("REnamedException")]

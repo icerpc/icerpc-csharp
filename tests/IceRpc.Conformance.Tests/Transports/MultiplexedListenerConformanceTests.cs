@@ -28,9 +28,7 @@ public abstract class MultiplexedListenerConformanceTests
     public async Task Call_accept_on_a_listener_accepts_a_connection()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
         var clientConnection = clientTransport.CreateConnection(
@@ -171,9 +169,7 @@ public abstract class MultiplexedListenerConformanceTests
     public async Task Listener_server_address_transport_property_is_set()
     {
         // Arrange
-        await using ServiceProvider provider = CreateServiceCollection()
-            .AddMultiplexedTransportTest()
-            .BuildServiceProvider(validateScopes: true);
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var transport = provider.GetRequiredService<IMultiplexedClientTransport>().Name;
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 

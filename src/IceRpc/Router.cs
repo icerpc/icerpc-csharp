@@ -6,7 +6,7 @@ namespace IceRpc;
 public sealed class Router : IDispatcher
 {
     /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this
-    /// Router is: <code>$"{AbsolutePrefix}{path}"</code> where <c>path</c> corresponds to the argument given to
+    /// Router is: <c>$"{AbsolutePrefix}{path}"</c> where <c>path</c> corresponds to the argument given to
     /// <see cref="Map(string, IDispatcher)" />.</summary>
     /// <value>The absolute prefix of this router. It is either an empty string or a string with two or more
     /// characters starting with a <c>/</c>.</value>

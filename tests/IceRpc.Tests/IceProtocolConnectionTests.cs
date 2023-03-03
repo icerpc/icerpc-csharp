@@ -137,12 +137,12 @@ public sealed class IceProtocolConnectionTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransport(
-                clientOperationsOptions: new TransportOperationsOptions<DuplexTransportOperations>
+                clientOperationsOptions: new DuplexTransportOperationsOptions
                     {
                         Fail = serverConnection ? DuplexTransportOperations.None : operation,
                         FailureException = exception
                     },
-                serverOperationsOptions: new TransportOperationsOptions<DuplexTransportOperations>
+                serverOperationsOptions: new DuplexTransportOperationsOptions
                     {
                         Fail = serverConnection ? operation : DuplexTransportOperations.None,
                         FailureException = exception
@@ -221,6 +221,35 @@ public sealed class IceProtocolConnectionTests
     }
 
     [Test]
+    public async Task Connect_exception_handling_on_protocol_error()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
+            .AddTestDuplexTransport(
+                clientOperationsOptions: new DuplexTransportOperationsOptions()
+                {
+                    ReadDecorator = async (decoratee, buffer, cancellationToken) =>
+                        {
+                            int count = await decoratee.ReadAsync(buffer, cancellationToken);
+                            buffer.Span[0] = 0xFF; // Bogus ice magic.
+                            return count;
+                        }
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+
+        // Act
+        Task connectTask = sut.ConnectAsync();
+
+        // Assert
+        Assert.That(
+            () => connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+    }
+
+    [Test]
     public async Task Dispose_aborts_connect()
     {
         // Arrange
@@ -247,7 +276,7 @@ public sealed class IceProtocolConnectionTests
     }
 
     [Test]
-    public async Task Invoke_exception_handling_on_read_transport_failure()
+    public async Task Invocation_exception_handling_on_read_transport_failure()
     {
         // Arrange
 
@@ -284,7 +313,7 @@ public sealed class IceProtocolConnectionTests
     }
 
     [Test]
-    public async Task Invoke_exception_handling_on_write_transport_failure()
+    public async Task Invocation_exception_handling_on_write_transport_failure()
     {
         // Arrange
 
@@ -318,7 +347,7 @@ public sealed class IceProtocolConnectionTests
     }
 
     [Test]
-    public async Task Invoke_cancellation_on_duplex_transport_hang([Values] bool oneway)
+    public async Task Invocation_cancellation_on_duplex_transport_hang([Values] bool oneway)
     {
         // Arrange
 
@@ -517,6 +546,45 @@ public sealed class IceProtocolConnectionTests
             async () => (await sut.Client.InvokeAsync(request)).StatusCode,
             Is.EqualTo(StatusCode.UnhandledException));
         Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+    }
+
+    [Test]
+    public async Task ReadFrames_exception_handling_on_protocol_error()
+    {
+        // Arrange
+        bool invalidRead = false;
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher: dispatcher)
+            .AddTestDuplexTransport(
+                clientOperationsOptions: new DuplexTransportOperationsOptions()
+                {
+                    ReadDecorator = async (decoratee, buffer, cancellationToken) =>
+                        {
+                            int count = await decoratee.ReadAsync(buffer, cancellationToken);
+                            if (invalidRead)
+                            {
+                                buffer.Span[0] = 0xFF; // Bogus ice magic.
+                            }
+                            return count;
+                        }
+                })
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+
+        // Act
+        Task invokeTask = sut.Client.InvokeAsync(request);
+        invalidRead = true;
+        dispatcher.ReleaseDispatch(); // Triggers the sending of the response.
+
+        // Assert
+        Assert.That(
+            () => invokeTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]
