@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal;
 internal class SlicPipeReader : PipeReader
 {
     private int _examined;
-    private Exception? _exception;
+    private volatile Exception? _exception;
     private long _lastExaminedOffset;
     private readonly Pipe _pipe;
     private ReadResult _readResult;
@@ -63,6 +63,11 @@ internal class SlicPipeReader : PipeReader
     {
         ThrowIfCompleted();
 
+        if (_exception is not null)
+        {
+            _stream.ThrowIfConnectionClosed();
+        }
+
         ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
@@ -86,6 +91,11 @@ internal class SlicPipeReader : PipeReader
     public override bool TryRead(out ReadResult result)
     {
         ThrowIfCompleted();
+
+        if (_exception is not null)
+        {
+            _stream.ThrowIfConnectionClosed();
+        }
 
         if (_pipe.Reader.TryRead(out result))
         {

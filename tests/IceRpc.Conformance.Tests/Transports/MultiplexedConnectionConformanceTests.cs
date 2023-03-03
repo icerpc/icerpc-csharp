@@ -388,19 +388,18 @@ public abstract class MultiplexedConnectionConformanceTests
         await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
 
         // Assert
-        // TODO: OperationAborted or ConnectionAborted? Or another code? See #2382.
         Assert.That(
             async () => await sut.Client.CreateStreamAsync(true, default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(
             async () => await sut.Client.AcceptStreamAsync(default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
-        Assert.That(
-            async () => await streams.LocalStream.Input.ReadAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
         Assert.That(
             async () => await streams.LocalStream.Output.WriteAsync(_oneBytePayload),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            async () => await streams.LocalStream.Input.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]
@@ -425,13 +424,12 @@ public abstract class MultiplexedConnectionConformanceTests
             async () => await sut.Client.AcceptStreamAsync(default),
             Throws.InstanceOf<ObjectDisposedException>());
 
-        // TODO: OperationAborted or ConnectionAborted? Or another code? See #2382.
-        Assert.That(
-            async () => await streams.LocalStream.Input.ReadAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
         Assert.That(
             async () => await streams.LocalStream.Output.WriteAsync(_oneBytePayload),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            async () => await streams.LocalStream.Input.ReadAsync(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [Test]
