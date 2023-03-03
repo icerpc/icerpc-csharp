@@ -520,9 +520,6 @@ public static class TestMultiplexedTransportDecoratorServiceCollectionExtensions
             clientTransport => new TestMultiplexedClientTransportDecorator(clientTransport, clientOperationsOptions));
         services.AddSingletonDecorator<IMultiplexedServerTransport, TestMultiplexedServerTransportDecorator>(
             serverTransport => new TestMultiplexedServerTransportDecorator(serverTransport, serverOperationsOptions));
-
-        // services.AddSingletonDecorator<IMultiplexedConnection, TestMultiplexedConnectionDecorator>(
-        //     clientTransport => new TestMultiplexedConnectionDecorator(clientTransport, new()));
         return services;
     }
 }
