@@ -517,11 +517,12 @@ public static class TestMultiplexedTransportDecoratorServiceCollectionExtensions
         MultiplexedTransportOperationsOptions? serverOperationsOptions = null)
     {
         services.AddSingletonDecorator<IMultiplexedClientTransport, TestMultiplexedClientTransportDecorator>(
-            services.Last(descriptor => descriptor.ServiceType == typeof(IMultiplexedClientTransport)),
             clientTransport => new TestMultiplexedClientTransportDecorator(clientTransport, clientOperationsOptions));
         services.AddSingletonDecorator<IMultiplexedServerTransport, TestMultiplexedServerTransportDecorator>(
-            services.Last(descriptor => descriptor.ServiceType == typeof(IMultiplexedServerTransport)),
             serverTransport => new TestMultiplexedServerTransportDecorator(serverTransport, serverOperationsOptions));
+
+        // services.AddSingletonDecorator<IMultiplexedConnection, TestMultiplexedConnectionDecorator>(
+        //     clientTransport => new TestMultiplexedConnectionDecorator(clientTransport, new()));
         return services;
     }
 }
