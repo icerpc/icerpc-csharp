@@ -92,6 +92,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
+        _stream.ThrowIfConnectionClosed();
+
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
                 cts => ((CancellationTokenSource)cts!).Cancel(),

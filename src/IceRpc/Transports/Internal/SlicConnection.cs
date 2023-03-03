@@ -79,6 +79,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_isClosed)
             {
+                // TODO: Or ConnectionAborted? See #2382
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
         }
@@ -403,6 +404,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             if (_isClosed)
             {
+                // TODO: Or ConnectionAborted? See #2382
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
         }
@@ -611,6 +613,7 @@ internal class SlicConnection : IMultiplexedConnection
             cancellationToken.ThrowIfCancellationRequested();
 
             Debug.Assert(_isClosed);
+            // TODO: Or ConnectionAborted? See #2382
             throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
     }
@@ -638,6 +641,7 @@ internal class SlicConnection : IMultiplexedConnection
         catch (OperationCanceledException)
         {
             Debug.Assert(_isClosed);
+            // TODO: Or ConnectionAborted? See #2382
             throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
         }
     }
@@ -764,6 +768,18 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    internal void ThrowIfClosed()
+    {
+        lock (_mutex)
+        {
+            if (_isClosed)
+            {
+                // TODO: Should this be ConnectionAborted instead? See #2382
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
+            }
+        }
+    }
+
     private ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
     {
         lock (_mutex)
@@ -771,6 +787,7 @@ internal class SlicConnection : IMultiplexedConnection
             // Make sure the connection is not being closed or closed when we acquire the semaphore.
             if (_isClosed)
             {
+                // TODO: Or ConnectionAborted? See #2382
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
             return _writeSemaphore.AcquireAsync(cancellationToken);
@@ -783,6 +800,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (_isClosed)
             {
+                // TODO: Or ConnectionAborted? See #2382
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.OperationAborted, _closedMessage);
             }
 
