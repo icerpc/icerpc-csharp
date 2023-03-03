@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports;
+using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net.Security;
@@ -30,19 +31,20 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 })
             .BuildServiceProvider(validateScopes: true);
 
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
-
         // Start the TLS handshake.
-        Task clientConnectTask = clientConnection.ConnectAsync(default);
+        Task clientConnectTask = sut.Client.ConnectAsync(default);
         Task? serverConnectTask = null;
+        IMultiplexedConnection? serverConnection = null;
         try
         {
             // We accept two behaviors here:
             // - the listener can internally kill the connection if it's not valid (e.g.: Quic behavior)
             // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
-            (var serverConnection, _) = await listener.AcceptAsync(default);
+            (serverConnection, _) = await listener.AcceptAsync(default);
             serverConnectTask = serverConnection.ConnectAsync(default);
         }
         catch (AuthenticationException)
@@ -57,14 +59,15 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         // We accept two behaviors here:
         // - serverConnectTask is null, the listener internally rejects the connection (e.g.: Quic behavior)
         // - the server connect operation fails with an IceRpcException (e.g: Slic behavior).
-        if (serverConnectTask is not null)
+        if (serverConnection is not null)
         {
             // The client will typically close the transport connection after receiving AuthenticationException
-            await clientConnection.DisposeAsync();
-            var ex = Assert.ThrowsAsync<IceRpcException>(async () => await serverConnectTask);
+            await sut.Client.DisposeAsync();
+            var ex = Assert.ThrowsAsync<IceRpcException>(async () => await serverConnectTask!);
             Assert.That(
                 ex!.IceRpcError,
                 Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
+            await serverConnection.DisposeAsync();
         }
     }
 
@@ -95,13 +98,12 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                 })
             .BuildServiceProvider(validateScopes: true);
 
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-
-        var clientConnection = provider.GetRequiredService<IMultiplexedConnection>();
 
         // Start the TLS handshake by calling connect on the client and server connections and wait for the
         // connection establishment.
-        var clientConnectTask = clientConnection.ConnectAsync(default);
+        var clientConnectTask = sut.Client.ConnectAsync(default);
 
         // Act/Assert
         IMultiplexedConnection? serverConnection = null;
@@ -110,7 +112,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
             {
                 // We accept two behaviors here:
                 // - the listener can internally kill the client connection if it's not valid (e.g.: Quic behavior)
-                // - the listener can return the connection but ConnectAsync fails(e.g.: Slic behavior)
+                // - the listener can return the connection but ConnectAsync fails (e.g.: Slic behavior)
                 using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
                 (serverConnection, _) = await listener.AcceptAsync(cts.Token);
                 await serverConnection.ConnectAsync(default);
@@ -129,7 +131,7 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
                     await serverConnection.DisposeAsync();
                 }
                 await clientConnectTask;
-                var stream = await clientConnection.CreateStreamAsync(bidirectional: false, CancellationToken.None);
+                var stream = await sut.Client.CreateStreamAsync(bidirectional: false, CancellationToken.None);
                 await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
             },
             Throws.TypeOf<AuthenticationException>().Or.TypeOf<IceRpcException>());

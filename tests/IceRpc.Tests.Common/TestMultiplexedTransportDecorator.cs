@@ -510,12 +510,11 @@ internal sealed class TestPipeReader : PipeReader
 /// />.</summary>
 public static class TestMultiplexedTransportServiceCollectionExtensions
 {
-    /// <summary>Installs the test multiplexed transport.</summary>
+    /// <summary>Installs the test multiplexed transport (based on the Slic transport).</summary>
     public static IServiceCollection AddTestMultiplexedTransport(
         this IServiceCollection services,
         MultiplexedTransportOperationsOptions? clientOperationsOptions = null,
         MultiplexedTransportOperationsOptions? serverOperationsOptions = null) => services
-            .AddColocTransport()
             .AddSingleton(provider =>
                 new TestMultiplexedClientTransportDecorator(
                     new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()),

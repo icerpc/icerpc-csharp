@@ -15,10 +15,16 @@ namespace IceRpc.Tests.Transports;
 public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTests
 {
     [OneTimeSetUp]
-    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
+    public void FixtureSetUp()
+    {
+        if (!QuicConnection.IsSupported)
+        {
+            Assert.Ignore("Quic is not supported on this platform");
+        }
+    }
 
     /// <summary>Creates the service collection used for Quic connection conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
 
 [Parallelizable(ParallelScope.All)]
@@ -28,25 +34,7 @@ public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTe
 public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
 {
     [OneTimeSetUp]
-    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
-
-    /// <summary>Creates the service collection used for Quic stream conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
-}
-
-[Parallelizable(ParallelScope.All)]
-public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
-{
-    [OneTimeSetUp]
-    public void FixtureSetUp() => QuicTransportConformanceTestsServiceCollection.SetUp();
-
-    /// <summary>Creates the service collection used for Quic listener conformance testing.</summary>
-    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().UseQuic();
-}
-
-internal static class QuicTransportConformanceTestsServiceCollection
-{
-    internal static void SetUp()
+    public void FixtureSetUp()
     {
         if (!QuicConnection.IsSupported)
         {
@@ -54,38 +42,22 @@ internal static class QuicTransportConformanceTestsServiceCollection
         }
     }
 
-    internal static IServiceCollection UseQuic(this IServiceCollection serviceCollection)
+    /// <summary>Creates the service collection used for Quic stream conformance testing.</summary>
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
+}
+
+[Parallelizable(ParallelScope.All)]
+public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
+{
+    [OneTimeSetUp]
+    public void FixtureSetUp()
     {
-        IServiceCollection services = serviceCollection
-            .AddSingleton<IMultiplexedServerTransport>(provider => new QuicServerTransport(
-                provider.GetRequiredService<IOptions<QuicServerTransportOptions>>().Value))
-            .AddSingleton<IMultiplexedClientTransport>(provider => new QuicClientTransport(
-                provider.GetRequiredService<IOptions<QuicClientTransportOptions>>().Value))
-            .AddSingleton(provider =>
-                provider.GetRequiredService<IMultiplexedServerTransport>().Listen(
-                    new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
-                    provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                    provider.GetRequiredService<SslServerAuthenticationOptions>()))
-            .AddSingleton(provider =>
-                new SslClientAuthenticationOptions
-                {
-                    ClientCertificates = new X509CertificateCollection()
-                        {
-                            new X509Certificate2("../../../certs/client.p12", "password")
-                        },
-#pragma warning disable CA5359 // Do Not Disable Certificate Validation, certificate validation is not required for these tests.
-                    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
-#pragma warning restore CA5359 // Do Not Disable Certificate Validation
-                })
-            .AddSingleton(provider => new SslServerAuthenticationOptions
-            {
-                ClientCertificateRequired = false,
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-            });
-
-        services.AddOptions<QuicServerTransportOptions>();
-        services.AddOptions<QuicClientTransportOptions>();
-
-        return services;
+        if (!QuicConnection.IsSupported)
+        {
+            Assert.Ignore("Quic is not supported on this platform");
+        }
     }
+
+    /// <summary>Creates the service collection used for Quic listener conformance testing.</summary>
+    protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }

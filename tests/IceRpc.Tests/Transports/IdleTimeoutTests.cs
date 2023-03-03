@@ -1,11 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Net;
 
 namespace IceRpc.Tests.Transports;
 
@@ -17,23 +15,18 @@ public class IdleTimeoutTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddDuplexTransportClientServerTest(new Uri("icerpc://colochost/"))
+            .AddDuplexTransportTest()
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
-        using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
-            provider.GetRequiredService<IDuplexConnection>());
-        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await acceptTask).Connection;
-        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
-        await Task.WhenAll(clientConnectTask, serverConnectTask);
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
+        await sut.AcceptAndConnectAsync();
 
+        using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(sut.Client);
         clientConnection.Enable(TimeSpan.FromMilliseconds(500), keepAliveAction: null);
 
         // Write and read data to the connection
-        await serverConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+        await sut.Server.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
         Memory<byte> buffer = new byte[1];
         await clientConnection.ReadAsync(buffer, default);
 
@@ -54,26 +47,22 @@ public class IdleTimeoutTests
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
-            .AddDuplexTransportClientServerTest(new Uri("icerpc://colochost/"))
+            .AddDuplexTransportTest()
             .AddColocTransport()
             .BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IDuplexConnection>>();
-        Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> acceptTask = listener.AcceptAsync(default);
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
+        await sut.AcceptAndConnectAsync();
+
         using var semaphore = new SemaphoreSlim(0, 1);
         using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
-            provider.GetRequiredService<IDuplexConnection>(),
+            sut.Client,
             TimeSpan.FromMilliseconds(500),
             keepAliveAction: () => semaphore.Release());
 
-        Task<TransportConnectionInformation> clientConnectTask = clientConnection.ConnectAsync(default);
-        using IDuplexConnection serverConnection = (await acceptTask).Connection;
-        Task<TransportConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
-        await Task.WhenAll(clientConnectTask, serverConnectTask);
-
         // Write and read data.
         await clientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
-        await serverConnection.ReadAsync(new byte[10], default);
+        await sut.Server.ReadAsync(new byte[10], default);
 
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 

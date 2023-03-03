@@ -5,12 +5,9 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Net;
-using System.Net.Security;
 using System.Security.Authentication;
 
 namespace IceRpc.Tests.Transports;
@@ -26,11 +23,11 @@ public class SlicTransportTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<SlicConnection>();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
         // Act/Assert
         Assert.That(
-            async () => await sut.CreateStreamAsync(bidirectional: true, default),
+            async () => await sut.Client.CreateStreamAsync(bidirectional: true, default),
             Throws.TypeOf<InvalidOperationException>());
     }
 
@@ -41,10 +38,12 @@ public class SlicTransportTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<SlicConnection>();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
         // Act/Assert
-        Assert.That(async () => await sut.AcceptStreamAsync(default), Throws.TypeOf<InvalidOperationException>());
+        Assert.That(
+            async () => await sut.Client.AcceptStreamAsync(default),
+            Throws.TypeOf<InvalidOperationException>());
     }
 
     [Test]
@@ -94,44 +93,40 @@ public class SlicTransportTests
                     })
             .BuildServiceProvider(validateScopes: true);
 
-        var clientConnection = provider.GetRequiredService<SlicConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
         Func<Task> connectCall = serverSide ?
             async () =>
             {
-                var connectTask = clientConnection.ConnectAsync(default);
+                using var clientConnectTcs = new CancellationTokenSource();
+                Task connectTask = sut.Client.ConnectAsync(clientConnectTcs.Token);
                 try
                 {
-                    (IMultiplexedConnection connection, EndPoint _) = await listener.AcceptAsync(default);
-                    await using IMultiplexedConnection serverConnection = connection;
-                    await serverConnection.ConnectAsync(default);
+                    await sut.AcceptAsync();
                 }
                 finally
                 {
                     try
                     {
+                        clientConnectTcs.Cancel();
                         await connectTask;
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
                         // Prevents unobserved task exceptions.
                     }
                 }
-
             } :
             async () =>
             {
                 _ = AcceptAsync();
-                _ = await clientConnection.ConnectAsync(default);
+                _ = await sut.Client.ConnectAsync(default);
 
                 async Task AcceptAsync()
                 {
                     try
                     {
-                        (IMultiplexedConnection connection, EndPoint _) = await listener.AcceptAsync(default);
-                        await using IMultiplexedConnection serverConnection = connection;
-                        await serverConnection.ConnectAsync(default);
+                        await sut.AcceptAsync();
                     }
                     catch
                     {
@@ -215,46 +210,42 @@ public class SlicTransportTests
                 serverOperationsOptions: new() { Hold = serverSide ? operation : DuplexTransportOperations.None })
             .BuildServiceProvider(validateScopes: true);
 
-        var clientConnection = provider.GetRequiredService<SlicConnection>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
         using var connectCts = new CancellationTokenSource(100);
 
         Func<Task> connectCall = serverSide ?
             async () =>
             {
-                var connectTask = clientConnection.ConnectAsync(default);
+                using var clientConnectTcs = new CancellationTokenSource();
+                Task connectTask = sut.Client.ConnectAsync(clientConnectTcs.Token);
                 try
                 {
-                    (IMultiplexedConnection connection, EndPoint _) = await listener.AcceptAsync(default);
-                    await using IMultiplexedConnection serverConnection = connection;
-                    await serverConnection.ConnectAsync(connectCts.Token);
+                    await sut.AcceptAsync(connectCts.Token);
                 }
                 finally
                 {
                     try
                     {
+                        clientConnectTcs.Cancel();
                         await connectTask;
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
                         // Prevents unobserved task exceptions.
                     }
                 }
-
             } :
             async () =>
             {
                 _ = AcceptAsync();
-                _ = await clientConnection.ConnectAsync(connectCts.Token);
+                _ = await sut.Client.ConnectAsync(connectCts.Token);
 
                 async Task AcceptAsync()
                 {
                     try
                     {
-                        (IMultiplexedConnection connection, EndPoint _) = await listener.AcceptAsync(default);
-                        await using IMultiplexedConnection serverConnection = connection;
-                        await serverConnection.ConnectAsync(default);
+                        await sut.AcceptAsync();
                     }
                     catch
                     {
@@ -283,29 +274,18 @@ public class SlicTransportTests
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        await using var clientConnection = clientTransport.CreateConnection(
-            listener.ServerAddress,
-            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-            provider.GetService<SslClientAuthenticationOptions>());
-
-        var connectTask = clientConnection.ConnectAsync(default);
-        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
-
-        _ = await serverConnection.ConnectAsync(default);
-        _ = await connectTask;
-
-        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask = sut.Server.AcceptStreamAsync(default);
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(1));
 
         // Assert
-        Assert.That(acceptTask.IsCompleted, Is.False);
-        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
-        Assert.That(async () => await acceptTask, Throws.InstanceOf<IceRpcException>());
+        Assert.That(acceptStreamTask.IsCompleted, Is.False);
+        await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(async () => await acceptStreamTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
@@ -327,28 +307,18 @@ public class SlicTransportTests
 
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-        await using var clientConnection = clientTransport.CreateConnection(
-            listener.ServerAddress,
-            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-            provider.GetService<SslClientAuthenticationOptions>());
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        var connectTask = clientConnection.ConnectAsync(default);
-        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
-
-        _ = await serverConnection.ConnectAsync(default);
-        _ = await connectTask;
-
-        ValueTask<IMultiplexedStream> acceptTask = serverConnection.AcceptStreamAsync(default);
+        ValueTask<IMultiplexedStream> acceptStreamTask = sut.Server.AcceptStreamAsync(default);
 
         // Act
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         // Assert
-        Assert.That(acceptTask.IsCompleted, Is.False);
-        await clientConnection.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
-        Assert.That(async () => await acceptTask, Throws.InstanceOf<IceRpcException>());
+        Assert.That(acceptStreamTask.IsCompleted, Is.False);
+        await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(async () => await acceptStreamTask, Throws.InstanceOf<IceRpcException>());
     }
 
     /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server
@@ -380,10 +350,10 @@ public class SlicTransportTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<SlicConnection>();
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
 
         // Act/Assert
-        Assert.That(async () => await sut.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
+        Assert.That(async () => await sut.Client.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
     }
 
     [Test]
@@ -648,21 +618,16 @@ public class SlicTransportTests
     public async Task Stream_write_cancellation_does_not_cancel_write_if_writing_data_on_duplex_connection()
     {
         // Arrange
-
-        var colocTransport = new ColocTransport();
-        var clientTransport = new TestDuplexClientTransportDecorator(
-            colocTransport.ClientTransport,
-            operationsOptions: new());
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddSingleton(colocTransport.ServerTransport)
-            .AddSingleton<IDuplexClientTransport>(clientTransport)
+            .AddTestDuplexTransport()
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
-        TestDuplexConnectionDecorator duplexClientConnection = clientTransport.LastCreatedConnection;
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
 
         (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
             await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
@@ -725,6 +690,7 @@ public class SlicTransportTests
             stream.Input.Complete();
         }
     }
+
     private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
         IMultiplexedConnection localConnection,
         IMultiplexedConnection remoteConnection,
