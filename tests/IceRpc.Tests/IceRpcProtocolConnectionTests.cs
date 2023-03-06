@@ -432,6 +432,37 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
     }
 
+    [Test]
+    public async Task Dispatch_stream_writes_abort_cancels_the_hung_response_payload_read()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1, responsePayload: new byte[10]);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher: dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Invoke the request and hold the response payload read.
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        using var cts = new CancellationTokenSource();
+        Task<IncomingResponse> response = sut.Client.InvokeAsync(request, cts.Token);
+        await dispatcher.DispatchStart;
+        dispatcher.ResponsePayload!.HoldRead = true;
+        dispatcher.ReleaseDispatch();
+        await dispatcher.ResponsePayload.ReadCalled;
+
+        // Act
+        cts.Cancel(); // Cancel the invocation to complete the peer's stream writes.
+
+        // Assert
+
+        // Wait for the response payload to be completed and make sure the read call was canceled.
+        await dispatcher.ResponsePayload.Completed;
+        Assert.That(dispatcher.ResponsePayload.IsReadCanceled, Is.True);
+    }
+
     /// <summary>Verifies that canceling the invocation while sending the request payload, completes the incoming
     /// request payload with a <see cref="IceRpcError.TruncatedData"/>.</summary>
     [Test]
