@@ -1500,13 +1500,16 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                             contextReader,
                             cancellationToken).ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                     {
                         // expected when the connection is disposed or the request is canceled by the peer's shutdown
                     }
-                    catch (IceRpcException exception) when (exception.IceRpcError is IceRpcError.ConnectionAborted)
+                    catch (IceRpcException)
                     {
-                        // expected when the peer aborts the connection.
+                        // Expected, with for example:
+                        //  - IceRpcError.ConnectionAborted when the peer aborts the connection
+                        //  - IceRpcError.IceRpcError when the request header is invalid
+                        //  - IceRpcError.TruncatedData when the request header is truncated
                     }
                     catch (Exception exception)
                     {
