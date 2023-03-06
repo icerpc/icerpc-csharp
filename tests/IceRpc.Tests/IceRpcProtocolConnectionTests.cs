@@ -574,8 +574,8 @@ public sealed class IceRpcProtocolConnectionTests
     }
 
     [Test]
-    public async Task Invocation_stream_failure_triggers_incoming_request_truncated_data_exception(
-        [Values] bool continuation, [Values] bool operationCanceledException)
+    public async Task Invocation_payload_read_failure_triggers_incoming_request_truncated_data_exception(
+        [Values] bool operationCanceledException)
     {
         // Arrange
         var remotePayloadTcs = new TaskCompletionSource<PipeReader>();
@@ -599,16 +599,11 @@ public sealed class IceRpcProtocolConnectionTests
         // sent).
         var payload = new HoldPipeReader(new byte[10]);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
-        {
-            Payload = continuation ? EmptyPipeReader.Instance : payload,
-            PayloadContinuation = continuation ? payload : null
-        };
+            {
+                Payload = payload,
+            };
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         PipeReader remotePayload = await remotePayloadTcs.Task;
-        if (continuation)
-        {
-            await invokeTask;
-        }
 
         // We test these two exceptions to ensure the InvokeAsync implementation let them flow and doesn't catch them to
         // wrap then.
@@ -633,15 +628,66 @@ public sealed class IceRpcProtocolConnectionTests
                 await remotePayload.ReadAsync();
             },
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+        Assert.That(async () => await invokeTask, Throws.Exception.EqualTo(exception));
+    }
 
-        if (continuation)
-        {
-            Assert.That(await taskExceptionObserver.RequestPayloadContinuationFailedException, Is.EqualTo(exception));
-        }
-        else
-        {
-            Assert.That(async () => await invokeTask, Throws.Exception.EqualTo(exception));
-        }
+    [Test]
+    public async Task Invocation_payload_continuation_read_failure_triggers_incoming_request_truncated_data_exception(
+        [Values] bool operationCanceledException)
+    {
+        // Arrange
+        var remotePayloadTcs = new TaskCompletionSource<PipeReader>();
+        var dispatcher = new InlineDispatcher(
+            (request, cancellationToken) =>
+            {
+                remotePayloadTcs.SetResult(request.DetachPayload());
+                return new(new OutgoingResponse(request));
+            });
+
+        var taskExceptionObserver = new TestTaskExceptionObserver();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+        // Use initial payload data to ensure the request is sent before the payload reader blocks (Slic sends the
+        // request header with the start of the payload so if the first ReadAsync blocks, the request header is not
+        // sent).
+        var payload = new HoldPipeReader(new byte[10]);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+            {
+                PayloadContinuation = payload
+            };
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
+        PipeReader remotePayload = await remotePayloadTcs.Task;
+        await invokeTask;
+
+        // We test these two exceptions to ensure the InvokeAsync implementation let them flow and doesn't catch them to
+        // wrap then.
+        Exception exception =
+            operationCanceledException ? new InvalidOperationException() : new OperationCanceledException();
+
+        // Act
+        payload.SetReadException(exception);
+
+        // Assert
+        Assert.That(
+            async () =>
+            {
+                // The failure to read the remote payload is timing dependent. ReadAsync might return with the 10 bytes
+                // initial payload and then fail or directly fail.
+
+                ReadResult result = await remotePayload.ReadAsync();
+                Assert.That(result.IsCompleted, Is.False);
+                Assert.That(result.Buffer, Has.Length.EqualTo(10));
+                remotePayload.AdvanceTo(result.Buffer.End);
+
+                await remotePayload.ReadAsync();
+            },
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+        Assert.That(await taskExceptionObserver.RequestPayloadContinuationFailedException, Is.EqualTo(exception));
     }
 
     [TestCase(MultiplexedTransportOperations.CreateStream)]
