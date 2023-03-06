@@ -10,17 +10,12 @@ use slice::convert_case::Case;
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
 
-pub fn encode_data_members(
-    members: &[&DataMember],
-    namespace: &str,
-    field_type: FieldType,
-    encoding: Encoding,
-) -> CodeBlock {
+pub fn encode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
 
-    let (required_members, tagged_members) = get_sorted_members(members);
+    let (required_fields, tagged_fields) = get_sorted_members(fields);
 
-    let bit_sequence_size = get_bit_sequence_size(encoding, &required_members);
+    let bit_sequence_size = get_bit_sequence_size(encoding, &required_fields);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -29,11 +24,11 @@ pub fn encode_data_members(
         );
     }
 
-    for member in required_members {
-        let param = format!("this.{}", member.field_name(field_type));
+    for field in required_fields {
+        let param = format!("this.{}", field.field_name(field_type));
         code.writeln(&encode_type(
-            member.data_type(),
-            TypeContext::DataMember,
+            field.data_type(),
+            TypeContext::Field,
             namespace,
             &param,
             "encoder",
@@ -42,14 +37,14 @@ pub fn encode_data_members(
     }
 
     // Encode tagged
-    for member in tagged_members {
-        let param = format!("this.{}", member.field_name(field_type));
+    for field in tagged_fields {
+        let param = format!("this.{}", field.field_name(field_type));
         code.writeln(&encode_tagged_type(
-            member,
+            field,
             namespace,
             &param,
             "encoder",
-            TypeContext::DataMember,
+            TypeContext::Field,
             encoding,
         ));
     }

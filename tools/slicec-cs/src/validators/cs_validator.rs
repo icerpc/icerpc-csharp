@@ -234,12 +234,12 @@ impl Visitor for CsValidator<'_> {
         }
     }
 
-    fn visit_data_member(&mut self, data_member: &DataMember) {
-        validate_repeated_attributes(data_member, self.diagnostic_reporter);
-        for (attribute, ..) in &cs_attributes(&data_member.attributes(false)) {
+    fn visit_field(&mut self, field: &Field) {
+        validate_repeated_attributes(field, self.diagnostic_reporter);
+        for (attribute, ..) in &cs_attributes(&field.attributes(false)) {
             match attribute {
                 CsAttributeKind::Identifier { .. } | CsAttributeKind::Attribute { .. } => {}
-                _ => validate_data_type_attributes(&data_member.data_type, self.diagnostic_reporter),
+                _ => validate_data_type_attributes(&field.data_type, self.diagnostic_reporter),
             }
         }
     }

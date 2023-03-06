@@ -40,9 +40,9 @@ impl AttributePatcher<'_> {
                 Node::Struct(struct_ptr) => self.patch_attributes(&mut struct_ptr.borrow_mut().attributes),
                 Node::Class(class_ptr) => self.patch_attributes(&mut class_ptr.borrow_mut().attributes),
                 Node::Exception(exception_ptr) => self.patch_attributes(&mut exception_ptr.borrow_mut().attributes),
-                Node::DataMember(data_member_ptr) => {
-                    self.patch_attributes(&mut data_member_ptr.borrow_mut().data_type.attributes);
-                    self.patch_attributes(&mut data_member_ptr.borrow_mut().attributes);
+                Node::Field(field_ptr) => {
+                    self.patch_attributes(&mut field_ptr.borrow_mut().data_type.attributes);
+                    self.patch_attributes(&mut field_ptr.borrow_mut().attributes);
                 }
                 Node::Interface(interface_ptr) => self.patch_attributes(&mut interface_ptr.borrow_mut().attributes),
                 Node::Operation(operation_ptr) => self.patch_attributes(&mut operation_ptr.borrow_mut().attributes),

@@ -36,7 +36,7 @@ impl<T: Member> MemberExt for T {
         }
 
         match data_type.concrete_type() {
-            Types::Struct(struct_def) => struct_def.members().iter().all(|m| m.is_default_initialized()),
+            Types::Struct(struct_def) => struct_def.fields().iter().all(|m| m.is_default_initialized()),
             _ => data_type.is_value_type(),
         }
     }

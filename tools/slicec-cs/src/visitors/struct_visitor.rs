@@ -23,7 +23,7 @@ pub struct StructVisitor<'a> {
 impl<'a> Visitor for StructVisitor<'a> {
     fn visit_struct_start(&mut self, struct_def: &Struct) {
         let escaped_identifier = struct_def.escape_identifier();
-        let members = struct_def.members();
+        let fields = struct_def.fields();
         let namespace = struct_def.namespace();
 
         let mut builder = ContainerBuilder::new(
@@ -35,9 +35,9 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_container_attributes(struct_def);
 
         builder.add_block(
-            members
+            fields
                 .iter()
-                .map(|m| data_member_declaration(m, FieldType::NonMangled))
+                .map(|m| field_declaration(m, FieldType::NonMangled))
                 .collect::<Vec<_>>()
                 .join("\n\n")
                 .into(),
@@ -54,24 +54,22 @@ impl<'a> Visitor for StructVisitor<'a> {
             format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" />."#),
         );
 
-        for member in &members {
+        for field in &fields {
             main_constructor.add_parameter(
-                &member
-                    .data_type()
-                    .cs_type_string(&namespace, TypeContext::DataMember, false),
-                member.parameter_name().as_str(),
+                &field.data_type().cs_type_string(&namespace, TypeContext::Field, false),
+                field.parameter_name().as_str(),
                 None,
-                member.formatted_doc_comment_summary(),
+                field.formatted_doc_comment_summary(),
             );
         }
         main_constructor.set_body({
             let mut code = CodeBlock::default();
-            for member in &members {
+            for field in &fields {
                 writeln!(
                     code,
                     "this.{} = {};",
-                    member.field_name(FieldType::NonMangled),
-                    member.parameter_name(),
+                    field.field_name(FieldType::NonMangled),
+                    field.parameter_name(),
                 );
             }
             code
@@ -86,10 +84,10 @@ impl<'a> Visitor for StructVisitor<'a> {
             false, // No encoding check for structs
         )
         .add_encoding_block(Encoding::Slice1, || {
-            decode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice1)
+            decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
         })
         .add_encoding_block(Encoding::Slice2, || {
-            decode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice2)
+            decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
         })
         .build();
 
@@ -120,10 +118,10 @@ impl<'a> Visitor for StructVisitor<'a> {
             false, // No encoding check for structs
         )
         .add_encoding_block(Encoding::Slice1, || {
-            encode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice1)
+            encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
         })
         .add_encoding_block(Encoding::Slice2, || {
-            encode_data_members(&members, &namespace, FieldType::NonMangled, Encoding::Slice2)
+            encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
         })
         .build();
 

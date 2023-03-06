@@ -4,8 +4,8 @@ use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
 use crate::cs_util::*;
-use crate::decoding::decode_data_members;
-use crate::encoding::encode_data_members;
+use crate::decoding::decode_fields;
+use crate::encoding::encode_fields;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
@@ -26,7 +26,7 @@ impl Visitor for ExceptionVisitor<'_> {
 
         let namespace = &exception_def.namespace();
 
-        let members = exception_def.members();
+        let fields = exception_def.fields();
 
         let access = exception_def.access_modifier();
 
@@ -47,9 +47,9 @@ impl Visitor for ExceptionVisitor<'_> {
         }
 
         exception_class_builder.add_block(
-            members
+            fields
                 .iter()
-                .map(|m| data_member_declaration(m, FieldType::Exception))
+                .map(|m| field_declaration(m, FieldType::Exception))
                 .collect::<Vec<_>>()
                 .join("\n\n")
                 .into(),
@@ -74,7 +74,7 @@ impl Visitor for ExceptionVisitor<'_> {
                     .add_parameter("string?", "message", Some("null"), None)
                     .add_base_parameter("ref decoder")
                     .add_base_parameter("message")
-                    .set_body(initialize_non_nullable_fields(&members, FieldType::Exception))
+                    .set_body(initialize_non_nullable_fields(&fields, FieldType::Exception))
                     .add_never_editor_browsable_attribute()
                     .build(),
             );
@@ -99,7 +99,7 @@ impl Visitor for ExceptionVisitor<'_> {
                                 "\
 {}
 ConvertToUnhandled = true;",
-                                initialize_non_nullable_fields(&members, FieldType::Exception),
+                                initialize_non_nullable_fields(&fields, FieldType::Exception),
                             )
                             .into()
                         })
@@ -109,7 +109,7 @@ ConvertToUnhandled = true;",
 {}
 decoder.SkipTagged(useTagEndMarker: true);
 ConvertToUnhandled = true;",
-                                decode_data_members(&members, namespace, FieldType::Exception, Encoding::Slice2,),
+                                decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2,),
                             )
                             .into()
                         })
@@ -126,8 +126,8 @@ ConvertToUnhandled = true;",
                     .set_body({
                         let mut code = CodeBlock::default();
                         code.writeln("decoder.StartSlice();");
-                        code.writeln(&decode_data_members(
-                            &members,
+                        code.writeln(&decode_fields(
+                            &fields,
                             namespace,
                             FieldType::Exception,
                             Encoding::Slice1,
@@ -151,7 +151,7 @@ ConvertToUnhandled = true;",
 }
 
 fn encode_core_method(exception_def: &Exception) -> CodeBlock {
-    let members = &exception_def.members();
+    let fields = &exception_def.fields();
     let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
 
@@ -165,10 +165,10 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
         format!(
             "\
 encoder.StartSlice(SliceTypeId);
-{encode_data_members}
+{encode_fields}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice1),
+            encode_fields = &encode_fields(fields, namespace, FieldType::Exception, Encoding::Slice1),
             is_last_slice = !has_base,
             encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
         )
@@ -177,9 +177,9 @@ encoder.EndSlice(lastSlice: {is_last_slice});
     .add_encoding_block(Encoding::Slice2, || {
         format!(
             "\
-{encode_data_members}
+{encode_fields}
 encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
-            encode_data_members = &encode_data_members(members, namespace, FieldType::Exception, Encoding::Slice2),
+            encode_fields = &encode_fields(fields, namespace, FieldType::Exception, Encoding::Slice2),
         )
         .into()
     })
@@ -196,16 +196,13 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
 
     let namespace = &exception_def.namespace();
 
-    let all_data_members = exception_def.all_members();
+    let all_fields = exception_def.all_fields();
 
-    let message_parameter_name = escape_parameter_name(&all_data_members, "message");
-    let inner_exception_parameter_name = escape_parameter_name(&all_data_members, "innerException");
+    let message_parameter_name = escape_parameter_name(&all_fields, "message");
+    let inner_exception_parameter_name = escape_parameter_name(&all_fields, "innerException");
 
     let base_parameters = if let Some(base) = exception_def.base_exception() {
-        base.all_members()
-            .iter()
-            .map(|m| m.parameter_name())
-            .collect::<Vec<_>>()
+        base.all_fields().iter().map(|m| m.parameter_name()).collect::<Vec<_>>()
     } else {
         vec![]
     };
@@ -217,14 +214,12 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
         format!(r#"Constructs a new instance of <see cref="{}" />."#, &exception_name),
     );
 
-    for member in &all_data_members {
+    for field in &all_fields {
         ctor_builder.add_parameter(
-            &member
-                .data_type()
-                .cs_type_string(namespace, TypeContext::DataMember, false),
-            member.parameter_name().as_str(),
+            &field.data_type().cs_type_string(namespace, TypeContext::Field, false),
+            field.parameter_name().as_str(),
             None,
-            member.formatted_doc_comment_summary(),
+            field.formatted_doc_comment_summary(),
         );
     }
     ctor_builder.add_base_parameters(&base_parameters);
@@ -247,11 +242,11 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
 
     // ctor impl
     let mut ctor_body = CodeBlock::default();
-    for member in exception_def.members() {
-        let member_name = member.field_name(FieldType::Exception);
-        let parameter_name = member.parameter_name();
+    for field in exception_def.fields() {
+        let field_name = field.field_name(FieldType::Exception);
+        let parameter_name = field.parameter_name();
 
-        writeln!(ctor_body, "this.{member_name} = {parameter_name};");
+        writeln!(ctor_body, "this.{field_name} = {parameter_name};");
     }
 
     ctor_builder.set_body(ctor_body);

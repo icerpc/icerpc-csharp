@@ -74,7 +74,7 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
     let generic_attribute = sequence_ref.find_attribute(false, match_cs_generic);
 
     match context {
-        TypeContext::DataMember | TypeContext::Nested => {
+        TypeContext::Field | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IList<{element_type}>")
         }
         TypeContext::Decode => match generic_attribute {
@@ -104,7 +104,7 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
     let generic_attribute = dictionary_ref.find_attribute(false, match_cs_generic);
 
     match context {
-        TypeContext::DataMember | TypeContext::Nested => {
+        TypeContext::Field | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IDictionary<{key_type}, {value_type}>")
         }
         TypeContext::Decode => match generic_attribute {

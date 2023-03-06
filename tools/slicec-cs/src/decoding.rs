@@ -10,17 +10,12 @@ use slice::convert_case::{Case, Casing};
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
 
-pub fn decode_data_members(
-    members: &[&DataMember],
-    namespace: &str,
-    field_type: FieldType,
-    encoding: Encoding,
-) -> CodeBlock {
+pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
 
-    let (required_members, tagged_members) = get_sorted_members(members);
+    let (required_fields, tagged_fields) = get_sorted_members(fields);
 
-    let bit_sequence_size = get_bit_sequence_size(encoding, members);
+    let bit_sequence_size = get_bit_sequence_size(encoding, fields);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -29,16 +24,16 @@ pub fn decode_data_members(
         );
     }
 
-    // Decode required members
-    for member in required_members {
-        let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_member(member, namespace, &param, encoding));
+    // Decode required fields
+    for field in required_fields {
+        let param = format!("this.{}", field.field_name(field_type));
+        code.writeln(&decode_member(field, namespace, &param, encoding));
     }
 
-    // Decode tagged data members
-    for member in tagged_members {
-        let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_tagged(member, namespace, &param, true, encoding));
+    // Decode tagged data fields
+    for field in tagged_fields {
+        let param = format!("this.{}", field.field_name(field_type));
+        code.writeln(&decode_tagged(field, namespace, &param, true, encoding));
     }
 
     code

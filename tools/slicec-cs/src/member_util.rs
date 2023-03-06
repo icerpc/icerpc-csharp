@@ -5,7 +5,7 @@ use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
-use slice::grammar::{Attributable, DataMember, Member, Primitive, Types};
+use slice::grammar::{Attributable, Field, Member, Primitive, Types};
 use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
@@ -16,23 +16,23 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
     }
 }
 
-pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) -> String {
-    let type_string = data_member
+pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
+    let type_string = field
         .data_type()
-        .cs_type_string(&data_member.namespace(), TypeContext::DataMember, false);
+        .cs_type_string(&field.namespace(), TypeContext::Field, false);
     let mut prelude = CodeBlock::default();
 
-    let attributes = data_member.attributes(false).into_iter().filter_map(match_cs_attribute);
+    let attributes = field.attributes(false).into_iter().filter_map(match_cs_attribute);
 
-    for comment_tag in data_member.formatted_doc_comment() {
+    for comment_tag in field.formatted_doc_comment() {
         prelude.writeln(&comment_tag)
     }
     prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
-    if let Some(obsolete) = data_member.obsolete_attribute(true) {
+    if let Some(obsolete) = field.obsolete_attribute(true) {
         prelude.writeln(&format!("[{obsolete}]"));
     }
-    let modifiers = data_member.modifiers();
-    let name = data_member.field_name(field_type);
+    let modifiers = field.modifiers();
+    let name = field.field_name(field_type);
     format!(
         "\
 {prelude}
@@ -40,14 +40,14 @@ pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) 
     )
 }
 
-pub fn initialize_non_nullable_fields(members: &[&impl Member], field_type: FieldType) -> CodeBlock {
+pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
     // This helper should only be used for classes and exceptions
     assert!(field_type == FieldType::Class || field_type == FieldType::Exception);
 
     let mut code = CodeBlock::default();
 
-    for member in members {
-        let data_type = member.data_type();
+    for field in fields {
+        let data_type = field.data_type();
 
         if data_type.is_optional {
             continue;
@@ -68,7 +68,7 @@ pub fn initialize_non_nullable_fields(members: &[&impl Member], field_type: Fiel
 
         if suppress {
             // This is to suppress compiler warnings for non-nullable fields.
-            writeln!(code, "this.{} = null!;", member.field_name(field_type));
+            writeln!(code, "this.{} = null!;", field.field_name(field_type));
         }
     }
 

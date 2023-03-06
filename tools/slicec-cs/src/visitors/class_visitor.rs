@@ -4,14 +4,14 @@ use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
 use crate::cs_util::*;
-use crate::decoding::decode_data_members;
-use crate::encoding::encode_data_members;
+use crate::decoding::decode_fields;
+use crate::encoding::encode_fields;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 
 use slice::code_block::CodeBlock;
-use slice::grammar::{Class, DataMember, Encoding};
+use slice::grammar::{Class, Encoding, Field};
 use slice::utils::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
 
@@ -25,21 +25,21 @@ impl Visitor for ClassVisitor<'_> {
         let namespace = class_def.namespace();
         let has_base_class = class_def.base_class().is_some();
 
-        let members = class_def.members();
-        let base_members = if let Some(base) = class_def.base_class() {
-            base.all_members()
+        let fields = class_def.fields();
+        let base_fields = if let Some(base) = class_def.base_class() {
+            base.all_fields()
         } else {
             vec![]
         };
         let access = class_def.access_modifier();
 
-        let non_default_members = members
+        let non_default_fields = fields
             .iter()
             .cloned()
             .filter(|m| !m.is_default_initialized())
             .collect::<Vec<_>>();
 
-        let non_default_base_members = base_members
+        let non_default_base_fields = base_fields
             .iter()
             .cloned()
             .filter(|m| !m.is_default_initialized())
@@ -61,9 +61,9 @@ impl Visitor for ClassVisitor<'_> {
 
         // Add class fields
         class_builder.add_block(
-            members
+            fields
                 .iter()
-                .map(|m| data_member_declaration(m, FieldType::Class))
+                .map(|m| field_declaration(m, FieldType::Class))
                 .collect::<Vec<_>>()
                 .join("\n\n")
                 .into(),
@@ -95,20 +95,20 @@ impl Visitor for ClassVisitor<'_> {
             &access,
             constructor_summary.clone(),
             &namespace,
-            &members,
-            &base_members,
+            &fields,
+            &base_fields,
         ));
 
-        // Second public constructor for all data members minus those with a default initializer
+        // Second public constructor for all fields minus those with a default initializer
         // This constructor is only generated if necessary
-        if non_default_members.len() + non_default_base_members.len() < members.len() + base_members.len() {
+        if non_default_fields.len() + non_default_base_fields.len() < fields.len() + base_fields.len() {
             class_builder.add_block(constructor(
                 &class_name,
                 &access,
                 constructor_summary,
                 &namespace,
-                &non_default_members,
-                &non_default_base_members,
+                &non_default_fields,
+                &non_default_base_fields,
             ));
         }
 
@@ -131,7 +131,7 @@ impl Visitor for ClassVisitor<'_> {
             decode_constructor.add_base_parameter("ref decoder");
         }
         decode_constructor
-            .set_body(initialize_non_nullable_fields(&members, FieldType::Class))
+            .set_body(initialize_non_nullable_fields(&fields, FieldType::Class))
             .add_never_editor_browsable_attribute();
 
         class_builder.add_block(decode_constructor.build());
@@ -147,8 +147,8 @@ fn constructor(
     access: &str,
     summary_comment: String,
     namespace: &str,
-    members: &[&DataMember],
-    base_members: &[&DataMember],
+    fields: &[&Field],
+    base_fields: &[&Field],
 ) -> CodeBlock {
     let mut code = CodeBlock::default();
 
@@ -156,27 +156,25 @@ fn constructor(
 
     builder.add_comment("summary", summary_comment);
 
-    builder.add_base_parameters(&base_members.iter().map(|m| m.parameter_name()).collect::<Vec<String>>());
+    builder.add_base_parameters(&base_fields.iter().map(|m| m.parameter_name()).collect::<Vec<String>>());
 
-    for member in base_members.iter().chain(members.iter()) {
+    for field in base_fields.iter().chain(fields.iter()) {
         builder.add_parameter(
-            &member
-                .data_type
-                .cs_type_string(namespace, TypeContext::DataMember, false),
-            &member.parameter_name(),
+            &field.data_type.cs_type_string(namespace, TypeContext::Field, false),
+            &field.parameter_name(),
             None,
-            member.formatted_doc_comment_summary(),
+            field.formatted_doc_comment_summary(),
         );
     }
 
     builder.set_body({
         let mut code = CodeBlock::default();
-        for member in members {
+        for field in fields {
             writeln!(
                 code,
                 "this.{} = {};",
-                member.field_name(FieldType::Class),
-                member.parameter_name(),
+                field.field_name(FieldType::Class),
+                field.parameter_name(),
             );
         }
         code
@@ -191,7 +189,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
     let mut code = CodeBlock::default();
 
     let namespace = &class_def.namespace();
-    let members = class_def.members();
+    let fields = class_def.fields();
     let has_base_class = class_def.base_class().is_some();
 
     let encode_class = FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
@@ -206,8 +204,8 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
                     .build(),
             );
 
-            code.writeln(&encode_data_members(
-                &members,
+            code.writeln(&encode_fields(
+                &fields,
                 namespace,
                 FieldType::Class,
                 Encoding::Slice1, // classes are Slice1 only
@@ -229,8 +227,8 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
         .set_body({
             let mut code = CodeBlock::default();
             code.writeln("decoder.StartSlice();");
-            code.writeln(&decode_data_members(
-                &members,
+            code.writeln(&decode_fields(
+                &fields,
                 namespace,
                 FieldType::Class,
                 Encoding::Slice1, // classes are Slice1 only

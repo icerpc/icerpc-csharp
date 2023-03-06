@@ -250,7 +250,7 @@ pub trait EntityExt: Entity {
 
     /// Returns a C# link tag that points to this entity from the provided namespace
     /// By default this uses a `<see cref="..." />` tag, but certain types override this default implementation
-    /// to emit different kinds of links (like `<paramref name="..." /> for parameters).
+    /// to emit different kinds of links (like `<paramref name="..." />` for parameters).
     fn get_formatted_link(&self, namespace: &str) -> String {
         match self.concrete_entity() {
             Entities::Interface(interface_def) => {
