@@ -1506,10 +1506,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     }
                     catch (IceRpcException)
                     {
-                        // Expected, with for example:
-                        //  - IceRpcError.ConnectionAborted when the peer aborts the connection
-                        //  - IceRpcError.IceRpcError when the request header is invalid
-                        //  - IceRpcError.TruncatedData when the request header is truncated
+                        // expected when the peer aborts the connection.
                     }
                     catch (Exception exception)
                     {
