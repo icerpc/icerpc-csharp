@@ -24,11 +24,7 @@ public static class ServiceCollectionExtensions
         var serverAddress = new ServerAddress(protocol) { Host = host };
 
         // Note: the multiplexed transport is added by IceRpcServer/IceRpcClientConnection.
-        services
-            .AddColocTransport()
-            .AddSingleton<ILoggerFactory>(LogAttributeLoggerFactory.Instance)
-            .AddSingleton(LogAttributeLoggerFactory.Instance.Logger)
-            .AddIceRpcClientConnection();
+        services.AddColocTransport().AddIceRpcClientConnection();
 
         services.AddOptions<ServerOptions>().Configure(
             options =>
