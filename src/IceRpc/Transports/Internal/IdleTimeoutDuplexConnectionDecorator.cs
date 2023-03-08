@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over (read) idle timeout. Also
-/// decorates <see cref="WriteAsync" /> to schedule the keep alive timer (writeIdleTimeout / 2) after a successful
+/// decorates <see cref="WriteAsync" /> to schedule a keep alive action (writeIdleTimeout / 2) after a successful
 /// write. Both sides of the connection are expected to use the same idle timeouts.</summary>
 internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 {
