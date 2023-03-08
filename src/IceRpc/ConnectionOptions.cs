@@ -13,21 +13,23 @@ public record class ConnectionOptions
     /// not accept requests.</value>
     public IDispatcher? Dispatcher { get; set; }
 
-    /// <summary>Gets or sets a value indicating whether or not a read on the underlying transport connection fails when
-    /// this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. This option is specific to the ice
-    /// protocol.</summary>
-    /// <value>Defaults to <see langword="false"/> for compatibility with the default ACM configuration of Ice 3.6 and
-    /// Ice 3.7. The recommended setting is <see langword="true"/> when the peer is configured to send heartbeats all
-    /// the time or whenever it does not write to the connection.</value>
-    /// <remarks>When setting to <see langword="true"/>, make the sure the peer's idle timeout is equal to or less than
-    /// <see cref="IceIdleTimeout" />.</remarks>
+    /// <summary>Gets or sets a value indicating whether or not to enable the Ice idle check. This option is specific to
+    /// the ice protocol. When the Ice idle check is enabled, a read on the underlying transport connection fails when
+    /// this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. When the Ice idle check is disabled,
+    /// the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport connection can wait
+    /// forever to receive a byte.</summary>
+    /// <value>Defaults to <see langword="false"/> for compatibility with the default ACM configuration of Ice 3.7. The
+    /// recommended setting is <see langword="true"/> when the peer is configured to send heartbeats at regular
+    /// intervals or whenever it does not write to the connection for some time.</value>
+    /// <remarks>When setting this value to <see langword="true"/>, make the sure the peer's idle timeout is equal to or
+    /// less than <see cref="IceIdleTimeout" />.</remarks>
     public bool EnableIceIdleCheck { get; set; }
 
-    /// <summary>Gets or sets the idle timeout. This option is specific to the ice protocol and is used in conjunction
-    /// with the <see cref="EnableIceIdleCheck" /> option. Once the connection is established and regardless of the
-    /// value of <see cref="EnableIceIdleCheck" />, the local runtime sends a heartbeat to the peer when there is no
-    /// write on the connection for idle timeout / 2.</summary>
-    /// <value>Defaults to 60 seconds to match the default ACM configuration in Ice 3.6 and Ice 3.7.</value>
+    /// <summary>Gets or sets the Ice idle timeout. This option is specific to the ice protocol. Once the connection is
+    /// established, the runtime sends a heartbeat to the peer when there is no write on the connection for half this
+    /// Ice idle timeout.</summary>
+    /// <value>Defaults to 60 seconds to match the default ACM configuration in Ice 3.7.</value>
+    /// <seealso cref="EnableIceIdleCheck" />
     public TimeSpan IceIdleTimeout
     {
         get => _iceIdleTimeout;
