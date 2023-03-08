@@ -8,18 +8,9 @@ namespace IceRpc.Transports;
 public record class QuicTransportOptions
 {
     /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no
-    /// data is received within the idle timeout period, the transport connection is aborted. The default is 60s.
-    /// </summary>
-    public TimeSpan IdleTimeout
-    {
-        get => _idleTimeout;
-        set => _idleTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentOutOfRangeException(
-                nameof(value),
-                $"Invalid value '{value}' for {nameof(IdleTimeout)}, it must be greater than 0.");
-    }
-
-    private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+    /// data is received within the idle timeout period, the transport connection is aborted. The default is <see
+    /// cref="TimeSpan.Zero" /> meaning that the underlying Quic implementation default will be used.</summary>
+    public TimeSpan IdleTimeout { get; set; } = TimeSpan.Zero;
 }
 
 /// <summary>The options class for configuring <see cref="QuicClientTransport"/>.</summary>
