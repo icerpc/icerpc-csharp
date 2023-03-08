@@ -4,15 +4,16 @@ using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal;
 
-/// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over idle timeout and <see
-/// cref="WriteAsync" /> to schedule the keep alive timer after (idleTimeout / 2) on a successfull write. Both sides of
-/// the connection are expected to use the same idle timeout.</summary>
+/// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over (read) idle timeout. Also
+/// decorates <see cref="WriteAsync" /> to schedule the keep alive timer (writeIdleTimeout / 2) after a successful
+/// write. Both sides of the connection are expected to use the same idle timeouts.</summary>
 internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 {
     private readonly IDuplexConnection _decoratee;
-    private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private Timer? _keepAliveTimer;
     private readonly CancellationTokenSource _readCts = new();
+    private TimeSpan _readIdleTimeout = Timeout.InfiniteTimeSpan;
+    private TimeSpan _writeIdleTimeout = Timeout.InfiniteTimeSpan;
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
         _decoratee.ConnectAsync(cancellationToken);
@@ -28,7 +29,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        return _idleTimeout == Timeout.InfiniteTimeSpan ?
+        return _readIdleTimeout == Timeout.InfiniteTimeSpan ?
             _decoratee.ReadAsync(buffer, cancellationToken) :
             PerformReadAsync();
 
@@ -39,7 +40,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
                 using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),
                     _readCts);
-                _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
+                _readCts.CancelAfter(_readIdleTimeout); // enable idle timeout before reading
                 return await _decoratee.ReadAsync(buffer, _readCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -48,7 +49,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
                 throw new IceRpcException(
                     IceRpcError.ConnectionIdle,
-                    $"The connection did not receive any bytes for over {_idleTimeout.TotalSeconds} s.");
+                    $"The connection did not receive any bytes for over {_readIdleTimeout.TotalSeconds} s.");
             }
             finally
             {
@@ -61,7 +62,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {
-        return _idleTimeout == Timeout.InfiniteTimeSpan ?
+        return _writeIdleTimeout == Timeout.InfiniteTimeSpan ?
             _decoratee.WriteAsync(buffers, cancellationToken) :
             PerformWriteAsync();
 
@@ -69,9 +70,9 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         {
             await _decoratee.WriteAsync(buffers, cancellationToken).ConfigureAwait(false);
 
-            // After each successful write, we schedule one ping (keep alive) at _idleTimeout / 2 in the future. Since
-            // each ping is itself a write, if there is no application activity at all, we'll send successive pings at
-            // _idleTimeout / 2 intervals.
+            // After each successful write, we schedule one ping (keep alive or heartbeat) at _writeIdleTimeout / 2 in
+            // the future.  Since each ping is itself a write, if there is no application activity at all, we'll send
+            // successive pings at _writeIdleTimeout / 2 intervals.
             ScheduleKeepAlive();
         }
     }
@@ -80,18 +81,20 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
     /// </summary>
     internal IdleTimeoutDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
 
-    /// <summary>Constructs a decorator that ensures a call to <see cref="ReadAsync" /> will fail after idleTimeout.
+    /// <summary>Constructs a decorator that ensures a call to <see cref="ReadAsync" /> will fail after readIdleTimeout.
     /// This decorator also schedules a keepAliveAction after each write (see <see cref="ScheduleKeepAlive" />).
     /// </summary>
     /// <remarks>Do not call <see cref="Enable" /> on a decorator constructed with this constructor.</remarks>
     internal IdleTimeoutDuplexConnectionDecorator(
         IDuplexConnection decoratee,
-        TimeSpan idleTimeout,
+        TimeSpan readIdleTimeout,
+        TimeSpan writeIdleTimeout,
         Action keepAliveAction)
         : this(decoratee)
     {
-        Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
-        _idleTimeout = idleTimeout;
+        Debug.Assert(writeIdleTimeout != Timeout.InfiniteTimeSpan);
+        _readIdleTimeout = readIdleTimeout; // can be infinite i.e. disabled
+        _writeIdleTimeout = writeIdleTimeout;
         _keepAliveTimer = new Timer(_ => keepAliveAction());
     }
 
@@ -102,7 +105,8 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
         Debug.Assert(_keepAliveTimer is null);
 
-        _idleTimeout = idleTimeout;
+        _readIdleTimeout = idleTimeout;
+        _writeIdleTimeout = idleTimeout;
 
         if (keepAliveAction is not null)
         {
@@ -111,6 +115,6 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         }
     }
 
-    /// <summary>Schedules one keep alive in idleTimeout / 2.</summary>
-    internal void ScheduleKeepAlive() => _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
+    /// <summary>Schedules one keep alive in writeIdleTimeout / 2.</summary>
+    internal void ScheduleKeepAlive() => _keepAliveTimer?.Change(_writeIdleTimeout / 2, Timeout.InfiniteTimeSpan);
 }

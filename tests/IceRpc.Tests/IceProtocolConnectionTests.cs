@@ -397,8 +397,17 @@ public sealed class IceProtocolConnectionTests
     [Test]
     public async Task Idle_timeout_mismatch_aborts_connection()
     {
-        var clientConnectionOptions = new ConnectionOptions { IceIdleTimeout = TimeSpan.FromSeconds(10) };
-        var serverConnectionOptions = new ConnectionOptions { IceIdleTimeout = TimeSpan.FromMilliseconds(100) };
+        var clientConnectionOptions = new ConnectionOptions
+        {
+            IceIdleCheckEnabled = true,
+            IceIdleTimeout = TimeSpan.FromSeconds(10)
+        };
+
+        var serverConnectionOptions = new ConnectionOptions
+        {
+            IceIdleCheckEnabled = true,
+            IceIdleTimeout = TimeSpan.FromMilliseconds(100)
+        };
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(
