@@ -136,7 +136,7 @@ public sealed class IceProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 clientOperationsOptions: new DuplexTransportOperationsOptions
                     {
                         Fail = serverConnection ? DuplexTransportOperations.None : operation,
@@ -184,7 +184,7 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 serverOperationsOptions: new() { Hold = serverConnection ? operation : DuplexTransportOperations.None },
                 clientOperationsOptions: new() { Hold = serverConnection ? DuplexTransportOperations.None : operation })
             .BuildServiceProvider(validateScopes: true);
@@ -226,7 +226,7 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 clientOperationsOptions: new DuplexTransportOperationsOptions()
                 {
                     ReadDecorator = async (decoratee, buffer, cancellationToken) =>
@@ -255,8 +255,8 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransport(clientOperationsOptions:
-                new()
+            .AddTestDuplexTransportDecorator(
+                clientOperationsOptions: new()
                 {
                     Hold = DuplexTransportOperations.Connect
                 })
@@ -287,7 +287,7 @@ public sealed class IceProtocolConnectionTests
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .AddTestDuplexTransport(clientOperationsOptions: new() { FailureException = failureException })
+            .AddTestDuplexTransportDecorator(clientOperationsOptions: new() { FailureException = failureException })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
@@ -321,7 +321,7 @@ public sealed class IceProtocolConnectionTests
         var failureException = new IceRpcException(IceRpcError.IceRpcError);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransport(clientOperationsOptions: new() { FailureException = failureException })
+            .AddTestDuplexTransportDecorator(clientOperationsOptions: new() { FailureException = failureException })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
@@ -355,7 +355,7 @@ public sealed class IceProtocolConnectionTests
         using var dispatcher = new TestDispatcher(holdDispatchCount: oneway ? 0 : 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .AddTestDuplexTransport(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Write })
+            .AddTestDuplexTransportDecorator(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Write })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -440,7 +440,7 @@ public sealed class IceProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
-            .AddTestDuplexTransport()
+            .AddTestDuplexTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -556,7 +556,7 @@ public sealed class IceProtocolConnectionTests
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher: dispatcher)
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 clientOperationsOptions: new DuplexTransportOperationsOptions()
                 {
                     ReadDecorator = async (decoratee, buffer, cancellationToken) =>
@@ -669,8 +669,8 @@ public sealed class IceProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransport(clientOperationsOptions:
-                new()
+            .AddTestDuplexTransportDecorator(
+                clientOperationsOptions: new()
                 {
                     Fail = DuplexTransportOperations.Connect
                 })

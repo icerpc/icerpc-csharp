@@ -89,4 +89,38 @@ public static class ServiceCollectionExtensions
                     provider.GetService<SslClientAuthenticationOptions>());
                 return new ClientServerMultiplexedConnection(connection, listener);
             });
+
+    /// <summary>Installs a transport decorator for the last registered transport.</summary>
+    internal static void AddSingletonTransportDecorator<TTransportService, TTransportDecoratorService>(
+        this IServiceCollection services,
+        Func<TTransportService, TTransportDecoratorService> decorateFunc)
+        where TTransportService : class where TTransportDecoratorService : class, TTransportService
+    {
+        // Find the last TTransportService transport service registered with this service collection.
+        ServiceDescriptor? descriptor = services.LastOrDefault(
+            desc => desc!.ServiceType == typeof(TTransportService),
+            null);
+        if (descriptor is null)
+        {
+            throw new ArgumentException($"No {typeof(TTransportService)} service is registered");
+        }
+
+        Func<IServiceProvider, object>? factory = descriptor.ImplementationFactory;
+        if (factory is null)
+        {
+            throw new ArgumentException(
+                "Only transport services registered with an implementation factory are supported.");
+        }
+        if (descriptor.Lifetime != ServiceLifetime.Singleton)
+        {
+            throw new NotSupportedException(
+                "Only transport services registered with the singleton lifetime are supported.");
+        }
+
+        // Register the transport service decorator implementation.
+        _ = services.AddSingleton(provider => decorateFunc((TTransportService)factory(provider)));
+
+        // Register the transport service interface.
+        services.AddSingleton<TTransportService>(provider => provider.GetRequiredService<TTransportDecoratorService>());
+    }
 }

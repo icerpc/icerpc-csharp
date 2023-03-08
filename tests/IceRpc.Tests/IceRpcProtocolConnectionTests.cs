@@ -90,8 +90,8 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(clientOperationsOptions:
-                new()
+            .AddTestMultiplexedTransportDecorator(
+                clientOperationsOptions: new()
                 {
                     Hold = MultiplexedTransportOperations.Connect
                 })
@@ -206,7 +206,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(
+            .AddTestMultiplexedTransportDecorator(
                 serverOperationsOptions: new()
                     {
                         Fail = serverConnection ? operation : MultiplexedTransportOperations.None,
@@ -262,7 +262,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(
+            .AddTestMultiplexedTransportDecorator(
                 serverOperationsOptions: new()
                     {
                         Hold = serverConnection ? operation : MultiplexedTransportOperations.None
@@ -310,7 +310,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(
+            .AddTestMultiplexedTransportDecorator(
                 clientOperationsOptions: new MultiplexedTransportOperationsOptions()
                 {
                     StreamInputDecorator = _ => PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xFF }))
@@ -335,7 +335,7 @@ public sealed class IceRpcProtocolConnectionTests
         bool invalidRead = false;
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(
+            .AddTestMultiplexedTransportDecorator(
                 serverOperationsOptions: new MultiplexedTransportOperationsOptions()
                 {
                     StreamInputDecorator = decoratee =>
@@ -373,7 +373,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport()
+            .AddTestMultiplexedTransportDecorator()
             .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
             .BuildServiceProvider(validateScopes: true);
 
@@ -571,7 +571,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
-            .AddTestMultiplexedTransport()
+            .AddTestMultiplexedTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -733,7 +733,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport()
+            .AddTestMultiplexedTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -782,7 +782,11 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(clientOperationsOptions: new() { FailureException = failureException })
+            .AddTestMultiplexedTransportDecorator(
+                clientOperationsOptions: new()
+                {
+                    FailureException = failureException
+                })
             .BuildServiceProvider(validateScopes: true);
 
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
@@ -817,7 +821,7 @@ public sealed class IceRpcProtocolConnectionTests
         bool invalidRead = false;
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(
+            .AddTestMultiplexedTransportDecorator(
                 clientOperationsOptions: new MultiplexedTransportOperationsOptions()
                 {
                     StreamInputDecorator = decoratee =>
@@ -857,7 +861,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc, dispatcher)
-            .AddTestMultiplexedTransport()
+            .AddTestMultiplexedTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
@@ -1459,8 +1463,8 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport(clientOperationsOptions:
-                new()
+            .AddTestMultiplexedTransportDecorator(
+                clientOperationsOptions: new()
                 {
                     Fail = MultiplexedTransportOperations.Connect
                 })
@@ -1483,7 +1487,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.IceRpc)
-            .AddTestMultiplexedTransport()
+            .AddTestMultiplexedTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();

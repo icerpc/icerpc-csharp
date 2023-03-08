@@ -80,7 +80,7 @@ public class SlicTransportTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 clientOperationsOptions: new()
                     {
                         Fail = serverSide ? DuplexTransportOperations.None : operation,
@@ -156,7 +156,7 @@ public class SlicTransportTests
 
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 serverOperationsOptions: clientSide ? null : operationsOptions,
                 clientOperationsOptions: clientSide ? operationsOptions : null)
             .BuildServiceProvider(validateScopes: true);
@@ -205,7 +205,7 @@ public class SlicTransportTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 clientOperationsOptions: new() { Hold = serverSide ? DuplexTransportOperations.None : operation },
                 serverOperationsOptions: new() { Hold = serverSide ? operation : DuplexTransportOperations.None })
             .BuildServiceProvider(validateScopes: true);
@@ -329,7 +329,11 @@ public class SlicTransportTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport(serverOperationsOptions: new() { Hold = DuplexTransportOperations.Shutdown })
+            .AddTestDuplexTransportDecorator(
+                serverOperationsOptions: new()
+                {
+                    Hold = DuplexTransportOperations.Shutdown
+                })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -363,7 +367,7 @@ public class SlicTransportTests
         bool invalidRead = false;
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport(
+            .AddTestDuplexTransportDecorator(
                 serverOperationsOptions: new DuplexTransportOperationsOptions()
                 {
                     ReadDecorator = async (decoratee, buffer, cancellationToken) =>
@@ -620,7 +624,7 @@ public class SlicTransportTests
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransport()
+            .AddTestDuplexTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
