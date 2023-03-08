@@ -399,13 +399,13 @@ public sealed class IceProtocolConnectionTests
     {
         var clientConnectionOptions = new ConnectionOptions
         {
-            IceIdleCheckEnabled = true,
+            EnableIceIdleCheck = true,
             IceIdleTimeout = TimeSpan.FromSeconds(10)
         };
 
         var serverConnectionOptions = new ConnectionOptions
         {
-            IceIdleCheckEnabled = true,
+            EnableIceIdleCheck = true,
             IceIdleTimeout = TimeSpan.FromMilliseconds(100)
         };
 

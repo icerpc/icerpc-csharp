@@ -615,7 +615,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             var duplexConnectionDecorator = new IdleTimeoutDuplexConnectionDecorator(
                 duplexConnection,
-                readIdleTimeout: options.IceIdleCheckEnabled ? options.IceIdleTimeout : Timeout.InfiniteTimeSpan,
+                readIdleTimeout: options.EnableIceIdleCheck ? options.IceIdleTimeout : Timeout.InfiniteTimeSpan,
                 writeIdleTimeout: options.IceIdleTimeout,
                 KeepAlive);
             duplexConnection = duplexConnectionDecorator;
