@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using System.Buffers;
-using System.Diagnostics;
 
 namespace IceRpc;
 
