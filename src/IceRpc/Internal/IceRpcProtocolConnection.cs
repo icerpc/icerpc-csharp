@@ -382,7 +382,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 catch (ObjectDisposedException)
                 {
-                    // The transport network connection was disposed concurrently by DisposeAsync.
+                    // The transport connection was disposed concurrently by DisposeAsync.
                     Debug.Assert(_disposeTask is not null);
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                 }
