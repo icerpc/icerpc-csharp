@@ -14,14 +14,14 @@ public record class ConnectionOptions
     public IDispatcher? Dispatcher { get; set; }
 
     /// <summary>Gets or sets a value indicating whether or not to enable the Ice idle check. This option is specific to
-    /// the ice protocol. When the Ice idle check is enabled, a read on the underlying transport connection fails when
-    /// this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. When the Ice idle check is disabled,
-    /// the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport connection can wait
-    /// forever to receive a byte.</summary>
+    /// the ice protocol. When the Ice idle check is enabled, a read operation on the underlying transport connection
+    /// fails when this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. When the Ice idle check
+    /// is disabled, the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport
+    /// connection can wait forever to receive a byte.</summary>
     /// <value>Defaults to <see langword="false"/> for compatibility with the default ACM configuration of Ice 3.7. The
-    /// recommended setting is <see langword="true"/> when the peer is configured to send heartbeats at regular
-    /// intervals or whenever it does not write to the connection for some time.</value>
-    /// <remarks>When setting this value to <see langword="true"/>, make the sure the peer's idle timeout is equal to or
+    /// recommended setting is <see langword="true"/> when the peer is an Ice application with the HeartbeatAlways ACM
+    /// configuration or when the peer is an IceRPC application.</value>
+    /// <remarks>When setting this value to <see langword="true"/>, make sure the peer's idle timeout is equal to or
     /// less than <see cref="IceIdleTimeout" />.</remarks>
     public bool EnableIceIdleCheck { get; set; }
 
