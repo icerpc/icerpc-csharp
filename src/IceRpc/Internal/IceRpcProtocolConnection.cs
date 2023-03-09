@@ -301,6 +301,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
 
         CancellationToken disposedCancellationToken;
+        CancellationToken shutdownCancellationToken;
 
         lock (_mutex)
         {
@@ -327,6 +328,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
 
             disposedCancellationToken = _disposedCts.Token;
+            shutdownCancellationToken = _shutdownCts.Token;
         }
 
         return PerformInvokeAsync();
@@ -358,9 +360,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     // We want to cancel CreateStreamAsync as soon as the connection is being shutdown instead of
                     // waiting for its disposal.
-                    using CancellationTokenRegistration _ = _shutdownCts.Token.UnsafeRegister(
+                    using CancellationTokenRegistration _ = shutdownCancellationToken.UnsafeRegister(
                         cts => ((CancellationTokenSource)cts!).Cancel(),
                         invocationCts);
+
                     stream = await _transportConnection.CreateStreamAsync(
                         bidirectional: !request.IsOneway,
                         invocationCancellationToken).ConfigureAwait(false);
@@ -376,6 +379,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     RefuseNewInvocations("The connection was lost.");
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage, exception);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The transport network connection was disposed concurrently by DisposeAsync.
+                    Debug.Assert(_disposeTask is not null);
+                    throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                 }
                 catch (Exception exception)
                 {
