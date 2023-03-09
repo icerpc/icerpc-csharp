@@ -143,7 +143,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payload.ReadAsync(), Throws.InstanceOf<IceRpcException>()
-            .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
         payload.Complete();
         pipe.Writer.Complete();

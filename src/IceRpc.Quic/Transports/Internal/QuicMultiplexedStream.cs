@@ -35,7 +35,8 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         QuicStream stream,
         bool isRemote,
         MemoryPool<byte> pool,
-        int minSegmentSize)
+        int minSegmentSize,
+        Action throwIfConnectionClosedOrDisposed)
     {
         Id = (ulong)stream.Id;
         IsRemote = isRemote;
@@ -44,8 +45,22 @@ internal class QuicMultiplexedStream : IMultiplexedStream
         int streamCount = stream.CanRead && stream.CanWrite ? 2 : 1;
 
         _stream = stream;
-        _inputPipeReader = stream.CanRead ? new QuicPipeReader(stream, pool, minSegmentSize, ReleaseStream) : null;
-        _outputPipeWriter = stream.CanWrite ? new QuicPipeWriter(stream, pool, minSegmentSize, ReleaseStream) : null;
+        _inputPipeReader = stream.CanRead ?
+            new QuicPipeReader(
+                stream,
+                pool,
+                minSegmentSize,
+                ReleaseStream,
+                throwIfConnectionClosedOrDisposed) :
+            null;
+        _outputPipeWriter = stream.CanWrite ?
+            new QuicPipeWriter(
+                stream,
+                pool,
+                minSegmentSize,
+                ReleaseStream,
+                throwIfConnectionClosedOrDisposed) :
+            null;
 
         void ReleaseStream()
         {

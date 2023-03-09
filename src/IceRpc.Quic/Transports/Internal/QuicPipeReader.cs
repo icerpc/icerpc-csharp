@@ -14,6 +14,7 @@ internal class QuicPipeReader : PipeReader
     // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
     private volatile bool _isCompleted;
     private readonly Action _completeCallback;
+    private readonly Action _throwIfConnectionClosedOrDisposed;
     private readonly PipeReader _pipeReader;
     private readonly QuicStream _stream;
 
@@ -43,6 +44,14 @@ internal class QuicPipeReader : PipeReader
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
+        // First check if there's buffered data. If the connection is closed, we still want to return this data.
+        if (TryRead(out ReadResult readResult))
+        {
+            return readResult;
+        }
+
+        _throwIfConnectionClosedOrDisposed();
+
         try
         {
             return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -65,10 +74,22 @@ internal class QuicPipeReader : PipeReader
     // QuicException.
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
 
-    internal QuicPipeReader(QuicStream stream, MemoryPool<byte> pool, int minimumSegmentSize, Action completeCallback)
+    internal QuicPipeReader(
+        QuicStream stream,
+        MemoryPool<byte> pool,
+        int minimumSegmentSize,
+        Action completeCallback,
+        Action throwIfConnectionClosed)
     {
         _stream = stream;
         _completeCallback = completeCallback;
+
+        // This callback is used to check if the connection is closed or disposed before calling ReadAsync or TryRead on
+        // the pipe reader. This check works around the use of the QuicError.OperationAborted error code for both
+        // reporting the abortion of the in-progress read call and for reporting a closed connection before the
+        // operation process starts. In this later case, we want to report ConnectionAborted.
+        _throwIfConnectionClosedOrDisposed = throwIfConnectionClosed;
+
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
