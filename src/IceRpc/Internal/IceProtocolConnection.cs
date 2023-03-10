@@ -1172,7 +1172,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 if (prologue.CompressionStatus == 2)
                 {
-                    // The exception handler calls Abort.
+                    // The exception handler calls ReadFailed.
                     throw new IceRpcException(
                         IceRpcError.ConnectionAborted,
                         "The connection was aborted because it received a compressed ice frame, and IceRPC does not support ice compression.");
@@ -1227,15 +1227,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         break;
 
                     case IceFrameType.RequestBatch:
-                        // Read and ignore
-                        PipeReader batchRequestReader = await CreateFrameReaderAsync(
-                            prologue.FrameSize - IceDefinitions.PrologueSize,
-                            _duplexConnectionReader,
-                            _memoryPool,
-                            _minSegmentSize,
-                            cancellationToken).ConfigureAwait(false);
-                        batchRequestReader.Complete();
-                        break;
+                        // The exception handler calls ReadFailed.
+                        throw new IceRpcException(
+                            IceRpcError.ConnectionAborted,
+                            "The connection was aborted because it received a batch request, and IceRPC does not support them.");
 
                     case IceFrameType.Reply:
                         await ReadReplyAsync(prologue.FrameSize, cancellationToken).ConfigureAwait(false);
