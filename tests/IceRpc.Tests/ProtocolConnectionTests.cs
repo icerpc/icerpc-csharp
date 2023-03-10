@@ -871,8 +871,8 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await sut.Client.ConnectAsync(default), Throws.TypeOf<ObjectDisposedException>());
     }
 
-    /// <summary>Verifies that disposing the client connection aborts the server connection, that the shutdown call
-    /// on the server connection immediately reports the correct error even if there's a pending twoway dispatch.
+    /// <summary>Verifies that disposing the client connection aborts the server connection and that the shutdown call
+    /// on the server connection immediately reports the correct error even if there is a pending twoway dispatch.
     /// </summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_client_connection_aborts_server_connection(Protocol protocol)
