@@ -14,8 +14,7 @@ Console.WriteLine("Uploading image of the Earth...");
 // file stream and disposes it once it is completed by the IceRPC runtime.
 var reader = PipeReader.Create(new FileStream("Client/images/Earth.png", FileMode.Open));
 
-// Stream the data to the server. Once this method returns the streaming is complete because the implementation of
-// UploadImageAsync returns once it reached the end of the stream.
+// This call waits until the uploader service returns. The uploader service returns after reading the full image.
 await uploader.UploadImageAsync(reader);
 
 Console.WriteLine("Image of the Earth uploaded");
