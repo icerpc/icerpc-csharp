@@ -14,10 +14,8 @@ Console.WriteLine("Uploading image of the Earth...");
 // file stream and disposes it once it is completed by the IceRPC runtime.
 var reader = PipeReader.Create(new FileStream("Client/images/Earth.png", FileMode.Open));
 
-// Begin streaming the data to the server.
-// TODO I find this misleading, the completion of `UploadImageAsync` doesn't ensure that the server finish reading
-// the stream argument.
-// The IceRpc runtime will automatically complete the PipeReader for the client once the await returns.
+// Stream the data to the server. Once this method returns the streaming is complete because the implementation of
+// UploadImageAsync returns once it reached the end of the stream.
 await uploader.UploadImageAsync(reader);
 
 Console.WriteLine("Image of the Earth uploaded");
