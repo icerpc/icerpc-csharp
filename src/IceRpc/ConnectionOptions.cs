@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using System.Buffers;
-using System.Diagnostics;
 
 namespace IceRpc;
 
@@ -14,8 +13,23 @@ public record class ConnectionOptions
     /// not accept requests.</value>
     public IDispatcher? Dispatcher { get; set; }
 
-    /// <summary>Gets or sets the ice idle timeout. This timeout is used to monitor the transport connection health. If
-    /// no data is received within this period, the transport connection is aborted. The default is 30s.</summary>
+    /// <summary>Gets or sets a value indicating whether or not to enable the Ice idle check. This option is specific to
+    /// the ice protocol. When the Ice idle check is enabled, a read operation on the underlying transport connection
+    /// fails when this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. When the Ice idle check
+    /// is disabled, the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport
+    /// connection can wait forever to receive a byte.</summary>
+    /// <value>Defaults to <see langword="false"/> for compatibility with the default ACM configuration of Ice 3.7. The
+    /// recommended setting is <see langword="true"/> when the peer is an Ice application with the HeartbeatAlways ACM
+    /// configuration or when the peer is an IceRPC application.</value>
+    /// <remarks>When setting this value to <see langword="true"/>, make sure the peer's idle timeout is equal to or
+    /// less than <see cref="IceIdleTimeout" />.</remarks>
+    public bool EnableIceIdleCheck { get; set; }
+
+    /// <summary>Gets or sets the Ice idle timeout. This option is specific to the ice protocol. Once the connection is
+    /// established, the runtime sends a heartbeat to the peer when there is no write on the connection for half this
+    /// Ice idle timeout.</summary>
+    /// <value>Defaults to 60 seconds to match the default ACM configuration in Ice 3.7.</value>
+    /// <seealso cref="EnableIceIdleCheck" />
     public TimeSpan IceIdleTimeout
     {
         get => _iceIdleTimeout;
@@ -24,9 +38,9 @@ public record class ConnectionOptions
     }
 
     /// <summary>Gets or sets the inactivity timeout. This timeout is used to gracefully shutdown the connection if
-    /// it's inactive for longer than this timeout. A connection is considered inactive when there's no invocations or
-    /// dispatches in progress.</summary>
-    /// <value>Defaults to <c>60</c> seconds.</value>
+    /// it's inactive for longer than this timeout. A connection is considered inactive when there's no invocation or
+    /// dispatch in progress.</summary>
+    /// <value>Defaults to <c>5</c> minutes.</value>
     public TimeSpan InactivityTimeout
     {
         get => _inactivityTimeout;
@@ -119,8 +133,8 @@ public record class ConnectionOptions
 
     private const int IceMinFrameSize = 256;
 
-    private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(30);
-    private TimeSpan _inactivityTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _iceIdleTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _inactivityTimeout = TimeSpan.FromMinutes(5);
     private int _maxDispatches = 100;
     private int _maxIceFrameSize = 1024 * 1024;
     private int _maxIceRpcBidirectionalStreams = MultiplexedConnectionOptions.DefaultMaxBidirectionalStreams;

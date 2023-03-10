@@ -9,6 +9,8 @@ namespace IceRpc.Transports.Internal;
 internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 {
     private protected QuicConnection? _connection;
+    private volatile bool _isClosed;
+    private volatile bool _isDisposed;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
 
@@ -28,7 +30,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         try
         {
             QuicStream stream = await _connection.AcceptInboundStreamAsync(cancellationToken).ConfigureAwait(false);
-            return new QuicMultiplexedStream(stream, isRemote: true, _pool, _minSegmentSize);
+            return new QuicMultiplexedStream(stream, isRemote: true, _pool, _minSegmentSize, ThrowIfClosedOrDisposed);
         }
         catch (QuicException exception)
         {
@@ -42,6 +44,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         try
         {
+            _isClosed = true;
             if (_connection is not null)
             {
                 await _connection.CloseAsync((long)closeError, cancellationToken).ConfigureAwait(false);
@@ -59,7 +62,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         if (_connection is null)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The Quic connection is not connected.");
         }
 
         QuicStream stream;
@@ -78,11 +81,14 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             stream,
             isRemote: false,
             _pool,
-            _minSegmentSize);
+            _minSegmentSize,
+            ThrowIfClosedOrDisposed);
     }
 
     public async ValueTask DisposeAsync()
     {
+        _isDisposed = true;
+
         if (_connection is not null)
         {
             try
@@ -93,6 +99,18 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             {
                 // Workaround for https://github.com/dotnet/runtime/issues/78641.
             }
+        }
+    }
+
+    private void ThrowIfClosedOrDisposed()
+    {
+        if (_isClosed)
+        {
+            throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was closed.");
+        }
+        else if (_isDisposed)
+        {
+            throw new IceRpcException(IceRpcError.ConnectionAborted, "The connection was disposed.");
         }
     }
 }

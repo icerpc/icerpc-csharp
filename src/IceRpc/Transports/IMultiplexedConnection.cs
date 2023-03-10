@@ -13,6 +13,8 @@ namespace IceRpc.Transports;
 /// <item><description>the <see cref="AcceptStreamAsync" /> method is never called concurrently.</description></item>
 /// <item><description>the <see cref="CreateStreamAsync" /> method can be called concurrently.</description></item>
 /// <item><description>the <see cref="CloseAsync" /> method is only called once.</description></item>
+/// <item><description>the <see cref="IAsyncDisposable.DisposeAsync" /> and <see cref="CreateStreamAsync" /> methods can
+/// be called concurrently.</description></item>
 /// </list>
 /// </remarks>
 public interface IMultiplexedConnection : IAsyncDisposable

@@ -57,7 +57,8 @@ public class IdleTimeoutTests
         using var semaphore = new SemaphoreSlim(0, 1);
         using var clientConnection = new IdleTimeoutDuplexConnectionDecorator(
             sut.Client,
-            TimeSpan.FromMilliseconds(500),
+            readIdleTimeout: Timeout.InfiniteTimeSpan,
+            writeIdleTimeout: TimeSpan.FromMilliseconds(500),
             keepAliveAction: () => semaphore.Release());
 
         // Write and read data.

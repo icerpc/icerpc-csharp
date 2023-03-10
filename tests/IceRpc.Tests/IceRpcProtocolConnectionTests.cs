@@ -143,7 +143,7 @@ public sealed class IceRpcProtocolConnectionTests
 
         // Assert
         Assert.That(async () => await payload.ReadAsync(), Throws.InstanceOf<IceRpcException>()
-            .With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+            .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
 
         payload.Complete();
         pipe.Writer.Complete();
@@ -844,6 +844,31 @@ public sealed class IceRpcProtocolConnectionTests
             () => invokeTask,
             // The decoding of the response throws InvalidDataException which is reported as an IceRpcError.IceRpcError
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+    }
+
+    [Test]
+    public async Task Invocation_is_aborted_on_connection_dispose()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+
+        // Act
+
+        // We call InvokeAsync and DisposeAsync concurrently from different threads to ensure the different code paths
+        // are exercised. There isn't really better way to test that calling dispose and invoke concurrently is safe.
+        Task invokeTask = Task.Run(() => sut.Client.InvokeAsync(request));
+        await Task.Run(async () => await sut.Client.DisposeAsync());
+
+        // Assert
+        Assert.That(() => invokeTask, Throws.InstanceOf<IceRpcException>().Or.InstanceOf<ObjectDisposedException>());
     }
 
     [TestCase(false, MultiplexedTransportOperations.CreateStream, IceRpcError.InvocationRefused)]
