@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice.Internal;
 
@@ -108,87 +106,6 @@ internal static class PipeReaderExtensions
 
             return readResult.Buffer.Length == segmentSize ? readResult :
                 new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
-        }
-    }
-
-    /// <summary>Decodes an async enumerable from a pipe reader.</summary>
-    /// <param name="reader">The pipe reader.</param>
-    /// <param name="readFunc">The function used to read enough data to decode elements returned by the
-    /// enumerable.</param>
-    /// <param name="decodeBufferFunc">The function used to decode an element.</param>
-    /// <param name="cancellationToken">The cancellation token which is provided to <see
-    /// cref="IAsyncEnumerable{T}.GetAsyncEnumerator(CancellationToken)" />.</param>
-    internal static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-        this PipeReader reader,
-        Func<PipeReader, CancellationToken, ValueTask<ReadResult>> readFunc,
-        Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        while (true)
-        {
-            ReadResult readResult;
-
-            try
-            {
-                readResult = await readFunc(reader, cancellationToken).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                    throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
-                }
-                if (readResult.Buffer.IsEmpty)
-                {
-                    Debug.Assert(readResult.IsCompleted);
-                    reader.Complete();
-                    yield break;
-                }
-            }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-            {
-                // Canceling the cancellation token is a normal way to complete an iteration.
-                reader.Complete();
-                yield break;
-            }
-            catch
-            {
-                reader.Complete();
-                throw;
-            }
-
-            IEnumerable<T> items;
-
-            try
-            {
-                items = decodeBufferFunc(readResult.Buffer);
-                reader.AdvanceTo(readResult.Buffer.End);
-            }
-            catch
-            {
-                reader.Complete();
-                throw;
-            }
-
-            if (readResult.IsCompleted)
-            {
-                reader.Complete();
-            }
-
-            foreach (T item in items)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    reader.Complete();
-                    yield break;
-                }
-                yield return item;
-            }
-
-            if (readResult.IsCompleted)
-            {
-                // The corresponding payload.Complete is just before the foreach
-                yield break;
-            }
         }
     }
 
