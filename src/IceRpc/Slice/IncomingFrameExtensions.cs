@@ -3,9 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice;
 
@@ -130,80 +128,5 @@ public static class IncomingFrameExtensions
 
         ValueTask<ReadResult> ReadAsync(PipeReader payload, CancellationToken cancellationToken) =>
             payload.ReadSegmentAsync(encoding, sliceFeature.MaxSegmentSize, cancellationToken);
-    }
-
-    /// <summary>Decodes an async enumerable from an incoming payload.</summary>
-    private static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-        this PipeReader payload,
-        Func<PipeReader, CancellationToken, ValueTask<ReadResult>> readFunc,
-        Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        while (true)
-        {
-            ReadResult readResult;
-
-            try
-            {
-                readResult = await readFunc(payload, cancellationToken).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                    throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
-                }
-                if (readResult.Buffer.IsEmpty)
-                {
-                    Debug.Assert(readResult.IsCompleted);
-                    payload.Complete();
-                    yield break;
-                }
-            }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-            {
-                // Canceling the cancellation token is a normal way to complete an iteration.
-                payload.Complete();
-                yield break;
-            }
-            catch
-            {
-                payload.Complete();
-                throw;
-            }
-
-            IEnumerable<T> items;
-
-            try
-            {
-                items = decodeBufferFunc(readResult.Buffer);
-                payload.AdvanceTo(readResult.Buffer.End);
-            }
-            catch
-            {
-                payload.Complete();
-                throw;
-            }
-
-            if (readResult.IsCompleted)
-            {
-                payload.Complete();
-            }
-
-            foreach (T item in items)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    payload.Complete();
-                    yield break;
-                }
-                yield return item;
-            }
-
-            if (readResult.IsCompleted)
-            {
-                // The corresponding payload.Complete is just before the foreach
-                yield break;
-            }
-        }
     }
 }
