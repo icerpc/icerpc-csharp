@@ -14,10 +14,11 @@ public static class RouterExtensions
     /// <typeparam name="TService">The service type used to get the default path.</typeparam>
     /// <param name="router">The router being configured.</param>
     /// <param name="service">The target service of this route.</param>
+    /// <returns>The router being configured.</returns>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     /// <seealso cref="Router.Mount(string, IDispatcher)" />
-    public static void Map<TService>(this Router router, IDispatcher service)
+    public static Router Map<TService>(this Router router, IDispatcher service)
         where TService : class =>
         router.Map(typeof(TService).GetDefaultPath(), service);
 
