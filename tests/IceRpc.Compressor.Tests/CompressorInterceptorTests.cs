@@ -26,7 +26,7 @@ public class CompressorInterceptorTests
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, compressionFormat);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
+        request.Features = request.Features.With(CompressFeature.Compress);
         var outStream = new MemoryStream();
         var output = PipeWriter.Create(outStream);
 
@@ -75,7 +75,7 @@ public class CompressorInterceptorTests
             Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
         var sut = new CompressorInterceptor(invoker, CompressionFormat.Brotli);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
+        request.Features = request.Features.With(CompressFeature.Compress);
         request.Fields = request.Fields.With(
             RequestFieldKey.CompressionFormat,
             new ReadOnlySequence<byte>(new byte[] { (byte)CompressionFormat.Brotli }));

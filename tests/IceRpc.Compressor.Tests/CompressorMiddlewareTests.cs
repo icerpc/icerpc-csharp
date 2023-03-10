@@ -23,7 +23,7 @@ public class CompressorMiddlewareTests
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
-            request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
+            request.Features = request.Features.With(CompressFeature.Compress);
             var response = new OutgoingResponse(request);
             return new(response);
         });
@@ -74,7 +74,7 @@ public class CompressorMiddlewareTests
     {
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
         {
-            request.Features = request.Features.With<ICompressFeature>(CompressFeature.Compress);
+            request.Features = request.Features.With(CompressFeature.Compress);
             var response = new OutgoingResponse(request);
             response.Fields = response.Fields.With(
                 ResponseFieldKey.CompressionFormat,
