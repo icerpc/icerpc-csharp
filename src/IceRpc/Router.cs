@@ -40,7 +40,9 @@ public sealed class Router : IDispatcher
     }
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default) =>
+    public ValueTask<OutgoingResponse> DispatchAsync(
+        IncomingRequest request,
+        CancellationToken cancellationToken = default) =>
         _dispatcher.Value.DispatchAsync(request, cancellationToken);
 
     /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
@@ -49,10 +51,11 @@ public sealed class Router : IDispatcher
     /// must start with a <c>/</c>.</param>
     /// <param name="dispatcher">The target of this route. It is typically a service.</param>
     /// <exception cref="FormatException">Thrown if <paramref name="path" /> is not a valid path.</exception>
+    /// <returns>This router.</returns>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     /// <seealso cref="Mount" />
-    public void Map(string path, IDispatcher dispatcher)
+    public Router Map(string path, IDispatcher dispatcher)
     {
         if (_dispatcher.IsValueCreated)
         {
@@ -61,6 +64,7 @@ public sealed class Router : IDispatcher
         }
         ServiceAddress.CheckPath(path);
         _exactMatchRoutes[path] = dispatcher;
+        return this;
     }
 
     /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
@@ -68,11 +72,12 @@ public sealed class Router : IDispatcher
     /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
     /// the request.</param>
     /// <param name="dispatcher">The target of this route.</param>
+    /// <returns>This router.</returns>
     /// <exception cref="FormatException">Thrown if <paramref name="prefix" /> is not a valid path.</exception>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     /// <seealso cref="Map(string, IDispatcher)" />
-    public void Mount(string prefix, IDispatcher dispatcher)
+    public Router Mount(string prefix, IDispatcher dispatcher)
     {
         if (_dispatcher.IsValueCreated)
         {
@@ -82,6 +87,7 @@ public sealed class Router : IDispatcher
         ServiceAddress.CheckPath(prefix);
         prefix = NormalizePrefix(prefix);
         _prefixMatchRoutes[prefix] = dispatcher;
+        return this;
     }
 
     /// <summary>Installs a middleware in this router. A middleware must be installed before calling
