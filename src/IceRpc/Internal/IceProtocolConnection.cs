@@ -1319,6 +1319,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 _sendCloseConnectionFrame = false;
             }
 
+            // ReadFailed is called when the connection is dead or the peer sent us a non-supported frame (e.g. a
+            // batch request). We don't need to allow outstanding twoway dispatches to complete in these situations, so
+            // we cancel these twoway dispatches speed-up the shutdown.
+            _twowayDispatchesCts.Cancel();
+
             _ = _shutdownRequestedTcs.TrySetResult();
         }
     }
