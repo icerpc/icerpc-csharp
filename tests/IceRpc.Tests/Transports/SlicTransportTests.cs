@@ -552,25 +552,22 @@ public class SlicTransportTests
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
+        using var streams = await sut.CreateAndAcceptStreamAsync();
 
-        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
-            await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
-        _ = await localStream.Output.WriteAsync(payload, default);
+        _ = await streams.Local.Output.WriteAsync(payload, default);
 
         // Act
-        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(payload, default);
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(payload, default);
 
         // Assert
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
 
         // Make sure the writeTask completes before completing the stream output.
-        ReadResult readResult = await remoteStream.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(pauseThreshold - 1);
         Assert.That(readResult.IsCanceled, Is.False);
-        remoteStream.Input.AdvanceTo(readResult.Buffer.End);
+        streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
         await writeTask;
-
-        CompleteStreams(localStream, remoteStream);
     }
 
     [TestCase(32 * 1024)]
@@ -587,35 +584,30 @@ public class SlicTransportTests
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
+        using var streams1 = await sut.CreateAndAcceptStreamAsync();
+        using var streams2 = await sut.CreateAndAcceptStreamAsync();
 
-        (IMultiplexedStream localStream1, IMultiplexedStream remoteStream1) =
-            await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
-        (IMultiplexedStream localStream2, IMultiplexedStream remoteStream2) =
-            await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
-
-        _ = await localStream1.Output.WriteAsync(payload, default);
-        ValueTask<FlushResult> writeTask = localStream1.Output.WriteAsync(payload, default);
+        _ = await streams1.Local.Output.WriteAsync(payload, default);
+        ValueTask<FlushResult> writeTask = streams1.Local.Output.WriteAsync(payload, default);
 
         // Act
 
         // stream1 consumed all its send credit, this shouldn't affect stream2
-        _ = await localStream2.Output.WriteAsync(payload, default);
+        _ = await streams2.Local.Output.WriteAsync(payload, default);
 
         // Assert
-        Assert.That(localStream2.Id, Is.EqualTo(remoteStream2.Id));
-        ReadResult readResult = await remoteStream2.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        Assert.That(streams2.Local.Id, Is.EqualTo(streams2.Remote.Id));
+        ReadResult readResult = await streams2.Remote.Input.ReadAtLeastAsync(pauseThreshold - 1);
         Assert.That(readResult.IsCanceled, Is.False);
-        remoteStream2.Input.AdvanceTo(readResult.Buffer.End);
+        streams2.Remote.Input.AdvanceTo(readResult.Buffer.End);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
 
         // Make sure the writeTask completes before completing the stream output.
-        readResult = await remoteStream1.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        readResult = await streams1.Remote.Input.ReadAtLeastAsync(pauseThreshold - 1);
         Assert.That(readResult.IsCanceled, Is.False);
-        remoteStream1.Input.AdvanceTo(readResult.Buffer.End);
+        streams1.Remote.Input.AdvanceTo(readResult.Buffer.End);
         await writeTask;
-
-        CompleteStreams(localStream1, remoteStream1, localStream2, remoteStream2);
     }
 
     [Test]
@@ -633,14 +625,13 @@ public class SlicTransportTests
         var duplexClientConnection =
             provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
 
-        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
-            await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
+        using var streams = await sut.CreateAndAcceptStreamAsync();
 
         using var writeCts = new CancellationTokenSource();
 
         // Act
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
-        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[1], writeCts.Token);
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[1], writeCts.Token);
         writeCts.Cancel();
         await Task.Delay(TimeSpan.FromMilliseconds(10));
 
@@ -648,8 +639,6 @@ public class SlicTransportTests
         Assert.That(writeTask.IsCompleted, Is.False);
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
         Assert.That(async () => await writeTask, Throws.Nothing);
-
-        CompleteStreams(localStream, remoteStream);
     }
 
     [TestCase(64 * 1024, 32 * 1024)]
@@ -671,42 +660,15 @@ public class SlicTransportTests
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
-        (IMultiplexedStream localStream, IMultiplexedStream remoteStream) =
-            await CreateAndAcceptStreamAsync(sut.Client, sut.Server);
+        using var streams = await sut.CreateAndAcceptStreamAsync();
 
-        ValueTask<FlushResult> writeTask = localStream.Output.WriteAsync(new byte[pauseThreshold], default);
-        ReadResult readResult = await remoteStream.Input.ReadAtLeastAsync(pauseThreshold - resumeThreshold, default);
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[pauseThreshold], default);
+        ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(pauseThreshold - resumeThreshold, default);
 
         // Act
-        remoteStream.Input.AdvanceTo(readResult.Buffer.GetPosition(pauseThreshold - resumeThreshold));
+        streams.Remote.Input.AdvanceTo(readResult.Buffer.GetPosition(pauseThreshold - resumeThreshold));
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
-
-        CompleteStreams(localStream, remoteStream);
-    }
-
-    private static void CompleteStreams(params IMultiplexedStream[] streams)
-    {
-        foreach (IMultiplexedStream stream in streams)
-        {
-            stream.Output.Complete();
-            stream.Input.Complete();
-        }
-    }
-
-    private static async Task<(IMultiplexedStream LocalStream, IMultiplexedStream RemoteStream)> CreateAndAcceptStreamAsync(
-        IMultiplexedConnection localConnection,
-        IMultiplexedConnection remoteConnection,
-        bool bidirectional = true)
-    {
-        IMultiplexedStream localStream = await localConnection.CreateStreamAsync(
-            bidirectional,
-            default).ConfigureAwait(false);
-        _ = await localStream.Output.WriteAsync(new byte[1]);
-        IMultiplexedStream remoteStream = await remoteConnection.AcceptStreamAsync(default);
-        ReadResult readResult = await remoteStream.Input.ReadAsync();
-        remoteStream.Input.AdvanceTo(readResult.Buffer.End);
-        return (localStream, remoteStream);
     }
 }
