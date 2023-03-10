@@ -123,8 +123,7 @@ public sealed class DeadlineInterceptorTests
         var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
-            Features = new FeatureCollection().With<IDeadlineFeature>(
-                DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
+            Features = new FeatureCollection().With(DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
         };
         using var cts = new CancellationTokenSource();
 
@@ -153,8 +152,7 @@ public sealed class DeadlineInterceptorTests
             alwaysEnforceDeadline: true);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
-            Features = new FeatureCollection().With<IDeadlineFeature>(
-                DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
+            Features = new FeatureCollection().With(DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
         };
         using var tokenSource = new CancellationTokenSource();
 
