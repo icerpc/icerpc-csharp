@@ -87,7 +87,7 @@ internal class QuicPipeReader : PipeReader
         // This callback is used to check if the connection is closed or disposed before calling ReadAsync or TryRead on
         // the pipe reader. This check works around the use of the QuicError.OperationAborted error code for both
         // reporting the abortion of the in-progress read call and for reporting a closed connection before the
-        // operation process starts. In this later case, we want to report ConnectionAborted.
+        // operation process starts. In this latter case, we want to report ConnectionAborted.
         _throwIfConnectionClosedOrDisposed = throwIfConnectionClosed;
 
         _pipeReader = Create(
