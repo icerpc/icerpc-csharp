@@ -1138,8 +1138,12 @@ public sealed class IceRpcProtocolConnectionTests
         // Arrange
         var taskExceptionObserver = new TestTaskExceptionObserver();
 
+        // Without a dispatcher the dispatch would fail and potentially prevent the sending of the payload continuation
+        // to start.
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+
         await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc)
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
             .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -1160,6 +1164,8 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await taskExceptionObserver.RequestPayloadContinuationFailedException,
             Is.InstanceOf<InvalidOperationException>());
+
+        dispatcher.ReleaseDispatch();
 
         // Cleanup
         try
