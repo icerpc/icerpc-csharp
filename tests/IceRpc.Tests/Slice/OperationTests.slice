@@ -52,7 +52,13 @@ interface MyOperationsA {
     opWithProxyReturnValue() -> Pingable
 }
 
-interface MyDerivedOperationsA : MyOperationsA {}
+interface MyDerivedOperationsA : MyOperationsA {
+    // No parameters and void return
+    opDerivedWithoutParametersAndVoidReturn()
+
+    // Single parameter and return
+    opDerivedWithSingleParameterAndReturnValue(p: int32) -> int32
+}
 
 interface MyTaggedOperations {
     op(x: int32, y: tag(1) int32?, z: tag(2) int32?)
