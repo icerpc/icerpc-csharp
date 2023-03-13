@@ -2,6 +2,10 @@
 
 module MetricsExample
 
+/// Represents a simple greeter.
 interface Hello {
-    sayHello()
+    /// Creates a personalized "hello" greeting.
+    /// @param name: The name of the person to greet.
+    /// @returns: The greeting.
+    sayHello(name: string) -> string
 }

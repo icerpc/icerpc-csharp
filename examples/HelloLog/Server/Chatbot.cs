@@ -5,6 +5,7 @@ using IceRpc.Slice;
 
 namespace HelloLogExample;
 
+/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Hello'.</summary>
 internal class Chatbot : Service, IHelloService
 {
     public ValueTask<string> SayHelloAsync(
@@ -12,7 +13,7 @@ internal class Chatbot : Service, IHelloService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"{name} says hello!");
+        Console.WriteLine($"Dispatching sayHello request {{ name = '{name}' }}");
         return new($"Hello, {name}!");
     }
 }

@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace AuthorizationExample;
 
-/// <summary>A service that implements Slice interface Hello.</summary>
+/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Hello'.</summary>
 internal class Chatbot : Service, IHelloService
 {
     internal string Greeting { get; set; } = "Hello";
@@ -13,6 +13,7 @@ internal class Chatbot : Service, IHelloService
     public ValueTask<string> SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
         string who = features.Get<ISessionFeature>()?.Name ?? "stranger";
+        Console.WriteLine($"Dispatching sayHello request {{ name = '{who}' }}");
         return new($"{Greeting}, {who}!");
     }
 }
