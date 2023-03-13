@@ -31,7 +31,7 @@ public abstract class MultiplexedListenerConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-        var clientConnection = clientTransport.CreateConnection(
+        await using var clientConnection = clientTransport.CreateConnection(
             listener.ServerAddress,
             provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
             provider.GetService<SslClientAuthenticationOptions>());
