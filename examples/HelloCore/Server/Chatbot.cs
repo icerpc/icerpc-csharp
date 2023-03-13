@@ -12,7 +12,7 @@ internal class Chatbot : IDispatcher
         if (request.Operation == "sayHelloCore")
         {
             string name = await StringCodec.DecodePayloadStringAsync(request.Payload);
-            Console.WriteLine($"{name} says hello!");
+            Console.WriteLine($"Dispatching sayHello request {{ name = '{name}' }}");
 
             return new OutgoingResponse(request) { Payload = StringCodec.EncodeString($"Hello, {name}!") };
         }

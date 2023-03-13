@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 
 namespace RetryExample;
 
+/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Hello'.</summary>
 internal class Chatbot : Service, IHelloService
 {
     private readonly int _serverNumber;
@@ -18,6 +19,7 @@ internal class Chatbot : Service, IHelloService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
+        Console.WriteLine($"Dispatching sayHello request {{ name = '{name}' }}");
         // 50% failure/success ratio
         if (RandomNumberGenerator.GetInt32(10) < 5)
         {
@@ -27,7 +29,6 @@ internal class Chatbot : Service, IHelloService
         }
         else
         {
-            Console.WriteLine($"{name} says hello!");
             return new($"Hello, {name}, from server #{_serverNumber}!");
         }
     }

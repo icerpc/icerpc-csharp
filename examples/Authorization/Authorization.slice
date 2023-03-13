@@ -18,8 +18,9 @@ interface HelloAdmin {
     changeGreeting(greeting: string)
 }
 
+/// Represents a simple greeter.
 interface Hello {
-    /// Gets the greeting message.
-    /// @returns: The greeting message.
+    /// Creates a personalized "hello" greeting.
+    /// @returns: The greeting.
     sayHello() -> string
 }

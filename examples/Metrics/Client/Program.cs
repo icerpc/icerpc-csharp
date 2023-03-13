@@ -23,5 +23,5 @@ Console.CancelKeyPress += (sender, eventArgs) =>
 // Start invoking the remote method
 while (await periodicTimer.WaitForNextTickAsync())
 {
-    await hello.SayHelloAsync();
+    await hello.SayHelloAsync(Environment.UserName);
 }
