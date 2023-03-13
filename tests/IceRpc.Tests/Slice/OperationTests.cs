@@ -28,6 +28,20 @@ public class OperationTests
     }
 
     [Test]
+    public async Task Operation_without_parameters_and_void_return_on_derived_interface()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher: new MyDerivedOperationsAService())
+            .AddIceRpcProxy<IMyDerivedOperationsA, MyDerivedOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyDerivedOperationsA proxy = provider.GetRequiredService<IMyDerivedOperationsA>();
+        provider.GetRequiredService<Server>().Listen();
+
+        Assert.That(async () => await proxy.OpDerivedWithoutParametersAndVoidReturnAsync(), Throws.Nothing);
+    }
+
+    [Test]
     public async Task Operation_from_base_class()
     {
         await using ServiceProvider provider = new ServiceCollection()
@@ -53,6 +67,22 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         int r = await proxy.OpWithSingleParameterAndReturnValueAsync(10);
+
+        Assert.That(r, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task Operation_with_single_parameter_and_return_value_on_derived_interface()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher: new MyDerivedOperationsAService())
+            .AddIceRpcProxy<IMyDerivedOperationsA, MyDerivedOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyDerivedOperationsA proxy = provider.GetRequiredService<IMyDerivedOperationsA>();
+        provider.GetRequiredService<Server>().Listen();
+
+        int r = await proxy.OpDerivedWithSingleParameterAndReturnValueAsync(10);
 
         Assert.That(r, Is.EqualTo(10));
     }
@@ -633,7 +663,17 @@ public class OperationTests
             CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
     }
 
-    private sealed class MyDerivedOperationsAService : MyOperationsAService { }
+    private sealed class MyDerivedOperationsAService : MyOperationsAService, IMyDerivedOperationsAService
+    {
+        public ValueTask OpDerivedWithoutParametersAndVoidReturnAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => default;
+
+        public ValueTask<int> OpDerivedWithSingleParameterAndReturnValueAsync(
+            int p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
+    }
 
     private sealed class MyTaggedOperationsService : Service, IMyTaggedOperationsService
     {
