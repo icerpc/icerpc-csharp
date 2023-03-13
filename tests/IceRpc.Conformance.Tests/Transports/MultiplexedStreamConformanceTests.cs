@@ -116,9 +116,8 @@ public abstract class MultiplexedStreamConformanceTests
         await clientServerConnection.Server.CloseAsync(closeError, default);
 
         // Assert
-        Assert.That(
-            async () => await readTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(expectedIceRpcError));
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
+        Assert.That(exception?.IceRpcError, Is.EqualTo(expectedIceRpcError));
     }
 
     [Test]
@@ -165,9 +164,12 @@ public abstract class MultiplexedStreamConformanceTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
+            async () => await sut.Remote.Input.ReadAsync());
         Assert.That(
-            async () => await sut.Remote.Input.ReadAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
+            exception?.IceRpcError,
+            Is.EqualTo(IceRpcError.TruncatedData),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     /// <summary>Verifies that we can read and write concurrently to multiple streams.</summary>

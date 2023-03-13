@@ -42,14 +42,17 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
 
         // The client will typically close the transport connection after receiving AuthenticationException
-        var ex = Assert.ThrowsAsync<IceRpcException>(
+        var exception = Assert.ThrowsAsync<IceRpcException>(
             async () =>
             {
                 sut.Client.Dispose();
                 await serverConnectTask;
                 await sut.Server.ReadAsync(new byte[1], CancellationToken.None);
             });
-        Assert.That(ex!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     [Test]

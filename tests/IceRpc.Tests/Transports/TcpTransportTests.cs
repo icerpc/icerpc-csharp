@@ -292,7 +292,10 @@ public class TcpTransportTests
         // Act/Assert
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await serverConnection.ConnectAsync(default));
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     /// <summary>Verifies that the server connect call on a tls connection fails with

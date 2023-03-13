@@ -63,10 +63,11 @@ public abstract class MultiplexedTransportSslAuthenticationConformanceTests
         {
             // The client will typically close the transport connection after receiving AuthenticationException
             await sut.Client.DisposeAsync();
-            var ex = Assert.ThrowsAsync<IceRpcException>(async () => await serverConnectTask!);
+            var exception = Assert.ThrowsAsync<IceRpcException>(async () => await serverConnectTask!);
             Assert.That(
-                ex!.IceRpcError,
-                Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
+                exception?.IceRpcError,
+                Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError),
+                $"The test failed with an unexpected IceRpcError {exception}");
             await serverConnection.DisposeAsync();
         }
     }

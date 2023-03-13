@@ -103,11 +103,15 @@ public abstract class DuplexConnectionConformanceTests
         {
             Assert.That(
                 exception?.IceRpcError,
-                Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError));
+                Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError),
+                $"The test failed with an unexpected IceRpcError {exception}");
         }
         else
         {
-            Assert.That(exception?.IceRpcError, Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted));
+            Assert.That(
+                exception?.IceRpcError,
+                Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted),
+                $"The test failed with an unexpected IceRpcError {exception}");
         }
     }
 
@@ -232,7 +236,10 @@ public abstract class DuplexConnectionConformanceTests
         // Act/Assert
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
             async () => await readFrom.ReadAsync(new byte[1], default));
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     [Test]
@@ -427,7 +434,10 @@ public abstract class DuplexConnectionConformanceTests
             exception = ex;
         }
 
-        Assert.That(exception.IceRpcError, Is.EqualTo(IceRpcError.ConnectionAborted));
+        Assert.That(
+            exception.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     /// <summary>Creates the service collection used for the duplex transport conformance tests.</summary>
