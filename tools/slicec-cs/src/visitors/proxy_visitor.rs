@@ -189,7 +189,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
 {{
     {features_parameter} ??= new IceRpc.Features.FeatureCollection();
-    {features_parameter} = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
+    {features_parameter} = IceRpc.Features.FeatureCollectionExtensions.With(
         {features_parameter},
         IceRpc.Features.CompressFeature.Compress);
 }}
