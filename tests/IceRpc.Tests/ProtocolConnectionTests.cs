@@ -871,6 +871,45 @@ public sealed class ProtocolConnectionTests
         Assert.That(async () => await sut.Client.ConnectAsync(default), Throws.TypeOf<ObjectDisposedException>());
     }
 
+    /// <summary>Verifies that disposing the client connection aborts the server connection and that the shutdown call
+    /// on the server connection immediately reports the correct error even if there is a pending twoway dispatch.
+    /// </summary>
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Dispose_client_connection_aborts_server_connection(Protocol protocol)
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        Task serverShutdownTask = ShutdownWhenRequestedAsync(sut.Server, serverShutdownRequested);
+
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
+        Task invokeTask = sut.Client.InvokeAsync(request);
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // Act
+        _ = sut.Client.DisposeAsync().AsTask();
+
+        // Assert
+        Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
+
+        Assert.That(
+            () => serverShutdownTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+
+        Assert.That(() => invokeTask, Throws.InstanceOf<IceRpcException>()); // Prevents UTE.
+
+        static async Task ShutdownWhenRequestedAsync(IProtocolConnection connection, Task shutdownRequestedTask)
+        {
+            await shutdownRequestedTask;
+            await connection.ShutdownAsync();
+        }
+    }
+
     /// <summary>Verifies connection shutdown is successful</summary>
     [Test, TestCaseSource(nameof(Protocols_and_client_or_server))]
     public async Task Shutdown_connection(Protocol protocol, bool closeClientSide)
