@@ -4,7 +4,7 @@ module MultipleInterfacesExample
 
 /// Represents a simple request counter.
 interface RequestCounter {
-    /// Provides the number of request that have been dispatched.
+    /// Provides the number of requests that have been dispatched, not including getRequestCount requests.
     /// @returns: The number of dispatched requests.
     getRequestCount() -> int32
 }

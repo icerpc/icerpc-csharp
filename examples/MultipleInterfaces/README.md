@@ -1,6 +1,6 @@
 # Multiple Interfaces
 
-A modified "Hello World" example illustrating that IceRPC services can implement multiple Slice interfaces.
+This example shows a service that implements multiple Slice interfaces.
 
 For build instructions check the top-level [README.md](../../README.md).
 

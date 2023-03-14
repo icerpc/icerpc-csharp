@@ -5,7 +5,8 @@ using IceRpc.Slice;
 
 namespace MultipleInterfacesExample;
 
-/// <summary>A Chatbot is an IceRPC service that implements 'Hello' and 'RequestCounter' Slice interfaces.</summary>
+/// <summary>A Chatbot is an IceRPC service that implements the 'Hello' and 'RequestCounter' Slice interfaces.
+/// </summary>
 internal class Chatbot : Service, IHelloService, IRequestCounterService
 {
     private int _requestCount;
