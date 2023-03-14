@@ -226,7 +226,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         let stream_type = stream_parameter.data_type();
 
         match stream_type.concrete_type() {
-            Types::Primitive(b) if matches!(b, Primitive::UInt8) && !stream_type.is_optional => {
+            Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => {
                 invocation_builder.add_argument(stream_parameter_name);
             }
             _ => {
