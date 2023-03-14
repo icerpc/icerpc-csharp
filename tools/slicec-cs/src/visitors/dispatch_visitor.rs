@@ -576,9 +576,7 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
             };
 
             match stream_type.concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !stream_type.is_optional => {
-                    stream_arg.into()
-                }
+                Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => stream_arg.into(),
                 _ => format!(
                     "\
 {stream_arg}.ToPipeReader(
