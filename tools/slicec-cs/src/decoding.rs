@@ -335,8 +335,7 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
     let mut code = CodeBlock::default();
     let decode_func_body = decode_func_body(type_ref, namespace, encoding);
     if type_ref.is_optional {
-        write!(
-            code,
+        CodeBlock::from(format!(
             "\
 (ref SliceDecoder decoder) =>
 {{
@@ -351,7 +350,7 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
     }}
 }}
 "
-        );
+        ))
     } else {
         write!(code, "(ref SliceDecoder decoder) => {decode_func_body}");
     }
