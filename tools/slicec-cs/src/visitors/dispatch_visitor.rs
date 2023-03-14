@@ -387,7 +387,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     if operation.compress_return() {
         check_and_decode.writeln(
             "\
-request.Features = IceRpc.Features.FeatureCollectionExtensions.With<IceRpc.Features.ICompressFeature>(
+request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
     request.Features,
     IceRpc.Features.CompressFeature.Compress);
             ",
