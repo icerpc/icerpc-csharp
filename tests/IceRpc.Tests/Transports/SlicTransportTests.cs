@@ -177,9 +177,11 @@ public class SlicTransportTests
         }
 
         // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
         Assert.That(
-            () => connectTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            exception?.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
 
         if (clientConnectTask is not null)
         {
@@ -392,9 +394,12 @@ public class SlicTransportTests
         _ = await stream.Output.WriteAsync(new byte[1], default);
 
         // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(
+            async () => await sut.Server.AcceptStreamAsync(default));
         Assert.That(
-            () => sut.Server.AcceptStreamAsync(default),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
+            exception?.IceRpcError,
+            Is.EqualTo(IceRpcError.ConnectionAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     [Test]

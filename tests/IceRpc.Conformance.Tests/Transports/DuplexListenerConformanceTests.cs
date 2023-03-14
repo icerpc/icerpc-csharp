@@ -72,7 +72,10 @@ public abstract class DuplexListenerConformanceTests
 
         // Assert
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptTask);
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.OperationAborted));
+        Assert.That(
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.OperationAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     [Test]
@@ -141,7 +144,8 @@ public abstract class DuplexListenerConformanceTests
         // otherwise it fails with ConnectionRefused.
         Assert.That(
             exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionRefused).Or.EqualTo(IceRpcError.ConnectionAborted));
+            Is.EqualTo(IceRpcError.ConnectionRefused).Or.EqualTo(IceRpcError.ConnectionAborted),
+            $"The test failed with an unexpected IceRpcError {exception}");
         clientConnection.Dispose();
     }
 
@@ -156,7 +160,10 @@ public abstract class DuplexListenerConformanceTests
         // Act/Assert
         IceRpcException? exception = Assert.Throws<IceRpcException>(
             () => serverTransport.Listen(listener.ServerAddress, new DuplexConnectionOptions(), null));
-        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.AddressInUse));
+        Assert.That(
+            exception!.IceRpcError,
+            Is.EqualTo(IceRpcError.AddressInUse),
+            $"The test failed with an unexpected IceRpcError {exception}");
     }
 
     [Test]
