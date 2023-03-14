@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Slice;
 using System.Buffers;
 using System.Diagnostics;
@@ -54,11 +55,17 @@ public class CompressorMiddleware : IDispatcher
             {
                 request.Payload = PipeReader.Create(
                     new BrotliStream(request.Payload.AsStream(), CompressionMode.Decompress));
+
+                // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
+                request.Payload = new BugFixStreamPipeReaderDecorator(request.Payload);
             }
             else if (compressionFormat == CompressionFormat.Deflate)
             {
                 request.Payload = PipeReader.Create(
                     new DeflateStream(request.Payload.AsStream(), CompressionMode.Decompress));
+
+                // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
+                request.Payload = new BugFixStreamPipeReaderDecorator(request.Payload);
             }
             // else nothing to do
         }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Quic;
@@ -56,12 +57,6 @@ internal class QuicPipeReader : PipeReader
         {
             return await _pipeReader.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
-        {
-            // Workaround for https://github.com/dotnet/runtime/issues/82594
-            cancellationToken.ThrowIfCancellationRequested();
-            throw;
-        }
         catch (QuicException exception)
         {
             throw exception.ToIceRpcException();
@@ -93,6 +88,9 @@ internal class QuicPipeReader : PipeReader
         _pipeReader = Create(
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
+
+        // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
+        _pipeReader = new BugFixStreamPipeReaderDecorator(_pipeReader);
 
         Closed = ClosedAsync();
 

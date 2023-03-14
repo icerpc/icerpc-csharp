@@ -2,8 +2,10 @@
 
 using System.Runtime.CompilerServices;
 
-// Make internals visible to coloc assembly
+// Make internals visible to other IceRpc assemblies
 [assembly: InternalsVisibleTo("IceRpc.Coloc")] // necessary to use IceRpc.Transports.Internal utility classes
+[assembly: InternalsVisibleTo("IceRpc.Quic")] // necessary to use the BugFixStreamPipeReaderDecorator class
+[assembly: InternalsVisibleTo("IceRpc.Compressor")] // necessary to use the BugFixStreamPipeReaderDecorator class
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests")]
