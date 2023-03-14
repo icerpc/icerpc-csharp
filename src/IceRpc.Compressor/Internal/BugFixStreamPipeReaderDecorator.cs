@@ -17,9 +17,15 @@ internal sealed class BugFixStreamPipeReaderDecorator : PipeReader
 
     public override void CancelPendingRead() => _decoratee.CancelPendingRead();
 
+    public override Task CopyToAsync(Stream destination, CancellationToken cancellationToken) =>
+        _decoratee.CopyToAsync(destination, cancellationToken);
+
+    public override Task CopyToAsync(PipeWriter writer, CancellationToken cancellationToken) =>
+        _decoratee.CopyToAsync(writer, cancellationToken);
+
     public override void Complete(Exception? exception = null) => _decoratee.Complete(exception);
 
-    public async override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
+    public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -34,6 +40,22 @@ internal sealed class BugFixStreamPipeReaderDecorator : PipeReader
     }
 
     public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
+
+    protected override async ValueTask<ReadResult> ReadAtLeastAsyncCore(
+        int minimumSize,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _decoratee.ReadAtLeastAsync(minimumSize, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+        {
+            // Workaround
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+    }
 
     internal BugFixStreamPipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
 }

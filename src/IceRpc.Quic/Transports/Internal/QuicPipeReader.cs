@@ -89,8 +89,10 @@ internal class QuicPipeReader : PipeReader
             _stream,
             new StreamPipeReaderOptions(pool, minimumSegmentSize, minimumReadSize: -1, leaveOpen: true));
 
+#if !NET8_0_OR_GREATER
         // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
         _pipeReader = new BugFixStreamPipeReaderDecorator(_pipeReader);
+#endif
 
         Closed = ClosedAsync();
 

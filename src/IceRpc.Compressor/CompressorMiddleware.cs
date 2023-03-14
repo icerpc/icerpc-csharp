@@ -56,16 +56,20 @@ public class CompressorMiddleware : IDispatcher
                 request.Payload = PipeReader.Create(
                     new BrotliStream(request.Payload.AsStream(), CompressionMode.Decompress));
 
+#if !NET8_0_OR_GREATER
                 // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
                 request.Payload = new BugFixStreamPipeReaderDecorator(request.Payload);
+#endif
             }
             else if (compressionFormat == CompressionFormat.Deflate)
             {
                 request.Payload = PipeReader.Create(
                     new DeflateStream(request.Payload.AsStream(), CompressionMode.Decompress));
 
+#if !NET8_0_OR_GREATER
                 // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
                 request.Payload = new BugFixStreamPipeReaderDecorator(request.Payload);
+#endif
             }
             // else nothing to do
         }
