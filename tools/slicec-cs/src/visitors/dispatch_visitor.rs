@@ -250,7 +250,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
 
             let stream_type = stream_member.data_type();
             match stream_type.concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !stream_type.is_optional => {
+                Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => {
                     writeln!(code, "return request.DetachPayload();");
                 }
                 _ => {
