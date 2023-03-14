@@ -520,7 +520,7 @@ pub fn decode_operation_stream(
     let fixed_wire_size = param_type.fixed_wire_size();
 
     match param_type.concrete_type() {
-        Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !param_type.is_optional => {
+        Types::Primitive(Primitive::UInt8) if !param_type.is_optional => {
             panic!("Must not be called for UInt8 parameters as there is no decoding");
         }
         _ => FunctionCallBuilder::new(&format!("payloadContinuation.ToAsyncEnumerable<{param_type_str}>"))
