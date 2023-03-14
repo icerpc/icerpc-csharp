@@ -2,7 +2,7 @@
 
 using System.IO.Pipelines;
 
-namespace IceRpc.Internal;
+namespace IceRpc.Transports.Internal;
 
 /// <summary>A PipeReader decorator to workaround a bug from the System.IO.Pipelines StreamPipeReader implementation,
 /// see https://github.com/dotnet/runtime/issues/82594.</summary>
