@@ -17,13 +17,13 @@ internal sealed class BugFixStreamPipeReaderDecorator : PipeReader
 
     public override void CancelPendingRead() => _decoratee.CancelPendingRead();
 
+    public override void Complete(Exception? exception = null) => _decoratee.Complete(exception);
+
     public override Task CopyToAsync(Stream destination, CancellationToken cancellationToken) =>
         _decoratee.CopyToAsync(destination, cancellationToken);
 
     public override Task CopyToAsync(PipeWriter writer, CancellationToken cancellationToken) =>
         _decoratee.CopyToAsync(writer, cancellationToken);
-
-    public override void Complete(Exception? exception = null) => _decoratee.Complete(exception);
 
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
