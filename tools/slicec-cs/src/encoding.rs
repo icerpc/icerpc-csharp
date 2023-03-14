@@ -431,8 +431,7 @@ pub fn encode_stream_parameter(
     let value_type = type_ref.cs_type_string(namespace, type_context, false);
     let encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, false);
     if type_ref.is_optional {
-        writeln!(
-            code,
+        CodeBlock::from(format!(
             "\
 (ref SliceEncoder encoder, {value_type} value) =>
 {{
@@ -443,7 +442,7 @@ pub fn encode_stream_parameter(
         {encode_action_body};
     }}
 }}"
-        );
+        ))
     } else {
         write!(
             code,
