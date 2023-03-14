@@ -247,8 +247,10 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
                 "await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
                 encoding = operation.encoding.to_cs_encoding(),
             );
-            match stream_member.data_type().concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
+
+            let stream_type = stream_member.data_type();
+            match stream_type.concrete_type() {
+                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !stream_type.is_optional => {
                     writeln!(code, "return request.DetachPayload();");
                 }
                 _ => {
@@ -274,8 +276,9 @@ var {args} = await request.DecodeArgsAsync(
                 encoding = operation.encoding.to_cs_encoding(),
                 decode_func = request_decode_func(operation).indent(),
             );
-            match stream_member.data_type().concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
+            let stream_type = stream_member.data_type();
+            match stream_type.concrete_type() {
+                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !stream_type.is_optional => {
                     writeln!(
                         code,
                         "var {} = request.DetachPayload();",
@@ -573,16 +576,19 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
             };
 
             match stream_type.concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => stream_arg.into(),
+                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !stream_type.is_optional => {
+                    stream_arg.into()
+                }
                 _ => format!(
                     "\
 {stream_arg}.ToPipeReader(
-    {encode_action},
+    {encode_stream_parameter},
     {use_segments},
     {encoding},
     {encode_options})",
-                    encode_action =
-                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
+                    encode_stream_parameter =
+                        encode_stream_parameter(stream_type, TypeContext::Encode, namespace, operation.encoding)
+                            .indent(),
                     use_segments = stream_type.fixed_wire_size().is_none(),
                     encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
                 )

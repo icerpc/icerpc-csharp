@@ -226,7 +226,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         let stream_type = stream_parameter.data_type();
 
         match stream_type.concrete_type() {
-            Types::Primitive(b) if matches!(b, Primitive::UInt8) => {
+            Types::Primitive(b) if matches!(b, Primitive::UInt8) && !stream_type.is_optional => {
                 invocation_builder.add_argument(stream_parameter_name);
             }
             _ => {
@@ -237,7 +237,8 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
                     ))
                     .use_semi_colon(false)
                     .add_argument(
-                        encode_action(stream_type, TypeContext::Encode, namespace, operation.encoding, false).indent(),
+                        encode_stream_parameter(stream_type, TypeContext::Encode, namespace, operation.encoding)
+                            .indent(),
                     )
                     .add_argument(stream_type.fixed_wire_size().is_none())
                     .add_argument(encoding)
@@ -514,8 +515,9 @@ var {return_value} = await response.DecodeReturnValueAsync(
             );
         }
 
-        match stream_member.data_type().concrete_type() {
-            Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) => {
+        let stream_type = stream_member.data_type();
+        match stream_type.concrete_type() {
+            Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !stream_type.is_optional => {
                 writeln!(
                     code,
                     "var {} = response.DetachPayload();",
