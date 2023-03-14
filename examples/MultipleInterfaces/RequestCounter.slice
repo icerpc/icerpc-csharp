@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+module MultipleInterfacesExample
+
+/// Represents a simple request counter.
+interface RequestCounter {
+    /// Provides the number of request that have been dispatched.
+    /// @returns: The number of dispatched requests.
+    getRequestCount() -> int32
+}
