@@ -398,7 +398,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
             {
                 "decoder.DecodeNullableServiceAddress()".to_owned()
             } else {
-                format!("decoder.Decode{}()", primitive_ref.type_suffix(),)
+                format!("decoder.Decode{}()", primitive_ref.type_suffix())
             }
         }
         TypeRefs::Sequence(sequence_ref) => {
