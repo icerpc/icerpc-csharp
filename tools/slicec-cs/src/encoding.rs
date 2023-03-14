@@ -443,12 +443,8 @@ pub fn encode_stream_parameter(
 }}"
         ))
     } else {
-        write!(
-            code,
-            "(ref SliceEncoder encoder, {value_type} value) => {encode_action_body}"
-        );
+        encode_action(type_ref, type_context, namespace, encoding, false)
     }
-    code
 }
 
 fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder_param: &str) -> CodeBlock {
