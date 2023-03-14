@@ -343,14 +343,11 @@ fn encode_action(
     encoding: Encoding,
     is_tagged: bool,
 ) -> CodeBlock {
-    let mut code = CodeBlock::default();
-    let value_type = type_ref.cs_type_string(namespace, type_context, is_tagged);
-    let encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, is_tagged);
-    write!(
-        code,
+    CodeBlock::from(format!(
         "(ref SliceEncoder encoder, {value_type} value) => {encode_action_body}",
-    );
-    code
+        value_type = type_ref.cs_type_string(namespace, type_context, is_tagged),
+        encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, is_tagged),
+    ))
 }
 
 fn encode_action_body(
