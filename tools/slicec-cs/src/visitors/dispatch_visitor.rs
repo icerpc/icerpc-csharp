@@ -278,7 +278,7 @@ var {args} = await request.DecodeArgsAsync(
             );
             let stream_type = stream_member.data_type();
             match stream_type.concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::UInt8) && !stream_type.is_optional => {
+                Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => {
                     writeln!(
                         code,
                         "var {} = request.DetachPayload();",
