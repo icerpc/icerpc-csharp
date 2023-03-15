@@ -134,6 +134,55 @@ public class OperationTests
     }
 
     [Test]
+    public async Task Operation_with_optional_byte_stream_argument_and_return()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
+        provider.GetRequiredService<Server>().Listen();
+
+        // Act
+        var stream = await proxy.OpWithOptionalByteStreamArgumentAndReturnAsync(GetDataAsync());
+
+        // Assert
+        var enumerator = stream.GetAsyncEnumerator();
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(1));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(2));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(3));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.False);
+
+        static async IAsyncEnumerable<byte?> GetDataAsync()
+        {
+            await Task.Yield();
+            yield return 1;
+            yield return null;
+            yield return 2;
+            yield return null;
+            yield return 3;
+            yield return null;
+        }
+    }
+
+    [Test]
     public async Task Operation_with_int_stream_argument_and_return()
     {
         // Arrange
@@ -146,10 +195,10 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
+        var stream = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
+        var enumerator = stream.GetAsyncEnumerator();
         Assert.That(await enumerator.MoveNextAsync(), Is.True);
         Assert.That(enumerator.Current, Is.EqualTo(1));
 
@@ -171,6 +220,55 @@ public class OperationTests
     }
 
     [Test]
+    public async Task Operation_with_optional_int_stream_argument_and_return()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
+        provider.GetRequiredService<Server>().Listen();
+
+        // Act
+        var stream = await proxy.OpWithOptionalIntStreamArgumentAndReturnAsync(GetDataAsync());
+
+        // Assert
+        var enumerator = stream.GetAsyncEnumerator();
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(1));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(2));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo(3));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.False);
+
+        static async IAsyncEnumerable<int?> GetDataAsync()
+        {
+            await Task.Yield();
+            yield return 1;
+            yield return null;
+            yield return 2;
+            yield return null;
+            yield return 3;
+            yield return null;
+        }
+    }
+
+    [Test]
     public async Task Operation_with_string_stream_argument_and_return()
     {
         // Arrange
@@ -183,10 +281,10 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
+        var stream = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
+        var enumerator = stream.GetAsyncEnumerator();
         Assert.That(await enumerator.MoveNextAsync(), Is.True);
         Assert.That(enumerator.Current, Is.EqualTo("hello world 1"));
 
@@ -204,6 +302,55 @@ public class OperationTests
             yield return "hello world 1";
             yield return "hello world 2";
             yield return "hello world 3";
+        }
+    }
+
+    [Test]
+    public async Task Operation_with_optional_string_stream_argument_and_return()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddClientServerColocTest(dispatcher: new MyOperationsAService())
+            .AddIceRpcProxy<IMyOperationsA, MyOperationsAProxy>()
+            .BuildServiceProvider(validateScopes: true);
+
+        IMyOperationsA proxy = provider.GetRequiredService<IMyOperationsA>();
+        provider.GetRequiredService<Server>().Listen();
+
+        // Act
+        var stream = await proxy.OpWithOptionalStringStreamArgumentAndReturnAsync(GetDataAsync());
+
+        // Assert
+        var enumerator = stream.GetAsyncEnumerator();
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo("hello world 1"));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo("hello world 2"));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.EqualTo("hello world 3"));
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.True);
+        Assert.That(enumerator.Current, Is.Null);
+
+        Assert.That(await enumerator.MoveNextAsync(), Is.False);
+
+        static async IAsyncEnumerable<string?> GetDataAsync()
+        {
+            await Task.Yield();
+            yield return "hello world 1";
+            yield return null;
+            yield return "hello world 2";
+            yield return null;
+            yield return "hello world 3";
+            yield return null;
         }
     }
 
@@ -580,13 +727,28 @@ public class OperationTests
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
 
+        public ValueTask<IAsyncEnumerable<byte?>> OpWithOptionalByteStreamArgumentAndReturnAsync(
+            IAsyncEnumerable<byte?> p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
+
         public ValueTask<IAsyncEnumerable<int>> OpWithIntStreamArgumentAndReturnAsync(
             IAsyncEnumerable<int> p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
 
+        public ValueTask<IAsyncEnumerable<int?>> OpWithOptionalIntStreamArgumentAndReturnAsync(
+            IAsyncEnumerable<int?> p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
+
         public ValueTask<IAsyncEnumerable<string>> OpWithStringStreamArgumentAndReturnAsync(
             IAsyncEnumerable<string> p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
+
+        public ValueTask<IAsyncEnumerable<string?>> OpWithOptionalStringStreamArgumentAndReturnAsync(
+            IAsyncEnumerable<string?> p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(p);
 

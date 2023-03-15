@@ -52,15 +52,15 @@ pub trait ParameterExt {
 
 impl ParameterExt for Parameter {
     fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
+        let type_str = self.data_type().cs_type_string(namespace, context, ignore_optional);
         if self.is_streamed {
-            let type_str = self.data_type().cs_type_string(namespace, context, true);
             if type_str == "byte" {
                 "global::System.IO.Pipelines.PipeReader".to_owned()
             } else {
                 format!("global::System.Collections.Generic.IAsyncEnumerable<{type_str}>")
             }
         } else {
-            self.data_type().cs_type_string(namespace, context, ignore_optional)
+            type_str
         }
     }
 
