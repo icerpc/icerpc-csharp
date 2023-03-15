@@ -146,10 +146,10 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithOptionalByteStreamArgumentAndReturnAsync(GetDataAsync());
+        var stream = await proxy.OpWithOptionalByteStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
+        var enumerator = stream.GetAsyncEnumerator();
         Assert.That(await enumerator.MoveNextAsync(), Is.True);
         Assert.That(enumerator.Current, Is.EqualTo(1));
 
@@ -195,10 +195,10 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
+        var stream = await proxy.OpWithIntStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
+        var enumerator = stream.GetAsyncEnumerator();
         Assert.That(await enumerator.MoveNextAsync(), Is.True);
         Assert.That(enumerator.Current, Is.EqualTo(1));
 
@@ -232,10 +232,10 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithOptionalIntStreamArgumentAndReturnAsync(GetDataAsync());
+        var stream = await proxy.OpWithOptionalIntStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
+        var enumerator = stream.GetAsyncEnumerator();
         Assert.That(await enumerator.MoveNextAsync(), Is.True);
         Assert.That(enumerator.Current, Is.EqualTo(1));
 
@@ -281,10 +281,10 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
+        var stream = await proxy.OpWithStringStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
+        var enumerator = stream.GetAsyncEnumerator();
         Assert.That(await enumerator.MoveNextAsync(), Is.True);
         Assert.That(enumerator.Current, Is.EqualTo("hello world 1"));
 
@@ -318,10 +318,10 @@ public class OperationTests
         provider.GetRequiredService<Server>().Listen();
 
         // Act
-        var r = await proxy.OpWithOptionalStringStreamArgumentAndReturnAsync(GetDataAsync());
+        var stream = await proxy.OpWithOptionalStringStreamArgumentAndReturnAsync(GetDataAsync());
 
         // Assert
-        var enumerator = r.GetAsyncEnumerator();
+        var enumerator = stream.GetAsyncEnumerator();
         Assert.That(await enumerator.MoveNextAsync(), Is.True);
         Assert.That(enumerator.Current, Is.EqualTo("hello world 1"));
 
