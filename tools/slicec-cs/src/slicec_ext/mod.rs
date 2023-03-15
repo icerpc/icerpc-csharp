@@ -17,3 +17,11 @@ pub use operation_ext::OperationExt;
 pub use primitive_ext::PrimitiveExt;
 pub use slice_encoding_ext::EncodingExt;
 pub use type_ref_ext::TypeRefExt;
+
+fn scoped_identifier(identifier: String, identifier_namespace: String, current_namespace: &str) -> String {
+    if current_namespace == identifier_namespace {
+        identifier.to_owned()
+    } else {
+        format!("global::{identifier_namespace}.{identifier}")
+    }
+}
