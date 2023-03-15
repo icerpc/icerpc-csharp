@@ -516,7 +516,7 @@ pub fn decode_operation_stream(
 
     match param_type.concrete_type() {
         Types::Primitive(Primitive::UInt8) if !param_type.is_optional => {
-            panic!("Must not be called for UInt8 parameters as there is no decoding");
+            panic!("Must not be called for non-optional UInt8 parameters as there is no decoding");
         }
         _ => FunctionCallBuilder::new(&format!("payloadContinuation.ToAsyncEnumerable<{param_type_str}>"))
             .arguments_on_newline(true)
