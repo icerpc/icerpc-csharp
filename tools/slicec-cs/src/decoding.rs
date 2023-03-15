@@ -400,7 +400,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
             }
         }
         TypeRefs::Sequence(sequence_ref) => {
-            format!("{}", decode_sequence(sequence_ref, namespace, encoding))
+            decode_sequence(sequence_ref, namespace, encoding).to_string()
         }
         TypeRefs::Dictionary(dictionary_ref) => {
             format!("{}", decode_dictionary(dictionary_ref, namespace, encoding))
