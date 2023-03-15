@@ -57,6 +57,17 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     // The latest sequence returned by _decoratee; not affected by Reset.
     private ReadOnlySequence<byte>? _sequence;
 
+    /// <summary>Constructs a ResettablePipeReaderDecorator. This decorator avoids consuming the read data to allow
+    /// restart reading from the beginning, once the buffered data exceeds the <paramref name="maxBufferSize"/> the
+    /// decorator becomes non resettable and <see cref="IsResettable"/> returns <see langword="false" />.</summary>
+    /// <param name="decoratee">The pipe reader being decorated.</param>
+    /// <param name="maxBufferSize">The maximum size of buffered data in bytes.</param>
+    public ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
+    {
+        _decoratee = decoratee;
+        _maxBufferSize = maxBufferSize;
+    }
+
     /// <inheritdoc/>
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
@@ -148,17 +159,6 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         return ProcessReadResult(readResult);
     }
 
-    /// <summary>Constructs a ResettablePipeReaderDecorator. This decorator avoids consuming the read data to allow
-    /// restart reading from the beginning, once the buffered data exceeds the <paramref name="maxBufferSize"/> the
-    /// decorator becomes non resettable and <see cref="IsResettable"/> returns <see langword="false" />.</summary>
-    /// <param name="decoratee">The pipe reader being decorated.</param>
-    /// <param name="maxBufferSize">The maximum size of buffered data in bytes.</param>
-    public ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
-    {
-        _decoratee = decoratee;
-        _maxBufferSize = maxBufferSize;
-    }
-
     /// <summary>Resets this pipe reader.</summary>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable" /> is <see langword="false" />.
     /// </exception>
@@ -245,14 +245,15 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         if (_consumed is SequencePosition consumed)
         {
-            // Removed bytes marked as consumed
+            // Remove bytes marked as consumed
             readResult = new ReadResult(
                 readResult.Buffer.Slice(consumed),
                 readResult.IsCanceled,
                 readResult.IsCompleted);
         }
 
-        // When the application requests cancellation via CancelPendingRead, we don't retry.
+        // We don't retry when the buffered data exceeds the maximum buffer size or when the application requests
+        // cancellation via CancelPendingRead.
         if (_isResettable && (_sequence.Value.Length > _maxBufferSize || readResult.IsCanceled))
         {
             _isResettable = false;
