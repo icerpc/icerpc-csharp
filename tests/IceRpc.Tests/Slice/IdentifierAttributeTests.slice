@@ -18,6 +18,6 @@ interface OriginalInterface {
 }
 
 [cs::identifier("REnamedEnum")]
-enum OriginalEnum {
+enum OriginalEnum: uint8 {
     [cs::identifier("REnamedEnumerator")] originalEnumerator
 }

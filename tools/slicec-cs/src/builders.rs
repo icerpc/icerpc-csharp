@@ -70,8 +70,8 @@ pub trait AttributeBuilder {
     }
 
     fn add_compact_type_id_attribute(&mut self, class_def: &Class) -> &mut Self {
-        if let Some(compact_id) = class_def.compact_id {
-            self.add_attribute(&format!("IceRpc.Slice.CompactTypeId({compact_id})"));
+        if let Some(compact_id) = &class_def.compact_id {
+            self.add_attribute(&format!("IceRpc.Slice.CompactTypeId({})", compact_id.value));
         }
         self
     }
