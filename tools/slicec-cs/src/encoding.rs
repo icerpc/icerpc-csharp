@@ -428,7 +428,6 @@ pub fn encode_stream_parameter(
     encoding: Encoding,
 ) -> CodeBlock {
     let value_type = type_ref.cs_type_string(namespace, type_context, false);
-    let encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, false);
     if type_ref.is_optional {
         CodeBlock::from(format!(
             "\
@@ -440,7 +439,8 @@ pub fn encode_stream_parameter(
     {{
         {encode_action_body};
     }}
-}}"
+}}",
+            encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, false).indent()
         ))
     } else {
         encode_action(type_ref, type_context, namespace, encoding, false)

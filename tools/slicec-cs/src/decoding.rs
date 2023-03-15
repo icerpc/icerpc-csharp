@@ -351,7 +351,7 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
 "
         ))
     } else {
-        CodeBlock::from(format!("(ref SliceDecoder decoder) => {decode_func_body}"))
+        decode_func(type_ref, namespace, encoding)
     }
 }
 
@@ -399,12 +399,8 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                 format!("decoder.Decode{}()", primitive_ref.type_suffix())
             }
         }
-        TypeRefs::Sequence(sequence_ref) => {
-            decode_sequence(sequence_ref, namespace, encoding).to_string()
-        }
-        TypeRefs::Dictionary(dictionary_ref) => {
-            format!("{}", decode_dictionary(dictionary_ref, namespace, encoding))
-        }
+        TypeRefs::Sequence(sequence_ref) => decode_sequence(sequence_ref, namespace, encoding).to_string(),
+        TypeRefs::Dictionary(dictionary_ref) => decode_dictionary(dictionary_ref, namespace, encoding).to_string(),
         TypeRefs::Enum(enum_ref) => {
             format!(
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
