@@ -335,20 +335,7 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
     let decode_func_body = decode_func_body(type_ref, namespace, encoding);
     if type_ref.is_optional {
         CodeBlock::from(format!(
-            "\
-(ref SliceDecoder decoder) =>
-{{
-    var bitSequenceReader = decoder.GetBitSequenceReader(1);
-    if (bitSequenceReader.Read())
-    {{
-        return {decode_func_body};
-    }}
-    else
-    {{
-        return null;
-    }}
-}}
-"
+            "(ref SliceDecoder decoder) => decoder.DecodeBool() ? {decode_func_body} : null"
         ))
     } else {
         decode_func(type_ref, namespace, encoding)

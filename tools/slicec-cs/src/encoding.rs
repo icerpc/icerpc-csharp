@@ -433,9 +433,8 @@ pub fn encode_stream_parameter(
             "\
 (ref SliceEncoder encoder, {value_type} value) =>
 {{
-    var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
-    bitSequenceWriter.Write(value != null);
-    if (value != null)
+    encoder.EncodeBool(value is not null);
+    if (value is not null)
     {{
         {encode_action_body};
     }}
