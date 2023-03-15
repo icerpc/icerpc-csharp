@@ -112,11 +112,6 @@ pub trait EntityExt: Entity {
         })
     }
 
-    /// The helper name
-    fn helper_name(&self, current_namespace: &str) -> String {
-        self.escape_scoped_identifier_with_suffix("Helper", current_namespace)
-    }
-
     /// The C# namespace of this entity.
     fn namespace(&self) -> String {
         let module_scope = &self.raw_scope().module_scope;
