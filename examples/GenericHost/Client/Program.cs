@@ -34,8 +34,8 @@ IHost host = Host.CreateDefaultBuilder(args)
 
                 options.ClientAuthenticationOptions = new SslClientAuthenticationOptions
                 {
-                    // A certificate validation callback that uses the configured certificate authorities file
-                    // to validate the peer certificates.
+                    // A certificate validation callback that uses the configured certificate authorities file to
+                    // validate the peer certificates.
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
                     {
                         using var customChain = new X509Chain();
@@ -49,6 +49,7 @@ IHost host = Host.CreateDefaultBuilder(args)
             });
 
         services
+            // The activity source used by the telemetry interceptor.
             .AddSingleton(_ => new ActivitySource("IceRpc"))
             // Add a ClientConnection singleton. This ClientConnections uses the ClientConnectionOptions provided by the
             // the IOptions<ClientConnectionOptions> configured/bound above.
