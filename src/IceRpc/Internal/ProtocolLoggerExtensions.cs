@@ -12,7 +12,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionAccepted,
         EventName = nameof(ProtocolEventIds.ConnectionAccepted),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "Listener '{ServerAddress}' accepted connection from '{RemoteNetworkAddress}'")]
     internal static partial void LogConnectionAccepted(
         this ILogger logger,
@@ -22,8 +22,8 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionAcceptFailed,
         EventName = nameof(ProtocolEventIds.ConnectionAcceptFailed),
-        Level = LogLevel.Error,
-        Message = "Listener '{ServerAddress}' failed to accept a new connection")]
+        Level = LogLevel.Critical,
+        Message = "Listener '{ServerAddress}' failed to accept a new connection and stops accepting connections")]
     internal static partial void LogConnectionAcceptFailed(
         this ILogger logger,
         ServerAddress serverAddress,
@@ -32,7 +32,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionAcceptFailedWithRetryableException,
         EventName = nameof(ProtocolEventIds.ConnectionAcceptFailedWithRetryableException),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "Listener '{ServerAddress}' failed to accept a new connection but continues accepting connections")]
     internal static partial void LogConnectionAcceptFailedWithRetryableException(
         this ILogger logger,
@@ -42,7 +42,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionConnected,
         EventName = nameof(ProtocolEventIds.ConnectionConnected),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' connected")]
     internal static partial void LogConnectionConnected(
         this ILogger logger,
@@ -66,7 +66,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "Client connection failed to connect to '{ServerAddress}'")]
     internal static partial void LogConnectionConnectFailed(
         this ILogger logger,
@@ -76,7 +76,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "Server connection failed to connect from '{ServerAddress}' to '{RemoteNetworkAddress}'")]
     internal static partial void LogConnectionConnectFailed(
         this ILogger logger,
@@ -88,7 +88,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionDisposed,
         EventName = nameof(ProtocolEventIds.ConnectionDisposed),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' disposed")]
     internal static partial void LogConnectionDisposed(
         this ILogger logger,
@@ -110,7 +110,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionShutdown,
         EventName = nameof(ProtocolEventIds.ConnectionShutdown),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' shutdown")]
     internal static partial void LogConnectionShutdown(
         this ILogger logger,
@@ -132,7 +132,7 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionShutdownFailed,
         EventName = nameof(ProtocolEventIds.ConnectionShutdownFailed),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "{Kind} connection from '{LocalNetworkAddress}' to '{RemoteNetworkAddress}' failed to shutdown")]
     internal static partial void LogConnectionShutdownFailed(
         this ILogger logger,
@@ -191,14 +191,14 @@ internal static partial class ProtocolLoggerExtensions
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StartAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StartAcceptingConnections),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "Listener '{ServerAddress}' has started accepting connections")]
     internal static partial void LogStartAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.StopAcceptingConnections,
         EventName = nameof(ProtocolEventIds.StopAcceptingConnections),
-        Level = LogLevel.Trace,
+        Level = LogLevel.Debug,
         Message = "Listener '{ServerAddress}' has stopped accepting connections")]
     internal static partial void LogStopAcceptingConnections(this ILogger logger, ServerAddress serverAddress);
 }
