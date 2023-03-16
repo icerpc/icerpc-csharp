@@ -82,9 +82,9 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <returns>A value task that completes when the disposal of all connections created by this cache has completed.
     /// This includes connections that were active when this method is called and connections whose disposal was
     /// initiated prior to this call.</returns>
-    /// <remarks>The disposal of a connection waits for the completion of all dispatch tasks created by this connection.
-    /// If the configured dispatcher does not complete promptly when its cancellation token is canceled, the disposal of
-    /// a connection and indirectly of the connection cache as a whole can hang.</remarks>
+    /// <remarks>The disposal of a connection cancels and waits for the completion of all dispatch tasks created by this
+    /// connection. If the configured dispatcher does not complete promptly when its cancellation token is canceled, the
+    /// disposal of a connection and indirectly of the connection cache as a whole can hang.</remarks>
     public ValueTask DisposeAsync()
     {
         lock (_mutex)
