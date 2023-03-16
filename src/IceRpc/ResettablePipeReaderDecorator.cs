@@ -8,6 +8,8 @@ namespace IceRpc;
 
 /// <summary>A PipeReader decorator that allows to reset its decoratee to its initial state (from the caller's
 /// perspective).</summary>
+// The default CopyToAsync implementation is suitable for this reader implementation. It calls ReadAsync/AdvanceTo to
+// read the data. This ensures that the decorated pipe reader buffered data is not consumed.
 public sealed class ResettablePipeReaderDecorator : PipeReader
 {
     /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
@@ -57,9 +59,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     // The latest sequence returned by _decoratee; not affected by Reset.
     private ReadOnlySequence<byte>? _sequence;
 
-    /// <summary>Constructs a ResettablePipeReaderDecorator. This decorator avoids consuming the read data to allow
-    /// restart reading from the beginning, once the buffered data exceeds the <paramref name="maxBufferSize"/> the
-    /// decorator becomes non resettable and <see cref="IsResettable"/> returns <see langword="false" />.</summary>
+    /// <summary>Constructs a resettable pipe reader decorator. This decorator avoids consuming the read data to allow
+    /// restart reading from the beginning. The decorator becomes non-resettable and <see cref="IsResettable"/> returns
+    /// <see langword="false" /> if the buffered data exceeds the <paramref name="maxBufferSize"/>, if the reading fails
+    /// or if it's canceled with <see cref="CancelPendingRead" />.</summary>
     /// <param name="decoratee">The pipe reader being decorated.</param>
     /// <param name="maxBufferSize">The maximum size of buffered data in bytes.</param>
     public ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
@@ -152,7 +155,6 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
         catch
         {
-            // Complete exception from pipe writer source.
             _isResettable = false;
             throw;
         }
@@ -169,7 +171,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
             if (_isReadingInProgress)
             {
                 throw new InvalidOperationException(
-                    "The ResettablePipeReaderDecorator cannot be reset while reading is in progress.");
+                    "The resettable pipe reader decorator cannot be reset while reading is in progress.");
             }
 
             _consumed = null;
@@ -178,7 +180,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
         else
         {
-            throw new InvalidOperationException("Cannot reset non-resettable ResettablePipeReaderDecorator.");
+            throw new InvalidOperationException("Cannot reset non-resettable pipe reader decorator.");
         }
     }
 
@@ -204,7 +206,6 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
         catch
         {
-            // Complete exception from pipe writer source.
             _isResettable = false;
             throw;
         }
@@ -232,7 +233,6 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
         catch
         {
-            // Complete exception from pipe writer source.
             _isResettable = false;
             throw;
         }
