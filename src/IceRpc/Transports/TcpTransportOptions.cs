@@ -20,8 +20,8 @@ public record class TcpTransportOptions
     }
 
     /// <summary>Gets or sets the socket send buffer size in bytes.</summary>
-    /// <value>The send buffer size in bytes. It can't be less than <c>1</> KB. <see langword="null" /> means use the OS
-    /// default. Defaults to <see langword="null" />.
+    /// <value>The send buffer size in bytes. It can't be less than <c>1</c> KB. <see langword="null" /> means use the
+    /// OS default. Defaults to <see langword="null" />.
     /// </value>
     public int? SendBufferSize
     {

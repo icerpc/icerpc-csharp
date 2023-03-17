@@ -10,7 +10,7 @@ public interface IServerAddressFeature
 {
     /// <summary>Gets or sets the alternatives to <see cref="ServerAddress" />.</summary>
     /// <value>The list of alternatives <see cref="IceRpc.ServerAddress" />. It is empty when <see cref="ServerAddress"
-    /// /> is <see langword="null" />.
+    /// /> is <see langword="null" />.</value>.
     ImmutableList<ServerAddress> AltServerAddresses { get; set; }
 
     /// <summary>Gets or sets the list of <see cref="IceRpc.ServerAddress" /> that have been removed and will not be
