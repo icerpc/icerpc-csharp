@@ -202,9 +202,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// connections it created.</summary>
     /// <returns>A value task that completes when the disposal of all the underlying connections has
     /// completed.</returns>
-    /// <remarks>The disposal of the underlying connections cancels and waits for the completion of all dispatch tasks.
-    /// If the configured dispatcher does not complete promptly when its cancellation token is canceled, the disposal of
-    /// the connection can hang.</remarks>
+    /// <remarks>The disposal of an underlying connection of the client connection cancels its invocations and
+    /// dispatches. The completion of all dispatch tasks created by the underlying connection is awaited before its
+    /// transport connection is aborted. If the configured dispatcher does not complete promptly when its cancellation
+    /// token is canceled, the disposal can hang.</remarks>
     public ValueTask DisposeAsync()
     {
         lock (_mutex)
