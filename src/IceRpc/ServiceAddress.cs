@@ -17,8 +17,8 @@ namespace IceRpc;
 public sealed record class ServiceAddress
 {
     /// <summary>Gets the protocol of this service address.</summary>
-    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a relative service
-    /// address.</value>
+    /// <value>The protocol of the service address. It corresponds to the URI scheme and is <see langword="null" /> for
+    /// a relative service address.</value>
     public Protocol? Protocol { get; }
 
     /// <summary>Gets or initializes the main server address of this service address.</summary>
@@ -196,7 +196,7 @@ public sealed record class ServiceAddress
     private ServerAddress? _serverAddress;
 
     /// <summary>Constructs a service address from a protocol.</summary>
-    /// <param name="protocol">The protocol, or null for a relative service address.</param>
+    /// <param name="protocol">The protocol, or <see langword="null" /> for a relative service address.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="protocol" /> is not <see langword="null" /> or a
     /// supported protocol.</exception>
     public ServiceAddress(Protocol? protocol = null) => Protocol = protocol;

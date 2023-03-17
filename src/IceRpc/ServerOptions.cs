@@ -8,7 +8,7 @@ namespace IceRpc;
 public sealed record class ServerOptions
 {
     /// <summary>Gets or sets the connection options for server connections.</summary>
-    /// <value>The connection options. Defaults to a default constructed connection options instance.</value>
+    /// <value>The connection options. Defaults to a default constructed <see cref="ConnectionOptions" />.</value>
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
     /// <summary>Gets or sets the connection establishment timeout for connections accepted by the server.</summary>

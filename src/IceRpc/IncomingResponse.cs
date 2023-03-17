@@ -15,7 +15,8 @@ public sealed class IncomingResponse : IncomingFrame
     public string? ErrorMessage { get; }
 
     /// <summary>Gets the fields of this incoming response.</summary>
-    /// <value>The fields of this incoming response. Defaults to an empty fields dictionary.</value>
+    /// <value>The fields of this incoming response. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty"
+    /// />.</value>
     public IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> Fields { get; private set; }
 
     /// <summary>Gets the <see cref="StatusCode" /> of this response.</summary>

@@ -9,8 +9,8 @@ namespace IceRpc;
 public record class ConnectionOptions
 {
     /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection.</summary>
-    /// <value>The dispatcher that dispatches requests received by this connection, or null if this connection does
-    /// not accept requests.</value>
+    /// <value>The dispatcher that dispatches requests received by this connection, or <see langword="null" /> if this
+    /// connection does not accept requests.</value>
     public IDispatcher? Dispatcher { get; set; }
 
     /// <summary>Gets or sets a value indicating whether or not to enable the Ice idle check. This option is specific to

@@ -10,11 +10,12 @@ namespace IceRpc;
 public sealed class IncomingRequest : IncomingFrame, IDisposable
 {
     /// <summary>Gets or sets the features of this request.</summary>
-    /// <value>The <see cref="IFeatureCollection" /> of this request. Defaults to an empty feature collection.</value>
+    /// <value>The <see cref="IFeatureCollection" /> of this request. Defaults to <see cref="FeatureCollection.Empty"
+    /// />.</value>
     public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
     /// <summary>Gets or sets the fields of this request.</summary>
-    /// <value>The fields of this request. Defaults to an empty fields dictionary.</value>
+    /// <value>The fields of this request. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.</value>
     public IDictionary<RequestFieldKey, ReadOnlySequence<byte>> Fields { get; set; } =
         ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 

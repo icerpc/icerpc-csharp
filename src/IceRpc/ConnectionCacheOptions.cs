@@ -12,7 +12,7 @@ public record class ConnectionCacheOptions
     public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
     /// <summary>Gets or sets the connection options used for connections created by the connection cache.</summary>
-    /// <value>The connection options. Defaults to a default constructed connection options instance.</value>
+    /// <value>The connection options. Defaults to a default constructed <see cref="ConnectionOptions" />.</value>
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
     /// <summary>Gets or sets the connection establishment timeout for connections created by the connection cache.
