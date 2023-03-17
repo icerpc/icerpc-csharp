@@ -45,7 +45,7 @@ internal class LogTaskExceptionObserver : ITaskExceptionObserver
 
             // expected and somewhat common (peer aborts connection)
             IceRpcException rpcException when rpcException.IceRpcError is IceRpcError.ConnectionAborted =>
-                LogLevel.Trace,
+                LogLevel.Debug,
 
             // rare, for example a protocol error
             IceRpcException => LogLevel.Debug,

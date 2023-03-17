@@ -26,7 +26,7 @@ internal class EarthImageStore : Service, IUploaderService
         await imageStream.CopyToAsync(fs, cancellationToken);
 
         // Complete and cleanup the pipe reader.
-        await image.CompleteAsync();
+        image.Complete();
 
         Console.WriteLine("Image fully read and saved to disk.");
     }
