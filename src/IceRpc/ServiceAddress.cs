@@ -185,7 +185,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets the URI used to create this service address.</summary>
-    /// <value>The <see cref="Uri" /> value if this service address was constructed from an URI and URI-derived
+    /// <value>The <see cref="Uri" /> of this service address if it was constructed from an URI and URI-derived
     /// properties such as <see cref="ServerAddress" /> have not been updated; <see langword="null"/> otherwise.</value>
     public Uri? OriginalUri { get; private set; }
 

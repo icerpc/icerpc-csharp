@@ -8,7 +8,8 @@ namespace IceRpc.Transports;
 public record class DuplexConnectionOptions
 {
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
-    /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
+    /// <value>The minimum size of the segment requested from the <see cref="Pool" />. It cannot be less than <c>1</c>
+    /// KB. Defaults to <c>4</c> KB.</value>
     public int MinSegmentSize
     {
         get => _minSegmentSize;
@@ -17,7 +18,8 @@ public record class DuplexConnectionOptions
     }
 
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
-    /// <value>A pool of memory blocks used for buffer management.</value>
+    /// <value>A pool of memory blocks used for buffer management. Defaults to <see cref="MemoryPool{T}.Shared"
+    /// />.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
     private int _minSegmentSize = 4096;

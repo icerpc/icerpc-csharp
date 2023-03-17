@@ -278,7 +278,7 @@ public ref partial struct SliceEncoder
     // Encode methods for constructed types
 
     /// <summary>Encodes a nullable service address (Slice1 only).</summary>
-    /// <param name="serviceAddress">The service address to encode, or null.</param>
+    /// <param name="serviceAddress">The service address to encode, or <see langword="null" />.</param>
     public void EncodeNullableServiceAddress(ServiceAddress? serviceAddress)
     {
         if (Encoding != SliceEncoding.Slice1)

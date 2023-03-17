@@ -9,6 +9,6 @@ namespace IceRpc.Deadline;
 public interface IDeadlineFeature
 {
     /// <summary>Gets the value of deadline.</summary>
-    /// <value>The <see cref="DateTime.MaxValue" /> means no deadline.</value>
+    /// <value>The deadline value. The <see cref="DateTime.MaxValue" /> means no deadline.</value>
     DateTime Value { get; }
 }

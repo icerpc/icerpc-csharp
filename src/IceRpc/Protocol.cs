@@ -18,7 +18,8 @@ public class Protocol
     public static Protocol IceRpc => IceRpcProtocol.Instance;
 
     /// <summary>Gets the default port for this protocol.</summary>
-    /// <value>The default port value. Defaults to 4061 for the ice protocol and 4062 for the icerpc protocol.</value>
+    /// <value>The default port value. Defaults to <c>4061</c> for the ice protocol and <c>4062</c> for the icerpc
+    /// protocol.</value>
     public ushort DefaultPort { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports arbitrary application-defined fields in

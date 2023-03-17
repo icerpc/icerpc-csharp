@@ -42,7 +42,7 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a nullable class instance.</summary>
     /// <typeparam name="T">The class type.</typeparam>
-    /// <returns>The class instance, or null.</returns>
+    /// <returns>The class instance, or <see langword="null" />.</returns>
     public T? DecodeNullableClass<T>() where T : class
     {
         if (Encoding != SliceEncoding.Slice1)
@@ -166,7 +166,7 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Decodes a class instance.</summary>
-    /// <returns>The class instance. Can be null.</returns>
+    /// <returns>The class instance. Can be <see langword="null" />.</returns>
     private SliceClass? DecodeClass()
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);

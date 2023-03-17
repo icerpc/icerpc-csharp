@@ -17,8 +17,8 @@ public ref partial struct SliceEncoder
     /// <param name="v">The class instance to encode.</param>
     public void EncodeClass(SliceClass v) => EncodeNullableClass(v);
 
-    /// <summary>Encodes a class instance, or null.</summary>
-    /// <param name="v">The class instance to encode, or null.</param>
+    /// <summary>Encodes a class instance, or <see langword="null" />.</summary>
+    /// <param name="v">The class instance to encode, or <see langword="null" />.</param>
     public void EncodeNullableClass(SliceClass? v)
     {
         if (v is null)
