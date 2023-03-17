@@ -8,13 +8,13 @@ namespace IceRpc;
 public sealed record class ClientConnectionOptions : ConnectionOptions
 {
     /// <summary>Gets or sets the SSL client authentication options.</summary>
-    /// <value>The SSL client authentication options. When not null,
+    /// <value>The SSL client authentication options. When not <see langword="null" />,
     /// <see cref="ClientConnection.ConnectAsync(CancellationToken)" /> will either establish a secure connection or
     /// fail.</value>
     public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
 
     /// <summary>Gets or sets the connection establishment timeout.</summary>
-    /// <value>Defaults to <c>10</c> seconds.</value>
+    /// <value>The connection establishment timeout. Defaults to <c>10</c> seconds.</value>
     public TimeSpan ConnectTimeout
     {
         get => _connectTimeout;
@@ -23,11 +23,12 @@ public sealed record class ClientConnectionOptions : ConnectionOptions
     }
 
     /// <summary>Gets or sets the connection's server address.</summary>
-    /// <value>The connections's server address. If null, the client connection construction will fail.</value>
+    /// <value>The connections's server address. If <see langword="null" />, the client connection construction will
+    /// fail.</value>
     public ServerAddress? ServerAddress { get; set; }
 
     /// <summary>Gets or sets the shutdown timeout.</summary>
-    /// <value>Defaults to <c>10</c> seconds.</value>
+    /// <value>The shutdown timeout. Defaults to <c>10</c> seconds.</value>
     public TimeSpan ShutdownTimeout
     {
         get => _shutdownTimeout;

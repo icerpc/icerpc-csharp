@@ -8,6 +8,7 @@ namespace IceRpc;
 public class IceRpcException : IOException
 {
     /// <summary>Gets the IceRpc error.</summary>
+    /// <value>The <see cref="IceRpcError.IceRpcError"/> of this exception.</value>
     public IceRpcError IceRpcError { get; }
 
     /// <summary>Constructs a new instance of the <see cref="IceRpcException" /> class.</summary>

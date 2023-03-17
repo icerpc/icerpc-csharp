@@ -9,15 +9,16 @@ namespace IceRpc;
 public class IncomingFrame
 {
     /// <summary>Gets or sets the connection context.</summary>
+    /// <value>The <see cref="IConnectionContext"/> of this frame.</value>
     public IConnectionContext ConnectionContext { get; set; }
 
     /// <summary>Gets or sets the payload of this frame.</summary>
-    /// <value>The payload of this frame. The default value is an empty <see cref="PipeReader" />.</value>
+    /// <value>The payload of this frame. Defaults to a <see cref="PipeReader" /> that returns an empty
+    /// sequence.</value>
     public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
     /// <summary>Gets the protocol of this frame.</summary>
-    /// <value>The <see cref="IceRpc.Protocol" /> value of this frame.</value>
-    /// <remarks><see cref="Protocol" /> is read-only and is set when the incoming frame is constructed.</remarks>
+    /// <value>The <see cref="IceRpc.Protocol" /> of this frame.</value>
     public Protocol Protocol { get; }
 
     /// <summary>Constructs an incoming frame.</summary>

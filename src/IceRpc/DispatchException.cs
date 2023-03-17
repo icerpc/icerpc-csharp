@@ -9,15 +9,14 @@ public class DispatchException : Exception
     /// <summary>Gets or sets a value indicating whether the exception should be converted into a <see
     /// cref="DispatchException" /> with status code <see cref="StatusCode.UnhandledException" /> when thrown from a
     /// dispatch.</summary>
-    /// <value>When <see langword="true" />, this exception is converted into dispatch exception with status code
-    /// <see cref="StatusCode.UnhandledException" /> just before it's encoded. The default value is
-    /// <see langword="true" /> for an exception decoded from <see cref="IncomingResponse" />, and
-    /// <see langword="false" /> for an exception created by the application using a constructor of
-    /// <see cref="DispatchException" />.</value>
+    /// <value>When <see langword="true" />, this exception is converted into dispatch exception with status code <see
+    /// cref="StatusCode.UnhandledException" /> just before it's encoded. Defaults to <see langword="true" /> for an
+    /// exception decoded from <see cref="IncomingResponse" />, and <see langword="false" /> for an exception created by
+    /// the application using a constructor of <see cref="DispatchException" />.</value>
     public bool ConvertToUnhandled { get; set; }
 
     /// <summary>Gets the status code.</summary>
-    /// <value>The status code from <see cref="DispatchException" />.</value>
+    /// <value>The <see cref="IceRpc.StatusCode" /> of this exception.</value>
     public StatusCode StatusCode { get; }
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>

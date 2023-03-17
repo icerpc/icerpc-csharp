@@ -17,7 +17,7 @@ public record class ConnectionCacheOptions
 
     /// <summary>Gets or sets the connection establishment timeout for connections created by the connection cache.
     /// </summary>
-    /// <value>Defaults to <c>10</c> seconds.</value>
+    /// <value>The connection establishment timeout. Defaults to <c>10</c> seconds.</value>
     public TimeSpan ConnectTimeout
     {
         get => _connectTimeout;
@@ -35,7 +35,7 @@ public record class ConnectionCacheOptions
 
     /// <summary>Gets or sets the shutdown timeout. This timeout is used when gracefully shutting down a connection
     /// managed by the connection cache.</summary>
-    /// <value>Defaults to <c>10</c> seconds.</value>
+    /// <value>This shutdown timeout. Defaults to <c>10</c> seconds.</value>
     public TimeSpan ShutdownTimeout
     {
         get => _shutdownTimeout;

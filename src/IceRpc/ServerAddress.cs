@@ -19,6 +19,7 @@ public readonly record struct ServerAddress
     public Protocol Protocol { get; }
 
     /// <summary>Gets or initializes the host.</summary>
+    /// <value>The host of this server address. Defaults to <c>::0</c>.</value>
     public string Host
     {
         get => _host;
@@ -35,6 +36,7 @@ public readonly record struct ServerAddress
     }
 
     /// <summary>Gets or initializes the port number.</summary>
+    /// <value>The port number of this server address. Defaults to <see cref="Protocol.DefaultPort" />.</value>
     public ushort Port
     {
         get => _port;
@@ -47,7 +49,8 @@ public readonly record struct ServerAddress
     }
 
     /// <summary>Gets or initializes the transport.</summary>
-    /// <value>The name of the transport, or null if the transport is unspecified.</value>
+    /// <value>The name of the transport, or <see langword="null"/> if the transport is unspecified. Defaults to
+    /// <see langword="null"/>.</value>
     public string? Transport
     {
         get => _transport;
@@ -61,6 +64,8 @@ public readonly record struct ServerAddress
     }
 
     /// <summary>Gets or initializes transport-specific parameters.</summary>
+    /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty"
+    /// />.</value>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -80,8 +85,9 @@ public readonly record struct ServerAddress
         }
     }
 
-    /// <summary>Gets the URI used to create this server address, if this server address was created from a URI.
-    /// </summary>
+    /// <summary>Gets the URI used to create this server address.</summary>
+    /// <value>The <see cref="Uri" /> value if this server address was constructed from an URI; <see
+    /// langword="null"/> otherwise.</value>
     public Uri? OriginalUri { get; private init; }
 
     private readonly string _host = "::0";
@@ -211,6 +217,8 @@ public abstract class ServerAddressComparer : EqualityComparer<ServerAddress>
 {
     /// <summary>Gets a server address comparer that compares all server address properties, except a transport mismatch
     /// where the transport of one of the server addresses is null results in equality.</summary>
+    /// <value>A <see cref="ServerAddressComparer" /> instance that compares server address properties with the
+    /// exception of the <see cref="ServerAddress.Transport" /> properties which are only compared if non-null.</value>
     public static ServerAddressComparer OptionalTransport { get; } = new OptionalTransportServerAddressComparer();
 
     private class OptionalTransportServerAddressComparer : ServerAddressComparer

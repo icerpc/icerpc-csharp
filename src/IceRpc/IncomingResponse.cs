@@ -9,14 +9,17 @@ namespace IceRpc;
 /// <summary>Represents a response protocol frame received by the application.</summary>
 public sealed class IncomingResponse : IncomingFrame
 {
-    /// <summary>Gets the error message of this response. The error message is null when <see cref="StatusCode" /> is
-    /// <see cref="StatusCode.Success" />. Otherwise, it is non-null.</summary>
+    /// <summary>Gets the error message of this response.</summary>
+    /// <value>The error message of this response if <see cref="StatusCode" /> is different from <see
+    /// cref="StatusCode.Success" />; <see langword="null"/> otherwise.</value>
     public string? ErrorMessage { get; }
 
     /// <summary>Gets the fields of this incoming response.</summary>
+    /// <value>The fields of this incoming response. Defaults to an empty fields dictionary.</value>
     public IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> Fields { get; private set; }
 
     /// <summary>Gets the <see cref="StatusCode" /> of this response.</summary>
+    /// <value>The <see cref="IceRpc.StatusCode" /> of this response.</value>
     public StatusCode StatusCode { get; }
 
     private readonly PipeReader? _fieldsPipeReader;
@@ -63,8 +66,8 @@ public sealed class IncomingResponse : IncomingFrame
     /// <param name="statusCode">The status code of this response.</param>
     /// <param name="errorMessage">The error message of this response.</param>
     /// <param name="fields">The fields of this response.</param>
-    /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <c>null</c> when the
-    /// fields memory is not held by a pipe reader.</param>
+    /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <see langword="null"/>
+    /// when the fields memory is not held by a pipe reader.</param>
     internal IncomingResponse(
         OutgoingRequest request,
         IConnectionContext connectionContext,

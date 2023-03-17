@@ -9,18 +9,18 @@ namespace IceRpc;
 /// <summary>Represents a request frame received by the application.</summary>
 public sealed class IncomingRequest : IncomingFrame, IDisposable
 {
-    /// <summary>Gets or sets the features of this incoming request.</summary>
-    /// <value>The features of this incoming request. Defaults to an empty feature collection.</value>
+    /// <summary>Gets or sets the features of this request.</summary>
+    /// <value>The <see cref="IFeatureCollection" /> of this request. Defaults to an empty feature collection.</value>
     public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-    /// <summary>Gets or sets the fields of this incoming request.</summary>
-    /// <value>The fields of this incoming request. Defaults to an empty fields dictionary.</value>
+    /// <summary>Gets or sets the fields of this request.</summary>
+    /// <value>The fields of this request. Defaults to an empty fields dictionary.</value>
     public IDictionary<RequestFieldKey, ReadOnlySequence<byte>> Fields { get; set; } =
         ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
     /// <summary>Gets or initializes the fragment of the target service.</summary>
-    /// <value>The fragment of the target service. The default is the empty string, and it is always the empty
-    /// string with the icerpc protocol.</value>
+    /// <value>The fragment of the target service. It is always the empty string with the icerpc protocol. Defaults to
+    /// the empty string.</value>
     public string Fragment
     {
         get => _fragment;
@@ -34,15 +34,15 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
     public bool IsOneway { get; init; }
 
     /// <summary>Gets or initializes the name of the operation to call on the target service.</summary>
-    /// <value>The name of the operation. The default is the empty string.</value>
+    /// <value>The name of the operation. Defaults to the empty string.</value>
     public string Operation { get; init; } = "";
 
     /// <summary>Gets or initializes the path of the target service.</summary>
-    /// <value>The path of the target service. The default is <c>/</c>.</value>
+    /// <value>The path of the target service. Defaults to <c>/</c>.</value>
     public string Path { get; init; } = "/";
 
     /// <summary>Gets or sets the latest response to this request.</summary>
-    /// <value>The request's latest response.</value>
+    /// <value>The request's latest response or <see langword="null"/> if the response is not set yet.</value>
     /// <remarks>Setting a response completes the previous response when there is one.</remarks>
     internal OutgoingResponse? Response
     {

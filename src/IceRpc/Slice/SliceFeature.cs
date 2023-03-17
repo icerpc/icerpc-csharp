@@ -18,13 +18,13 @@ public sealed class SliceFeature : ISliceFeature
     public int MaxCollectionAllocation { get; }
 
     /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
-    /// <value>The default value is 100.</value>
+    /// <value>The maximum depth. Defaults to <c>100</c>.</value>
     public int MaxDepth { get; }
 
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
     /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
     /// variable-size elements.</summary>
-    /// <value>The default value is 1 MB.</value>
+    /// <value>The maximum segment size. Defaults to 1 MB.</value>
     public int MaxSegmentSize { get; }
 
     /// <inheritdoc/>
