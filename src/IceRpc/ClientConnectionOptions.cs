@@ -23,6 +23,7 @@ public sealed record class ClientConnectionOptions : ConnectionOptions
     }
 
     /// <summary>Gets or sets the connection's server address.</summary>
+    /// <value>The connections's server address. If null, the client connection construction will fail.</value>
     public ServerAddress? ServerAddress { get; set; }
 
     /// <summary>Gets or sets the shutdown timeout.</summary>

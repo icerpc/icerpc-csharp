@@ -17,6 +17,7 @@ public class DispatchException : Exception
     public bool ConvertToUnhandled { get; set; }
 
     /// <summary>Gets the status code.</summary>
+    /// <value>The status code from <see cref="DispatchException" />.</value>
     public StatusCode StatusCode { get; }
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>

@@ -12,9 +12,9 @@ public abstract class OutgoingFrame
     /// <value>The payload of this frame. The default is an empty pipe reader.</value>
     public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
-    /// <summary>Gets or sets the payload continuation of this frame. The payload continuation is a continuation of
-    /// <see cref="Payload"/>. The receiver cannot distinguish any seam between payload and payload continuation in
-    /// the <see cref="IncomingFrame.Payload" /> it receives.</summary>
+    /// <summary>Gets or sets the payload continuation of this frame. The payload continuation is a continuation of <see
+    /// cref="Payload"/>. The receiver cannot distinguish the payload and payload continuation in the <see
+    /// cref="IncomingFrame.Payload" /> it receives.</summary>
     /// <value>The payload continuation of this frame. The default is null which means no continuation.</value>
     public PipeReader? PayloadContinuation
     {
@@ -28,6 +28,8 @@ public abstract class OutgoingFrame
     }
 
     /// <summary>Gets the protocol of this frame.</summary>
+    /// <value>The <see cref="IceRpc.Protocol" /> value of this frame.</value>
+    /// <remarks><see cref="Protocol" /> is read-only and is set when the outgoing frame is constructed.</remarks>
     public Protocol Protocol { get; }
 
     private PipeReader? _payloadContinuation;

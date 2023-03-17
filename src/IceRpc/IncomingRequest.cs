@@ -9,10 +9,12 @@ namespace IceRpc;
 /// <summary>Represents a request frame received by the application.</summary>
 public sealed class IncomingRequest : IncomingFrame, IDisposable
 {
-    /// <summary>Gets or sets the features of this request.</summary>
+    /// <summary>Gets or sets the features of this incoming request.</summary>
+    /// <value>The features of this incoming request. Defaults to an empty feature collection.</value>
     public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
     /// <summary>Gets or sets the fields of this incoming request.</summary>
+    /// <value>The fields of this incoming request. Defaults to an empty fields dictionary.</value>
     public IDictionary<RequestFieldKey, ReadOnlySequence<byte>> Fields { get; set; } =
         ImmutableDictionary<RequestFieldKey, ReadOnlySequence<byte>>.Empty;
 
@@ -40,6 +42,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
     public string Path { get; init; } = "/";
 
     /// <summary>Gets or sets the latest response to this request.</summary>
+    /// <value>The request's latest response.</value>
     /// <remarks>Setting a response completes the previous response when there is one.</remarks>
     internal OutgoingResponse? Response
     {

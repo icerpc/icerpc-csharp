@@ -16,6 +16,8 @@ public class IncomingFrame
     public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
     /// <summary>Gets the protocol of this frame.</summary>
+    /// <value>The <see cref="IceRpc.Protocol" /> value of this frame.</value>
+    /// <remarks><see cref="Protocol" /> is read-only and is set when the incoming frame is constructed.</remarks>
     public Protocol Protocol { get; }
 
     /// <summary>Constructs an incoming frame.</summary>

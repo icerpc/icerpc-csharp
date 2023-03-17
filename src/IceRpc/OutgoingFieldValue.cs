@@ -9,13 +9,17 @@ namespace IceRpc;
 /// of the struct's properties can be set.</summary>
 public readonly record struct OutgoingFieldValue
 {
-    /// <summary>Gets the value of this outgoing field when <see cref="EncodeAction" /> is <c>null</c>.</summary>
+    /// <summary>Gets the value of this outgoing field.</summary>
+    /// <value>The value of this outgoing field. The default value is an empty byte sequence.</value>
+    /// <remarks><see cref="ByteSequence" /> is read-only and is set when the outgoing field value is constructed with
+    /// <see cref="OutgoingFieldValue(ReadOnlySequence{byte})" />.</remarks>
     public ReadOnlySequence<byte> ByteSequence { get; }
 
-    /// <summary>Gets the action used to encode this field or <c>null</c>, when <see cref="ByteSequence" /> holds
-    /// the encoded value.</summary>
-    /// <value>An encode action used to create a Slice2 encoded field value when the fields are about to be sent.
-    /// </value>
+    /// <summary>Gets the encode action used to create a Slice2 encoded field value when the fields are about to be
+    /// sent.</summary>
+    /// <value>The encode action of this outgoing field. The default value is <c>null</c>.</value>
+    /// <remarks><see cref="EncodeAction" /> is read-only and is set when the outgoing field value is constructed with
+    /// <see cref="OutgoingFieldValue(EncodeAction)" />.</remarks>
     public EncodeAction? EncodeAction { get; }
 
     /// <summary>Constructs an outgoing field value that holds a byte sequence.</summary>
