@@ -6,6 +6,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
+// The SlicPipeReader doesn't override ReadAtLeastAsyncCore or CopyToAsync methods because:
+// - we can't forward the calls to the internal pipe reader since reading relies on the AdvanceTo implementation to send
+//   the StreamConsumed frame once the data is examined,
+// - the default implementation can't be much optimized.
 internal class SlicPipeReader : PipeReader
 {
     private int _examined;
