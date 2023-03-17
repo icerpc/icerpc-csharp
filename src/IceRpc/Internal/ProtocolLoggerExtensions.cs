@@ -23,7 +23,7 @@ internal static partial class ProtocolLoggerExtensions
         EventId = (int)ProtocolEventIds.ConnectionAcceptFailed,
         EventName = nameof(ProtocolEventIds.ConnectionAcceptFailed),
         Level = LogLevel.Critical,
-        Message = "Listener '{ServerAddress}' failed to accept a new connection and stops accepting connections")]
+        Message = "Listener '{ServerAddress}' failed to accept a new connection and stopped accepting connections")]
     internal static partial void LogConnectionAcceptFailed(
         this ILogger logger,
         ServerAddress serverAddress,
