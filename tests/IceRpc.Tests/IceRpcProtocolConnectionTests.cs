@@ -978,7 +978,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadDecorator.Completed, Is.Null);
         Assert.That(
             async () => await taskExceptionObserver.DispatchFailedException,
             Is.InstanceOf<InvalidOperationException>());
@@ -1015,7 +1015,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadDecorator.Completed, Is.Null);
         Assert.That(
             async () => await taskExceptionObserver.DispatchFailedException,
             Is.InstanceOf<InvalidOperationException>());
@@ -1053,7 +1053,7 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadDecorator.Completed, Is.Null);
         Assert.That(
             async () => await responseTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));

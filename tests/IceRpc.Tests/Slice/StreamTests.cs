@@ -242,7 +242,7 @@ public class StreamTests
 
         // The call to ToAsyncEnumerable does not decode any element synchronously, so we must await Completed _after_
         // the iteration above.
-        Assert.That(async () => await payload.Completed, Throws.Nothing);
+        Assert.That(async () => await payload.Completed, Is.Null);
         pipe.Writer.Complete();
 
         static void EncodeSegment(PipeWriter writer)
@@ -274,7 +274,7 @@ public class StreamTests
 
         // Assert
         Assert.That(async () => await values.GetAsyncEnumerator().MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
-        Assert.That(async () => await payload.Completed, Throws.Nothing);
+        Assert.That(async () => await payload.Completed, Is.Null);
         pipe.Writer.Complete();
 
         static void EncodeData(PipeWriter writer)
@@ -317,7 +317,7 @@ public class StreamTests
 
         // Assert
         Assert.That(count, Is.EqualTo(2)); // read 2 elements
-        Assert.That(() => payload.Completed, Throws.Nothing);
+        Assert.That(() => payload.Completed, Is.Null);
         Assert.That(async () => (await pipe.Writer.FlushAsync()).IsCompleted, Is.True);
 
         // Cleanup
@@ -374,7 +374,7 @@ public class StreamTests
 
         // Assert
         Assert.That(count, Is.EqualTo(32));
-        Assert.That(() => payload.Completed, Throws.Nothing);
+        Assert.That(() => payload.Completed, Is.Null);
 
         static void EncodeData(PipeWriter writer)
         {
