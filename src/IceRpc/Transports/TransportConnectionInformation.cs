@@ -9,12 +9,15 @@ namespace IceRpc.Transports;
 public sealed record class TransportConnectionInformation
 {
     /// <summary>Gets the network address of the local end of the connection.</summary>
+    /// <value>The local network address.</value>
     public EndPoint LocalNetworkAddress { get; }
 
     /// <summary>Gets the network address of the remote end of the connection.</summary>
+    /// <value>The remote network address.</value>
     public EndPoint RemoteNetworkAddress { get; }
 
     /// <summary>Gets the certificate of the peer, if provided.</summary>
+    /// <value>The certificate of the peer or <see langword="null" /> if the peer didn't provide one.</value>
     public X509Certificate? RemoteCertificate { get; }
 
     /// <summary>Constructs a new instance of <see cref="TransportConnectionInformation" />.</summary>

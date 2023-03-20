@@ -53,10 +53,10 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
-    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
-    /// to <see cref="IDuplexServerTransport.Default" />.</param>
-    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
-    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. The <see
+    /// langword="null" /> value is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. The <see
+    /// langword="null" /> value is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     /// <param name="logger">The server logger.</param>
     public Server(
         ServerOptions options,
@@ -138,14 +138,14 @@ public sealed class Server : IAsyncDisposable
         };
     }
 
-    /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
-    /// have their default values.</summary>
+    /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties have
+    /// their default values.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAuthenticationOptions">The server authentication options.</param>
-    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
-    /// to <see cref="IDuplexServerTransport.Default" />.</param>
-    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
-    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. <see langword="null"
+    /// /> is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. <see
+    /// langword="null" /> is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     /// <param name="logger">The server logger.</param>
     public Server(
         IDispatcher dispatcher,
@@ -173,10 +173,10 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
     /// <param name="serverAuthenticationOptions">The server authentication options.</param>
-    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
-    /// to <see cref="IDuplexServerTransport.Default" />.</param>
-    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
-    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. <see langword="null"
+    /// /> is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. <see
+    /// langword="null" /> is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     /// <param name="logger">The server logger.</param>
     public Server(
         IDispatcher dispatcher,
@@ -206,10 +206,10 @@ public sealed class Server : IAsyncDisposable
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="serverAuthenticationOptions">The server authentication options.</param>
-    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. Null is equivalent
-    /// to <see cref="IDuplexServerTransport.Default" />.</param>
-    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. Null is
-    /// equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. <see langword="null"
+    /// /> is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. <see
+    /// langword="null" /> is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     /// <param name="logger">The server logger.</param>
     public Server(
         IDispatcher dispatcher,

@@ -8,5 +8,6 @@ namespace IceRpc.Features;
 public interface ICompressFeature
 {
     /// <summary>Gets a value indicating whether or not to compress the payload.</summary>
+    /// <value><see langword="true" /> if the payload should be compressed; <see langword="false" /> otherwise.</value>
     bool Value { get; }
 }

@@ -8,9 +8,11 @@ namespace IceRpc.Transports;
 public interface IDuplexServerTransport
 {
     /// <summary>Gets the default duplex server transport.</summary>
+    /// <value>The default duplex server transport is the <see cref="TcpServerTransport" />.</value>
     public static IDuplexServerTransport Default { get; } = new TcpServerTransport();
 
     /// <summary>Gets the transport's name.</summary>
+    /// <value>The transport name.</value>
     string Name { get; }
 
     /// <summary>Starts listening on a server address.</summary>

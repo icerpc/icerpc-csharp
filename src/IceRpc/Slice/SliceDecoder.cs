@@ -300,12 +300,12 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
-    /// <returns>The decoded proxy, or null.</returns>
+    /// <returns>The decoded proxy, or <see langword="null" />.</returns>
     public TProxy? DecodeNullableProxy<TProxy>() where TProxy : struct, IProxy =>
         DecodeNullableServiceAddress() is ServiceAddress serviceAddress ? CreateProxy<TProxy>(serviceAddress) : null;
 
     /// <summary>Decodes a nullable service address (Slice1 only).</summary>
-    /// <returns>The decoded service address, or null.</returns>
+    /// <returns>The decoded service address, or <see langword="null" />.</returns>
     public ServiceAddress? DecodeNullableServiceAddress()
     {
         if (Encoding != SliceEncoding.Slice1)
@@ -382,9 +382,10 @@ public ref partial struct SliceDecoder
     /// <param name="useTagEndMarker">When <see langword="true" />, we are decoding a data member and a tag end marker
     /// marks the end of the tagged data members. When <see langword="false" />, we are decoding a parameter and the end
     /// of the buffer marks the end of the tagged parameters.</param>
-    /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
-    /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
-    /// types such as string?.</remarks>
+    /// <returns>The decoded value of the tagged parameter or data member, or <see langword="null" /> if not
+    /// found.</returns>
+    /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
+    /// such as string?.</remarks>
     public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
     {
         if (Encoding == SliceEncoding.Slice1)
@@ -427,9 +428,10 @@ public ref partial struct SliceDecoder
     /// <param name="useTagEndMarker">When <see langword="true" />, we are decoding a data member and a tag end marker
     /// marks the end of the tagged data members. When <see langword="false" />, we are decoding a parameter and the end
     /// of the buffer marks the end of the tagged parameters.</param>
-    /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
-    /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference
-    /// types such as string?.</remarks>
+    /// <returns>The decoded value of the tagged parameter or data member, or <see langword="null" /> if not
+    /// found.</returns>
+    /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
+    /// such as string?.</remarks>
     public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
     {
         if (Encoding != SliceEncoding.Slice1)

@@ -17,13 +17,13 @@ namespace IceRpc;
 public sealed record class ServiceAddress
 {
     /// <summary>Gets the protocol of this service address.</summary>
-    /// <value>The protocol of the service address. It corresponds to the URI scheme and is null for a relative service
-    /// address.</value>
+    /// <value>The protocol of the service address. It corresponds to the URI scheme and is <see langword="null" /> for
+    /// a relative service address.</value>
     public Protocol? Protocol { get; }
 
     /// <summary>Gets or initializes the main server address of this service address.</summary>
-    /// <value>The main server address of this service address, or null if this service address has no server address.
-    /// </value>
+    /// <value>The main server address of this service address, or <see langword="null"/> if this service address has no
+    /// server address.</value>
     public ServerAddress? ServerAddress
     {
         get => _serverAddress;
@@ -62,6 +62,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets or initializes the path of this service address.</summary>
+    /// <value>The path of this service address. Defaults to <c>/</c>.</value>
     public string Path
     {
         get => _path;
@@ -82,7 +83,8 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets or initializes the secondary server addresses of this service address.</summary>
-    /// <value>The secondary server addresses of this service address.</value>
+    /// <value>The secondary server addresses of this service address. Defaults to <see cref="ImmutableList{T}.Empty"
+    /// />.</value>
     public ImmutableList<ServerAddress> AltServerAddresses
     {
         get => _altServerAddresses;
@@ -117,8 +119,9 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets or initializes the parameters of this service address. Always empty when
-    /// <see cref="ServerAddress" /> is not null.</summary>
+    /// <summary>Gets or initializes the parameters of this service address.</summary>
+    /// <value>The params dictionary. Always empty if <see cref="ServerAddress" /> is not <see langword="null"/>.
+    /// Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.</value>.
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -151,6 +154,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets or initializes the fragment.</summary>
+    /// <value>The fragment of this service address. Defaults to an empty string.</value>
     public string Fragment
     {
         get => _fragment;
@@ -180,8 +184,10 @@ public sealed record class ServiceAddress
         }
     }
 
-    /// <summary>Gets the URI used to create this service address, if this service address was created from a URI and
-    /// URI-derived properties such as <see cref="ServerAddress" /> have not been updated.</summary>
+    /// <summary>Gets the URI used to create this service address.</summary>
+    /// <value>The <see cref="Uri" /> of this service address if it was constructed from an URI and if URI-derived
+    /// properties have not been updated. The setting of an URI-derived property such as <see cref="ServerAddress" />
+    /// sets <see cref="OriginalUri" /> to <see langword="null"/>.</value>
     public Uri? OriginalUri { get; private set; }
 
     private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;
@@ -191,9 +197,9 @@ public sealed record class ServiceAddress
     private ServerAddress? _serverAddress;
 
     /// <summary>Constructs a service address from a protocol.</summary>
-    /// <param name="protocol">The protocol, or null for a relative service address.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol" /> is not null or a supported
-    /// protocol.</exception>
+    /// <param name="protocol">The protocol, or <see langword="null" /> for a relative service address.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol" /> is not <see langword="null" /> or a
+    /// supported protocol.</exception>
     public ServiceAddress(Protocol? protocol = null) => Protocol = protocol;
 
     /// <summary>Constructs a service address from a URI.</summary>

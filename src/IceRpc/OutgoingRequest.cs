@@ -9,9 +9,12 @@ namespace IceRpc;
 public sealed class OutgoingRequest : OutgoingFrame, IDisposable
 {
     /// <summary>Gets or sets the features of this request.</summary>
+    /// <value>The <see cref="IFeatureCollection" /> of this request. Defaults to <see
+    /// cref="FeatureCollection.Empty" />.</value>
     public IFeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
     /// <summary>Gets or sets the fields of this request.</summary>
+    /// <value>The fields of this request. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.</value>
     public IDictionary<RequestFieldKey, OutgoingFieldValue> Fields { get; set; } =
         ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty;
 
@@ -25,9 +28,11 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
     public string Operation { get; init; } = "";
 
     /// <summary>Gets the address of the target service.</summary>
+    /// <value>The <see cref="ServiceAddress" /> of this request.</value>
     public ServiceAddress ServiceAddress { get; }
 
-    /// <summary>Gets or sets the latest response to this request.</summary>
+    /// <summary>Gets or sets the latest response for this request.</summary>
+    /// <value>The request's latest response or <see langword="null"/> if the response is not set yet.</value>
     /// <remarks>Setting a response completes the previous response when there is one.</remarks>
     internal IncomingResponse? Response
     {

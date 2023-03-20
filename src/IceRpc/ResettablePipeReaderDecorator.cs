@@ -13,6 +13,7 @@ namespace IceRpc;
 public sealed class ResettablePipeReaderDecorator : PipeReader
 {
     /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
+    /// <value><see langword="true"/> if this decorator can be reset; <see langword="false"/> otherwise.</value>
     public bool IsResettable
     {
         get => _isResettable;

@@ -10,39 +10,44 @@ namespace IceRpc;
 public class Protocol
 {
     /// <summary>Gets the <c>ice</c> protocol.</summary>
+    /// <value>The <see cref="Protocol" /> instance for the ice protocol.</value>
     public static Protocol Ice => IceProtocol.Instance;
 
     /// <summary>Gets the <c>icerpc</c> protocol.</summary>
+    /// <value>The <see cref="Protocol" /> instance for the icerpc protocol.</value>
     public static Protocol IceRpc => IceRpcProtocol.Instance;
 
     /// <summary>Gets the default port for this protocol.</summary>
+    /// <value>The default port value. Defaults to <c>4061</c> for the ice protocol and <c>4062</c> for the icerpc
+    /// protocol.</value>
     public ushort DefaultPort { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports arbitrary application-defined fields in
     /// request and response headers.</summary>
-    /// <returns><see langword="true" /> if the protocol supports arbitrary fields; otherwise, <see langword="false" />.
-    /// </returns>
+    /// <value><see langword="true" /> if the protocol supports arbitrary fields; <see langword="false" />
+    /// otherwise.</value>
     public bool HasFields { get; }
 
     /// <summary>Gets the name of this protocol.</summary>
+    /// <value>The protocol name.</value>
     public string Name { get; }
 
-    /// <summary>Gets the byte value for this protocol, used as the "protocol major" with the Slice1 encoding.</summary>
+    /// <summary>Gets the byte value for this protocol.</summary>
+    /// <value>The protocol byte value. It's used as the "protocol major" with the Slice1 encoding.</value>
     internal byte ByteValue { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
-    /// <returns><see langword="true" /> if the protocol supports fragments; otherwise, <see langword="false" />.
-    /// </returns>
+    /// <value><see langword="true" /> if the protocol supports fragments; <see langword="false" /> otherwise.</value>
     internal bool HasFragment { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
-    /// <returns><see langword="true" /> if the protocol supports payload continuations; otherwise,
-    /// <see langword="false" />.</returns>
+    /// <value><see langword="true" /> if the protocol supports payload continuations; <see langword="false" />
+    /// otherwise.</value>
     internal bool SupportsPayloadContinuation { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports payload writer interceptors.</summary>
-    /// <returns><see langword="true" /> if the protocol supports payload writer interceptors; otherwise,
-    /// <see langword="false" />.</returns>
+    /// <value><see langword="true" /> if the protocol supports payload writer interceptors; <see langword="false" />
+    /// otherwise.</value>
     internal bool SupportsPayloadWriterInterceptors { get; }
 
     /// <summary>Parses a string into a protocol.</summary>
@@ -55,8 +60,8 @@ public class Protocol
     /// <summary>Tries to parse a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
     /// <param name="protocol">The protocol parsed from the name.</param>
-    /// <returns><see langword="true" /> when <paramref name="name" /> was successfully parsed into a protocol;
-    /// otherwise, <see langword="false" />.</returns>
+    /// <returns><see langword="true" /> when <paramref name="name" /> was successfully parsed into a protocol;<see
+    /// langword="false" /> otherwise.</returns>
     public static bool TryParse(string name, [NotNullWhen(true)] out Protocol? protocol)
     {
         name = name.ToLowerInvariant();
