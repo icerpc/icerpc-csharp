@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::MemberExt;
+use super::{scoped_identifier, InterfaceExt, MemberExt};
 use crate::comments::CommentTag;
 use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_namespace, match_cs_readonly};
 use crate::cs_util::escape_keyword;
@@ -54,7 +54,7 @@ pub trait EntityExt: Entity {
     /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
     /// one.
     fn escape_scoped_identifier(&self, current_namespace: &str) -> String {
-        scoped_identifier(&self.escape_identifier(), &self.namespace(), current_namespace)
+        scoped_identifier(self.escape_identifier(), self.namespace(), current_namespace)
     }
 
     /// Appends the provided prefix to the definition's identifier, fully scoped.
@@ -64,8 +64,8 @@ pub trait EntityExt: Entity {
     /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
     fn escape_scoped_identifier_with_prefix(&self, prefix: &str, current_namespace: &str) -> String {
         scoped_identifier(
-            &self.escape_identifier_with_prefix(prefix),
-            &self.namespace(),
+            self.escape_identifier_with_prefix(prefix),
+            self.namespace(),
             current_namespace,
         )
     }
@@ -77,8 +77,8 @@ pub trait EntityExt: Entity {
     /// If the provided namespace is non-empty, the identifier's scope is qualified relative to it.
     fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str) -> String {
         scoped_identifier(
-            &self.escape_identifier_with_suffix(suffix),
-            &self.namespace(),
+            self.escape_identifier_with_suffix(suffix),
+            self.namespace(),
             current_namespace,
         )
     }
@@ -95,28 +95,10 @@ pub trait EntityExt: Entity {
         current_namespace: &str,
     ) -> String {
         scoped_identifier(
-            &self.escape_identifier_with_prefix_and_suffix(prefix, suffix),
-            &self.namespace(),
+            self.escape_identifier_with_prefix_and_suffix(prefix, suffix),
+            self.namespace(),
             current_namespace,
         )
-    }
-
-    /// Returns the interface name corresponding to this entity's identifier, without scoping.
-    /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
-    /// The name is always prefixed with 'I' and the first letter is always
-    /// capitalized.
-    fn interface_name(&self) -> String {
-        format!("I{}", self.cs_identifier(Some(Case::Pascal)))
-    }
-
-    /// Returns the interface name corresponding to this entity's identifier, fully scoped.
-    fn scoped_interface_name(&self, current_namespace: &str) -> String {
-        let namespace = self.namespace();
-        if current_namespace == namespace {
-            self.interface_name()
-        } else {
-            format!("global::{}.{}", namespace, self.interface_name())
-        }
     }
 
     fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
@@ -128,11 +110,6 @@ pub trait EntityExt: Entity {
             };
             format!(r#"global::System.Obsolete("{reason}")"#)
         })
-    }
-
-    /// The helper name
-    fn helper_name(&self, current_namespace: &str) -> String {
-        self.escape_scoped_identifier_with_suffix("Helper", current_namespace)
     }
 
     /// The C# namespace of this entity.
@@ -279,11 +256,3 @@ pub trait EntityExt: Entity {
 }
 
 impl<T: Entity + ?Sized> EntityExt for T {}
-
-fn scoped_identifier(identifier: &str, identifier_namespace: &str, current_namespace: &str) -> String {
-    if current_namespace == identifier_namespace {
-        identifier.to_owned()
-    } else {
-        format!("global::{identifier_namespace}.{identifier}")
-    }
-}
