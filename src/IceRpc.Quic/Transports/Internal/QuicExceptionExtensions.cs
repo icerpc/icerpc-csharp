@@ -32,6 +32,7 @@ internal static class QuicExceptionExtensions
                     new IceRpcException(IceRpcError.ConnectionAborted, exception), // TODO: does this ever happen?
             QuicError.ConnectionRefused => new IceRpcException(IceRpcError.ConnectionRefused, exception),
             QuicError.ConnectionTimeout => new IceRpcException(IceRpcError.ConnectionAborted, exception),
+            QuicError.ConnectionIdle => new IceRpcException(IceRpcError.ConnectionAborted, exception),
             QuicError.HostUnreachable => new IceRpcException(IceRpcError.ServerUnreachable, exception),
             QuicError.OperationAborted => new IceRpcException(IceRpcError.OperationAborted, exception),
             QuicError.StreamAborted => new IceRpcException(IceRpcError.TruncatedData, exception),
