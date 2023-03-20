@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
+using System.Net;
 using System.Text;
 
 namespace IceRpc;
@@ -19,7 +20,8 @@ public readonly record struct ServerAddress
     public Protocol Protocol { get; }
 
     /// <summary>Gets or initializes the host.</summary>
-    /// <value>The host of this server address. Defaults to <c>::0</c>.</value>
+    /// <value>The host of this server address. Defaults to <c>::0</c> meaning that the server will listen on all the
+    /// network interfaces. This default value is parsed into <see cref="IPAddress.IPv6Any" />.</value>
     public string Host
     {
         get => _host;

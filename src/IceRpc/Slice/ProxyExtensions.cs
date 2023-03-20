@@ -75,8 +75,6 @@ public static class ProxyExtensions
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
-    /// <remarks>This method stores the response features into the invocation's response features when invocation is not
-    /// <see langword="null" />.</remarks>
     public static Task<T> InvokeAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
@@ -157,8 +155,6 @@ public static class ProxyExtensions
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
-    /// <remarks>This method stores the response features into the invocation's response features when invocation is not
-    /// <see langword="null" />.</remarks>
     public static Task InvokeAsync<TProxy>(
         this TProxy proxy,
         string operation,
@@ -185,8 +181,7 @@ public static class ProxyExtensions
         var request = new OutgoingRequest(proxy.ServiceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
-            Fields = idempotent ?
-                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Fields = idempotent ? _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             IsOneway = oneway,
             Operation = operation,
             Payload = payload ?? EmptyPipeReader.Instance,

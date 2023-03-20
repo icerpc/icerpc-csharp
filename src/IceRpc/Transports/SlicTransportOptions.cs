@@ -29,7 +29,7 @@ public sealed record class SlicTransportOptions
     }
 
     /// <summary>Gets or sets the number of bytes when writes on a Slic stream starts blocking.</summary>
-    /// <value>The pause writer threshold. It can't be less than <c>1</c> KB. Defaults to <c>64</c> KB.</value>
+    /// <value>The pause writer threshold in bytes. It can't be less than <c>1</c> KB. Defaults to <c>64</c> KB.</value>
     public int PauseWriterThreshold
     {
         get => _pauseWriterThreshold;
@@ -40,7 +40,7 @@ public sealed record class SlicTransportOptions
     }
 
     /// <summary>Gets or sets the number of bytes when writes on a Slic stream stops blocking.</summary>
-    /// <value>The resume writer threshold. It can't be less than <c>1</c> KB and greater than <see
+    /// <value>The resume writer threshold in bytes. It can't be less than <c>1</c> KB and greater than <see
     /// cref="PauseWriterThreshold" />. Defaults to <c>32</c> KB.</value>
     public int ResumeWriterThreshold
     {

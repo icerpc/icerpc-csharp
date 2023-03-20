@@ -28,7 +28,7 @@ public sealed record class ServerOptions
     /// <summary>Gets or sets the maximum number of server connections waiting for connection establishment to complete.
     /// Once the maximum number of pending connections has been reached, the server will stop accepting new connections
     /// to ensure that the transport rejects new connections once its connection backlog is full.</summary>
-    /// <value>The maximum number of connection was for connection establishment to complete. Defaults to
+    /// <value>The maximum number of connection waiting for connection establishment to complete. Defaults to
     /// <c>100</c>.</value>
     public int MaxPendingConnections { get; set; } = 100;
 

@@ -93,7 +93,7 @@ public record class ConnectionOptions
     }
 
     /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
-    /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. Defaults to
+    /// <value>The maximum size in bytes of the header of an incoming request, response or control frame. Defaults to
     /// <c>16,383</c>, and the range of this value is <c>63</c> to <c>1,048,575</c>.</value>
     public int MaxIceRpcHeaderSize
     {

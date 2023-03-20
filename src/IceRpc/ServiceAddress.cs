@@ -22,8 +22,8 @@ public sealed record class ServiceAddress
     public Protocol? Protocol { get; }
 
     /// <summary>Gets or initializes the main server address of this service address.</summary>
-    /// <value>The main server address of this service address, or <see langword="null"/> if this service address has no server
-    /// address.</value>
+    /// <value>The main server address of this service address, or <see langword="null"/> if this service address has no
+    /// server address.</value>
     public ServerAddress? ServerAddress
     {
         get => _serverAddress;
@@ -185,8 +185,9 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets the URI used to create this service address.</summary>
-    /// <value>The <see cref="Uri" /> of this service address if it was constructed from an URI and URI-derived
-    /// properties such as <see cref="ServerAddress" /> have not been updated; <see langword="null"/> otherwise.</value>
+    /// <value>The <see cref="Uri" /> of this service address if it was constructed from an URI and if URI-derived
+    /// properties have not been updated. The setting of an URI-derived property such as <see cref="ServerAddress" />
+    /// sets <see cref="OriginalUri" /> to <see langword="null"/>.</value>
     public Uri? OriginalUri { get; private set; }
 
     private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;

@@ -53,10 +53,10 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Constructs a server.</summary>
     /// <param name="options">The server options.</param>
-    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. <see langword="null"
-    /// /> is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
-    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. <see
-    /// langword="null" /> is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
+    /// <param name="duplexServerTransport">The transport used to create ice protocol connections. The <see
+    /// langword="null" /> value is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
+    /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. The <see
+    /// langword="null" /> value is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
     /// <param name="logger">The server logger.</param>
     public Server(
         ServerOptions options,

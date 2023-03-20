@@ -18,7 +18,8 @@ public record class MultiplexedConnectionOptions
     public int MaxUnidirectionalStreams { get; set; } = DefaultMaxUnidirectionalStreams;
 
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
-    /// <value>The minimum size of the segment requested from the <see cref="Pool" />.  Defaults to <c>4</c> KB.</value>
+    /// <value>The minimum size in bytes of the segment requested from the <see cref="Pool" />.  Defaults to <c>4</c>
+    /// KB.</value>
     public int MinSegmentSize { get; set; } = 4096;
 
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>

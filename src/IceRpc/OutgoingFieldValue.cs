@@ -15,8 +15,8 @@ public readonly record struct OutgoingFieldValue
     /// cref="OutgoingFieldValue(ReadOnlySequence{byte})" />.</remarks>
     public ReadOnlySequence<byte> ByteSequence { get; }
 
-    /// <summary>Gets the encode action used to create a Slice2 encoded field value when the fields are about to be
-    /// sent.</summary>
+    /// <summary>Gets the action used to encode the field value using the Slice2 encoding. The action is executed when
+    /// the fields are about to be sent.</summary>
     /// <value>The encode action of this outgoing field. Defaults to <see langword="null"/>.</value>
     /// <remarks><see cref="EncodeAction" /> is set when the outgoing field value is constructed with <see
     /// cref="OutgoingFieldValue(EncodeAction)" />.</remarks>

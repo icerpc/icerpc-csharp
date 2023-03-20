@@ -8,8 +8,8 @@ namespace IceRpc.Transports;
 public record class DuplexConnectionOptions
 {
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
-    /// <value>The minimum size of the segment requested from the <see cref="Pool" />. It cannot be less than <c>1</c>
-    /// KB. Defaults to <c>4</c> KB.</value>
+    /// <value>The minimum size in bytes of the segment requested from the <see cref="Pool" />. It cannot be less than
+    /// <c>1</c> KB. Defaults to <c>4</c> KB.</value>
     public int MinSegmentSize
     {
         get => _minSegmentSize;
