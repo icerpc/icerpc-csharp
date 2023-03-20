@@ -533,7 +533,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Verifies that canceling the invocation after receiving a response doesn't affect the reading of the
     /// payload.</summary>
     [Test]
-    public async Task Invocation_cancellation_after_receive_response_doesnt_complete_the_incoming_request_payload()
+    public async Task Invocation_cancellation_after_receive_response_does_not_complete_the_incoming_request_payload()
     {
         // Arrange
         var dispatcher = new ConsumePayloadDispatcher(returnResponseFirst: true);
