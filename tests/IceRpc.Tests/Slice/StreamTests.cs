@@ -413,7 +413,7 @@ public class StreamTests
         Assert.That(() => payload.Completed, Is.Null);
     }
 
-    /// <summary>Tests that stopping the  the full enumerable correctly completes the pipe reader.</summary>
+    /// <summary>Tests that stopping the full enumerable correctly completes the pipe reader.</summary>
     [Test]
     public async Task Partial_enumeration_completes_the_pipe_reader()
     {
