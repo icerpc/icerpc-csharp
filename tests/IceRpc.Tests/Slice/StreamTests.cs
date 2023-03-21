@@ -240,7 +240,7 @@ public class StreamTests
         await using IAsyncEnumerator<MyEnum> enumerator = values.GetAsyncEnumerator();
 
         // Act/Assert
-        Assert.That(() => enumerator.MoveNextAsync(), Throws.TypeOf<InvalidDataException>());
+        Assert.That(enumerator.MoveNextAsync, Throws.InstanceOf<InvalidDataException>());
         Assert.That(async () => await payload.Completed, Is.Null);
 
         static void EncodeData(PipeWriter writer)
@@ -269,7 +269,7 @@ public class StreamTests
         await using IAsyncEnumerator<MyEnum> enumerator = values.GetAsyncEnumerator();
 
         // Act/Assert
-        Assert.That(() => enumerator.MoveNextAsync(), Throws.InstanceOf<InvalidDataException>());
+        Assert.That(enumerator.MoveNextAsync, Throws.InstanceOf<InvalidDataException>());
         Assert.That(async () => await payload.Completed, Is.Null);
 
         static void EncodeSegment(PipeWriter writer)
@@ -333,10 +333,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Tests that cancelling the yield loop of the enumerable returned by ToAsyncEnumerable correctly
-    /// interrupts the foreach loop and correctly completes the pipe reader.</summary>
+    /// <summary>Test that canceling the iteration completes the pipe reader from which the stream elements are being
+    /// decoded.</summary>
     [Test]
-    public async Task Decoding_completes_when_enumerator_yield_loop_is_canceled()
+    public async Task Decoding_completes_when_iteration_is_canceled()
     {
         // Arrange
         var pipe = new Pipe();
@@ -383,8 +383,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Tests that cancelling the ReadAsync call from the enumerable returned by ToAsyncEnumerable correctly
-    /// interrupts the foreach loop and correctly completes the pipe reader.</summary>
+    /// <summary>Tests that canceling the iteration while the decode function is waiting to read data, cancels
+    /// the read operation and completes the enumerable and pipe reader.</summary>
     [Test]
     public async Task Decoding_completes_when_enumerator_read_is_canceled()
     {
@@ -413,7 +413,7 @@ public class StreamTests
         Assert.That(() => payload.Completed, Is.Null);
     }
 
-    /// <summary>Tests that not reading the full enumerable correctly completes the pipe reader.</summary>
+    /// <summary>Tests that stopping the  the full enumerable correctly completes the pipe reader.</summary>
     [Test]
     public async Task Partial_enumeration_completes_the_pipe_reader()
     {
@@ -476,8 +476,8 @@ public class StreamTests
         await enumerable.Enumerator.DisposeCalled;
     }
 
-    // TODO: is it actually useful to support CancelPendingRead on the pipe reader return by ToPipeReader given that the
-    // runtime never calls it? Isn't this pipe reader intended to be used by the Slice generated code only?
+    /// <summary>Tests that calling CancelPendingRead on the pipe reader created from the enumerable correctly cancels
+    /// the yield loop of the enumerable.</summary>
     [Test]
     public async Task Enumerable_pipe_reader_cancel_pending_read_cancels_enumerator()
     {

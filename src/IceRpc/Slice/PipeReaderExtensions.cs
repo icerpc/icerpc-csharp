@@ -19,6 +19,8 @@ public static class PipeReaderExtensions
     /// <param name="elementSize">The size in bytes of one element.</param>
     /// <param name="sliceFeature">The Slice feature to customize the decoding.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="elementSize" /> is equal of inferior to
+    /// <c>0</c>.</exception>
     /// <remarks>The reader ownership is transferred to the returned async enumerable. The caller should no longer use
     /// the reader after this call.</remarks>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -30,6 +32,7 @@ public static class PipeReaderExtensions
     {
         if (elementSize <= 0)
         {
+            reader.Complete();
             throw new ArgumentException("The element size must be greater than 0.", nameof(elementSize));
         }
 
