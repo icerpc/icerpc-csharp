@@ -1,6 +1,6 @@
 # Stream
 
-This example application illustrates how to stream data from a client to a server.
+This example application illustrates how to stream random numbers from a server to a client.
 
 For build instructions check the top-level [README.md](../../README.md).
 
