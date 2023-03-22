@@ -9,7 +9,7 @@ public interface IInvoker
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
-    /// <remarks>When <paramref name="request" /> is a twoway request, the returned task will not complete successfully
+    /// <remarks>When <paramref name="request" /> is a two-way request, the returned task will not complete successfully
     /// until after the request's <see cref="OutgoingFrame.Payload" /> is fully sent and the response is received from
     /// the peer. When the request is a one-way request, the returned task completes successfully with an empty response
     /// when the request's <see cref="OutgoingFrame.Payload" /> is fully sent. For all requests (one-way and two-way),
