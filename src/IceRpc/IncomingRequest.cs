@@ -29,8 +29,8 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
             throw new InvalidOperationException("Cannot create an icerpc request with a non-empty fragment.");
     }
 
-    /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
-    /// <value><see langword="true" /> for oneway requests, <see langword="false" /> otherwise. The default is
+    /// <summary>Gets a value indicating whether this request is one-way or two-way.</summary>
+    /// <value><see langword="true" /> for one-way requests, <see langword="false" /> otherwise. The default is
     /// <see langword="false" />.</value>
     public bool IsOneway { get; init; }
 

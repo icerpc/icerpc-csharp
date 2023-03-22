@@ -57,7 +57,8 @@ public sealed class Server : IAsyncDisposable
     /// langword="null" /> value is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. The <see
     /// langword="null" /> value is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
-    /// <param name="logger">The server logger.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public Server(
         ServerOptions options,
         IDuplexServerTransport? duplexServerTransport = null,
@@ -138,15 +139,17 @@ public sealed class Server : IAsyncDisposable
         };
     }
 
-    /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties have
-    /// their default values.</summary>
+    /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
+    /// default to the defaults of the <see cref="ServerOptions" /> properties.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
-    /// <param name="serverAuthenticationOptions">The server authentication options.</param>
+    /// <param name="serverAuthenticationOptions">The SSL server authentication options. When not <see langword="null"
+    /// />, the server will accept only secure connections.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. <see langword="null"
     /// /> is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. <see
     /// langword="null" /> is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
-    /// <param name="logger">The server logger.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public Server(
         IDispatcher dispatcher,
         SslServerAuthenticationOptions? serverAuthenticationOptions = null,
@@ -168,16 +171,18 @@ public sealed class Server : IAsyncDisposable
     {
     }
 
-    /// <summary>Constructs a server with the specified dispatcher, server address and authentication options. All other
-    /// properties have their default values.</summary>
+    /// <summary>Constructs a server with the specified dispatcher, server address and authentication options. All
+    /// other properties default to the defaults of the <see cref="ServerOptions" /> properties.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
-    /// <param name="serverAuthenticationOptions">The server authentication options.</param>
+    /// <param name="serverAuthenticationOptions">The SSL server authentication options. When not <see langword="null"
+    /// />, the server will accept only secure connections.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. <see langword="null"
     /// /> is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. <see
     /// langword="null" /> is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
-    /// <param name="logger">The server logger.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public Server(
         IDispatcher dispatcher,
         ServerAddress serverAddress,
@@ -202,15 +207,17 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All
-    /// other properties have their default values.</summary>
+    /// other properties default to the defaults of the <see cref="ServerOptions" /> properties.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
-    /// <param name="serverAuthenticationOptions">The server authentication options.</param>
+    /// <param name="serverAuthenticationOptions">The SSL server authentication options. When not <see langword="null"
+    /// />, the server will accept only secure connections.</param>
     /// <param name="duplexServerTransport">The transport used to create ice protocol connections. <see langword="null"
     /// /> is equivalent to <see cref="IDuplexServerTransport.Default" />.</param>
     /// <param name="multiplexedServerTransport">The transport used to create icerpc protocol connections. <see
     /// langword="null" /> is equivalent to <see cref="IMultiplexedServerTransport.Default" />.</param>
-    /// <param name="logger">The server logger.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public Server(
         IDispatcher dispatcher,
         Uri serverAddressUri,

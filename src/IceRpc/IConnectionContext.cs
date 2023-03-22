@@ -4,7 +4,7 @@ using IceRpc.Transports;
 
 namespace IceRpc;
 
-/// <summary>Provides access to the connection that received a request or response.</summary>
+/// <summary>Provides access to properties of the connection that received a request or response.</summary>
 public interface IConnectionContext
 {
     /// <summary>Gets the invoker implemented by the connection.</summary>

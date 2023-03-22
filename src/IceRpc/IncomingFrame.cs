@@ -28,7 +28,7 @@ public class IncomingFrame
     /// <summary>Constructs an incoming frame.</summary>
     /// <param name="protocol">The protocol of this frame.</param>
     /// <param name="connectionContext">The connection context of the connection that received this frame.</param>
-    protected IncomingFrame(Protocol protocol, IConnectionContext connectionContext)
+    protected internal IncomingFrame(Protocol protocol, IConnectionContext connectionContext)
     {
         ConnectionContext = connectionContext;
         Protocol = protocol;

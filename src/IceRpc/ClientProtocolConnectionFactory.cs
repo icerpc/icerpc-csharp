@@ -26,7 +26,7 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// cref="IDuplexClientTransport.Default" />.</param>
     /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
     /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance" />.</param>
     public ClientProtocolConnectionFactory(
         ConnectionOptions connectionOptions,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,

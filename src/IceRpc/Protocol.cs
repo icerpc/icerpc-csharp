@@ -9,11 +9,11 @@ namespace IceRpc;
 /// <summary>Protocol identifies a RPC protocol supported by IceRPC.</summary>
 public class Protocol
 {
-    /// <summary>Gets the <c>ice</c> protocol.</summary>
+    /// <summary>Gets the ice protocol.</summary>
     /// <value>The <see cref="Protocol" /> instance for the ice protocol.</value>
     public static Protocol Ice => IceProtocol.Instance;
 
-    /// <summary>Gets the <c>icerpc</c> protocol.</summary>
+    /// <summary>Gets the icerpc protocol.</summary>
     /// <value>The <see cref="Protocol" /> instance for the icerpc protocol.</value>
     public static Protocol IceRpc => IceRpcProtocol.Instance;
 

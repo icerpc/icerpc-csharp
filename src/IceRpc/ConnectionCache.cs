@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
@@ -48,10 +49,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
-    /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
-    /// </param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="duplexClientTransport">The duplex client transport. <see langword="null" /> is equivalent to <see
+    /// cref="IDuplexClientTransport.Default" />.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
+    /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public ConnectionCache(
         ConnectionCacheOptions options,
         IDuplexClientTransport? duplexClientTransport = null,
