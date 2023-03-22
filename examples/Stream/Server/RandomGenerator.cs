@@ -26,7 +26,7 @@ internal class RandomGenerator : Service, IGeneratorService
                 yield return RandomNumberGenerator.GetInt32(int.MaxValue);
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
