@@ -476,8 +476,70 @@ public class StreamTests
         await enumerable.Enumerator.DisposeCalled;
     }
 
+    [Test]
+    public async Task Enumerable_pipe_reader_read_fails_if_enumerable_throws_exception()
+    {
+        // Arrange
+        var exception = new Exception();
+        var payload = GetDataAsync().ToPipeReader(
+            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
+            useSegments: false);
+
+        ReadResult readResult = await payload.ReadAsync();
+        payload.AdvanceTo(readResult.Buffer.End);
+
+        // Act/Assert
+        Exception? throwException = Assert.ThrowsAsync<Exception>(async () => await payload.ReadAsync());
+        Assert.That(throwException, Is.EqualTo(exception));
+
+        // Cleanup
+        payload.Complete();
+
+        async IAsyncEnumerable<int> GetDataAsync()
+        {
+            yield return 10;
+            await Task.Yield();
+            throw exception;
+        }
+    }
+
+    /// <summary>Tests that calling Complete on the pipe reader created from the enumerable correctly cancels the
+    /// enumerable iteration.</summary>
+    [Test]
+    public async Task Enumerable_pipe_reader_completion_cancels_enumerator()
+    {
+        // Arrange
+        var canceledTcs = new TaskCompletionSource();
+        var payload = GetDataAsync(default).ToPipeReader(
+            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
+            useSegments: false);
+
+        ReadResult readResult = await payload.ReadAsync();
+        payload.AdvanceTo(readResult.Buffer.End);
+
+        // Act
+        payload.Complete();
+
+        // Assert
+        await canceledTcs.Task;
+
+        async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            yield return 1;
+            try
+            {
+                await Task.Delay(-1, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                canceledTcs.SetResult();
+                throw;
+            }
+        }
+    }
+
     /// <summary>Tests that calling CancelPendingRead on the pipe reader created from the enumerable correctly cancels
-    /// the yield loop of the enumerable.</summary>
+    /// the enumerable iteration.</summary>
     [Test]
     public async Task Enumerable_pipe_reader_cancel_pending_read_cancels_enumerator()
     {
@@ -487,29 +549,72 @@ public class StreamTests
             (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
             useSegments: false);
 
-        ValueTask<ReadResult> readResult = payload.ReadAsync();
+        ValueTask<ReadResult> readResultTask = payload.ReadAsync();
 
         // Act
         payload.CancelPendingRead();
 
         // Assert
+        ReadResult readResult = await readResultTask;
+        Assert.That(readResult.IsCanceled, Is.True);
         await canceledTcs.Task;
+
+        // Cleanup
+        payload.Complete();
 
         async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            while (true)
+            try
             {
-                try
-                {
-                    await Task.Delay(-1, cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    canceledTcs.SetResult();
-                    throw;
-                }
-                yield return 1;
+                await Task.Delay(-1, cancellationToken);
             }
+            catch (OperationCanceledException)
+            {
+                canceledTcs.SetResult();
+                throw;
+            }
+            yield return 1;
+        }
+    }
+
+    /// <summary>Tests that canceling the ReadAsync call on the pipe reader created from the enumerable correctly
+    /// cancels the enumerable iteration.</summary>
+    [Test]
+    public async Task Enumerable_pipe_reader_read_async_cancellation_cancels_enumerator()
+    {
+        // Arrange
+        var canceledTcs = new TaskCompletionSource();
+        var payload = GetDataAsync(default).ToPipeReader(
+            (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value),
+            useSegments: false);
+
+        using var cts = new CancellationTokenSource();
+        ValueTask<ReadResult> readResultTask = payload.ReadAsync(cts.Token);
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        Assert.That(
+            async () => await readResultTask,
+            Throws.InstanceOf<OperationCanceledException>().With.Property("CancellationToken").EqualTo(cts.Token));
+        await canceledTcs.Task;
+
+        // Cleanup
+        payload.Complete();
+
+        async IAsyncEnumerable<int> GetDataAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(-1, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                canceledTcs.SetResult();
+                throw;
+            }
+            yield return 1;
         }
     }
 
