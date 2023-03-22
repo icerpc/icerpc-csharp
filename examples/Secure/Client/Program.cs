@@ -29,3 +29,5 @@ var hello = new HelloProxy(connection);
 string greeting = await hello.SayHelloAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
+
+await connection.ShutdownAsync();
