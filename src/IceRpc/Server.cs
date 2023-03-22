@@ -296,8 +296,8 @@ public sealed class Server : IAsyncDisposable
     /// <returns>The server address this server is listening on and that a client would connect to. This address is the
     /// same as <see cref="ServerOptions.ServerAddress" /> except its <see cref="ServerAddress.Transport" /> property is
     /// always non-null and its port number is never 0 when the host is an IP address.</returns>
-    /// <exception cref="IceRpcException">Thrown when another server is already listening on the same server address.
-    /// </exception>
+    /// <exception cref="IceRpcException">Thrown when the server transport fails to listen on the configured <see
+    /// cref="ServerOptions.ServerAddress" />.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or shutting
     /// down.</exception>
     /// <exception cref="ObjectDisposedException">Throw when the server is disposed.</exception>
