@@ -67,6 +67,8 @@ do
     }
 } while (line != "x");
 
+await connectionCache.ShutdownAsync();
+
 static void menu() =>
     Console.WriteLine(
         "usage:\n" +

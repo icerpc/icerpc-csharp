@@ -27,3 +27,5 @@ else
 {
     Console.WriteLine($"request failed: {response.StatusCode}");
 }
+
+await connection.ShutdownAsync();

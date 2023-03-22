@@ -4,7 +4,6 @@ using IceRpc;
 using System.IO.Pipelines;
 using UploadExample;
 
-// Establish the connection to the server
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 var uploader = new UploaderProxy(connection);
 
@@ -18,3 +17,5 @@ var reader = PipeReader.Create(new FileStream("Client/images/Earth.png", FileMod
 await uploader.UploadImageAsync(reader);
 
 Console.WriteLine("Image of the Earth uploaded");
+
+await connection.ShutdownAsync();

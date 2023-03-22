@@ -26,3 +26,5 @@ features.Set<IRequestContextFeature>(new RequestContextFeature
 string greeting = await hello.SayHelloAsync(Environment.UserName, features);
 
 Console.WriteLine(greeting);
+
+await connection.ShutdownAsync();

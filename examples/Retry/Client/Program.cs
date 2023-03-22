@@ -74,6 +74,8 @@ catch (OperationCanceledException)
     // Expected, from Ctrl+C.
 }
 
+await connectionCache.ShutdownAsync();
+
 internal static partial class RetryExampleLoggerExtensions
 {
     [LoggerMessage(
