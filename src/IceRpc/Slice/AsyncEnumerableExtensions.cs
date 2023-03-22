@@ -98,7 +98,7 @@ public static class AsyncEnumerableExtensions
                     {
                     }
                 }
-                _ = _asyncEnumerator.DisposeAsync().AsTask();
+                await _asyncEnumerator.DisposeAsync().ConfigureAwait(false);
             }
         }
 
@@ -133,12 +133,15 @@ public static class AsyncEnumerableExtensions
 
                     if (hasNext && EncodeElements() is Task<bool> moveNext)
                     {
+                        // Flush shouldn't block because the pipe is configured to not pause flush.
+                        _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
                         _moveNext = moveNext;
-                        _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
                         // And the next ReadAsync will await _moveNext.
                     }
                     else
                     {
+                        // No need to flush the writer, complete takes care of it.
                         _pipe.Writer.Complete();
                     }
                 }
@@ -222,6 +225,9 @@ public static class AsyncEnumerableExtensions
             }
 
             encodeOptions ??= SliceEncodeOptions.Default;
+
+            // Ensure that the pipe writer flush is configured to not block.
+            Debug.Assert(encodeOptions.PipeOptions.PauseWriterThreshold == 0);
 
             _pipe = new Pipe(encodeOptions.PipeOptions);
             _streamFlushThreshold = encodeOptions.StreamFlushThreshold;
