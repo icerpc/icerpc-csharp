@@ -3,7 +3,6 @@
 using MetricsExample;
 using IceRpc;
 
-// Establish the connection to the server
 await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
 
 var hello = new HelloProxy(connection);
@@ -25,3 +24,5 @@ while (await periodicTimer.WaitForNextTickAsync())
 {
     await hello.SayHelloAsync(Environment.UserName);
 }
+
+await connection.ShutdownAsync();

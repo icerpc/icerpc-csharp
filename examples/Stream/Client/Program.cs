@@ -13,6 +13,8 @@ Console.WriteLine("Client is streaming data...");
 await numberStreamProxy.StreamDataAsync(GetDataAsync(default));
 Console.WriteLine("Client has finished streaming data.");
 
+await connection.ShutdownAsync();
+
 // Continuously generates data to be streamed
 
 // The EnumeratorCancellation attribute allows user of the returned async enumerable to specify the cancellation token
