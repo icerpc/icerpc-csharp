@@ -3,7 +3,7 @@
 module IceRpc::Tests::Slice
 
 interface DictionaryMappingOperations {
-    // Don't need to add tests for different cs:generic arguments, there is a single code path, the given argument
+    // Don't need to add tests for different cs::generic arguments, there is a single code path, the given argument
     // must be a generic type that implements IDictionary<TKey, TValue> and provides a constructor that allows to initialize the
     // dictionary with a given initial capacity.
     opReturnTuple() ->
