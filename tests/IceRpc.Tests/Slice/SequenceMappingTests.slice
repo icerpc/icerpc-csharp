@@ -3,6 +3,9 @@
 module IceRpc::Tests::Slice
 
 interface SequenceMappingOperations {
+    // We don't need to add tests for other cs::generic arguments because the code path is always the same. The argument
+    // must be a non-abstract generic type that implements IEnumerable<T> and provides a constructor that allows to
+    // initialize the sequence contents from an IEnumerable<T>.
     opReturnTuple() ->
         (r1: [cs::generic("CustomSequence")] sequence<int32>
          r2: [cs::generic("CustomSequence")] sequence<int32>)
