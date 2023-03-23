@@ -12,7 +12,3 @@ jobs:
     secrets:
       icerpc_deploy_key: ${{ secrets.ICERPC_DEPLOY_KEY }}
       nuget_api_token: ${{ secrets.NUGET_API_TOKEN }}
-  build_examples:
-    uses: zeroc-ice/icerpc-csharp/.github/workflows/build_examples.yaml@main
-  tests:
-    uses: zeroc-ice/icerpc-csharp/.github/workflows/tests.yaml@main
