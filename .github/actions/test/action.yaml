@@ -1,0 +1,13 @@
+name: Run Tests
+
+runs:
+  using: "composite"
+  steps:
+  - name: 🧪 Test Slice Compiler
+    uses: actions-rs/cargo@v1
+    with:
+      command: test
+      args: --manifest-path tools/slicec-cs/Cargo.toml
+  - name: 🧪 Test
+    run: dotnet test --no-build --verbosity normal
+    shell: bash
