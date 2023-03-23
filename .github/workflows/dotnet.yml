@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    uses: zeroc-ice/icerpc-csharp/.github/workflows/build.yaml@main
+    uses: {owner}/{repo}/.github/workflows/build.yaml@main
     secrets:
       icerpc_deploy_key: ${{ secrets.ICERPC_DEPLOY_KEY }}
       nuget_api_token: ${{ secrets.NUGET_API_TOKEN }}
