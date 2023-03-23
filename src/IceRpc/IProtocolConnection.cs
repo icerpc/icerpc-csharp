@@ -8,6 +8,10 @@ namespace IceRpc;
 /// cref="ClientConnection" />, <see cref="ConnectionCache" /> and the connections created by <see cref="Server" />.
 /// Applications can use this interface to build their own custom client connection and connection cache classes.
 /// </summary>
+/// <remarks>The disposal of the protocol connection aborts invocations, cancels dispatches and disposes the underlying
+/// transport connection without waiting for the peer. To wait for invocations and dispatches to complete, call <see
+/// cref="ShutdownAsync" /> first. If the configured dispatcher does not complete promptly when its cancellation token
+/// is canceled, the disposal can hang.</remarks>
 /// <seealso cref="ClientProtocolConnectionFactory" />
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
