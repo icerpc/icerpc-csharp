@@ -7,74 +7,12 @@ on:
     branches: ["main"]
 
 jobs:
-  build_and_test:
-
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: 📦 NuGet Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-    - name: 📦 Cargo Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          tools/slicec-cs/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-    - name: 🔗 Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: "7.0.x"
-    - name: 🔗 Setup MsQuic
-      run: |
-        curl -sSL https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/microsoft-prod.list
-        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
-        sudo apt-get update
-        sudo apt-get install libmsquic
-    - name: 🔗 Start SSH Agent
-      uses: webfactory/ssh-agent@v0.5.4
-      with:
-        ssh-private-key: ${{ secrets.ICERPC_DEPLOY_KEY }}
-    - name: 🔨 Build Slice Compiler
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --manifest-path tools/slicec-cs/Cargo.toml
-    - name: 🔎 Lint Slice Compiler
-      uses: actions-rs/clippy@master
-      with:
-        args: --all-features --no-deps --all-targets --manifest-path tools/slicec-cs/Cargo.toml
-    - name: 🧪 Test Slice Compiler
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --manifest-path tools/slicec-cs/Cargo.toml
-    - name: 🔗 Add github NuGet repository
-      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ secrets.NUGET_API_TOKEN }}
-    - name: 🔗 Restore dependencies
-      run: dotnet restore
-    - name: 🔨 Build
-      run: dotnet build --no-restore
-    - name: 🧪 Test
-      run: dotnet test --no-build --verbosity normal
-    - name: 🔨 Build Examples
-      run: ./build.sh --examples --srcdist
-    - name: 🔗 Install Templates
-      working-directory: src/IceRpc.ProjectTemplates
-      run: dotnet pack && dotnet new --install bin/Debug/IceRpc.ProjectTemplates.0.1.0-preview1.nupkg
-    - name: 🧪 Test IceRpc Client Template
-      run: mkdir -p templates-test/client && cd templates-test/client && dotnet new icerpc-client && dotnet build
-    - name: 🧪 Test IceRpc Server Template
-      run: mkdir -p templates-test/server && cd templates-test/server && dotnet new icerpc-server && dotnet build
+  build:
+    uses: zeroc-ice/icerpc-csharp/.github/workflows/build.yaml@main
+    secrets:
+      icerpc_deploy_key: ${{ secrets.ICERPC_DEPLOY_KEY }}
+      nuget_api_token: ${{ secrets.NUGET_API_TOKEN }}
+  build_examples:
+    uses: zeroc-ice/icerpc-csharp/.github/workflows/build_examples.yaml@main
+  tests:
+    uses: zeroc-ice/icerpc-csharp/.github/workflows/tests.yaml@main
