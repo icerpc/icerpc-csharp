@@ -45,10 +45,10 @@ Pipeline pipeline = new Pipeline()
 // We use a logger to ensure proper ordering of the messages on the console.
 ILogger logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
 
-string helloServiceAddress = "icerpc://127.0.0.1:10000/hello?alt-server=127.0.0.1:10001";
+string helloServiceAddress = "icerpc://localhost:10000/hello?alt-server=localhost:10001";
 for (int i = 2; i < serverInstances; i++)
 {
-    helloServiceAddress += $"&alt-server=127.0.0.1:{10000 + i}";
+    helloServiceAddress += $"&alt-server=localhost:{10000 + i}";
 }
 var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
 

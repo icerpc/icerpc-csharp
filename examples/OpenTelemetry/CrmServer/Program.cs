@@ -23,7 +23,7 @@ using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
 
 router.Map<ICrm>(new Crm());
 
-await using var server = new Server(router, new Uri("icerpc://127.0.0.1:20001"));
+await using var server = new Server(router, new Uri("icerpc://[::0]:20001"));
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
