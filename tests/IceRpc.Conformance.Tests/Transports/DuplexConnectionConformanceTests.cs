@@ -124,8 +124,9 @@ public abstract class DuplexConnectionConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<ArgumentException>(
-            () => clientTransport.CreateConnection(serverAddress, new DuplexConnectionOptions(), null));
+        Assert.That(
+            () => clientTransport.CreateConnection(serverAddress, new DuplexConnectionOptions(), null),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
     [Test]
@@ -137,8 +138,9 @@ public abstract class DuplexConnectionConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.Throws<ArgumentException>(
-            () => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null));
+        Assert.That(
+            () => serverTransport.Listen(serverAddress, new DuplexConnectionOptions(), null),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 
     /// <summary>Write data until the transport flow control starts blocking, at this point we start a read task and
