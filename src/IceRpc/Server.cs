@@ -233,10 +233,10 @@ public sealed class Server : IAsyncDisposable
     /// <returns>A value task that completes when the disposal of all connections accepted by the server has completed.
     /// This includes connections that were active when this method is called and connections whose disposal was
     /// initiated prior to this call.</returns>
-    /// <remarks>The disposal of an underlying connection of the server cancels its invocations and dispatches. The
-    /// completion of all dispatch tasks created by the underlying connection is awaited before its transport connection
-    /// is aborted. If the configured dispatcher does not complete promptly when its cancellation token is canceled, the
-    /// disposal of the server will hang.</remarks>
+    /// <remarks>The disposal of an underlying connection of the server aborts invocations, cancels dispatches and
+    /// disposes the underlying transport connection without waiting for the peer. To wait for invocations and
+    /// dispatches to complete, call <see cref="ShutdownAsync" /> first. If the configured dispatcher does not complete
+    /// promptly when its cancellation token is canceled, the disposal can hang.</remarks>
     public ValueTask DisposeAsync()
     {
         lock (_mutex)
