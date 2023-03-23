@@ -61,8 +61,8 @@ internal sealed class IceProtocol : Protocol
         : base(
             name: "ice",
             defaultPort: 4061,
-            hasFields: false,
-            hasFragment: true,
+            supportsFields: false,
+            supportsFragment: true,
             supportsPayloadContinuation: false,
             supportsPayloadWriterInterceptors: false,
             byteValue: 1)

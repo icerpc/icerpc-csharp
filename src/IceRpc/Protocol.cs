@@ -22,15 +22,15 @@ public class Protocol
     /// protocol.</value>
     public ushort DefaultPort { get; }
 
+    /// <summary>Gets the name of this protocol.</summary>
+    /// <value>The protocol name.</value>
+    public string Name { get; }
+
     /// <summary>Gets a value indicating whether or not this protocol supports arbitrary application-defined fields in
     /// request and response headers.</summary>
     /// <value><see langword="true" /> if the protocol supports arbitrary fields; <see langword="false" />
     /// otherwise.</value>
-    public bool HasFields { get; }
-
-    /// <summary>Gets the name of this protocol.</summary>
-    /// <value>The protocol name.</value>
-    public string Name { get; }
+    public bool SupportsFields { get; }
 
     /// <summary>Gets the byte value for this protocol.</summary>
     /// <value>The protocol byte value. It's used as the "protocol major" with the Slice1 encoding.</value>
@@ -38,7 +38,7 @@ public class Protocol
 
     /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
     /// <value><see langword="true" /> if the protocol supports fragments; <see langword="false" /> otherwise.</value>
-    internal bool HasFragment { get; }
+    internal bool SupportsFragment { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
     /// <value><see langword="true" /> if the protocol supports payload continuations; <see langword="false" />
@@ -101,16 +101,16 @@ public class Protocol
     private protected Protocol(
         string name,
         ushort defaultPort,
-        bool hasFields,
-        bool hasFragment,
+        bool supportsFields,
+        bool supportsFragment,
         bool supportsPayloadContinuation,
         bool supportsPayloadWriterInterceptors,
         byte byteValue)
     {
         Name = name;
         DefaultPort = defaultPort;
-        HasFields = hasFields;
-        HasFragment = hasFragment;
+        SupportsFields = supportsFields;
+        SupportsFragment = supportsFragment;
         SupportsPayloadContinuation = supportsPayloadContinuation;
         SupportsPayloadWriterInterceptors = supportsPayloadWriterInterceptors;
         ByteValue = byteValue;

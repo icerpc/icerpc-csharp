@@ -174,7 +174,7 @@ public sealed record class ServiceAddress
                 throw new ArgumentException("Invalid fragment.", nameof(value), ex);
             }
 
-            if (!Protocol.HasFragment && value.Length > 0)
+            if (!Protocol.SupportsFragment && value.Length > 0)
             {
                 throw new InvalidOperationException($"Cannot set {Fragment} on an {Protocol} service address.");
             }
@@ -226,7 +226,7 @@ public sealed record class ServiceAddress
                 throw new ArgumentException($"Invalid path in {Protocol} URI.", nameof(uri), exception);
             }
 
-            if (!Protocol.HasFragment && _fragment.Length > 0)
+            if (!Protocol.SupportsFragment && _fragment.Length > 0)
             {
                 throw new ArgumentException(
                     $"Cannot create an {Protocol} service address with a fragment.",
