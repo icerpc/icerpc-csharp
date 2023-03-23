@@ -7,19 +7,23 @@ namespace IceRpc;
 /// <summary>Represents a response protocol frame sent by the application.</summary>
 public sealed class OutgoingResponse : OutgoingFrame
 {
-    /// <summary>Gets the error message of this response. The error message is null when <see cref="StatusCode" /> is
-    /// <see cref="StatusCode.Success" />. Otherwise, it is non-null.</summary>
+    /// <summary>Gets the error message of this response.</summary>
+    /// <value>The error message of this response if <see cref="StatusCode" /> is different from <see
+    /// cref="StatusCode.Success" />; <see langword="null" /> otherwise.</value>
     public string? ErrorMessage { get; }
 
     /// <summary>Gets or sets the fields of this response.</summary>
+    /// <value>The fields of this incoming response. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty"
+    /// />.</value>
     public IDictionary<ResponseFieldKey, OutgoingFieldValue> Fields { get; set; } =
         ImmutableDictionary<ResponseFieldKey, OutgoingFieldValue>.Empty;
 
     /// <summary>Gets the status code of this response.</summary>
+    /// <value>The <see cref="IceRpc.StatusCode" /> of this response.</value>
     public StatusCode StatusCode { get; }
 
-    /// <summary>Constructs an outgoing response with the <see cref="StatusCode.Success" /> status code and a null error
-    /// message.</summary>
+    /// <summary>Constructs an outgoing response with the <see cref="StatusCode.Success" /> status code and a <see
+    /// langword="null" /> error message.</summary>
     /// <param name="request">The incoming request.</param>
     public OutgoingResponse(IncomingRequest request)
         : base(request.Protocol)

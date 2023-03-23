@@ -25,7 +25,7 @@ internal static class StringCodec
         string result = _utf8.GetString(readResult.Buffer);
 
         payload.AdvanceTo(readResult.Buffer.End);
-        await payload.CompleteAsync();
+        payload.Complete();
         return result;
     }
 }

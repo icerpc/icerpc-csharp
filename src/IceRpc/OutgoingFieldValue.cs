@@ -9,13 +9,17 @@ namespace IceRpc;
 /// of the struct's properties can be set.</summary>
 public readonly record struct OutgoingFieldValue
 {
-    /// <summary>Gets the value of this outgoing field when <see cref="EncodeAction" /> is <c>null</c>.</summary>
+    /// <summary>Gets the value of this outgoing field.</summary>
+    /// <value>The value of this outgoing field. Defaults to an empty byte sequence.</value>
+    /// <remarks><see cref="ByteSequence" /> is set when the outgoing field value is constructed with <see
+    /// cref="OutgoingFieldValue(ReadOnlySequence{byte})" />.</remarks>
     public ReadOnlySequence<byte> ByteSequence { get; }
 
-    /// <summary>Gets the action used to encode this field or <c>null</c>, when <see cref="ByteSequence" /> holds
-    /// the encoded value.</summary>
-    /// <value>An encode action used to create a Slice2 encoded field value when the fields are about to be sent.
-    /// </value>
+    /// <summary>Gets the action used to encode the field value using the Slice2 encoding. The action is executed when
+    /// the fields are about to be sent.</summary>
+    /// <value>The encode action of this outgoing field. Defaults to <see langword="null"/>.</value>
+    /// <remarks><see cref="EncodeAction" /> is set when the outgoing field value is constructed with <see
+    /// cref="OutgoingFieldValue(EncodeAction)" />.</remarks>
     public EncodeAction? EncodeAction { get; }
 
     /// <summary>Constructs an outgoing field value that holds a byte sequence.</summary>
@@ -37,7 +41,7 @@ public readonly record struct OutgoingFieldValue
     /// <summary>Encodes this field value using a Slice encoder.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="sizeLength">The number of bytes to use to encode the size when <see cref="EncodeAction" /> is
-    /// not null.</param>
+    /// not <see langword="null" />.</param>
     public void Encode(ref SliceEncoder encoder, int sizeLength = 2)
     {
         if (encoder.Encoding == SliceEncoding.Slice1)

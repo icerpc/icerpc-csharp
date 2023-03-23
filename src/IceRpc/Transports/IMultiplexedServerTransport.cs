@@ -8,9 +8,11 @@ namespace IceRpc.Transports;
 public interface IMultiplexedServerTransport
 {
     /// <summary>Gets the default multiplexed server transport.</summary>
+    /// <value>The default multiplexed server transport is the <see cref="SlicServerTransport" />.</value>
     public static IMultiplexedServerTransport Default { get; } = new SlicServerTransport(new TcpServerTransport());
 
     /// <summary>Gets the transport's name.</summary>
+    /// <value>The transport name.</value>
     string Name { get; }
 
     /// <summary>Starts listening on a server address.</summary>

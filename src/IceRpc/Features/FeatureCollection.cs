@@ -8,6 +8,7 @@ namespace IceRpc.Features;
 public class FeatureCollection : IFeatureCollection
 {
     /// <summary>Gets a shared empty read-only instance.</summary>
+    /// <value>An empty <see cref="FeatureCollection" />.</value>
     public static IFeatureCollection Empty { get; } = new FeatureCollection().AsReadOnly();
 
     /// <inheritdoc/>

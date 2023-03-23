@@ -19,6 +19,10 @@ public static class PipeReaderExtensions
     /// <param name="elementSize">The size in bytes of one element.</param>
     /// <param name="sliceFeature">The Slice feature to customize the decoding.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="elementSize" /> is equal of inferior to
+    /// <c>0</c>.</exception>
+    /// <remarks>The reader ownership is transferred to the returned async enumerable. The caller should no longer use
+    /// the reader after this call.</remarks>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this PipeReader reader,
         SliceEncoding encoding,
@@ -28,6 +32,7 @@ public static class PipeReaderExtensions
     {
         if (elementSize <= 0)
         {
+            reader.Complete();
             throw new ArgumentException("The element size must be greater than 0.", nameof(elementSize));
         }
 
@@ -84,6 +89,8 @@ public static class PipeReaderExtensions
     /// <param name="templateProxy">The template proxy.</param>
     /// <param name="sliceFeature">The slice feature to customize the decoding.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
+    /// <remarks>The reader ownership is transferred to the returned async enumerable. The caller should no longer use
+    /// the reader after this call.</remarks>
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this PipeReader reader,
         SliceEncoding encoding,
@@ -131,71 +138,54 @@ public static class PipeReaderExtensions
         Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        while (true)
+        try
         {
-            ReadResult readResult;
-
-            try
+            while (true)
             {
-                readResult = await readFunc(reader, cancellationToken).ConfigureAwait(false);
+                ReadResult readResult;
 
-                if (readResult.IsCanceled)
+                try
                 {
-                    // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                    throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+                    readResult = await readFunc(reader, cancellationToken).ConfigureAwait(false);
+
+                    if (readResult.IsCanceled)
+                    {
+                        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+                        throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+                    }
+                    if (readResult.Buffer.IsEmpty)
+                    {
+                        Debug.Assert(readResult.IsCompleted);
+                        yield break;
+                    }
                 }
-                if (readResult.Buffer.IsEmpty)
+                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                 {
-                    Debug.Assert(readResult.IsCompleted);
-                    reader.Complete();
+                    // Canceling the cancellation token is a normal way to complete an iteration.
                     yield break;
                 }
-            }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-            {
-                // Canceling the cancellation token is a normal way to complete an iteration.
-                reader.Complete();
-                yield break;
-            }
-            catch
-            {
-                reader.Complete();
-                throw;
-            }
 
-            IEnumerable<T> items;
-
-            try
-            {
-                items = decodeBufferFunc(readResult.Buffer);
+                IEnumerable<T> elements = decodeBufferFunc(readResult.Buffer);
                 reader.AdvanceTo(readResult.Buffer.End);
-            }
-            catch
-            {
-                reader.Complete();
-                throw;
-            }
 
-            if (readResult.IsCompleted)
-            {
-                reader.Complete();
-            }
-
-            foreach (T item in items)
-            {
-                if (cancellationToken.IsCancellationRequested)
+                foreach (T item in elements)
                 {
-                    reader.Complete();
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        yield break;
+                    }
+                    yield return item;
+                }
+
+                if (readResult.IsCompleted)
+                {
                     yield break;
                 }
-                yield return item;
             }
-
-            if (readResult.IsCompleted)
-            {
-                // The corresponding payload.Complete is just before the foreach
-                yield break;
-            }
+        }
+        finally
+        {
+            reader.Complete();
         }
     }
 }

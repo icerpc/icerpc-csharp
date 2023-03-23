@@ -9,8 +9,8 @@ namespace IceRpc;
 public record class ConnectionOptions
 {
     /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection.</summary>
-    /// <value>The dispatcher that dispatches requests received by this connection, or null if this connection does
-    /// not accept requests.</value>
+    /// <value>The dispatcher that dispatches requests received by this connection, or <see langword="null" /> if this
+    /// connection does not accept requests.</value>
     public IDispatcher? Dispatcher { get; set; }
 
     /// <summary>Gets or sets a value indicating whether or not to enable the Ice idle check. This option is specific to
@@ -18,9 +18,10 @@ public record class ConnectionOptions
     /// fails when this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. When the Ice idle check
     /// is disabled, the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport
     /// connection can wait forever to receive a byte.</summary>
-    /// <value>Defaults to <see langword="false"/> for compatibility with the default ACM configuration of Ice 3.7. The
-    /// recommended setting is <see langword="true"/> when the peer is an Ice application with the HeartbeatAlways ACM
-    /// configuration or when the peer is an IceRPC application.</value>
+    /// <value><see langword="true"/> if Ice idle check is enabled; <see langword="false"/> otherwise. Defaults to <see
+    /// langword="false"/> for compatibility with the default ACM configuration of Ice 3.7. The recommended setting is
+    /// <see langword="true"/> when the peer is an Ice application with the HeartbeatAlways ACM configuration or when
+    /// the peer is an IceRPC application.</value>
     /// <remarks>When setting this value to <see langword="true"/>, make sure the peer's idle timeout is equal to or
     /// less than <see cref="IceIdleTimeout" />.</remarks>
     public bool EnableIceIdleCheck { get; set; }
@@ -28,7 +29,8 @@ public record class ConnectionOptions
     /// <summary>Gets or sets the Ice idle timeout. This option is specific to the ice protocol. Once the connection is
     /// established, the runtime sends a heartbeat to the peer when there is no write on the connection for half this
     /// Ice idle timeout.</summary>
-    /// <value>Defaults to 60 seconds to match the default ACM configuration in Ice 3.7.</value>
+    /// <value>The Ice idle timeout. Defaults to <c>60</c> seconds to match the default ACM configuration in Ice
+    /// 3.7.</value>
     /// <seealso cref="EnableIceIdleCheck" />
     public TimeSpan IceIdleTimeout
     {
@@ -40,7 +42,7 @@ public record class ConnectionOptions
     /// <summary>Gets or sets the inactivity timeout. This timeout is used to gracefully shutdown the connection if
     /// it's inactive for longer than this timeout. A connection is considered inactive when there's no invocation or
     /// dispatch in progress.</summary>
-    /// <value>Defaults to <c>5</c> minutes.</value>
+    /// <value>The inactivity timeout. Defaults to <c>5</c> minutes.</value>
     public TimeSpan InactivityTimeout
     {
         get => _inactivityTimeout;
@@ -50,8 +52,8 @@ public record class ConnectionOptions
 
     /// <summary>Gets or sets the maximum number of requests that a connection can dispatch concurrently. Once this
     /// limit is reached, the connection stops reading new requests off its underlying transport connection.</summary>
-    /// <value>The maximum number of requests that a connection can dispatch concurrently. 0 means no maximum. The
-    /// default value is 100 requests.</value>
+    /// <value>The maximum number of requests that a connection can dispatch concurrently. <c>0</c> means no maximum.
+    /// Defaults to <c>100</c> requests.</value>
     /// <remarks>With the icerpc protocol, you may also need to set <see cref="MaxIceRpcBidirectionalStreams" /> and
     /// <see cref="MaxIceRpcUnidirectionalStreams" />. A typical two-way dispatch holds onto one bidirectional stream
     /// while a typical oneway dispatch quickly releases its unidirectional stream and then executes without consuming
@@ -64,8 +66,8 @@ public record class ConnectionOptions
     }
 
     /// <summary>Gets or sets the maximum size of a frame received over the ice protocol.</summary>
-    /// <value>The maximum size of an incoming frame, in bytes. This value must be at least 256. The default value
-    /// is 1 MB.</value>
+    /// <value>The maximum size of an incoming frame, in bytes. This value must be at least <c>256</c>. Defaults to
+    /// <c>1</c> MB.</value>
     public int MaxIceFrameSize
     {
         get => _maxIceFrameSize;
@@ -79,7 +81,7 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// bidirectional stream. Since an bidirectional stream is opened for each two-way invocation, the sending of the
     /// two-way invocation will be delayed until another two-way invocation's stream completes.</summary>
-    /// <value>The maximum number of bidirectional streams. It can't be less than 1 and the default value is 100.
+    /// <value>The maximum number of bidirectional streams. It can't be less than <c>1</c>. Defaults to <c>100</c>.
     /// </value>
     public int MaxIceRpcBidirectionalStreams
     {
@@ -91,8 +93,8 @@ public record class ConnectionOptions
     }
 
     /// <summary>Gets or sets the maximum size of icerpc protocol header.</summary>
-    /// <value>The maximum size of the header of an incoming request, response or control frame, in bytes. The
-    /// default value is 16,383, and the range of this value is 63 to 1,048,575.</value>
+    /// <value>The maximum size in bytes of the header of an incoming request, response or control frame. Defaults to
+    /// <c>16,383</c>, and the range of this value is <c>63</c> to <c>1,048,575</c>.</value>
     public int MaxIceRpcHeaderSize
     {
         get => _maxIceRpcHeaderSize;
@@ -103,8 +105,8 @@ public record class ConnectionOptions
     /// accepted on an icerpc connection. When this limit is reached, the peer is not allowed to open any new
     /// unidirectional stream. Since an unidirectional stream is opened for each one-way invocation, the sending of the
     /// one-way invocation will be delayed until another one-way invocation's stream completes.</summary>
-    /// <value>The maximum number of unidirectional streams. It can't be less than 1 and the default value is 100.
-    /// </value>
+    /// <value>The maximum number of unidirectional streams. It can't be less than <c>1</c>. Defaults to
+    /// <c>100</c>.</value>
     public int MaxIceRpcUnidirectionalStreams
     {
         get => _maxIceRpcUnidirectionalStreams;
@@ -115,7 +117,7 @@ public record class ConnectionOptions
     }
 
     /// <summary>Gets or sets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
-    /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
+    /// <value>The minimum size of the segment requested from the <see cref="Pool" />. Defaults to <c>4096</c>.</value>
     public int MinSegmentSize
     {
         get => _minSegmentSize;
@@ -125,7 +127,8 @@ public record class ConnectionOptions
 
     /// <summary>Gets or sets the <see cref="MemoryPool{T}" /> object used by the connection for allocating memory
     /// blocks.</summary>
-    /// <value>A pool of memory blocks used for buffer management.</value>
+    /// <value>A pool of memory blocks used for buffer management. Defaults to <see cref="MemoryPool{T}.Shared"
+    /// />.</value>
     public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
     /// <summary>The default value for <see cref="MaxIceRpcHeaderSize" />.</summary>

@@ -7,5 +7,6 @@ namespace IceRpc.Features;
 public interface IServiceProviderFeature
 {
     /// <summary>Gets the service provider.</summary>
+    /// <value>The <see cref="IServiceProvider" />.</value>
     IServiceProvider ServiceProvider { get; }
 }

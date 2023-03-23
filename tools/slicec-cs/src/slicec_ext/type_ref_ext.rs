@@ -1,10 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::entity_ext::EntityExt;
-use super::interface_ext::InterfaceExt;
-use super::primitive_ext::PrimitiveExt;
+use super::{EntityExt, InterfaceExt, PrimitiveExt};
 use crate::cs_attributes::{match_cs_custom, match_cs_generic};
-
 use slice::grammar::*;
 use slice::utils::code_gen_util::TypeContext;
 

@@ -22,10 +22,10 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
     /// <summary>Constructs a client protocol connection factory.</summary>
     /// <param name="connectionOptions">The connection options.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    /// <param name="duplexClientTransport">The duplex client transport. Null is equivalent to
-    /// <see cref="IDuplexClientTransport.Default" />.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed client transport. Null is equivalent to
-    /// <see cref="IMultiplexedClientTransport.Default" />.</param>
+    /// <param name="duplexClientTransport">The duplex client transport. <see langword="null" /> is equivalent to <see
+    /// cref="IDuplexClientTransport.Default" />.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
+    /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
     /// <param name="logger">The logger.</param>
     public ClientProtocolConnectionFactory(
         ConnectionOptions connectionOptions,

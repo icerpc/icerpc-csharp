@@ -17,8 +17,8 @@ public ref partial struct SliceEncoder
     /// <param name="v">The class instance to encode.</param>
     public void EncodeClass(SliceClass v) => EncodeNullableClass(v);
 
-    /// <summary>Encodes a class instance, or null.</summary>
-    /// <param name="v">The class instance to encode, or null.</param>
+    /// <summary>Encodes a class instance, or <see langword="null" />.</summary>
+    /// <param name="v">The class instance to encode, or <see langword="null" />.</param>
     public void EncodeNullableClass(SliceClass? v)
     {
         if (v is null)
@@ -276,7 +276,7 @@ public ref partial struct SliceEncoder
         _classContext.Current.SliceFlags |= (SliceFlags)typeIdKind;
     }
 
-    /// <summary>Registers or looks up a type ID in the the _typeIdMap.</summary>
+    /// <summary>Registers or looks up a type ID in the _typeIdMap.</summary>
     /// <param name="typeId">The type ID to register or lookup.</param>
     /// <returns>The index in _typeIdMap if this type ID was previously registered; otherwise, -1.</returns>
     private int RegisterTypeId(string typeId)

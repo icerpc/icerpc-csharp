@@ -554,7 +554,7 @@ public sealed class IceProtocolConnectionTests
         Assert.That(
             async () => (await sut.Client.InvokeAsync(request)).StatusCode,
             Is.EqualTo(StatusCode.UnhandledException));
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadDecorator.Completed, Is.Null);
     }
 
     [Test]
@@ -662,7 +662,7 @@ public sealed class IceProtocolConnectionTests
         dispatcher.ReleaseDispatch();
 
         Assert.That(dispatcher.ResponsePayload, Is.Not.Null);
-        Assert.That(async () => await dispatcher.ResponsePayload!.Completed, Throws.Nothing);
+        Assert.That(async () => await dispatcher.ResponsePayload!.Completed, Is.Null);
 
         var response = await sut.Client.InvokeAsync(request2, default);
         // with ice, the payload is fully available at this point

@@ -42,6 +42,36 @@ internal class QuicPipeReader : PipeReader
         }
     }
 
+    public override async Task CopyToAsync(Stream destination, CancellationToken cancellationToken)
+    {
+        _throwIfConnectionClosedOrDisposed();
+        try
+        {
+            await _pipeReader.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
+        // attempting to read while another read is in progress.
+    }
+
+    public override async Task CopyToAsync(PipeWriter writer, CancellationToken cancellationToken)
+    {
+        _throwIfConnectionClosedOrDisposed();
+        try
+        {
+            await _pipeReader.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
+        // attempting to read while another read is in progress.
+    }
+
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
         // First check if there's buffered data. If the connection is closed, we still want to return this data.
@@ -67,6 +97,22 @@ internal class QuicPipeReader : PipeReader
     // StreamPipeReader.TryRead does not call the underlying QuicStream and as a result does not throw any
     // QuicException.
     public override bool TryRead(out ReadResult result) => _pipeReader.TryRead(out result);
+
+    protected override async ValueTask<ReadResult> ReadAtLeastAsyncCore(
+        int minimumSize,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _pipeReader.ReadAtLeastAsync(minimumSize, cancellationToken).ConfigureAwait(false);
+        }
+        catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
+        // attempting to read while another read is in progress.
+    }
 
     internal QuicPipeReader(
         QuicStream stream,

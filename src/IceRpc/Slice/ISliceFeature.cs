@@ -11,7 +11,8 @@ public interface ISliceFeature
     IActivator? Activator { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
-    /// <value>The Slice encode options. Null is equivalent to <see cref="SliceEncodeOptions.Default" />.</value>
+    /// <value>The Slice encode options. <see langword="null" /> is equivalent to <see cref="SliceEncodeOptions.Default"
+    /// />.</value>
     SliceEncodeOptions? EncodeOptions { get; }
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>

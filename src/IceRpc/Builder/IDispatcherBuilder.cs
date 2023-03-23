@@ -7,6 +7,7 @@ namespace IceRpc.Builder;
 public interface IDispatcherBuilder
 {
     /// <summary>Gets the service provider.</summary>
+    /// <value>The <see cref="IServiceProvider" />.</value>
     IServiceProvider ServiceProvider { get; }
 
     /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.

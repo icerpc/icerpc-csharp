@@ -8,6 +8,7 @@ namespace IceRpc.Transports;
 public interface IListener : IAsyncDisposable
 {
     /// <summary>Gets the server address of this listener. That's the address a client would connect to.</summary>
+    /// <value>The server address.</value>
     ServerAddress ServerAddress { get; }
 }
 

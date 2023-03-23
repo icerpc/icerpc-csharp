@@ -15,3 +15,5 @@ Console.WriteLine(greeting);
 int requestCount = await requestCounterProxy.GetRequestCountAsync();
 
 Console.WriteLine($"requests count: {requestCount}");
+
+await connection.ShutdownAsync();

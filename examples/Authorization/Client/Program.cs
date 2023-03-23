@@ -35,3 +35,5 @@ await helloAdminProxy.ChangeGreetingAsync("Bonjour");
 
 // Authenticated hello with updated greeting.
 Console.WriteLine(await helloProxy.SayHelloAsync());
+
+await connection.ShutdownAsync();

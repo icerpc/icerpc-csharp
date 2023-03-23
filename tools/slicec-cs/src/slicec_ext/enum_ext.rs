@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::slicec_ext::primitive_ext::PrimitiveExt;
-
 use slice::grammar::Enum;
 
 pub trait EnumExt {

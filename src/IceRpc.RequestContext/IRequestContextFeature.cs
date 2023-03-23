@@ -7,5 +7,6 @@ namespace IceRpc.RequestContext;
 public interface IRequestContextFeature
 {
     /// <summary>Gets or sets the value of this context feature.</summary>
+    /// <value>The request context feature.</value>
     IDictionary<string, string> Value { get; set; }
 }

@@ -8,6 +8,7 @@ namespace IceRpc;
 public sealed record class ServerOptions
 {
     /// <summary>Gets or sets the connection options for server connections.</summary>
+    /// <value>The connection options. Defaults to a default constructed <see cref="ConnectionOptions" />.</value>
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
     /// <summary>Gets or sets the connection establishment timeout for connections accepted by the server.</summary>
@@ -20,23 +21,26 @@ public sealed record class ServerOptions
     }
 
     /// <summary>Gets or sets the maximum number of accepted server connections. Once the maximum number of connections
-    /// has been reached, the server will refuse any new connections. The default value <c>0</c> means unlimited.
-    /// </summary>
+    /// has been reached, the server will refuse any new connections.</summary>
+    /// <value>The maximum number of connections. Defaults to <c>0</c>, meaning unlimited.</value>
     public int MaxConnections { get; set; }
 
     /// <summary>Gets or sets the maximum number of server connections waiting for connection establishment to complete.
     /// Once the maximum number of pending connections has been reached, the server will stop accepting new connections
-    /// to ensure that the transport rejects new connections once its connection backlog is full. The default value is
-    /// <c>100</c>.
-    /// </summary>
+    /// to ensure that the transport rejects new connections once its connection backlog is full.</summary>
+    /// <value>The maximum number of connection waiting for connection establishment to complete. Defaults to
+    /// <c>100</c>.</value>
     public int MaxPendingConnections { get; set; } = 100;
 
     /// <summary>Gets or sets the server's address. The server address host is usually an IP address, and it cannot be a
     /// DNS name.</summary>
+    /// <value>The <see cref="ServerAddress" /> of this <see cref="Server" />. Defaults to a <see cref="ServerAddress"
+    /// /> constructed with <see cref="Protocol.IceRpc" />.</value>
     public ServerAddress ServerAddress { get; set; } = new(Protocol.IceRpc);
 
     /// <summary>Gets or sets the SSL server authentication options.</summary>
-    /// <value>The SSL server authentication options. When not null, the server will accept only secure connections.
+    /// <value>The SSL server authentication options. When not <see langword="null" />, the server will accept only
+    /// secure connections.
     /// </value>
     public SslServerAuthenticationOptions? ServerAuthenticationOptions { get; set; }
 

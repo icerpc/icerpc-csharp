@@ -9,13 +9,23 @@ namespace IceRpc;
 public abstract class OutgoingFrame
 {
     /// <summary>Gets or sets the payload of this frame.</summary>
-    /// <value>The payload of this frame. The default is an empty pipe reader.</value>
+    /// <value>The payload of this frame. Defaults to a <see cref="PipeReader" /> that returns an empty
+    /// sequence.</value>
+    /// <remarks>IceRPC completes the payload <see cref="PipeReader" /> with the <see
+    /// cref="PipeReader.Complete(Exception?)" /> method. It never calls <see
+    /// cref="PipeReader.CompleteAsync(Exception?)" />. The implementation of <see
+    /// cref="PipeReader.Complete(Exception?)" /> should not block.</remarks>
     public PipeReader Payload { get; set; } = EmptyPipeReader.Instance;
 
-    /// <summary>Gets or sets the payload continuation of this frame. The payload continuation is a continuation of
-    /// <see cref="Payload"/>. The receiver cannot distinguish any seam between payload and payload continuation in
-    /// the <see cref="IncomingFrame.Payload" /> it receives.</summary>
-    /// <value>The payload continuation of this frame. The default is null which means no continuation.</value>
+    /// <summary>Gets or sets the payload continuation of this frame. The payload continuation is a continuation of <see
+    /// cref="Payload"/>. The receiver cannot distinguish any seam between payload and payload continuation in the <see
+    /// cref="IncomingFrame.Payload" /> it receives.</summary>
+    /// <value>The payload continuation of this frame. Defaults to <see langword="null" /> meaning no
+    /// continuation.</value>
+    /// <remarks>IceRPC completes the payload continuation <see cref="PipeReader" /> with the <see
+    /// cref="PipeReader.Complete(Exception?)" /> method. It never calls <see
+    /// cref="PipeReader.CompleteAsync(Exception?)" />. The implementation of <see
+    /// cref="PipeReader.Complete(Exception?)" /> should not block.</remarks>
     public PipeReader? PayloadContinuation
     {
         get => _payloadContinuation;
@@ -28,6 +38,7 @@ public abstract class OutgoingFrame
     }
 
     /// <summary>Gets the protocol of this frame.</summary>
+    /// <value>The <see cref="IceRpc.Protocol" /> value of this frame.</value>
     public Protocol Protocol { get; }
 
     private PipeReader? _payloadContinuation;
@@ -37,6 +48,10 @@ public abstract class OutgoingFrame
     /// <see cref="PayloadContinuation" />.</summary>
     /// <param name="payloadWriterInterceptor">The payload writer interceptor to install.</param>
     /// <returns>This outgoing frame.</returns>
+    /// <remarks>IceRPC completes the payload writer <see cref="PipeWriter" /> with the <see
+    /// cref="PipeWriter.Complete(Exception?)" /> method. It never calls <see
+    /// cref="PipeWriter.CompleteAsync(Exception?)" />. The implementation of <see
+    /// cref="PipeWriter.Complete(Exception?)" /> should not block.</remarks>
     public OutgoingFrame Use(Func<PipeWriter, PipeWriter> payloadWriterInterceptor)
     {
         if (!Protocol.SupportsPayloadWriterInterceptors)

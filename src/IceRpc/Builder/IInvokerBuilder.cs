@@ -6,6 +6,7 @@ namespace IceRpc.Builder;
 public interface IInvokerBuilder
 {
     /// <summary>Gets the service provider.</summary>
+    /// <value>The <see cref="IServiceProvider" />.</value>
     IServiceProvider ServiceProvider { get; }
 
     /// <summary>Sets the last invoker of the invocation pipeline.</summary>
