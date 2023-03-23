@@ -498,11 +498,6 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
                     }
                 }
             }
-            catch (Exception exception)
-            {
-                Debug.Fail($"GetActiveConnectionAsync failed with an unexpected exception: {exception}");
-                throw;
-            }
         }
 
         Debug.Assert(connectionException is not null);
