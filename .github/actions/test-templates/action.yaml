@@ -1,19 +1,16 @@
 name: Test Templates
 
-on:
-  workflow_call:
-
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
     - name: 🔗 Install Templates
       working-directory: src/IceRpc.ProjectTemplates
       run: dotnet pack && dotnet new --install bin/Debug/IceRpc.ProjectTemplates.0.1.0-preview1.nupkg
+      shell: bash
     - name: 🧪 Test IceRpc Client Template
       run: mkdir -p templates-test/client && cd templates-test/client && dotnet new icerpc-client && dotnet build
+      shell: bash
     - name: 🧪 Test IceRpc Server Template
       run: mkdir -p templates-test/server && cd templates-test/server && dotnet new icerpc-server && dotnet build
+      shell: bash

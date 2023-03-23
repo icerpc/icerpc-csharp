@@ -1,14 +1,9 @@
-name: Build Dist
-
-on:
-  workflow_call:
+name: Build Examples
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
     - name: 🔨 Build Examples
       run: ./build.sh --examples --srcdist
+      shell: bash

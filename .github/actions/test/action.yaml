@@ -1,13 +1,7 @@
 name: Run Tests
 
-on:
-  workflow_call:
-
 jobs:
   test:
-
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
     - name: 🧪 Test Slice Compiler
@@ -17,3 +11,4 @@ jobs:
         args: --manifest-path tools/slicec-cs/Cargo.toml
     - name: 🧪 Test
       run: dotnet test --no-build --verbosity normal
+      shell: bash
