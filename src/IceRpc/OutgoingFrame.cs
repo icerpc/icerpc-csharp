@@ -68,7 +68,7 @@ public abstract class OutgoingFrame
 
     /// <summary>Constructs an outgoing frame.</summary>
     /// <param name="protocol">The protocol used to send the frame.</param>
-    protected internal OutgoingFrame(Protocol protocol) => Protocol = protocol;
+    private protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
 
     /// <summary>Returns the payload writer to use when sending the payload.</summary>
     internal PipeWriter GetPayloadWriter(PipeWriter writer)

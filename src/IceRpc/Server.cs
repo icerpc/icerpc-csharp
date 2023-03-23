@@ -140,7 +140,7 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
-    /// default to the defaults of the <see cref="ServerOptions" /> properties.</summary>
+    /// use the <see cref="ServerOptions" /> defaults.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options. When not <see langword="null"
     /// />, the server will accept only secure connections.</param>
@@ -172,7 +172,7 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Constructs a server with the specified dispatcher, server address and authentication options. All
-    /// other properties default to the defaults of the <see cref="ServerOptions" /> properties.</summary>
+    /// other properties use the <see cref="ServerOptions" /> defaults.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddress">The server address of the server.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options. When not <see langword="null"
@@ -207,7 +207,7 @@ public sealed class Server : IAsyncDisposable
     }
 
     /// <summary>Constructs a server with the specified dispatcher, server address URI and authentication options. All
-    /// other properties default to the defaults of the <see cref="ServerOptions" /> properties.</summary>
+    /// other properties use the <see cref="ServerOptions" /> defaults.</summary>
     /// <param name="dispatcher">The dispatcher of the server.</param>
     /// <param name="serverAddressUri">A URI that represents the server address of the server.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options. When not <see langword="null"

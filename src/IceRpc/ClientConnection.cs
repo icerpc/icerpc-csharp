@@ -88,7 +88,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Constructs a client connection with the specified server address and client authentication options.
-    /// All other properties default to the defaults of the <see cref="ClientConnectionOptions" /> properties.</summary>
+    /// All other properties use the <see cref="ClientConnectionOptions" /> defaults.</summary>
     /// <param name="serverAddress">The connection's server address.</param>
     /// <param name="clientAuthenticationOptions">The SSL client authentication options. When not <see langword="null"
     /// />, <see cref="ConnectAsync(CancellationToken)" /> will either establish a secure connection or fail.</param>
@@ -117,8 +117,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Constructs a client connection with the specified server address URI and client authentication options.
-    /// All other properties default to the defaults of the <see cref="ClientConnectionOptions" /> properties.
-    /// </summary>
+    /// All other properties use the <see cref="ClientConnectionOptions" /> defaults.</summary>
     /// <param name="serverAddressUri">The connection's server address URI.</param>
     /// <param name="clientAuthenticationOptions">The SSL client authentication options. When not <see langword="null"
     /// />, <see cref="ConnectAsync(CancellationToken)" /> will either establish a secure connection or fail.</param>
