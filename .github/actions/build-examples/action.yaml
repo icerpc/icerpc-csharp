@@ -1,9 +1,8 @@
 name: Build Examples
 
-jobs:
-  build:
-
-    steps:
-    - name: 🔨 Build Examples
-      run: ./build.sh --examples --srcdist
-      shell: bash
+runs:
+  using: "composite"
+  steps:
+  - name: 🔨 Build Examples
+    run: ./build.sh --examples --srcdist
+    shell: bash
