@@ -9,8 +9,8 @@ namespace IceRpc.Deadline;
 /// from the <see cref="IDeadlineFeature"/> feature is used, the deadline is then encoded as a request field. When
 /// the deadline expires, the invocation is canceled and the interceptor throws <see cref="TimeoutException" />.
 /// </summary>
-/// <remarks>The dispatch of a oneway request cannot be canceled since the invocation typically completes before this
-/// dispatch starts; as a result, for a oneway request, the deadline must be enforced by the
+/// <remarks>The dispatch of a one-way request cannot be canceled since the invocation typically completes before this
+/// dispatch starts; as a result, for a one-way request, the deadline must be enforced by the
 /// <see cref="DeadlineMiddleware"/>.</remarks>
 /// <remarks>If the server installs a <see cref="DeadlineMiddleware"/>, this deadline middleware decodes the deadline
 /// and enforces it. In the unlikely event the middleware detects the expiration of the deadline before this

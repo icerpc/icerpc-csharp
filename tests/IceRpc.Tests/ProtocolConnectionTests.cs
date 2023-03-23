@@ -872,7 +872,7 @@ public sealed class ProtocolConnectionTests
     }
 
     /// <summary>Verifies that disposing the client connection aborts the server connection and that the shutdown call
-    /// on the server connection immediately reports the correct error even if there is a pending twoway dispatch.
+    /// on the server connection immediately reports the correct error even if there is a pending two-way dispatch.
     /// </summary>
     [Test, TestCaseSource(nameof(Protocols))]
     public async Task Dispose_client_connection_aborts_server_connection(Protocol protocol)

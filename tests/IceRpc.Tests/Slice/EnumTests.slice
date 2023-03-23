@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice
 
-enum MyEnum {
+enum MyEnum: int32 {
     Enum1
     Enum2
     Enum3
@@ -14,7 +14,7 @@ enum MyFixedLengthEnum : int16 {
     SEnum3
 }
 
-enum MyEnumWithCustomEnumerators {
+enum MyEnumWithCustomEnumerators: varint32 {
     Enum1 = -10
     Enum2 = 20
     Enum3 = 30

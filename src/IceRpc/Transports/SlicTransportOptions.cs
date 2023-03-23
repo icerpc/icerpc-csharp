@@ -7,8 +7,9 @@ namespace IceRpc.Transports;
 public sealed record class SlicTransportOptions
 {
     /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no
-    /// data is received within the idle timeout period, the transport connection is aborted. The default is 30s.
+    /// data is received within the idle timeout period, the transport connection is aborted.
     /// </summary>
+    /// <value>The idle timeout. Defaults to <c>30</c> s.</value>
     public TimeSpan IdleTimeout
     {
         get => _idleTimeout;
@@ -19,8 +20,7 @@ public sealed record class SlicTransportOptions
     }
 
     /// <summary>Gets or sets the maximum packet size in bytes.</summary>
-    /// <value>The maximum packet size in bytes. It can't be less than 1KB and the default value is
-    /// 32KB.</value>
+    /// <value>The maximum packet size in bytes. It can't be less than <c>1</c> KB. Defaults to <c>32</c> KB.</value>
     public int PacketMaxSize
     {
         get => _packetMaxSize;
@@ -29,7 +29,7 @@ public sealed record class SlicTransportOptions
     }
 
     /// <summary>Gets or sets the number of bytes when writes on a Slic stream starts blocking.</summary>
-    /// <value>The pause writer threshold.</value>
+    /// <value>The pause writer threshold in bytes. It can't be less than <c>1</c> KB. Defaults to <c>64</c> KB.</value>
     public int PauseWriterThreshold
     {
         get => _pauseWriterThreshold;
@@ -40,7 +40,8 @@ public sealed record class SlicTransportOptions
     }
 
     /// <summary>Gets or sets the number of bytes when writes on a Slic stream stops blocking.</summary>
-    /// <value>The resume writer threshold.</value>
+    /// <value>The resume writer threshold in bytes. It can't be less than <c>1</c> KB and greater than <see
+    /// cref="PauseWriterThreshold" />. Defaults to <c>32</c> KB.</value>
     public int ResumeWriterThreshold
     {
         get => _resumeWriterThreshold;

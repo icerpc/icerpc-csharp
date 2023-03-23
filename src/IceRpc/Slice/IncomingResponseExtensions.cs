@@ -18,16 +18,16 @@ public static class IncomingResponseExtensions
     /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="decodeReturnValue">A function that decodes the return value.</param>
-    /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only
-    /// when <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
-    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
-    /// <see cref="ISliceFeature" /> is null. Used only when <paramref name="encoding" /> is
-    /// <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only when
+    /// <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's <see
+    /// cref="ISliceFeature" /> is <see langword="null" />. Used only when <paramref name="encoding" /> is <see
+    /// cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The return value.</returns>
-    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
-    /// <see cref="StatusCode.ApplicationError" />. When both <paramref name="decodeException" /> is null and
-    /// <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />, it is also thrown for status code
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than <see
+    /// cref="StatusCode.ApplicationError" />. When both <paramref name="decodeException" /> is <see langword="null" />
+    /// and <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />, it is also thrown for status code
     /// <see cref="StatusCode.ApplicationError" />.</exception>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
@@ -73,16 +73,16 @@ public static class IncomingResponseExtensions
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
     /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only
-    /// when <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
-    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
-    /// <see cref="ISliceFeature" /> is null. Used only when <paramref name="encoding" /> is
-    /// <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only when
+    /// <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's <see
+    /// cref="ISliceFeature" /> is <see langword="null" />. Used only when <paramref name="encoding" /> is <see
+    /// cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task representing the asynchronous completion of the operation.</returns>
-    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than
-    /// <see cref="StatusCode.ApplicationError" />. When both <paramref name="decodeException" /> is null and
-    /// <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />, it is also thrown for status code
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than <see
+    /// cref="StatusCode.ApplicationError" />. When both <paramref name="decodeException" /> is <see langword="null" />
+    /// and <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />, it is also thrown for status code
     /// <see cref="StatusCode.ApplicationError" />.</exception>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,

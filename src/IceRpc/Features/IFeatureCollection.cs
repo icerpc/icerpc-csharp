@@ -7,6 +7,8 @@ namespace IceRpc.Features;
 public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
 {
     /// <summary>Gets a value indicating whether this feature collection is read-only or read-write.</summary>
+    /// <value><see langword="true" /> if the feature collection is read-only; <see langword="false" />
+    /// otherwise.</value>
     bool IsReadOnly { get; }
 
     /// <summary>Gets or sets a feature. Setting null removes the feature.</summary>
@@ -14,7 +16,7 @@ public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     /// <returns>The requested feature.</returns>
     object? this[Type key] { get; set; }
 
-    /// <summary>Gets the requested feature. If the feature is not set, returns null.</summary>
+    /// <summary>Gets the requested feature. If the feature is not set, returns <see langword="null" />.</summary>
     /// <typeparam name="TFeature">The feature key.</typeparam>
     /// <returns>The requested feature.</returns>
     TFeature? Get<TFeature>();

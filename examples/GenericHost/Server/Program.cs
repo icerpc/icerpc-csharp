@@ -21,6 +21,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         // Add the ServerHostedService to the hosted services of the .NET Generic Host.
         services.AddHostedService<ServerHostedService>();
 
+        // The activity source used by the telemetry interceptor.
         services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
         // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure

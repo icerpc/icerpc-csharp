@@ -9,11 +9,11 @@ public interface IDispatchInformationFeature
     IConnectionContext ConnectionContext { get; }
 
     /// <summary>Gets the fragment of the target service.</summary>
-    /// <value>The fragment of the target service. it is always the empty string with the icerpc protocol.</value>
+    /// <value>The fragment of the target service. It is always the empty string with the icerpc protocol.</value>
     string Fragment { get; }
 
-    /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
-    /// <value><see langword="true" /> for oneway requests, <see langword="false" /> otherwise.</value>
+    /// <summary>Gets a value indicating whether this request is one-way or two-way.</summary>
+    /// <value><see langword="true" /> for one-way requests, <see langword="false" /> otherwise.</value>
     bool IsOneway { get; }
 
     /// <summary>Gets the name of the operation to call on the target service.</summary>
@@ -25,5 +25,6 @@ public interface IDispatchInformationFeature
     string Path { get; }
 
     /// <summary>Gets the protocol of the connection that received this request.</summary>
+    /// <value>The <see cref="IncomingFrame.Protocol" /> for the current dispatch.</value>
     Protocol Protocol { get; }
 }

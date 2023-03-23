@@ -12,3 +12,5 @@ var hello = new HelloProxy(connection, new Uri("ice:/hello"));
 Console.WriteLine("Saying hello to the server...");
 
 await hello.SayHelloAsync();
+
+await connection.ShutdownAsync();

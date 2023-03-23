@@ -533,7 +533,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Verifies that canceling the invocation after receiving a response doesn't affect the reading of the
     /// payload.</summary>
     [Test]
-    public async Task Invocation_cancellation_after_receive_response_doesnt_complete_the_incoming_request_payload()
+    public async Task Invocation_cancellation_after_receive_response_does_not_complete_the_incoming_request_payload()
     {
         // Arrange
         var dispatcher = new ConsumePayloadDispatcher(returnResponseFirst: true);
@@ -978,7 +978,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadDecorator.Completed, Is.Null);
         Assert.That(
             async () => await taskExceptionObserver.DispatchFailedException,
             Is.InstanceOf<InvalidOperationException>());
@@ -1015,7 +1015,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.InvokeAsync(request),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadDecorator.Completed, Is.Null);
         Assert.That(
             async () => await taskExceptionObserver.DispatchFailedException,
             Is.InstanceOf<InvalidOperationException>());
@@ -1053,7 +1053,7 @@ public sealed class IceRpcProtocolConnectionTests
         Task<IncomingResponse> responseTask = sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(async () => await payloadDecorator.Completed, Throws.Nothing);
+        Assert.That(async () => await payloadDecorator.Completed, Is.Null);
         Assert.That(
             async () => await responseTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));

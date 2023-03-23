@@ -30,3 +30,5 @@ var hello = new HelloProxy(pipeline);
 string greeting = await hello.SayHelloAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
+
+await connection.ShutdownAsync();

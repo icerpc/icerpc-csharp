@@ -336,7 +336,21 @@ fn encode_dictionary(
     .into()
 }
 
-pub fn encode_action(
+fn encode_action(
+    type_ref: &TypeRef,
+    type_context: TypeContext,
+    namespace: &str,
+    encoding: Encoding,
+    is_tagged: bool,
+) -> CodeBlock {
+    CodeBlock::from(format!(
+        "(ref SliceEncoder encoder, {value_type} value) => {encode_action_body}",
+        value_type = type_ref.cs_type_string(namespace, type_context, is_tagged),
+        encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, is_tagged),
+    ))
+}
+
+fn encode_action_body(
     type_ref: &TypeRef,
     type_context: TypeContext,
     namespace: &str,
@@ -351,86 +365,85 @@ pub fn encode_action(
         (true, true) => "value!.Value",
         _ => "value",
     };
-    let value_type = type_ref.cs_type_string(namespace, type_context, is_tagged);
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if is_optional && encoding == Encoding::Slice1 {
-                write!(
-                    code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableServiceAddress(value?.ServiceAddress)",
-                );
+                write!(code, "encoder.EncodeNullableServiceAddress(value?.ServiceAddress)");
             } else {
-                write!(
-                    code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeServiceAddress({value}.ServiceAddress)",
-                );
+                write!(code, "encoder.EncodeServiceAddress({value}.ServiceAddress)");
             }
         }
         TypeRefs::Class(_) => {
             assert!(encoding == Encoding::Slice1);
             if is_optional {
-                write!(
-                    code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeNullableClass(value)",
-                );
+                write!(code, "encoder.EncodeNullableClass(value)");
             } else {
-                write!(
-                    code,
-                    "(ref SliceEncoder encoder, {value_type} value) => encoder.EncodeClass(value)",
-                );
+                write!(code, "encoder.EncodeClass(value)");
             }
         }
-        TypeRefs::Primitive(primitive_ref) => write!(
-            code,
-            "(ref SliceEncoder encoder, {value_type} value) => encoder.Encode{}({value})",
-            primitive_ref.type_suffix(),
-        ),
+        TypeRefs::Primitive(primitive_ref) => write!(code, " encoder.Encode{}({value})", primitive_ref.type_suffix()),
         TypeRefs::Enum(enum_ref) => {
             let encoder_extensions_class =
                 enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let name = enum_ref.cs_identifier(Some(Case::Pascal));
-            write!(
-                code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})",
-            )
+            write!(code, "{encoder_extensions_class}.Encode{name}(ref encoder, {value})")
         }
         TypeRefs::Dictionary(dictionary_ref) => {
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {}",
-                encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding),
-            );
+                "{}",
+                encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding)
+            )
         }
         TypeRefs::Sequence(sequence_ref) => {
             // We generate the sequence encoder inline, so this function must not be called when
             // the top-level object is not cached.
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encode_sequence}",
-                encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding),
+                "{}",
+                encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding),
             )
         }
-        TypeRefs::Struct(_) => write!(
-            code,
-            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
-        ),
-        TypeRefs::Exception(_) => write!(
-            code,
-            "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
-        ),
+        TypeRefs::Struct(_) => write!(code, "{value}.Encode(ref encoder)"),
+        TypeRefs::Exception(_) => write!(code, "{value}.Encode(ref encoder)"),
         TypeRefs::CustomType(custom_type_ref) => {
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let identifier = custom_type_ref.cs_identifier(None);
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
+                "{encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
             )
         }
     }
 
     code
+}
+
+pub fn encode_stream_parameter(
+    type_ref: &TypeRef,
+    type_context: TypeContext,
+    namespace: &str,
+    encoding: Encoding,
+) -> CodeBlock {
+    let value_type = type_ref.cs_type_string(namespace, type_context, false);
+    if type_ref.is_optional {
+        CodeBlock::from(format!(
+            "\
+(ref SliceEncoder encoder, {value_type} value) =>
+{{
+    encoder.EncodeBool(value is not null);
+    if (value is not null)
+    {{
+        {encode_action_body};
+    }}
+}}",
+            encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, false).indent()
+        ))
+    } else {
+        encode_action(type_ref, type_context, namespace, encoding, false)
+    }
 }
 
 fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder_param: &str) -> CodeBlock {

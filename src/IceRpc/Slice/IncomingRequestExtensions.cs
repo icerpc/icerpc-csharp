@@ -83,9 +83,9 @@ public static class IncomingRequestExtensions
     /// <param name="request">The incoming request.</param>
     /// <param name="encoding">The encoding of the request's payload.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
-    /// <see cref="ISliceFeature" /> is null. Used only when <paramref name="encoding" /> is
-    /// <see cref="SliceEncoding.Slice1" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's <see
+    /// cref="ISliceFeature" /> is <see langword="null" />. Used only when <paramref name="encoding" /> is <see
+    /// cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The request arguments.</returns>
     public static ValueTask<T> DecodeArgsAsync<T>(
