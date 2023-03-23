@@ -28,7 +28,7 @@ public class TelemetryMiddleware : IDispatcher
     /// <inheritdoc/>
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Protocol.SupportsFields)
+        if (request.Protocol.HasFields)
         {
             string name = $"{request.Path}/{request.Operation}";
             using Activity activity = _activitySource.CreateActivity(name, ActivityKind.Server) ?? new Activity(name);

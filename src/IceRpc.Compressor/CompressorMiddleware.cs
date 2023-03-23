@@ -45,7 +45,7 @@ public class CompressorMiddleware : IDispatcher
         IncomingRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (request.Protocol.SupportsFields && request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
+        if (request.Protocol.HasFields && request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
         {
             CompressionFormat compressionFormat = request.Fields.DecodeValue(
                 RequestFieldKey.CompressionFormat,
@@ -78,7 +78,7 @@ public class CompressorMiddleware : IDispatcher
 
         // The CompressPayload feature is typically set through the Slice compress attribute.
 
-        if (request.Protocol.SupportsFields &&
+        if (request.Protocol.HasFields &&
             response.StatusCode == StatusCode.Success &&
             request.Features.Get<ICompressFeature>() is ICompressFeature compress &&
             compress.Value &&

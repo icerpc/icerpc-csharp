@@ -12,9 +12,9 @@ internal sealed class IceRpcProtocol : Protocol
         : base(
             name: "icerpc",
             defaultPort: 4062,
-            supportsFields: true,
-            supportsFragment: false,
-            supportsPayloadContinuation: true,
+            hasFields: true,
+            hasFragment: false,
+            hasPayloadContinuation: true,
             supportsPayloadWriterInterceptors: true,
             byteValue: 2)
     {

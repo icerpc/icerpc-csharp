@@ -45,7 +45,7 @@ public class CompressorInterceptor : IInvoker
     {
         // The CompressPayload feature is typically set through the Slice compress attribute.
 
-        if (request.Protocol.SupportsFields &&
+        if (request.Protocol.HasFields &&
             request.Features.Get<ICompressFeature>() is ICompressFeature compress &&
             compress.Value &&
             !request.Fields.ContainsKey(RequestFieldKey.CompressionFormat))
@@ -65,7 +65,7 @@ public class CompressorInterceptor : IInvoker
 
         IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-        if (request.Protocol.SupportsFields && response.StatusCode == StatusCode.Success)
+        if (request.Protocol.HasFields && response.StatusCode == StatusCode.Success)
         {
             CompressionFormat compressionFormat = response.Fields.DecodeValue(
                ResponseFieldKey.CompressionFormat,

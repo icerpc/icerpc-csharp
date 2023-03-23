@@ -27,7 +27,7 @@ public class TelemetryInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Protocol.SupportsFields)
+        if (request.Protocol.HasFields)
         {
             string name = $"{request.ServiceAddress.Path}/{request.Operation}";
             using Activity activity = _activitySource?.CreateActivity(name, ActivityKind.Client) ?? new Activity(name);

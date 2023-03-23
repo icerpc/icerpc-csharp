@@ -379,7 +379,7 @@ public class ServiceAddressTests
 
         if (protocol is not null)
         {
-            Assert.That(protocol.SupportsFragment, Is.False);
+            Assert.That(protocol.HasFragment, Is.False);
         }
     }
 
@@ -622,7 +622,7 @@ public class ServiceAddressTests
         serviceAddress = serviceAddress with { Fragment = "bar" };
 
         Assert.That(serviceAddress.Fragment, Is.EqualTo("bar"));
-        Assert.That(serviceAddress.Protocol!.SupportsFragment, Is.True);
+        Assert.That(serviceAddress.Protocol!.HasFragment, Is.True);
     }
 
     [Test]

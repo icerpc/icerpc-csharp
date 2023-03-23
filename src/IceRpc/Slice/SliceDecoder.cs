@@ -1069,7 +1069,7 @@ public ref partial struct SliceDecoder
 
         try
         {
-            if (!protocol.SupportsFragment && fragment.Length > 0)
+            if (!protocol.HasFragment && fragment.Length > 0)
             {
                 throw new InvalidDataException($"Unexpected fragment in {protocol} service address.");
             }
