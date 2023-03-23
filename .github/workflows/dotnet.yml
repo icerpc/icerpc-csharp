@@ -13,8 +13,8 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    - uses: .github/actions/workflows/build.yaml
+    - uses: ./.github/actions/build.yaml
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
         NUGET_API_TOKEN: ${{ secrets.NUGET_API_TOKEN }}
-    - uses: .github/actions/workflows/tests.yaml
+    - uses: ./.github/actions/tests.yaml
