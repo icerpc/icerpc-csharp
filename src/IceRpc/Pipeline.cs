@@ -4,7 +4,7 @@ namespace IceRpc;
 
 /// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use" />,
 /// and a final invoker installed by calling <see cref="Into"/>. Requests using this pipeline flow through the
-/// interceptors into the last invoker. The last invoker then sends the request over a connection..</summary>
+/// interceptors into the last invoker. The last invoker then sends the request over a connection.</summary>
 public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();

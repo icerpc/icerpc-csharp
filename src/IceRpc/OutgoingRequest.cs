@@ -18,8 +18,8 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
     public IDictionary<RequestFieldKey, OutgoingFieldValue> Fields { get; set; } =
         ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty;
 
-    /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
-    /// <value><see langword="true" /> for oneway requests, <see langword="false" /> otherwise. The default is
+    /// <summary>Gets a value indicating whether this request is one-way or two-way.</summary>
+    /// <value><see langword="true" /> for one-way requests, <see langword="false" /> otherwise. The default is
     /// <see langword="false" />.</value>
     public bool IsOneway { get; init; }
 

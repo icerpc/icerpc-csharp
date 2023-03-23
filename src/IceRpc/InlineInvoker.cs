@@ -7,7 +7,7 @@ public class InlineInvoker : IInvoker
 {
     private readonly Func<OutgoingRequest, CancellationToken, Task<IncomingResponse>> _function;
 
-    /// <summary>Constructs an InlineInvoker using a function.</summary>
+    /// <summary>Constructs an <see cref="InlineInvoker" /> using a function.</summary>
     /// <param name="function">The function that implements the invoker's InvokerAsync method.</param>
     public InlineInvoker(Func<OutgoingRequest, CancellationToken, Task<IncomingResponse>> function) =>
         _function = function;

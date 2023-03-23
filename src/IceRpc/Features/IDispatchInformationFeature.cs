@@ -12,8 +12,8 @@ public interface IDispatchInformationFeature
     /// <value>The fragment of the target service. It is always the empty string with the icerpc protocol.</value>
     string Fragment { get; }
 
-    /// <summary>Gets a value indicating whether this request is oneway or two-way.</summary>
-    /// <value><see langword="true" /> for oneway requests, <see langword="false" /> otherwise.</value>
+    /// <summary>Gets a value indicating whether this request is one-way or two-way.</summary>
+    /// <value><see langword="true" /> for one-way requests, <see langword="false" /> otherwise.</value>
     bool IsOneway { get; }
 
     /// <summary>Gets the name of the operation to call on the target service.</summary>

@@ -50,8 +50,8 @@ public sealed class Router : IDispatcher
     /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
     /// must start with a <c>/</c>.</param>
     /// <param name="dispatcher">The target of this route. It is typically a service.</param>
-    /// <exception cref="FormatException">Thrown if <paramref name="path" /> is not a valid path.</exception>
     /// <returns>This router.</returns>
+    /// <exception cref="FormatException">Thrown if <paramref name="path" /> is not a valid path.</exception>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
     /// <seealso cref="Mount" />
