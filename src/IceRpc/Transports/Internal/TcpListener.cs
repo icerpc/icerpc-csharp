@@ -50,9 +50,9 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     {
         if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
-            throw new ArgumentException(
-                "Listening on a server address with a DNS name is not allowed.",
-                nameof(serverAddress));
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                $"The Tcp transport can't listen on '{serverAddress.Host}' because it requires an IP address.");
         }
 
         _authenticationOptions = authenticationOptions?.Clone();

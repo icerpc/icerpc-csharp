@@ -26,9 +26,9 @@ public class CustomClientTransport : IMultiplexedClientTransport
         {
             if (transport != "tcp" && transport != "custom")
             {
-                throw new ArgumentException(
-                    $"cannot use custom transport with server address '{serverAddress}'",
-                    nameof(serverAddress));
+                throw new IceRpcException(
+                    IceRpcError.IceRpcError,
+                    $"Cannot use custom transport with server address '{serverAddress}'");
             }
         }
 
@@ -56,7 +56,8 @@ public class CustomServerTransport : IMultiplexedServerTransport
     {
         if (serverAddress.Transport is string transport && transport != "tcp" && transport != "custom")
         {
-            throw new ArgumentException($"cannot use custom transport with server address '{serverAddress}'", nameof(serverAddress));
+            throw new IceRpcException(
+                IceRpcError.IceRpcError, $"Cannot use custom transport with server address '{serverAddress}'");
         }
 
         serverAddress = serverAddress with

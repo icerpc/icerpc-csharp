@@ -45,6 +45,13 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         QuicServerTransportOptions quicTransportOptions,
         SslServerAuthenticationOptions authenticationOptions)
     {
+        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
+        {
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                $"The Quic transport can't listen on '{serverAddress.Host}' because it requires an IP address.");
+        }
+
         _options = options;
 
         authenticationOptions = authenticationOptions.Clone();
@@ -62,13 +69,6 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams
         };
-
-        if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
-        {
-            throw new ArgumentException(
-                "Listening on a server address with a DNS name is not allowed.",
-                nameof(serverAddress));
-        }
 
         try
         {

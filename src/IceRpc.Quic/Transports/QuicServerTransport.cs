@@ -31,16 +31,16 @@ public class QuicServerTransport : IMultiplexedServerTransport
     {
         if (serverAddress.Params.Count > 0)
         {
-            throw new ArgumentException(
-                $"The server address contains parameters that are not valid for the Quic server transport: '{serverAddress}'.",
-                nameof(serverAddress));
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Quic transport.");
         }
 
         if (serverAuthenticationOptions is null)
         {
-            throw new ArgumentException(
-                "The Quic transport requires that the TLS server authentication options are set to a non null value.",
-                nameof(serverAuthenticationOptions));
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                "The Quic transport requires the Ssl server authentication options to be set.");
         }
 
         if (serverAddress.Transport is null)

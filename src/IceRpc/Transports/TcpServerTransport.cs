@@ -31,9 +31,9 @@ public class TcpServerTransport : IDuplexServerTransport
     {
         if (serverAddress.Params.Count > 0)
         {
-            throw new ArgumentException(
-                $"The server address contains parameters that are not valid for the Tcp server transport: '{serverAddress}'.",
-                nameof(serverAddress));
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp transport.");
         }
 
         if (serverAddress.Transport is not string transport)
@@ -42,9 +42,9 @@ public class TcpServerTransport : IDuplexServerTransport
         }
         else if (transport == TransportNames.Ssl && serverAuthenticationOptions is null)
         {
-            throw new ArgumentNullException(
-                nameof(serverAuthenticationOptions),
-                $"The {nameof(serverAuthenticationOptions)} argument cannot be null when using the ssl transport.");
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                "The Ssl transport requires the Ssl server authentication options to be set.");
         }
 
         return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);
