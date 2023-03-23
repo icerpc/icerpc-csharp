@@ -2,45 +2,42 @@ name: Build Dist
 
 runs:
   using: "composite"
-
   steps:
-    steps:
-    - uses: actions/checkout@v3
-    - name: 📦 NuGet Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-    - name: 📦 Cargo Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          tools/slicec-cs/target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-    - name: 🔗 Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: "7.0.x"
-    - name: 🔗 Start SSH Agent
-      uses: webfactory/ssh-agent@v0.5.4
-      with:
-        ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
-    - name: 🔨 Build Slice Compiler
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --manifest-path tools/slicec-cs/Cargo.toml
-    - name: 🔗 Add github NuGet repository
-      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ env.NUGET_API_TOKEN }}
-    - name: 🔗 Restore dependencies
-      run: dotnet restore
-    - name: 🔨 Build
-      run: dotnet build --no-restore
+  - name: 📦 NuGet Cache
+    uses: actions/cache@v3
+    with:
+      path: ~/.nuget/packages
+      key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+      restore-keys: |
+        ${{ runner.os }}-nuget-
+  - name: 📦 Cargo Cache
+    uses: actions/cache@v3
+    with:
+      path: |
+        ~/.cargo/bin/
+        ~/.cargo/registry/index/
+        ~/.cargo/registry/cache/
+        ~/.cargo/git/db/
+        tools/slicec-cs/target/
+      key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      restore-keys: |
+        ${{ runner.os }}-cargo-
+  - name: 🔗 Setup .NET
+    uses: actions/setup-dotnet@v3
+    with:
+      dotnet-version: "7.0.x"
+  - name: 🔗 Start SSH Agent
+    uses: webfactory/ssh-agent@v0.5.4
+    with:
+      ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
+  - name: 🔨 Build Slice Compiler
+    uses: actions-rs/cargo@v1
+    with:
+      command: build
+      args: --manifest-path tools/slicec-cs/Cargo.toml
+  - name: 🔗 Add github NuGet repository
+    run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ env.NUGET_API_TOKEN }}
+  - name: 🔗 Restore dependencies
+    run: dotnet restore
+  - name: 🔨 Build
+    run: dotnet build --no-restore

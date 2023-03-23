@@ -13,6 +13,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
+    - uses: actions/checkout@v3
     - uses: ./.github/actions/build
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
