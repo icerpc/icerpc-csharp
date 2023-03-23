@@ -13,11 +13,16 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: ./.github/actions/build
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Build
+      uses: ./.github/actions/build
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
         NUGET_API_TOKEN: ${{ secrets.NUGET_API_TOKEN }}
-    - uses: ./.github/actions/build-examples
-    - uses: ./.github/actions/test
-    - uses: ./.github/actions/test-templates
+    - name: Build Examples
+      uses: ./.github/actions/build-examples
+    - name: Run Tests
+      uses: ./.github/actions/test
+    - name: Test Templates
+      uses: ./.github/actions/test-templates

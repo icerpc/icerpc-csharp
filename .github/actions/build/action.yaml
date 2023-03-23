@@ -1,5 +1,15 @@
 name: Build Dist
 
+inputs:
+  cargo-build-args:
+    description: 'Cargo Build Args'
+    required: false
+    default: ''
+  dotnet-build-args:
+    description: '.NET Build Args'
+    required: false
+    default: ''
+
 runs:
   using: "composite"
   steps:
@@ -34,7 +44,7 @@ runs:
     uses: actions-rs/cargo@v1
     with:
       command: build
-      args: --manifest-path tools/slicec-cs/Cargo.toml
+      args: --manifest-path tools/slicec-cs/Cargo.toml ${{ input.cargo-build-args }}
   - name: 🔗 Add github NuGet repository
     run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ env.NUGET_API_TOKEN }}
     shell: bash
@@ -42,5 +52,5 @@ runs:
     run: dotnet restore
     shell: bash
   - name: 🔨 Build
-    run: dotnet build --no-restore
+    run: dotnet build --no-restore ${{ input.dotnet-build-args }}
     shell: bash
