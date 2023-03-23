@@ -12,3 +12,9 @@ jobs:
     secrets:
       icerpc_deploy_key: ${{ secrets.ICERPC_DEPLOY_KEY }}
       nuget_api_token: ${{ secrets.NUGET_API_TOKEN }}
+  build_examples:
+    uses: ./.github/workflows/build_examples.yaml
+  tests:
+    uses: ./.github/workflows/tests.yaml
+  test_templates:
+    uses: ./.github/workflows/test_templates.yaml
