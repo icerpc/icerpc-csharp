@@ -3,7 +3,7 @@
 using MetricsExample;
 using IceRpc;
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
 var hello = new HelloProxy(connection);
 

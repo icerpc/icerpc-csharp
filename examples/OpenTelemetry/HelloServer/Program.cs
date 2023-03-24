@@ -24,7 +24,7 @@ using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddZipkinExporter()
    .Build();
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1:20001"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost:20001"));
 pipeline.Into(connection);
 
 var proxy = new CrmProxy(pipeline);

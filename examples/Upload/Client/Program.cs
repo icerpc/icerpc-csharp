@@ -4,7 +4,7 @@ using IceRpc;
 using System.IO.Pipelines;
 using UploadExample;
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 var uploader = new UploaderProxy(connection);
 
 Console.WriteLine("Uploading image of the Earth...");

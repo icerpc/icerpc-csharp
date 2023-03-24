@@ -4,7 +4,7 @@ using IceRpc;
 using StreamExample;
 
 // Establish the connection to the server
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 var randomGeneratorProxy = new GeneratorProxy(connection);
 
 IAsyncEnumerable<int> randomNumbers = await randomGeneratorProxy.GenerateNumbersAsync();
