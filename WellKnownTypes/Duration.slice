@@ -1,0 +1,9 @@
+// Copyright (c) ZeroC, Inc.
+
+[cs::namespace("IceRpc.Slice")]
+module WellKnownTypes
+
+/// Represents a length of time, encoded as a varint62.
+/// Precision: 100 nanoseconds.
+[cs::custom("System.TimeSpan")]
+custom Duration
