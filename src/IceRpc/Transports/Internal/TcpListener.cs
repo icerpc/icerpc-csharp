@@ -51,7 +51,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
             throw new ArgumentException(
-                "Listening on a server address with a DNS name is not allowed.",
+                $"Listening on the DNS name '{serverAddress.Host}' is not allowed; an IP address is required.",
                 nameof(serverAddress));
         }
 

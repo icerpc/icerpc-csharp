@@ -33,7 +33,7 @@ internal class ColocClientTransport : IDuplexClientTransport
             !CheckParams(serverAddress))
         {
             throw new ArgumentException(
-                $"The server address contains parameters that are not valid for the Coloc client transport: '{serverAddress}'.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc client transport.",
                 nameof(serverAddress));
         }
 

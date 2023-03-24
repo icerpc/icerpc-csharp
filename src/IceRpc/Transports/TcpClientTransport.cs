@@ -68,7 +68,7 @@ public class TcpClientTransport : IDuplexClientTransport
             !CheckParams(serverAddress))
         {
             throw new ArgumentException(
-                $"The server address contains parameters that are not valid for the Tcp client transport: '{serverAddress}'.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp client transport.",
                 nameof(serverAddress));
         }
 
