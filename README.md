@@ -199,4 +199,4 @@ For Windows
 build.cmd doc
 ```
 
-Upon completion the documentation is placed under `doc\_site` directory.
+Upon completion the documentation is placed in the `doc\_site` directory.
