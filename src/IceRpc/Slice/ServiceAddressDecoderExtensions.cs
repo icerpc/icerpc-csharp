@@ -34,9 +34,9 @@ public static class ServiceAddressSliceDecoderExtensions
                     return new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                throw new InvalidDataException("Received an invalid service address.", ex);
+                throw new InvalidDataException("Received an invalid service address.", exception);
             }
         }
     }

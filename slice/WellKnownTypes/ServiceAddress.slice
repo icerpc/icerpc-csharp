@@ -5,7 +5,7 @@ encoding = 1
 [cs::namespace("IceRpc.Slice")]
 module WellKnownTypes
 
-/// Represents an IceRPC service address. It can be encoded with both Slice1 and Slice2.
-// TODO: unescape ServiceAddress once it's no longer a keyword.
+/// Represents the address of a RPC service that can be called using ice or icerpc. This service address can be encoded
+/// with both Slice1 and Slice2.
 [cs::custom("IceRpc.ServiceAddress")]
 custom \ServiceAddress
