@@ -35,7 +35,7 @@ public class TcpServerTransport : IDuplexServerTransport
             serverAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp transport.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp server transport.",
                 nameof(serverAddress));
         }
 
@@ -47,7 +47,7 @@ public class TcpServerTransport : IDuplexServerTransport
         {
             throw new ArgumentNullException(
                 nameof(serverAuthenticationOptions),
-                "The Ssl transport requires the Ssl server authentication options to be set.");
+                "The Ssl server transport requires the Ssl server authentication options to be set.");
         }
 
         return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);

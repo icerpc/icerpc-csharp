@@ -29,7 +29,7 @@ internal class ColocServerTransport : IDuplexServerTransport
             !ColocTransport.CheckParams(serverAddress))
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc transport.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc server transport.",
                 nameof(serverAddress));
         }
 
