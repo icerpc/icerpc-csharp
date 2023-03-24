@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Security;
+using System.Security.Authentication;
 
 namespace IceRpc;
 
@@ -147,6 +148,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that provides the <see cref="TransportConnectionInformation" /> of the transport connection,
     /// once this connection is established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
+    /// <item><description><see cref="AuthenticationException" />if authentication failed.</description></item>
     /// <item><description><see cref="IceRpcException" />if the connection establishment failed.</description>
     /// </item>
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the

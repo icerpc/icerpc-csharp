@@ -77,7 +77,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
 
-            if (_connectTask is null || !_connectTask.IsCompleted)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
                 throw new InvalidOperationException("Cannot accept stream before connecting the Slic connection.");
             }
@@ -349,7 +349,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
 
-            if (_connectTask is null || !_connectTask.IsCompleted)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
                 throw new InvalidOperationException("Cannot close a Slic connection before connecting it.");
             }
@@ -398,7 +398,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
 
-            if (_connectTask is null || !_connectTask.IsCompleted)
+            if (_connectTask is null || !_connectTask.IsCompletedSuccessfully)
             {
                 throw new InvalidOperationException("Cannot create stream before connecting the Slic connection.");
             }
