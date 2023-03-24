@@ -66,10 +66,9 @@ public class DeadlineInterceptor : IInvoker
 
         if (deadline != DateTime.MaxValue)
         {
-            long deadlineValue = (long)(deadline - DateTime.UnixEpoch).TotalMilliseconds;
             request.Fields = request.Fields.With(
                 RequestFieldKey.Deadline,
-                (ref SliceEncoder encoder) => encoder.EncodeVarInt62(deadlineValue));
+                (ref SliceEncoder encoder) => encoder.EncodeTimeStamp(deadline));
         }
 
         return timeout is null ? _next.InvokeAsync(request, cancellationToken) : PerformInvokeAsync(timeout.Value);
