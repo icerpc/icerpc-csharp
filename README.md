@@ -8,6 +8,7 @@
 - [Testing](#testing)
 - [Building Example Programs](#building-example-programs)
 - [Project Templates](#project-templates)
+- [Generating API Documentation](#generating-api-documentation)
 
 ## Build Requirements
 
@@ -178,3 +179,24 @@ dotnet new <template-name>
 ```
 
 > :point_up: `dotnet new -h` for help.
+
+## Generating API Documentation
+
+Before generating the documentation ensure that the `docfx` command is present in your PATH, version 2.63 or greater is
+required.
+
+The reference documentation for IceRPC API can be build using the following command:
+
+For Linux and macOS
+
+```shell
+./build.sh doc
+```
+
+For Windows
+
+```shell
+build.cmd doc
+```
+
+Upon completion the documentation is placed under `doc\_site` directory.
