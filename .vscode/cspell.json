@@ -15,6 +15,7 @@
     "contentfiles",
     "Datagram",
     "decoratee",
+    "docfx",
     "ECONNRESET",
     "EPIPE",
     "Finalizers",
