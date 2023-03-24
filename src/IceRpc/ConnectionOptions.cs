@@ -56,7 +56,7 @@ public record class ConnectionOptions
     /// Defaults to <c>100</c> requests.</value>
     /// <remarks>With the icerpc protocol, you may also need to set <see cref="MaxIceRpcBidirectionalStreams" /> and
     /// <see cref="MaxIceRpcUnidirectionalStreams" />. A typical two-way dispatch holds onto one bidirectional stream
-    /// while a typical oneway dispatch quickly releases its unidirectional stream and then executes without consuming
+    /// while a typical one-way dispatch quickly releases its unidirectional stream and then executes without consuming
     /// any stream.</remarks>
     public int MaxDispatches
     {

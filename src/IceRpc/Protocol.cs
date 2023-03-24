@@ -9,11 +9,11 @@ namespace IceRpc;
 /// <summary>Protocol identifies a RPC protocol supported by IceRPC.</summary>
 public class Protocol
 {
-    /// <summary>Gets the <c>ice</c> protocol.</summary>
+    /// <summary>Gets the ice protocol.</summary>
     /// <value>The <see cref="Protocol" /> instance for the ice protocol.</value>
     public static Protocol Ice => IceProtocol.Instance;
 
-    /// <summary>Gets the <c>icerpc</c> protocol.</summary>
+    /// <summary>Gets the icerpc protocol.</summary>
     /// <value>The <see cref="Protocol" /> instance for the icerpc protocol.</value>
     public static Protocol IceRpc => IceRpcProtocol.Instance;
 
@@ -43,11 +43,12 @@ public class Protocol
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
     /// <value><see langword="true" /> if the protocol supports payload continuations; <see langword="false" />
     /// otherwise.</value>
-    internal bool SupportsPayloadContinuation { get; }
+    internal bool HasPayloadContinuation { get; }
 
-    /// <summary>Gets a value indicating whether or not this protocol supports payload writer interceptors.</summary>
-    /// <value><see langword="true" /> if the protocol supports payload writer interceptors; <see langword="false" />
-    /// otherwise.</value>
+    /// <summary>Gets a value indicating whether or not the implementation of the protocol connection supports payload
+    /// writer interceptors.</summary>
+    /// <value><see langword="true" /> if the implementation of the protocol connection supports payload writer
+    /// interceptors; <see langword="false" /> otherwise.</value>
     internal bool SupportsPayloadWriterInterceptors { get; }
 
     /// <summary>Parses a string into a protocol.</summary>
@@ -103,7 +104,7 @@ public class Protocol
         ushort defaultPort,
         bool hasFields,
         bool hasFragment,
-        bool supportsPayloadContinuation,
+        bool hasPayloadContinuation,
         bool supportsPayloadWriterInterceptors,
         byte byteValue)
     {
@@ -111,7 +112,7 @@ public class Protocol
         DefaultPort = defaultPort;
         HasFields = hasFields;
         HasFragment = hasFragment;
-        SupportsPayloadContinuation = supportsPayloadContinuation;
+        HasPayloadContinuation = hasPayloadContinuation;
         SupportsPayloadWriterInterceptors = supportsPayloadWriterInterceptors;
         ByteValue = byteValue;
     }

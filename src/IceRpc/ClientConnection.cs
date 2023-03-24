@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Security;
@@ -46,9 +47,12 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a client connection.</summary>
     /// <param name="options">The client connection options.</param>
-    /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="duplexClientTransport">The duplex client transport. <see langword="null" /> is equivalent to <see
+    /// cref="IDuplexClientTransport.Default" />.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
+    /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public ClientConnection(
         ClientConnectionOptions options,
         IDuplexClientTransport? duplexClientTransport = null,
@@ -83,13 +87,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
             logger);
     }
 
-    /// <summary>Constructs a client connection with the specified server address and client authentication options. All
-    /// other <see cref="ClientConnectionOptions" /> properties have their default values.</summary>
+    /// <summary>Constructs a client connection with the specified server address and client authentication options.
+    /// All other properties use the <see cref="ClientConnectionOptions" /> defaults.</summary>
     /// <param name="serverAddress">The connection's server address.</param>
-    /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="clientAuthenticationOptions">The SSL client authentication options. When not <see langword="null"
+    /// />, <see cref="ConnectAsync(CancellationToken)" /> will either establish a secure connection or fail.</param>
+    /// <param name="duplexClientTransport">The duplex client transport. <see langword="null" /> is equivalent to <see
+    /// cref="IDuplexClientTransport.Default" />.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
+    /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public ClientConnection(
         ServerAddress serverAddress,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,
@@ -109,12 +117,16 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     }
 
     /// <summary>Constructs a client connection with the specified server address URI and client authentication options.
-    /// All other <see cref="ClientConnectionOptions" /> properties have their default values.</summary>
+    /// All other properties use the <see cref="ClientConnectionOptions" /> defaults.</summary>
     /// <param name="serverAddressUri">The connection's server address URI.</param>
-    /// <param name="clientAuthenticationOptions">The client authentication options.</param>
-    /// <param name="duplexClientTransport">The duplex transport used to create ice connections.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc connections.</param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="clientAuthenticationOptions">The SSL client authentication options. When not <see langword="null"
+    /// />, <see cref="ConnectAsync(CancellationToken)" /> will either establish a secure connection or fail.</param>
+    /// <param name="duplexClientTransport">The duplex client transport. <see langword="null" /> is equivalent to <see
+    /// cref="IDuplexClientTransport.Default" />.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
+    /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public ClientConnection(
         Uri serverAddressUri,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,
@@ -198,7 +210,14 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Releases all resources allocated by the connection. The connection disposes all the underlying
+    /// connections it created.</summary>
+    /// <returns>A value task that completes when the disposal of all the underlying connections has
+    /// completed.</returns>
+    /// <remarks>The disposal of an underlying connection aborts invocations, cancels dispatches and disposes the
+    /// underlying transport connection without waiting for the peer. To wait for invocations and dispatches to
+    /// complete, call <see cref="ShutdownAsync" /> first. If the configured dispatcher does not complete promptly when
+    /// its cancellation token is canceled, the disposal can hang.</remarks>
     public ValueTask DisposeAsync()
     {
         lock (_mutex)
@@ -357,7 +376,6 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// cref="ClientConnectionOptions.ShutdownTimeout" />.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="IceRpcException">Thrown if the connection is closed but not disposed yet.</exception>
     /// <exception cref="InvalidOperationException">Thrown if this connection is already shut down or shutting down.
     /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this connection is disposed.</exception>

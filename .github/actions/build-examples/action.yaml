@@ -1,0 +1,8 @@
+name: Build Examples
+
+runs:
+  using: "composite"
+  steps:
+  - name: 🔨 Build Examples
+    run: ./build.sh --examples --srcdist
+    shell: bash

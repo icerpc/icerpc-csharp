@@ -334,7 +334,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // Wait for the writing of other frames to complete.
                     using SemaphoreLock _ = await AcquireWriteLockAsync(invocationCts.Token).ConfigureAwait(false);
 
-                    // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
+                    // Assign the request ID for two-way invocations and keep track of the invocation for receiving the
                     // response. The request ID is only assigned once the write semaphore is acquired. We don't want a
                     // canceled request to allocate a request ID that won't be used.
                     lock (_mutex)
@@ -347,7 +347,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                         if (!request.IsOneway)
                         {
-                            // wrap around back to 1 if we reach int.MaxValue. 0 means oneway.
+                            // wrap around back to 1 if we reach int.MaxValue. 0 means one-way.
                             _lastRequestId = _lastRequestId == int.MaxValue ? 1 : _lastRequestId + 1;
                             requestId = _lastRequestId;
 
@@ -393,7 +393,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 if (request.IsOneway)
                 {
-                    // We're done, there's no response for oneway requests.
+                    // We're done, there's no response for one-way requests.
                     return new IncomingResponse(request, _connectionContext!);
                 }
 
@@ -454,7 +454,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                 lock (_mutex)
                 {
-                    // Unregister the twoway invocation if registered.
+                    // Unregister the two-way invocation if registered.
                     if (requestId > 0 && !_refuseInvocations)
                     {
                         _twowayInvocations.Remove(requestId);
@@ -1203,12 +1203,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // Even though we're in the "read frames loop", it's ok to cancel CTS and a "synchronous" TCS
                         // below. We won't be reading anything else so it's ok to run continuations synchronously.
 
-                        // Abort twoway invocations that are waiting for a response (it will never come).
+                        // Abort two-way invocations that are waiting for a response (it will never come).
                         AbortTwowayInvocations(
                             IceRpcError.InvocationCanceled,
                             "The invocation was canceled by the shutdown of the peer.");
 
-                        // Cancel twoway dispatches since the peer is not interested in the responses. This does not
+                        // Cancel two-way dispatches since the peer is not interested in the responses. This does not
                         // cancel ongoing writes to _duplexConnection: we don't send incomplete/invalid data.
                         _twowayDispatchesCts.Cancel();
 
@@ -1285,8 +1285,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             throw;
         }
 
-        // Aborts all pending twoway invocations. Must be called outside the mutex lock after setting _refuseInvocations
-        // to true.
+        // Aborts all pending two-way invocations. Must be called outside the mutex lock after setting
+        // _refuseInvocations to true.
         void AbortTwowayInvocations(IceRpcError error, string message, Exception? exception = null)
         {
             Debug.Assert(_refuseInvocations);
@@ -1302,7 +1302,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // Takes appropriate action after a read failure.
         void ReadFailed(Exception exception)
         {
-            // We also prevent new oneway invocations even though they don't need to read the connection.
+            // We also prevent new one-way invocations even though they don't need to read the connection.
             RefuseNewInvocations("The connection was lost because a read operation failed.");
 
             // It's ok to cancel CTS and a "synchronous" TCS below. We won't be reading anything else so it's ok to run
@@ -1314,7 +1314,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 exception);
 
             // ReadFailed is called when the connection is dead or the peer sent us a non-supported frame (e.g. a
-            // batch request). We don't need to allow outstanding twoway dispatches to complete in these situations, so
+            // batch request). We don't need to allow outstanding two-way dispatches to complete in these situations, so
             // we cancel them to speed-up the shutdown.
             _twowayDispatchesCts.Cancel();
 
@@ -1457,8 +1457,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 if (_shutdownTask is not null)
                 {
                     // The connection is (being) disposed or the connection is shutting down and received a request.
-                    // We simply discard it. For a graceful shutdown, the twoway invocation in the peer will throw
-                    // IceRpcException(InvocationCanceled). We also discard oneway requests: if we accepted them, they
+                    // We simply discard it. For a graceful shutdown, the two-way invocation in the peer will throw
+                    // IceRpcException(InvocationCanceled). We also discard one-way requests: if we accepted them, they
                     // could delay our shutdown and make it time out.
                     if (releaseDispatchSemaphore)
                     {

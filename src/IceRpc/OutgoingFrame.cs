@@ -31,7 +31,7 @@ public abstract class OutgoingFrame
         get => _payloadContinuation;
         set
         {
-            _payloadContinuation = Protocol.SupportsPayloadContinuation || value is null ?
+            _payloadContinuation = Protocol.HasPayloadContinuation || value is null ?
                 value : throw new NotSupportedException(
                     $"The '{Protocol}' protocol does not support payload continuation.");
         }
@@ -42,6 +42,8 @@ public abstract class OutgoingFrame
     public Protocol Protocol { get; }
 
     private PipeReader? _payloadContinuation;
+
+    private Stack<Func<PipeWriter, PipeWriter>>? _payloadWriterInterceptorStack;
 
     /// <summary>Installs a payload writer interceptor in this outgoing frame. This interceptor is executed just
     /// before sending <see cref="Payload" />, and is typically used to compress both <see cref="Payload" /> and
@@ -64,12 +66,6 @@ public abstract class OutgoingFrame
         return this;
     }
 
-    private Stack<Func<PipeWriter, PipeWriter>>? _payloadWriterInterceptorStack;
-
-    /// <summary>Constructs an outgoing frame.</summary>
-    /// <param name="protocol">The protocol used to send the frame.</param>
-    protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
-
     /// <summary>Returns the payload writer to use when sending the payload.</summary>
     internal PipeWriter GetPayloadWriter(PipeWriter writer)
     {
@@ -82,4 +78,8 @@ public abstract class OutgoingFrame
         }
         return writer;
     }
+
+    /// <summary>Constructs an outgoing frame.</summary>
+    /// <param name="protocol">The protocol used to send the frame.</param>
+    private protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
 }

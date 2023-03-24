@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
@@ -48,10 +49,12 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     /// <summary>Constructs a connection cache.</summary>
     /// <param name="options">The connection cache options.</param>
-    /// <param name="duplexClientTransport">The duplex transport used to create ice protocol connections.</param>
-    /// <param name="multiplexedClientTransport">The multiplexed transport used to create icerpc protocol connections.
-    /// </param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="duplexClientTransport">The duplex client transport. <see langword="null" /> is equivalent to <see
+    /// cref="IDuplexClientTransport.Default" />.</param>
+    /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
+    /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance"
+    /// />.</param>
     public ConnectionCache(
         ConnectionCacheOptions options,
         IDuplexClientTransport? duplexClientTransport = null,
@@ -77,14 +80,15 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
     }
 
-    /// <summary>Releases all resources allocated by this cache. The cache disposes all the connections it created.
-    /// </summary>
+    /// <summary>Releases all resources allocated by the cache. The cache disposes all the connections it
+    /// created.</summary>
     /// <returns>A value task that completes when the disposal of all connections created by this cache has completed.
     /// This includes connections that were active when this method is called and connections whose disposal was
     /// initiated prior to this call.</returns>
-    /// <remarks>The disposal of a connection waits for the completion of all dispatch tasks created by this connection.
-    /// If the configured dispatcher does not complete promptly when its cancellation token is canceled, the disposal of
-    /// a connection and indirectly of the connection cache as a whole can hang.</remarks>
+    /// <remarks>The disposal of an underlying connection of the cache  aborts invocations, cancels dispatches and
+    /// disposes the underlying transport connection without waiting for the peer. To wait for invocations and
+    /// dispatches to complete, call <see cref="ShutdownAsync" /> first. If the configured dispatcher does not complete
+    /// promptly when its cancellation token is canceled, the disposal can hang.</remarks>
     public ValueTask DisposeAsync()
     {
         lock (_mutex)

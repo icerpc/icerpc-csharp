@@ -12,7 +12,7 @@ public sealed record class LocatorOptions
     public bool Background { get; set; }
 
     /// <summary>Gets or sets the maximum size of the cache.</summary>
-    /// <value>The maximum size of the cache. 0 means no cache. Defaults to <c>100</c>.</value>
+    /// <value>The maximum size of the cache. <c>0</c> means no cache. Defaults to <c>100</c>.</value>
     public int MaxCacheSize { get; set; } = 100;
 
     /// <summary>Gets or sets the refresh threshold. When the age of a cache entry is less than or equal to this

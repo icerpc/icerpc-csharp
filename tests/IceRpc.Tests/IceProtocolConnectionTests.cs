@@ -351,7 +351,7 @@ public sealed class IceProtocolConnectionTests
     {
         // Arrange
 
-        // Make sure the dispatcher does not return the response immediately when oneway is false.
+        // Make sure the dispatcher does not return the response immediately when one-way is false.
         using var dispatcher = new TestDispatcher(holdDispatchCount: oneway ? 0 : 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
@@ -383,12 +383,12 @@ public sealed class IceProtocolConnectionTests
         clientConnection.Operations.Hold = DuplexTransportOperations.None;
         if (oneway)
         {
-            // The oneway invocation should succeed since it has been sent successfully.
+            // The one-way invocation should succeed since it has been sent successfully.
             Assert.That(async () => await invokeTask, Throws.Nothing);
         }
         else
         {
-            // The twoway invocation wait for the response is canceled after the request has been written.
+            // The two-way invocation wait for the response is canceled after the request has been written.
             Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
         }
     }

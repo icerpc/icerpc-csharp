@@ -336,7 +336,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         async Task<IncomingResponse> PerformInvokeAsync()
         {
 #pragma warning disable CA2000
-            // We need to give invocationCts to the send task of oneway requests with a payload continuation.
+            // We need to give invocationCts to the send task of one-way requests with a payload continuation.
             var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
             bool ownInvocationCts = true;
 #pragma warning restore CA2000
@@ -466,7 +466,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     PipeReader payloadContinuation = request.PayloadContinuation!;
                     request.PayloadContinuation = null;
 
-                    // For oneway requests, the send task disposes the invocationCts upon completion.
+                    // For one-way requests, the send task disposes the invocationCts upon completion.
                     if (request.IsOneway)
                     {
                         ownInvocationCts = false;
@@ -587,7 +587,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
                 try
                 {
-                    // For a twoway request, the cancellation of cancellationToken cancels invocationCts only until
+                    // For a two-way request, the cancellation of cancellationToken cancels invocationCts only until
                     // PerformInvokeAsync completes (see tokenRegistration above). Afterwards, the cancellation of
                     // cancellationToken has no effect on invocationCts, so it doesn't cancel the copying of
                     // payloadContinuation.

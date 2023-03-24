@@ -150,7 +150,7 @@ public static class ProxyExtensions
     /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
-    /// <param name="oneway">When <see langword="true" />, the request is sent oneway and an empty response is returned
+    /// <param name="oneway">When <see langword="true" />, the request is sent one-way and an empty response is returned
     /// immediately after sending the request.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
