@@ -347,12 +347,10 @@ public abstract class MultiplexedConnectionConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.That(
-            () => clientTransport.CreateConnection(
-                serverAddress,
-                new MultiplexedConnectionOptions(),
-                provider.GetService<SslClientAuthenticationOptions>()),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+        Assert.Throws<ArgumentException>(() => clientTransport.CreateConnection(
+            serverAddress,
+            new MultiplexedConnectionOptions(),
+            provider.GetService<SslClientAuthenticationOptions>()));
     }
 
     [Test]
@@ -364,12 +362,10 @@ public abstract class MultiplexedConnectionConformanceTests
         var serverAddress = new ServerAddress(new Uri("icerpc://foo?unknown-parameter=foo"));
 
         // Act/Asserts
-        Assert.That(
-            () => serverTransport.Listen(
-                serverAddress,
-                new MultiplexedConnectionOptions(),
-                provider.GetService<SslServerAuthenticationOptions>()),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+        Assert.Throws<ArgumentException>(() => serverTransport.Listen(
+            serverAddress,
+            new MultiplexedConnectionOptions(),
+            provider.GetService<SslServerAuthenticationOptions>()));
     }
 
     [Test]

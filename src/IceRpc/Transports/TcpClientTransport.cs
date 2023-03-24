@@ -67,9 +67,9 @@ public class TcpClientTransport : IDuplexClientTransport
             transport != TransportNames.Ssl) ||
             !CheckParams(serverAddress))
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp transport.");
+            throw new ArgumentException(
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp transport.",
+                nameof(serverAddress));
         }
 
         if (serverAddress.Transport is null)

@@ -26,17 +26,15 @@ internal class ColocClientTransport : IDuplexClientTransport
     {
         if (clientAuthenticationOptions is not null)
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                "The Coloc client transport does not support SSL.");
+            throw new NotSupportedException("The Coloc client transport does not support SSL.");
         }
 
         if ((serverAddress.Transport is string transport && transport != ColocTransport.Name) ||
             !CheckParams(serverAddress))
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc transport.");
+            throw new ArgumentException(
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc transport.",
+                nameof(serverAddress));
         }
 
         serverAddress = serverAddress with { Transport = Name };

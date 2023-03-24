@@ -47,9 +47,9 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
     {
         if (!IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress))
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The Quic transport can't listen on '{serverAddress.Host}' because it requires an IP address.");
+            throw new ArgumentException(
+                $"The Quic transport can't listen on '{serverAddress.Host}' because it requires an IP address.",
+                nameof(serverAddress));
         }
 
         _options = options;

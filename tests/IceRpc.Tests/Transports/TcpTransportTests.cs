@@ -199,9 +199,7 @@ public class TcpTransportTests
         var address = new ServerAddress(Protocol.IceRpc) { Host = "foo" };
 
         // Act/Assert
-        Assert.That(
-            () => CreateTcpListener(address),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+        Assert.Throws<ArgumentException>(() => CreateTcpListener(address));
     }
 
     /// <summary>Verifies that the client connect call on a tls connection fails with

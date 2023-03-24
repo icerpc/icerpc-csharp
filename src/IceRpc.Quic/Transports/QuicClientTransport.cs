@@ -37,9 +37,9 @@ public class QuicClientTransport : IMultiplexedClientTransport
         if ((serverAddress.Transport is string transport && transport != Name) ||
             !CheckParams(serverAddress))
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Quic transport.");
+            throw new ArgumentException(
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Quic transport.",
+                nameof(serverAddress));
         }
 
         if (serverAddress.Transport is null)
