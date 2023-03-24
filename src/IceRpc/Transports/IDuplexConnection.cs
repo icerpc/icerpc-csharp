@@ -40,7 +40,8 @@ public interface IDuplexConnection : IDisposable
     /// <param name="buffer">A buffer that receives the data read from the connection.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that completes successfully with the number of bytes read into <paramref name="buffer" />.
-    /// This number is always greater than 0. This value task can also complete with one of the following exceptions:
+    /// This number is always greater than <c>0</c>. This value task can also complete with one of the following
+    /// exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" />if the transport reported an error.</description></item>
     /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
