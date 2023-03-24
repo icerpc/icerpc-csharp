@@ -185,7 +185,7 @@ dotnet new <template-name>
 Before generating the documentation ensure that the `docfx` command is present in your PATH, version 2.63 or greater is
 required.
 
-The reference documentation for IceRPC API can be build using the following command:
+The reference documentation for IceRPC API can be built using the following command:
 
 For Linux and macOS
 
