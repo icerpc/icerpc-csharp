@@ -17,7 +17,15 @@ public interface IListener : IAsyncDisposable
 public interface IListener<T> : IListener
 {
     /// <summary>Accepts a new connection.</summary>
-    /// <returns>The accepted connection and the network address of the client.</returns>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A task that completes successfully with the accepted connection and network address of the client. This
+    /// task can also complete with one of the following exceptions:
+    /// <list type="bullet">
+    /// <item><description><see cref="IceRpcException" />if the transport reported an error.</description></item>
+    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// cancellation token.</description></item>
+    /// </list>
+    /// </returns>
+    /// <exception cref="ObjectDisposedException">Thrown if the connection has been disposed.</exception>
     Task<(T Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(CancellationToken cancellationToken);
 }
