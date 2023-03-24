@@ -3,7 +3,7 @@
 using HelloCoreExample;
 using IceRpc;
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
 // Construct an outgoing request for the icerpc protocol.
 using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))

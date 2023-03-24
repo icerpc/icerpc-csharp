@@ -5,7 +5,7 @@ using IceRpc.Features;
 using IceRpc.RequestContext;
 using RequestContextExample;
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
 // Add the request context interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline().UseRequestContext().Into(connection);

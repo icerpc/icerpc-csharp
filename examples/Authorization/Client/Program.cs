@@ -3,7 +3,7 @@
 using AuthorizationExample;
 using IceRpc;
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
 // A `Hello` proxy that doesn't use any authentication. An authentication token is not needed to call `SayHello`.
 var unauthenticatedHelloProxy = new HelloProxy(connection, new Uri("icerpc:/hello"));

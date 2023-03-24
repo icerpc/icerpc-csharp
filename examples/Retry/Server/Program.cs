@@ -16,7 +16,7 @@ if (!int.TryParse(args[0], out number))
     return;
 }
 
-var serverAddress = new ServerAddress(new Uri($"icerpc://127.0.0.1:{10000 + number}/"));
+var serverAddress = new ServerAddress(new Uri($"icerpc://[::0]:{10000 + number}/"));
 
 await using var server = new Server(new Chatbot(number), serverAddress);
 server.Listen();

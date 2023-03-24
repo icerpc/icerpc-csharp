@@ -21,7 +21,7 @@ using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddZipkinExporter()
    .Build();
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
 pipeline.Into(connection);
 
