@@ -29,18 +29,21 @@ public class TcpServerTransport : IDuplexServerTransport
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (serverAddress.Params.Count > 0)
+        if ((serverAddress.Transport is string transport &&
+            transport != TransportNames.Tcp &&
+            transport != TransportNames.Ssl) ||
+            serverAddress.Params.Count > 0)
         {
             throw new ArgumentException(
                 $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp transport.",
                 nameof(serverAddress));
         }
 
-        if (serverAddress.Transport is not string transport)
+        if (serverAddress.Transport is null)
         {
             serverAddress = serverAddress with { Transport = Name };
         }
-        else if (transport == TransportNames.Ssl && serverAuthenticationOptions is null)
+        else if (serverAddress.Transport == TransportNames.Ssl && serverAuthenticationOptions is null)
         {
             throw new ArgumentNullException(
                 nameof(serverAuthenticationOptions),

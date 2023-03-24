@@ -34,8 +34,12 @@ public class QuicClientTransport : IMultiplexedClientTransport
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if ((serverAddress.Transport is string transport && transport != Name) ||
-            !CheckParams(serverAddress))
+        if (!QuicConnection.IsSupported)
+        {
+            throw new NotSupportedException("The Quic transport is not supported on this platform.");
+        }
+
+        if ((serverAddress.Transport is string transport && transport != Name) || !CheckParams(serverAddress))
         {
             throw new ArgumentException(
                 $"The server address '{serverAddress}' contains parameters that are not valid for the Quic transport.",

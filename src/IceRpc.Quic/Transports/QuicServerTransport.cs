@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports.Internal;
+using System.Net.Quic;
 using System.Net.Security;
 
 namespace IceRpc.Transports;
@@ -29,7 +30,12 @@ public class QuicServerTransport : IMultiplexedServerTransport
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (serverAddress.Params.Count > 0)
+        if (!QuicConnection.IsSupported)
+        {
+            throw new NotSupportedException("The Quic transport is not supported on this platform.");
+        }
+
+        if ((serverAddress.Transport is string transport && transport != Name) || serverAddress.Params.Count > 0)
         {
             throw new ArgumentException(
                 $"The server address '{serverAddress}' contains parameters that are not valid for the Quic transport.",
