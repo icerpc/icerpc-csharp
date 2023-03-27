@@ -2,7 +2,7 @@
 
 use crate::cs_attributes::{self, match_cs_custom, CsAttributeKind};
 use slice::compilation_result::{CompilationData, CompilationResult};
-use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind, Warning, WarningKind};
+use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error, Warning};
 use slice::grammar::*;
 use slice::slice_file::Span;
 use slice::visitor::Visitor;
@@ -40,7 +40,7 @@ fn cs_attributes<'a>(attributes: &[&'a Attribute]) -> Vec<(&'a CsAttributeKind, 
 }
 
 fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    Error::new(ErrorKind::UnexpectedAttribute {
+    Diagnostic::new(Error::UnexpectedAttribute {
         attribute: attribute.directive().to_owned(),
     })
     .set_span(span)
@@ -49,7 +49,7 @@ fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnos
 
 fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     if operation.non_streamed_return_members().is_empty() {
-        Error::new(ErrorKind::UnexpectedAttribute {
+        Diagnostic::new(Error::UnexpectedAttribute {
             attribute: cs_attributes::ENCODED_RESULT.to_owned(),
         })
         .set_span(span)
@@ -122,7 +122,7 @@ impl Visitor for CsValidator<'_> {
                 CsAttributeKind::Namespace { .. } => {}
                 CsAttributeKind::Identifier { .. } => {
                     let attribute = cs_attributes::IDENTIFIER.to_owned();
-                    Error::new(ErrorKind::UnexpectedAttribute { attribute })
+                    Diagnostic::new(Error::UnexpectedAttribute { attribute })
                         .set_span(span)
                         .add_note(
                             format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
@@ -203,7 +203,7 @@ impl Visitor for CsValidator<'_> {
 
         // We require 'cs::custom' on custom types to know how to encode/decode it.
         if !custom_type.has_attribute(false, match_cs_custom) {
-            Error::new(ErrorKind::MissingRequiredAttribute {
+            Diagnostic::new(Error::MissingRequiredAttribute {
                 attribute: cs_attributes::CUSTOM.to_owned(),
             })
             .set_span(custom_type.span())
@@ -222,7 +222,7 @@ impl Visitor for CsValidator<'_> {
         validate_repeated_attributes(type_alias, self.diagnostic_reporter);
         for (attribute, ..) in &cs_attributes(&type_alias.attributes(false)) {
             match attribute {
-                CsAttributeKind::Identifier { .. } => Warning::new(WarningKind::InconsequentialUseOfAttribute {
+                CsAttributeKind::Identifier { .. } => Diagnostic::new(Warning::InconsequentialUseOfAttribute {
                     attribute: cs_attributes::IDENTIFIER.to_owned(),
                     kind: "typealias".to_owned(),
                 })

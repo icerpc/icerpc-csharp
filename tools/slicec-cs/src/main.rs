@@ -20,7 +20,7 @@ use cs_options::CsOptions;
 use generated_code::GeneratedCode;
 use slice::clap::Parser;
 use slice::compilation_result::CompilationResult;
-use slice::diagnostics::{Error, ErrorKind};
+use slice::diagnostics::{Diagnostic, Error};
 use slice::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
@@ -115,7 +115,7 @@ fn try_main() -> CompilationResult {
                 match write_file(&path, &code_string) {
                     Ok(_) => (),
                     Err(error) => {
-                        Error::new(ErrorKind::IO {
+                        Diagnostic::new(Error::IO {
                             action: "write",
                             path: path.display().to_string(),
                             error,

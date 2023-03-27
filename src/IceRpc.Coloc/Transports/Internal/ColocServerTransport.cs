@@ -25,10 +25,11 @@ internal class ColocServerTransport : IDuplexServerTransport
             throw new NotSupportedException("The Coloc server transport does not support SSL.");
         }
 
-        if (!ColocTransport.CheckParams(serverAddress))
+        if ((serverAddress.Transport is string transport && transport != Name) ||
+            !ColocTransport.CheckParams(serverAddress))
         {
             throw new ArgumentException(
-                $"The server address contains parameters that are not valid for the Coloc server transport: '{serverAddress}'.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc server transport.",
                 nameof(serverAddress));
         }
 

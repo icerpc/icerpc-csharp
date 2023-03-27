@@ -4,13 +4,13 @@ using IceRpc;
 using StreamExample;
 
 // Establish the connection to the server
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
-var randomGeneratorProxy = new GeneratorProxy(connection);
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+var generatorProxy = new GeneratorProxy(connection);
 
-IAsyncEnumerable<int> randomNumbers = await randomGeneratorProxy.GenerateNumbersAsync();
+IAsyncEnumerable<int> numbers = await generatorProxy.GenerateNumbersAsync();
 
 uint count = 0;
-await foreach (int number in randomNumbers)
+await foreach (int number in numbers)
 {
     if (count == 10)
     {
@@ -18,7 +18,7 @@ await foreach (int number in randomNumbers)
     }
     else
     {
-        Console.WriteLine($"Random number #{count}: {number}");
+        Console.WriteLine($"Number #{count}: {number}");
     }
     ++count;
 }

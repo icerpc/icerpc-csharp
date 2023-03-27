@@ -3,7 +3,7 @@
 using CompressExample;
 using IceRpc;
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
 // Add the compressor interceptor to the invocation pipeline.
 IInvoker pipeline = new Pipeline().UseCompressor(CompressionFormat.Brotli).Into(connection);

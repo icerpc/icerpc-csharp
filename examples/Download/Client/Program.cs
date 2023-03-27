@@ -4,7 +4,7 @@ using DownloadExample;
 using IceRpc;
 using System.IO.Pipelines;
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 var downloader = new DownloaderProxy(connection);
 
 // Receive the stream from the server.

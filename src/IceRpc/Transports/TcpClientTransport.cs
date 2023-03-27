@@ -68,7 +68,7 @@ public class TcpClientTransport : IDuplexClientTransport
             !CheckParams(serverAddress))
         {
             throw new ArgumentException(
-                $"The server address contains parameters that are not valid for the Tcp client transport: '{serverAddress}'.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp client transport.",
                 nameof(serverAddress));
         }
 
@@ -111,46 +111,43 @@ public class TcpClientTransport : IDuplexClientTransport
             _options);
     }
 
-    /// <summary>Decodes the body of a tcp or ssl ice server address encoded using Slice1.</summary>
+    /// <summary>Decodes the body of a tcp or ssl server address encoded using Slice1.</summary>
     internal static ServerAddress DecodeServerAddress(ref SliceDecoder decoder, string transport)
     {
         Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
 
-        string host = decoder.DecodeString();
-        if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
-        {
-            throw new InvalidDataException($"Received service address with invalid host '{host}'.");
-        }
+        var body = new TcpServerAddressBody(ref decoder);
 
-        ushort port = checked((ushort)decoder.DecodeInt32());
-        int timeout = decoder.DecodeInt32();
-        bool compress = decoder.DecodeBool();
+        if (Uri.CheckHostName(body.Host) == UriHostNameType.Unknown)
+        {
+            throw new InvalidDataException($"Received service address with invalid host '{body.Host}'.");
+        }
 
         ImmutableDictionary<string, string> parameters = ImmutableDictionary<string, string>.Empty;
-        if (timeout != DefaultTcpTimeout)
+        if (body.Timeout != DefaultTcpTimeout)
         {
-            parameters = parameters.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
+            parameters = parameters.Add("t", body.Timeout.ToString(CultureInfo.InvariantCulture));
         }
-        if (compress)
+        if (body.Compress)
         {
             parameters = parameters.Add("z", "");
         }
 
-        return new ServerAddress(Protocol.Ice, host, port, transport, parameters);
+        return new ServerAddress(Protocol.Ice, body.Host, checked((ushort)body.Port), transport, parameters);
     }
 
-    /// <summary>Encodes the body of a tcp or ssl ice server address using Slice1.</summary>
+    /// <summary>Encodes the body of a tcp or ssl server address using Slice1.</summary>
     internal static void EncodeServerAddress(ref SliceEncoder encoder, ServerAddress serverAddress)
     {
         Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
         Debug.Assert(serverAddress.Protocol == Protocol.Ice);
 
-        encoder.EncodeString(serverAddress.Host);
-        encoder.EncodeInt32(serverAddress.Port);
-        int timeout = serverAddress.Params.TryGetValue("t", out string? timeoutValue) ?
-            timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture) :
-            DefaultTcpTimeout;
-        encoder.EncodeInt32(timeout);
-        encoder.EncodeBool(serverAddress.Params.ContainsKey("z"));
+        new TcpServerAddressBody(
+            serverAddress.Host,
+            serverAddress.Port,
+            timeout: serverAddress.Params.TryGetValue("t", out string? timeoutValue) ?
+                (timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture)) :
+                DefaultTcpTimeout,
+            compress: serverAddress.Params.ContainsKey("z")).Encode(ref encoder);
     }
 }

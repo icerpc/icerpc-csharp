@@ -302,6 +302,8 @@ public sealed class Server : IAsyncDisposable
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or shutting
     /// down.</exception>
     /// <exception cref="ObjectDisposedException">Throw when the server is disposed.</exception>
+    /// <remarks><see cref="Listen" /> can also throw exceptions from the transport; for example, the transport can
+    /// reject the server address.</remarks>
     public ServerAddress Listen()
     {
         lock (_mutex)
