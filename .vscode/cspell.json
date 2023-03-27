@@ -35,6 +35,7 @@
     "reportgenerator",
     "retryable",
     "rustfmt",
+    "singulinkfx",
     "signtool",
     "Slic",
     "slicec",
