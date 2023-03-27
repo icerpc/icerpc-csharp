@@ -528,10 +528,10 @@ public ref partial struct SliceEncoder
         {
             // Opaque server address encoding
 
-            (TransportCode transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
+            (short transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
                 serverAddress.ParseOpaqueParams();
 
-            this.EncodeTransportCode(transportCode);
+            EncodeInt16(transportCode);
             EncodeInt32(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
             EncodeUInt8(encodingMajor);
             EncodeUInt8(encodingMinor);
@@ -548,7 +548,7 @@ public ref partial struct SliceEncoder
                 } :
                 TransportCode.Uri;
 
-            this.EncodeTransportCode(transportCode);
+            EncodeInt16((short)transportCode);
 
             int startPos = EncodedByteCount; // size includes size-length
             Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
