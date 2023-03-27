@@ -1,56 +1,100 @@
 {
-  "metadata": [
+  "metadata":[
     {
-      "src": [
+      "src":[
         {
-          "src": "../",
-          "files": [
-              "src/IceRpc/bin/**/IceRpc.dll",
-              "src/IceRpc.Coloc/bin/**/IceRpc.Coloc.dll",
-              "src/IceRpc.Deadline/bin/**/IceRpc.Deadline.dll",
-              "src/IceRpc.Deflate/bin/**/IceRpc.Deflate.dll",
-              "src/IceRpc.Extensions.DependencyInjection/bin/**/IceRpc.Extensions.DependencyInjection.dll",
-              "src/IceRpc.Interop/bin/**/IceRpc.Interop.dll",
-              "src/IceRpc.Locator/bin/**/IceRpc.Locator.dll",
-              "src/IceRpc.Logger/bin/**/IceRpc.Logger.dll",
-              "src/IceRpc.Metrics/bin/**/IceRpc.Metrics.dll",
-              "src/IceRpc.RequestContext/bin/**/IceRpc.RequestContext.dll",
-              "src/IceRpc.Retry/bin/**/IceRpc.Retry.dll",
-              "src/IceRpc.Telemetry/bin/**/IceRpc.Telemetry.dll",
+          "src":"../",
+          "files":[
+            "src/IceRpc/bin/**/IceRpc.dll",
+            "src/IceRpc.Coloc/bin/**/IceRpc.Coloc.dll",
+            "src/IceRpc.Deadline/bin/**/IceRpc.Deadline.dll",
+            "src/IceRpc.Deflate/bin/**/IceRpc.Deflate.dll",
+            "src/IceRpc.Extensions.DependencyInjection/bin/**/IceRpc.Extensions.DependencyInjection.dll",
+            "src/IceRpc.Interop/bin/**/IceRpc.Interop.dll",
+            "src/IceRpc.Locator/bin/**/IceRpc.Locator.dll",
+            "src/IceRpc.Logger/bin/**/IceRpc.Logger.dll",
+            "src/IceRpc.Metrics/bin/**/IceRpc.Metrics.dll",
+            "src/IceRpc.RequestContext/bin/**/IceRpc.RequestContext.dll",
+            "src/IceRpc.Retry/bin/**/IceRpc.Retry.dll",
+            "src/IceRpc.Telemetry/bin/**/IceRpc.Telemetry.dll"
           ],
-          "exclude": [
-              "**/obj/**",
-              "**/ref/**",
+          "exclude":[
+            "**/obj/**",
+            "**/ref/**"
           ]
         }
       ],
-      "dest": "obj/api"
+      "dest":"obj/api"
     }
   ],
-  "build": {
-    "content": [
+  "build":{
+    "content":[
       {
-        "files": [ "**/*.yml" ],
-        "src": "obj/api",
-        "dest": "api"
+        "files":[
+          "**/*.yml"
+        ],
+        "src":"obj/api",
+        "dest":"api"
       },
       {
-        "files": [ "articles/**/*.md", "*.md", "toc.yml" ]
+        "files":[
+          "articles/**/*.md",
+          "*.md",
+          "toc.yml"
+        ]
       }
     ],
-    "resource": [
+    "resource":[
       {
-        "files": [ "articles/images/**"]
+        "files":[
+          "articles/images/**"
+        ]
       }
     ],
-    "overwrite": "specs/*.md",
-    "globalMetadata": {
-      "_appTitle": "IceRPC C# documentation",
-      "_enableSearch": true
-    },
-    "markdownEngineName": "markdig",
-      "dest": "_site",
-      "template": ["default"],
-    "xrefService": [ "https://xref.docs.microsoft.com/query?uid={uid}" ]
+    "overwrite":[
+      {
+        "files":[
+          "api-overwrite/**.md"
+        ],
+        "exclude":[
+          "obj/**",
+          "_site/**"
+        ]
+      }
+    ],
+    "dest":"_site",
+    "markdownEngineName":"markdig",
+    "xrefService":[
+      "https://xref.docs.microsoft.com/query?uid={uid}"
+    ],
+    "globalMetadataFiles":[
+
+    ],
+    "fileMetadataFiles":[
+
+    ],
+    "template":[
+      "default",
+      "templates/singulinkfx"
+    ],
+    "postProcessors":[
+
+    ],
+    "noLangKeyword":false,
+    "keepFileLink":false,
+    "disableGitFeatures":false,
+    "globalMetadata":{
+      "_appTitle":"IceRPC",
+      "_appName":"IceRPC",
+      "_appFaviconPath":"favicon.png",
+      "_appLogoPath":"logo.svg",
+      "_appFooter":"<strong>IceRPC</strong>",
+      "_copyrightFooter":"Copyright © ZeroC, Inc.",
+      "_enableSearch":true,
+      "_disableSideFilter":false,
+      "_enableNewTab":true,
+      "_disableContribution":false,
+      "_disableBreadcrumb":false
+    }
   }
 }
