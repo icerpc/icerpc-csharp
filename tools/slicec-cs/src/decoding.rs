@@ -60,8 +60,14 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 writeln!(code, "decoder.DecodeNullableProxy<{type_string}>();");
                 return code;
             }
-            Types::Primitive(Primitive::ServiceAddress) if encoding == Encoding::Slice1 => {
-                writeln!(code, "decoder.DecodeNullableServiceAddress();");
+            Types::CustomType(custom_type_ref) => {
+                write!(
+                    code,
+                    "{decoder_extensions_class}.DecodeNullable{name}(ref decoder)",
+                    decoder_extensions_class =
+                        custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
+                    name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
+                );
                 return code;
             }
             _ if data_type.is_class_type() => {
@@ -348,8 +354,10 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
 }
 
 fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+    let is_optional = type_ref.is_optional;
+
     // For value types the type declaration includes ? at the end, but the type name does not.
-    let type_name = if type_ref.is_optional && type_ref.is_value_type() {
+    let type_name = if is_optional && type_ref.is_value_type() {
         type_ref.cs_type_string(namespace, TypeContext::Decode, true)
     } else {
         type_ref.cs_type_string(namespace, TypeContext::Decode, false)
@@ -357,7 +365,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
 
     let mut code: CodeBlock = match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            if encoding == Encoding::Slice1 && type_ref.is_optional {
+            if encoding == Encoding::Slice1 && is_optional {
                 format!("decoder.DecodeNullableProxy<{type_name}>()")
             } else {
                 format!("decoder.DecodeProxy<{type_name}>()")
@@ -366,7 +374,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             assert!(encoding == Encoding::Slice1);
-            if type_ref.is_optional {
+            if is_optional {
                 format!(
                     "decoder.DecodeNullableClass<{}>()",
                     type_ref.cs_type_string(namespace, TypeContext::Decode, true),
@@ -375,17 +383,8 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                 format!("decoder.DecodeClass<{type_name}>()")
             }
         }
-        TypeRefs::Primitive(primitive_ref) => {
-            // Primitive::AnyClass is handled above by is_class_type branch
-            if matches!(primitive_ref.definition(), Primitive::ServiceAddress)
-                && encoding == Encoding::Slice1
-                && type_ref.is_optional
-            {
-                "decoder.DecodeNullableServiceAddress()".to_owned()
-            } else {
-                format!("decoder.Decode{}()", primitive_ref.type_suffix())
-            }
-        }
+        // Primitive::AnyClass is handled above by is_class_type branch
+        TypeRefs::Primitive(primitive_ref) => format!("decoder.Decode{}()", primitive_ref.type_suffix()),
         TypeRefs::Sequence(sequence_ref) => decode_sequence(sequence_ref, namespace, encoding).to_string(),
         TypeRefs::Dictionary(dictionary_ref) => decode_dictionary(dictionary_ref, namespace, encoding).to_string(),
         TypeRefs::Enum(enum_ref) => {
@@ -401,9 +400,10 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
         }
         TypeRefs::CustomType(custom_type_ref) => {
             format!(
-                "{decoder_extensions_class}.Decode{name}(ref decoder)",
+                "{decoder_extensions_class}.Decode{nullable}{name}(ref decoder)",
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
+                nullable = if is_optional { "Nullable" } else { "" },
                 name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
             )
         }
@@ -411,7 +411,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
     }
     .into();
 
-    if type_ref.is_optional && type_ref.is_value_type() {
+    if is_optional && type_ref.is_value_type() {
         write!(code, " as {type_name}?");
     }
 

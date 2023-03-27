@@ -28,7 +28,7 @@ interface LocatorRegistry {
     /// @throws AdapterAlreadyActiveException: Thrown if an object adapter with the same adapter ID has already
     /// registered its server addresses.
     // Note: idempotent is not correct but kept for backwards compatibility with old implementations.
-    idempotent setAdapterDirectProxy(id: string, proxy: ServiceAddress?) throws AnyException
+    idempotent setAdapterDirectProxy(id: string, proxy: WellKnownTypes::ServiceAddress?) throws AnyException
 
     /// Registers or unregisters the server addresses of an object adapter. This object adapter is a member of a replica
     /// group.
@@ -44,8 +44,11 @@ interface LocatorRegistry {
     /// @throws InvalidReplicaGroupIdException: Thrown if the given replica group does not match the replica group
     /// associated with the adapter ID in the locator's database.
     // Note: idempotent is not correct but kept for backwards compatibility with old implementations.
-    idempotent setReplicatedAdapterDirectProxy(adapterId: string, replicaGroupId: string, proxy: ServiceAddress?)
-        throws AnyException
+    idempotent setReplicatedAdapterDirectProxy(
+        adapterId: string
+        replicaGroupId: string
+        proxy: WellKnownTypes::ServiceAddress?
+    ) throws AnyException
 
     /// Registers a proxy for the {@link Process} service of a server application.
     /// @param serverId: The server ID.
