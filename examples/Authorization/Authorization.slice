@@ -2,15 +2,18 @@
 
 module AuthorizationExample
 
-/// The authorization token
+/// The encrypted authentication token.
 typealias Token = sequence<uint8>
 
+exception AuthenticationException { }
+
 /// Represents a service to create a session token.
-interface SessionManager {
-    /// Creates a new session token.
+interface Authenticator {
+    /// Authenticates a user.
     /// @param name: The user name.
-    /// @returns: The token.
-    createSession(name: string) -> Token
+    /// @param password: The password.
+    /// @returns: The encrypted authentication token.
+    authenticate(name: string, password: string) -> Token throws AuthenticationException
 }
 
 /// Represents a simple greeter.

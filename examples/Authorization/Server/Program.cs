@@ -2,23 +2,28 @@
 
 using AuthorizationExample;
 using IceRpc;
+using System.Security.Cryptography;
+
+// Use AES symmetric encryption to crypt the token.
+using var aes = Aes.Create();
+aes.Padding = PaddingMode.Zeros;
 
 var chatbot = new Chatbot();
-var tokenStore = new TokenStore();
 
 var router = new Router();
 
-// Loads the session token from the request and adds the session feature to the request's feature collection
-router.UseLoadSession(tokenStore);
+// Install a middleware to get and decrypt the authentication token from a request and to add the authentication feature
+// to the request's feature collection.
+router.UseAuthentication(aes);
 
 router.Route("/helloAdmin", adminRouter =>
 {
-    // Requires the session feature to be present in the request's feature collection.
-    adminRouter.UseHasSession();
+    // Install an authorization middleware to check if the caller is authorized to call the hello admin service.
+    adminRouter.UseAuthorization(authenticationFeature => authenticationFeature.IsAdmin);
     adminRouter.Map("/", new ChatbotAdmin(chatbot));
 });
 
-router.Map("/sessionManager", tokenStore);
+router.Map("/authenticator", new Authenticator(aes));
 router.Map("/hello", chatbot);
 
 await using var server = new Server(router);

@@ -4,14 +4,14 @@ using AuthorizationExample;
 
 namespace IceRpc;
 
-/// <summary>This class provides an extension method to add a <see cref="SessionInterceptor" />
+/// <summary>This class provides an extension method to add an <see cref="AuthenticationTokenInterceptor" />
 /// to a <see cref="Pipeline" />.</summary>
 internal static class PipelineExtensions
 {
-    /// <summary>Adds a <see cref="SessionInterceptor" /> to the pipeline.</summary>
+    /// <summary>Adds an <see cref="AuthenticationTokenInterceptor" /> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="token">The session token.</param>
+    /// <param name="token">The authentication token.</param>
     /// <returns>The pipeline being configured.</returns>
-    internal static Pipeline UseSession(this Pipeline pipeline, Guid token) =>
-        pipeline.Use(next => new SessionInterceptor(next, token));
+    internal static Pipeline UseAuthenticationToken(this Pipeline pipeline, byte[] token) =>
+        pipeline.Use(next => new AuthenticationTokenInterceptor(next, token));
 }

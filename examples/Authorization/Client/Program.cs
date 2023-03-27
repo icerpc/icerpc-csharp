@@ -5,35 +5,45 @@ using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-// A `Hello` proxy that doesn't use any authentication. An authentication token is not needed to call `SayHello`.
+// A hello proxy that doesn't use any authentication will print a generic greeting.
 var unauthenticatedHelloProxy = new HelloProxy(connection, new Uri("icerpc:/hello"));
-
-// Unauthenticated hello; prints generic greeting.
 Console.WriteLine(await unauthenticatedHelloProxy.SayHelloAsync());
 
-// A `SessionManager` proxy that doesn't use any authentication. Used to create new session tokens.
-var sessionManagerProxy = new SessionManagerProxy(connection, new Uri("icerpc:/sessionManager"));
+// Authenticate the "friend" user to get its authentication token.
+var authenticatorProxy = new AuthenticatorProxy(connection, new Uri("icerpc:/authenticator"));
+byte[] friendToken = await authenticatorProxy.AuthenticateAsync("friend", "password");
 
-// Get an authentication token. The token is used to authenticate future requests.
-var token = new Guid(await sessionManagerProxy.CreateSessionAsync("friend"));
+// Setup a pipe line that inserts the "friend" token into a request field.
+Pipeline friendPipeline = new Pipeline().UseAuthenticationToken(friendToken).Into(connection);
 
-// Add an interceptor to the invocation pipeline that inserts the token into a request field.
-Pipeline authenticatedPipeline = new Pipeline().UseSession(token).Into(connection);
+// A hello proxy that uses  "friend" pipeline will print a custom greeting for "friend".
+var friendHelloProxy = new HelloProxy(friendPipeline, new Uri("icerpc:/hello"));
+Console.WriteLine(await friendHelloProxy.SayHelloAsync());
 
-// A `Hello` proxy that uses the authentication pipeline. When an authentication token is used, `SayHello`
-// will return a personalized greeting.
-var helloProxy = new HelloProxy(authenticatedPipeline, new Uri("icerpc:/hello"));
+// A hello admin proxy that uses the "friend" pipeline is not authorized to change the greeting message.
+var helloAdminProxy = new HelloAdminProxy(friendPipeline, new Uri("icerpc:/helloAdmin"));
+try
+{
+    await helloAdminProxy.ChangeGreetingAsync("Bonjour");
+}
+catch (DispatchException exception) when (exception.StatusCode == StatusCode.Unauthorized)
+{
+    Console.WriteLine("The friend user is not authorized to change the greeting.");
+}
 
-// A `HelloAdmin` proxy that uses the authentication pipeline. An authentication token is needed to change the greeting.
-var helloAdminProxy = new HelloAdminProxy(authenticatedPipeline, new Uri("icerpc:/helloAdmin"));
+// Authenticate the "admin" user to get its authentication token and setup a pipeline with the "admin" token.
+byte[] adminToken = await authenticatorProxy.AuthenticateAsync("admin", "password");
+helloAdminProxy = new HelloAdminProxy(
+    new Pipeline().UseAuthenticationToken(adminToken).Into(connection),
+    new Uri("icerpc:/helloAdmin"));
 
-// Authenticated hello.
-Console.WriteLine(await helloProxy.SayHelloAsync());
-
-// Change the greeting using the authentication token.
+// Change the greeting message.
 await helloAdminProxy.ChangeGreetingAsync("Bonjour");
 
 // Authenticated hello with updated greeting.
-Console.WriteLine(await helloProxy.SayHelloAsync());
+Console.WriteLine(await friendHelloProxy.SayHelloAsync());
+
+// Change back the greeting to Hello.
+await helloAdminProxy.ChangeGreetingAsync("Hello");
 
 await connection.ShutdownAsync();

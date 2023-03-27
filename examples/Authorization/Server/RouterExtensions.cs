@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using AuthorizationExample;
+using System.Security.Cryptography;
 
 namespace IceRpc;
 
@@ -10,13 +11,13 @@ internal static class RouterExtensions
     /// <summary>Adds a <see cref="HasSessionMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>
     /// <returns>The router being configured.</returns>
-    internal static Router UseHasSession(this Router router) =>
-        router.Use(next => new HasSessionMiddleware(next));
+    internal static Router UseAuthorization(this Router router, Func<IAuthenticationFeature, bool> authorizeFunc) =>
+        router.Use(next => new AuthorizationMiddleware(next, authorizeFunc));
 
     /// <summary>Adds a <see cref="LoadSessionMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>
     /// <param name="tokenStore">The session token store.</param>
     /// <returns>The router being configured.</returns>
-    internal static Router UseLoadSession(this Router router, TokenStore tokenStore) =>
-        router.Use(next => new LoadSessionMiddleware(next, tokenStore));
+    internal static Router UseAuthentication(this Router router, SymmetricAlgorithm cryptAlgorithm) =>
+        router.Use(next => new AuthenticationMiddleware(next, cryptAlgorithm));
 }

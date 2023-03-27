@@ -12,7 +12,7 @@ internal class Chatbot : Service, IHelloService
 
     public ValueTask<string> SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
-        string who = features.Get<ISessionFeature>()?.Name ?? "stranger";
+        string who = features.Get<IAuthenticationFeature>()?.Name ?? "stranger";
         Console.WriteLine($"Dispatching sayHello request {{ name = '{who}' }}");
         return new($"{Greeting}, {who}!");
     }
