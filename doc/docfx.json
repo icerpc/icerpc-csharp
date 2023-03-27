@@ -24,30 +24,35 @@
           ]
         }
       ],
-      "dest":"obj/api"
+      "dest":"obj/api",
+      "includePrivateMembers":false,
+      "disableGitFeatures":false,
+      "disableDefaultFilter":false,
+      "noRestore":false,
+      "namespaceLayout":"flattened"
     }
   ],
   "build":{
     "content":[
       {
         "files":[
-          "**/*.yml"
-        ],
-        "src":"obj/api",
-        "dest":"api"
+          "api/**.yml",
+          "api/index.md"
+        ]
       },
       {
         "files":[
-          "articles/**/*.md",
-          "*.md",
-          "toc.yml"
+          "articles/**.md",
+          "articles/**/toc.yml",
+          "toc.yml",
+          "*.md"
         ]
       }
     ],
     "resource":[
       {
         "files":[
-          "articles/images/**"
+          "images/**"
         ]
       }
     ],
@@ -63,7 +68,6 @@
       }
     ],
     "dest":"_site",
-    "markdownEngineName":"markdig",
     "xrefService":[
       "https://xref.docs.microsoft.com/query?uid={uid}"
     ],
