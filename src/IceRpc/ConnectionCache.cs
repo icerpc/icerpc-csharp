@@ -605,8 +605,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         }
     }
 
-    // A helper struct that implements an enumerator that allows iterating the addresses of an IServerAddressFeature
-    // without allocations.
+    /// <summary>A helper struct that implements an enumerator that allows iterating the addresses of an
+    /// <see cref="IServerAddressFeature" /> without allocations.</summary>
     private struct ServerAddressEnumerator
     {
         internal ServerAddress Current
