@@ -22,7 +22,7 @@ public static class ServiceAddressSliceEncoderExtensions
 
         if (encoder.Encoding == SliceEncoding.Slice1)
         {
-            encoder.EncodeIdentityPath(value.Path);
+            encoder.EncodeIceIdentityPath(value.Path);
 
             if (value.Protocol is not Protocol protocol)
             {
