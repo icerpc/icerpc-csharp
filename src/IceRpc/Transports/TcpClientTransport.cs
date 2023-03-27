@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -112,12 +111,12 @@ public class TcpClientTransport : IDuplexClientTransport
             _options);
     }
 
-    /// <summary>Decodes the body of a tcp or ssl ice server address encoded using Slice1.</summary>
+    /// <summary>Decodes the body of a tcp or ssl server address encoded using Slice1.</summary>
     internal static ServerAddress DecodeServerAddress(ref SliceDecoder decoder, string transport)
     {
         Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
 
-        var body = new TcpEndpointBody(ref decoder);
+        var body = new TcpServerAddressBody(ref decoder);
 
         if (Uri.CheckHostName(body.Host) == UriHostNameType.Unknown)
         {
@@ -137,13 +136,13 @@ public class TcpClientTransport : IDuplexClientTransport
         return new ServerAddress(Protocol.Ice, body.Host, checked((ushort)body.Port), transport, parameters);
     }
 
-    /// <summary>Encodes the body of a tcp or ssl ice server address using Slice1.</summary>
+    /// <summary>Encodes the body of a tcp or ssl server address using Slice1.</summary>
     internal static void EncodeServerAddress(ref SliceEncoder encoder, ServerAddress serverAddress)
     {
         Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
         Debug.Assert(serverAddress.Protocol == Protocol.Ice);
 
-        new TcpEndpointBody(
+        new TcpServerAddressBody(
             serverAddress.Host,
             serverAddress.Port,
             timeout: serverAddress.Params.TryGetValue("t", out string? timeoutValue) ?
