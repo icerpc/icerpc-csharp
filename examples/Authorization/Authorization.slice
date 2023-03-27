@@ -5,6 +5,7 @@ module AuthorizationExample
 /// The authorization token
 typealias Token = sequence<uint8>
 
+/// Represents a service to create a session token.
 interface SessionManager {
     /// Creates a new session token.
     /// @param name: The user name.
@@ -12,15 +13,16 @@ interface SessionManager {
     createSession(name: string) -> Token
 }
 
-interface HelloAdmin {
-    /// Changes the greeting returned by the Hello service.
-    /// @param greeting: The new greeting.
-    changeGreeting(greeting: string)
-}
-
 /// Represents a simple greeter.
 interface Hello {
     /// Creates a personalized "hello" greeting.
     /// @returns: The greeting.
     sayHello() -> string
+}
+
+/// Represents a service to configure a simpler greeter.
+interface HelloAdmin {
+    /// Changes the greeting returned by the Hello service.
+    /// @param greeting: The new greeting.
+    changeGreeting(greeting: string)
 }

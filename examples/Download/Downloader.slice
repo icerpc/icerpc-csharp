@@ -2,6 +2,9 @@
 
 module DownloadExample
 
+/// Represents a downloader.
 interface Downloader {
+    /// Downloads an image.
+    /// @returns: The image as a byte stream.
     downloadImage() -> stream uint8
 }

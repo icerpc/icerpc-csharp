@@ -2,6 +2,10 @@
 
 module OpenTelemetryExample
 
+/// Represents a simple customer relationship management service.
 interface CRM {
+    /// Tries to add a customer.
+    /// @param name: The name of the customer.
+    /// @returns: true if the customer was added, false otherwise.
     tryAddCustomer(name: string) -> bool
 }

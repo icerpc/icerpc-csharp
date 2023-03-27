@@ -2,6 +2,9 @@
 
 module StreamExample
 
+/// Represents a generator.
 interface Generator {
+    /// Generates numbers.
+    /// @returns: The generated number stream.
     generateNumbers() -> stream int32
 }

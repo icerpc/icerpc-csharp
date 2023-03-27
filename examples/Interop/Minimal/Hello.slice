@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
-// Use the Slice 1 encoding for compatibility with ZeroC Ice
+// Use the Slice 1 encoding for compatibility with ZeroC Ice.
 encoding = 1
 
 module Demo
 
+/// Represents a simple greeter.
 interface Hello {
+    /// Requests the server to say hello.
     sayHello()
 }

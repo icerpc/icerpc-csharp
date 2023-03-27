@@ -3,7 +3,6 @@
 using IceRpc;
 using StreamExample;
 
-using var cts = new CancellationTokenSource();
 await using var server = new Server(new RandomGenerator());
 server.Listen();
 
