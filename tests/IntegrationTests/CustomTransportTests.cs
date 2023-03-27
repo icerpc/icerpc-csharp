@@ -15,8 +15,6 @@ public class CustomClientTransport : IMultiplexedClientTransport
     private readonly IMultiplexedClientTransport _transport =
         new SlicClientTransport(new TcpClientTransport());
 
-    public bool CheckParams(ServerAddress serverAddress) => true;
-
     public IMultiplexedConnection CreateConnection(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
