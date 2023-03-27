@@ -53,18 +53,13 @@ pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) 
             continue;
         }
 
-        let suppress = match data_type.concrete_type() {
-            Types::Class(_) | Types::Sequence(_) | Types::Dictionary(_) => true,
-            Types::Primitive(primitive)
-                if matches!(
-                    primitive,
-                    Primitive::String | Primitive::AnyClass | Primitive::ServiceAddress,
-                ) =>
-            {
-                true
-            }
-            _ => false,
-        };
+        let suppress = matches!(
+            data_type.concrete_type(),
+            Types::Primitive(Primitive::String | Primitive::AnyClass)
+                | Types::Class(_)
+                | Types::Sequence(_)
+                | Types::Dictionary(_)
+        );
 
         if suppress {
             // This is to suppress compiler warnings for non-nullable fields.
