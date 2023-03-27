@@ -5,7 +5,7 @@ use crate::cs_attributes::CsAttributeKind;
 
 use slice::ast::node::Node;
 use slice::compilation_result::{CompilationData, CompilationResult};
-use slice::diagnostics::{DiagnosticReporter, Error, ErrorKind};
+use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
 use slice::grammar::{Attribute, AttributeKind};
 use slice::slice_file::Span;
 
@@ -117,7 +117,7 @@ impl AttributePatcher<'_> {
                 .single_argument(attribute)
                 .map(|argument| CsAttributeKind::Custom { name: argument }),
             _ => {
-                Error::new(ErrorKind::UnexpectedAttribute {
+                Diagnostic::new(Error::UnexpectedAttribute {
                     attribute: attribute.directive.to_owned(),
                 })
                 .set_span(attribute.span)
@@ -154,7 +154,7 @@ impl AttributePatcher<'_> {
     }
 
     fn error_missing(&mut self, required_argument: String, span: &Span) {
-        Error::new(ErrorKind::MissingRequiredArgument {
+        Diagnostic::new(Error::MissingRequiredArgument {
             argument: required_argument,
         })
         .set_span(span)
@@ -162,7 +162,7 @@ impl AttributePatcher<'_> {
     }
 
     fn error_too_many(&mut self, expected: String, span: &Span) {
-        Error::new(ErrorKind::TooManyArguments { expected })
+        Diagnostic::new(Error::TooManyArguments { expected })
             .set_span(span)
             .report(self.reporter);
     }

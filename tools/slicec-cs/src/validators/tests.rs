@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-use slice::diagnostics::{Diagnostic, Warning, WarningKind};
-
 use super::super::*;
+use slice::diagnostics::{Diagnostic, Error, Warning};
 
 fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
     let data = match slice::compile_from_strings(&[slice], None)
@@ -33,10 +32,10 @@ fn identifier_attribute_no_args() {
 
     // Assert
     let argument = cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#;
-    let expected = [Error::new(ErrorKind::MissingRequiredArgument { argument })];
+    let expected = [Diagnostic::new(Error::MissingRequiredArgument { argument })];
 
     std::iter::zip(expected, diagnostics)
-        .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
+        .for_each(|(expected, actual)| assert_eq!(expected.message(), actual.message()));
 }
 
 #[test]
@@ -53,11 +52,11 @@ fn identifier_attribute_multiple_args() {
     let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
-    let expected = [Error::new(ErrorKind::TooManyArguments {
+    let expected = [Diagnostic::new(Error::TooManyArguments {
         expected: cs_attributes::IDENTIFIER.to_owned() + r#"("<argument>")"#,
     })];
     std::iter::zip(expected, diagnostics)
-        .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
+        .for_each(|(expected, actual)| assert_eq!(expected.message(), actual.message()));
 }
 
 #[test]
@@ -90,9 +89,9 @@ fn identifier_attribute_invalid_on_modules() {
 
     // Assert
     let attribute = cs_attributes::IDENTIFIER.to_owned();
-    let expected = [Error::new(ErrorKind::UnexpectedAttribute { attribute })];
+    let expected = [Diagnostic::new(Error::UnexpectedAttribute { attribute })];
     std::iter::zip(expected, diagnostics)
-        .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
+        .for_each(|(expected, actual)| assert_eq!(expected.message(), actual.message()));
 }
 
 #[test]
@@ -110,7 +109,7 @@ fn identifier_attribute_on_parameter() {
     let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
-    assert_eq!(diagnostics.len(), 0);
+    assert!(diagnostics.is_empty());
 }
 
 #[test]
@@ -127,10 +126,10 @@ fn identifier_attribute_on_type_alias_fails() {
     let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
-    let expected = [Warning::new(WarningKind::InconsequentialUseOfAttribute {
+    let expected = [Diagnostic::new(Warning::InconsequentialUseOfAttribute {
         attribute: cs_attributes::IDENTIFIER.to_owned(),
         kind: "typealias".to_owned(),
     })];
     std::iter::zip(expected, diagnostics)
-        .for_each(|(expected, actual)| assert_eq!(expected.to_string(), actual.message()));
+        .for_each(|(expected, actual)| assert_eq!(expected.message(), actual.message()));
 }
