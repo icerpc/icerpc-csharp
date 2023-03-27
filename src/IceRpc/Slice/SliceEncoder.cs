@@ -275,85 +275,6 @@ public ref partial struct SliceEncoder
         Advance(1 << encodedSizeExponent);
     }
 
-    // Encode methods for constructed types
-
-    /// <summary>Encodes a nullable service address (Slice1 only).</summary>
-    /// <param name="serviceAddress">The service address to encode, or <see langword="null" />.</param>
-    public void EncodeNullableServiceAddress(ServiceAddress? serviceAddress)
-    {
-        if (Encoding != SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException(
-                "Encoding a nullable service address without a bit sequence is only supported with Slice1.");
-        }
-
-        if (serviceAddress is not null)
-        {
-            EncodeServiceAddress(serviceAddress);
-        }
-        else
-        {
-            Identity.Empty.Encode(ref this);
-        }
-    }
-
-    /// <summary>Encodes a non-null service address.</summary>
-    /// <param name="serviceAddress">The service address to encode.</param>
-    public void EncodeServiceAddress(ServiceAddress serviceAddress)
-    {
-        // With Slice1, a proxy is encoded as a kind of discriminated union with:
-        // - Identity
-        // - If Identity is not the null identity:
-        //     - The fragment, invocation mode, protocol major and minor, and the
-        //       encoding major and minor
-        //     - a sequence of server addresses that can be empty
-        //     - an adapter ID string present only when the sequence of server addresses is empty
-
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            this.EncodeIdentityPath(serviceAddress.Path);
-
-            if (serviceAddress.Protocol is not Protocol protocol)
-            {
-                throw new NotSupportedException("Cannot encode a relative service address with Slice1.");
-            }
-
-            this.EncodeFragment(serviceAddress.Fragment);
-            this.EncodeInvocationMode(InvocationMode.Twoway);
-            EncodeBool(false);               // Secure
-            EncodeUInt8(protocol.ByteValue); // Protocol Major
-            EncodeUInt8(0);                  // Protocol Minor
-            EncodeUInt8(1);                  // Encoding Major
-            EncodeUInt8(1);                  // Encoding Minor
-
-            if (serviceAddress.ServerAddress is ServerAddress serverAddress)
-            {
-                EncodeSize(1 + serviceAddress.AltServerAddresses.Count); // server address count
-                EncodeServerAddress(serverAddress);
-                foreach (ServerAddress altServer in serviceAddress.AltServerAddresses)
-                {
-                    EncodeServerAddress(altServer);
-                }
-            }
-            else
-            {
-                EncodeSize(0); // 0 server addresses
-                int maxCount = serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
-
-                if (serviceAddress.Params.Count > maxCount)
-                {
-                    throw new NotSupportedException(
-                        "Cannot encode a service address with a parameter other than adapter-id using Slice1.");
-                }
-                EncodeString(adapterId ?? "");
-            }
-        }
-        else
-        {
-            EncodeString(serviceAddress.ToString()); // a URI or an absolute path
-        }
-    }
-
     // Other methods
 
     /// <summary>Encodes a non-null Slice2 encoded tagged value. The number of bytes needed to encode the value is
@@ -591,6 +512,66 @@ public ref partial struct SliceEncoder
         Advance(elementSize);
     }
 
+    /// <summary>Encodes a server address in a nested encapsulation (Slice1 only).</summary>
+    /// <param name="serverAddress">The server address to encode.</param>
+    internal void EncodeServerAddress(ServerAddress serverAddress)
+    {
+        Debug.Assert(Encoding == SliceEncoding.Slice1);
+
+        // If the server address does not specify a transport, we default to TCP.
+        string transport = serverAddress.Transport ?? TransportNames.Tcp;
+
+        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here. The preferred and
+        // fallback encoding for new transports is TransportCode.Uri.
+
+        if (serverAddress.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
+        {
+            // Opaque server address encoding
+
+            (TransportCode transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
+                serverAddress.ParseOpaqueParams();
+
+            this.EncodeTransportCode(transportCode);
+            EncodeInt32(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
+            EncodeUInt8(encodingMajor);
+            EncodeUInt8(encodingMinor);
+            WriteByteSpan(bytes.Span);
+        }
+        else
+        {
+            TransportCode transportCode = serverAddress.Protocol == Protocol.Ice ?
+                transport switch
+                {
+                    TransportNames.Ssl => TransportCode.Ssl,
+                    TransportNames.Tcp => TransportCode.Tcp,
+                    _ => TransportCode.Uri
+                } :
+                TransportCode.Uri;
+
+            this.EncodeTransportCode(transportCode);
+
+            int startPos = EncodedByteCount; // size includes size-length
+            Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
+            EncodeUInt8(1); // encoding version major
+            EncodeUInt8(1); // encoding version minor
+
+            switch (transportCode)
+            {
+                case TransportCode.Tcp:
+                case TransportCode.Ssl:
+                    Transports.TcpClientTransport.EncodeServerAddress(ref this, serverAddress);
+                    break;
+
+                default:
+                    Debug.Assert(transportCode == TransportCode.Uri);
+                    EncodeString(serverAddress.ToString());
+                    break;
+            }
+
+            EncodeInt32(EncodedByteCount - startPos, sizePlaceholder);
+        }
+    }
+
     /// <summary>Gets a placeholder to be filled-in later.</summary>
     /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
     /// <returns>A buffer of length <paramref name="size" />.</returns>
@@ -648,66 +629,6 @@ public ref partial struct SliceEncoder
     {
         _bufferWriter.Advance(count);
         EncodedByteCount += count;
-    }
-
-    /// <summary>Encodes a server address in a nested encapsulation (Slice1 only).</summary>
-    /// <param name="serverAddress">The server address to encode.</param>
-    private void EncodeServerAddress(ServerAddress serverAddress)
-    {
-        Debug.Assert(Encoding == SliceEncoding.Slice1);
-
-        // If the server address does not specify a transport, we default to TCP.
-        string transport = serverAddress.Transport ?? TransportNames.Tcp;
-
-        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here. The preferred and
-        // fallback encoding for new transports is TransportCode.Uri.
-
-        if (serverAddress.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
-        {
-            // Opaque server address encoding
-
-            (TransportCode transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
-                serverAddress.ParseOpaqueParams();
-
-            this.EncodeTransportCode(transportCode);
-            EncodeInt32(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
-            EncodeUInt8(encodingMajor);
-            EncodeUInt8(encodingMinor);
-            WriteByteSpan(bytes.Span);
-        }
-        else
-        {
-            TransportCode transportCode = serverAddress.Protocol == Protocol.Ice ?
-                transport switch
-                {
-                    TransportNames.Ssl => TransportCode.Ssl,
-                    TransportNames.Tcp => TransportCode.Tcp,
-                    _ => TransportCode.Uri
-                } :
-                TransportCode.Uri;
-
-            this.EncodeTransportCode(transportCode);
-
-            int startPos = EncodedByteCount; // size includes size-length
-            Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
-            EncodeUInt8(1); // encoding version major
-            EncodeUInt8(1); // encoding version minor
-
-            switch (transportCode)
-            {
-                case TransportCode.Tcp:
-                case TransportCode.Ssl:
-                    Transports.TcpClientTransport.EncodeServerAddress(ref this, serverAddress);
-                    break;
-
-                default:
-                    Debug.Assert(transportCode == TransportCode.Uri);
-                    EncodeString(serverAddress.ToString());
-                    break;
-            }
-
-            EncodeInt32(EncodedByteCount - startPos, sizePlaceholder);
-        }
     }
 
     /// <summary>Encodes the header for a tagged parameter or data member. Slice1 only.</summary>
