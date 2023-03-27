@@ -24,7 +24,7 @@
           ]
         }
       ],
-      "dest":"obj/api",
+      "dest":"api",
       "includePrivateMembers":false,
       "disableGitFeatures":false,
       "disableDefaultFilter":false,
