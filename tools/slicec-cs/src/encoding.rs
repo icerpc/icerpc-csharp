@@ -64,7 +64,7 @@ fn encode_type(
         TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
             format!("{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);")
         }
-        TypeRefs::CustomType(custom_type_ref) => {
+        TypeRefs::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
             let identifier = custom_type_ref.cs_identifier(None);
             let nullable = if type_ref.is_optional { "Nullable" } else { "" };
             let encoder_extensions_class =
@@ -92,6 +92,12 @@ fn encode_type(
                 }
                 TypeRefs::Struct(_) => format!("{value}.Encode(ref {encoder_param});"),
                 TypeRefs::Exception(_) => format!("{param}.Encode(ref {encoder_param});"),
+                TypeRefs::CustomType(custom_type_ref) => {
+                    let encoder_extensions_class =
+                        custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
+                    let identifier = custom_type_ref.cs_identifier(None);
+                    format!("{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});")
+                }
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
                     encode_sequence(sequence_ref, namespace, param, type_context, encoder_param, encoding),
@@ -109,7 +115,7 @@ fn encode_type(
                     let name = enum_ref.cs_identifier(Some(Case::Pascal));
                     format!("{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});")
                 }
-                _ => panic!("classes, proxies, and custom types are handled in the outer match"),
+                _ => panic!("class and proxy types are handled in the outer match"),
             };
 
             if type_ref.is_optional {
@@ -402,13 +408,12 @@ fn encode_action_body(
         TypeRefs::Struct(_) => write!(code, "{value}.Encode(ref encoder)"),
         TypeRefs::Exception(_) => write!(code, "{value}.Encode(ref encoder)"),
         TypeRefs::CustomType(custom_type_ref) => {
-            let identifier = custom_type_ref.cs_identifier(None);
-            let nullable = if is_optional { "Nullable" } else { "" };
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
+            let identifier = custom_type_ref.cs_identifier(None);
             write!(
                 code,
-                "{encoder_extensions_class}.Encode{nullable}{identifier}(ref encoder, value)",
+                "{encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
             )
         }
     }

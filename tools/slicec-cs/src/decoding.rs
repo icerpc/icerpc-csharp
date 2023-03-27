@@ -60,7 +60,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 writeln!(code, "decoder.DecodeNullableProxy<{type_string}>();");
                 return code;
             }
-            Types::CustomType(custom_type_ref) => {
+            Types::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
                 write!(
                     code,
                     "{decoder_extensions_class}.DecodeNullable{name}(ref decoder);",
@@ -401,8 +401,12 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                 "{decoder_extensions_class}.Decode{nullable}{name}(ref decoder)",
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                nullable = if type_ref.is_optional { "Nullable" } else { "" },
                 name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
+                nullable = if encoding == Encoding::Slice1 && type_ref.is_optional {
+                    "Nullable"
+                } else {
+                    ""
+                },
             )
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
