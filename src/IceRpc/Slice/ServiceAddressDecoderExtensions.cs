@@ -65,7 +65,7 @@ public static class ServiceAddressSliceDecoderExtensions
         // - Identity
         // - If Identity is not the null identity:
         //     - the fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
-        //     - a sequence of server addresses that can be empty
+        //     - a sequence of server addresses (can be empty)
         //     - an adapter ID string present only when the sequence of server addresses is empty
 
         string fragment = decoder.DecodeFragment();
