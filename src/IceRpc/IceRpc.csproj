@@ -28,7 +28,7 @@
         <PackagePath></PackagePath>
         <Pack>true</Pack>
       </Content>
-      <Content Include="..\..\tools\slicec-cs\target\$(RustConfiguration)\$(SliceCrExe)">
+      <Content Include="..\..\tools\slicec-cs\target\$(RustConfiguration)\$(SliceCompilerExe)">
           <PackagePath>tools</PackagePath>
           <Pack>true</Pack>
       </Content>
