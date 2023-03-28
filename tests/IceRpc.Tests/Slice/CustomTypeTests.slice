@@ -8,3 +8,8 @@ custom CustomType
 compact struct StructWithCustomTypeMember {
     m: CustomType
 }
+
+// Ensures that the generated code doesn't produce a warning for uninitialized non-nullable custom types.
+exception ExceptionWithCustomField {
+    m: CustomType
+}
