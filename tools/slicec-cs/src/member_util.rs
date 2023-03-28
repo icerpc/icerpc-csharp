@@ -49,21 +49,18 @@ pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) 
     for field in fields {
         let data_type = field.data_type();
 
-        if data_type.is_optional {
-            continue;
-        }
-
-        let suppress = matches!(
+        let suppress = !data_type.is_optional && matches!(
             data_type.concrete_type(),
             Types::Primitive(Primitive::String | Primitive::AnyClass)
                 | Types::Class(_)
+                | Types::CustomType(_)
                 | Types::Sequence(_)
                 | Types::Dictionary(_)
         );
 
         if suppress {
             // This is to suppress compiler warnings for non-nullable fields.
-            writeln!(code, "this.{} = null!;", field.field_name(field_type));
+            writeln!(code, "this.{} = default!;", field.field_name(field_type));
         }
     }
 
