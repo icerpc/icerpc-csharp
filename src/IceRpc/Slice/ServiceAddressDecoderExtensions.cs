@@ -51,7 +51,7 @@ public static class ServiceAddressSliceDecoderExtensions
             throw new InvalidOperationException(
                 $"Decoding a nullable Proxy with {decoder.Encoding} requires a bit sequence.");
         }
-        string path = decoder.DecodeIdentityPath();
+        string path = decoder.DecodeIceIdentityPath();
         return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
     }
 

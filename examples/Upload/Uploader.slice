@@ -2,6 +2,9 @@
 
 module UploadExample
 
+/// Represents an image repository that allows clients to upload their images.
 interface Uploader {
+    /// Uploads an image.
+    /// @param image: The image byte stream.
     uploadImage(image: stream uint8)
 }

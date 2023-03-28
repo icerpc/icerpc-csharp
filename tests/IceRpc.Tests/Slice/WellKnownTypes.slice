@@ -4,7 +4,7 @@ module IceRpc::Tests::Slice
 
 struct WellKnown {
     duration: WellKnownTypes::Duration
-    serviceAddress: WellKnownTypes::\ServiceAddress
+    serviceAddress: WellKnownTypes::ServiceAddress
     timeStamp: WellKnownTypes::TimeStamp
     uri: WellKnownTypes::Uri
 }

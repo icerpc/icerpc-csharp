@@ -2,7 +2,7 @@
 
 module HelloLogExample
 
-/// Represents a simple greeter.
+/// Represents a recipient of hello greetings.
 interface Hello {
     /// Creates a personalized "hello" greeting.
     /// @param name: The name of the person to greet.
