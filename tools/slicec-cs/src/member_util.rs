@@ -41,7 +41,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
 
 pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
     // This helper should only be used for classes and exceptions
-    assert!(field_type == FieldType::Class || field_type == FieldType::Exception);
+    debug_assert!(matches!(field_type, FieldType::Class | FieldType::Exception));
 
     let mut code = CodeBlock::default();
 
