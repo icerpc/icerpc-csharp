@@ -13,7 +13,7 @@ interface SessionManager {
     createSession(name: string) -> Token
 }
 
-/// Represents a simple greeter.
+/// Represents a recipient of hello greetings.
 interface Hello {
     /// Creates a personalized "hello" greeting.
     /// @returns: The greeting.
