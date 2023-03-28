@@ -2,7 +2,7 @@
 
 module StreamExample
 
-/// Represents a generator.
+/// Represents a number generator.
 interface Generator {
     /// Generates numbers.
     /// @returns: The generated number stream.

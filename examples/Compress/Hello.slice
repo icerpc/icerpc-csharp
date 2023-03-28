@@ -2,7 +2,7 @@
 
 module CompressExample
 
-/// Represents a simple greeter that compresses the name argument and the greeting return value.
+/// Represents a recipient of hello greetings.
 interface Hello {
     /// Creates a personalized "hello" greeting.
     /// @param name: The name of the person to greet.
