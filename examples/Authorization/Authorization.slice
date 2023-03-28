@@ -23,14 +23,14 @@ interface Authenticator {
     authenticate(name: string, password: string) -> EncryptedAuthenticationToken
 }
 
-/// Represents a simple greeter.
+/// Represents a recipient of hello greetings.
 interface Hello {
     /// Creates a personalized "hello" greeting.
     /// @returns: The greeting.
     sayHello() -> string
 }
 
-/// Represents a service to configure a simpler greeter.
+/// Represents a service to configure the hello service greeting.
 interface HelloAdmin {
     /// Changes the greeting returned by the Hello service.
     /// @param greeting: The new greeting.
