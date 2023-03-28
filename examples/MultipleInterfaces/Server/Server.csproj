@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <SliceCompile Include="../Hello.slice" />
-    <SliceCompile Include="../RequestCounter.slice" />
+    <SliceC Include="../Hello.slice" />
+    <SliceC Include="../RequestCounter.slice" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
