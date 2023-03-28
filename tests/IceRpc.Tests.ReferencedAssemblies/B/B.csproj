@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemDefinitionGroup>
-    <SliceCompile>
+    <SliceC>
       <ReferencedFiles>../A</ReferencedFiles>
-    </SliceCompile>
+    </SliceC>
   </ItemDefinitionGroup>
 
   <ItemGroup>

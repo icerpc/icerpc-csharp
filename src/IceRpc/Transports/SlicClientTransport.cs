@@ -31,9 +31,6 @@ public class SlicClientTransport : IMultiplexedClientTransport
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(ServerAddress serverAddress) => _duplexClientTransport.CheckParams(serverAddress);
-
-    /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,

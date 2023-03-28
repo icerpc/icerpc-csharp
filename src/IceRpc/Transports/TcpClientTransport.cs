@@ -31,32 +31,6 @@ public class TcpClientTransport : IDuplexClientTransport
     public TcpClientTransport(TcpClientTransportOptions options) => _options = options;
 
     /// <inheritdoc/>
-    public bool CheckParams(ServerAddress serverAddress)
-    {
-        if (serverAddress.Protocol != Protocol.Ice)
-        {
-            return serverAddress.Params.Count == 0;
-        }
-        else
-        {
-            foreach (string name in serverAddress.Params.Keys)
-            {
-                switch (name)
-                {
-                    case "t":
-                    case "z":
-                        // we don't check the value since we ignore it
-                        break;
-
-                    default:
-                        return false;
-                }
-            }
-            return true;
-        }
-    }
-
-    /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,
@@ -149,5 +123,35 @@ public class TcpClientTransport : IDuplexClientTransport
                 (timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture)) :
                 DefaultTcpTimeout,
             compress: serverAddress.Params.ContainsKey("z")).Encode(ref encoder);
+    }
+
+    /// <summary>Checks if a server address has valid <see cref="ServerAddress.Params" />. Only the params are included
+    /// in this check.</summary>
+    /// <param name="serverAddress">The server address to check.</param>
+    /// <returns><see langword="true" /> when all params of <paramref name="serverAddress" /> are valid; otherwise,
+    /// <see langword="false" />.</returns>
+    private static bool CheckParams(ServerAddress serverAddress)
+    {
+        if (serverAddress.Protocol != Protocol.Ice)
+        {
+            return serverAddress.Params.Count == 0;
+        }
+        else
+        {
+            foreach (string name in serverAddress.Params.Keys)
+            {
+                switch (name)
+                {
+                    case "t":
+                    case "z":
+                        // we don't check the value since we ignore it
+                        break;
+
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
     }
 }
