@@ -14,7 +14,6 @@ internal class AuthenticationMiddleware : IDispatcher
     private readonly SymmetricAlgorithm _encryptionAlgorithm;
     private readonly IDispatcher _next;
 
-    /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (request.Fields.TryGetValue(AuthenticationTokenFieldKey.Value, out ReadOnlySequence<byte> buffer))

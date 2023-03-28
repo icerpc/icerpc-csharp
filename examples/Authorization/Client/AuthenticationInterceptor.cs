@@ -11,7 +11,6 @@ internal class AuthenticationInterceptor : IInvoker
     private readonly ReadOnlySequence<byte> _authenticationToken;
     private readonly IInvoker _next;
 
-    /// <inheritdoc/>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         request.Fields = request.Fields.With(AuthenticationTokenFieldKey.Value, _authenticationToken);

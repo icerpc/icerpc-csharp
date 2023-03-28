@@ -12,7 +12,6 @@ internal class ChatbotAdmin : Service, IHelloAdminService
 
     internal ChatbotAdmin(Chatbot chatbot) => _chatbot = chatbot;
 
-    /// <inheritdoc/>
     public ValueTask ChangeGreetingAsync(
         string greeting,
         IFeatureCollection features,

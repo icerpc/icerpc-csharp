@@ -11,7 +11,6 @@ internal class AuthorizationMiddleware : IDispatcher
     private readonly Func<IAuthenticationFeature, bool> _authorizeFunc;
     private readonly IDispatcher _next;
 
-    /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IAuthenticationFeature>() is IAuthenticationFeature authenticationFeature &&

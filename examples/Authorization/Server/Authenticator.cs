@@ -12,7 +12,6 @@ internal class Authenticator : Service, IAuthenticatorService
 {
     private readonly SymmetricAlgorithm _encryptionAlgorithm;
 
-    /// <inheritdoc/>
     public ValueTask<ReadOnlyMemory<byte>> AuthenticateAsync(
         string name,
         string password,

@@ -10,7 +10,6 @@ internal class Chatbot : Service, IHelloService
 {
     internal string Greeting { get; set; } = "Hello";
 
-    /// <inheritdoc/>
     public ValueTask<string> SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
         string who = features.Get<IAuthenticationFeature>()?.Name ?? "stranger";
