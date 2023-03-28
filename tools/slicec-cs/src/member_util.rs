@@ -4,8 +4,7 @@ use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
-
-use slice::grammar::{Attributable, Field, Member, Primitive, Types};
+use slice::grammar::{Attributable, Field, Member};
 use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
@@ -48,17 +47,7 @@ pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) 
 
     for field in fields {
         let data_type = field.data_type();
-
-        let suppress = !data_type.is_optional && matches!(
-            data_type.concrete_type(),
-            Types::Primitive(Primitive::String | Primitive::AnyClass)
-                | Types::Class(_)
-                | Types::CustomType(_)
-                | Types::Sequence(_)
-                | Types::Dictionary(_)
-        );
-
-        if suppress {
+        if !data_type.is_optional && !data_type.is_value_type() {
             // This is to suppress compiler warnings for non-nullable fields.
             writeln!(code, "this.{} = default!;", field.field_name(field_type));
         }

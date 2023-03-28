@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+encoding = Slice1
 module IceRpc::Tests::Slice
 
 [cs::custom("MyCustomType")]
