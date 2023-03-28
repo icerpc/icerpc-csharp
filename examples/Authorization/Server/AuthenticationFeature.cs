@@ -6,7 +6,7 @@ namespace AuthorizationExample;
 /// field.</summary>
 internal interface IAuthenticationFeature
 {
-    /// <summary><c>true if the authenticated client has administrative privilege, <c>false</c> otherwise.</summary>
+    /// <summary><c>true</c> if the authenticated client has administrative privilege, <c>false</c> otherwise.</summary>
     bool IsAdmin { get; }
 
     /// <summary>The name of the authenticated client.</summary>
