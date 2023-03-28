@@ -18,7 +18,7 @@ internal class AuthenticationMiddleware : IDispatcher
     {
         if (request.Fields.TryGetValue(AuthenticationTokenFieldKey.Value, out ReadOnlySequence<byte> buffer))
         {
-            var token = AuthenticationToken.Decrypt(buffer.ToArray(), _encryptionAlgorithm);
+            var token = buffer.DecryptAuthenticationToken(_encryptionAlgorithm);
             request.Features = request.Features.With<IAuthenticationFeature>(new AuthenticationFeature(token));
         }
         return _next.DispatchAsync(request, cancellationToken);

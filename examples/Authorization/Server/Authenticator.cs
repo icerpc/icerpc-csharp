@@ -22,7 +22,7 @@ internal class Authenticator : Service, IAuthenticatorService
         {
             throw new DispatchException(StatusCode.Unauthorized, "Invalid password.");
         }
-        return new(new AuthenticationToken(name, isAdmin: name == "admin").Encrypt(_encryptionAlgorithm));
+        return new(new AuthenticationToken(isAdmin: name == "admin", name).Encrypt(_encryptionAlgorithm));
     }
 
     /// <summary>Constructs an authenticator service.</summary>

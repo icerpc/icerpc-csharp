@@ -2,6 +2,15 @@
 
 module AuthorizationExample
 
+/// An authentication token.
+struct AuthenticationToken {
+    /// true if the authenticated client has administrative privilege, false otherwise.
+    isAdmin: bool
+
+    /// The user name.
+    name: string
+}
+
 /// The encrypted authentication token.
 typealias EncryptedAuthenticationToken = sequence<uint8>
 
