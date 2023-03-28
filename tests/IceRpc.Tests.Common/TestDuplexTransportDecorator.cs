@@ -69,9 +69,6 @@ public sealed class TestDuplexClientTransportDecorator : IDuplexClientTransport
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
-
-    /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,

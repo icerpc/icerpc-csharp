@@ -26,9 +26,6 @@ public class QuicClientTransport : IMultiplexedClientTransport
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(ServerAddress serverAddress) => serverAddress.Params.Count == 0;
-
-    /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
@@ -76,4 +73,6 @@ public class QuicClientTransport : IMultiplexedClientTransport
 
         return new QuicMultiplexedClientConnection(options, quicClientOptions);
     }
+
+    private static bool CheckParams(ServerAddress serverAddress) => serverAddress.Params.Count == 0;
 }

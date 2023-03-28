@@ -77,9 +77,6 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     }
 
     /// <inheritdoc/>
-    public bool CheckParams(ServerAddress serverAddress) => _decoratee.CheckParams(serverAddress);
-
-    /// <inheritdoc/>
     public IMultiplexedConnection CreateConnection(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
