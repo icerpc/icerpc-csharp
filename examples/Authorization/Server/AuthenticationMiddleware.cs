@@ -7,26 +7,30 @@ using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
-/// <summary>Middleware that loads the session token from the request and adds the session feature to the request's
-/// feature collection.</summary>
+/// <summary>A middleware that decodes and decrypt an authentication token request field and adds an authentication
+/// feature to the request's feature collection.</summary>
 internal class AuthenticationMiddleware : IDispatcher
 {
-    private readonly SymmetricAlgorithm _cryptAlgorithm;
+    private readonly SymmetricAlgorithm _encryptionAlgorithm;
     private readonly IDispatcher _next;
 
-    internal AuthenticationMiddleware(IDispatcher next, SymmetricAlgorithm cryptAlgorithm)
-    {
-        _next = next;
-        _cryptAlgorithm = cryptAlgorithm;
-    }
-
+    /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (request.Fields.TryGetValue(AuthenticationTokenFieldKey.Value, out ReadOnlySequence<byte> buffer))
         {
-            request.Features = request.Features.With<IAuthenticationFeature>(
-                new AuthenticationFeature(AuthenticationToken.Decrypt(buffer.ToArray(), _cryptAlgorithm)));
+            var token = AuthenticationToken.Decrypt(buffer.ToArray(), _encryptionAlgorithm);
+            request.Features = request.Features.With<IAuthenticationFeature>(new AuthenticationFeature(token));
         }
         return _next.DispatchAsync(request, cancellationToken);
+    }
+
+    /// <summary>Constructs an authentication middleware.</summary>
+    /// <param name="next">The invoker to call next.</param>
+    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt an authentication token.</param>
+    internal AuthenticationMiddleware(IDispatcher next, SymmetricAlgorithm encryptionAlgorithm)
+    {
+        _next = next;
+        _encryptionAlgorithm = encryptionAlgorithm;
     }
 }

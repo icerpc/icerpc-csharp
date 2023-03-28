@@ -4,7 +4,7 @@ using AuthorizationExample;
 using IceRpc;
 using System.Security.Cryptography;
 
-// Use AES symmetric encryption to crypt the token.
+// The authentication token is encrypted and decrypted with the AES symmetric encryption algorithm.
 using var aes = Aes.Create();
 aes.Padding = PaddingMode.Zeros;
 
@@ -12,13 +12,13 @@ var chatbot = new Chatbot();
 
 var router = new Router();
 
-// Install a middleware to get and decrypt the authentication token from a request and to add the authentication feature
-// to the request's feature collection.
+// Install a middleware to decrypt and decode the request's authentication token and add an authentication feature to
+// the request's feature collection.
 router.UseAuthentication(aes);
 
 router.Route("/helloAdmin", adminRouter =>
 {
-    // Install an authorization middleware to check if the caller is authorized to call the hello admin service.
+    // Install an authorization middleware that checks if the caller is authorized to call the hello admin service.
     adminRouter.UseAuthorization(authenticationFeature => authenticationFeature.IsAdmin);
     adminRouter.Map("/", new ChatbotAdmin(chatbot));
 });

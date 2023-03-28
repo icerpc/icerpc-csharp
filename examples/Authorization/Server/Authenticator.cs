@@ -1,19 +1,18 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc;
 using IceRpc.Features;
 using IceRpc.Slice;
 using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
-/// <summary>The token store holds the session token to name dictionary and implements the
-/// <see cref="ISessionManagerService" /> interface.</summary>
+/// <summary>An Authenticator is an IceRPC service that implements the Slice interface 'Authenticator'.</summary>
 internal class Authenticator : Service, IAuthenticatorService
 {
-    private readonly SymmetricAlgorithm _cryptAlgorithm;
+    private readonly SymmetricAlgorithm _encryptionAlgorithm;
 
-    public Authenticator(SymmetricAlgorithm cryptAlgorithm) => _cryptAlgorithm = cryptAlgorithm;
-
+    /// <inheritdoc/>
     public ValueTask<ReadOnlyMemory<byte>> AuthenticateAsync(
         string name,
         string password,
@@ -22,8 +21,13 @@ internal class Authenticator : Service, IAuthenticatorService
     {
         if (password != "password")
         {
-            throw new AuthenticationException("Invalid password.");
+            throw new DispatchException(StatusCode.Unauthorized, "Invalid password.");
         }
-        return new(new AuthenticationToken(name, isAdmin: name == "admin").Encrypt(_cryptAlgorithm));
+        return new(new AuthenticationToken(name, isAdmin: name == "admin").Encrypt(_encryptionAlgorithm));
     }
+
+    /// <summary>Constructs an authenticator service.</summary>
+    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt an authentication token.</param>
+    internal Authenticator(SymmetricAlgorithm encryptionAlgorithm) => _encryptionAlgorithm = encryptionAlgorithm;
+
 }

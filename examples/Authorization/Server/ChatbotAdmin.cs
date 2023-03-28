@@ -5,14 +5,14 @@ using IceRpc.Slice;
 
 namespace AuthorizationExample;
 
-/// <summary>A service that implements Slice interface HelloAdmin. It is used to change the greeting and requires
-/// callers to be authenticated.</summary>
+/// <summary>A ChatbotAdmin is an IceRPC service that implements the Slice interface 'HelloAdmin'.</summary>
 internal class ChatbotAdmin : Service, IHelloAdminService
 {
     private readonly Chatbot _chatbot;
 
     internal ChatbotAdmin(Chatbot chatbot) => _chatbot = chatbot;
 
+    /// <inheritdoc/>
     public ValueTask ChangeGreetingAsync(
         string greeting,
         IFeatureCollection features,
