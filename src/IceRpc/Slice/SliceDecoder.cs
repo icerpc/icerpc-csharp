@@ -626,7 +626,7 @@ public ref partial struct SliceDecoder
         // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
 
         ServerAddress? serverAddress = null;
-        TransportCode transportCode = this.DecodeTransportCode();
+        var transportCode = (TransportCode)DecodeInt16();
 
         int size = DecodeInt32();
         if (size < 6)
