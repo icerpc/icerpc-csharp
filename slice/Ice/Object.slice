@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1
+encoding = Slice1
 
 [cs::namespace("IceRpc")]
 module Ice

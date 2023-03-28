@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1
+encoding = Slice1
 
 module IceRpc::Tests::ReferencedAssemblies
 
