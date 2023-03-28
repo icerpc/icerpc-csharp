@@ -172,6 +172,6 @@ public sealed class DeadlineInterceptorTests
         pipe.Reader.TryRead(out var readResult);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
         decoder.SkipSize();
-        return DateTime.UnixEpoch + TimeSpan.FromMilliseconds(decoder.DecodeVarInt62());
+        return decoder.DecodeTimeStamp();
     }
 }

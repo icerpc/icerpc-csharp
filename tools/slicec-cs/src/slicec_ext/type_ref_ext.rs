@@ -16,10 +16,7 @@ pub trait TypeRefExt {
 impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     fn is_value_type(&self) -> bool {
         match self.concrete_type() {
-            Types::Primitive(primitive) => !matches!(
-                primitive,
-                Primitive::String | Primitive::AnyClass | Primitive::ServiceAddress,
-            ),
+            Types::Primitive(primitive) => !matches!(primitive, Primitive::String | Primitive::AnyClass),
             Types::Enum(_) | Types::Struct(_) | Types::Interface(_) => true,
             _ => false,
         }

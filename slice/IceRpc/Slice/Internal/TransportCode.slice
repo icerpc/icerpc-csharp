@@ -4,7 +4,7 @@
 module IceRpc::Slice::Internal
 
 /// TransportCode is used by Slice1 to encode a transport name (such as "tcp") as an int16 value.
-// Note: we cannot define this enumeration in an encoding = 1 file because we need to encode it to an int16 and decode
+// Note: we cannot define this enumeration in an `encoding = Slice1` file because we need to encode it to an int16 and decode
 // it from an int16, and without ": int16", it would get encoded/decoded as a single-byte size.
 unchecked enum TransportCode : int16 {
     /// This server address encapsulation contains a server address URI string.

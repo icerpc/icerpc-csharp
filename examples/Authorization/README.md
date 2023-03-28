@@ -9,8 +9,8 @@ corresponding request feature. The second middleware is responsible for checking
 present in the corresponding request feature and to check if the request is authorized.
 
 The client is configured with an `AuthenticationInterceptor` interceptor. The interceptor is responsible for adding a
-encrypted authentication token to a request field. The authentication token is returned by an `Authenticator` service
-after authenticating the client with a login name and password.
+encrypted authentication token to a request field. The authentication token is returned by an `Authenticator` service after
+authenticating the client with a login name and password.
 
 ## Running the example
 

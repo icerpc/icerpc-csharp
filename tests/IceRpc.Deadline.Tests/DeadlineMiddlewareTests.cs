@@ -96,8 +96,7 @@ public sealed class DeadlineMiddlewareTests
     {
         var pipe = new Pipe();
         var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-        long deadlineValue = (long)(deadline - DateTime.UnixEpoch).TotalMilliseconds;
-        encoder.EncodeVarInt62(deadlineValue);
+        encoder.EncodeTimeStamp(deadline);
         pipe.Writer.Complete();
 
         return pipe.Reader;
