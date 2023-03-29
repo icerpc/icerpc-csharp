@@ -5,3 +5,11 @@ module IceRpc::Tests::Slice
 interface MyBaseInterface {}
 
 interface MyDerivedInterface : MyBaseInterface {}
+
+interface ReceiveProxyTest {
+    receiveProxy() -> ReceiveProxyTest
+}
+
+interface SendProxyTest {
+    sendProxy(proxy: SendProxyTest)
+}
