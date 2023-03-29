@@ -4,8 +4,7 @@ use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
-
-use slice::grammar::{Attributable, Field, Member, Primitive, Types};
+use slice::grammar::{Attributable, Field, Member};
 use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
@@ -42,28 +41,16 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
 
 pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
     // This helper should only be used for classes and exceptions
-    assert!(field_type == FieldType::Class || field_type == FieldType::Exception);
+    debug_assert!(matches!(field_type, FieldType::Class | FieldType::Exception));
 
     let mut code = CodeBlock::default();
 
     for field in fields {
         let data_type = field.data_type();
-
-        if data_type.is_optional {
-            continue;
-        }
-
-        let suppress = matches!(
-            data_type.concrete_type(),
-            Types::Primitive(Primitive::String | Primitive::AnyClass)
-                | Types::Class(_)
-                | Types::Sequence(_)
-                | Types::Dictionary(_)
-        );
-
-        if suppress {
+        // `is_value_type` returns false for custom types since we can't know what type the user mapped it to.
+        if !data_type.is_optional && !data_type.is_value_type() {
             // This is to suppress compiler warnings for non-nullable fields.
-            writeln!(code, "this.{} = null!;", field.field_name(field_type));
+            writeln!(code, "this.{} = default!;", field.field_name(field_type));
         }
     }
 

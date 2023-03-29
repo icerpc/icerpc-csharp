@@ -382,9 +382,9 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (!IsServer)
             {
-                // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
-                // For TCP, it's important to always shutdown the connection on the client-side first to avoid
-                // TIME_WAIT states on the server-side.
+                // The sending of the client-side Close frame is followed by the shutdown of the duplex connection. For
+                // TCP, it's important to always shutdown the connection on the client-side first to avoid TIME_WAIT
+                // states on the server-side.
                 await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -1121,10 +1121,9 @@ internal class SlicConnection : IMultiplexedConnection
                         Interlocked.Increment(ref _unidirectionalStreamCount);
                     }
 
-                    // Accept the new remote stream.
-                    // TODO: Cache SliceMultiplexedStream
-                    // The stream is queued on the channel reader. The caller of AcceptStreamAsync is responsible
-                    // for disposing the stream
+                    // Accept the new remote stream. The stream is queued on the channel reader. The caller of
+                    // AcceptStreamAsync is responsible for disposing the stream
+                    // TODO: Cache SlicStream
                     stream = new SlicStream(this, isBidirectional, remote: true);
 
                     try
@@ -1317,16 +1316,10 @@ internal class SlicConnection : IMultiplexedConnection
                     peerCloseError);
             }
 
-            if (IsServer)
+            // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When using
+            // TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the server-side.
+            if (!IsServer)
             {
-                // The sending of the client-side Close frame is always followed by the shutdown of the duplex
-                // connection. We wait for the shutdown of the duplex connection instead of returning here. We want to
-                // make sure the duplex connection is always shutdown on the client-side before shutting it down on the
-                // server-side. It's important when using TCP to avoid TIME_WAIT states on the server-side.
-            }
-            else
-            {
-                // The semaphore can't be disposed until the read frames task completes.
                 using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
                 await _duplexConnection.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -1454,7 +1447,7 @@ internal class SlicConnection : IMultiplexedConnection
 
                 if (header is null)
                 {
-                    // Graceful connection closure, we're done.
+                    // The peer has shut down the duplex connection.
                     break;
                 }
 
@@ -1467,7 +1460,6 @@ internal class SlicConnection : IMultiplexedConnection
                 // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
-                // The semaphore can't be disposed until the read frames task completes.
                 using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_disposedCts.Token).ConfigureAwait(false);
                 await _duplexConnection.ShutdownAsync(_disposedCts.Token).ConfigureAwait(false);
             }

@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
+using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Slice;
 
@@ -62,13 +64,16 @@ public class ProxyTests
     [Test, TestCaseSource(nameof(DecodeNullableProxySource))]
     public void Decode_slice1_nullable_proxy(ServiceAddress? expected)
     {
+        // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeNullableServiceAddress(expected);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
+        // Act
         PingableProxy? decoded = decoder.DecodeNullableProxy<PingableProxy>();
 
+        // Assert
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
 
@@ -79,13 +84,16 @@ public class ProxyTests
     [Test, TestCaseSource(nameof(DecodeProxyDataSource))]
     public void Decode_proxy(ServiceAddress value, ServiceAddress expected, SliceEncoding encoding)
     {
+        // Arrange
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter, encoding);
         encoder.EncodeServiceAddress(value);
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
+        // Act
         var decoded = sut.DecodeProxy<GenericProxy>();
 
+        // Assert
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
 
@@ -94,6 +102,7 @@ public class ProxyTests
     [Test]
     public void Decode_relative_proxy()
     {
+        // Act/Assert
         Assert.That(() =>
         {
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
@@ -111,31 +120,86 @@ public class ProxyTests
     [Test]
     public async Task Downcast_proxy_with_as_async_succeeds()
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyDerivedInterfaceService())
-            .BuildServiceProvider(validateScopes: true);
+        // Arrange
+        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyDerivedInterfaceService()));
 
-        var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
-
+        // Act
         MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
 
+        // Assert
         Assert.That(derived, Is.Not.Null);
     }
 
     [Test]
     public async Task Downcast_proxy_with_as_async_fails()
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new MyBaseInterfaceService())
-            .BuildServiceProvider(validateScopes: true);
+        // Arrange
+        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyBaseInterfaceService()));
 
-        var proxy = new MyBaseInterfaceProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
-
+        // Act
         MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
 
+        // Assert
         Assert.That(derived, Is.Null);
+    }
+
+    /// <summary>Verifies that a proxy decoded from an incoming request has a null invoker by default.</summary>
+    [Test]
+    public async Task Proxy_decoded_from_incoming_request_has_null_invoker()
+    {
+        // Arrange
+        var service = new SendProxyTestService();
+        var proxy = new SendProxyTestProxy(new ColocInvoker(service));
+
+        // Act
+        await proxy.SendProxyAsync(proxy);
+
+        // Assert
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
+    }
+
+    /// <summary>Verifies that the invoker of a proxy decoded from an incoming request can be set using a Slice
+    /// feature.</summary>
+    [Test]
+    public async Task Proxy_decoded_from_incoming_request_can_have_invoker_set_through_a_slice_feature()
+    {
+        // Arrange
+        var service = new SendProxyTestService();
+        var pipeline = new Pipeline();
+        var router = new Router();
+        router.Map<ISendProxyTestService>(service);
+        router.UseFeature<ISliceFeature>(
+            new SliceFeature(proxyFactory: (serviceAddress, _) =>
+                new GenericProxy
+                {
+                    Invoker = pipeline,
+                    ServiceAddress = serviceAddress
+                }));
+
+        var proxy = new SendProxyTestProxy(new ColocInvoker(router));
+
+        // Act
+        await proxy.SendProxyAsync(proxy);
+
+        // Assert
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(pipeline));
+    }
+
+    /// <summary>Verifies that a proxy decoded from an incoming response inherits the callers invoker.</summary>
+    [Test]
+    public async Task Proxy_decoded_from_an_outgoing_response_inherits_the_callers_invoker()
+    {
+        // Arrange
+        IInvoker invoker = new ColocInvoker(new ReceiveProxyTestService());
+        var proxy = new ReceiveProxyTestProxy(invoker);
+
+        // Act
+        ReceiveProxyTestProxy received = await proxy.ReceiveProxyAsync();
+
+        // Assert
+        Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
 
     private class MyBaseInterfaceService : Service, IMyBaseInterfaceService
@@ -144,5 +208,61 @@ public class ProxyTests
 
     private sealed class MyDerivedInterfaceService : MyBaseInterfaceService, IMyDerivedInterfaceService
     {
+    }
+
+    private sealed class ReceiveProxyTestService : Service, IReceiveProxyTestService
+    {
+        public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) =>
+            new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
+    }
+
+    private sealed class SendProxyTestService : Service, ISendProxyTestService
+    {
+        public SendProxyTestProxy? ReceivedProxy { get; private set; }
+
+        public ValueTask SendProxyAsync(
+            SendProxyTestProxy proxy,
+            IFeatureCollection features,
+            CancellationToken cancellationToken = default)
+        {
+            ReceivedProxy = proxy;
+            return default;
+        }
+    }
+
+    /// <summary>An invoker that transforms an outgoing request into an incoming request, dispatches it to the
+    /// dispatcher configured with the invoker and finally transforms the outgoing response to an incoming response that
+    /// is returned to the caller.</summary>
+    private sealed class ColocInvoker : IInvoker
+    {
+        private readonly IDispatcher _dispatcher;
+
+        public async Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest outgoingRequest,
+            CancellationToken cancellationToken)
+        {
+            // Payload continuation are not supported for now.
+            using var incomingRequest = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+            {
+                Payload = outgoingRequest.Payload,
+                Path = outgoingRequest.ServiceAddress.Path,
+                Operation = outgoingRequest.Operation
+            };
+
+            // Dispatch the request.
+            OutgoingResponse outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
+
+            // Payload continuation are not supported for now.
+            PipeReader payload = outgoingResponse.Payload;
+            outgoingResponse.Payload = InvalidPipeReader.Instance;
+            return new IncomingResponse(outgoingRequest, FakeConnectionContext.Instance)
+            {
+                Payload = payload
+            };
+        }
+
+        internal ColocInvoker(IDispatcher dispatcher) => _dispatcher = dispatcher;
     }
 }

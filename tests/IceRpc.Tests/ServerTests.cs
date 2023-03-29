@@ -182,19 +182,9 @@ public class ServerTests
         var completedConnectTask = await Task.WhenAny(connectTask1, connectTask2, connectTask3);
 
         // Assert
-
-        // TODO: if any of the Assert fails, we need to dispose the server first, otherwise the test hangs and hides the
-        // actual Assert failure.
-        try
-        {
-            IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await completedConnectTask);
-            Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
-            connectCts.Cancel();
-        }
-        finally
-        {
-            await server.DisposeAsync();
-        }
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await completedConnectTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.ConnectionRefused));
+        connectCts.Cancel();
 
         // Cleanup.
         Assert.That(() => Task.WhenAll(connectTask1, connectTask2, connectTask3), Throws.InstanceOf<IceRpcException>());
