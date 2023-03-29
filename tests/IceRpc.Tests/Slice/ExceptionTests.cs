@@ -470,12 +470,9 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
+        var invoker = new ColocInvoker(new Slice2ExceptionOperationsService(throwException));
+        var proxy = new Slice2ExceptionOperationsProxy(invoker);
 
-        var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
 
@@ -494,12 +491,8 @@ public sealed class ExceptionTests
         StatusCode expectedStatusCode)
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice2ExceptionOperationsService(throwException));
+        var proxy = new Slice2ExceptionOperationsProxy(invoker);
 
         // Act/Assert
         DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
@@ -512,12 +505,8 @@ public sealed class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice1ExceptionOperationsService(throwException));
+        var proxy = new Slice1ExceptionOperationsProxy(invoker);
 
         Type expectedType = expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
@@ -535,12 +524,8 @@ public sealed class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice1ExceptionOperationsService(throwException));
+        var proxy = new Slice1ExceptionOperationsProxy(invoker);
 
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
@@ -558,12 +543,8 @@ public sealed class ExceptionTests
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice1ExceptionOperationsService(throwException));
+        var proxy = new Slice1ExceptionOperationsProxy(invoker);
 
         DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
         Assert.That(exception, Is.Not.Null);
