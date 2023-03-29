@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1
+encoding = Slice1
 
 [cs::namespace("IceRpc")]
 module Ice
@@ -11,13 +11,13 @@ module Ice
 interface Object {
     /// Gets the Slice type IDs of all the interfaces implemented by the target service.
     /// @returns: The Slice type IDs of all these interfaces, sorted alphabetically.
-    ice_ids() -> sequence<string>
+    idempotent ice_ids() -> sequence<string>
 
     /// Tests whether the target service implements the specified interface.
     /// @param id: The Slice type ID of the interface to test against.
     /// @returns: True when the target service implements this interface; otherwise, false.
-    ice_isA(id: string) -> bool
+    idempotent ice_isA(id: string) -> bool
 
     /// Pings the service.
-    ice_ping()
+    idempotent ice_ping()
 }

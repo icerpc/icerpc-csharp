@@ -5,8 +5,7 @@ using IceRpc;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-// Create the authentication options with a custom certificate validation callback
-// that uses our Root CA certificate.
+// Create the authentication options with a custom certificate validation callback that uses our Root CA certificate.
 
 using var rootCA = new X509Certificate2("../../certs/cacert.der");
 var clientAuthenticationOptions = new SslClientAuthenticationOptions()

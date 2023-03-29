@@ -13,7 +13,6 @@ ILogger logger = loggerFactory.CreateLogger<Server>();
 
 // Create a server that logs messages using logger.
 await using var server = new Server(new Chatbot(), logger: logger);
-
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.

@@ -64,12 +64,12 @@ fn encode_type(
         TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
             format!("{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);")
         }
-        TypeRefs::Primitive(primitive_ref)
-            if matches!(primitive_ref.definition(), Primitive::ServiceAddress)
-                && type_ref.is_optional
-                && encoding == Encoding::Slice1 =>
-        {
-            format!("{encoder_param}.EncodeNullableServiceAddress({param});")
+        TypeRefs::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
+            let identifier = custom_type_ref.cs_identifier(None);
+            let nullable = if type_ref.is_optional { "Nullable" } else { "" };
+            let encoder_extensions_class =
+                custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
+            format!("{encoder_extensions_class}.Encode{nullable}{identifier}(ref {encoder_param}, {param});")
         }
         _ if type_ref.is_class_type() => {
             assert!(encoding == Encoding::Slice1);

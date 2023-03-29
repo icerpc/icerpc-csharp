@@ -130,7 +130,7 @@ function Test($config, $coverage) {
 
 function Doc() {
     Push-Location "doc"
-    RunCommand "docfx" @('build')
+    RunCommand "docfx"
     Pop-Location
 }
 

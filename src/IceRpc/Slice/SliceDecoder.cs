@@ -302,19 +302,8 @@ public ref partial struct SliceDecoder
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <returns>The decoded proxy, or <see langword="null" />.</returns>
     public TProxy? DecodeNullableProxy<TProxy>() where TProxy : struct, IProxy =>
-        DecodeNullableServiceAddress() is ServiceAddress serviceAddress ? CreateProxy<TProxy>(serviceAddress) : null;
-
-    /// <summary>Decodes a nullable service address (Slice1 only).</summary>
-    /// <returns>The decoded service address, or <see langword="null" />.</returns>
-    public ServiceAddress? DecodeNullableServiceAddress()
-    {
-        if (Encoding != SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException($"Decoding a nullable Proxy with {Encoding} requires a bit sequence.");
-        }
-        string path = this.DecodeIdentityPath();
-        return path != "/" ? DecodeServiceAddressCore(path) : null;
-    }
+        this.DecodeNullableServiceAddress() is ServiceAddress serviceAddress ?
+            CreateProxy<TProxy>(serviceAddress) : null;
 
     /// <summary>Decodes a proxy struct.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
@@ -323,38 +312,7 @@ public ref partial struct SliceDecoder
         Encoding == SliceEncoding.Slice1 ?
             DecodeNullableProxy<TProxy>() ??
                 throw new InvalidDataException("Decoded null for a non-nullable proxy.") :
-           CreateProxy<TProxy>(DecodeServiceAddress());
-
-    /// <summary>Decodes a service address.</summary>
-    /// <returns>The decoded service address.</returns>
-    public ServiceAddress DecodeServiceAddress()
-    {
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            return DecodeNullableServiceAddress() ??
-                throw new InvalidDataException("Decoded null for a non-nullable service address.");
-        }
-        else
-        {
-            string serviceAddressString = DecodeString();
-            try
-            {
-                if (serviceAddressString.StartsWith('/'))
-                {
-                    // relative service address
-                    return new ServiceAddress { Path = serviceAddressString };
-                }
-                else
-                {
-                    return new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException("Received an invalid service address.", ex);
-            }
-        }
-    }
+           CreateProxy<TProxy>(this.DecodeServiceAddress());
 
     // Other methods
 
@@ -657,6 +615,129 @@ public ref partial struct SliceDecoder
         return fields;
     }
 
+    /// <summary>Decodes a server address (Slice1 only).</summary>
+    /// <param name="protocol">The protocol of this server address.</param>
+    /// <returns>The server address decoded by this decoder.</returns>
+    internal ServerAddress DecodeServerAddress(Protocol protocol)
+    {
+        Debug.Assert(Encoding == SliceEncoding.Slice1);
+
+        // The Slice1 ice server addresses are transport-specific, and hard-coded here and in the
+        // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
+
+        ServerAddress? serverAddress = null;
+        var transportCode = (TransportCode)DecodeInt16();
+
+        int size = DecodeInt32();
+        if (size < 6)
+        {
+            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too small.");
+        }
+
+        if (size - 4 > _reader.Remaining)
+        {
+            throw new InvalidDataException(
+                $"The encapsulation's size ({size}) extends beyond the end of the buffer.");
+        }
+
+        // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
+        size -= 6;
+
+        byte encodingMajor = DecodeUInt8();
+        byte encodingMinor = DecodeUInt8();
+
+        if (encodingMajor == 1 && encodingMinor <= 1)
+        {
+            long oldPos = _reader.Consumed;
+
+            if (protocol == Protocol.Ice)
+            {
+                switch (transportCode)
+                {
+                    case TransportCode.Tcp:
+                    case TransportCode.Ssl:
+                    {
+                        serverAddress = Transports.TcpClientTransport.DecodeServerAddress(
+                            ref this,
+                            transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
+                        break;
+                    }
+
+                    case TransportCode.Uri:
+                        serverAddress = new ServerAddress(new Uri(DecodeString()));
+                        if (serverAddress.Value.Protocol != protocol)
+                        {
+                            throw new InvalidDataException(
+                                $"Expected {protocol} server address but received '{serverAddress.Value}'.");
+                        }
+                        break;
+
+                    default:
+                    {
+                        // Create a server address for transport opaque
+
+                        using IMemoryOwner<byte>? memoryOwner =
+                            _reader.UnreadSpan.Length < size ? MemoryPool<byte>.Shared.Rent(size) : null;
+
+                        ReadOnlySpan<byte> vSpan;
+
+                        if (memoryOwner?.Memory is Memory<byte> buffer)
+                        {
+                            Span<byte> span = buffer.Span[0..size];
+                            CopyTo(span);
+                            vSpan = span;
+                        }
+                        else
+                        {
+                            vSpan = _reader.UnreadSpan[0..size];
+                            _reader.Advance(size);
+                        }
+
+                        var builder = ImmutableDictionary.CreateBuilder<string, string>();
+                        builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
+                        builder.Add("v", Convert.ToBase64String(vSpan));
+
+                        serverAddress = new ServerAddress(
+                            Protocol.Ice,
+                            host: "opaque", // not a real host obviously
+                            port: Protocol.Ice.DefaultPort,
+                            TransportNames.Opaque,
+                            builder.ToImmutable());
+                        break;
+                    }
+                }
+            }
+            else if (transportCode == TransportCode.Uri)
+            {
+                // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
+                serverAddress = new ServerAddress(new Uri(DecodeString()));
+                if (serverAddress.Value.Protocol != protocol)
+                {
+                    throw new InvalidDataException(
+                        $"Expected {protocol} server address but received '{serverAddress.Value}'.");
+                }
+            }
+
+            if (serverAddress is not null)
+            {
+                // Make sure we read the full encapsulation.
+                if (_reader.Consumed != oldPos + size)
+                {
+                    throw new InvalidDataException(
+                        $"There are {oldPos + size - _reader.Consumed} bytes left in server address encapsulation.");
+                }
+            }
+        }
+
+        if (serverAddress is null)
+        {
+            throw new InvalidDataException(
+                $"Cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'.");
+        }
+
+        return serverAddress.Value;
+    }
+
     /// <summary>Tries to decode a Slice uint8 into a byte.</summary>
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
     /// Otherwise, this value is set to its default value.</param>
@@ -802,129 +883,6 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Decodes a server address (Slice1).</summary>
-    /// <param name="protocol">The protocol of this server address.</param>
-    /// <returns>The server address decoded by this decoder.</returns>
-    private ServerAddress DecodeServerAddress(Protocol protocol)
-    {
-        Debug.Assert(Encoding == SliceEncoding.Slice1);
-
-        // The Slice1 ice server addresses are transport-specific, and hard-coded here and in the
-        // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
-
-        ServerAddress? serverAddress = null;
-        TransportCode transportCode = this.DecodeTransportCode();
-
-        int size = DecodeInt32();
-        if (size < 6)
-        {
-            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too small.");
-        }
-
-        if (size - 4 > _reader.Remaining)
-        {
-            throw new InvalidDataException(
-                $"The encapsulation's size ({size}) extends beyond the end of the buffer.");
-        }
-
-        // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
-        size -= 6;
-
-        byte encodingMajor = DecodeUInt8();
-        byte encodingMinor = DecodeUInt8();
-
-        if (encodingMajor == 1 && encodingMinor <= 1)
-        {
-            long oldPos = _reader.Consumed;
-
-            if (protocol == Protocol.Ice)
-            {
-                switch (transportCode)
-                {
-                    case TransportCode.Tcp:
-                    case TransportCode.Ssl:
-                    {
-                        serverAddress = Transports.TcpClientTransport.DecodeServerAddress(
-                            ref this,
-                            transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
-                        break;
-                    }
-
-                    case TransportCode.Uri:
-                        serverAddress = new ServerAddress(new Uri(DecodeString()));
-                        if (serverAddress.Value.Protocol != protocol)
-                        {
-                            throw new InvalidDataException(
-                                $"Expected {protocol} server address but received '{serverAddress.Value}'.");
-                        }
-                        break;
-
-                    default:
-                    {
-                        // Create a server address for transport opaque
-
-                        using IMemoryOwner<byte>? memoryOwner =
-                            _reader.UnreadSpan.Length < size ? MemoryPool<byte>.Shared.Rent(size) : null;
-
-                        ReadOnlySpan<byte> vSpan;
-
-                        if (memoryOwner?.Memory is Memory<byte> buffer)
-                        {
-                            Span<byte> span = buffer.Span[0..size];
-                            CopyTo(span);
-                            vSpan = span;
-                        }
-                        else
-                        {
-                            vSpan = _reader.UnreadSpan[0..size];
-                            _reader.Advance(size);
-                        }
-
-                        var builder = ImmutableDictionary.CreateBuilder<string, string>();
-                        builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                        builder.Add("v", Convert.ToBase64String(vSpan));
-
-                        serverAddress = new ServerAddress(
-                            Protocol.Ice,
-                            host: "opaque", // not a real host obviously
-                            port: Protocol.Ice.DefaultPort,
-                            TransportNames.Opaque,
-                            builder.ToImmutable());
-                        break;
-                    }
-                }
-            }
-            else if (transportCode == TransportCode.Uri)
-            {
-                // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
-                serverAddress = new ServerAddress(new Uri(DecodeString()));
-                if (serverAddress.Value.Protocol != protocol)
-                {
-                    throw new InvalidDataException(
-                        $"Expected {protocol} server address but received '{serverAddress.Value}'.");
-                }
-            }
-
-            if (serverAddress is not null)
-            {
-                // Make sure we read the full encapsulation.
-                if (_reader.Consumed != oldPos + size)
-                {
-                    throw new InvalidDataException(
-                        $"There are {oldPos + size - _reader.Consumed} bytes left in server address encapsulation.");
-                }
-            }
-        }
-
-        if (serverAddress is null)
-        {
-            throw new InvalidDataException(
-                $"Cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'.");
-        }
-
-        return serverAddress.Value;
-    }
-
     private bool DecodeTagHeader(int tag, TagFormat expectedFormat, bool useTagEndMarker)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
@@ -1004,93 +962,6 @@ public ref partial struct SliceDecoder
 
     private byte PeekByte() =>
         _reader.TryPeek(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
-
-    /// <summary>Helper method to decode a service address encoded with Slice1.</summary>
-    /// <param name="path">The decoded path.</param>
-    /// <returns>The decoded service address.</returns>
-    private ServiceAddress DecodeServiceAddressCore(string path)
-    {
-        // With Slice1, a proxy is encoded as a kind of discriminated union with:
-        // - Identity
-        // - If Identity is not the null identity:
-        //     - The fragment, invocation mode, protocol major and minor, and the
-        //       encoding major and minor
-        //     - a sequence of server addresses that can be empty
-        //     - an adapter ID string present only when the sequence of server addresses is empty
-
-        string fragment = FragmentSliceDecoderExtensions.DecodeFragment(ref this);
-        _ = InvocationModeSliceDecoderExtensions.DecodeInvocationMode(ref this);
-        _ = DecodeBool();
-        byte protocolMajor = DecodeUInt8();
-        byte protocolMinor = DecodeUInt8();
-        Skip(2); // skip encoding major and minor
-
-        if (protocolMajor == 0)
-        {
-            throw new InvalidDataException("Received service address with protocol set to 0.");
-        }
-        if (protocolMinor != 0)
-        {
-            throw new InvalidDataException(
-                $"Received service address with invalid protocolMinor value: {protocolMinor}.");
-        }
-
-        int count = DecodeSize();
-
-        ServerAddress? serverAddress = null;
-        IEnumerable<ServerAddress> altServerAddresses = ImmutableList<ServerAddress>.Empty;
-        var protocol = Protocol.FromByteValue(protocolMajor);
-        ImmutableDictionary<string, string> serviceAddressParams = ImmutableDictionary<string, string>.Empty;
-
-        if (count == 0)
-        {
-            if (DecodeString() is string adapterId && adapterId.Length > 0)
-            {
-                serviceAddressParams = serviceAddressParams.Add("adapter-id", adapterId);
-            }
-        }
-        else
-        {
-            serverAddress = DecodeServerAddress(protocol);
-            if (count >= 2)
-            {
-                // A slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
-                // bytes for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
-                IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
-
-                var serverAddressArray = new ServerAddress[count - 1];
-                for (int i = 0; i < count - 1; ++i)
-                {
-                    serverAddressArray[i] = DecodeServerAddress(protocol);
-                }
-                altServerAddresses = serverAddressArray;
-            }
-        }
-
-        try
-        {
-            if (!protocol.HasFragment && fragment.Length > 0)
-            {
-                throw new InvalidDataException($"Unexpected fragment in {protocol} service address.");
-            }
-
-            return new ServiceAddress(
-                protocol,
-                path,
-                serverAddress,
-                altServerAddresses.ToImmutableList(),
-                serviceAddressParams,
-                fragment);
-        }
-        catch (InvalidDataException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            throw new InvalidDataException("Received invalid service address.", exception);
-        }
-    }
 
     private void SkipTaggedValue(TagFormat format)
     {

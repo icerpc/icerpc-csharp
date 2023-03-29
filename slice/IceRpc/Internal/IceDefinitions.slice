@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = 1
+encoding = Slice1
 
 [cs::internal]
 module IceRpc::Internal
@@ -66,7 +66,7 @@ compact struct EncapsulationHeader {
 /// - a request payload, with encapsulationSize - 6 bytes
 [cs::readonly]
 compact struct IceRequestHeader {
-    path: Slice::IdentityPath
+    path: Ice::IdentityPath
     fragment: IceRpc::Slice::Internal::Fragment
     operation: string
     operationMode: OperationMode
@@ -112,7 +112,7 @@ enum ReplyStatus {
 /// OperationNotExistException).
 [cs::readonly]
 compact struct RequestFailedExceptionData {
-    path: Slice::IdentityPath
+    path: Ice::IdentityPath
     fragment: Slice::Internal::Fragment
     operation: string
 }

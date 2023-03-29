@@ -17,18 +17,19 @@ public class DeadlineMiddleware : IDispatcher
     public DeadlineMiddleware(IDispatcher next) => _next = next;
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<OutgoingResponse> DispatchAsync(
+        IncomingRequest request,
+        CancellationToken cancellationToken = default)
     {
         TimeSpan? timeout = null;
 
-        // not found returns 0
-        long value = request.Fields.DecodeValue(
+        // not found returns default == DateTime.MinValue.
+        DateTime deadline = request.Fields.DecodeValue(
             RequestFieldKey.Deadline,
-            (ref SliceDecoder decoder) => decoder.DecodeVarInt62());
+            (ref SliceDecoder decoder) => decoder.DecodeTimeStamp());
 
-        if (value > 0)
+        if (deadline != DateTime.MinValue)
         {
-            DateTime deadline = DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value);
             timeout = deadline - DateTime.UtcNow;
 
             if (timeout <= TimeSpan.Zero)

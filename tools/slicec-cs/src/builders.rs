@@ -406,9 +406,18 @@ impl FunctionBuilder {
                 let message = format_message(&throws_tag.message, |link| {
                     link.get_formatted_link(&operation.namespace())
                 });
-                if let Some(exception) = throws_tag.thrown_type() {
-                    let exception_name = exception.escape_scoped_identifier(&operation.namespace());
-                    self.add_comment_with_attribute("exception", "cref", &exception_name, message);
+                // If an identifier was provided in the '@throws' tag, emit a link to the corresponding entity.
+                if let Some(exception_link) = throws_tag.thrown_type() {
+                    match exception_link {
+                        Ok(exception) => {
+                            let exception_name = exception.escape_scoped_identifier(&operation.namespace());
+                            self.add_comment_with_attribute("exception", "cref", &exception_name, message);
+                        }
+                        Err(identifier) => {
+                            // If there was an error resolving the link, print the identifier without any formatting.
+                            self.add_comment_with_attribute("exception", "cref", &identifier.value, message);
+                        }
+                    }
                 } else {
                     self.add_comment("exception", message);
                 }
@@ -658,41 +667,41 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
             )
             .into(),
             _ => {
-                let mut encoding_1 = self.encoding_blocks[&Encoding::Slice1]();
-                let mut encoding_2 = self.encoding_blocks[&Encoding::Slice2]();
+                let mut slice1_blocks = self.encoding_blocks[&Encoding::Slice1]();
+                let mut slice2_blocks = self.encoding_blocks[&Encoding::Slice2]();
 
-                // Only write one encoding block if encoding_1 and encoding_2 are the same.
-                if encoding_1.to_string() == encoding_2.to_string() {
-                    return encoding_2;
+                // Only write one encoding block if `slice1_blocks` and `slice2_blocks` are the same.
+                if slice1_blocks.to_string() == slice2_blocks.to_string() {
+                    return slice2_blocks;
                 }
 
-                if encoding_1.is_empty() && !encoding_2.is_empty() {
+                if slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only
 {{
-    {encoding_2}
+    {slice2_blocks}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        encoding_2 = encoding_2.indent(),
+                        slice2_blocks = slice2_blocks.indent(),
                     )
                     .into()
-                } else if !encoding_1.is_empty() && !encoding_2.is_empty() {
+                } else if !slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} == SliceEncoding.Slice1)
 {{
-    {encoding_1}
+    {slice1_blocks}
 }}
 else // Slice2
 {{
-    {encoding_2}
+    {slice2_blocks}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        encoding_1 = encoding_1.indent(),
-                        encoding_2 = encoding_2.indent(),
+                        slice1_blocks = slice1_blocks.indent(),
+                        slice2_blocks = slice2_blocks.indent(),
                     )
                     .into()
                 } else {
