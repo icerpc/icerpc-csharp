@@ -254,8 +254,7 @@ public class ProxyTests
             // Dispatch the request.
             OutgoingResponse outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
 
-            // The copy of the outgoing response to the incoming response payload is necessary because the outgoing
-            // response payload is completed when the incoming request is disposed.
+            // Payload continuation are not supported for now.
             PipeReader payload = outgoingResponse.Payload;
             outgoingResponse.Payload = InvalidPipeReader.Instance;
             return new IncomingResponse(outgoingRequest, FakeConnectionContext.Instance)
