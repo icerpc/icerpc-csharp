@@ -478,74 +478,6 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.AltServerAddresses, Is.EqualTo(altServerAddresses));
     }
 
-    /// <summary>Verifies that the proxy invoker for proxies decoded from incoming requests can be set using the Slice
-    /// feature.</summary>
-    // TODO: move this test to Slice
-    [Test]
-    public async Task Proxy_invoker_is_set_through_slice_feature()
-    {
-        var service = new SendProxyTestService();
-        var pipeline = new Pipeline();
-        var router = new Router();
-        router.Map<ISendProxyTestService>(service);
-        router.UseFeature<ISliceFeature>(
-            new SliceFeature(proxyFactory: (serviceAddress, _) =>
-                new GenericProxy
-                {
-                    Invoker = pipeline,
-                    ServiceAddress = serviceAddress
-                }));
-
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: router)
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
-
-        await proxy.SendProxyAsync(proxy);
-
-        Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(pipeline));
-    }
-
-    /// <summary>Verifies that a proxy received over an incoming connection has a null invoker by default.</summary>
-    [Test]
-    public async Task Proxy_received_over_an_incoming_connection_has_null_invoker()
-    {
-        var service = new SendProxyTestService();
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: service)
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new SendProxyTestProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
-
-        await proxy.SendProxyAsync(proxy);
-
-        Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
-    }
-
-    /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.
-    /// </summary>
-    [Test]
-    public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
-    {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new ReceiveProxyTestService())
-            .BuildServiceProvider(validateScopes: true);
-
-        provider.GetRequiredService<Server>().Listen();
-        ClientConnection connection = provider.GetRequiredService<ClientConnection>();
-        IInvoker invoker = new Pipeline().Into(connection);
-        var proxy = new ReceiveProxyTestProxy(invoker);
-
-        ReceiveProxyTestProxy received = await proxy.ReceiveProxyAsync();
-
-        Assert.That(received.Invoker, Is.EqualTo(invoker));
-    }
-
     [Test, TestCaseSource(nameof(ServiceAddressToUriSource))]
     public void Relative_service_address_to_uri(ServiceAddress serviceAddress, string expected)
     {
@@ -637,25 +569,5 @@ public class ServiceAddressTests
         // Assert
         Assert.That(serviceAddress.Path, Is.EqualTo("/foo"));
         Assert.That(serviceAddress.Protocol, Is.Null);
-    }
-
-    private sealed class ReceiveProxyTestService : Service, IReceiveProxyTestService
-    {
-        public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
-            new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
-    }
-
-    private sealed class SendProxyTestService : Service, ISendProxyTestService
-    {
-        public SendProxyTestProxy? ReceivedProxy { get; private set; }
-
-        public ValueTask SendProxyAsync(
-            SendProxyTestProxy proxy,
-            IFeatureCollection features,
-            CancellationToken cancellationToken = default)
-        {
-            ReceivedProxy = proxy;
-            return default;
-        }
     }
 }

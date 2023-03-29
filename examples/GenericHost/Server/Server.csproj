@@ -17,7 +17,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <SliceCompile Include="../Hello.slice" />
+    <SliceC Include="../Hello.slice" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />

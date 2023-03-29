@@ -22,8 +22,7 @@ interface Locator {
     /// @returns: A dummy service address, or null if a service with the requested identity (path) was not found.
     /// @throws ObjectNotFoundException: Thrown if a service with the requested identity (path) was not found. The
     /// caller should treat this exception like a null return value.
-    idempotent findObjectById(id: IceRpc::Slice::IdentityPath) -> WellKnownTypes::ServiceAddress?
-        throws ObjectNotFoundException
+    idempotent findObjectById(id: IdentityPath) -> WellKnownTypes::ServiceAddress? throws ObjectNotFoundException
 
     /// Finds an object adapter by adapter ID and returns a dummy service address with the object adapter's server
     /// address(es).
