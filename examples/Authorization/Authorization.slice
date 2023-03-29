@@ -14,11 +14,11 @@ struct IdentityToken {
 /// The encrypted identity token.
 typealias EncryptedIdentityToken = sequence<uint8>
 
-/// Represents a service to authenticate a user and return an identity token.
+/// Represents a service that authenticates a user and return an identity token.
 interface Authenticator {
     /// Authenticates a user.
     /// @param name: The user name.
-    /// @param password: The password.
+    /// @param password: The user password.
     /// @returns: The encrypted identity token.
     authenticate(name: string, password: string) -> EncryptedIdentityToken
 }
