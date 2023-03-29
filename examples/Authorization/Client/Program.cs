@@ -36,7 +36,7 @@ catch (DispatchException exception) when (exception.StatusCode == StatusCode.Una
 }
 
 // Authenticate the "admin" user and get its identity token.
-ReadOnlyMemory<byte> adminToken = await authenticatorProxy.AuthenticateAsync("admin", "password");
+ReadOnlyMemory<byte> adminToken = await authenticatorProxy.AuthenticateAsync("admin", "admin-password");
 
 // Create a greeting admin proxy that uses a pipe line to insert the "admin" token into a request field.
 Pipeline adminPipeline = new Pipeline().UseAuthentication(adminToken).Into(connection);

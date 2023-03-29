@@ -6,10 +6,10 @@ namespace AuthorizationExample;
 /// field.</summary>
 internal interface IIdentityFeature
 {
-    /// <summary><c>true</c> if the authenticated client has administrative privilege, <c>false</c> otherwise.</summary>
+    /// <summary><c>true</c> if the authenticated user has administrative privilege, <c>false</c> otherwise.</summary>
     bool IsAdmin { get; }
 
-    /// <summary>The name of the authenticated client.</summary>
+    /// <summary>The name of the authenticated user.</summary>
     string Name { get; }
 }
 

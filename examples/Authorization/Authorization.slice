@@ -4,7 +4,7 @@ module AuthorizationExample
 
 /// An identity token.
 struct IdentityToken {
-    /// true if the authenticated client has administrative privilege, false otherwise.
+    /// true if the authenticated user has administrative privilege, false otherwise.
     isAdmin: bool
 
     /// The user name.
