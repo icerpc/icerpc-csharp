@@ -5,7 +5,7 @@ runs:
   steps:
   - name: 🔗 Install Templates
     working-directory: src/IceRpc.ProjectTemplates
-    run: dotnet pack && dotnet new --install bin/Debug/IceRpc.ProjectTemplates.0.1.0-preview1.nupkg
+    run: dotnet pack && dotnet new install bin/Debug/IceRpc.ProjectTemplates.0.1.0-preview1.nupkg
     shell: bash
   - name: 🧪 Test IceRpc Client Template
     run: mkdir -p templates-test/client && cd templates-test/client && dotnet new icerpc-client && dotnet build
