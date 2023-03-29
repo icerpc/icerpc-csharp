@@ -2,9 +2,9 @@
 
 namespace AuthorizationExample;
 
-/// <summary>A feature that provides the name and administrative privilege decoded from an authentication token
+/// <summary>A feature that provides the name and administrative privilege decoded from an identity token
 /// field.</summary>
-internal interface IAuthenticationFeature
+internal interface IIdentityFeature
 {
     /// <summary><c>true</c> if the authenticated client has administrative privilege, <c>false</c> otherwise.</summary>
     bool IsAdmin { get; }
@@ -13,8 +13,8 @@ internal interface IAuthenticationFeature
     string Name { get; }
 }
 
-/// <summary>The implementation of <see cref="IAuthenticationFeature" />.</summary>
-internal class AuthenticationFeature : IAuthenticationFeature
+/// <summary>The implementation of <see cref="IIdentityFeature" />.</summary>
+internal class IdentityFeature : IIdentityFeature
 {
     /// <inheritdoc/>
     public bool IsAdmin { get; }
@@ -22,8 +22,8 @@ internal class AuthenticationFeature : IAuthenticationFeature
     /// <inheritdoc/>
     public string Name { get; }
 
-    /// <summary>Constructs an authentication feature from an authentication token.</summary>
-    internal AuthenticationFeature(AuthenticationToken token)
+    /// <summary>Constructs an identity feature from an identity token.</summary>
+    internal IdentityFeature(IdentityToken token)
     {
         Name = token.Name;
         IsAdmin = token.IsAdmin;

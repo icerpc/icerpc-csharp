@@ -7,14 +7,14 @@ using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
-/// <summary>Extension methods to encrypt and decrypt an authentication token.</summary>
-public static class AuthenticationTokenExtensions
+/// <summary>Extension methods to encrypt and decrypt an identity token.</summary>
+public static class IdentityTokenExtensions
 {
-    /// <summary>Decrypts an authentication token.</summary>
+    /// <summary>Decrypts an identity token.</summary>
     /// <param name="buffer">The byte buffer.</param>
-    /// <param name="algorithm">The symmetric algorithm used to decrypt an authentication token.</param>
-    /// <returns>The authentication token.</returns>
-    internal static AuthenticationToken DecryptAuthenticationToken(
+    /// <param name="algorithm">The symmetric algorithm used to decrypt an identity token.</param>
+    /// <returns>The identity token.</returns>
+    internal static IdentityToken DecryptIdentityToken(
         this ReadOnlySequence<byte> buffer,
         SymmetricAlgorithm algorithm)
     {
@@ -26,14 +26,14 @@ public static class AuthenticationTokenExtensions
 
         // Decode the Slice2 encoded token.
         var decoder = new SliceDecoder(destinationStream.ToArray(), SliceEncoding.Slice2);
-        return new AuthenticationToken(ref decoder);
+        return new IdentityToken(ref decoder);
     }
 
-    /// <summary>Encrypts an authentication token.</summary>
-    /// <param name="token">The authentication token.</param>
-    /// <param name="algorithm">The symmetric algorithm used to encrypt this authentication token.</param>
-    /// <returns>The encrypted authentication token.</returns>
-    internal static ReadOnlyMemory<byte> Encrypt(this AuthenticationToken token, SymmetricAlgorithm algorithm)
+    /// <summary>Encrypts an identity token.</summary>
+    /// <param name="token">The identity token.</param>
+    /// <param name="algorithm">The symmetric algorithm used to encrypt this identity token.</param>
+    /// <returns>The encrypted identity token.</returns>
+    internal static ReadOnlyMemory<byte> Encrypt(this IdentityToken token, SymmetricAlgorithm algorithm)
     {
         // Encode the token with the Slice2 encoding.
         using var tokenStream = new MemoryStream();

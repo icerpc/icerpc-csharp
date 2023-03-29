@@ -2,8 +2,8 @@
 
 module AuthorizationExample
 
-/// An authentication token.
-struct AuthenticationToken {
+/// An identity token.
+struct IdentityToken {
     /// true if the authenticated client has administrative privilege, false otherwise.
     isAdmin: bool
 
@@ -11,28 +11,28 @@ struct AuthenticationToken {
     name: string
 }
 
-/// The encrypted authentication token.
-typealias EncryptedAuthenticationToken = sequence<uint8>
+/// The encrypted identity token.
+typealias EncryptedIdentityToken = sequence<uint8>
 
-/// Represents a service to authentication a user and return an authentication token.
+/// Represents a service to authenticate a user and return an identity token.
 interface Authenticator {
     /// Authenticates a user.
     /// @param name: The user name.
     /// @param password: The password.
-    /// @returns: The encrypted authentication token.
-    authenticate(name: string, password: string) -> EncryptedAuthenticationToken
+    /// @returns: The encrypted identity token.
+    authenticate(name: string, password: string) -> EncryptedIdentityToken
 }
 
-/// Represents a recipient of hello greetings.
-interface Hello {
+/// Represents a recipient of greetings.
+interface Greeting {
     /// Creates a personalized "hello" greeting.
     /// @returns: The greeting.
-    sayHello() -> string
+    getGreeting() -> string
 }
 
-/// Represents a service to configure the hello service greeting.
-interface HelloAdmin {
-    /// Changes the greeting returned by the Hello service.
+/// Represents a service to configure the greeting of the greeting service.
+interface GreetingAdmin {
+    /// Changes the greeting returned by the Greeting service.
     /// @param greeting: The new greeting.
     changeGreeting(greeting: string)
 }

@@ -10,8 +10,8 @@ internal static class PipelineExtensions
 {
     /// <summary>Adds an <see cref="AuthenticationInterceptor" /> to the pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="authenticationToken">The encrypted authentication token.</param>
+    /// <param name="identityToken">The encrypted identity token.</param>
     /// <returns>The pipeline being configured.</returns>
-    internal static Pipeline UseAuthentication(this Pipeline pipeline, ReadOnlyMemory<byte> authenticationToken) =>
-        pipeline.Use(next => new AuthenticationInterceptor(next, authenticationToken));
+    internal static Pipeline UseAuthentication(this Pipeline pipeline, ReadOnlyMemory<byte> identityToken) =>
+        pipeline.Use(next => new AuthenticationInterceptor(next, identityToken));
 }

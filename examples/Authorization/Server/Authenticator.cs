@@ -18,15 +18,27 @@ internal class Authenticator : Service, IAuthenticatorService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        if (password != "password")
+        // Check if the user name and password are valid.
+        IdentityToken identityToken;
+        if (name == "admin" && password == "admin-password")
         {
-            throw new DispatchException(StatusCode.Unauthorized, "Invalid password.");
+            identityToken = new IdentityToken(isAdmin: true, name);
         }
-        return new(new AuthenticationToken(isAdmin: name == "admin", name).Encrypt(_encryptionAlgorithm));
+        else if (name == "friend" && password == "password")
+        {
+            identityToken = new IdentityToken(isAdmin: false, name);
+        }
+        else
+        {
+            throw new DispatchException(StatusCode.Unauthorized, "Unknown user or invalid password.");
+        }
+
+        // Return the encrypted identity token.
+        return new(identityToken.Encrypt(_encryptionAlgorithm));
     }
 
     /// <summary>Constructs an authenticator service.</summary>
-    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt an authentication token.</param>
+    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt an identity token.</param>
     internal Authenticator(SymmetricAlgorithm encryptionAlgorithm) => _encryptionAlgorithm = encryptionAlgorithm;
 
 }

@@ -11,7 +11,7 @@ internal static class RouterExtensions
 {
     /// <summary>Adds an <see cref="AuthenticationMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>
-    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt the authentication token.</param>
+    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt the identity token.</param>
     /// <returns>The router being configured.</returns>
     internal static Router UseAuthentication(this Router router, SymmetricAlgorithm encryptionAlgorithm) =>
         router.Use(next => new AuthenticationMiddleware(next, encryptionAlgorithm));
@@ -20,6 +20,6 @@ internal static class RouterExtensions
     /// <param name="router">The router being configured.</param>
     /// <param name="authorizeFunc">The function called by the middleware to check if the request is authorized.</param>
     /// <returns>The router being configured.</returns>
-    internal static Router UseAuthorization(this Router router, Func<IAuthenticationFeature, bool> authorizeFunc) =>
+    internal static Router UseAuthorization(this Router router, Func<IIdentityFeature, bool> authorizeFunc) =>
         router.Use(next => new AuthorizationMiddleware(next, authorizeFunc));
 }
