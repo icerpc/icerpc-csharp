@@ -47,6 +47,7 @@ pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) 
 
     for field in fields {
         let data_type = field.data_type();
+        // `is_value_type` returns false for custom types since we can't know what type the user mapped it to.
         if !data_type.is_optional && !data_type.is_value_type() {
             // This is to suppress compiler warnings for non-nullable fields.
             writeln!(code, "this.{} = default!;", field.field_name(field_type));
