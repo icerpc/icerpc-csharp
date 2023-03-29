@@ -33,6 +33,9 @@ In a separate window, start the Client program, passing the number of server ins
 dotnet run --project Client/Client.csproj -- 3
 ```
 
-Try stopping the first server instance, this will cause the invocations to retry on the second server instance.
-
 The client will continue sending invocations until you stop it with Ctrl+C.
+
+The invocation will only fail if all servers throw `DispatchException(StatusCode.Unavailable)`.
+
+You can also stop some of the servers while the client is running. The client will keep sending invocations unless all
+remaining servers throw `DispatchException(StatusCode.Unavailable)`.
