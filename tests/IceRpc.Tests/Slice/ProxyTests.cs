@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
@@ -256,12 +256,11 @@ public class ProxyTests
 
             // The copy of the outgoing response to the incoming response payload is necessary because the outgoing
             // response payload is completed when the incoming request is disposed.
-            var pipe = new Pipe();
-            await outgoingResponse.Payload.CopyToAsync(pipe.Writer, cancellationToken);
-            pipe.Writer.Complete();
+            PipeReader payload = outgoingResponse.Payload;
+            outgoingResponse.Payload = InvalidPipeReader.Instance;
             return new IncomingResponse(outgoingRequest, FakeConnectionContext.Instance)
             {
-                Payload = pipe.Reader
+                Payload = payload
             };
         }
 
