@@ -121,7 +121,7 @@ public class ProxyTests
     public async Task Downcast_proxy_with_as_async_succeeds()
     {
         // Arrange
-        var proxy = new MyBaseInterfaceProxy(new ToDispatcherInvoker(new MyDerivedInterfaceService()));
+        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyDerivedInterfaceService()));
 
         // Act
         MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
@@ -134,7 +134,7 @@ public class ProxyTests
     public async Task Downcast_proxy_with_as_async_fails()
     {
         // Arrange
-        var proxy = new MyBaseInterfaceProxy(new ToDispatcherInvoker(new MyBaseInterfaceService()));
+        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyBaseInterfaceService()));
 
         // Act
         MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
@@ -143,10 +143,26 @@ public class ProxyTests
         Assert.That(derived, Is.Null);
     }
 
-    /// <summary>Verifies that the proxy invoker for proxies decoded from incoming requests can be set using the Slice
+    /// <summary>Verifies that a proxy decoded from an incoming request has a null invoker by default.</summary>
+    [Test]
+    public async Task Proxy_decoded_from_incoming_request_has_null_invoker()
+    {
+        // Arrange
+        var service = new SendProxyTestService();
+        var proxy = new SendProxyTestProxy(new ColocInvoker(service));
+
+        // Act
+        await proxy.SendProxyAsync(proxy);
+
+        // Assert
+        Assert.That(service.ReceivedProxy, Is.Not.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
+    }
+
+    /// <summary>Verifies that the invoker of a proxy decoded from an incoming request can be set using a Slice
     /// feature.</summary>
     [Test]
-    public async Task Proxy_invoker_is_set_through_slice_feature()
+    public async Task Proxy_decoded_from_incoming_request_can_have_invoker_set_through_a_slice_feature()
     {
         // Arrange
         var service = new SendProxyTestService();
@@ -161,7 +177,7 @@ public class ProxyTests
                     ServiceAddress = serviceAddress
                 }));
 
-        var proxy = new SendProxyTestProxy(new ToDispatcherInvoker(router));
+        var proxy = new SendProxyTestProxy(new ColocInvoker(router));
 
         // Act
         await proxy.SendProxyAsync(proxy);
@@ -171,29 +187,12 @@ public class ProxyTests
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(pipeline));
     }
 
-    /// <summary>Verifies that a proxy received over an incoming connection has a null invoker by default.</summary>
+    /// <summary>Verifies that a proxy decoded from an incoming response inherits the callers invoker.</summary>
     [Test]
-    public async Task Proxy_received_over_an_incoming_connection_has_null_invoker()
+    public async Task Proxy_decoded_from_an_outgoing_response_inherits_the_callers_invoker()
     {
         // Arrange
-        var service = new SendProxyTestService();
-        var proxy = new SendProxyTestProxy(new ToDispatcherInvoker(service));
-
-        // Act
-        await proxy.SendProxyAsync(proxy);
-
-        // Assert
-        Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
-    }
-
-    /// <summary>Verifies that a service address received over an outgoing connection inherits the callers invoker.
-    /// </summary>
-    [Test]
-    public async Task Proxy_received_over_an_outgoing_connection_inherits_the_callers_invoker()
-    {
-        // Arrange
-        IInvoker invoker = new ToDispatcherInvoker(new ReceiveProxyTestService());
+        IInvoker invoker = new ColocInvoker(new ReceiveProxyTestService());
         var proxy = new ReceiveProxyTestProxy(invoker);
 
         // Act
@@ -233,7 +232,10 @@ public class ProxyTests
         }
     }
 
-    private sealed class ToDispatcherInvoker : IInvoker
+    /// <summary>An invoker that transforms an outgoing request into an incoming request, dispatches it to the
+    /// dispatcher configured with the invoker and finally transforms the outgoing response to an incoming response that
+    /// is returned to the caller.</summary>
+    private sealed class ColocInvoker : IInvoker
     {
         private readonly IDispatcher _dispatcher;
 
@@ -241,13 +243,19 @@ public class ProxyTests
             OutgoingRequest outgoingRequest,
             CancellationToken cancellationToken)
         {
+            // Payload continuation are not supported for now.
             using var incomingRequest = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
             {
                 Payload = outgoingRequest.Payload,
                 Path = outgoingRequest.ServiceAddress.Path,
                 Operation = outgoingRequest.Operation
             };
+
+            // Dispatch the request.
             OutgoingResponse outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
+
+            // The copy of the outgoing response to the incoming response payload is necessary because the outgoing
+            // response payload is completed when the incoming request is disposed.
             var pipe = new Pipe();
             await outgoingResponse.Payload.CopyToAsync(pipe.Writer, cancellationToken);
             pipe.Writer.Complete();
@@ -257,6 +265,6 @@ public class ProxyTests
             };
         }
 
-        internal ToDispatcherInvoker(IDispatcher dispatcher) => _dispatcher = dispatcher;
+        internal ColocInvoker(IDispatcher dispatcher) => _dispatcher = dispatcher;
     }
 }
