@@ -1,12 +1,13 @@
 # Authorization
 
-This example application illustrates how to create an authentication interceptor, authentication middleware and
-authorization middleware that can be used to authorize requests.
+This demo demonstrates how token based authorization and authentication can be implemented with an interceptor and  two
+middleware. The token provides identify information and is encrypted with a symmetric encryption algorithm (AES). An
+application would typically use a 3rd-party token based authentication library instead.
 
 The server is configured with two middleware: `AuthenticationMiddleware` and `AuthorizationMiddleware`. The first
 middleware is responsible for decrypting an identity token from the request field and storing it in a corresponding
 request feature. The second middleware is responsible for checking if the identity feature is present in the
-corresponding request feature and check if the request is authorized.
+corresponding request feature and it checks if the request is authorized.
 
 The client is configured with an `AuthenticationInterceptor` interceptor. The interceptor is responsible for adding the
 encrypted identity token to a request field. The identity token is returned by an `Authenticator` service after
