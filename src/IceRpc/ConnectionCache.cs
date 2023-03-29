@@ -484,13 +484,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 connectionException = exception;
             }
-            catch (InvalidDataException exception)
-            {
-                connectionException = exception;
-            }
-            // TODO are there other IceRpcError errors besides IceRpcError.IceRpcError that we want to
-            // let through.
-            catch (IceRpcException exception) when (exception.IceRpcError != IceRpcError.IceRpcError)
+            catch (IceRpcException exception)
             {
                 // keep going unless the connection cache was disposed or shut down
                 connectionException = exception;

@@ -105,7 +105,7 @@ public class RetryInterceptor : IInvoker
                         else
                         {
                             Debug.Assert(exception is not null);
-                            // It always safe to retry InvocationCanceled. For idempotent requests we also retry on
+                            // It's always safe to retry InvocationCanceled. For idempotent requests we also retry on
                             // ConnectionAborted and TruncatedData.
                             tryAgain = exception.IceRpcError switch
                             {
