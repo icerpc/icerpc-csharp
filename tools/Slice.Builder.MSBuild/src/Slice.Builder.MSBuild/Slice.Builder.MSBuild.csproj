@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(MSBuildThisFileDirectory)../../../../build/icerpc.version.props" />
+   <PropertyGroup>
+      <AssemblyName>Slice.Builder.MSBuild</AssemblyName>
+      <Version>$(IceRpcVersion)</Version>
+      <TargetFramework>netstandard2.0</TargetFramework>
+      <LangVersion>10.0</LangVersion>
+      <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+      <Title>IceRpc Builder MSBuild</Title>
+      <Authors>ZeroC</Authors>
+      <PackageId>$(AssemblyName)</PackageId>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
+      <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-builder-msbuild</PackageProjectUrl>
+      <RepositoryUrl>https://github.com/zeroc-ice/icerpc-builder-msbuild</RepositoryUrl>
+      <PackageIcon>logo.png</PackageIcon>
+      <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+      <Description>IceRPC builder for MSBuild</Description>
+      <PackageReleaseNotes>CHANGELOG.md</PackageReleaseNotes>
+      <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+      <PackageTags>IceRPC;MSbuild;Slice</PackageTags>
+      <PackageReadmeFile>README.md</PackageReadmeFile>
+      <PackageType>Dependency</PackageType>
+      <IncludeBuildOutput>false</IncludeBuildOutput>
+      <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+      <NoWarn>NU5100</NoWarn>
+      <TimeStampServer Condition="'$(SIGN_TIMESTAMPSERVER)' == ''">http://timestamp.digicert.com</TimeStampServer>
+      <SignCommandSHA1 Condition="Exists('$(SIGN_CERTIFICATE)')">signtool sign /f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /t $(TimeStampServer)</SignCommandSHA1>
+      <SignCommandSHA256 Condition="Exists('$(SIGN_CERTIFICATE)')">signtool sign /f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256 /as</SignCommandSHA256>
+      <RustConfiguration Condition="'$(Configuration)' == 'Release'">release</RustConfiguration>
+      <RustConfiguration Condition="'$(Configuration)' == 'Debug'">debug</RustConfiguration>
+      <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
+      <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
+   </PropertyGroup>
+   <ItemGroup>
+      <PackageReference Include="Microsoft.Build.Framework" Version="16.11.0" />
+      <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.11.0" />
+      <PackageReference Include="System.Text.Json" Version="6.0.5" />
+   </ItemGroup>
+   <Target Name="Sign" AfterTargets="CopyFilesToOutputDirectory" Condition="Exists('$(SIGN_CERTIFICATE)')">
+      <Exec Command="$(SignCommandSHA1) $(OutputPath)$(AssemblyName).dll" />
+      <Exec Command="$(SignCommandSHA256) $(OutputPath)$(AssemblyName).dll" />
+   </Target>
+   <ItemGroup>
+      <Content Include="..\..\..\..\LICENSE">
+         <PackagePath />
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="..\..\README.md">
+         <PackagePath />
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="Slice.Builder.MSBuild.props">
+         <PackagePath>build</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="Slice.Builder.MSBuild.targets">
+         <PackagePath>build</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="SliceCCSharp.xaml">
+         <PackagePath>build</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="SliceCCSharp.File.xaml">
+         <PackagePath>build</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="ProjectItemsSchema.xaml">
+         <PackagePath>build</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <None Include="..\..\logo.png">
+         <Pack>True</Pack>
+         <PackagePath />
+      </None>
+      <Content Include="..\..\..\slicec-cs\target\$(RustConfiguration)\$(SliceCompilerExe)">
+         <PackagePath>tools</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="..\..\..\..\slice\**\*.slice">
+         <Pack>true</Pack>
+         <PackagePath>slice</PackagePath>
+      </Content>
+      <None Include="$(IntermediateOutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
+   </ItemGroup>
+   <ItemGroup>
+      <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
+   </ItemGroup>
+</Project>

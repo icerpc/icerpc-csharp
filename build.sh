@@ -2,7 +2,7 @@
 
 set -ue
 
-version="0.1.0-preview1"
+version="0.1.0-preview2"
 
 usage()
 {

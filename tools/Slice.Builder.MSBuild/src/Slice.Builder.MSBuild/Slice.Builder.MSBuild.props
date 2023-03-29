@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) ZeroC, Inc. All rights reserved. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <EnableDefaultSliceCItems Condition="'$(EnableDefaultSliceCItems)' == ''">true</EnableDefaultSliceCItems>
+    </PropertyGroup>
+    <Choose>
+        <When Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\slicec-cs')">
+            <!-- Use Slice files and Slice compiler from this source build -->
+            <PropertyGroup>
+                <SliceBuilderToolsPath Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)..\..\..\slicec-cs\target\debug</SliceBuilderToolsPath>
+                <SliceBuilderToolsPath Condition="'$(Configuration)' == 'Release'">$(MSBuildThisFileDirectory)..\..\..\slicec-cs\target\release</SliceBuilderToolsPath>
+                <SliceBuilderBuiltInReferencedFiles>$(MSBuildThisFileDirectory)..\..\..\..\slice</SliceBuilderBuiltInReferencedFiles>
+            </PropertyGroup>
+        </When>
+        <Otherwise>
+            <!-- Use Slice files and Slice compiler from this NuGet package -->
+            <PropertyGroup>
+                <SliceBuilderToolsPath>$(MSBuildThisFileDirectory)..\tools</SliceBuilderToolsPath>
+                <SliceBuilderBuiltInReferencedFiles>$(MSBuildThisFileDirectory)..\slice</SliceBuilderBuiltInReferencedFiles>
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
+
+    <Choose>
+        <When Condition="Exists('$(MSBuildThisFileDirectory)bin\$(Configuration)\netstandard2.0\Slice.Builder.MSBuild.dll')">
+            <PropertyGroup>
+                <SliceBuilderAssembliesPath>$(MSBuildThisFileDirectory)bin\$(Configuration)\netstandard2.0\</SliceBuilderAssembliesPath>
+            </PropertyGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <SliceBuilderAssembliesPath>$(MSBuildThisFileDirectory)..\tasks\</SliceBuilderAssembliesPath>
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
+    <!-- default values -->
+    <ItemDefinitionGroup>
+        <SliceC>
+            <OutputDir>$(MSBuildProjectDirectory)\generated</OutputDir>
+        </SliceC>
+    </ItemDefinitionGroup>
+</Project>
