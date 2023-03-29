@@ -13,8 +13,8 @@ internal class AuthorizationMiddleware : IDispatcher
 
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Features.Get<IIdentityFeature>() is IIdentityFeature authenticationFeature &&
-            _authorizeFunc(authenticationFeature))
+        if (request.Features.Get<IIdentityFeature>() is IIdentityFeature identityFeature &&
+            _authorizeFunc(identityFeature))
         {
             return _next.DispatchAsync(request, cancellationToken);
         }

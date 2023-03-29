@@ -4,7 +4,7 @@ namespace AuthorizationExample;
 
 /// <summary>A feature that provides the name and administrative privilege decoded from an identity token
 /// field.</summary>
-internal interface IIdentityFeature
+public interface IIdentityFeature
 {
     /// <summary><c>true</c> if the authenticated user has administrative privilege, <c>false</c> otherwise.</summary>
     bool IsAdmin { get; }
