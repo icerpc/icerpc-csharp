@@ -35,7 +35,7 @@ dotnet run --project Client/Client.csproj -- 3
 
 The client will continue sending invocations until you stop it with Ctrl+C.
 
-The invocation will only fail if all servers reply with `Unavailable` status code.
+The invocation will only fail if all servers throw `DispatchException(StatusCode.Unavailable)`.
 
-You can also try stoping some of the servers while the client is running, and the client should keep working using the
-available servers.
+You can also stop some of the servers while the client is running. The client will keep sending invocations unless all
+remaining servers throw `DispatchException(StatusCode.Unavailable)`.
