@@ -14,7 +14,7 @@
       <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-builder-msbuild</PackageProjectUrl>
       <RepositoryUrl>https://github.com/zeroc-ice/icerpc-builder-msbuild</RepositoryUrl>
       <PackageIcon>logo.png</PackageIcon>
-      <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+      <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
       <Description>IceRPC builder for MSBuild</Description>
       <PackageReleaseNotes>CHANGELOG.md</PackageReleaseNotes>
       <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

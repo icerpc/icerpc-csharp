@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (c) ZeroC, Inc. All rights reserved. -->
+<!-- Copyright (c) ZeroC, Inc. -->
 <ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
     <ContentType Name="SliceFile" DisplayName="Slice file" ItemType="SliceC" />
     <ItemType Name="SliceC" DisplayName="Slice file" />
