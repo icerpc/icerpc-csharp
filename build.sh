@@ -2,7 +2,8 @@
 
 set -ue
 
-version="0.1.0-preview2"
+# Read version from icerpc.version.props
+version=$(cat build/icerpc.version.props | grep IceRpcVersion | sed -E "s/<IceRpcVersion .*>(.*)<\/IceRpcVersion>/\1/g" | sed -e 's/^[[:space:]]*//')
 
 usage()
 {
