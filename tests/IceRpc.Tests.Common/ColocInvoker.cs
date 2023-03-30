@@ -3,6 +3,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Common;
@@ -21,23 +22,52 @@ public sealed class ColocInvoker : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        // Payload continuation are not supported for now.
+        // Create the incoming request from the outgoing request to forward to the dispatcher.
         using var incomingRequest = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
         {
-            Payload = request.Payload,
+            Payload = await GetPayloadFromOutgoingFrameAsync(request, cancellationToken),
             Path = request.ServiceAddress.Path,
             Operation = request.Operation
         };
 
         // Dispatch the request.
-        OutgoingResponse outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
-
-        // Payload continuation are not supported for now.
-        PipeReader payload = outgoingResponse.Payload;
-        outgoingResponse.Payload = InvalidPipeReader.Instance;
-        return new IncomingResponse(request, FakeConnectionContext.Instance)
+        try
         {
-            Payload = payload
-        };
+            OutgoingResponse outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
+
+            // Create the incoming response from the outgoing response returned by the dispatcher.
+            PipeReader payload = await GetPayloadFromOutgoingFrameAsync(outgoingResponse, cancellationToken);
+            outgoingResponse.Payload = InvalidPipeReader.Instance;
+            outgoingResponse.PayloadContinuation = null;
+            return new IncomingResponse(request, FakeConnectionContext.Instance)
+            {
+                Payload = payload
+            };
+        }
+        catch
+        {
+            Debug.Fail("The coloc interceptor doesn't support handling dispatch exceptions.");
+            throw;
+        }
+
+        static async Task<PipeReader> GetPayloadFromOutgoingFrameAsync(
+            OutgoingFrame outgoingFrame,
+            CancellationToken cancellationToken)
+        {
+            PipeReader payload;
+            if (outgoingFrame.PayloadContinuation is null)
+            {
+                payload = outgoingFrame.Payload;
+            }
+            else
+            {
+                var pipe = new Pipe();
+                await outgoingFrame.Payload.CopyToAsync(pipe.Writer, cancellationToken);
+                await outgoingFrame.PayloadContinuation.CopyToAsync(pipe.Writer, cancellationToken);
+                pipe.Writer.Complete();
+                payload = pipe.Reader;
+            }
+            return payload;
+        }
     }
 }
