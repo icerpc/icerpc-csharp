@@ -3,15 +3,12 @@
     <PropertyGroup>
         <ProjectTemplatesDirectory>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)/ProjectTemplates/'))</ProjectTemplatesDirectory>
         <SrcDirectory>$(MSBuildThisFileDirectory)</SrcDirectory>
-        <IsUnitTestProject Condition="$(MSBuildProjectName.EndsWith('.Tests'))">true</IsUnitTestProject>
         <IsTemplateProject Condition="$(MSBuildProjectDirectory.StartsWith('$(ProjectTemplatesDirectory)'))">true</IsTemplateProject>
         <IsSrcProject Condition="$(MSBuildProjectDirectory.StartsWith('$(SrcDirectory)')) AND '$(IsTemplateProject)' != 'true'">true</IsSrcProject>
-        <IsUnitTestProject Condition="'$(IsUnitTestProject)' == ''">false</IsUnitTestProject>
     </PropertyGroup>
     <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.src.props" Condition="'$(IsSrcProject)' == 'true'" />
     <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.version.props" Condition="'$(IsTemplateProject)' == 'true'" />
-    <Import Project="$(MSBuildThisFileDirectory)../build/test.props" Condition="'$(IsUnitTestProject)' == 'true'" />
-    <Import Project="$(MSBuildThisFileDirectory)../tools/Slice.Builder.MSBuild/src/Slice.Builder.MSBuild/Slice.Builder.MSBuild.props" />
+    <Import Project="$(MSBuildThisFileDirectory)../tools/Slice.Builder.MSBuild/src/Slice.Builder.MSBuild/Slice.Builder.MSBuild.props" Condition="'$(IsSrcProject)' == 'true'"/>
     <PropertyGroup>
         <!-- Include PDB in the built .nupkg -->
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
@@ -20,6 +17,5 @@
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/stylecop.json" Link="stylecop.json" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.base.globalconfig" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.src.globalconfig" Condition="'$(IsSrcProject)' == 'true'" />
-        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.tests.globalconfig" Condition="'$(IsUnitTestProject)' == 'true'" />
     </ItemGroup>
 </Project>
