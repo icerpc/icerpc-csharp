@@ -4,5 +4,5 @@ runs:
   using: "composite"
   steps:
   - name: 📦 Install
-    run: ./build.sh --install
+    run: ./build.sh install
     shell: bash
