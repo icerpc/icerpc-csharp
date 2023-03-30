@@ -168,7 +168,7 @@ public class SliceCCSharpTask : ToolTask
         catch (JsonException)
         {
             // If we failed to parse the message as Json this is either a compiler panic, or a error from the
-            // compiler that was not correctly formated.
+            // compiler that was not correctly formatted.
             Log.LogError(
                 "",
                 "",

@@ -24,7 +24,7 @@
       <IncludeBuildOutput>false</IncludeBuildOutput>
       <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
       <NoWarn>NU5100</NoWarn>
-      <TimeStampServer Condition="'$(SIGN_TIMESTAMPSERVER)' == ''">http://timestamp.digicert.com</TimeStampServer>
+      <TimeStampServer Condition="'$(SIGN_TIMESTAMP_SERVER)' == ''">http://timestamp.digicert.com</TimeStampServer>
       <SignCommandSHA1 Condition="Exists('$(SIGN_CERTIFICATE)')">signtool sign /f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /t $(TimeStampServer)</SignCommandSHA1>
       <SignCommandSHA256 Condition="Exists('$(SIGN_CERTIFICATE)')">signtool sign /f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256 /as</SignCommandSHA256>
       <RustConfiguration Condition="'$(Configuration)' == 'Release'">release</RustConfiguration>
