@@ -23,9 +23,7 @@ internal class Chatbot : Service, IHelloService
         // 50% failure/success ratio
         if (RandomNumberGenerator.GetInt32(10) < 5)
         {
-            // Randomly set status code to Unavailable
-            throw new DispatchException(
-                RandomNumberGenerator.GetInt32(10) < 5 ? StatusCode.Unavailable : StatusCode.ServiceNotFound);
+            throw new DispatchException(StatusCode.Unavailable);
         }
         else
         {

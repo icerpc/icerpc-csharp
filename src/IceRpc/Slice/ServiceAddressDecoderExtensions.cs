@@ -51,7 +51,7 @@ public static class ServiceAddressSliceDecoderExtensions
             throw new InvalidOperationException(
                 $"Decoding a nullable Proxy with {decoder.Encoding} requires a bit sequence.");
         }
-        string path = decoder.DecodeIdentityPath();
+        string path = decoder.DecodeIceIdentityPath();
         return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
     }
 
@@ -64,9 +64,8 @@ public static class ServiceAddressSliceDecoderExtensions
         // With Slice1, a proxy is encoded as a kind of discriminated union with:
         // - Identity
         // - If Identity is not the null identity:
-        //     - The fragment, invocation mode, protocol major and minor, and the
-        //       encoding major and minor
-        //     - a sequence of server addresses that can be empty
+        //     - the fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
+        //     - a sequence of server addresses (can be empty)
         //     - an adapter ID string present only when the sequence of server addresses is empty
 
         string fragment = decoder.DecodeFragment();

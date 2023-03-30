@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
 using System.Globalization;
 
 namespace IceRpc.Transports.Internal;
@@ -8,10 +7,10 @@ namespace IceRpc.Transports.Internal;
 /// <summary>Extension methods for class ServerAddress.</summary>
 internal static class ServerAddressExtensions
 {
-    internal static (TransportCode TransportCode, byte EncodingMajor, byte EncodingMinor, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
+    internal static (short TransportCode, byte EncodingMajor, byte EncodingMinor, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
        this ServerAddress serverAddress)
     {
-        TransportCode? transportCode = null;
+        short transportCode = -1;
         ReadOnlyMemory<byte> bytes = default;
         byte encodingMajor = 1;
         byte encodingMinor = 1;
@@ -30,10 +29,9 @@ internal static class ServerAddressExtensions
                     break;
 
                 case "t":
-                    short t;
                     try
                     {
-                        t = short.Parse(value, CultureInfo.InvariantCulture);
+                        transportCode = short.Parse(value, CultureInfo.InvariantCulture);
                     }
                     catch (FormatException exception)
                     {
@@ -41,13 +39,11 @@ internal static class ServerAddressExtensions
                             $"Invalid value for parameter 't' in server address: '{serverAddress}'.", exception);
                     }
 
-                    if (t < 0)
+                    if (transportCode < 0)
                     {
                         throw new FormatException(
                             $"The value for parameter 't' is out of range in server address: '{serverAddress}'.");
                     }
-
-                    transportCode = (TransportCode)t;
                     break;
 
                 case "v":
@@ -66,7 +62,7 @@ internal static class ServerAddressExtensions
             }
         }
 
-        if (transportCode is null)
+        if (transportCode == -1)
         {
             throw new FormatException($"Missing 't' parameter in server address: '{serverAddress}'.");
         }
@@ -75,6 +71,6 @@ internal static class ServerAddressExtensions
             throw new FormatException($"Missing 'v' parameter in server address: '{serverAddress}'.");
         }
 
-        return (transportCode.Value, encodingMajor, encodingMinor, bytes);
+        return (transportCode, encodingMajor, encodingMinor, bytes);
     }
 }

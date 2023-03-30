@@ -16,9 +16,6 @@ internal class ColocClientTransport : IDuplexClientTransport
     private readonly ColocTransportOptions _options;
 
     /// <inheritdoc/>
-    public bool CheckParams(ServerAddress serverAddress) => ColocTransport.CheckParams(serverAddress);
-
-    /// <inheritdoc/>
     public IDuplexConnection CreateConnection(
         ServerAddress serverAddress,
         DuplexConnectionOptions duplexConnectionOptions,
@@ -30,7 +27,7 @@ internal class ColocClientTransport : IDuplexClientTransport
         }
 
         if ((serverAddress.Transport is string transport && transport != ColocTransport.Name) ||
-            !CheckParams(serverAddress))
+            !ColocTransport.CheckParams(serverAddress))
         {
             throw new ArgumentException(
                 $"The server address '{serverAddress}' contains parameters that are not valid for the Coloc client transport.",
