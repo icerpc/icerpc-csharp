@@ -44,14 +44,36 @@ clean_compiler()
     popd
 }
 
+build_slice_builder()
+{
+    pushd tools/Slice.Builder.MSBuild
+    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config"
+    popd
+}
+
+clean_slice_builder()
+{
+    pushd tools/Slice.Builder.MSBuild
+    run_command dotnet "clean" "-nr:false" "-c" "$dotnet_config"
+    popd
+}
+
 build_icerpc()
 {
-    run_command dotnet "build" "-c" "$dotnet_config"
+    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config"
+}
+
+clean_icerpc()
+{
+    run_command dotnet "clean" "-nr:false"
 }
 
 pack()
 {
-    run_command dotnet "pack" "-c" "$dotnet_config"
+    pushd tools/Slice.Builder.MSBuild
+    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    popd
+    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
 }
 
 install()
@@ -60,7 +82,8 @@ install()
     pack
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
-    run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
+    run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version" "$global_packages"/slice.builder.msbuild/"$version"
+    run_command dotnet "nuget" "push" "tools/**/$dotnet_config/*.nupkg" "--source" "$global_packages"
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.nupkg" "--source" "$global_packages"
 }
 
@@ -76,15 +99,11 @@ install_templates()
     popd
 }
 
-clean_icerpc()
-{
-    run_command dotnet clean
-}
-
 build()
 {
     if [ "$examples" == "no" ]; then
         build_compiler
+        build_slice_builder
         build_icerpc
     else
         if [ "$srcdist" == "yes" ]; then
@@ -92,7 +111,7 @@ build()
         fi
         for solution in examples/*/*.sln examples/*/*/*.sln
         do
-            run_command dotnet "build" "-c" "$dotnet_config" "$solution"
+            run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" "$solution"
         done
     fi
 }
@@ -106,6 +125,7 @@ rebuild()
 clean()
 {
     clean_compiler
+    clean_slice_builder
     clean_icerpc
 }
 
