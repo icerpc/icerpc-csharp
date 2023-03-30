@@ -8,7 +8,7 @@
     </PropertyGroup>
     <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.src.props" Condition="'$(IsSrcProject)' == 'true'" />
     <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.version.props" Condition="'$(IsTemplateProject)' == 'true'" />
-    <Import Project="$(MSBuildThisFileDirectory)../tools/Slice.Builder.MSBuild/src/Slice.Builder.MSBuild/Slice.Builder.MSBuild.props" Condition="'$(IsSrcProject)' == 'true'"/>
+    <Import Project="$(MSBuildThisFileDirectory)../tools/IceRpc.Tools/src/IceRpc.Tools/IceRpc.Tools.props" Condition="'$(IsSrcProject)' == 'true'"/>
     <PropertyGroup>
         <!-- Include PDB in the built .nupkg -->
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>

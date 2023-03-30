@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <SliceC Include="../Downloader.slice" />
-    <PackageReference Include="Slice.Builder.MSBuild" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>

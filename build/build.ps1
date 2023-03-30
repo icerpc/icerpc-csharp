@@ -30,15 +30,15 @@ function CleanCompiler($config) {
     Pop-Location
 }
 
-function BuildSliceBuilder($config) {
-    Push-Location "tools\Slice.Builder.MSBuild"
+function BuildIceRpcTools($config) {
+    Push-Location "tools\IceRpc.Tools"
     $dotnetConfiguration = DotnetConfiguration($config)
     RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
-function CleanSliceBuilder($config) {
-    Push-Location "tools\Slice.Builder.MSBuild"
+function CleanIceRpcTools($config) {
+    Push-Location "tools\IceRpc.Tools"
     $dotnetConfiguration = DotnetConfiguration($config)
     RunCommand "dotnet" @('clean', '-nr:false', '--configuration', $dotnetConfiguration)
     Pop-Location
@@ -78,7 +78,7 @@ function Build($config, $examples, $srcdist) {
         BuildIceRpcExamples $config
     } else {
         BuildCompiler $config
-        BuildSliceBuilder $config
+        BuildIceRpcTools $config
         BuildIceRpc $config
     }
 }
@@ -89,7 +89,7 @@ function Install($config) {
     Pack $config
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
-    Remove-Item $global_packages"\Slice.Builder.MSBuild\$version" -Recurse -Force -ErrorAction Ignore
+    Remove-Item $global_packages"\IceRpc.Tools\$version" -Recurse -Force -ErrorAction Ignore
     $packages = Get-Childitem -Path "." -Include *.nupkg -Recurse
     foreach ($package in $packages)
     {
@@ -116,7 +116,7 @@ function InstallTemplates($config) {
 
 function Pack($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    Push-Location "tools\Slice.Builder.MSBuild"
+    Push-Location "tools\IceRpc.Tools"
     RunCommand "dotnet"  @('pack', '--configuration', $dotnetConfiguration)
     Pop-Location
     RunCommand "dotnet"  @('pack', '-nr:false', '--configuration', $dotnetConfiguration)
