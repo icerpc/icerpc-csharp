@@ -484,7 +484,11 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
             {
                 connectionException = exception;
             }
-            catch (IceRpcException exception)
+            catch (IceRpcException exception) when (exception.IceRpcError is
+                IceRpcError.ConnectionAborted or
+                IceRpcError.ConnectionRefused or
+                IceRpcError.ServerBusy or
+                IceRpcError.ServerUnreachable)
             {
                 // keep going unless the connection cache was disposed or shut down
                 connectionException = exception;

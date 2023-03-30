@@ -105,8 +105,9 @@ public class RetryInterceptor : IInvoker
                         else
                         {
                             Debug.Assert(exception is not null);
-                            // It's always safe to retry InvocationCanceled. For idempotent requests we also retry on
-                            // ConnectionAborted and TruncatedData.
+                            // It's always safe to retry InvocationCanceled because it's only raised before the request
+                            // is sent to the peer. For idempotent requests we can also retry on ConnectionAborted and
+                            // TruncatedData.
                             tryAgain = exception.IceRpcError switch
                             {
                                 IceRpcError.InvocationCanceled => true,
@@ -151,6 +152,5 @@ public class RetryInterceptor : IInvoker
     }
 
     private IDisposable? CreateRetryLogScope(int attempt) =>
-        _logger != NullLogger.Instance && attempt > 1 ?
-            _logger.RetryScope(attempt, _options.MaxAttempts) : null;
+        _logger != NullLogger.Instance && attempt > 1 ? _logger.RetryScope(attempt, _options.MaxAttempts) : null;
 }
