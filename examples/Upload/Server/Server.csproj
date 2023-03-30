@@ -2,8 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <SliceC Include="../Uploader.slice" />
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
-    <PackageReference Include="icerpc" Version="$(IceRpcVersion)" />
+    <PackageReference Include="Slice.Builder.MSBuild" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>
