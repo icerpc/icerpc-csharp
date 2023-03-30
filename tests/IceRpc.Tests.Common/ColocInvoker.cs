@@ -3,7 +3,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Common;
@@ -23,7 +22,7 @@ public sealed class ColocInvoker : IInvoker
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         // Create the incoming request from the outgoing request to forward to the dispatcher.
-        using var incomingRequest = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        using var incomingRequest = new IncomingRequest(request.Protocol, FakeConnectionContext.Instance)
         {
             Payload = await GetPayloadFromOutgoingFrameAsync(request, cancellationToken),
             Path = request.ServiceAddress.Path,
@@ -31,24 +30,33 @@ public sealed class ColocInvoker : IInvoker
         };
 
         // Dispatch the request.
+        OutgoingResponse outgoingResponse;
         try
         {
-            OutgoingResponse outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
-
-            // Create the incoming response from the outgoing response returned by the dispatcher.
-            PipeReader payload = await GetPayloadFromOutgoingFrameAsync(outgoingResponse, cancellationToken);
-            outgoingResponse.Payload = InvalidPipeReader.Instance;
-            outgoingResponse.PayloadContinuation = null;
-            return new IncomingResponse(request, FakeConnectionContext.Instance)
-            {
-                Payload = payload
-            };
+            outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
         }
-        catch
+        catch (DispatchException exception) when (!exception.ConvertToUnhandled)
         {
-            Debug.Fail("The coloc interceptor doesn't support handling dispatch exceptions.");
-            throw;
+            outgoingResponse = new OutgoingResponse(incomingRequest, exception);
         }
+        catch (Exception exception)
+        {
+            var dispatchException = new DispatchException(StatusCode.UnhandledException, message: null, exception);
+            outgoingResponse = new OutgoingResponse(incomingRequest, dispatchException);
+        }
+
+        // Create the incoming response from the outgoing response returned by the dispatcher.
+        PipeReader payload = await GetPayloadFromOutgoingFrameAsync(outgoingResponse, cancellationToken);
+        outgoingResponse.Payload = InvalidPipeReader.Instance;
+        outgoingResponse.PayloadContinuation = null;
+        return new IncomingResponse(
+            request,
+            FakeConnectionContext.Instance,
+            outgoingResponse.StatusCode,
+            outgoingResponse.ErrorMessage)
+        {
+            Payload = payload
+        };
 
         static async Task<PipeReader> GetPayloadFromOutgoingFrameAsync(
             OutgoingFrame outgoingFrame,
