@@ -24,7 +24,7 @@
           ]
         }
       ],
-      "dest":"api",
+      "dest":"./",
       "includePrivateMembers":false,
       "disableGitFeatures":false,
       "disableDefaultFilter":false,
@@ -36,18 +36,10 @@
     "content":[
       {
         "files":[
-          "api/**.yml",
-          "api/index.md"
+            "**.yml",
+            "index.md"
         ]
       },
-      {
-        "files":[
-          "articles/**.md",
-          "articles/**/toc.yml",
-          "toc.yml",
-          "*.md"
-        ]
-      }
     ],
     "resource":[
       {
