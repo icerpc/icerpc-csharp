@@ -4,16 +4,12 @@ Slice Builder for MSBuild provides support for compiling Slice source files (`.s
 
 ## Contents
 
-* [Installation](#installation)
+* [Usage](#usage)
 * [Adding Slice Files to your Project](#adding-slice-files-to-your-project)
-* [Selecting your IceRpc Installation](#selecting-your-icerpc-installation)
-* [Building Slice Builder for MSBuild from Source](#building-slice-builder-for-msbuild-from-source)
-  * [Build Requirements](#build-requirements)
-  * [Build Instructions](#build-instructions)
 
-## Installation
+## Usage
 
-To install Slice Builder for MSBuild, you just need to add the `Slice.Builder.MSBuild` [NuGet package][1] to your C#
+To use the Slice Builder for MSBuild, you just need to add the `Slice.Builder.MSBuild` [NuGet package][1] to your C#
 project.
 
 ```
@@ -36,23 +32,6 @@ As an alternative, you can add Slice files to your project using the `SliceC` it
 <ItemGroup>
     <SliceC Include="../Hello.slice"/>
 </ItemGroup>
-```
-
-
-## Building Slice Builder for MSBuild from Source
-
-### Build Requirements
-
-You need .NET SDK version 6.0 or above.
-
-### Build Instructions
-
-Open a command prompt and run the following command
-
-```
-dotnet restore
-dotnet build
-dotnet pack
 ```
 
 [1]: https://www.nuget.org/packages/Slice.Builder.MSBuild/
