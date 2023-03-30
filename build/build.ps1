@@ -11,7 +11,8 @@ param (
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
 
-$version = "0.1.0-preview2"
+Get-Content .\build\icerpc.version.props -Raw | Where {$_ -match "<IceRpcVersion .*>(.*)</IceRpcVersion>"} | Out-Null
+$version = $Matches.1
 
 function BuildCompiler($config) {
     Push-Location "tools\slicec-cs"
