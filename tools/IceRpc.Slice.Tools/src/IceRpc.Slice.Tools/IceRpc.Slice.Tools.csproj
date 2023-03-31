@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="$(MSBuildThisFileDirectory)../../../../build/icerpc.version.props" />
+   <Import Project="$(MSBuildThisFileDirectory)PlatformInfo.props" />
+   <Import Project="$(MSBuildThisFileDirectory)../../../../build/icerpc.version.props" />
    <PropertyGroup>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
       <Version>$(IceRpcVersion)</Version>
@@ -50,6 +51,10 @@
          <PackagePath />
          <Pack>true</Pack>
       </Content>
+      <Content Include="PlatformInfo.props">
+         <PackagePath>build</PackagePath>
+         <Pack>true</Pack>
+      </Content>
       <Content Include="IceRpc.Slice.Tools.props">
          <PackagePath>build</PackagePath>
          <Pack>true</Pack>
@@ -74,16 +79,41 @@
          <Pack>True</Pack>
          <PackagePath />
       </None>
-      <Content Include="..\..\..\slicec-cs\target\$(RustConfiguration)\$(SliceCompilerExe)">
-         <PackagePath>tools</PackagePath>
-         <Pack>true</Pack>
-      </Content>
       <Content Include="..\..\..\..\slice\**\*.slice">
          <Pack>true</Pack>
          <PackagePath>slice</PackagePath>
       </Content>
       <None Include="$(IntermediateOutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
    </ItemGroup>
+   <Choose>
+      <When Condition="'$(ICERPC_RELEASE_BUILD)' == 'yes'">
+         <!-- When ICERPC_RELEASE_BUILD is set the NuGet package includes the slicec-cs compiler for all supported platforms.
+         The binaries must be pre-build and located in ICERPC_SLICE_TOOLS_PATH. -->
+         <ItemGroup>
+            <Content Include="$(ICERPC_RELEASE_BUILD)\linux-x64\slicec-cs">
+               <PackagePath>tools\linux-x86_64\slicec-cs</PackagePath>
+               <Pack>true</Pack>
+            </Content>
+            <Content Include="$(ICERPC_RELEASE_BUILD)\macOS-x64\slicec-cs">
+               <PackagePath>tools\macOS-x86_64\slicec-cs</PackagePath>
+               <Pack>true</Pack>
+            </Content>
+            <Content Include="$(ICERPC_RELEASE_BUILD)\windows-x4\slicec-cs.exe">
+               <PackagePath>tools\windows-x4\slicec-cs.exe</PackagePath>
+               <Pack>true</Pack>
+            </Content>
+         </ItemGroup>
+      </When>
+      <Otherwise>
+         <ItemGroup>
+            <!-- Otherwise just include the slicec-cs from the current build -->
+            <Content Include="..\..\..\slicec-cs\target\$(RustConfiguration)\$(SliceCompilerExe)">
+               <PackagePath>tools\$(OSName)-$(OSArch)</PackagePath>
+               <Pack>true</Pack>
+            </Content>
+         </ItemGroup>
+      </Otherwise>
+   </Choose>
    <ItemGroup>
       <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
    </ItemGroup>
