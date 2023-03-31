@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-// Copyright (c) ZeroC, Inc.
-
 using IceRpc.Internal;
 using System.IO.Pipelines;
 
@@ -14,7 +12,7 @@ public sealed class ColocInvoker : IInvoker
 {
     private readonly IDispatcher _dispatcher;
 
-    /// <summary>Constructs a collocated invoker.</summary>
+    /// <summary>Constructs a colocated invoker.</summary>
     /// <param name="dispatcher">The dispatcher to forward requests to.</param>
     public ColocInvoker(IDispatcher dispatcher) => _dispatcher = dispatcher;
 
