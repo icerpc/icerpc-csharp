@@ -26,7 +26,7 @@ internal static class QuicExceptionExtensions
                                 IceRpcError.ConnectionAborted,
                                 $"The connection was aborted by the peer."),
                         _ => new IceRpcException(
-                                IceRpcError.IceRpcError,
+                                IceRpcError.ConnectionAborted,
                                 $"The connection was aborted by the peer with an unknown application error code: '{applicationErrorCode}'"),
                     } :
                     // An application error code should always be set with QuicError.ConnectionAborted.
@@ -41,7 +41,7 @@ internal static class QuicExceptionExtensions
                     applicationErrorCode == 0 ?
                         new IceRpcException(IceRpcError.TruncatedData, exception) :
                         new IceRpcException(
-                            IceRpcError.IceRpcError,
+                            IceRpcError.TruncatedData,
                             $"The stream was aborted by the peer with an unknown application error code: '{applicationErrorCode}'") :
                     // An application error code should always be set with QuicError.StreamAborted.
                     new IceRpcException(IceRpcError.IceRpcError, exception),
