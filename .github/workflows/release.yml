@@ -16,4 +16,4 @@ jobs:
     with:
       target-os: ubuntu-22.04
     secrets:
-      ICERPC_DEPLOY_KEY ${{ secrets.ICERPC_DEPLOY_KEY }}
+      ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
