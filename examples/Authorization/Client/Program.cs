@@ -13,14 +13,14 @@ ReadOnlyMemory<byte> friendToken = await authenticatorProxy.AuthenticateAsync("f
 // A greeting proxy that doesn't use any identity token.
 var unauthenticatedGreetingProxy = new GreeterProxy(connection, new Uri("icerpc:/greeting"));
 
-// The SayGreeting invocation on the unauthenticated greeting proxy prints a generic message.
+// The Greet invocation on the unauthenticated greeting proxy prints a generic message.
 Console.WriteLine(await unauthenticatedGreetingProxy.GreetAsync());
 
 // Create a greeting proxy that uses a pipe line to insert the "friend" token into a request field.
 Pipeline friendPipeline = new Pipeline().UseAuthentication(friendToken).Into(connection);
 var friendGreetingProxy = new GreeterProxy(friendPipeline, new Uri("icerpc:/greeting"));
 
-// The SayGreeting invocation on the authenticated "friend" greeting proxy prints a custom message for "friend".
+// The Greet invocation on the authenticated "friend" greeting proxy prints a custom message for "friend".
 Console.WriteLine(await friendGreetingProxy.GreetAsync());
 
 // A greeting admin proxy that uses the "friend" pipeline is not authorized to change the greeting message because "friend"
@@ -45,7 +45,7 @@ greetingAdminProxy = new GreeterAdminProxy(adminPipeline, new Uri("icerpc:/greet
 // Changing the greeting message should succeed this time because the "admin" user has administrative privilege.
 await greetingAdminProxy.ChangeGreetingAsync("Bonjour");
 
-// The SayGreeting invocation should print a greeting with the updated greeting message.
+// The Greet invocation should print a greeting with the updated greeting message.
 Console.WriteLine(await friendGreetingProxy.GreetAsync());
 
 // Change back the greeting message to Greeting.

@@ -9,7 +9,8 @@ using System.Text;
 
 namespace AuthorizationExample;
 
-public sealed class JwtAuthenticationBearer : IAuthenticationBearer
+/// <summary>This is an implementation of the <see cref="IAuthenticationBearer" /> using JSON Web Token (JWT)</summary>
+internal sealed class JwtAuthenticationBearer : IAuthenticationBearer
 {
     private readonly SigningCredentials _signingCredentials;
     private readonly JwtSecurityTokenHandler _tokenHandler;
@@ -45,6 +46,8 @@ public sealed class JwtAuthenticationBearer : IAuthenticationBearer
 
             }
 
+            Console.WriteLine($"Decoded JWT identity token {{ name = '{name}' isAdmin = '{isAdmin}' }}");
+
             return new IdentityFeature(name, isAdmin);
         }
         else
@@ -56,16 +59,16 @@ public sealed class JwtAuthenticationBearer : IAuthenticationBearer
     public ReadOnlyMemory<byte> EncodeIdentityToken(string name, bool isAdmin)
     {
         var jwtToken = new JwtSecurityToken(
-        claims: new Claim[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, "test"),
-            new Claim("isAdmin", (name == "admin").ToString())
-        },
-        audience: "Authorization example",
-        issuer: "icerpc://127.0.0.1",
-        notBefore: DateTime.UtcNow,
-        expires: DateTime.UtcNow + TimeSpan.FromSeconds(30),
-        signingCredentials: _signingCredentials);
+            claims: new Claim[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, "test"),
+                new Claim("isAdmin", (name == "admin").ToString())
+            },
+            audience: "Authorization example",
+            issuer: "icerpc://127.0.0.1",
+            notBefore: DateTime.UtcNow,
+            expires: DateTime.UtcNow + TimeSpan.FromSeconds(30),
+            signingCredentials: _signingCredentials);
         return Encoding.UTF8.GetBytes(_tokenHandler.WriteToken(jwtToken));
     }
 

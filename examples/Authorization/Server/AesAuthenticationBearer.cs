@@ -7,7 +7,8 @@ using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
-public sealed class AesAuthenticationBearer : IAuthenticationBearer, IDisposable
+/// <summary>This is an implementation of the <see cref="IAuthenticationBearer" /> using an Aes token.</summary>
+internal sealed class AesAuthenticationBearer : IAuthenticationBearer, IDisposable
 {
     private readonly Aes _aes;
 
@@ -21,6 +22,10 @@ public sealed class AesAuthenticationBearer : IAuthenticationBearer, IDisposable
 
         // Decode the Slice2 encoded token and return the feature.
         AesIdentityToken identityToken = DecodeIdentityToken(destinationStream.ToArray());
+
+        Console.WriteLine(
+            $"Decoded Aes identity token {{ name = '{identityToken.Name}' isAdmin = '{identityToken.IsAdmin}' }}");
+
         return new IdentityFeature(identityToken.Name, identityToken.IsAdmin);
 
         AesIdentityToken DecodeIdentityToken(ReadOnlyMemory<byte> buffer)

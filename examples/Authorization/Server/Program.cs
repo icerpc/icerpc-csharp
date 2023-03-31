@@ -3,9 +3,18 @@
 using AuthorizationExample;
 using IceRpc;
 
-// Encodes the identity token field carried by requests as a JTW token.
-//var authenticationBearer = new JwtAuthenticationBearer("A secret key for the authorization example");
-using var authenticationBearer = new AesAuthenticationBearer();
+IAuthenticationBearer? authenticationBearer = null;
+if (args.Length == 1 && args[0] == "--jwt")
+{
+    authenticationBearer = new JwtAuthenticationBearer("A secret key for the authorization example");
+}
+else
+{
+    authenticationBearer = new AesAuthenticationBearer();
+}
+
+// Dispose the authentication bearer if it's disposable.
+using var disposable = authenticationBearer as IDisposable;
 
 var router = new Router();
 
