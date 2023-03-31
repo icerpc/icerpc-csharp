@@ -9,7 +9,30 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc.Retry;
 
-/// <summary>The retry interceptor is responsible for retrying requests when there is a retryable failure.</summary>
+/// <summary>The retry interceptor is responsible for retrying requests. A request is retryable if:
+/// <list>
+/// <item><description><see cref="RetryOptions.MaxAttempts" /> is not reached.</description></item>
+/// <item><description><see cref="OutgoingFrame.Payload" /> can be read again.</description></item>
+/// <item><description>the failure is retryable.</description></item>
+/// </list><br/>In order to be able to read again the request's payload, the retry interceptor decorates the payload
+/// with <see cref="ResettablePipeReaderDecorator" />. The decorator can be reset as long as the buffered data doesn't
+/// exceed <see cref="RetryOptions.MaxPayloadSize" />.<br/>The request can be retried under the following failure
+/// conditions:
+/// <list>
+/// <item><description>the request failed with <see cref="StatusCode.Unavailable" />.</description></item>
+/// <item><description>the request failed with <see cref="StatusCode.ServiceNotFound" /> and the protocol is
+/// ice.</description></item>
+/// <item><description>the request failed with an <see cref="IceRpcException" /> with one of the following error:
+/// <list>
+/// <item><description>the error code is <see cref="IceRpcError.InvocationCanceled" />.</description></item>
+/// <item><description>the error code is <see cref="IceRpcError.ConnectionAborted" /> or <see
+/// cref="IceRpcError.TruncatedData" /> and the request has the <see cref="RequestFieldKey.Idempotent" />
+/// field.</description></item>
+/// </list></description></item>
+/// </list><br/>If the request fails with <see cref="StatusCode.Unavailable" /> or <see
+/// cref="StatusCode.ServiceNotFound" /> (with the ice protocol), the address of the server is removed from the set of
+/// server addresses to retry on. This ensures the request won't be retried on the unavailable server.
+/// </summary>
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;
@@ -51,8 +74,6 @@ public class RetryInterceptor : IInvoker
                 {
                     bool retryWithOtherReplica = false;
 
-                    // At this point, response can be non-null and carry a failure for which we're retrying. If
-                    // _next.InvokeAsync reports NoConnection, we return this previous failure.
                     try
                     {
                         using IDisposable? scope = CreateRetryLogScope(attempt);
@@ -72,16 +93,15 @@ public class RetryInterceptor : IInvoker
                     catch (IceRpcException iceRpcException) when (
                         iceRpcException.IceRpcError == IceRpcError.NoConnection)
                     {
-                        // NoConnection is always considered non-retryable; it typically occurs because we
-                        // removed server addresses from serverAddressFeature.
+                        // NoConnection is always considered non-retryable; it typically occurs because we removed
+                        // server addresses from serverAddressFeature. Unlike other non-retryable exceptions, we
+                        // privilege returning the previous response (if any).
                         return response ?? throw RethrowException(exception ?? iceRpcException);
                     }
-                    catch (IceRpcException otherException)
+                    catch (IceRpcException iceRpcException)
                     {
                         response = null;
-                        exception = otherException;
-                        retryWithOtherReplica =
-                            otherException.IceRpcError is IceRpcError.ServerBusy or IceRpcError.ConnectionRefused;
+                        exception = iceRpcException;
                     }
 
                     Debug.Assert(retryWithOtherReplica || exception is not null);
@@ -105,6 +125,7 @@ public class RetryInterceptor : IInvoker
                         else
                         {
                             Debug.Assert(exception is not null);
+
                             // It always safe to retry InvocationCanceled. For idempotent requests we also retry on
                             // ConnectionAborted and TruncatedData.
                             tryAgain = exception.IceRpcError switch
@@ -132,12 +153,12 @@ public class RetryInterceptor : IInvoker
             finally
             {
                 // We want to leave request.Payload in a correct, usable state when we exit. Usually request.Payload
-                // will get completed by the caller, and we want this Complete call to flow through to the decoratee.
-                // If the payload is still readable (e.g. we received a non-retryable exception before reading anything
-                // or just after a Reset), an upstream interceptor may want to attempt another call that reads this
-                // payload and the now non-resettable decorator will provide the correct behavior. The decorator ensures
-                // that calls to AdvanceTo on the decoratee always receive ever-increasing examined values even after
-                // one or more Resets.
+                // will get completed by the caller, and we want this Complete call to flow through to the decoratee. If
+                // the payload is still readable (e.g. we received a non-retryable exception before reading anything or
+                // just after a Reset), an upstream interceptor may want to attempt another call that reads this payload
+                // and the now non-resettable decorator will provide the correct behavior. The decorator ensures that
+                // calls to AdvanceTo on the decoratee always receive ever-increasing examined values even after one or
+                // more Resets.
                 decorator.IsResettable = false;
             }
         }
