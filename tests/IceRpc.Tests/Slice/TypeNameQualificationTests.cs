@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
@@ -16,16 +15,14 @@ public class TypeNameQualificationTests
     [Test]
     public async Task Operation_with_parameter_type_name_defined_in_multiple_modules()
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new TypeNameQualificationOperationsService())
-            .AddIceRpcProxy<ITypeNameQualificationOperations, TypeNameQualificationOperationsProxy>()
-            .BuildServiceProvider(validateScopes: true);
+        // Arrange
+        var invoker = new ColocInvoker(new TypeNameQualificationOperationsService());
+        var proxy = new TypeNameQualificationOperationsProxy(invoker);
 
-        ITypeNameQualificationOperations proxy = provider.GetRequiredService<ITypeNameQualificationOperations>();
-        provider.GetRequiredService<Server>().Listen();
-
+        // Act
         var r = await proxy.OpWithTypeNamesDefinedInMultipleModulesAsync(new Inner.S(10));
 
+        // Assert
         Assert.That(r.V, Is.EqualTo("10"));
     }
 

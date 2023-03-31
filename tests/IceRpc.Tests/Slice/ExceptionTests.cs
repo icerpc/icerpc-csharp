@@ -4,7 +4,6 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
@@ -465,17 +464,14 @@ public sealed class ExceptionTests
     }
 
     [Test, TestCaseSource(nameof(Slice2DispatchThrowsMyExceptionSource))]
-    public async Task Slice2_dispatch_throws_exception_with_exception_specification(
+    public void Slice2_dispatch_throws_exception_with_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
+        var invoker = new ColocInvoker(new Slice2ExceptionOperationsService(throwException));
+        var proxy = new Slice2ExceptionOperationsProxy(invoker);
 
-        var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
 
@@ -489,17 +485,13 @@ public sealed class ExceptionTests
     }
 
     [Test, TestCaseSource(nameof(Slice2DispatchThrowsNothingSource))]
-    public async Task Slice2_dispatch_throws_exception_without_exception_specification(
+    public void Slice2_dispatch_throws_exception_without_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice2ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice2ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice2ExceptionOperationsService(throwException));
+        var proxy = new Slice2ExceptionOperationsProxy(invoker);
 
         // Act/Assert
         DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
@@ -508,16 +500,12 @@ public sealed class ExceptionTests
     }
 
     [Test, TestCaseSource(nameof(Slice1DispatchThrowsAnyExceptionSource))]
-    public async Task Slice1_operation_throws_exception_with_any_exception_specification(
+    public void Slice1_operation_throws_exception_with_any_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice1ExceptionOperationsService(throwException));
+        var proxy = new Slice1ExceptionOperationsProxy(invoker);
 
         Type expectedType = expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
@@ -531,16 +519,12 @@ public sealed class ExceptionTests
     }
 
     [Test, TestCaseSource(nameof(Slice1DispatchThrowsMyExceptionSource))]
-    public async Task Slice1_operation_throws_exception_with_my_exception_specification(
+    public void Slice1_operation_throws_exception_with_my_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice1ExceptionOperationsService(throwException));
+        var proxy = new Slice1ExceptionOperationsProxy(invoker);
 
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
@@ -554,16 +538,12 @@ public sealed class ExceptionTests
     }
 
     [Test, TestCaseSource(nameof(Slice1DispatchThrowsNothingSource))]
-    public async Task Slice1_operation_throws_exception_with_no_exception_specification(
+    public void Slice1_operation_throws_exception_with_no_exception_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new Slice1ExceptionOperationsService(throwException))
-            .BuildServiceProvider(validateScopes: true);
-
-        var proxy = new Slice1ExceptionOperationsProxy(provider.GetRequiredService<ClientConnection>());
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new Slice1ExceptionOperationsService(throwException));
+        var proxy = new Slice1ExceptionOperationsProxy(invoker);
 
         DispatchException? exception = Assert.ThrowsAsync<DispatchException>(() => proxy.OpThrowsNothingAsync());
         Assert.That(exception, Is.Not.Null);
