@@ -29,5 +29,5 @@ jobs:
     - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ compiler-exe }}-${{ inputs.target-os }}
+        name: ${{ inputs.compiler-exe }}-${{ inputs.target-os }}
         path: tools/slicec-cs/target/release/${{ inputs.compiler-exe }}
