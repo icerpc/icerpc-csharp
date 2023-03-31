@@ -5,6 +5,14 @@ inputs:
     description: 'Cargo Build Args'
     required: false
     default: ''
+  use-cross:
+    description: 'Whether or not to use cross toolchain'
+    require: false
+    default: false
+  target:
+    description: 'The target platform'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -25,10 +33,24 @@ runs:
     uses: webfactory/ssh-agent@v0.5.4
     with:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
+  - name: Toolchain
+    uses: actions-rs/toolchain@v1
+      if: ${{ inputs.use-cross }}
+      with:
+        toolchain: stable
+        target: ${{ inputs.target }}
+        override: true
   - name: 🔨 Build Slice Compiler
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     uses: actions-rs/cargo@v1
+      if: ${{ !inputs.use-cross }}
     with:
       command: build
       args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
+    uses: actions-rs/cargo@v1
+      if: ${{ inputs.use-cross }}
+    with:
+      use-cross: true
+      command: build
+      args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }} --target ${{ inputs.target }}

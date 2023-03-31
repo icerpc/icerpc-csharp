@@ -10,6 +10,14 @@ on:
         required: false
         default: slicec-cs
         type: string
+      use-cross:
+        description: 'Whether or not to use cross toolchain'
+        require: false
+        default: false
+      target:
+        description: 'The target platform'
+        required: false
+        default: ''
     secrets:
       ICERPC_DEPLOY_KEY:
         required: true
@@ -24,6 +32,7 @@ jobs:
       uses: ./.github/actions/build-compiler
       with:
         cargo-build-args: --release
+        target: ${{ inputs.target }}
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
     - name: Archive Build
