@@ -5,9 +5,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Common;
 
-/// <summary>An invoker that transforms an outgoing request into an incoming request, dispatches it to the
-/// dispatcher configured with the invoker and finally transforms the outgoing response to an incoming response that
-/// is returned to the caller.</summary>
+/// <summary>An invoker that transforms an outgoing request into an incoming request, dispatches it to the dispatcher
+/// configured with the invoker and finally transforms the outgoing response to an incoming response that is returned to
+/// the caller.</summary>
 public sealed class ColocInvoker : IInvoker
 {
     private readonly IDispatcher _dispatcher;
