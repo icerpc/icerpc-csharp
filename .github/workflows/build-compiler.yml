@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ inputs.target-os }}
     steps:
     - name: Build
-      uses: zeroc-ice/icerpc-csharp/.github/actions/build-compiler
+      uses: ./.github/actions/build-compiler
       with:
         cargo-build-args: --release
         dotnet-build-args: --configuration Release
