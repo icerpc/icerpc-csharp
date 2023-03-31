@@ -17,3 +17,9 @@ jobs:
       target-os: ubuntu-22.04
     secrets:
       ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+  build-windows-x86_64:
+    uses: ./.github/workflows/build-compiler.yml
+    with:
+      target-os: windows-2022
+    secrets:
+      ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}

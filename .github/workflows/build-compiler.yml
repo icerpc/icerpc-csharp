@@ -20,6 +20,5 @@ jobs:
       uses: ./.github/actions/build-compiler
       with:
         cargo-build-args: --release
-        dotnet-build-args: --configuration Release
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
