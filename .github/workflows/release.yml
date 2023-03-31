@@ -21,5 +21,6 @@ jobs:
     uses: ./.github/workflows/build-compiler.yml
     with:
       target-os: windows-2022
+      compiler-exe: slicec-cs.exe
     secrets:
       ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}

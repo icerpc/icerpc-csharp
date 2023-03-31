@@ -6,6 +6,10 @@ on:
       target-os:
         required: true
         type: string
+      compiler-exe:
+        required: false
+        default: slicec-cs
+        type: string
     secrets:
       ICERPC_DEPLOY_KEY:
         required: true
@@ -22,3 +26,8 @@ jobs:
         cargo-build-args: --release
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+    - name: Archive Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ compiler-exe }}-${{ inputs.target-os }}
+          path: tools/slicec-cs/target/release/${{ inputs.compiler-exe }}
