@@ -34,21 +34,21 @@ runs:
     with:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
   - name: Toolchain
-    if: inputs.use-cross
+    if: ${{ inputs.use-cross }}
     uses: actions-rs/toolchain@v1
     with:
       toolchain: stable
       target: ${{ inputs.target }}
       override: true
   - uses: actions-rs/cargo@v1
-    if: !inputs.use-cross
+    if: ${{ !inputs.use-cross }}
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     with:
       command: build
       args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
   - uses: actions-rs/cargo@v1
-    if: inputs.use-cross
+    if: ${{ inputs.use-cross }}
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     uses: actions-rs/cargo@v1
