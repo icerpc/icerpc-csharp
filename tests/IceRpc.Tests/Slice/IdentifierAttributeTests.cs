@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice.Identifiers;
@@ -14,14 +13,6 @@ namespace IceRpc.Tests.Slice.Identifiers;
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentifierAttributeTests
 {
-    public class IdentifierOperationsService : Service, IREnamedInterfaceService
-    {
-        public ValueTask<(int, int)> REnamedOpAsync(
-            REnamedStruct renamedParam,
-            IFeatureCollection features,
-            CancellationToken cancellationToken) => new((1, 2));
-    }
-
     [Test]
     public void Renamed_struct_identifier()
     {
@@ -36,13 +27,8 @@ public class IdentifierAttributeTests
     public async Task Renamed_interface_and_operation()
     {
         // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new IdentifierOperationsService())
-            .AddIceRpcProxy<IREnamedInterface, REnamedInterfaceProxy>()
-            .BuildServiceProvider(validateScopes: true);
-
-        IREnamedInterface proxy = provider.GetRequiredService<IREnamedInterface>();
-        provider.GetRequiredService<Server>().Listen();
+        var invoker = new ColocInvoker(new IdentifierOperationsService());
+        var proxy = new REnamedInterfaceProxy(invoker);
 
         // Act / Assert
         _ = await proxy.REnamedOpAsync(renamedParam: new REnamedStruct(1));
@@ -76,5 +62,13 @@ public class IdentifierAttributeTests
 
         // Assert
         Assert.That(myClass.renamedX, Is.EqualTo(1));
+    }
+
+    private sealed class IdentifierOperationsService : Service, IREnamedInterfaceService
+    {
+        public ValueTask<(int, int)> REnamedOpAsync(
+            REnamedStruct renamedParam,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new((1, 2));
     }
 }

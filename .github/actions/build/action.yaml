@@ -48,9 +48,10 @@ runs:
   - name: 🔗 Add GitHub NuGet repository
     run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ env.NUGET_API_TOKEN }}
     shell: bash
-  - name: 🔗 Restore dependencies
-    run: dotnet restore
+  - name: 🔨 Build IceRPC Slice Tools
+    working-directory: tools/IceRpc.Slice.Tools
+    run: dotnet build ${{ inputs.dotnet-build-args }}
     shell: bash
-  - name: 🔨 Build
-    run: dotnet build --no-restore ${{ inputs.dotnet-build-args }}
+  - name: 🔨 Build IceRPC
+    run:  dotnet build ${{ inputs.dotnet-build-args }}
     shell: bash

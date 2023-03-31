@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
@@ -11,28 +10,26 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class NamespaceAttributeTests
 {
-    public class NamespaceOperationsService : Service, INamespaceOperationsService
+    [Test]
+    public async Task Operation_with_types_using_cs_namespace_attribute()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new NamespaceOperationsService());
+        var proxy = new NamespaceOperationsProxy(invoker);
+
+        // Act
+        NamespaceAttribute.WithNamespace.N1.O2.S1 r =
+            await proxy.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));
+
+        // Assert
+        Assert.That(r.I, Is.EqualTo("10"));
+    }
+
+    private sealed class NamespaceOperationsService : Service, INamespaceOperationsService
     {
         public ValueTask<NamespaceAttribute.WithNamespace.N1.O2.S1> Op1Async(
             NamespaceAttribute.M1.M2.M3.S1 p,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(new NamespaceAttribute.WithNamespace.N1.O2.S1($"{p.I}"));
-    }
-
-    [Test]
-    public async Task Operation_with_types_using_cs_namespace_attribute()
-    {
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(dispatcher: new NamespaceOperationsService())
-            .AddIceRpcProxy<INamespaceOperations, NamespaceOperationsProxy>()
-            .BuildServiceProvider(validateScopes: true);
-
-        INamespaceOperations proxy = provider.GetRequiredService<INamespaceOperations>();
-        provider.GetRequiredService<Server>().Listen();
-
-        NamespaceAttribute.WithNamespace.N1.O2.S1 r =
-            await proxy.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));
-
-        Assert.That(r.I, Is.EqualTo("10"));
     }
 }

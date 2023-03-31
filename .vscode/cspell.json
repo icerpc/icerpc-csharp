@@ -27,6 +27,7 @@
     "lalrpop",
     "makecerts",
     "Memberwise",
+    "netstandard",
     "Nonmutating",
     "nonterminal",
     "Oneway",

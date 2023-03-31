@@ -23,6 +23,6 @@ jobs:
     - name: Set VERSION variable from tag
       run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
     - name: Pack
-      run: dotnet pack --configuration Release /p:Version=${VERSION} --output .
+      run: dotnet pack --configuration Release /p:IceRpcVersion=${VERSION} --output .
     - name: Push
       run: dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate

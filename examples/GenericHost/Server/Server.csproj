@@ -20,7 +20,7 @@
     <SliceC Include="../Hello.slice" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />

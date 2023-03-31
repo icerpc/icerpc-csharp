@@ -2,7 +2,7 @@
 
 use crate::cs_attributes::{self, match_cs_custom, CsAttributeKind};
 use slice::compilation_result::{CompilationData, CompilationResult};
-use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error, Warning};
+use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
 use slice::grammar::*;
 use slice::slice_file::Span;
 use slice::visitor::Visitor;
@@ -222,9 +222,8 @@ impl Visitor for CsValidator<'_> {
         validate_repeated_attributes(type_alias, self.diagnostic_reporter);
         for (attribute, ..) in &cs_attributes(&type_alias.attributes(false)) {
             match attribute {
-                CsAttributeKind::Identifier { .. } => Diagnostic::new(Warning::InconsequentialUseOfAttribute {
+                CsAttributeKind::Identifier { .. } => Diagnostic::new(Error::UnexpectedAttribute {
                     attribute: cs_attributes::IDENTIFIER.to_owned(),
-                    kind: "typealias".to_owned(),
                 })
                 .set_span(type_alias.span())
                 .set_scope(type_alias.parser_scope())

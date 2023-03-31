@@ -10,7 +10,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Builder.MSBuild" Version="0.1.0-preview10" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="0.1.0-preview1" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="0.1.0-preview2" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="0.1.0-preview2" />
   </ItemGroup>
 </Project>
