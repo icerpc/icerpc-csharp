@@ -40,16 +40,17 @@ runs:
         toolchain: stable
         target: ${{ inputs.target }}
         override: true
-  - name: 🔨 Build Slice Compiler
+  - uses: actions-rs/cargo@v1
     if: ${{ !inputs.use-cross }}
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
-    uses: actions-rs/cargo@v1
     with:
       command: build
       args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
-  - name: 🔨 Cross Build Slice Compiler
+  - uses: actions-rs/cargo@v1
     if: ${{ inputs.use-cross }}
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     uses: actions-rs/cargo@v1
     with:
       use-cross: true
