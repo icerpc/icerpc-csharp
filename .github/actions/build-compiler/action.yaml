@@ -26,6 +26,8 @@ runs:
     with:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
   - name: 🔨 Build Slice Compiler
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     uses: actions-rs/cargo@v1
     with:
       command: build
