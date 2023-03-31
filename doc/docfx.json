@@ -79,10 +79,16 @@
         "globalMetadata":{
             "_appTitle":"IceRPC",
             "_appName":"IceRPC",
-            "_appFaviconPath":"favicon.png",
-            "_appLogoPath":"logo.svg",
+            "_appFaviconPath":"images/favicon.ico",
+            "_appLogoPath":"images/logo.svg",
             "_appFooter":"<strong>IceRPC</strong>",
             "_copyrightFooter":"Copyright © ZeroC, Inc.",
+            "_enableSearch": true,
+            "_gitContribute": {
+                "repo": "https://github.com/zeroc-ice/icerpc-csharp",
+                "branch": "main",
+                "apiSpecFolder": "docs-overwrite"
+            }
         }
     }
 }
