@@ -12,7 +12,7 @@ on:
         type: string
       use-cross:
         description: 'Whether or not to use cross toolchain'
-        require: false
+        required: false
         default: false
         type: boolean
       target:
