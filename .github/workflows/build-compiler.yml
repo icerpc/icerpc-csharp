@@ -35,7 +35,7 @@ jobs:
       with:
         cargo-build-args: --release
         target: ${{ inputs.target }}
-        uses-cross: ${{ inputs.use-cross }}
+        use-cross: ${{ inputs.use-cross }}
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
     - name: Archive Build
