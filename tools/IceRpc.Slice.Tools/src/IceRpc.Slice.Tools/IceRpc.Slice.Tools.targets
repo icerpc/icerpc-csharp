@@ -2,8 +2,8 @@
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <!-- Import our custom MSbuild tasks used to build IceRpc for CSharp projects -->
-    <UsingTask TaskName="Slice.Builder.MSBuild.SliceCCSharpTask"
-               AssemblyFile="$(SliceBuilderAssembliesPath)\Slice.Builder.MSBuild.dll" />
+    <UsingTask TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
+               AssemblyFile="$(SliceToolsTaskAssembliesPath)\IceRpc.Slice.Tools.dll" />
 
     <ItemGroup>
         <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProjectItemsSchema.xaml" />
@@ -35,7 +35,7 @@
 
     <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
         <SliceC Condition="'$(EnableDefaultSliceCItems)' == 'true'" Include="**\*.slice"
-                      Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);@(SliceC)"/>
+                Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);@(SliceC)"/>
     </ItemGroup>
 
     <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceC) != ''">
@@ -46,8 +46,8 @@
         <SlicecCSharpTask
             WorkingDirectory      = "$(MSBuildProjectDirectory)"
             OutputDir             = "%(SliceC.OutputDir)"
-            ReferencedFiles       = "%(SliceC.ReferencedFiles);$(SliceBuilderBuiltInReferencedFiles)"
-            ToolsPath             = "$(SliceBuilderToolsPath)"
+            ReferencedFiles       = "%(SliceC.ReferencedFiles);$(SliceBuiltInFilesPath)"
+            ToolsPath             = "$(SliceCompilerPath)"
             AdditionalOptions     = "%(SliceC.AdditionalOptions)"
             Sources               = "@(SliceC)"/>
 

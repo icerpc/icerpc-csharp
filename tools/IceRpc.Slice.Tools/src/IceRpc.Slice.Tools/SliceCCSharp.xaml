@@ -2,17 +2,17 @@
 <!-- Copyright (c) ZeroC, Inc. -->
 <Rule
     Name="SliceC"
-    DisplayName="Slice Builder"
+    DisplayName="IceRPC Tools"
     PageTemplate="generic"
     Order="201"
-    Description="Slice Builder project settings"
+    Description="IceRPC tools project settings"
     xmlns="http://schemas.microsoft.com/build/2009/properties">
 
     <Rule.DataSource>
         <DataSource
             Persistence="ProjectFile"
             ItemType=""
-            Label="SliceBuilder"
+            Label="IceRpcTools"
             HasConfigurationCondition="false"
             SourceOfDefaultValue="AfterContext"/>
     </Rule.DataSource>
@@ -27,7 +27,7 @@
             <DataSource
                 Persistence="ProjectFile"
                 ItemType="SliceC"
-                Label="SliceBuilder"
+                Label="IceRpcTools"
                 HasConfigurationCondition="false"
                 SourceOfDefaultValue="AfterContext"/>
         </StringProperty.DataSource>
@@ -43,7 +43,7 @@
             <DataSource
                 Persistence="ProjectFile"
                 ItemType="SliceC"
-                Label="SliceBuilder"
+                Label="IceRpcTools"
                 HasConfigurationCondition="false"
                 SourceOfDefaultValue="AfterContext"/>
         </StringListProperty.DataSource>
@@ -57,7 +57,7 @@
             <DataSource
                 Persistence="ProjectFile"
                 ItemType="SliceC"
-                Label="SliceBuilder"
+                Label="IceRpcTools"
                 HasConfigurationCondition="false"
                 SourceOfDefaultValue="AfterContext"/>
         </StringListProperty.DataSource>

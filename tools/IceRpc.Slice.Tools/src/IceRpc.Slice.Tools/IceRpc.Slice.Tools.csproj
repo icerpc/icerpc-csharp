@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(MSBuildThisFileDirectory)../../../../build/icerpc.version.props" />
    <PropertyGroup>
-      <AssemblyName>Slice.Builder.MSBuild</AssemblyName>
+      <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
       <Version>$(IceRpcVersion)</Version>
       <TargetFramework>netstandard2.0</TargetFramework>
       <LangVersion>10.0</LangVersion>
@@ -50,11 +50,11 @@
          <PackagePath />
          <Pack>true</Pack>
       </Content>
-      <Content Include="Slice.Builder.MSBuild.props">
+      <Content Include="IceRpc.Slice.Tools.props">
          <PackagePath>build</PackagePath>
          <Pack>true</Pack>
       </Content>
-      <Content Include="Slice.Builder.MSBuild.targets">
+      <Content Include="IceRpc.Slice.Tools.targets">
          <PackagePath>build</PackagePath>
          <Pack>true</Pack>
       </Content>
