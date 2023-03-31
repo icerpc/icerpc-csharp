@@ -5,10 +5,10 @@ on:
 
 jobs:
   build-macOS-x86_64:
-    uses: ./.github/workflows/build-compiler
+    uses: ./.github/workflows/build-compiler.yml
     with:
       target-os: macos-11	
   build-linux-x86_64:
-    uses: ./.github/workflows/build-compiler
+    uses: ./.github/workflows/build-compiler.yml
     with:
       target-os: ubuntu-22.04
