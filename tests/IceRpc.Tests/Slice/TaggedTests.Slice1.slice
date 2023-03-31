@@ -16,14 +16,14 @@ compact struct VarLengthStruct {
 enum MyEnum { One, Two }
 
 class ClassWithTaggedMembers {
-    a: tag(1) uint8?               // Uses F1 tag format
-    b: tag(2) int16?               // Uses F2 tag format
-    c: tag(3) int32?               // Uses F4 tag format
-    d: tag(4) int64?               // Uses F8 tag format
-    e: tag(5) FixedLengthStruct?   // Uses VSize tag format
-    f: tag(6) VarLengthStruct?     // Use FSize tag format
-    g: tag(7) MyEnum?              // Uses Size tag format
-    h: tag(8) sequence<uint8>?     // Uses OptimizedVSize tag format
-    i: tag(9) sequence<int32>?     // Uses FSize tag format
-    j: tag(10) string?             // Uses OptimizedVSize tag format
+    tag(1) a: uint8?               // Uses F1 tag format
+    tag(2) b: int16?               // Uses F2 tag format
+    tag(3) c: int32?               // Uses F4 tag format
+    tag(4) d: int64?               // Uses F8 tag format
+    tag(5) e: FixedLengthStruct?   // Uses VSize tag format
+    tag(6) f: VarLengthStruct?     // Use FSize tag format
+    tag(7) g: MyEnum?              // Uses Size tag format
+    tag(8) h: sequence<uint8>?     // Uses OptimizedVSize tag format
+    tag(9) i: sequence<int32>?     // Uses FSize tag format
+    tag(10) j: string?             // Uses OptimizedVSize tag format
 }

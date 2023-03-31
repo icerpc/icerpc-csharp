@@ -12,8 +12,8 @@ exception MyException {
 exception MyExceptionWithTaggedMembers {
     i: int32
     j: int32
-    k: tag(1) int32?
-    l: tag(255) int32?
+    tag(1) k: int32?
+    tag(255) l: int32?
 }
 
 exception MyDerivedException : MyException {

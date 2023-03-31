@@ -15,6 +15,6 @@ interface MyOperationsB {
         (r1: int32, r2: string, r3: int32?, r4: string?)
 
     // Tagged input parameters and return values
-    opTagged(p1: int32, p2: string, p3: tag(1) int32?, p4: tag(2) string?) ->
-        (r1: int32, r2: string, r3: tag(1) int32?, r4: tag(2) string?)
+    opTagged(p1: int32, p2: string, tag(1) p3: int32?, tag(2) p4: string?) ->
+        (r1: int32, r2: string, tag(1) r3: int32?, tag(2) r4: string?)
 }

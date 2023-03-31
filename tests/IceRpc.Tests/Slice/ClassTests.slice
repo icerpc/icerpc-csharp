@@ -20,11 +20,11 @@ class MyClassC {
 class MyCompactClass(15) {}
 
 class MyClassWithTaggedMembers {
-    a: tag(10) int32?
+    tag(10) a: int32?
 }
 
 class MyDerivedClassWithTaggedMembers : MyClassWithTaggedMembers {
-    b: tag(20) string?
+    tag(20) b: string?
 }
 
 class MyDerivedCompactClass(789) : MyCompactClass {}
