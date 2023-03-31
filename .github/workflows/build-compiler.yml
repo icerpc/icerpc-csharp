@@ -6,6 +6,9 @@ on:
       target-os:
         required: true
         type: string
+    secrets:
+      ICERPC_DEPLOY_KEY:
+        required: true
 
 jobs:
   build-compilers:

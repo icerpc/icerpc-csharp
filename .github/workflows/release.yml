@@ -9,9 +9,11 @@ jobs:
     uses: ./.github/workflows/build-compiler.yml
     with:
       target-os: macos-11
-    secrets: inherit
+    secrets:
+      ICERPC_DEPLOY_KEY ${{ secrets.ICERPC_DEPLOY_KEY }}
   build-linux-x86_64:
     uses: ./.github/workflows/build-compiler.yml
     with:
       target-os: ubuntu-22.04
-    secrets: inherit
+    secrets:
+      ICERPC_DEPLOY_KEY ${{ secrets.ICERPC_DEPLOY_KEY }}
