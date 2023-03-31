@@ -37,14 +37,14 @@ runs:
     with:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
   - name: Toolchain
-    if: ${{ inputs.use-cross }}
+    if: ${{ inputs.use-cross == "true" }}
     uses: actions-rs/toolchain@v1
     with:
       toolchain: stable
       target: ${{ inputs.target }}
       override: true
   - name: Build Slice Compiler
-    if: ${{ !inputs.use-cross }}
+    if: ${{ inputs.use-cross != "true" }}
     uses: actions-rs/cargo@v1
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
@@ -52,7 +52,7 @@ runs:
       command: build
       args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
   - name: Cross Build Slice Compiler
-    if: ${{ inputs.use-cross }}
+    if: ${{ inputs.use-cross == "true" }}
     uses: actions-rs/cargo@v1
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
