@@ -35,10 +35,11 @@ jobs:
       with:
         cargo-build-args: --release
         target: ${{ inputs.target }}
+        uses-cross: ${{ inputs.use-cross }}
       env:
         ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
     - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ inputs.compiler-exe }}-${{ inputs.target-os }}
+        name: ${{ inputs.compiler-exe }}-${{ inputs.target }}
         path: tools/slicec-cs/target/release/${{ inputs.compiler-exe }}
