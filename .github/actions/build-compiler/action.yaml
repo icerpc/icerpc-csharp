@@ -5,17 +5,14 @@ inputs:
     description: 'Cargo Build Args'
     required: false
     default: ''
-    type: string
   use-cross:
     description: 'Whether or not to use cross toolchain'
     require: false
     default: false
-    type: boolean
   target:
     description: 'The target platform'
     required: false
     default: ''
-    type: string
 
 runs:
   using: "composite"
