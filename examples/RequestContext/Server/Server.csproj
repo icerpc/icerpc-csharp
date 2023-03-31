@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <SliceC Include="../Hello.slice" />
-    <PackageReference Include="IceRpc.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.RequestContext" Version="$(IceRpcVersion)" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />

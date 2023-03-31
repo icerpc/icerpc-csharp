@@ -9,11 +9,11 @@ IceRPC tools provides support for compiling Slice source files (`.slice` files) 
 
 ## Usage
 
-To use the IceRPC Tools, you just need to add the `IceRpc.Tools` [NuGet package][1] to your C# project.
+To use the IceRPC Tools, you just need to add the `IceRpc.Slice.Tools` [NuGet package][1] to your C# project.
 
 ```
 <ItemGroup>
-  <PackageReference Include="IceRpc.Tools" Version="0.1.0" PrivateAssets="All" />
+  <PackageReference Include="IceRpc.Slice.Tools" Version="0.1.0" PrivateAssets="All" />
 </ItemGroup>
 ```
 
@@ -33,4 +33,4 @@ As an alternative, you can add Slice files to your project using the `SliceC` it
 </ItemGroup>
 ```
 
-[1]: https://www.nuget.org/packages/IceRpc.Tools/
+[1]: https://www.nuget.org/packages/IceRpc.Slice.Tools/

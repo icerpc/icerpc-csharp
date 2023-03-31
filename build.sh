@@ -45,16 +45,16 @@ clean_compiler()
     popd
 }
 
-build_icerpc_tools()
+build_icerpc_slice_tools()
 {
-    pushd tools/IceRpc.Tools
+    pushd tools/IceRpc.Slice.Tools
     run_command dotnet "build" "-nr:false" "-c" "$dotnet_config"
     popd
 }
 
-clean_icerpc_tools()
+clean_icerpc_slice_tools()
 {
-    pushd tools/IceRpc.Tools
+    pushd tools/IceRpc.Slice.Tools
     run_command dotnet "clean" "-nr:false" "-c" "$dotnet_config"
     popd
 }
@@ -71,7 +71,7 @@ clean_icerpc()
 
 pack()
 {
-    pushd tools/IceRpc.Tools
+    pushd tools/IceRpc.Slice.Tools
     run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
     popd
     run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
@@ -104,7 +104,7 @@ build()
 {
     if [ "$examples" == "no" ]; then
         build_compiler
-        build_icerpc_tools
+        build_icerpc_slice_tools
         build_icerpc
     else
         if [ "$srcdist" == "yes" ]; then
@@ -126,7 +126,7 @@ rebuild()
 clean()
 {
     clean_compiler
-    clean_icerpc_tools
+    clean_icerpc_slice_tools
     clean_icerpc
 }
 

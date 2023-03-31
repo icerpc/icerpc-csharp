@@ -4,7 +4,7 @@
     <SliceC Include="../Hello.slice" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="IceRpc.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>

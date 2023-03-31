@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 
 #nullable enable
 
-namespace IceRpc.Tools;
+namespace IceRpc.Slice.Tools;
 
 /// <summary>A MSbuild task to compile Slice files using IceRpc slicec-cs compiler.</summary>
 public class SliceCCSharpTask : ToolTask
