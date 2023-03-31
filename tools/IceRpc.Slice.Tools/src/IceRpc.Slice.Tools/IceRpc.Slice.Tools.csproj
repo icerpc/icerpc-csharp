@@ -90,15 +90,15 @@
          <!-- When ICERPC_RELEASE_BUILD is set the NuGet package includes the slicec-cs compiler for all supported platforms.
          The binaries must be pre-build and located in ICERPC_SLICE_TOOLS_PATH. -->
          <ItemGroup>
-            <Content Include="$(ICERPC_RELEASE_BUILD)\linux-x64\slicec-cs">
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\linux-x64\slicec-cs">
                <PackagePath>tools\linux-x86_64\slicec-cs</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_RELEASE_BUILD)\macOS-x64\slicec-cs">
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macOS-x64\slicec-cs">
                <PackagePath>tools\macOS-x86_64\slicec-cs</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_RELEASE_BUILD)\windows-x4\slicec-cs.exe">
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\windows-x64\slicec-cs.exe">
                <PackagePath>tools\windows-x4\slicec-cs.exe</PackagePath>
                <Pack>true</Pack>
             </Content>
