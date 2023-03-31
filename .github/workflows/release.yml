@@ -1,0 +1,26 @@
+name: release
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  build-macOS-x86_64:
+    uses: ./.github/workflows/build-compiler.yml
+    with:
+      target-os: macos-11
+    secrets:
+      ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+  build-linux-x86_64:
+    uses: ./.github/workflows/build-compiler.yml
+    with:
+      target-os: ubuntu-22.04
+    secrets:
+      ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+  build-windows-x86_64:
+    uses: ./.github/workflows/build-compiler.yml
+    with:
+      target-os: windows-2022
+      compiler-exe: slicec-cs.exe
+    secrets:
+      ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
