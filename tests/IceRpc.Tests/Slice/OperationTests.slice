@@ -48,7 +48,7 @@ interface MyOperationsA {
     opReadOnlyMemoryOptional(p1: sequence<int32>?) -> sequence<int32>?
 
     // ReadOnlyMemory tagged input parameters and return values
-    opReadOnlyMemoryTagged(p1: tag(1) sequence<int32>?) -> tag(1) sequence<int32>?
+    opReadOnlyMemoryTagged(tag(1) p1: sequence<int32>?) -> tag(1) sequence<int32>?
 
     // Proxy parameter and return value
     opWithProxyParameter(service: Pingable)
@@ -64,9 +64,9 @@ interface MyDerivedOperationsA : MyOperationsA {
 }
 
 interface MyTaggedOperations {
-    op(x: int32, y: tag(1) int32?, z: tag(2) int32?)
+    op(x: int32, tag(1) y: int32?, tag(2) z: int32?)
 }
 
 interface MyTaggedOperationsReadOnlyMemoryParams {
-    op(x: sequence<int32>, y: tag(1) sequence<int32>?, z: tag(2) sequence<int32>?)
+    op(x: sequence<int32>, tag(1) y: sequence<int32>?, tag(2) z: sequence<int32>?)
 }

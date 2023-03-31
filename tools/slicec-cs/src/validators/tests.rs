@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::super::*;
-use slice::diagnostics::{Diagnostic, Error, Warning};
+use slice::diagnostics::{Diagnostic, Error};
 
 fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
     let data = match slice::compile_from_strings(&[slice], None)
@@ -126,9 +126,8 @@ fn identifier_attribute_on_type_alias_fails() {
     let diagnostics = parse_for_diagnostics(slice);
 
     // Assert
-    let expected = [Diagnostic::new(Warning::InconsequentialUseOfAttribute {
+    let expected = [Diagnostic::new(Error::UnexpectedAttribute {
         attribute: cs_attributes::IDENTIFIER.to_owned(),
-        kind: "typealias".to_owned(),
     })];
     std::iter::zip(expected, diagnostics)
         .for_each(|(expected, actual)| assert_eq!(expected.message(), actual.message()));
