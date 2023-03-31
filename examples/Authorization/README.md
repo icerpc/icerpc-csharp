@@ -1,6 +1,6 @@
 # Authorization
 
-This demo demonstrates how token based authorization and authentication can be implemented with an interceptor and  two
+This demo demonstrates how token based authorization and authentication can be implemented with an interceptor and two
 middleware. The token provides identify information and is encrypted with a symmetric encryption algorithm (AES). An
 application would typically use a 3rd-party token based authentication library instead.
 
