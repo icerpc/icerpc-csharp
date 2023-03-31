@@ -72,7 +72,7 @@
             "modern",
             "template"
         ],
-        "postProcessors": [],
+        "postProcessors": ["ExtractSearchIndex"],
         "noLangKeyword": false,
         "keepFileLink": false,
         "disableGitFeatures": false,
