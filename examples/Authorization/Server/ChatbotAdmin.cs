@@ -6,7 +6,7 @@ using IceRpc.Slice;
 namespace AuthorizationExample;
 
 /// <summary>A ChatbotAdmin is an IceRPC service that implements the Slice interface 'GreetingAdmin'.</summary>
-internal class ChatbotAdmin : Service, IGreetingAdminService
+internal class ChatbotAdmin : Service, IGreeterAdminService
 {
     private readonly Chatbot _chatbot;
 

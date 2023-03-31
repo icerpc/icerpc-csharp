@@ -2,29 +2,21 @@
 
 using AuthorizationExample;
 using IceRpc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Cryptography;
-using System.Text;
 
-// The identity token is encrypted and decrypted with the AES symmetric encryption algorithm.
-using var aes = Aes.Create();
-aes.Padding = PaddingMode.Zeros;
-
-var tokenHandler = new JwtSecurityTokenHandler();
-var issuerKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("A dummy secret key for Jwt test"));
-var credentials = new SigningCredentials(issuerKey, SecurityAlgorithms.HmacSha256);
+// Encodes the identity token field carried by requests as a JTW token.
+//var authenticationBearer = new JwtAuthenticationBearer("A secret key for the authorization example");
+using var authenticationBearer = new AesAuthenticationBearer();
 
 var router = new Router();
 
 // Install a middleware to decrypt and decode the request's identity token and add an identity feature to the request's
 // feature collection.
-router.UseAuthentication(aes);
+router.UseAuthentication(authenticationBearer);
 
 var chatbot = new Chatbot();
 router.Map("/greeting", chatbot);
 
-router.Map("/authenticator", new Authenticator(credentials));
+router.Map("/authenticator", new Authenticator(authenticationBearer));
 
 router.Route("/greetingAdmin", adminRouter =>
 {

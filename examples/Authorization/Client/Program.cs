@@ -11,21 +11,21 @@ var authenticatorProxy = new AuthenticatorProxy(connection, new Uri("icerpc:/aut
 ReadOnlyMemory<byte> friendToken = await authenticatorProxy.AuthenticateAsync("friend", "password");
 
 // A greeting proxy that doesn't use any identity token.
-var unauthenticatedGreetingProxy = new GreetingProxy(connection, new Uri("icerpc:/greeting"));
+var unauthenticatedGreetingProxy = new GreeterProxy(connection, new Uri("icerpc:/greeting"));
 
 // The SayGreeting invocation on the unauthenticated greeting proxy prints a generic message.
-Console.WriteLine(await unauthenticatedGreetingProxy.GetGreetingAsync());
+Console.WriteLine(await unauthenticatedGreetingProxy.GreetAsync());
 
 // Create a greeting proxy that uses a pipe line to insert the "friend" token into a request field.
 Pipeline friendPipeline = new Pipeline().UseAuthentication(friendToken).Into(connection);
-var friendGreetingProxy = new GreetingProxy(friendPipeline, new Uri("icerpc:/greeting"));
+var friendGreetingProxy = new GreeterProxy(friendPipeline, new Uri("icerpc:/greeting"));
 
 // The SayGreeting invocation on the authenticated "friend" greeting proxy prints a custom message for "friend".
-Console.WriteLine(await friendGreetingProxy.GetGreetingAsync());
+Console.WriteLine(await friendGreetingProxy.GreetAsync());
 
 // A greeting admin proxy that uses the "friend" pipeline is not authorized to change the greeting message because "friend"
 // doesn't have administrative privileges.
-var greetingAdminProxy = new GreetingAdminProxy(friendPipeline, new Uri("icerpc:/greetingAdmin"));
+var greetingAdminProxy = new GreeterAdminProxy(friendPipeline, new Uri("icerpc:/greetingAdmin"));
 try
 {
     await greetingAdminProxy.ChangeGreetingAsync("Bonjour");
@@ -40,13 +40,13 @@ ReadOnlyMemory<byte> adminToken = await authenticatorProxy.AuthenticateAsync("ad
 
 // Create a greeting admin proxy that uses a pipe line to insert the "admin" token into a request field.
 Pipeline adminPipeline = new Pipeline().UseAuthentication(adminToken).Into(connection);
-greetingAdminProxy = new GreetingAdminProxy(adminPipeline, new Uri("icerpc:/greetingAdmin"));
+greetingAdminProxy = new GreeterAdminProxy(adminPipeline, new Uri("icerpc:/greetingAdmin"));
 
 // Changing the greeting message should succeed this time because the "admin" user has administrative privilege.
 await greetingAdminProxy.ChangeGreetingAsync("Bonjour");
 
 // The SayGreeting invocation should print a greeting with the updated greeting message.
-Console.WriteLine(await friendGreetingProxy.GetGreetingAsync());
+Console.WriteLine(await friendGreetingProxy.GreetAsync());
 
 // Change back the greeting message to Greeting.
 await greetingAdminProxy.ChangeGreetingAsync("Greeting");

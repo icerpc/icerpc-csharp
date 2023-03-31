@@ -23,9 +23,9 @@ internal class IdentityFeature : IIdentityFeature
     public string Name { get; }
 
     /// <summary>Constructs an identity feature from an identity token.</summary>
-    internal IdentityFeature(IdentityToken token)
+    internal IdentityFeature(string name, bool isAdmin)
     {
-        Name = token.Name;
-        IsAdmin = token.IsAdmin;
+        Name = name;
+        IsAdmin = isAdmin;
     }
 }

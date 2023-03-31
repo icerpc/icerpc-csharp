@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using AuthorizationExample;
-using System.Security.Cryptography;
 
 namespace IceRpc;
 
@@ -11,10 +10,10 @@ internal static class RouterExtensions
 {
     /// <summary>Adds an <see cref="AuthenticationMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>
-    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt the identity token.</param>
+    /// <param name="authenticationBearer">The authentication bearer to decode the identity token.</param>
     /// <returns>The router being configured.</returns>
-    internal static Router UseAuthentication(this Router router, SymmetricAlgorithm encryptionAlgorithm) =>
-        router.Use(next => new AuthenticationMiddleware(next, encryptionAlgorithm));
+    internal static Router UseAuthentication(this Router router, IAuthenticationBearer authenticationBearer) =>
+        router.Use(next => new AuthenticationMiddleware(next, authenticationBearer));
 
     /// <summary>Adds an <see cref="AuthorizationMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>

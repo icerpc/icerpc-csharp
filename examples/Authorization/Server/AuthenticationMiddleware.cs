@@ -7,29 +7,29 @@ using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
-/// <summary>A middleware that decodes and decrypts an identity token request field and adds an identity feature to the
-/// request's feature collection.</summary>
+/// <summary>A middleware that decodes an identity token request field and adds an identity feature to the request's
+/// feature collection.</summary>
 internal class AuthenticationMiddleware : IDispatcher
 {
-    private readonly SymmetricAlgorithm _encryptionAlgorithm;
+    private readonly IAuthenticationBearer _authenticationBearer;
     private readonly IDispatcher _next;
 
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
+    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (request.Fields.TryGetValue(IdentityTokenFieldKey.Value, out ReadOnlySequence<byte> buffer))
         {
-            var token = buffer.DecryptIdentityToken(_encryptionAlgorithm);
-            request.Features = request.Features.With<IIdentityFeature>(new IdentityFeature(token));
+            IIdentityFeature identityFeature = await _authenticationBearer.DecodeAndValidateIdentityTokenAsync(buffer);
+            request.Features = request.Features.With(identityFeature);
         }
-        return _next.DispatchAsync(request, cancellationToken);
+        return await _next.DispatchAsync(request, cancellationToken);
     }
 
     /// <summary>Constructs an authentication middleware.</summary>
     /// <param name="next">The invoker to call next.</param>
-    /// <param name="encryptionAlgorithm">The encryption algorithm used to encrypt an identity token.</param>
-    internal AuthenticationMiddleware(IDispatcher next, SymmetricAlgorithm encryptionAlgorithm)
+    /// <param name="authenticationBearer">The authentication bearer to decode the identity token.</param>
+    internal AuthenticationMiddleware(IDispatcher next, IAuthenticationBearer authenticationBearer)
     {
         _next = next;
-        _encryptionAlgorithm = encryptionAlgorithm;
+        _authenticationBearer = authenticationBearer;
     }
 }

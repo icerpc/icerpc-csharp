@@ -2,15 +2,6 @@
 
 module AuthorizationExample
 
-/// An identity token.
-struct IdentityToken {
-    /// true if the authenticated user has administrative privilege, false otherwise.
-    isAdmin: bool
-
-    /// The user name.
-    name: string
-}
-
 /// The encrypted identity token.
 typealias EncryptedIdentityToken = sequence<uint8>
 
@@ -23,15 +14,15 @@ interface Authenticator {
     authenticate(name: string, password: string) -> EncryptedIdentityToken
 }
 
-/// Represents a recipient of greetings.
-interface Greeting {
+/// A service to get a personalized greeting message.
+interface Greeter {
     /// Creates a personalized "hello" greeting.
     /// @returns: The greeting.
-    getGreeting() -> string
+    greet() -> string
 }
 
-/// Represents a service to configure the greeting of the greeting service.
-interface GreetingAdmin {
+/// Represents a service to configure the greeting of the greeter service.
+interface GreeterAdmin {
     /// Changes the greeting returned by the Greeting service.
     /// @param greeting: The new greeting.
     changeGreeting(greeting: string)

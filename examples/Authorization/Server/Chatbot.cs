@@ -6,11 +6,11 @@ using IceRpc.Slice;
 namespace AuthorizationExample;
 
 /// <summary>A Chatbot is an IceRPC service that implements the Slice interface 'Greeting'.</summary>
-internal class Chatbot : Service, IGreetingService
+internal class Chatbot : Service, IGreeterService
 {
     internal string Greeting { get; set; } = "Hello";
 
-    public ValueTask<string> GetGreetingAsync(IFeatureCollection features, CancellationToken cancellationToken)
+    public ValueTask<string> GreetAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
         string name;
         bool isAdmin;
@@ -25,7 +25,7 @@ internal class Chatbot : Service, IGreetingService
             isAdmin = false;
         }
 
-        Console.WriteLine($"Dispatching GetGreeting request {{ name = '{name}' isAdmin = {isAdmin} }}");
+        Console.WriteLine($"Dispatching Greet request {{ name = '{name}' isAdmin = {isAdmin} }}");
         return new($"{Greeting}, {name}!");
     }
 }
