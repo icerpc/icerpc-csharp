@@ -25,6 +25,7 @@ public sealed class OutgoingResponse : OutgoingFrame
     /// <summary>Constructs an outgoing response with the <see cref="StatusCode.Success" /> status code and a <see
     /// langword="null" /> error message.</summary>
     /// <param name="request">The incoming request.</param>
+    /// <remarks>The constructor also sets <see cref="IncomingRequest.Response" /> to this response.</remarks>
     public OutgoingResponse(IncomingRequest request)
         : base(request.Protocol)
     {
@@ -36,6 +37,7 @@ public sealed class OutgoingResponse : OutgoingFrame
     /// <param name="request">The incoming request.</param>
     /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Success" />.</param>
     /// <param name="errorMessage">The error message.</param>
+    /// <remarks>The constructor also sets <see cref="IncomingRequest.Response" /> to this response.</remarks>
     public OutgoingResponse(IncomingRequest request, StatusCode statusCode, string errorMessage)
         : base(request.Protocol)
     {
@@ -50,6 +52,7 @@ public sealed class OutgoingResponse : OutgoingFrame
     /// <summary>Constructs an outgoing response for a dispatch exception.</summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="dispatchException">The dispatchException.</param>
+    /// <remarks>The constructor also sets <see cref="IncomingRequest.Response" /> to this response.</remarks>
     public OutgoingResponse(IncomingRequest request, DispatchException dispatchException)
         : this(request, dispatchException.StatusCode, GetErrorMessage(dispatchException))
     {
