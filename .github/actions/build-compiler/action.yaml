@@ -1,0 +1,32 @@
+name: Build Dist
+
+inputs:
+  cargo-build-args:
+    description: 'Cargo Build Args'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+  - name: 📦 Cargo Cache
+    uses: actions/cache@v3
+    with:
+      path: |
+        ~/.cargo/bin/
+        ~/.cargo/registry/index/
+        ~/.cargo/registry/cache/
+        ~/.cargo/git/db/
+        tools/slicec-cs/target/
+      key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      restore-keys: |
+        ${{ runner.os }}-cargo-
+  - name: 🔗 Start SSH Agent
+    uses: webfactory/ssh-agent@v0.5.4
+    with:
+      ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
+  - name: 🔨 Build Slice Compiler
+    uses: actions-rs/cargo@v1
+    with:
+      command: build
+      args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}

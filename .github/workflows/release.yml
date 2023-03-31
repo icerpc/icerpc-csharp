@@ -1,0 +1,14 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-macOS-x86_64:
+    uses: ./.github/workflows/build-compiler
+    with:
+      target-os: macos-11	
+  build-linux-x86_64:
+    uses: ./.github/workflows/build-compiler
+    with:
+      target-os: ubuntu-22.04

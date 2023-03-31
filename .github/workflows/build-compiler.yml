@@ -1,0 +1,20 @@
+name: SliceC Compiler Release Build
+
+on:
+  workflow_call:
+    inputs:
+      target-os:
+        required: true
+        type: string
+
+jobs:
+  build-compilers:
+    runs-on: ${{ inputs.target-os }}
+    steps:
+    - name: Build
+      uses: ./.github/actions/build-compiler
+      with:
+        cargo-build-args: --release
+        dotnet-build-args: --configuration Release
+      env:
+        ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
