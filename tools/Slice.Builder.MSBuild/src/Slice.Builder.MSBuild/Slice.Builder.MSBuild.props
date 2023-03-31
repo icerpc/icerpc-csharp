@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildThisFileDirectory)PlatformInfo.props" />
     <PropertyGroup>
         <EnableDefaultSliceCItems Condition="'$(EnableDefaultSliceCItems)' == ''">true</EnableDefaultSliceCItems>
     </PropertyGroup>
@@ -16,7 +17,7 @@
         <Otherwise>
             <!-- Use Slice files and Slice compiler from this NuGet package -->
             <PropertyGroup>
-                <SliceBuilderToolsPath>$(MSBuildThisFileDirectory)..\tools</SliceBuilderToolsPath>
+                <SliceBuilderToolsPath>$(MSBuildThisFileDirectory)..\tools\$(OSName)-$(OSArch)</SliceBuilderToolsPath>
                 <SliceBuilderBuiltInReferencedFiles>$(MSBuildThisFileDirectory)..\slice</SliceBuilderBuiltInReferencedFiles>
             </PropertyGroup>
         </Otherwise>

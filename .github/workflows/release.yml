@@ -11,10 +11,26 @@ jobs:
       target-os: macos-11
     secrets:
       ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+  build-macOS-aarch64:
+    uses: ./.github/workflows/build-compiler.yml
+    with:
+      target-os: macos-11
+      target: aarch64-apple-darwin
+      use-cross: true
+    secrets:
+      ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
   build-linux-x86_64:
     uses: ./.github/workflows/build-compiler.yml
     with:
       target-os: ubuntu-22.04
+    secrets:
+      ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+  build-linux-aarch64:
+    uses: ./.github/workflows/build-compiler.yml
+    with:
+      target-os: ubuntu-22.04
+      target: aarch64-unknown-linux-gnu
+      use-cross: true
     secrets:
       ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
   build-windows-x86_64:
