@@ -5,10 +5,6 @@ inputs:
     description: 'Cargo Build Args'
     required: false
     default: ''
-  use-cross:
-    description: 'Whether or not to use cross toolchain'
-    require: false
-    default: false
   target:
     description: 'The target platform'
     required: false
@@ -34,26 +30,12 @@ runs:
     with:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
   - name: Toolchain
-    if: ${{ inputs.use-cross == 'true' }}
-    uses: actions-rs/toolchain@v1
+    uses: dtolnay/rust-toolchain@stable
     with:
       toolchain: stable
-      target: ${{ inputs.target }}
-      override: true
+      targets: ${{ inputs.target }}
   - name: Build Slice Compiler
-    if: ${{ inputs.use-cross != 'true' }}
-    uses: actions-rs/cargo@v1
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
-    with:
-      command: build
-      args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
-  - name: Cross Build Slice Compiler
-    if: ${{ inputs.use-cross == 'true' }}
-    uses: actions-rs/cargo@v1
-    env:
-      CARGO_NET_GIT_FETCH_WITH_CLI: true
-    with:
-      use-cross: true
-      command: build
-      args: --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }} --target ${{ inputs.target }}
+    run: |
+      cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }} --target ${{ inputs.target }}
