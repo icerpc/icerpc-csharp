@@ -22,7 +22,10 @@ jobs:
         NUGET_API_TOKEN: ${{ secrets.NUGET_API_TOKEN }}
     - name: Set VERSION variable from tag
       run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
-    - name: Pack
+    - name: Pack IceRPC Tools
+      working-directory: tools/IceRpc.Slice.Tools
+      run: dotnet pack --configuration Release /p:IceRpcVersion=${VERSION} --output ../../
+    - name: Pack IceRPC
       run: dotnet pack --configuration Release /p:IceRpcVersion=${VERSION} --output .
     - name: Push
       run: dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
