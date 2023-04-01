@@ -97,8 +97,8 @@ function Install($config) {
         $package_name = $package_name.Substring(0, $package_name.Length - ".$version".Length)
         Remove-Item $global_packages"\$package_name\$version" -Recurse -Force -ErrorAction Ignore
     }
-    RunCommand "dotnet" @('nuget', 'push', "tools\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
-    RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
+    RunCommand "dotnet" @('nuget', 'push', "tools\**\$dotnetConfiguration\*.$version.nupkg", '--source', $global_packages)
+    RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.$version.nupkg", '--source', $global_packages)
 }
 
 function InstallTemplates($config) {
