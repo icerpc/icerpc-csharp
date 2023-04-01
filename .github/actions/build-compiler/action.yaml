@@ -39,3 +39,4 @@ runs:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     run: |
       cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }} --target ${{ inputs.target }}
+    shell: bash
