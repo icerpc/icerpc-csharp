@@ -2,7 +2,7 @@
     <PropertyGroup>
         <OSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</OSName>
         <OSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</OSName>
-        <OSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macOS</OSName>
+        <OSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</OSName>
         <OSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</OSArch>
     </PropertyGroup>
 </Project>
