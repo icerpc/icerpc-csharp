@@ -17,8 +17,8 @@ Building IceRpc requires Rust and .NET development environments:
 - A Rust development environment
 - The .NET 7.0 SDK
 
-The Slice compiler depends on `slicec` private repository, if you get a "Permission denied" error try setting the
-following environment variable:
+The Slice compiler depends on `slicec` library, which is installed from`zeroc-ice/slicec` private repository, if the
+Slice compiler build fails with a "Permission denied" error try setting the following environment variable:
 
 ```shell
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
