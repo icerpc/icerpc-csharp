@@ -53,6 +53,8 @@ as the default build task, so you can invoke it by selecting `Tasks: Run Build T
 
 After building IceRPC you can create the corresponding NuGet packages by running the following command
 
+For Linux and macOS
+
 ```shell
 ./build.sh pack
 ```
@@ -63,7 +65,9 @@ For Windows
 build.cmd pack
 ```
 
-The build script support pushing the packages to the global-packages source, this can be done using the command
+You can push the packages to the `global-packages` source with the following command:
+
+For Linux and macOS
 
 ```shell
 ./build.sh install
@@ -75,7 +79,7 @@ For Windows
 build.cmd install
 ```
 
-This allow to use the NuGet packages from the local global-packages source.
+This allow using the NuGet packages from the local `global-packages` source.
 
 ## Testing
 
