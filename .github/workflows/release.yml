@@ -54,7 +54,7 @@ jobs:
           mv slicec-cs-aarch64-apple-darwin/slicec-cs ~/tools/macos-arm64/
           mv slicec-cs-x86_64-unknown-linux-gnu/slicec-cs ~/tools/linux-x64/
           mv slicec-cs-aarch64-unknown-linux-gnu/slicec-cs ~/tools/linux-arm64/
-          mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe ~/tools/x86_64-pc-windows-msvc/
+          mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe ~/tools/windows-x64/
           ./build.sh --config release
           ./build.sh pack --config release
         env:
