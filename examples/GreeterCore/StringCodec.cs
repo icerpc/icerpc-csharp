@@ -4,7 +4,7 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 
-namespace HelloCoreExample;
+namespace GreeterCoreExample;
 
 /// <summary>Implements a simplistic encoder/decoder for strings. It encodes strings into a <see cref="PipeReader" />
 /// and decodes strings from a <see cref="PipeReader" />.</summary>

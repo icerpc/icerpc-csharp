@@ -8,7 +8,7 @@
     <TargetFramework>net7.0-windows</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <SliceC Include="../Hello.slice" />
+    <SliceC Include="../Greeter.slice" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Quic" Version="$(IceRpcVersion)" />

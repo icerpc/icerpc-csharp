@@ -7,7 +7,7 @@ namespace AuthorizationExample;
 
 /// <summary>A service that implements Slice interface GreeterAdmin. It is used to change the greeting and requires
 /// callers to be authenticated.</summary>
-internal class ChatbotAdmin : Service, IGreeterService
+internal class ChatbotAdmin : Service, IGreeterAdminService
 {
     private readonly Chatbot _chatbot;
 
