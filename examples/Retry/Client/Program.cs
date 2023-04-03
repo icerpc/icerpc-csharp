@@ -4,6 +4,7 @@ using IceRpc;
 using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
 using RetryExample;
+using System.Collections.Immutable;
 
 if (args.Length < 1)
 {
@@ -45,12 +46,15 @@ Pipeline pipeline = new Pipeline()
 // We use a logger to ensure proper ordering of the messages on the console.
 ILogger logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
 
-string helloServiceAddress = "icerpc://localhost:10000/hello?alt-server=localhost:10001";
-for (int i = 2; i < serverInstances; i++)
+var helloServiceAddress = new ServiceAddress(new Uri("icerpc://localhost:10000/hello"));
+var altServerAddresses = new List<ServerAddress>();
+for (int i = 1; i < serverInstances; i++)
 {
-    helloServiceAddress += $"&alt-server=localhost:{10000 + i}";
+    altServerAddresses.Add(new ServerAddress(Protocol.IceRpc) { Host = "localhost", Port = (ushort)(i + 10000) });
 }
-var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
+helloServiceAddress = helloServiceAddress with { AltServerAddresses = altServerAddresses.ToImmutableList() };
+
+var hello = new HelloProxy(pipeline, helloServiceAddress);
 
 CancellationToken cancellationToken = cts.Token;
 try
