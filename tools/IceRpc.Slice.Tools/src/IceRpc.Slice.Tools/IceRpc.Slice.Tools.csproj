@@ -98,11 +98,11 @@
                <PackagePath>tools\linux-arm64\</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macOS-x64\slicec-cs">
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macos-x64\slicec-cs">
                <PackagePath>tools\macos-x64\</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macOS-arm64\slicec-cs">
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macos-arm64\slicec-cs">
                <PackagePath>tools\macos-arm64\</PackagePath>
                <Pack>true</Pack>
             </Content>
