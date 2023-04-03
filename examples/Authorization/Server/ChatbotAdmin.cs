@@ -5,9 +5,9 @@ using IceRpc.Slice;
 
 namespace AuthorizationExample;
 
-/// <summary>A service that implements Slice interface HelloAdmin. It is used to change the greeting and requires
+/// <summary>A service that implements Slice interface GreeterAdmin. It is used to change the greeting and requires
 /// callers to be authenticated.</summary>
-internal class ChatbotAdmin : Service, IHelloAdminService
+internal class ChatbotAdmin : Service, IGreeterService
 {
     private readonly Chatbot _chatbot;
 

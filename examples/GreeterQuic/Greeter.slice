@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module GreeterSecureExample
+module GreeterQuicExample
 
 /// A service to get a personalized greeting message.
 interface Greeter {

@@ -5,22 +5,22 @@ using IceRpc.Slice;
 
 namespace OpenTelemetryExample;
 
-/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Hello'.</summary>
-internal class Chatbot : Service, IHelloService
+/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
+internal class Chatbot : Service, IGreeterService
 {
     private readonly ICrm _crm;
 
     internal Chatbot(ICrm crm) => _crm = crm;
 
-    public async ValueTask<string> SayHelloAsync(
+    public async ValueTask<string> GreetAsync(
         string name,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching sayHello request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         if (await _crm.TryAddCustomerAsync(name, features, cancellationToken))
         {
-            return $"Hello, {name}!";
+            return $"Greeter, {name}!";
         }
         else
         {

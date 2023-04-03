@@ -45,19 +45,19 @@ Pipeline pipeline = new Pipeline()
 // We use a logger to ensure proper ordering of the messages on the console.
 ILogger logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
 
-string helloServiceAddress = "icerpc://localhost:10000/hello?alt-server=localhost:10001";
+string greeterServiceAddress = "icerpc://localhost:10000/greeter?alt-server=localhost:10001";
 for (int i = 2; i < serverInstances; i++)
 {
-    helloServiceAddress += $"&alt-server=localhost:{10000 + i}";
+    greeterServiceAddress += $"&alt-server=localhost:{10000 + i}";
 }
-var hello = new HelloProxy(pipeline, new Uri(helloServiceAddress));
+var greeter = new GreeterProxy(pipeline, new Uri(greeterServiceAddress));
 
 CancellationToken cancellationToken = cts.Token;
 try
 {
     while (true)
     {
-        string greeting = await hello.SayHelloAsync(Environment.UserName, cancellationToken: cancellationToken);
+        string greeting = await greeter.GreetAsync(Environment.UserName, cancellationToken: cancellationToken);
         logger.LogResponse(greeting);
         logger.LogLooping();
         await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);

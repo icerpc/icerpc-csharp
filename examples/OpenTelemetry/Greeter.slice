@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module GreeterSecureExample
+module OpenTelemetryExample
 
 /// A service to get a personalized greeting message.
 interface Greeter {

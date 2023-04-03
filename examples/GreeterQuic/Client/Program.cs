@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterSecureExample;
+using GreeterQuicExample;
 using IceRpc;
+using IceRpc.Transports;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-// Create the authentication options with a custom certificate validation callback that uses our Root CA certificate.
-
 using var rootCA = new X509Certificate2("../../certs/cacert.der");
-var clientAuthenticationOptions = new SslClientAuthenticationOptions()
+var clientAuthenticationOptions = new SslClientAuthenticationOptions
 {
     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
     {
@@ -21,11 +20,13 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions()
     }
 };
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"), clientAuthenticationOptions);
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions,
+    multiplexedClientTransport: new QuicClientTransport());
 
-var greeter = new GreeterProxy(connection);
-
-string greeting = await greeter.GreetAsync(Environment.UserName);
+var greeterProxy = new GreeterProxy(connection);
+string greeting = await greeterProxy.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
 

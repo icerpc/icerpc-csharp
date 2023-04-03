@@ -7,19 +7,19 @@ using System.Security.Cryptography;
 
 namespace RetryExample;
 
-/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Hello'.</summary>
-internal class Chatbot : Service, IHelloService
+/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
+internal class Chatbot : Service, IGreeterService
 {
     private readonly int _serverNumber;
 
     internal Chatbot(int serverNumber) => _serverNumber = serverNumber;
 
-    public ValueTask<string> SayHelloAsync(
+    public ValueTask<string> GreetAsync(
         string name,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching sayHello request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         // 50% failure/success ratio
         if (RandomNumberGenerator.GetInt32(10) < 5)
         {
@@ -27,7 +27,7 @@ internal class Chatbot : Service, IHelloService
         }
         else
         {
-            return new($"Hello, {name}, from server #{_serverNumber}!");
+            return new($"Greeter, {name}, from server #{_serverNumber}!");
         }
     }
 }
