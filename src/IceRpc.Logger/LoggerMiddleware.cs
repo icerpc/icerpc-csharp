@@ -23,7 +23,9 @@ public class LoggerMiddleware : IDispatcher
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        return _logger.IsEnabled(LogLevel.Information) ? PerformDispatchAsync() : _next.DispatchAsync(request, cancellationToken);
+        return _logger.IsEnabled(LogLevel.Information) ?
+            PerformDispatchAsync() :
+            _next.DispatchAsync(request, cancellationToken);
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync()
         {
@@ -31,7 +33,7 @@ public class LoggerMiddleware : IDispatcher
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
 
-                _logger.LogDispatch(
+                _logger.LogDispatchResponse(
                     request.Path,
                     request.Operation,
                     request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
@@ -55,11 +57,11 @@ public class LoggerMiddleware : IDispatcher
 internal static partial class LoggerMiddlewareLoggerExtensions
 {
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventId.Invoke,
-        EventName = nameof(LoggerInterceptorEventId.Invoke),
+        EventId = (int)LoggerMiddlewareEventId.DispatchResponse,
+        EventName = nameof(LoggerMiddlewareEventId.DispatchResponse),
         Level = LogLevel.Information,
-        Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received {StatusCode} response")]
-    internal static partial void LogDispatch(
+        Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and sent {StatusCode} response")]
+    internal static partial void LogDispatchResponse(
         this ILogger logger,
         string path,
         string operation,
@@ -68,8 +70,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         StatusCode statusCode);
 
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventId.InvokeException,
-        EventName = nameof(LoggerInterceptorEventId.InvokeException),
+        EventId = (int)LoggerMiddlewareEventId.DispatchException,
+        EventName = nameof(LoggerMiddlewareEventId.DispatchException),
         Level = LogLevel.Information,
         Message = "Failed to dispatch {Operation} to {Path}")]
     internal static partial void LogDispatchException(

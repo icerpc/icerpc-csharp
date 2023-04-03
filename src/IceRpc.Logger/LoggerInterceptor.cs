@@ -27,7 +27,7 @@ public class LoggerInterceptor : IInvoker
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInvoke(
+            _logger.LogInvokeResponse(
                 request.ServiceAddress,
                 request.Operation,
                 response.StatusCode,
@@ -47,11 +47,11 @@ public class LoggerInterceptor : IInvoker
 internal static partial class LoggerInterceptorLoggerExtensions
 {
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventId.Invoke,
-        EventName = nameof(LoggerInterceptorEventId.Invoke),
+        EventId = (int)LoggerInterceptorEventId.InvokeResponse,
+        EventName = nameof(LoggerInterceptorEventId.InvokeResponse),
         Level = LogLevel.Information,
         Message = "Sent {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received {StatusCode} response")]
-    internal static partial void LogInvoke(
+    internal static partial void LogInvokeResponse(
         this ILogger logger,
         ServiceAddress serviceAddress,
         string operation,
