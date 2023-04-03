@@ -2,7 +2,7 @@
 
 module RetryExample
 
-/// A service to get a personalized greeting message.
+/// Represents a simple greeter.
 interface Greeter {
     /// Creates a personalized greeting.
     /// @param name: The name of the person to greet.

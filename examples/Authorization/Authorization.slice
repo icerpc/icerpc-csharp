@@ -13,7 +13,7 @@ interface SessionManager {
     createSession(name: string) -> Token
 }
 
-/// A service to get a personalized greeting message.
+/// Represents a simple greeter.
 interface Greeter {
     /// Creates a personalized greeting.
     /// @returns: The greeting.
