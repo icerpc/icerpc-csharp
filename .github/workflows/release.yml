@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-compiler:
+    timeout-minutes: 10
     strategy:
       matrix:
         include:
@@ -42,6 +43,7 @@ jobs:
           path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
   build-packages:
     runs-on: ubuntu-22.04
+    timeout-minutes: 10
     needs: build-compiler
     steps:
       - uses: actions/checkout@v3
@@ -55,12 +57,13 @@ jobs:
           mv slicec-cs-x86_64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-x64/
           mv slicec-cs-aarch64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-arm64/
           mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe /tmp/tools/windows-x64/
-      - name: 🔗 Start SSH Agent
-        uses: webfactory/ssh-agent@v0.5.4
+      - name: Build
+        uses: ./.github/actions/build
         with:
-          ssh-private-key: ${{ secrets.ICERPC_DEPLOY_KEY }}
-      - name: Release Build
-        run: ./build.sh --config release
+          cargo-build-args: --release
+          dotnet-build-args: --configuration Release
+        env:
+          ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
         run: dotnet pack --configuration Release --output ../../
