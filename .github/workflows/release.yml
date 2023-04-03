@@ -58,7 +58,7 @@ jobs:
       - name: 🔗 Start SSH Agent
         uses: webfactory/ssh-agent@v0.5.4
         with:
-          ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
+          ssh-private-key: ${{ secrets.ICERPC_DEPLOY_KEY }}
       - name: Release Build
         run: ./build.sh --config release
       - name: Pack IceRPC Tools
