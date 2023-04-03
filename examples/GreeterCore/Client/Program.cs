@@ -8,7 +8,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 // Construct an outgoing request for the icerpc protocol.
 using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
 {
-    Operation = "greet",
+    Operation = "greetCore",
     Payload = StringCodec.EncodeString(Environment.UserName)
 };
 

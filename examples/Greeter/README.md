@@ -1,7 +1,6 @@
-# Hello
+# Greeter
 
-The canonical "Hello World" example implemented using IceRPC. It illustrates how to send a request and wait for the
-response.
+The Greeter example illustrates how to send a request and wait for the response.
 
 For build instructions check the top-level [README.md](../../README.md).
 

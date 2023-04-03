@@ -1,6 +1,6 @@
-# HelloLog
+# GreeterLog
 
-This example adds logging to the [Hello](../Hello/README.md) example.
+This example adds logging to the [Greeter](../Greeter/README.md) example.
 
 For build instructions check the top-level [README.md](../../README.md).
 

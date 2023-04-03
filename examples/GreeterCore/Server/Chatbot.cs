@@ -9,7 +9,7 @@ internal class Chatbot : IDispatcher
 {
     public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        if (request.Operation == "greet")
+        if (request.Operation == "greetCore")
         {
             string name = await StringCodec.DecodePayloadStringAsync(request.Payload);
             Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
@@ -18,7 +18,7 @@ internal class Chatbot : IDispatcher
         }
         else
         {
-            // We only implement greet.
+            // We only implement greetCore.
             throw new DispatchException(StatusCode.OperationNotFound);
         }
     }

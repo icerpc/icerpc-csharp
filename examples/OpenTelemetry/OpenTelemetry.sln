@@ -5,7 +5,7 @@ VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client", "Client\Client.csproj", "{BBF1199A-46A4-4AE9-AFFE-4D8DD59EB874}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloServer", "HelloServer\HelloServer.csproj", "{150BD826-CE17-4705-AB1E-87EF74907111}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GreeterServer", "GreeterServer\GreeterServer.csproj", "{150BD826-CE17-4705-AB1E-87EF74907111}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CrmServer", "CrmServer\CrmServer.csproj", "{B6D9EC69-928D-45A8-99C0-5682D50A78D5}"
 EndProject
