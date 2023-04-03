@@ -11,7 +11,8 @@ param (
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
 
-$version = "0.1.0-preview1"
+Get-Content .\build\icerpc.version.props -Raw | Where {$_ -match "<IceRpcVersion .*>(.*)</IceRpcVersion>"} | Out-Null
+$version = $Matches.1
 
 function BuildCompiler($config) {
     Push-Location "tools\slicec-cs"
@@ -29,29 +30,43 @@ function CleanCompiler($config) {
     Pop-Location
 }
 
+function BuildIceRpcSliceTools($config) {
+    Push-Location "tools\IceRpc.Slice.Tools"
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
+    Pop-Location
+}
+
+function CleanIceRpcSliceTools($config) {
+    Push-Location "tools\IceRpc.Slice.Tools"
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet" @('clean', '-nr:false', '--configuration', $dotnetConfiguration)
+    Pop-Location
+}
+
 function BuildIceRpc($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
 }
 
 function BuildIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "$example")
+        RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
 function CleanIceRpc($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', '-nr:false', '--configuration', $dotnetConfiguration)
 }
 
 function CleanIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "$example")
+        RunCommand "dotnet" @('clean', '-nr:false', '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
@@ -63,6 +78,7 @@ function Build($config, $examples, $srcdist) {
         BuildIceRpcExamples $config
     } else {
         BuildCompiler $config
+        BuildIceRpcSliceTools $config
         BuildIceRpc $config
     }
 }
@@ -73,13 +89,15 @@ function Install($config) {
     Pack $config
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
-    $packages = Get-Childitem -Path "src\*\bin\$dotnetConfiguration" -Include *.nupkg -Recurse
+    Remove-Item $global_packages"\IceRpc.Slice.Tools\$version" -Recurse -Force -ErrorAction Ignore
+    $packages = Get-Childitem -Path "." -Include *.nupkg -Recurse
     foreach ($package in $packages)
     {
         $package_name = (Get-Item $package).Basename
         $package_name = $package_name.Substring(0, $package_name.Length - ".$version".Length)
         Remove-Item $global_packages"\$package_name\$version" -Recurse -Force -ErrorAction Ignore
     }
+    RunCommand "dotnet" @('nuget', 'push', "tools\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
     RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
 }
 
@@ -98,7 +116,10 @@ function InstallTemplates($config) {
 
 function Pack($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
+    Push-Location "tools\IceRpc.Slice.Tools"
     RunCommand "dotnet"  @('pack', '--configuration', $dotnetConfiguration)
+    Pop-Location
+    RunCommand "dotnet"  @('pack', '-nr:false', '--configuration', $dotnetConfiguration)
 }
 
 function Rebuild($config, $examples, $srcdist) {

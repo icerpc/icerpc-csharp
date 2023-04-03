@@ -17,39 +17,14 @@ Building IceRpc requires Rust and .NET development environments:
 - A Rust development environment
 - The .NET 7.0 SDK
 
-The build depends on `IceRpc.Builder.MSBuild` NuGet package that is not publicly available, for accessing this package
-you must create a `nuget.config` file with the following contents:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-    <packageSources>
-        <add key="github" value="https://nuget.pkg.github.com/zeroc-ice/index.json" />
-    </packageSources>
-    <packageSourceCredentials>
-        <github>
-            <add key="Username" value="USERNAME" />
-            <add key="ClearTextPassword" value="TOKEN" />
-        </github>
-    </packageSourceCredentials>
-</configuration>
-```
-
-You can create the `nuget.config` in the source folder or any folder up to the drive root.
-
-You must replace:
-
-- USERNAME with the name of your user account on GitHub
-- TOKEN with your personal access token. Create your token from [Github tokens](https://github.com/settings/tokens) and
-  give it the `read:packages` permission.
-
-Additionally, it may be necessary to set the following environment variable if you get a "Permission denied" error:
+The build system for the `slicec-cs` compiler fetches the `slicec` library from the `slicec` private repository. If the
+build fails to fetch `slicec` with a permission denied error, set the following environment variable:
 
 ```shell
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 ```
 
-This tells Cargo to use git's executable to fetch dependencies instead of it's own.
+and then try again. This tells Cargo to use git's executable to fetch dependencies instead of it's own.
 
 ## Building
 

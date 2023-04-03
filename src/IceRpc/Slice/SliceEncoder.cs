@@ -38,6 +38,15 @@ public ref partial struct SliceEncoder
 
     private Encoder? _utf8Encoder; // initialized lazily
 
+    /// <summary>Encodes an int as a Slice int32 into a span of 4 bytes.</summary>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="into">The destination byte buffer, which must be 4 bytes long.</param>
+    public static void EncodeInt32(int value, Span<byte> into)
+    {
+        Debug.Assert(into.Length == 4);
+        MemoryMarshal.Write(into, ref value);
+    }
+
     /// <summary>Encodes a ulong as a Slice varuint62 into a span of bytes using a fixed number of bytes.</summary>
     /// <param name="value">The value to encode.</param>
     /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
@@ -495,12 +504,6 @@ public ref partial struct SliceEncoder
     }
 
     internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
-
-    internal static void EncodeInt32(int v, Span<byte> into)
-    {
-        Debug.Assert(into.Length == 4);
-        MemoryMarshal.Write(into, ref v);
-    }
 
     /// <summary>Encodes a fixed-size numeric value.</summary>
     /// <param name="v">The numeric value to encode.</param>

@@ -28,22 +28,10 @@
         <PackagePath></PackagePath>
         <Pack>true</Pack>
       </Content>
-      <Content Include="..\..\tools\slicec-cs\target\$(RustConfiguration)\$(SliceCompilerExe)">
-          <PackagePath>tools</PackagePath>
-          <Pack>true</Pack>
-      </Content>
       <None Include="..\..\build\logo.png">
           <Pack>True</Pack>
           <PackagePath>.</PackagePath>
       </None>
-      <Content Include="icerpc.props">
-          <Pack>true</Pack>
-          <PackagePath>build</PackagePath>
-      </Content>
-      <Content Include="..\..\slice\**\*.slice">
-        <Pack>true</Pack>
-        <PackagePath>slice</PackagePath>
-      </Content>
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
@@ -53,6 +41,5 @@
       </PackageReference>
       <PackageReference Include="System.IO.Pipelines" Version="$(NetRuntimeVersion)" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(NetRuntimeVersion)" />
-      <PackageReference Include="IceRpc.Builder.MSBuild" Version="$(IceRpcBuilderVersion)" PrivateAssets="All" />
     </ItemGroup>
 </Project>

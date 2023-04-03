@@ -177,9 +177,10 @@ pub trait EntityExt: Entity {
     /// with any links resolved to the appropriate C# tag. Otherwise this returns `None`.
     fn formatted_doc_comment_summary(&self) -> Option<String> {
         self.comment().and_then(|comment| {
-            comment.overview.as_ref().map(|overview| {
-                format_message(&overview.message, |link| link.get_formatted_link(&self.namespace()))
-            })
+            comment
+                .overview
+                .as_ref()
+                .map(|overview| format_message(&overview.message, |link| link.get_formatted_link(&self.namespace())))
         })
     }
 

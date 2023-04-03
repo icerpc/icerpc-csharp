@@ -3,9 +3,9 @@
 module IceRpc::Tests::Slice
 
 struct MyStructWithTaggedMembers {
-    a: tag(1) uint8?
-    b: tag(2) MyStruct?
-    c: tag(3) MyEnum?
-    d: tag(4) sequence<uint8>?
-    e: tag(5) string?
+    tag(1) a: uint8?
+    tag(2) b: MyStruct?
+    tag(3) c: MyEnum?
+    tag(4) d: sequence<uint8>?
+    tag(5) e: string?
 }
