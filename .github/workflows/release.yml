@@ -8,25 +8,22 @@ jobs:
   build-compiler:
     strategy:
       matrix:
-        os: []
-        target: []
-        compiler-exe: []
-      include:
-        - os: macos-11
-          target: x86_64-apple-darwin
-          compiler-exe: slicec-cs
-        - os: macos-11
-          target: aarch64-apple-darwin
-          compiler-exe: slicec-cs
-        - os: ubuntu-22.04
-          target: x86_64-unknown-linux-gnu
-          compiler-exe: slicec-cs
-        - os: ubuntu-22.04
-          target: aarch64-unknown-linux-gnu
-          compiler-exe: slicec-cs
-        - os: windows-2022
-          target: x86_64-pc-windows-msvc
-          compiler-exe: slicec-cs.exe
+        include:
+          - os: macos-11
+            target: x86_64-apple-darwin
+            compiler-exe: slicec-cs
+          - os: macos-11
+            target: aarch64-apple-darwin
+            compiler-exe: slicec-cs
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            compiler-exe: slicec-cs
+          - os: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
+            compiler-exe: slicec-cs
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            compiler-exe: slicec-cs.exe
     steps:
       - uses: ./.github/workflows/build-compiler.yml
         with:
