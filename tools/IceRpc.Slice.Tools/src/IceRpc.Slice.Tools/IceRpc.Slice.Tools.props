@@ -4,6 +4,8 @@
     <Import Project="$(MSBuildThisFileDirectory)PlatformInfo.props" />
     <PropertyGroup>
         <EnableDefaultSliceCItems Condition="'$(EnableDefaultSliceCItems)' == ''">true</EnableDefaultSliceCItems>
+        <!-- Workaround for Omnisharp not setting $(Configuration) property when loading C# projects -->
+        <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     </PropertyGroup>
     <Choose>
         <When Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\slicec-cs')">
