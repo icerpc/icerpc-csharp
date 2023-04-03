@@ -37,7 +37,7 @@ public enum IceRpcError
     /// during connection establishment.</summary>
     LimitExceeded,
 
-    /// <summary>An invoker failed to send a request because it could not establish or locate a connection.</summary>
+    /// <summary>An invoker failed to send a request because it could not locate a connection.</summary>
     NoConnection,
 
     /// <summary>The operation was aborted because an underlying resource (connection, stream) was disposed while this
