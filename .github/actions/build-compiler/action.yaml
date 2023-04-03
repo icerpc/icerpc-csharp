@@ -31,7 +31,7 @@ runs:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
   - name: Install Cross Tools
     if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
-    run: apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
+    run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
     shell: bash
   - name: Toolchain
     uses: dtolnay/rust-toolchain@stable
