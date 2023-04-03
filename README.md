@@ -5,6 +5,7 @@
 - [IceRPC](#icerpc)
 - [Build Requirements](#build-requirements)
 - [Building](#building)
+- [Packaging](#packaging)
 - [Testing](#testing)
 - [Building Example Programs](#building-example-programs)
 - [Project Templates](#project-templates)
@@ -47,6 +48,38 @@ default debug configuration.
 
 Additionally, a build task is provided for building IceRpc within Visual Studio Code. This task has been configured
 as the default build task, so you can invoke it by selecting `Tasks: Run Build Task...` from the command palette.
+
+## Packaging
+
+After building IceRPC you can create the corresponding NuGet packages by running the following command
+
+For Linux and macOS
+
+```shell
+./build.sh pack
+```
+
+For Windows
+
+```shell
+build.cmd pack
+```
+
+You can push the packages to the `global-packages` source with the following command:
+
+For Linux and macOS
+
+```shell
+./build.sh install
+```
+
+For Windows
+
+```shell
+build.cmd install
+```
+
+This allow using the NuGet packages from the local `global-packages` source.
 
 ## Testing
 
