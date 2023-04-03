@@ -10,10 +10,10 @@ internal static class RouterExtensions
 {
     /// <summary>Adds an <see cref="AuthenticationMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>
-    /// <param name="authenticationBearer">The authentication bearer to decode the identity token.</param>
+    /// <param name="authenticationBearerScheme">The bearer authentication handler to decode the identity token.</param>
     /// <returns>The router being configured.</returns>
-    internal static Router UseAuthentication(this Router router, IAuthenticationBearer authenticationBearer) =>
-        router.Use(next => new AuthenticationMiddleware(next, authenticationBearer));
+    internal static Router UseAuthentication(this Router router, IBearerAuthenticationHandler authenticationBearerScheme) =>
+        router.Use(next => new AuthenticationMiddleware(next, authenticationBearerScheme));
 
     /// <summary>Adds an <see cref="AuthorizationMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>

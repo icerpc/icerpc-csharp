@@ -4,7 +4,7 @@ This demo demonstrates how token based authorization and authentication can be i
 middleware. The token provides identify information.
 
 The server dispatch pipeline is configured with two middleware:
-- The `AuthenticationMiddleware` is responsible for decrypting the request's identity token field and storing it using
+- The `AuthenticationMiddleware` is responsible for validating the request's identity token field and storing it using
   the request's identity feature.
 - The `AuthorizationMiddleware` is responsible for checking if the request's identity feature is authorized.
 

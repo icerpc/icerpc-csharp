@@ -9,14 +9,15 @@ using System.Text;
 
 namespace AuthorizationExample;
 
-/// <summary>This is an implementation of the <see cref="IAuthenticationBearer" /> using JSON Web Token (JWT).</summary>
-internal sealed class JwtAuthenticationBearer : IAuthenticationBearer
+/// <summary>This is an implementation of <see cref="IBearerAuthenticationHandler" /> to create and validate a JWT
+/// identity token.</summary>
+internal sealed class JwtBearerAuthenticationHandler : IBearerAuthenticationHandler
 {
     private readonly SigningCredentials _signingCredentials;
     private readonly JwtSecurityTokenHandler _tokenHandler;
     private readonly TokenValidationParameters _tokenValidationParameters;
 
-    public async Task<IIdentityFeature> DecodeAndValidateIdentityTokenAsync(ReadOnlySequence<byte> identityTokenBytes)
+    public async Task<IIdentityFeature> ValidateIdentityTokenAsync(ReadOnlySequence<byte> identityTokenBytes)
     {
         string jwtTokenString = Encoding.UTF8.GetString(identityTokenBytes.ToArray());
         TokenValidationResult validationResult = await _tokenHandler.ValidateTokenAsync(
@@ -56,7 +57,7 @@ internal sealed class JwtAuthenticationBearer : IAuthenticationBearer
         }
     }
 
-    public ReadOnlyMemory<byte> EncodeIdentityToken(string name, bool isAdmin)
+    public ReadOnlyMemory<byte> CreateIdentityToken(string name, bool isAdmin)
     {
         var jwtToken = new JwtSecurityToken(
             claims: new Claim[]
@@ -72,7 +73,7 @@ internal sealed class JwtAuthenticationBearer : IAuthenticationBearer
         return Encoding.UTF8.GetBytes(_tokenHandler.WriteToken(jwtToken));
     }
 
-    internal JwtAuthenticationBearer(string secretKey)
+    internal JwtBearerAuthenticationHandler(string secretKey)
     {
         _tokenHandler = new JwtSecurityTokenHandler();
         var issuerKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));

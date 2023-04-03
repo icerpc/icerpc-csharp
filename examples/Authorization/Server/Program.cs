@@ -3,29 +3,29 @@
 using AuthorizationExample;
 using IceRpc;
 
-IAuthenticationBearer? authenticationBearer = null;
+IBearerAuthenticationHandler? bearerAuthenticationHandler = null;
 if (args.Length == 1 && args[0] == "--jwt")
 {
-    authenticationBearer = new JwtAuthenticationBearer("A secret key for the authorization example");
+    bearerAuthenticationHandler = new JwtBearerAuthenticationHandler("A secret key for the authorization example");
 }
 else
 {
-    authenticationBearer = new AesAuthenticationBearer();
+    bearerAuthenticationHandler = new AesBearerAuthenticationHandler();
 }
 
-// Dispose the authentication bearer if it's disposable.
-using var disposable = authenticationBearer as IDisposable;
+// Dispose the bearer authentication handler if it's disposable.
+using var disposable = bearerAuthenticationHandler as IDisposable;
 
 var router = new Router();
 
-// Install a middleware to decrypt and decode the request's identity token and add an identity feature to the request's
-// feature collection.
-router.UseAuthentication(authenticationBearer);
+// Install a middleware to validate the request's identity token and add an identity feature to the request's feature
+// collection.
+router.UseAuthentication(bearerAuthenticationHandler);
 
 var chatbot = new Chatbot();
 router.Map("/greeting", chatbot);
 
-router.Map("/authenticator", new Authenticator(authenticationBearer));
+router.Map("/authenticator", new Authenticator(bearerAuthenticationHandler));
 
 router.Route("/greetingAdmin", adminRouter =>
 {

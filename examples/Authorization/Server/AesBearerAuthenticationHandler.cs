@@ -7,12 +7,13 @@ using System.Security.Cryptography;
 
 namespace AuthorizationExample;
 
-/// <summary>This is an implementation of the <see cref="IAuthenticationBearer" /> using an Aes token.</summary>
-internal sealed class AesAuthenticationBearer : IAuthenticationBearer, IDisposable
+/// <summary>This is an implementation of <see cref="IBearerAuthenticationHandler" /> to create and validate a Slice
+/// based identity token encrypted with Aes.</summary>
+internal sealed class AesBearerAuthenticationHandler : IBearerAuthenticationHandler, IDisposable
 {
     private readonly Aes _aes;
 
-    public async Task<IIdentityFeature> DecodeAndValidateIdentityTokenAsync(ReadOnlySequence<byte> identityTokenBytes)
+    public async Task<IIdentityFeature> ValidateIdentityTokenAsync(ReadOnlySequence<byte> identityTokenBytes)
     {
         // Decrypt the Slice2 encoded token.
         using var sourceStream = new MemoryStream(identityTokenBytes.ToArray());
@@ -37,7 +38,7 @@ internal sealed class AesAuthenticationBearer : IAuthenticationBearer, IDisposab
 
     public void Dispose() => _aes.Dispose();
 
-    public ReadOnlyMemory<byte> EncodeIdentityToken(string name, bool isAdmin)
+    public ReadOnlyMemory<byte> CreateIdentityToken(string name, bool isAdmin)
     {
         // Encode the token with the Slice2 encoding.
         using var tokenStream = new MemoryStream();
@@ -54,7 +55,7 @@ internal sealed class AesAuthenticationBearer : IAuthenticationBearer, IDisposab
         return destinationStream.ToArray();
     }
 
-    internal AesAuthenticationBearer()
+    internal AesBearerAuthenticationHandler()
     {
         _aes = Aes.Create();
         _aes.Padding = PaddingMode.Zeros;

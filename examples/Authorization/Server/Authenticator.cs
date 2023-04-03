@@ -9,7 +9,7 @@ namespace AuthorizationExample;
 /// <summary>An Authenticator is an IceRPC service that implements the Slice interface 'Authenticator'.</summary>
 internal class Authenticator : Service, IAuthenticatorService
 {
-    private readonly IAuthenticationBearer _authenticationBearer;
+    private readonly IBearerAuthenticationHandler _bearerAuthenticationHandler;
 
     public ValueTask<ReadOnlyMemory<byte>> AuthenticateAsync(
         string name,
@@ -32,12 +32,11 @@ internal class Authenticator : Service, IAuthenticatorService
             throw new DispatchException(StatusCode.Unauthorized, "Unknown user or invalid password.");
         }
 
-        // Return the encrypted identity token.
-        return new(_authenticationBearer.EncodeIdentityToken(name, isAdmin));
+        return new(_bearerAuthenticationHandler.CreateIdentityToken(name, isAdmin));
     }
 
     /// <summary>Constructs an authenticator service.</summary>
-    /// <param name="authenticationBearer">The authentication bearer to encode an identity token.</param>
-    internal Authenticator(IAuthenticationBearer authenticationBearer) => _authenticationBearer = authenticationBearer;
-
+    /// <param name="bearerAuthenticationHandler">The bearer authentication handler to create an identity token.</param>
+    internal Authenticator(IBearerAuthenticationHandler bearerAuthenticationHandler) =>
+        _bearerAuthenticationHandler = bearerAuthenticationHandler;
 }
