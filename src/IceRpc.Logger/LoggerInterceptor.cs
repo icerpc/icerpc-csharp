@@ -27,7 +27,7 @@ public class LoggerInterceptor : IInvoker
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInvokeResponse(
+            _logger.LogInvoke(
                 request.ServiceAddress,
                 request.Operation,
                 response.StatusCode,

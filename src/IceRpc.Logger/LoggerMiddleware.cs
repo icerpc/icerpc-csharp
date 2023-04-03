@@ -33,7 +33,7 @@ public class LoggerMiddleware : IDispatcher
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
 
-                _logger.LogDispatchResponse(
+                _logger.LogDispatch(
                     request.Path,
                     request.Operation,
                     request.ConnectionContext.TransportConnectionInformation.LocalNetworkAddress,
@@ -61,7 +61,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventName = nameof(LoggerMiddlewareEventId.Dispatch),
         Level = LogLevel.Information,
         Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a {StatusCode} response")]
-    internal static partial void LogDispatchResponse(
+    internal static partial void LogDispatch(
         this ILogger logger,
         string path,
         string operation,
