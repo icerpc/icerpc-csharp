@@ -10,8 +10,6 @@ internal class ChatbotAdmin : Service, IGreeterAdminService
 {
     private readonly Chatbot _chatbot;
 
-    internal ChatbotAdmin(Chatbot chatbot) => _chatbot = chatbot;
-
     public ValueTask ChangeGreetingAsync(
         string greeting,
         IFeatureCollection features,
@@ -22,4 +20,6 @@ internal class ChatbotAdmin : Service, IGreeterAdminService
         _chatbot.Greeting = greeting;
         return default;
     }
+
+    internal ChatbotAdmin(Chatbot chatbot) => _chatbot = chatbot;
 }

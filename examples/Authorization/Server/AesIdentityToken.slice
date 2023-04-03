@@ -3,7 +3,7 @@
 module AuthorizationExample
 
 /// An identity token.
-struct AESIdentityToken {
+struct AesIdentityToken {
     /// true if the authenticated user has administrative privilege, false otherwise.
     isAdmin: bool
 

@@ -25,7 +25,7 @@ internal class AuthenticationMiddleware : IDispatcher
     }
 
     /// <summary>Constructs an authentication middleware.</summary>
-    /// <param name="next">The invoker to call next.</param>
+    /// <param name="next">The dispatcher to call next.</param>
     /// <param name="authenticationBearer">The authentication bearer to decode the identity token.</param>
     internal AuthenticationMiddleware(IDispatcher next, IAuthenticationBearer authenticationBearer)
     {

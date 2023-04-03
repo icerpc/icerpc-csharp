@@ -3,18 +3,16 @@
 This demo demonstrates how token based authorization and authentication can be implemented with an interceptor and two
 middleware. The token provides identify information.
 
-The server is configured with two middleware: `AuthenticationMiddleware` and `AuthorizationMiddleware`. The first
-middleware is responsible for decrypting an identity token from the request field and storing it in a corresponding
-request feature. The second middleware is responsible for checking if the identity feature is present in the
-corresponding request feature and it checks if the request is authorized.
+The server dispatch pipeline is configured with two middleware:
+- The `AuthenticationMiddleware` is responsible for decrypting the request's identity token field and storing it using
+  the request's identity feature.
+- The `AuthorizationMiddleware` is responsible for checking if the request's identity feature is authorized.
 
-The client is configured with an `AuthenticationInterceptor` interceptor. The interceptor is responsible for adding the
-encrypted identity token to a request field. The identity token is returned by an `Authenticator` service after
-authenticating the client with a login name and password.
+The client invocation pipeline is configured with an `AuthenticationInterceptor` interceptor, which is responsible for adding a request field with the encrypted identity token. The client obtains its identity token by authenticating itself with the `Authenticator` service.
 
-The server supports two token types:
-- a JWT identity token
-- a custom Slice based identity token encoded with AES.
+The server supports two identity token types:
+- A custom Slice based identity token encrypted with AES (the default).
+- A JWT identity token.
 
 ## Running the example
 

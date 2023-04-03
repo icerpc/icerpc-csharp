@@ -9,7 +9,7 @@ using System.Text;
 
 namespace AuthorizationExample;
 
-/// <summary>This is an implementation of the <see cref="IAuthenticationBearer" /> using JSON Web Token (JWT)</summary>
+/// <summary>This is an implementation of the <see cref="IAuthenticationBearer" /> using JSON Web Token (JWT).</summary>
 internal sealed class JwtAuthenticationBearer : IAuthenticationBearer
 {
     private readonly SigningCredentials _signingCredentials;

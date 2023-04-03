@@ -21,7 +21,7 @@ internal class IdentityFeature : IIdentityFeature
     /// <inheritdoc/>
     public string Name { get; }
 
-    /// <summary>Constructs an identity feature from an identity token.</summary>
+    /// <summary>Constructs an identity feature.</summary>
     internal IdentityFeature(string name, bool isAdmin)
     {
         Name = name;
