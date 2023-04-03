@@ -49,12 +49,12 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Create Tools directory structure
         run: |
-          mkdir -p ~/tools/macos-x64 ~/tools/macos-arm64 ~/tools/linux-x64 ~/tools/linux-arm64 ~/tools/windows-x64
-          mv slicec-cs-x86_64-apple-darwin/slicec-cs ~/tools/macos-x64/
-          mv slicec-cs-aarch64-apple-darwin/slicec-cs ~/tools/macos-arm64/
-          mv slicec-cs-x86_64-unknown-linux-gnu/slicec-cs ~/tools/linux-x64/
-          mv slicec-cs-aarch64-unknown-linux-gnu/slicec-cs ~/tools/linux-arm64/
-          mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe ~/tools/windows-x64/
+          mkdir -p /tmp/tools/macos-x64 /tmp/tools/macos-arm64 /tmp/tools/linux-x64 /tmp/tools/linux-arm64 /tmp/tools/windows-x64
+          mv slicec-cs-x86_64-apple-darwin/slicec-cs /tmp/tools/macos-x64/
+          mv slicec-cs-aarch64-apple-darwin/slicec-cs /tmp/tools/macos-arm64/
+          mv slicec-cs-x86_64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-x64/
+          mv slicec-cs-aarch64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-arm64/
+          mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe /tmp/tools/windows-x64/
       - name: 🔗 Start SSH Agent
         uses: webfactory/ssh-agent@v0.5.4
         with:
@@ -66,7 +66,7 @@ jobs:
         run: dotnet pack --configuration Release --output ../../
         env:
           ICERPC_RELEASE_BUILD: yes
-          ICERPC_SLICE_TOOLS_PATH: $HOME/tools
+          ICERPC_SLICE_TOOLS_PATH: /tmp/tools
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
