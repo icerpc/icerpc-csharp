@@ -20,7 +20,7 @@ internal class Chatbot : Service, IGreeterService
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         if (await _crm.TryAddCustomerAsync(name, features, cancellationToken))
         {
-            return $"Greeter, {name}!";
+            return $"Hello, {name}!";
         }
         else
         {

@@ -27,7 +27,7 @@ internal class Chatbot : Service, IGreeterService
         }
         else
         {
-            return new($"Greeter, {name}, from server #{_serverNumber}!");
+            return new($"Hello, {name}, from server #{_serverNumber}!");
         }
     }
 }

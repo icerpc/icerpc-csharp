@@ -8,7 +8,7 @@ namespace AuthorizationExample;
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
 internal class Chatbot : Service, IGreeterService
 {
-    internal string Greeting { get; set; } = "Greeter";
+    internal string Greeting { get; set; } = "Hello";
 
     public ValueTask<string> GreetAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {

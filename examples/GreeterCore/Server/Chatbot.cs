@@ -14,7 +14,7 @@ internal class Chatbot : IDispatcher
             string name = await StringCodec.DecodePayloadStringAsync(request.Payload);
             Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
 
-            return new OutgoingResponse(request) { Payload = StringCodec.EncodeString($"Greeter, {name}!") };
+            return new OutgoingResponse(request) { Payload = StringCodec.EncodeString($"Hello, {name}!") };
         }
         else
         {

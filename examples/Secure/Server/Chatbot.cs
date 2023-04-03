@@ -14,6 +14,6 @@ internal class Chatbot : Service, IGreeterService
         CancellationToken cancellationToken)
     {
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
-        return new($"Greeter, {name}!");
+        return new($"Hello, {name}!");
     }
 }

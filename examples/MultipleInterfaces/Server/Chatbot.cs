@@ -22,6 +22,6 @@ internal class Chatbot : Service, IGreeterService
     {
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         Interlocked.Increment(ref _requestCount);
-        return new($"Greeter, {name}!");
+        return new($"Hello, {name}!");
     }
 }

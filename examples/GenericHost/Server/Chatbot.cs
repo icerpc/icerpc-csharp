@@ -14,6 +14,6 @@ public class Chatbot : Service, IGreeterService
         CancellationToken cancellationToken)
     {
         await Console.Out.WriteLineAsync($"Dispatching greet request {{ name = '{name}' }}");
-        return new($"Greeter, {name}!");
+        return new($"Hello, {name}!");
     }
 }

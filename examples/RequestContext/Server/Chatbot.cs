@@ -24,6 +24,6 @@ internal class Chatbot : Service, IGreeterService
                 Console.WriteLine($"  {key}: {value}");
             }
         }
-        return new($"Greeter, {name}!");
+        return new($"Hello, {name}!");
     }
 }
