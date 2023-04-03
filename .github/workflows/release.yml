@@ -66,4 +66,4 @@ jobs:
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
-        run: echo dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
+        run: echo "dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate"
