@@ -24,11 +24,19 @@ jobs:
           - os: windows-2022
             target: x86_64-pc-windows-msvc
             compiler-exe: slicec-cs.exe
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: ./.github/workflows/build-compiler.yml
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build
+        uses: ./.github/actions/build-compiler
         with:
-          target-os: ${{ matrix.os }}
+          cargo-build-args: --release
           target: ${{ matrix.target }}
-          compiler-exe: ${{ matrix.compiler-exe }}
         env:
           ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+      - name: Archive Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: slicec-cs-${{ matrix.target }}
+          path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
