@@ -28,7 +28,7 @@ public sealed class LoggerMiddlewareTests
         Assert.That(loggerFactory.Logger, Is.Not.Null);
         TestLoggerEntry entry = await loggerFactory.Logger!.Entries.Reader.ReadAsync();
 
-        Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.DispatchResponse));
+        Assert.That(entry.EventId.Id, Is.EqualTo((int)LoggerMiddlewareEventId.Dispatch));
         Assert.That(entry.State["Operation"], Is.EqualTo("doIt"));
         Assert.That(entry.State["Path"], Is.EqualTo("/path"));
         Assert.That(entry.State["StatusCode"], Is.EqualTo(StatusCode.Success));

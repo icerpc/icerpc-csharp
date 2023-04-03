@@ -57,10 +57,10 @@ public class LoggerMiddleware : IDispatcher
 internal static partial class LoggerMiddlewareLoggerExtensions
 {
     [LoggerMessage(
-        EventId = (int)LoggerMiddlewareEventId.DispatchResponse,
-        EventName = nameof(LoggerMiddlewareEventId.DispatchResponse),
+        EventId = (int)LoggerMiddlewareEventId.Dispatch,
+        EventName = nameof(LoggerMiddlewareEventId.Dispatch),
         Level = LogLevel.Information,
-        Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and sent {StatusCode} response")]
+        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a {StatusCode} response")]
     internal static partial void LogDispatchResponse(
         this ILogger logger,
         string path,
