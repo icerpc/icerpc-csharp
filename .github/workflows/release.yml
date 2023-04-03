@@ -55,8 +55,15 @@ jobs:
           mv slicec-cs-x86_64-unknown-linux-gnu/slicec-cs ~/tools/linux-x64/
           mv slicec-cs-aarch64-unknown-linux-gnu/slicec-cs ~/tools/linux-arm64/
           mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe ~/tools/windows-x64/
-          ./build.sh --config release
-          ./build.sh pack --config release
-        env:
-          ICERPC_RELEASE_BUILD: yes
-          ICERPC_SLICE_TOOLS_PATH: $HOME/tools
+       - name: Release Build
+         run: ./build.sh --config release
+       - name: Pack IceRPC Tools
+         working-directory: tools/IceRpc.Slice.Tools
+         run: dotnet pack --configuration Release --output ../../
+         env:
+           ICERPC_RELEASE_BUILD: yes
+           ICERPC_SLICE_TOOLS_PATH: $HOME/tools
+       - name: Pack IceRPC
+         run: dotnet pack --configuration Release --output .
+       - name: Push
+         run: echo dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
