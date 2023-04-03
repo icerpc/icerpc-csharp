@@ -13,23 +13,24 @@ namespace IceRpc.Retry;
 /// <list>
 /// <item><description><see cref="RetryOptions.MaxAttempts" /> is not reached.</description></item>
 /// <item><description><see cref="OutgoingFrame.Payload" /> can be read again.</description></item>
-/// <item><description>the failure is retryable.</description></item>
+/// <item><description>The failure is retryable.</description></item>
 /// </list><br/>In order to be able to read again the request's payload, the retry interceptor decorates the payload
 /// with <see cref="ResettablePipeReaderDecorator" />. The decorator can be reset as long as the buffered data doesn't
 /// exceed <see cref="RetryOptions.MaxPayloadSize" />.<br/>The request can be retried under the following failure
 /// conditions:
 /// <list>
-/// <item><description>the request failed with <see cref="StatusCode.Unavailable" />.</description></item>
-/// <item><description>the request failed with <see cref="StatusCode.ServiceNotFound" /> and the protocol is
-/// ice.</description></item>
-/// <item><description>the request failed with an <see cref="IceRpcException" /> with one of the following error:
+/// <item><description>The status code carried by the response is <see cref="StatusCode.Unavailable"
+/// />.</description></item>
+/// <item><description>The status code carried by the response is <see cref="StatusCode.ServiceNotFound" /> and the
+/// protocol is ice.</description></item>
+/// <item><description>The request failed with an <see cref="IceRpcException" /> with one of the following error:
 /// <list>
-/// <item><description>the error code is <see cref="IceRpcError.InvocationCanceled" />.</description></item>
-/// <item><description>the error code is <see cref="IceRpcError.ConnectionAborted" /> or <see
+/// <item><description>The error code is <see cref="IceRpcError.InvocationCanceled" />.</description></item>
+/// <item><description>The error code is <see cref="IceRpcError.ConnectionAborted" /> or <see
 /// cref="IceRpcError.TruncatedData" /> and the request has the <see cref="RequestFieldKey.Idempotent" />
 /// field.</description></item>
 /// </list></description></item>
-/// </list><br/>If the request fails with <see cref="StatusCode.Unavailable" /> or <see
+/// </list><br/>If the status code carried by the response is <see cref="StatusCode.Unavailable" /> or <see
 /// cref="StatusCode.ServiceNotFound" /> (with the ice protocol), the address of the server is removed from the set of
 /// server addresses to retry on. This ensures the request won't be retried on the unavailable server.
 /// </summary>
@@ -93,8 +94,8 @@ public class RetryInterceptor : IInvoker
                     catch (IceRpcException iceRpcException) when (
                         iceRpcException.IceRpcError == IceRpcError.NoConnection)
                     {
-                        // NoConnection is always considered non-retryable; it typically occurs because we removed
-                        // server addresses from serverAddressFeature. Unlike other non-retryable exceptions, we
+                        // NoConnection is always considered non-retryable; it typically occurs because we removed all
+                        // the server addresses from serverAddressFeature. Unlike other non-retryable exceptions, we
                         // privilege returning the previous response (if any).
                         return response ?? throw RethrowException(exception ?? iceRpcException);
                     }
