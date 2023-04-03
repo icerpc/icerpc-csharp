@@ -29,6 +29,10 @@ runs:
     uses: webfactory/ssh-agent@v0.5.4
     with:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
+  - name: Install Cross Tools
+    if: ${{ inputs.taget == 'aarch64-unknown-linux-gnu' }}
+    run: apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
+    shell: bash
   - name: Toolchain
     uses: dtolnay/rust-toolchain@stable
     with:
@@ -37,6 +41,7 @@ runs:
   - name: Build Slice Compiler
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
     run: |
       cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }} --target ${{ inputs.target }}
     shell: bash
