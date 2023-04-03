@@ -57,6 +57,8 @@ jobs:
           mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe ~/tools/windows-x64/
       - name: Release Build
         run: ./build.sh --config release
+        env:
+          ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
         run: dotnet pack --configuration Release --output ../../
@@ -66,4 +68,4 @@ jobs:
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
-        run: echo "dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate"
+        run: dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
