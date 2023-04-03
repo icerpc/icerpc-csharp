@@ -54,6 +54,13 @@ public sealed class IceProtocolConnectionTests
                 operationNotFound,
                 StatusCode.OperationNotFound,
                 "The dispatch failed with status code OperationNotFound while dispatching 'op' on '/foo'.");
+
+            var convertToUnhandled = new DispatchException(StatusCode.ApplicationError, "convert to unhandled");
+            convertToUnhandled.ConvertToUnhandled = true;
+            yield return new TestCaseData(
+                convertToUnhandled,
+                StatusCode.UnhandledException,
+                GetErrorMessage("The dispatch failed with status code UnhandledException.", convertToUnhandled));
         }
     }
 

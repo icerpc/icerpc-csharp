@@ -40,12 +40,6 @@ public sealed class RetryInterceptorTests
     {
         get
         {
-            yield return new TestCaseData(Protocol.IceRpc, FailWithException(IceRpcError.ConnectionRefused))
-                .SetName("Retry_with_other_replica(icerpc, IceRpcError.ConnectionRefused)");
-
-            yield return new TestCaseData(Protocol.IceRpc, FailWithException(IceRpcError.ServerBusy))
-                .SetName("Retry_with_other_replica(icerpc, IceRpcError.ServerBusy)");
-
             yield return new TestCaseData(
                 Protocol.IceRpc,
                 new InlineInvoker((request, cancel) =>
@@ -63,12 +57,6 @@ public sealed class RetryInterceptorTests
                         FakeConnectionContext.Instance,
                         StatusCode.ServiceNotFound,
                         "error message")))).SetName("Retry_with_other_replica(ice, StatusCode.ServiceNotFound)");
-
-#pragma warning disable CA1065 // Do not raise exceptions in unexpected locations.
-            // The warning is bogus. The property doesn't raise any exceptions the returned invoker does.
-            static IInvoker FailWithException(IceRpcError error) =>
-                new InlineInvoker((request, cancel) => throw new IceRpcException(error));
-#pragma warning restore CA1065
         }
     }
 

@@ -542,6 +542,31 @@ public sealed class ProtocolConnectionTests
         Assert.That(tokenCanceled, Is.False);
     }
 
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Dispatch_returns_response_not_matching_request_response(Protocol protocol)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(protocol, new InlineDispatcher(
+                (request, cancellationToken) =>
+                {
+                    var response = new OutgoingResponse(request);
+                    _ = new OutgoingResponse(request);
+                    return new(response);
+                }))
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Act
+        using var request = new OutgoingRequest(new ServiceAddress(protocol));
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
+    }
+
     /// <summary>Verifies that disposing a server connection cancels dispatches even when shutdown is already in
     /// progress.</summary>
     [Test, TestCaseSource(nameof(Protocols))]

@@ -24,19 +24,27 @@ internal static class QuicExceptionExtensions
                         (long)MultiplexedConnectionCloseError.Aborted =>
                             new IceRpcException(
                                 IceRpcError.ConnectionAborted,
-                                $"The connection was closed by the peer with error '{MultiplexedConnectionCloseError.Aborted}'."),
+                                $"The connection was aborted by the peer."),
                         _ => new IceRpcException(
                                 IceRpcError.ConnectionAborted,
                                 $"The connection was aborted by the peer with an unknown application error code: '{applicationErrorCode}'"),
                     } :
-                    new IceRpcException(IceRpcError.ConnectionAborted, exception), // TODO: does this ever happen?
+                    // An application error code should always be set with QuicError.ConnectionAborted.
+                    new IceRpcException(IceRpcError.IceRpcError, exception),
             QuicError.ConnectionRefused => new IceRpcException(IceRpcError.ConnectionRefused, exception),
             QuicError.ConnectionTimeout => new IceRpcException(IceRpcError.ConnectionAborted, exception),
             QuicError.ConnectionIdle => new IceRpcException(IceRpcError.ConnectionAborted, exception),
             QuicError.HostUnreachable => new IceRpcException(IceRpcError.ServerUnreachable, exception),
             QuicError.OperationAborted => new IceRpcException(IceRpcError.OperationAborted, exception),
-            QuicError.StreamAborted => new IceRpcException(IceRpcError.TruncatedData, exception),
-
+            QuicError.StreamAborted =>
+                exception.ApplicationErrorCode is long applicationErrorCode ?
+                    applicationErrorCode == 0 ?
+                        new IceRpcException(IceRpcError.TruncatedData, exception) :
+                        new IceRpcException(
+                            IceRpcError.TruncatedData,
+                            $"The stream was aborted by the peer with an unknown application error code: '{applicationErrorCode}'") :
+                    // An application error code should always be set with QuicError.StreamAborted.
+                    new IceRpcException(IceRpcError.IceRpcError, exception),
             _ => new IceRpcException(IceRpcError.IceRpcError, exception)
         };
 }

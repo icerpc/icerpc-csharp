@@ -290,7 +290,7 @@ internal class SlicStream : IMultiplexedStream
         {
             // The peer aborted writes with unknown application error code.
             _inputPipeReader?.CompleteReads(new IceRpcException(
-                IceRpcError.IceRpcError,
+                IceRpcError.TruncatedData,
                 $"The peer aborted stream writes with an unknown application error code: '{errorCode}'"));
         }
     }
@@ -309,7 +309,7 @@ internal class SlicStream : IMultiplexedStream
         {
             // The peer aborted reads with unknown application error code.
             _outputPipeWriter?.CompleteWrites(new IceRpcException(
-                IceRpcError.IceRpcError,
+                IceRpcError.TruncatedData,
                 $"The peer aborted stream reads with an unknown application error code: '{errorCode}'"));
         }
     }
