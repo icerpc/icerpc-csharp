@@ -30,7 +30,7 @@ runs:
     with:
       ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
   - name: Install Cross Tools
-    if: ${{ inputs.taget == 'aarch64-unknown-linux-gnu' }}
+    if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
     run: apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
     shell: bash
   - name: Toolchain
