@@ -30,7 +30,7 @@ jobs:
         cargo-build-args: --release
         target: ${{ inputs.target }}
       env:
-        ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+        ICERPC_DEPLOY_KEY: ${{ env.ICERPC_DEPLOY_KEY }}
     - name: Archive Build
       uses: actions/upload-artifact@v3
       with:
