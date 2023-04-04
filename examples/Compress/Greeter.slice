@@ -1,0 +1,14 @@
+// Copyright (c) ZeroC, Inc.
+
+module CompressExample
+
+/// Represents a simple greeter.
+interface Greeter {
+    /// Creates a personalized greeting.
+    /// @param name: The name of the person to greet.
+    /// @returns: The greeting.
+    // The compress attribute is used to instruct the Slice engine that the compress feature should be added to the
+    // request features. Here we pass the Args and Return arguments to specify that we want to use compression for the
+    // operation's argument and its return value.
+    [compress(Args, Return)] greet(name: string) -> string
+}

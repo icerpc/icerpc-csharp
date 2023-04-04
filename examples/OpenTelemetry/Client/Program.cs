@@ -17,7 +17,7 @@ Pipeline pipeline = new Pipeline().UseTelemetry(activitySource);
 // and to export the traces to the Zipkin service.
 using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddSource(activitySource.Name)
-   .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Hello Client"))
+   .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Greeter Client"))
    .AddZipkinExporter()
    .Build();
 
@@ -25,9 +25,9 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 
 pipeline.Into(connection);
 
-var hello = new HelloProxy(pipeline);
+var greeter = new GreeterProxy(pipeline);
 
-string greeting = await hello.SayHelloAsync(Environment.UserName);
+string greeting = await greeter.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
 

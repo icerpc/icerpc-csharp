@@ -5,10 +5,10 @@ using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-var helloProxy = new HelloProxy(connection);
+var greeterProxy = new GreeterProxy(connection);
 var requestCounterProxy = new RequestCounterProxy(connection);
 
-string greeting = await helloProxy.SayHelloAsync(Environment.UserName);
+string greeting = await greeterProxy.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
 

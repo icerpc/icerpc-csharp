@@ -24,11 +24,11 @@ In a separate window, start the Client:
 dotnet run --project Client/Client.csproj
 ```
 
-The client first calls `SayHelloAsync` without a session token and the server responds with generic a greeting.
+The client first calls `GreetAsync` without a session token and the server responds with generic a greeting.
 
 Next, the client gets an authentication token and uses it to construct an authenticated invocation pipeline that adds
-the token to each request. The client then calls `SayHelloAsync` using the authenticated pipeline and receives
+the token to each request. The client then calls `GreetAsync` using the authenticated pipeline and receives
 a personalized message.
 
 Finally, the client calls `ChangeGreetingAsync` using the authenticated pipeline to change the greeting and then calls
-`SayHelloAsync` a final time.
+`GreetAsync` a final time.
