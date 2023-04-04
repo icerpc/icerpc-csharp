@@ -9,7 +9,7 @@ usage()
 {
     echo "Usage: build [command] [arguments]"
     echo "Commands (defaults to build):"
-    echo "  build                     Build the IceRPC assemblies, and slice-cs compiler."
+    echo "  build                     Build the IceRPC assemblies and the slicec-cs compiler."
     echo "  pack                      Create the IceRPC NuGet packages."
     echo "  push                      Push the IceRPC NuGet packages to the global-packages source."
     echo "  install-templates         Install the IceRPC project templates."
