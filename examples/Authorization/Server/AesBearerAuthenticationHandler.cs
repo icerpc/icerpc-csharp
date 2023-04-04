@@ -15,13 +15,13 @@ internal sealed class AesBearerAuthenticationHandler : IBearerAuthenticationHand
 
     public async Task<IIdentityFeature> ValidateIdentityTokenAsync(ReadOnlySequence<byte> identityTokenBytes)
     {
-        // Decrypt the Slice2 encoded token.
+        // Decrypt the identity token buffer.
         using var sourceStream = new MemoryStream(identityTokenBytes.ToArray());
         using var cryptoStream = new CryptoStream(sourceStream, _aes.CreateDecryptor(), CryptoStreamMode.Read);
         using var destinationStream = new MemoryStream();
         await cryptoStream.CopyToAsync(destinationStream);
 
-        // Decode the Slice2 encoded token and return the feature.
+        // Decode the identity token.
         AesIdentityToken identityToken = DecodeIdentityToken(destinationStream.ToArray());
 
         Console.WriteLine(
@@ -40,18 +40,17 @@ internal sealed class AesBearerAuthenticationHandler : IBearerAuthenticationHand
 
     public ReadOnlyMemory<byte> CreateIdentityToken(string name, bool isAdmin)
     {
-        // Encode the token with the Slice2 encoding.
-        using var tokenStream = new MemoryStream();
-        var writer = PipeWriter.Create(tokenStream, new StreamPipeWriterOptions(leaveOpen: true));
+        // Setup the stream to encrypt the encoded identity token.
+        using var destinationStream = new MemoryStream();
+        using var cryptoStream = new CryptoStream(destinationStream, _aes.CreateEncryptor(), CryptoStreamMode.Write);
+
+        // Encode the identity token.
+        var writer = PipeWriter.Create(cryptoStream, new StreamPipeWriterOptions(leaveOpen: true));
         var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
         new AesIdentityToken(isAdmin, name).Encode(ref encoder);
         writer.Complete();
-        tokenStream.Seek(0, SeekOrigin.Begin);
 
-        // Crypt and return the Slice2 encoded token.
-        using var destinationStream = new MemoryStream();
-        using var cryptoStream = new CryptoStream(tokenStream, _aes.CreateEncryptor(), CryptoStreamMode.Read);
-        cryptoStream.CopyTo(destinationStream);
+        cryptoStream.FlushFinalBlock();
         return destinationStream.ToArray();
     }
 

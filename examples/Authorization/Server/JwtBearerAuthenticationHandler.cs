@@ -62,7 +62,7 @@ internal sealed class JwtBearerAuthenticationHandler : IBearerAuthenticationHand
         var jwtToken = new JwtSecurityToken(
             claims: new Claim[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, "test"),
+                new Claim(JwtRegisteredClaimNames.Sub, name),
                 new Claim("isAdmin", (name == "admin").ToString())
             },
             audience: "Authorization example",
