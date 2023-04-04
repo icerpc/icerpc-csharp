@@ -70,7 +70,7 @@ impl From<CsAttributeKind> for AttributeKind {
     }
 }
 
-fn as_cs_attribute(attribute: &Attribute) -> Option<&CsAttributeKind> {
+pub fn as_cs_attribute(attribute: &Attribute) -> Option<&CsAttributeKind> {
     match &attribute.kind {
         AttributeKind::LanguageKind { kind } => kind.as_any().downcast_ref::<CsAttributeKind>(),
         _ => None,

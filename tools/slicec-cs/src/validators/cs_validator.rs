@@ -27,16 +27,9 @@ struct CsValidator<'a> {
 
 /// Returns an iterator of C# specific attributes with any non-C# attributes filtered out.
 fn get_cs_attributes(attributable: &impl Attributable) -> impl Iterator<Item = (&CsAttributeKind, &Span)> {
-    attributable
-        .attributes(false)
-        .into_iter()
-        .filter_map(|attribute| match &attribute.kind {
-            AttributeKind::LanguageKind { kind } => {
-                let converted = kind.as_any().downcast_ref::<CsAttributeKind>();
-                converted.map(|cs_attribute| (cs_attribute, &attribute.span))
-            }
-            _ => None,
-        })
+    attributable.attributes(false).into_iter().filter_map(|attribute| {
+        cs_attributes::as_cs_attribute(attribute).map(|cs_attribute| (cs_attribute, &attribute.span))
+    })
 }
 
 fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
