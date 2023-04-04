@@ -29,7 +29,7 @@ and then try again. This tells Cargo to use git's executable to fetch dependenci
 
 ## Building
 
-IceRpc can be built from a regular command prompt, using the following command
+You can build IceRPC from a regular command prompt, using the following command
 
 For Linux and macOS
 
@@ -40,14 +40,13 @@ For Linux and macOS
 For Windows
 
 ```shell
-build.cmd
+build
 ```
 
-This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRpc runtime assemblies, and the IceRpc tests in the
+This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRPC runtime assemblies, and the IceRPC unit tests in the
 default debug configuration.
 
-Additionally, a build task is provided for building IceRpc within Visual Studio Code. This task has been configured
-as the default build task, so you can invoke it by selecting `Tasks: Run Build Task...` from the command palette.
+Visual Studio Code users can use `Tasks: Run Build Task...` from the command palette.
 
 ## Packaging
 
@@ -62,7 +61,7 @@ For Linux and macOS
 For Windows
 
 ```shell
-build.cmd pack
+build pack
 ```
 
 You can push the packages to the `global-packages` source with the following command:
@@ -70,31 +69,25 @@ You can push the packages to the `global-packages` source with the following com
 For Linux and macOS
 
 ```shell
-./build.sh install
+./build.sh push
 ```
 
 For Windows
 
 ```shell
-build.cmd install
+build push
 ```
 
 This allow using the NuGet packages from the local `global-packages` source.
 
 ## Testing
 
-The test suite can be run from the command line by running `dotnet test` command in the repository top-level
-directory, this command builds `IceRpc.sln` solution an executes all tests from the solution.
+You can run the test suite from the command line using the `dotnet test` command in the repository's top-level directory,
+this command builds `IceRpc.sln` solution an executes all tests from the solution.
 
 For additional options see <https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test>.
 
-You can also run the tests from Visual Studio and Visual Studio for Mac using the built-in test explorer, in this
-case you need to use `IceRpc.sln` solution file.
-
-Visual Studio Code users can install [.NET Core Test Explorer](https://marketplace.visualstudio.com/items?itemName=formulahendry.dotnet-test-explorer)
-plug-in to run tests from it.
-
-Code coverage reports can be generated using [ReportGenerator](https://github.com/danielpalme/ReportGenerator)
+To create a code coverage reports using [ReportGenerator](https://github.com/danielpalme/ReportGenerator)
 
 Install the reportgenerator dotnet tool
 
@@ -104,17 +97,17 @@ dotnet tool install -g dotnet-reportgenerator-globaltool
 
 Run the tests with code coverage
 
-```shell
-dotnet test --collect:"XPlat Code Coverage"
-```
-
-Generate the test report
+For Linux and macOS
 
 ```shell
-reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/TestReport"
+./build.sh test --coverage
 ```
 
-You can do the same with the `--coverage` argument of the build script.
+For Windows
+
+```shell
+build test --coverage
+```
 
 ## Building Example Programs
 
@@ -132,7 +125,7 @@ For Linux and macOS
 For Windows
 
 ```shell
-build.cmd --examples
+build --examples
 ```
 
 If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you
@@ -148,12 +141,12 @@ For Linux and macOS
 For Windows
 
 ```shell
-build.cmd --examples --srcdist
+build --examples --srcdist
 ```
 
 ## Project Templates
 
-The `IceRpc.ProjectTemplates` NuGet packages provides project templates for `dotnet new`, install the templates using:
+The `IceRpc.ProjectTemplates` NuGet package provides project templates for `dotnet new`, install the templates using:
 
 ```shell
 dotnet new install IceRpc.ProjectTemplates
@@ -170,7 +163,7 @@ For Linux and macOS
 For Windows
 
 ```shell
-build.cmd install-templates
+build install-templates
 ```
 
 The `IceRpc.ProjectTemplates` package provides the following templates:
@@ -188,6 +181,8 @@ dotnet new <template-name>
 
 > :point_up: `dotnet new -h` for help.
 
+For additional options see https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-new
+
 ## Generating API Documentation
 
 Before generating the documentation ensure that the `docfx` command is present in your PATH; version 2.63 or greater is
@@ -204,7 +199,7 @@ For Linux and macOS
 For Windows
 
 ```shell
-build.cmd doc
+build doc
 ```
 
 Upon completion the documentation is placed in the `doc\_site` directory.

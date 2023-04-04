@@ -11,7 +11,7 @@ usage()
     echo "Commands (defaults to build):"
     echo "  build                     Build IceRpc sources & slice-cs compiler."
     echo "  pack                      Build the IceRpc NuGet packages."
-    echo "  install                   Install the IceRpc NuGet packages into the global-packages source."
+    echo "  push                      Push the IceRpc NuGet packages into the global-packages source."
     echo "  install-templates         Install IceRpc dotnet new project templates."
     echo "  clean                     Clean IceRpc sources & slice-cs compiler."
     echo "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
