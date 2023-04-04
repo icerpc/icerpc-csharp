@@ -184,7 +184,7 @@ function DotnetConfiguration($config) {
 function Get-Help() {
     Write-Host "Usage: build [command] [arguments]"
     Write-Host "Commands (defaults to build):"
-    Write-Host "  build                     Build the IceRPC assemblies, and slice-cs compiler."
+    Write-Host "  build                     Build the IceRPC assemblies and the slicec-cs compiler."
     Write-Host "  pack                      Create the IceRPC NuGet packages."
     Write-Host "  push                      Push the IceRPC NuGet packages to the global-packages source."
     Write-Host "  install-templates         Install the IceRPC dotnet new project templates."
