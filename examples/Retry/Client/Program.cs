@@ -50,7 +50,7 @@ var helloServiceAddress = new ServiceAddress(new Uri("icerpc://localhost:10000/h
 var altServerAddresses = new List<ServerAddress>();
 for (int i = 1; i < serverInstances; i++)
 {
-    altServerAddresses.Add(new ServerAddress(Protocol.IceRpc) { Host = "localhost", Port = (ushort)(i + 10000) });
+    altServerAddresses.Add(new ServerAddress { Host = "localhost", Port = (ushort)(i + 10000) });
 }
 helloServiceAddress = helloServiceAddress with { AltServerAddresses = altServerAddresses.ToImmutableList() };
 
