@@ -82,8 +82,7 @@ This allow using the NuGet packages from the local `global-packages` source.
 
 ## Testing
 
-You can run the test suite from the command line using the `dotnet test` command in the repository's top-level directory,
-this command builds `IceRpc.sln` solution an executes all tests from the solution.
+You can run the test suite from the command line using the `dotnet test` command in the repository's top-level directory. This command builds `IceRpc.sln` solution an executes all tests from the solution.
 
 For additional options see <https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test>.
 
