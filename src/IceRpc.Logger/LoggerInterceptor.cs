@@ -50,7 +50,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
         EventId = (int)LoggerInterceptorEventId.Invoke,
         EventName = nameof(LoggerInterceptorEventId.Invoke),
         Level = LogLevel.Information,
-        Message = "Sent {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received {StatusCode} response")]
+        Message = "Sent request {Operation} to {ServiceAddress} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received a response with status code {StatusCode}")]
     internal static partial void LogInvoke(
         this ILogger logger,
         ServiceAddress serviceAddress,
@@ -63,7 +63,7 @@ internal static partial class LoggerInterceptorLoggerExtensions
         EventId = (int)LoggerInterceptorEventId.InvokeException,
         EventName = nameof(LoggerInterceptorEventId.InvokeException),
         Level = LogLevel.Information,
-        Message = "Failed to send {Operation} to {ServiceAddress}")]
+        Message = "Failed to send request {Operation} to {ServiceAddress}")]
     internal static partial void LogInvokeException(
         this ILogger logger,
         Exception exception,

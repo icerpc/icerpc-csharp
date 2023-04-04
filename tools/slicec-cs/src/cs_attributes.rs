@@ -12,7 +12,7 @@ pub const READONLY: &str = "cs::readonly";
 pub const CUSTOM: &str = "cs::custom";
 pub const ATTRIBUTE_PREFIX: &str = "cs::";
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum CsAttributeKind {
     Attribute { attribute: String },
     EncodedResult,
@@ -42,14 +42,6 @@ impl LanguageKind for CsAttributeKind {
         self
     }
 
-    fn clone_kind(&self) -> Box<dyn LanguageKind> {
-        Box::new(self.clone())
-    }
-
-    fn debug_kind(&self) -> &str {
-        self.directive()
-    }
-
     fn is_repeatable(&self) -> bool {
         match &self {
             CsAttributeKind::Attribute { .. } => true,
@@ -61,12 +53,6 @@ impl LanguageKind for CsAttributeKind {
             CsAttributeKind::Readonly => false,
             CsAttributeKind::Custom { .. } => false,
         }
-    }
-}
-
-impl From<CsAttributeKind> for AttributeKind {
-    fn from(kind: CsAttributeKind) -> Self {
-        AttributeKind::LanguageKind { kind: Box::new(kind) }
     }
 }
 

@@ -57,8 +57,8 @@ IHost host = Host.CreateDefaultBuilder(args)
             // Add an invoker singleton; this invoker corresponds to the invocation pipeline. This invocation pipeline
             // flows into the ClientConnection singleton.
             .AddIceRpcInvoker(builder => builder.UseTelemetry().UseLogger().Into<ClientConnection>())
-            // Add an IHello singleton using the invoker singleton registered above.
-            .AddIceRpcProxy<IHello, HelloProxy>();
+            // Add an IGreeter singleton using the invoker singleton registered above.
+            .AddIceRpcProxy<IGreeter, GreeterProxy>();
     })
     .Build();
 

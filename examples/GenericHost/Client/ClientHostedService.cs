@@ -13,25 +13,25 @@ public class ClientHostedService : BackgroundService
 
     private readonly ClientConnection _connection;
 
-    // The IHello managed by the DI container.
-    private readonly IHello _hello;
+    // The IGreeter managed by the DI container.
+    private readonly IGreeter _greeter;
 
     // All the parameters are injected by the DI container.
     public ClientHostedService(
-        IHello hello,
+        IGreeter greeter,
         ClientConnection connection,
         IHostApplicationLifetime applicationLifetime)
     {
         _applicationLifetime = applicationLifetime;
         _connection = connection;
-        _hello = hello;
+        _greeter = greeter;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            string greeting = await _hello.SayHelloAsync(Environment.UserName, cancellationToken: stoppingToken);
+            string greeting = await _greeter.GreetAsync(Environment.UserName, cancellationToken: stoppingToken);
             Console.WriteLine(greeting);
             await _connection.ShutdownAsync(stoppingToken);
         }
