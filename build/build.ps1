@@ -186,7 +186,7 @@ function Get-Help() {
     Write-Host "Commands (defaults to build):"
     Write-Host "  build                     Build the IceRPC assemblies, and slice-cs compiler."
     Write-Host "  pack                      Create the IceRPC NuGet packages."
-    Write-Host "  push                      Push the IceRPC NuGet packages into the global-packages source."
+    Write-Host "  push                      Push the IceRPC NuGet packages to the global-packages source."
     Write-Host "  install-templates         Install the IceRPC dotnet new project templates."
     Write-Host "  clean                     Clean build artifacts."
     Write-Host "  rebuild                   Rebuild."

@@ -9,21 +9,22 @@ usage()
 {
     echo "Usage: build [command] [arguments]"
     echo "Commands (defaults to build):"
-    echo "  build                     Build IceRpc sources & slice-cs compiler."
-    echo "  pack                      Build the IceRpc NuGet packages."
-    echo "  push                      Push the IceRpc NuGet packages into the global-packages source."
-    echo "  install-templates         Install IceRpc dotnet new project templates."
-    echo "  clean                     Clean IceRpc sources & slice-cs compiler."
-    echo "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
+    echo "  build                     Build the IceRPC assemblies, and slice-cs compiler."
+    echo "  pack                      Create the IceRPC NuGet packages."
+    echo "  push                      Push the IceRPC NuGet packages to the global-packages source."
+    echo "  install-templates         Install the IceRPC project templates."
+    echo "  clean                     Clean build artifacts."
+    echo "  rebuild                   Rebuild."
     echo "  test                      Runs tests."
-    echo "  doc                       Generate documentation"
+    echo "  doc                       Generate the C# API documentation."
+    echo "                            Requires docfx from https:/github.com/dotnet/docfx."
     echo "Arguments:"
     echo "  --config | -c             Build configuration: debug or release, the default is debug."
     echo "  --examples                Build examples solutions instead of the source solutions."
-    echo "  --srcdist                 Use NuGet packages from this source distribution when building examples."
-    echo "                            The NuGet packages are installed to the local global-packages source."
+    echo "  --srcdist                 Use IceRPC NuGet packages from this source distribution when building the examples."
+    echo "                            The NuGet packages are pushed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
-    echo "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator"
+    echo "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator."
     echo "  --help   | -h             Print help and exit."
 }
 
@@ -69,15 +70,25 @@ clean_icerpc()
     run_command dotnet "clean" "-nr:false"
 }
 
+clean_icerpc_project_templates()
+{
+    pushd src/IceRpc.ProjectTemplates
+    run_command dotnet "clean" "-nr:false"
+    popd
+}
+
 pack()
 {
     pushd tools/IceRpc.Slice.Tools
     run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
     popd
     run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    pushd src/IceRpc.ProjectTemplates
+    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    popd
 }
 
-install()
+push()
 {
     build_compiler
     pack
@@ -90,12 +101,13 @@ install()
 
 install_templates()
 {
-    pushd src/IceRpc.ProjectTemplates
-    run_command dotnet "pack" "-c" "$dotnet_config"
     dotnet_templates=$(dotnet new -l)
     if [[ "$dotnet_templates" == *"icerpc-client"* ]]; then
         run_command "dotnet" 'new' 'uninstall' 'IceRpc.ProjectTemplates'
     fi
+
+    pushd src/IceRpc.ProjectTemplates
+    run_command dotnet "pack" "-c" "$dotnet_config"
     run_command "dotnet" 'new' 'install' "bin/$dotnet_config/IceRpc.ProjectTemplates.$version.nupkg"
     popd
 }
@@ -108,7 +120,7 @@ build()
         build_icerpc
     else
         if [ "$srcdist" == "yes" ]; then
-            install
+            push
         fi
         for solution in examples/*/*.sln examples/*/*/*.sln
         do
@@ -128,6 +140,7 @@ clean()
     clean_compiler
     clean_icerpc_slice_tools
     clean_icerpc
+    clean_icerpc_project_templates
 }
 
 run_test()
@@ -215,7 +228,7 @@ then
     config="debug"
 fi
 
-actions=("build" "clean" "pack" "install" "install-templates" "rebuild" "test" "doc")
+actions=("build" "clean" "pack" "push" "install-templates" "rebuild" "test" "doc")
 if [[ ! " ${actions[*]} " == *" ${action} "* ]]; then
     echo "invalid action: " $action
     usage
@@ -245,8 +258,8 @@ case $action in
     "pack")
         pack
         ;;
-    "install")
-        install
+    "push")
+        push
         ;;
     "install-templates")
         install_templates
