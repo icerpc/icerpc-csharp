@@ -14,7 +14,11 @@ public sealed class LoggerMiddlewareTests
         using var dispatcher = new TestDispatcher();
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = "/path", Operation = "doIt" };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Path = "/path",
+            Operation = "doIt"
+        };
         var sut = new LoggerMiddleware(dispatcher, loggerFactory.CreateLogger<LoggerMiddleware>());
 
         // Act
@@ -43,7 +47,11 @@ public sealed class LoggerMiddlewareTests
         var dispatcher = new InlineDispatcher((request, cancellationToken) => throw new InvalidOperationException());
         using var loggerFactory = new TestLoggerFactory();
         await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"));
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = "/path", Operation = "doIt" };
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Path = "/path",
+            Operation = "doIt"
+        };
         var sut = new LoggerMiddleware(dispatcher, loggerFactory.CreateLogger<LoggerMiddleware>());
 
         try
