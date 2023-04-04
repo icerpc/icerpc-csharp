@@ -73,7 +73,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
         }
     }
 
-    /// <summary>Returns a string that represents the current object.</summary>
-    /// <returns>A string that represents the current object.</returns>
+    /// <summary>Returns a string that represents this outgoing request.</summary>
+    /// <returns>A string that represents this outgoing request.</returns>
     public override string ToString() => $"'{Operation}' on '{ServiceAddress}'";
 }

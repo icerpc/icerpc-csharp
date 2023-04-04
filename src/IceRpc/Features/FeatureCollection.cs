@@ -53,8 +53,9 @@ public class FeatureCollection : IFeatureCollection
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>Returns an enumerator that iterates through a collection.</summary>
-    /// <returns>An <see cref="IEnumerator{T}"/> object that can be used to iterate through the collection.</returns>
+    /// <summary>Returns an enumerator that iterates over this feature collection.</summary>
+    /// <returns>An <see cref="IEnumerator{T}"/> object that can be used to iterate through this feature collection.
+    /// </returns>
     public IEnumerator<KeyValuePair<Type, object>> GetEnumerator()
     {
         foreach (KeyValuePair<Type, object> pair in _features)

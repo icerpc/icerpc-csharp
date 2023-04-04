@@ -73,12 +73,14 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         _maxBufferSize = maxBufferSize;
     }
 
-    /// <summary>Moves forward the pipeline's read cursor to after the consumed data.</summary>
+    /// <summary>Moves forward the pipeline's read cursor to after the consumed data. No data is consumed while
+    /// <see cref="IsResettable"/> value is true.</summary>
     /// <param name="consumed">Marks the extent of the data that has been successfully processed.</param>
     /// <seealso cref="PipeReader.AdvanceTo(SequencePosition)"/>
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
-    /// <summary>Moves forward the pipeline's read cursor to after the consumed data.</summary>
+    /// <summary>Moves forward the pipeline's read cursor to after the consumed data. No data is consumed while
+    /// <see cref="IsResettable"/> value is true.</summary>
     /// <param name="consumed">Marks the extent of the data that has been successfully processed.</param>
     /// <param name="examined">Marks the extent of the data that has been read and examined.</param>
     /// <seealso cref="PipeReader.AdvanceTo(SequencePosition, SequencePosition)"/>

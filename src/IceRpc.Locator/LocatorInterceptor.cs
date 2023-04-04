@@ -149,8 +149,8 @@ public readonly record struct Location
 
     internal string Kind => IsAdapterId ? "adapter ID" : "well-known service address";
 
-    /// <summary>Returns a string that represents the current object.</summary>
-    /// <returns>A string that represents the current object.</returns>
+    /// <summary>Returns <see cref="Value"/>.</summary>
+    /// <returns>The adapter ID or path.</returns>
     public override string ToString() => Value;
 }
 

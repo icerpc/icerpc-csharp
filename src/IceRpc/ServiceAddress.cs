@@ -315,10 +315,12 @@ public sealed record class ServiceAddress
         OriginalUri = uri;
     }
 
-    /// <summary>Determines whether the specified object is equal to the current object.</summary>
-    /// <param name="other">The object to compare with the current object.</param>
-    /// <returns><see langword="true"/> if the specified object is equal to the current object; otherwise,
-    /// <see langword="false"/>.</returns>
+    /// <summary>Determines whether the specified <see cref="ServiceAddress"/> is equal to the current
+    /// <see cref="ServiceAddress"/>.</summary>
+    /// <param name="other">The <see cref="ServiceAddress"/> to compare with the current <see cref="ServiceAddress"/>.
+    /// </param>
+    /// <returns><see langword="true"/> if the specified <see cref="ServiceAddress"/> is equal to the current
+    /// <see cref="ServiceAddress"/>; otherwise, <see langword="false"/>.</returns>
     public bool Equals(ServiceAddress? other)
     {
         if (other is null)
@@ -350,7 +352,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Serves as the default hash function.</summary>
-    /// <returns>A hash code for the current object.</returns>
+    /// <returns>A hash code for the current <see cref="ServiceAddress"/>.</returns>
     public override int GetHashCode()
     {
         if (Protocol is null)
@@ -557,8 +559,8 @@ public sealed record class ServiceAddress
 /// sub-systems such as the Microsoft ConfigurationBinder to bind string values to ServiceAddress properties.</summary>
 public class ServiceAddressTypeConverter : TypeConverter
 {
-    /// <summary>Returns whether this converter can convert an object of the given type to the type of this converter,
-    /// using the specified context.</summary>
+    /// <summary>Returns whether this converter can convert an object of the given type into a
+    /// <see cref="ServiceAddress"/> object, using the specified context.</summary>
     /// <param name="context">An <see cref="ITypeDescriptorContext"/> that provides a format context.</param>
     /// <param name="sourceType">A <see cref="Type"/> that represents the type you want to convert from.</param>
     /// <returns><see langword="true"/>if this converter can perform the conversion; otherwise, <see langword="false"/>.
@@ -566,12 +568,12 @@ public class ServiceAddressTypeConverter : TypeConverter
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
         sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
 
-    /// <summary>Converts the given object to the type of this converter, using the specified context and culture
+    /// <summary>Converts the given object into a <see cref="ServiceAddress"/> object, using the specified context and culture
     /// information.</summary>
     /// <param name="context">An <see cref="ITypeDescriptorContext"/> that provides a format context.</param>
     /// <param name="culture">The <see cref="CultureInfo"/> to use as the current culture.</param>
     /// <param name="value">The <see cref="object "/> to convert.</param>
-    /// <returns>An <see cref="object "/> that represents the converted value.</returns>
+    /// <returns>An <see cref="object "/> that represents the converted <see cref="ServiceAddress"/>.</returns>
     /// <remarks><see cref="TypeConverter"/>.</remarks>
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
         value is string valueStr ? new ServiceAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);

@@ -241,8 +241,8 @@ public abstract class ServerAddressComparer : EqualityComparer<ServerAddress>
 /// sub-systems such as the Microsoft ConfigurationBinder to bind string values to ServerAddress properties.</summary>
 public class ServerAddressTypeConverter : TypeConverter
 {
-    /// <summary>Returns whether this converter can convert an object of the given type to the type of this converter,
-    /// using the specified context.</summary>
+    /// <summary>Returns whether this converter can convert an object of the given type into a
+    /// <see cref="ServerAddress"/> value, using the specified context.</summary>
     /// <param name="context">An <see cref="ITypeDescriptorContext"/> that provides a format context.</param>
     /// <param name="sourceType">A <see cref="Type"/> that represents the type you want to convert from.</param>
     /// <returns><see langword="true"/>if this converter can perform the conversion; otherwise, <see langword="false"/>.
@@ -250,12 +250,12 @@ public class ServerAddressTypeConverter : TypeConverter
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
         sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
 
-    /// <summary>Converts the given object to the type of this converter, using the specified context and culture
-    /// information.</summary>
+    /// <summary>Converts the given object into a <see cref="ServerAddress"/> value, using the specified context and
+    /// culture information.</summary>
     /// <param name="context">An <see cref="ITypeDescriptorContext"/> that provides a format context.</param>
     /// <param name="culture">The <see cref="CultureInfo"/> to use as the current culture.</param>
     /// <param name="value">The <see cref="object "/> to convert.</param>
-    /// <returns>An <see cref="object "/> that represents the converted value.</returns>
+    /// <returns>An <see cref="object "/> that represents the converted <see cref="ServerAddress"/> value.</returns>
     /// <remarks><see cref="TypeConverter"/>.</remarks>
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
         value is string valueStr ? new ServerAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);

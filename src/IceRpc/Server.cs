@@ -640,8 +640,8 @@ public sealed class Server : IAsyncDisposable
         }
     }
 
-    /// <summary>Returns a string that represents the current object.</summary>
-    /// <returns>A string that represents the current object.</returns>
+    /// <summary>Returns a string that represents this server.</summary>
+    /// <returns>A string that represents this server.</returns>
     public override string ToString() => _serverAddress.ToString();
 
     /// <summary>Returns true if the <see cref="IConnectorListener.AcceptAsync" /> failure can be retried.</summary>
