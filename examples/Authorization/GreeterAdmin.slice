@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+module AuthorizationExample
+
+/// Represents a service to configure the greeting of the greeter service.
+interface GreeterAdmin {
+    /// Changes the greeting returned by the Greeting service.
+    /// @param greeting: The new greeting.
+    changeGreeting(greeting: string)
+}

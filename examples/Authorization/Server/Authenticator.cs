@@ -23,7 +23,7 @@ internal class Authenticator : Service, IAuthenticatorService
         {
             isAdmin = true;
         }
-        else if (name == "friend" && password == "password")
+        else if (name == "alice" && password == "password")
         {
             isAdmin = false;
         }

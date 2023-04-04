@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <SliceC Include="../Authorization.slice" />
+    <SliceC Include="../Greeter.slice" />
+    <SliceC Include="../GreeterAdmin.slice" />
+    <SliceC Include="../Authenticator.slice" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <Compile Include="../IdentityTokenFieldKey.cs" Link="IdentityTokenFieldKey.cs" />

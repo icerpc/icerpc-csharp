@@ -23,13 +23,13 @@ var router = new Router();
 router.UseAuthentication(bearerAuthenticationHandler);
 
 var chatbot = new Chatbot();
-router.Map("/greeting", chatbot);
+router.Map("/greeter", chatbot);
 
 router.Map("/authenticator", new Authenticator(bearerAuthenticationHandler));
 
-router.Route("/greetingAdmin", adminRouter =>
+router.Route("/greeterAdmin", adminRouter =>
 {
-    // Install an authorization middleware that checks if the caller is authorized to call the greeting admin service.
+    // Install an authorization middleware that checks if the caller is authorized to call the greeter admin service.
     adminRouter.UseAuthorization(identityFeature => identityFeature.IsAdmin);
     adminRouter.Map("/", new ChatbotAdmin(chatbot));
 });

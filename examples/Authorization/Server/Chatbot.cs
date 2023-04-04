@@ -5,7 +5,7 @@ using IceRpc.Slice;
 
 namespace AuthorizationExample;
 
-/// <summary>A Chatbot is an IceRPC service that implements the Slice interface 'Greeting'.</summary>
+/// <summary>A Chatbot is an IceRPC service that implements the Slice interface 'Greeter'.</summary>
 internal class Chatbot : Service, IGreeterService
 {
     internal string Greeting { get; set; } = "Hello";

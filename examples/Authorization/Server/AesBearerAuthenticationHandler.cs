@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 namespace AuthorizationExample;
 
 /// <summary>This is an implementation of <see cref="IBearerAuthenticationHandler" /> to create and validate a Slice
-/// based identity token encrypted with Aes.</summary>
+/// based identity token encrypted with AES.</summary>
 internal sealed class AesBearerAuthenticationHandler : IBearerAuthenticationHandler, IDisposable
 {
     private readonly Aes _aes;
@@ -25,7 +25,7 @@ internal sealed class AesBearerAuthenticationHandler : IBearerAuthenticationHand
         AesIdentityToken identityToken = DecodeIdentityToken(destinationStream.ToArray());
 
         Console.WriteLine(
-            $"Decoded Aes identity token {{ name = '{identityToken.Name}' isAdmin = '{identityToken.IsAdmin}' }}");
+            $"Decoded AES identity token {{ name = '{identityToken.Name}' isAdmin = '{identityToken.IsAdmin}' }}");
 
         return new IdentityFeature(identityToken.Name, identityToken.IsAdmin);
 

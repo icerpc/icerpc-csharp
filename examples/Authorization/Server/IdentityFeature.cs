@@ -2,7 +2,7 @@
 
 namespace AuthorizationExample;
 
-/// <summary>A feature that provides the name and administrative privilege of the request.</summary>
+/// <summary>A request feature that provides the name and administrative privilege of the request.</summary>
 public interface IIdentityFeature
 {
     /// <summary><c>true</c> if the authenticated user has administrative privilege, <c>false</c> otherwise.</summary>

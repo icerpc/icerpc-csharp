@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+module AuthorizationExample
+
+/// A service to get a personalized greeting message.
+interface Greeter {
+    /// Creates a personalized "hello" greeting.
+    /// @returns: The greeting.
+    greet() -> string
+}

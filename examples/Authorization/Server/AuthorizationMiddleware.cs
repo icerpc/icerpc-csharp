@@ -4,8 +4,8 @@ using IceRpc;
 
 namespace AuthorizationExample;
 
-/// <summary>A middleware that checks if the request is authorized. If not, it throws a <see cref="DispatchException"
-/// /> with the <see cref="StatusCode.Unauthorized" /> status code.</summary>
+/// <summary>A middleware that checks if the request is authorized. If not, it throws a <see cref="DispatchException" />
+/// with the <see cref="StatusCode.Unauthorized" /> status code.</summary>
 internal class AuthorizationMiddleware : IDispatcher
 {
     private readonly Func<IIdentityFeature, bool> _authorizeFunc;
