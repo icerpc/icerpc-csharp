@@ -11,7 +11,7 @@ var router = new Router();
 // Loads the session token from the request and adds the session feature to the request's feature collection
 router.UseLoadSession(tokenStore);
 
-router.Route("/helloAdmin", adminRouter =>
+router.Route("/greeterAdmin", adminRouter =>
 {
     // Requires the session feature to be present in the request's feature collection.
     adminRouter.UseHasSession();
@@ -19,7 +19,7 @@ router.Route("/helloAdmin", adminRouter =>
 });
 
 router.Map("/sessionManager", tokenStore);
-router.Map("/hello", chatbot);
+router.Map("/greeter", chatbot);
 
 await using var server = new Server(router);
 server.Listen();

@@ -5,15 +5,15 @@ using IceRpc.Slice;
 
 namespace GenericHostExample;
 
-/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Hello'.</summary>
-public class Chatbot : Service, IHelloService
+/// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
+public class Chatbot : Service, IGreeterService
 {
-    public async ValueTask<string> SayHelloAsync(
+    public async ValueTask<string> GreetAsync(
         string name,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        await Console.Out.WriteLineAsync($"Dispatching sayHello request {{ name = '{name}' }}");
+        await Console.Out.WriteLineAsync($"Dispatching greet request {{ name = '{name}' }}");
         return new($"Hello, {name}!");
     }
 }

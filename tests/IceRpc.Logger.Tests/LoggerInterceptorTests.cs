@@ -12,7 +12,8 @@ public sealed class LoggerInterceptorTests
     public async Task Log_successful_request()
     {
         var invoker = new InlineInvoker(
-            (request, cancellationToken) => Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance)));
+            (request, cancellationToken) => Task.FromResult(
+                new IncomingResponse(request, FakeConnectionContext.Instance)));
         using var loggerFactory = new TestLoggerFactory();
         var serviceAddress = new ServiceAddress(Protocol.IceRpc) { Path = "/path" };
         using var request = new OutgoingRequest(serviceAddress) { Operation = "doIt" };
