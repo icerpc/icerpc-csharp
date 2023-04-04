@@ -2,6 +2,7 @@
 
 using Demo;
 using IceRpc;
+using IceRpc.Ice;
 using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
 
