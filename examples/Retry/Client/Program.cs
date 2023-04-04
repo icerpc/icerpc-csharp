@@ -46,13 +46,12 @@ Pipeline pipeline = new Pipeline()
 // We use a logger to ensure proper ordering of the messages on the console.
 ILogger logger = loggerFactory.CreateLogger("IceRpc.RetryExample");
 
-var helloServiceAddress = new ServiceAddress(new Uri("icerpc://localhost:10000/hello"));
-var altServerAddresses = new List<ServerAddress>();
-for (int i = 1; i < serverInstances; i++)
+var helloServiceAddress = new ServiceAddress(new Uri("icerpc://localhost:10000/hello"))
 {
-    altServerAddresses.Add(new ServerAddress { Host = "localhost", Port = (ushort)(i + 10000) });
-}
-helloServiceAddress = helloServiceAddress with { AltServerAddresses = altServerAddresses.ToImmutableList() };
+    AltServerAddresses = Enumerable.Range(1, serverInstances - 1)
+        .Select(i => new ServerAddress { Host = "localhost", Port = (ushort)(i + 10000) })
+        .ToImmutableList()
+};
 
 var hello = new HelloProxy(pipeline, helloServiceAddress);
 
