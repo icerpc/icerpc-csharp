@@ -1,0 +1,79 @@
+name: release
+
+on:
+  push:
+    tags:
+    - 'v[0-9]+.[0-9]+.[0-9]+-preview[0-9]+'
+
+jobs:
+  build-compiler:
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        include:
+          - os: macos-11
+            target: x86_64-apple-darwin
+            compiler-exe: slicec-cs
+          - os: macos-11
+            target: aarch64-apple-darwin
+            compiler-exe: slicec-cs
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            compiler-exe: slicec-cs
+          - os: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
+            compiler-exe: slicec-cs
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            compiler-exe: slicec-cs.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build
+        uses: ./.github/actions/build-compiler
+        with:
+          cargo-build-args: --release
+          target: ${{ matrix.target }}
+        env:
+          ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+      - name: Archive Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: slicec-cs-${{ matrix.target }}
+          path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
+  build-packages:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    needs: build-compiler
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download slicec-cs compiler artifacts
+        uses: actions/download-artifact@v3
+      - name: Create Tools directory structure
+        run: |
+          mkdir -p /tmp/tools/macos-x64 /tmp/tools/macos-arm64 /tmp/tools/linux-x64 /tmp/tools/linux-arm64 /tmp/tools/windows-x64
+          mv slicec-cs-x86_64-apple-darwin/slicec-cs /tmp/tools/macos-x64/
+          mv slicec-cs-aarch64-apple-darwin/slicec-cs /tmp/tools/macos-arm64/
+          mv slicec-cs-x86_64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-x64/
+          mv slicec-cs-aarch64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-arm64/
+          mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe /tmp/tools/windows-x64/
+      - name: Set VERSION variable from tag
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          cargo-build-args: --release
+          dotnet-build-args: --configuration Release
+        env:
+          ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+      - name: Pack IceRPC Tools
+        working-directory: tools/IceRpc.Slice.Tools
+        run: dotnet pack --configuration Release --output ../../
+        env:
+          ICERPC_RELEASE_BUILD: yes
+          ICERPC_SLICE_TOOLS_PATH: /tmp/tools
+      - name: Pack IceRPC
+        run: dotnet pack --configuration Release --output .
+      - name: Push
+        run: dotnet nuget push ./*.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }}

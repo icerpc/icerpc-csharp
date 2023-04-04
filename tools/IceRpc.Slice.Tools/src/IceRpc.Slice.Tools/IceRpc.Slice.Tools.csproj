@@ -94,8 +94,16 @@
                <PackagePath>tools\linux-x64\</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macOS-x64\slicec-cs">
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\linux-arm64\slicec-cs">
+               <PackagePath>tools\linux-arm64\</PackagePath>
+               <Pack>true</Pack>
+            </Content>
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macos-x64\slicec-cs">
                <PackagePath>tools\macos-x64\</PackagePath>
+               <Pack>true</Pack>
+            </Content>
+            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\macos-arm64\slicec-cs">
+               <PackagePath>tools\macos-arm64\</PackagePath>
                <Pack>true</Pack>
             </Content>
             <Content Include="$(ICERPC_SLICE_TOOLS_PATH)\windows-x64\slicec-cs.exe">
