@@ -104,7 +104,7 @@ fn validate_repeated_attributes(entity: &dyn Entity, diagnostic_reporter: &mut D
         .attributes(false)
         .into_iter()
         .filter(|attribute| match &attribute.kind {
-            AttributeKind::LanguageKind { kind } => kind.as_any().downcast_ref::<CsAttributeKind>().is_some(),
+            AttributeKind::LanguageKind { kind } => kind.as_any().is::<CsAttributeKind>(),
             _ => false,
         })
         .collect::<Vec<_>>();
@@ -239,7 +239,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_field(&mut self, field: &Field) {
         validate_repeated_attributes(field, self.diagnostic_reporter);
-        for (attribute, ..) in get_cs_attributes(field) {
+        for (attribute, _) in get_cs_attributes(field) {
             match attribute {
                 CsAttributeKind::Identifier { .. } | CsAttributeKind::Attribute { .. } => {}
                 _ => validate_data_type_attributes(&field.data_type, self.diagnostic_reporter),
@@ -249,7 +249,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
         validate_repeated_attributes(parameter, self.diagnostic_reporter);
-        for (attribute, ..) in get_cs_attributes(parameter) {
+        for (attribute, _) in get_cs_attributes(parameter) {
             match attribute {
                 CsAttributeKind::Identifier { .. } => {}
                 _ => validate_data_type_attributes(&parameter.data_type, self.diagnostic_reporter),
