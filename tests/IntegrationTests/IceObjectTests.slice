@@ -1,0 +1,7 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::IntegrationTests
+
+interface MyBaseInterface {}
+
+interface MyDerivedInterface : MyBaseInterface {}

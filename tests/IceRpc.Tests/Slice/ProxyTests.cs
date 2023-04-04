@@ -117,32 +117,6 @@ public class ProxyTests
         Is.Null);
     }
 
-    [Test]
-    public async Task Downcast_proxy_with_as_async_succeeds()
-    {
-        // Arrange
-        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyDerivedInterfaceService()));
-
-        // Act
-        MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
-
-        // Assert
-        Assert.That(derived, Is.Not.Null);
-    }
-
-    [Test]
-    public async Task Downcast_proxy_with_as_async_fails()
-    {
-        // Arrange
-        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyBaseInterfaceService()));
-
-        // Act
-        MyDerivedInterfaceProxy? derived = await proxy.AsAsync<MyDerivedInterfaceProxy>();
-
-        // Assert
-        Assert.That(derived, Is.Null);
-    }
-
     /// <summary>Verifies that a proxy decoded from an incoming request has a null invoker by default.</summary>
     [Test]
     public async Task Proxy_decoded_from_incoming_request_has_null_invoker()
@@ -200,14 +174,6 @@ public class ProxyTests
 
         // Assert
         Assert.That(received.Invoker, Is.EqualTo(invoker));
-    }
-
-    private class MyBaseInterfaceService : Service, IMyBaseInterfaceService
-    {
-    }
-
-    private sealed class MyDerivedInterfaceService : MyBaseInterfaceService, IMyDerivedInterfaceService
-    {
     }
 
     private sealed class ReceiveProxyTestService : Service, IReceiveProxyTestService

@@ -52,7 +52,7 @@ public static class ProxyExtensions
     /// <param name="features">The invocation features.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A new <typeparamref name="TProxy" /> instance, or <see langword="null" />.</returns>
-    public static async Task<TProxy?> AsAsync<TProxy>(
+    public static async Task<TProxy?> IceAsAsync<TProxy>(
         this IProxy proxy,
         IFeatureCollection? features = null,
         CancellationToken cancellationToken = default) where TProxy : struct, IProxy =>

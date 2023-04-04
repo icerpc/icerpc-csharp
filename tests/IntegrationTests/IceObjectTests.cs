@@ -35,8 +35,42 @@ public class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    private class PingableService : Service, IPingableService
+    [Test]
+    public async Task Downcast_proxy_with_as_async_succeeds()
+    {
+        // Arrange
+        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyDerivedInterfaceService()));
+
+        // Act
+        MyDerivedInterfaceProxy? derived = await proxy.IceAsAsync<MyDerivedInterfaceProxy>();
+
+        // Assert
+        Assert.That(derived, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Downcast_proxy_with_as_async_fails()
+    {
+        // Arrange
+        var proxy = new MyBaseInterfaceProxy(new ColocInvoker(new MyBaseInterfaceService()));
+
+        // Act
+        MyDerivedInterfaceProxy? derived = await proxy.IceAsAsync<MyDerivedInterfaceProxy>();
+
+        // Assert
+        Assert.That(derived, Is.Null);
+    }
+
+    private class PingableService : IceService, IPingableService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
+    }
+
+    private class MyBaseInterfaceService : IceService, IMyBaseInterfaceService
+    {
+    }
+
+    private sealed class MyDerivedInterfaceService : MyBaseInterfaceService, IMyDerivedInterfaceService
+    {
     }
 }
