@@ -60,7 +60,7 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         EventId = (int)LoggerMiddlewareEventId.Dispatch,
         EventName = nameof(LoggerMiddlewareEventId.Dispatch),
         Level = LogLevel.Information,
-        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with {StatusCode}")]
+        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with status code {StatusCode}")]
     internal static partial void LogDispatch(
         this ILogger logger,
         string path,
