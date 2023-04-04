@@ -157,6 +157,7 @@ function Clean($config, $examples) {
     {
         CleanIceRpcExamples($config)
     }
+    Remove-Item "certs" -Force -ErrorAction Ignore
 }
 
 function Test($config, $coverage) {

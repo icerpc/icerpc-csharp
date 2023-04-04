@@ -112,6 +112,19 @@ install_templates()
     popd
 }
 
+create_ssl_test_certificates()
+{
+    if [ ! -d "certs" ]
+    then
+        mkdir -p certs
+        pushd certs
+        run_command dotnet "dev-certs" "https" "-ep" "server.p12" "-p" "password"
+        run_command dotnet "dev-certs" "https" "-ep" "client.p12" "-p" "password"
+        run_command dotnet "dev-certs" "https" "-ep" "cacert.pem" "--format" "PEM"
+        popd
+    fi
+}
+
 build()
 {
     if [ "$examples" == "no" ]; then
@@ -127,6 +140,7 @@ build()
             run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" "$solution"
         done
     fi
+    create_ssl_test_certificates
 }
 
 rebuild()
@@ -141,6 +155,7 @@ clean()
     clean_icerpc_slice_tools
     clean_icerpc
     clean_icerpc_project_templates
+    rm -rf certs
 }
 
 run_test()
