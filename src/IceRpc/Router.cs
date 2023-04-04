@@ -107,7 +107,8 @@ public sealed class Router : IDispatcher
         return this;
     }
 
-    /// <inheritdoc/>
+    /// <summary>Returns a string that represents the current object.</summary>
+    /// <returns>A string that represents the current object.</returns>
     public override string ToString() => AbsolutePrefix.Length > 0 ? $"router({AbsolutePrefix})" : "router";
 
     // Trim trailing slashes but keep the leading slash.
