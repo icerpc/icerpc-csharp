@@ -86,7 +86,8 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Returns a string that represents this incoming request.</summary>
+    /// <returns>A string that represents this incoming requests.</returns>
     public override string ToString() => Fragment.Length == 0 ?
         $"'{Operation}' on '{Path}'" :
         $"'{Operation}' on '{Path}#{Fragment}'";

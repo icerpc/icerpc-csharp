@@ -315,7 +315,12 @@ public sealed record class ServiceAddress
         OriginalUri = uri;
     }
 
-    /// <inheritdoc/>
+    /// <summary>Determines whether the specified <see cref="ServiceAddress"/> is equal to the current
+    /// <see cref="ServiceAddress"/>.</summary>
+    /// <param name="other">The <see cref="ServiceAddress"/> to compare with the current <see cref="ServiceAddress"/>.
+    /// </param>
+    /// <returns><see langword="true"/> if the specified <see cref="ServiceAddress"/> is equal to the current
+    /// <see cref="ServiceAddress"/>; otherwise, <see langword="false"/>.</returns>
     public bool Equals(ServiceAddress? other)
     {
         if (other is null)
@@ -346,7 +351,8 @@ public sealed record class ServiceAddress
             Params.DictionaryEqual(other.Params);
     }
 
-    /// <inheritdoc/>
+    /// <summary>Serves as the default hash function.</summary>
+    /// <returns>A hash code for the current <see cref="ServiceAddress"/>.</returns>
     public override int GetHashCode()
     {
         if (Protocol is null)
@@ -553,11 +559,22 @@ public sealed record class ServiceAddress
 /// sub-systems such as the Microsoft ConfigurationBinder to bind string values to ServiceAddress properties.</summary>
 public class ServiceAddressTypeConverter : TypeConverter
 {
-    /// <inheritdoc/>
+    /// <summary>Returns whether this converter can convert an object of the given type into a
+    /// <see cref="ServiceAddress"/> object, using the specified context.</summary>
+    /// <param name="context">An <see cref="ITypeDescriptorContext"/> that provides a format context.</param>
+    /// <param name="sourceType">A <see cref="Type"/> that represents the type you want to convert from.</param>
+    /// <returns><see langword="true"/>if this converter can perform the conversion; otherwise, <see langword="false"/>.
+    /// </returns>
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
         sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
 
-    /// <inheritdoc/>
+    /// <summary>Converts the given object into a <see cref="ServiceAddress"/> object, using the specified context and culture
+    /// information.</summary>
+    /// <param name="context">An <see cref="ITypeDescriptorContext"/> that provides a format context.</param>
+    /// <param name="culture">The <see cref="CultureInfo"/> to use as the current culture.</param>
+    /// <param name="value">The <see cref="object "/> to convert.</param>
+    /// <returns>An <see cref="object "/> that represents the converted <see cref="ServiceAddress"/>.</returns>
+    /// <remarks><see cref="TypeConverter"/>.</remarks>
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
         value is string valueStr ? new ServiceAddress(new Uri(valueStr)) : base.ConvertFrom(context, culture, value);
 }
