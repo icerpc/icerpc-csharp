@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice;
 using IceRpc.Locator.Internal;
 using IceRpc.Slice;
 using NUnit.Framework;

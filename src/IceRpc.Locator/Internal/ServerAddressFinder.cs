@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice;
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 

@@ -2,7 +2,7 @@
 
 encoding = Slice1
 
-[cs::namespace("IceRpc")]
+[cs::namespace("IceRpc.Ice")]
 module Ice
 
 /// The path of a service, encoded as an Ice identity. Use this type when converting an Ice::Identity parameter or field
