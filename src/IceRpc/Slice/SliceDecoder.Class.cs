@@ -66,8 +66,10 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a Slice1 user exception.</summary>
     /// <param name="message">The error message.</param>
-    /// <returns>The decoded Slice exception.</returns>
-    public SliceException DecodeUserException(string? message = null)
+    /// <returns>The decoded Slice exception or a <see cref="DispatchException" /> with status code
+    /// <see cref="StatusCode.ApplicationError" /> if the decoder's activator cannot find an exception class for the
+    /// type ID encoded in the underlying buffer.</returns>
+    public DispatchException DecodeUserException(string? message = null)
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -113,7 +115,13 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            throw new InvalidDataException($"Cannot not find a class to decode Slice exception with type id '{mostDerivedTypeId}'");
+            return new DispatchException(
+                StatusCode.ApplicationError,
+                message ??
+                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' and the local runtime cannot decode this exception.")
+            {
+                ConvertToUnhandled = true
+            };
         }
     }
 
