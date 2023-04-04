@@ -127,6 +127,7 @@ create_ssl_test_certificates()
 
 build()
 {
+    create_ssl_test_certificates
     if [ "$examples" == "no" ]; then
         build_compiler
         build_icerpc_slice_tools
@@ -140,7 +141,6 @@ build()
             run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" "$solution"
         done
     fi
-    create_ssl_test_certificates
 }
 
 rebuild()

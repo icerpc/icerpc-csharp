@@ -90,6 +90,7 @@ function CreateSslTestCertificates() {
 }
 
 function Build($config, $examples, $srcdist) {
+    CreateSslTestCertificates
     if ($examples) {
         if ($srcdist) {
            Push $config
@@ -100,7 +101,6 @@ function Build($config, $examples, $srcdist) {
         BuildIceRpcSliceTools $config
         BuildIceRpc $config
     }
-    CreateSslTestCertificates
 }
 
 function Push($config) {
