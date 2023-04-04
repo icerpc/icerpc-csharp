@@ -5,7 +5,7 @@ use slice::diagnostics::{Diagnostic, Error};
 
 fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
     let data = match slice::compile_from_strings(&[slice], None)
-        .and_then(patch_attributes)
+        .and_then(|data| unsafe { patch_attributes(data) })
         .and_then(validate_cs_attributes)
     {
         Ok(data) => data,
