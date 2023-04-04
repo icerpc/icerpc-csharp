@@ -45,7 +45,7 @@ fn try_main() -> CompilationResult {
     let options = CsOptions::parse();
     let slice_options = &options.slice_options;
     let mut compilation_data = slice::compile_from_options(slice_options)
-        .and_then(patch_attributes)
+        .and_then(|data| unsafe { patch_attributes(data) })
         .and_then(validate_cs_attributes)?;
 
     if !slice_options.dry_run {

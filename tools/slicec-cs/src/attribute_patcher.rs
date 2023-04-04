@@ -9,15 +9,15 @@ use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
 use slice::grammar::{Attribute, AttributeKind};
 use slice::slice_file::Span;
 
-pub fn patch_attributes(mut compilation_data: CompilationData) -> CompilationResult {
-    let ast = &mut compilation_data.ast;
+pub unsafe fn patch_attributes(mut compilation_data: CompilationData) -> CompilationResult {
     let reporter = &mut compilation_data.diagnostic_reporter;
-
     let mut patcher = AttributePatcher { reporter };
 
-    ast.as_mut_slice().iter_mut().for_each(|node| {
-        patcher.patch_node(node);
-    });
+    for node in compilation_data.ast.as_mut_slice() {
+        if let Node::Attribute(attribute) = node {
+            patcher.patch_attribute(attribute.borrow_mut());
+        }
+    }
 
     compilation_data.into()
 }
@@ -33,56 +33,18 @@ struct AttributePatcher<'a> {
 }
 
 impl AttributePatcher<'_> {
-    fn patch_node(&mut self, node: &mut Node) {
-        unsafe {
-            match node {
-                Node::Module(module_ptr) => self.patch_attributes(&mut module_ptr.borrow_mut().attributes),
-                Node::Struct(struct_ptr) => self.patch_attributes(&mut struct_ptr.borrow_mut().attributes),
-                Node::Class(class_ptr) => self.patch_attributes(&mut class_ptr.borrow_mut().attributes),
-                Node::Exception(exception_ptr) => self.patch_attributes(&mut exception_ptr.borrow_mut().attributes),
-                Node::Field(field_ptr) => {
-                    self.patch_attributes(&mut field_ptr.borrow_mut().data_type.attributes);
-                    self.patch_attributes(&mut field_ptr.borrow_mut().attributes);
+    fn patch_attribute(&mut self, attribute: &mut Attribute) {
+        if let AttributeKind::Other { directive, arguments } = &attribute.kind {
+            if directive.starts_with(cs_attributes::ATTRIBUTE_PREFIX) {
+                if let Some(cs_attribute) = self.map_language_kind(&GeneralAttribute {
+                    directive,
+                    arguments,
+                    span: &attribute.span,
+                }) {
+                    attribute.kind = AttributeKind::LanguageKind {
+                        kind: Box::new(cs_attribute),
+                    };
                 }
-                Node::Interface(interface_ptr) => self.patch_attributes(&mut interface_ptr.borrow_mut().attributes),
-                Node::Operation(operation_ptr) => self.patch_attributes(&mut operation_ptr.borrow_mut().attributes),
-                Node::Parameter(parameter_ptr) => {
-                    self.patch_attributes(&mut parameter_ptr.borrow_mut().data_type.attributes);
-                    self.patch_attributes(&mut parameter_ptr.borrow_mut().attributes);
-                }
-                Node::Enum(enum_ptr) => self.patch_attributes(&mut enum_ptr.borrow_mut().attributes),
-                Node::Enumerator(enumerator_ptr) => self.patch_attributes(&mut enumerator_ptr.borrow_mut().attributes),
-                Node::CustomType(custom_type_ptr) => {
-                    self.patch_attributes(&mut custom_type_ptr.borrow_mut().attributes)
-                }
-                Node::TypeAlias(type_alias_ptr) => self.patch_attributes(&mut type_alias_ptr.borrow_mut().attributes),
-                Node::Sequence(sequence_ptr) => {
-                    self.patch_attributes(&mut sequence_ptr.borrow_mut().element_type.attributes)
-                }
-                Node::Dictionary(dictionary_ptr) => {
-                    self.patch_attributes(&mut dictionary_ptr.borrow_mut().key_type.attributes);
-                    self.patch_attributes(&mut dictionary_ptr.borrow_mut().value_type.attributes);
-                }
-                _ => (),
-            }
-        }
-    }
-
-    fn patch_attributes(&mut self, attributes: &mut [Attribute]) {
-        for attribute in attributes.iter_mut() {
-            match &attribute.kind {
-                AttributeKind::Other { directive, arguments }
-                    if directive.starts_with(cs_attributes::ATTRIBUTE_PREFIX) =>
-                {
-                    if let Some(cs_attribute) = self.map_language_kind(&GeneralAttribute {
-                        directive,
-                        arguments,
-                        span: &attribute.span,
-                    }) {
-                        attribute.kind = cs_attribute.into()
-                    }
-                }
-                _ => (),
             }
         }
     }
