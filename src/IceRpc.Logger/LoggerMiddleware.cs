@@ -23,7 +23,9 @@ public class LoggerMiddleware : IDispatcher
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        return _logger.IsEnabled(LogLevel.Information) ? PerformDispatchAsync() : _next.DispatchAsync(request, cancellationToken);
+        return _logger.IsEnabled(LogLevel.Information) ?
+            PerformDispatchAsync() :
+            _next.DispatchAsync(request, cancellationToken);
 
         async ValueTask<OutgoingResponse> PerformDispatchAsync()
         {
@@ -55,10 +57,10 @@ public class LoggerMiddleware : IDispatcher
 internal static partial class LoggerMiddlewareLoggerExtensions
 {
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventId.Invoke,
-        EventName = nameof(LoggerInterceptorEventId.Invoke),
+        EventId = (int)LoggerMiddlewareEventId.Dispatch,
+        EventName = nameof(LoggerMiddlewareEventId.Dispatch),
         Level = LogLevel.Information,
-        Message = "Dispatched {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} and received {StatusCode} response")]
+        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with status code {StatusCode}")]
     internal static partial void LogDispatch(
         this ILogger logger,
         string path,
@@ -68,8 +70,8 @@ internal static partial class LoggerMiddlewareLoggerExtensions
         StatusCode statusCode);
 
     [LoggerMessage(
-        EventId = (int)LoggerInterceptorEventId.InvokeException,
-        EventName = nameof(LoggerInterceptorEventId.InvokeException),
+        EventId = (int)LoggerMiddlewareEventId.DispatchException,
+        EventName = nameof(LoggerMiddlewareEventId.DispatchException),
         Level = LogLevel.Information,
         Message = "Failed to dispatch {Operation} to {Path}")]
     internal static partial void LogDispatchException(
