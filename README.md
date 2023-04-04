@@ -29,7 +29,7 @@ and then try again. This tells Cargo to use git's executable to fetch dependenci
 
 ## Building
 
-You can build IceRPC from a regular command prompt, using the following command
+You can build IceRPC from a regular command prompt, using the following commands
 
 For Linux and macOS
 
