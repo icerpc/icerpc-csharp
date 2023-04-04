@@ -9,7 +9,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\certs\cacert.der" Link="cacert.der">
+    <None Include="..\..\..\certs\cacert.pem" Link="cacert.pem">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\..\..\certs\server.p12" Link="server.p12">

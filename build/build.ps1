@@ -77,6 +77,18 @@ function CleanIceRpcExamples($config) {
     }
 }
 
+function CreateSslTestCertificates() {
+    if (-not (Test-Path -Path "certs")) {
+        New-Item -ItemType Directory -Force -Path "certs" | Out-Null
+        Push-Location "certs"
+        Write-Host "Generating SSL test certificates"
+        RunCommand "dotnet" @('dev-certs', 'https', '-ep', 'server.p12', '-p', 'password')
+        RunCommand "dotnet" @('dev-certs', 'https', '-ep', 'client.p12', '-p', 'password')
+        RunCommand "dotnet" @('dev-certs', 'https', '-ep', 'cacert.pem', '--format', 'PEM')
+        Pop-Location
+    }
+}
+
 function Build($config, $examples, $srcdist) {
     if ($examples) {
         if ($srcdist) {
@@ -88,6 +100,7 @@ function Build($config, $examples, $srcdist) {
         BuildIceRpcSliceTools $config
         BuildIceRpc $config
     }
+    CreateSslTestCertificates
 }
 
 function Push($config) {
