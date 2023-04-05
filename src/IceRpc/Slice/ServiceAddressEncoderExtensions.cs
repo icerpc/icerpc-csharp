@@ -22,7 +22,7 @@ public static class ServiceAddressSliceEncoderExtensions
             //     - a sequence of server addresses (can be empty)
             //     - an adapter ID string present only when the sequence of server addresses is empty
 
-            encoder.EncodeIceIdentityPath(value.Path);
+            encoder.EncodeIdentityPath(value.Path);
 
             if (value.Protocol is not Protocol protocol)
             {
