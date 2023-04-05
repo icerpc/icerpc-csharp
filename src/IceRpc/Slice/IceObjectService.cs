@@ -2,14 +2,12 @@
 
 using IceRpc.Features;
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Reflection;
 
 namespace IceRpc.Slice;
 
-/// <summary>Base class of all services that implement Slice-defined interfaces.</summary>
-public class IceService : Service, IIceObjectService
+/// <summary>Base class that implements <see cref="IIceObjectService" /> and for services that implement Slice-defined
+/// interfaces.</summary>
+public class IceObjectService : Service, IIceObjectService
 {
     // A per type cache of type IDs.
     private static readonly ConcurrentDictionary<Type, IReadOnlySet<string>> _cache = new();
@@ -18,7 +16,7 @@ public class IceService : Service, IIceObjectService
     private readonly IReadOnlySet<string> _typeIds;
 
     /// <summary>Constructs a new Ice service.</summary>
-    public IceService()
+    public IceObjectService()
     {
         _typeIds = _cache.GetOrAdd(GetType(), type =>
             {

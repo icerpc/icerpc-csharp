@@ -61,12 +61,12 @@ public class IceObjectTests
         Assert.That(derived, Is.Null);
     }
 
-    private class PingableService : IceService, IPingableService
+    private class PingableService : IceObjectService, IPingableService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
-    private class MyBaseInterfaceService : IceService, IMyBaseInterfaceService
+    private class MyBaseInterfaceService : IceObjectService, IMyBaseInterfaceService
     {
     }
 
