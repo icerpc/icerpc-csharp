@@ -10,10 +10,10 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 // Add the request context interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline().UseRequestContext().Into(connection);
 
-var hello = new HelloProxy(pipeline);
+var greeter = new GreeterProxy(pipeline);
 
 var features = new FeatureCollection();
-// Add the request context feature to the request features for the SayHello invocation.
+// Add the request context feature to the request features for the Greet invocation.
 features.Set<IRequestContextFeature>(new RequestContextFeature
     {
         Value = new Dictionary<string, string>
@@ -23,7 +23,7 @@ features.Set<IRequestContextFeature>(new RequestContextFeature
         }
     });
 
-string greeting = await hello.SayHelloAsync(Environment.UserName, features);
+string greeting = await greeter.GreetAsync(Environment.UserName, features);
 
 Console.WriteLine(greeting);
 

@@ -49,6 +49,13 @@ function BuildIceRpc($config) {
     RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
 }
 
+function CleanIceRpcProjectTemplates($config) {
+    Push-Location "src\IceRpc.ProjectTemplates"
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration)
+    Pop-Location
+}
+
 function BuildIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
@@ -73,7 +80,7 @@ function CleanIceRpcExamples($config) {
 function Build($config, $examples, $srcdist) {
     if ($examples) {
         if ($srcdist) {
-           Install $config
+           Push $config
         }
         BuildIceRpcExamples $config
     } else {
@@ -83,7 +90,7 @@ function Build($config, $examples, $srcdist) {
     }
 }
 
-function Install($config) {
+function Push($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     BuildCompiler $config
     Pack $config
@@ -97,19 +104,18 @@ function Install($config) {
         $package_name = $package_name.Substring(0, $package_name.Length - ".$version".Length)
         Remove-Item $global_packages"\$package_name\$version" -Recurse -Force -ErrorAction Ignore
     }
-    RunCommand "dotnet" @('nuget', 'push', "tools\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
-    RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
+    RunCommand "dotnet" @('nuget', 'push', "tools\**\$dotnetConfiguration\*.$version.nupkg", '--source', $global_packages)
+    RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.$version.nupkg", '--source', $global_packages)
 }
 
 function InstallTemplates($config) {
-    $dotnetConfiguration = DotnetConfiguration($config)
-    Push-Location "src\IceRpc.ProjectTemplates"
-    RunCommand "dotnet" @('pack', '--configuration', $dotnetConfiguration)
     $dotnet_templates = dotnet new -l
     if ($dotnet_templates.Where({$_.Contains("icerpc-client")}).count -gt 0) {
         RunCommand "dotnet" @('new', 'uninstall', 'IceRpc.ProjectTemplates')
     }
 
+    $dotnetConfiguration = DotnetConfiguration($config)
+    Push-Location "src\IceRpc.ProjectTemplates"
     RunCommand "dotnet" @('new', 'install', "bin\Any CPU\$dotnetConfiguration\IceRpc.ProjectTemplates.$version.nupkg")
     Pop-Location
 }
@@ -120,6 +126,9 @@ function Pack($config) {
     RunCommand "dotnet"  @('pack', '--configuration', $dotnetConfiguration)
     Pop-Location
     RunCommand "dotnet"  @('pack', '-nr:false', '--configuration', $dotnetConfiguration)
+    Push-Location "src\IceRpc.ProjectTemplates"
+    RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
+    Pop-Location
 }
 
 function Rebuild($config, $examples, $srcdist) {
@@ -130,6 +139,7 @@ function Rebuild($config, $examples, $srcdist) {
 function Clean($config, $examples) {
     CleanCompiler($config)
     CleanIceRpc($config)
+    CleanIceRpcProjectTemplates($config)
     if ($examples)
     {
         CleanIceRpcExamples($config)
@@ -174,19 +184,20 @@ function DotnetConfiguration($config) {
 function Get-Help() {
     Write-Host "Usage: build [command] [arguments]"
     Write-Host "Commands (defaults to build):"
-    Write-Host "  build                     Build IceRpc sources & slice-cs compiler."
-    Write-Host "  pack                      Build the IceRpc NuGet packages."
-    Write-Host "  install                   Install IceRpc NuGet packages into the global-packages source."
-    Write-Host "  install-templates         Install IceRpc dotnet new project templates."
-    Write-Host "  clean                     Clean IceRpc sources & slice-cs compiler."
-    Write-Host "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
+    Write-Host "  build                     Build the IceRPC assemblies and the slicec-cs compiler."
+    Write-Host "  pack                      Create the IceRPC NuGet packages."
+    Write-Host "  push                      Push the IceRPC NuGet packages to the global-packages source."
+    Write-Host "  install-templates         Install the IceRPC dotnet new project templates."
+    Write-Host "  clean                     Clean build artifacts."
+    Write-Host "  rebuild                   Rebuild."
     Write-Host "  test                      Runs tests."
-    Write-Host "  doc                       Generate documentation"
+    Write-Host "  doc                       Generate the C# API documentation"
+    Write-Host "                            Requires docfx from https://github.com/dotnet/docfx"
     Write-Host "Arguments:"
     Write-Host "  -config                   Build configuration: debug or release, the default is debug."
     Write-Host "  -examples                 Build examples solutions instead of the source solutions."
-    Write-Host "  -srcdist                  Use NuGet packages from this source distribution when building examples."
-    Write-Host "                            The NuGet packages are installed to the local global-packages source."
+    Write-Host "  -srcdist                  Use IceRPC NuGet packages from this source distribution when building the examples."
+    Write-Host "                            The NuGet packages are pushed to the local global-packages source."
     Write-Host "  -coverage                 Collect code coverage from test runs."
     Write-Host "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -help                     Print help and exit."
@@ -210,8 +221,8 @@ switch ( $action ) {
     "pack" {
         Pack $config
     }
-    "install" {
-        Install $config
+    "push" {
+        Push $config
     }
     "install-templates" {
         InstallTemplates $config

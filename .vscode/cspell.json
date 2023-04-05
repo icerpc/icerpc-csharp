@@ -26,6 +26,7 @@
     "icecertutils",
     "icerpc",
     "lalrpop",
+    "localizable",
     "makecerts",
     "Memberwise",
     "netstandard",

@@ -1,0 +1,5 @@
+module GreetExample
+
+interface Greeter {
+    greet(name: string) -> string
+}

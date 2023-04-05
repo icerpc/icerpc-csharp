@@ -31,6 +31,12 @@ public sealed class IceRpcProtocolConnectionTests
                 StatusCode.UnhandledException,
                 GetErrorMessage(StatusCode.UnhandledException, invalidOperationException));
 
+            var truncatedData = new IceRpcException(IceRpcError.TruncatedData, "truncated data message");
+            yield return new TestCaseData(
+                truncatedData,
+                StatusCode.TruncatedPayload,
+                GetErrorMessage(StatusCode.TruncatedPayload, truncatedData));
+
             var applicationError = new DispatchException(StatusCode.ApplicationError, "application message");
             yield return new TestCaseData(
                 applicationError,
@@ -54,6 +60,13 @@ public sealed class IceRpcProtocolConnectionTests
                 operationNotFound,
                 operationNotFound.StatusCode,
                 operationNotFound.Message);
+
+            var convertToUnhandled = new DispatchException(StatusCode.ApplicationError, "convert to unhandled");
+            convertToUnhandled.ConvertToUnhandled = true;
+            yield return new TestCaseData(
+                convertToUnhandled,
+                StatusCode.UnhandledException,
+                GetErrorMessage(StatusCode.UnhandledException, convertToUnhandled));
         }
     }
 

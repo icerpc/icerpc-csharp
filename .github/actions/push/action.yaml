@@ -1,0 +1,8 @@
+name: Run Tests
+
+runs:
+  using: "composite"
+  steps:
+  - name: 📦 Push Packages
+    run: ./build.sh push
+    shell: bash

@@ -5,7 +5,7 @@ using IceRpc;
 
 // Add the compressor middleware to the dispatch pipeline.
 Router router = new Router().UseCompressor(CompressionFormat.Brotli);
-router.Map<IHelloService>(new Chatbot());
+router.Map<IGreeterService>(new Chatbot());
 
 await using var server = new Server(router);
 server.Listen();

@@ -73,6 +73,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Returns a string that represents this outgoing request.</summary>
+    /// <returns>A string that represents this outgoing request.</returns>
     public override string ToString() => $"'{Operation}' on '{ServiceAddress}'";
 }

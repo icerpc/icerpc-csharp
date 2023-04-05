@@ -42,7 +42,7 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
     /// <value>The path of the target service. Defaults to <c>/</c>.</value>
     public string Path { get; init; } = "/";
 
-    /// <summary>Gets or sets the latest response to this request.</summary>
+    /// <summary>Gets or sets the latest response for this request.</summary>
     /// <value>The request's latest response or <see langword="null"/> if the response is not set yet.</value>
     /// <remarks>Setting a response completes the previous response when there is one.</remarks>
     internal OutgoingResponse? Response
@@ -86,7 +86,8 @@ public sealed class IncomingRequest : IncomingFrame, IDisposable
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Returns a string that represents this incoming request.</summary>
+    /// <returns>A string that represents this incoming requests.</returns>
     public override string ToString() => Fragment.Length == 0 ?
         $"'{Operation}' on '{Path}'" :
         $"'{Operation}' on '{Path}#{Fragment}'";

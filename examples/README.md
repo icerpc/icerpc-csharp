@@ -22,23 +22,23 @@ The Download example shows how to download a file using streaming from a server.
 The GenericHost example shows how to create client and server applications using Microsoft's Dependency Injection
 container.
 
-## [Hello](./Hello/)
+## [Greeter](./Greeter/)
 
-The Hello example shows how to create a minimal client and server application implementing the canonical "Hello World"
+The Greeter example shows how to create a minimal client and server application implementing the canonical "Greeter World"
 example.
 
-## [HelloCore](./HelloCore/)
+## [GreeterCore](./GreeterCore/)
 
-The HelloCore example shows how to create a minimal client and server application using IceRPC's core API--without Slice
+The GreeterCore example shows how to create a minimal client and server application using IceRPC's core API--without Slice
 definitions or generated code.
 
-## [HelloQuic](./HelloQuic/)
+## [GreeterQuic](./GreeterQuic/)
 
-The HelloQuic example is the Hello example updated to use the QUIC transport instead of the default TCP transport.
+The GreeterQuic example is the Greeter example updated to use the QUIC transport instead of the default TCP transport.
 
-## [HelloLog](./HelloLog/)
+## [GreeterLog](./GreeterLog/)
 
-The HelloLog example is the Hello example updated to include logging.
+The GreeterLog example is the Greeter example updated to include logging.
 
 ## [Interop](./Interop/)
 

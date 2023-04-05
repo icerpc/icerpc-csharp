@@ -30,6 +30,8 @@ public sealed class IncomingResponse : IncomingFrame
     /// <param name="connectionContext">The connection context of the connection that received this response.</param>
     /// <param name="statusCode">The status code of this response.</param>
     /// <param name="errorMessage">The error message of this response.</param>
+    /// <remarks>The constructor also associates this response with the request. If another response is already set on
+    /// the request, its payload and payload continuation are completed.</remarks>
     public IncomingResponse(
         OutgoingRequest request,
         IConnectionContext connectionContext,
@@ -51,6 +53,8 @@ public sealed class IncomingResponse : IncomingFrame
     /// <param name="statusCode">The status code of this response.</param>
     /// <param name="errorMessage">The error message of this response.</param>
     /// <param name="fields">The fields of this response.</param>
+    /// <remarks>The constructor also associates this response with the request. If another response is already set on
+    /// the request, its payload and payload continuation are completed.</remarks>
     public IncomingResponse(
         OutgoingRequest request,
         IConnectionContext connectionContext,
@@ -69,6 +73,8 @@ public sealed class IncomingResponse : IncomingFrame
     /// <param name="fields">The fields of this response.</param>
     /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <see langword="null"/>
     /// when the fields memory is not held by a pipe reader.</param>
+    /// <remarks>The constructor also associates this response with the request. If another response is already set on
+    /// the request, its payload and payload continuation are completed.</remarks>
     internal IncomingResponse(
         OutgoingRequest request,
         IConnectionContext connectionContext,

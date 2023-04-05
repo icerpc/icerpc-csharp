@@ -5,7 +5,7 @@ using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-var hello = new HelloProxy(connection);
+var greeter = new GreeterProxy(connection);
 
 double requestsPerSecond = 20;
 Console.WriteLine($"Sending {requestsPerSecond} requests per second...");
@@ -22,7 +22,7 @@ Console.CancelKeyPress += (sender, eventArgs) =>
 // Start invoking the remote method
 while (await periodicTimer.WaitForNextTickAsync())
 {
-    await hello.SayHelloAsync(Environment.UserName);
+    await greeter.GreetAsync(Environment.UserName);
 }
 
 await connection.ShutdownAsync();
