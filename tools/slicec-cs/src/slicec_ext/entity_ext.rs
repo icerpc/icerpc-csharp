@@ -225,24 +225,6 @@ pub trait EntityExt: Entity {
         comments
     }
 
-    /// This function is equivalent to [formatted_doc_comment](EntityExt::formatted_doc_comment), but it
-    /// appends the provided string at the beginning of the `summary` tag returned from that function.
-    /// If no `summary` tag was returned, this creates one that only contains the provided string.
-    fn formatted_doc_comment_with_summary(&self, summary_content: String) -> Vec<CommentTag> {
-        let mut comments = self.formatted_doc_comment();
-
-        // Check if the doc comment already included a summary (it must be the first tag).
-        // If it does have one, append the provided content at the beginning of it.
-        // If it doesn't, create a new summary tag containing only the provided content.
-        match comments.first_mut() {
-            Some(summary) if &summary.tag == "summary" => {
-                summary.content = summary_content + "\n" + &summary.content;
-            }
-            _ => comments.insert(0, CommentTag::new("summary", summary_content)),
-        }
-        comments
-    }
-
     /// Returns a C# link tag that points to this entity from the provided namespace
     /// By default this uses a `<see cref="..." />` tag, but certain types override this default implementation
     /// to emit different kinds of links (like `<paramref name="..." />` for parameters).
