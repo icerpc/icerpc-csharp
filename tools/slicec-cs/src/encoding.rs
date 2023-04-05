@@ -248,7 +248,7 @@ fn encode_tagged_type(
         .add_argument(tag.to_string())
         .add_argument_if(
             encoding == Encoding::Slice1 && data_type.tag_format() != Some(TagFormat::VSize),
-            || format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap()),
+            || format!("TagFormat.{}", data_type.tag_format().unwrap()),
         )
         .add_argument_if(size_parameter.is_some(), || {
             format!("size: {}", size_parameter.unwrap())

@@ -360,7 +360,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
 
     format!(
         r#"
-[IceRpc.Slice.Operation("{name}")]
+[SliceOperation("{name}")]
 protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
     {service_name} target,
     IceRpc.IncomingRequest request,

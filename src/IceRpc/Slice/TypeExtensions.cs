@@ -14,8 +14,8 @@ public static class TypeExtensions
     /// </returns>
     public static string? GetSliceTypeId(this Type type)
     {
-        object[] attributes = type.GetCustomAttributes(typeof(TypeIdAttribute), false);
-        return attributes.Length == 1 && attributes[0] is TypeIdAttribute typeId ? typeId.Value : null;
+        object[] attributes = type.GetCustomAttributes(typeof(SliceTypeIdAttribute), false);
+        return attributes.Length == 1 && attributes[0] is SliceTypeIdAttribute typeId ? typeId.Value : null;
     }
 
     /// <summary>Retrieves the compact Slice type ID from a type with the attribute IceRpc.CompactTypeId.</summary>
@@ -24,8 +24,8 @@ public static class TypeExtensions
     /// IceRpc.CompactTypeId attribute.</returns>
     public static int? GetCompactSliceTypeId(this Type type)
     {
-        object[] attributes = type.GetCustomAttributes(typeof(CompactTypeIdAttribute), false);
-        return attributes.Length == 1 && attributes[0] is CompactTypeIdAttribute typeId ? typeId.Value : null;
+        object[] attributes = type.GetCustomAttributes(typeof(CompactSliceTypeIdAttribute), false);
+        return attributes.Length == 1 && attributes[0] is CompactSliceTypeIdAttribute typeId ? typeId.Value : null;
     }
 
     /// <summary>Retrieves the Slice type ID from a type and from all its base types.

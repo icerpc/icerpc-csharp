@@ -146,7 +146,7 @@ fn preamble(slice_file: &SliceFile) -> CodeBlock {
 
 using IceRpc.Slice;
 
-[assembly:IceRpc.Slice.Slice("{file}.slice")]"#,
+[assembly:Slice("{file}.slice")]"#,
         version = env!("CARGO_PKG_VERSION"),
         file = slice_file.filename,
     )

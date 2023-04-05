@@ -409,7 +409,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     class_builder.add_comment(
         "summary",
         format!(
-            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}" />."#,
+            r#"Holds a <see cref="ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}" />."#,
             interface_def.interface_name(),
         ),
     );
