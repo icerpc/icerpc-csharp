@@ -7,7 +7,7 @@
 - [Building](#building)
 - [Packaging](#packaging)
 - [Testing](#testing)
-- [Example Programs](#example-programs)
+- [Examples](#examples)
 - [Project Templates](#project-templates)
 - [Generating API Documentation](#generating-api-documentation)
 
