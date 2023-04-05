@@ -42,7 +42,7 @@ build -examples
 
 To use the IceRPC distribution from this repository instead of the one from the published NuGet packages, you need to
 build and install the NuGet packages from this repository before building the example application. You can do this by
-running the following command.
+running the following command:
 
 For Linux and macOS
 
