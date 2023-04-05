@@ -25,7 +25,7 @@ internal class Chatbot : Service, IGreeterService
             isAdmin = false;
         }
 
-        Console.WriteLine($"Dispatching Greet request {{ name = '{name}' isAdmin = {isAdmin} }}");
+        Console.WriteLine($"Dispatching Greet request {{ name = '{name}' isAdmin = '{isAdmin}' }}");
         return new($"{Greeting}, {name}!");
     }
 }

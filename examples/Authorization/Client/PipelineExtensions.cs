@@ -4,8 +4,8 @@ using AuthorizationExample;
 
 namespace IceRpc;
 
-/// <summary>This class provides an extension method to add an <see cref="AuthenticationInterceptor" />
-/// to a <see cref="Pipeline" />.</summary>
+/// <summary>This class provides an extension method to add an <see cref="AuthenticationInterceptor" /> to a <see
+/// cref="Pipeline" />.</summary>
 internal static class PipelineExtensions
 {
     /// <summary>Adds an <see cref="AuthenticationInterceptor" /> to the pipeline.</summary>

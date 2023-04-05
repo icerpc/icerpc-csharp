@@ -2,14 +2,12 @@
 
 module AuthorizationExample
 
-/// The encrypted identity token.
-typealias EncryptedIdentityToken = sequence<uint8>
-
-/// Represents a service that authenticates a user and return an identity token.
+/// Represents a service that authenticates a user and return an identity token. The identity token can be either a JWT
+/// token or an AES encrypted token depending on how the server was started (with or without the --jwt argument).
 interface Authenticator {
     /// Authenticates a user.
     /// @param name: The user name.
     /// @param password: The user password.
-    /// @returns: The encrypted identity token.
-    authenticate(name: string, password: string) -> EncryptedIdentityToken
+    /// @returns: The encoded identity token.
+    authenticate(name: string, password: string) -> sequence<uint8>
 }

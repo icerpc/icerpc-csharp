@@ -5,7 +5,7 @@ using System.Buffers;
 
 namespace AuthorizationExample;
 
-/// <summary>An interceptor that adds the encrypted identity token field to each request.</summary>
+/// <summary>Represents an interceptor that adds the encrypted identity token field to each request.</summary>
 internal class AuthenticationInterceptor : IInvoker
 {
     private readonly ReadOnlySequence<byte> _identityToken;

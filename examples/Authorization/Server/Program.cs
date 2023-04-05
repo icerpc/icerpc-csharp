@@ -4,13 +4,18 @@ using AuthorizationExample;
 using IceRpc;
 
 IBearerAuthenticationHandler? bearerAuthenticationHandler = null;
-if (args.Length == 1 && args[0] == "--jwt")
+if (args.Length == 0)
+{
+    bearerAuthenticationHandler = new AesBearerAuthenticationHandler();
+}
+else if (args.Length == 1 && args[0] == "--jwt")
 {
     bearerAuthenticationHandler = new JwtBearerAuthenticationHandler("A secret key for the authorization example");
 }
 else
 {
-    bearerAuthenticationHandler = new AesBearerAuthenticationHandler();
+    Console.WriteLine($"Invalid server arguments.");
+    return;
 }
 
 // Dispose the bearer authentication handler if it's disposable.
