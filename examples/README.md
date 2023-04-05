@@ -3,7 +3,7 @@
 This folder contains example applications for various IceRPC components. These examples have been provided to help get
 you started using a particular IceRPC feature or programming technique.
 
-- [Building Example Applications](#building-example-applications)
+- [Building](#building)
 - [Example Applications](#example-applications)
   * [Authorization](#authorization)
   * [Compress](#compress)
