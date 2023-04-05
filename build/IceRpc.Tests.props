@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSbuildThisFileDirectory)common.props" />
+  <Import Project="$(MSbuildThisFileDirectory)/Common.props" />
   <PropertyGroup>
     <PackageVersion>$(IceRpcVersion)</PackageVersion>
     <IsPackable>false</IsPackable>
     <ThreadPoolMinThreads>50</ThreadPoolMinThreads>
     <OutputPath>.</OutputPath>
-    <RunSettingsFilePath>$(MSbuildThisFileDirectory)\tests.runsettings</RunSettingsFilePath>
+    <RunSettingsFilePath>$(MSbuildThisFileDirectory)/Tests.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 </Project>
