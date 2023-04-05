@@ -63,7 +63,7 @@ internal sealed class JwtBearerAuthenticationHandler : IBearerAuthenticationHand
             claims: new Claim[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, name),
-                new Claim("isAdmin", (name == "admin").ToString())
+                new Claim("isAdmin", isAdmin.ToString())
             },
             audience: "Authorization example",
             issuer: "icerpc://127.0.0.1",
