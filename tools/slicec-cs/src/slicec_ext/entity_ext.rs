@@ -9,7 +9,7 @@ use slice::grammar::*;
 use slice::utils::code_gen_util::format_message;
 
 pub trait EntityExt: Entity {
-    // Returns the  C# identifier for the entity, which is either the Slice identifier formatted with the specified
+    // Returns the C# identifier for the entity, which is either the Slice identifier formatted with the specified
     // casing or the identifier specified by the cs::identifier attribute if present.
     fn cs_identifier(&self, case: Option<Case>) -> String {
         let identifier_attribute = self.attributes(false).into_iter().find_map(match_cs_identifier);
@@ -214,6 +214,14 @@ pub trait EntityExt: Entity {
                 }
             }
         }
+        comments
+    }
+
+    /// Appends remarks to the doc-comments.
+    fn formatted_doc_comment_with_remarks(&self, remarks_content: String) -> Vec<CommentTag> {
+        let mut comments = self.formatted_doc_comment();
+
+        comments.push(CommentTag::new("remarks", remarks_content));
         comments
     }
 

@@ -22,6 +22,7 @@ impl Visitor for ProxyVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
         let interface = interface_def.interface_name(); // IFoo
+        let slice_interface = interface_def.module_scoped_identifier();
         let proxy_impl: String = interface_def.proxy_name(); // FooProxy
         let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
@@ -34,16 +35,16 @@ impl Visitor for ProxyVisitor<'_> {
         // proxy bases
         let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
 
-        let summary = format!(
-            r#"The client-side interface for Slice interface {}. <seealso cref="{}" />."#,
-            interface_def.cs_identifier(None),
-            interface_def.service_name(),
+        let remarks = format!(
+            r#"
+The Slice compiler generated this client-side interface from Slice interface {slice_interface}.
+It's implemented by <see cref="{proxy_impl}" />."#
         );
 
         let mut code = CodeBlock::default();
         code.add_block(
             &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
-                .add_comments(interface_def.formatted_doc_comment_with_summary(summary))
+                .add_comments(interface_def.formatted_doc_comment_with_remarks(remarks))
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
                 .add_bases(&interface_bases)
@@ -54,15 +55,26 @@ impl Visitor for ProxyVisitor<'_> {
         let mut proxy_impl_builder =
             ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
 
-        proxy_impl_builder.add_bases(&proxy_impl_bases)
-            .add_comment("summary", format!(r#"Proxy record struct. It implements <see cref="{interface}" /> by sending requests to a remote IceRPC service."#))
+        proxy_impl_builder
+            .add_bases(&proxy_impl_bases)
+            .add_comment(
+                "summary",
+                format!(
+                    r#"
+Implements <see cref="{interface}" /> by making invocations on a remote IceRPC service.
+This remote service must implement Slice interface {slice_interface}."#
+                ),
+            )
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_block(request_class(interface_def))
             .add_block(response_class(interface_def))
-            .add_block(format!(r#"
-/// <summary>Gets the default service address for services that implement Slice interface <c>{interface_name}</c>.
-/// Its protocol is icerpc and its path is computed from the Slice interface name.</summary>
+            .add_block(
+                format!(
+                    r#"
+/// <summary>Gets the default service address for services that implement Slice interface {slice_interface}.
+/// Its protocol is <see cref="IceRpc.Protocol.IceRpc" /> and its path is computed from the Slice interface name.
+/// </summary>
 public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
     new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultPath() }};
 
@@ -73,9 +85,10 @@ public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;
 public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 
 /// <inheritdoc/>
-public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#,
-                               interface_name = interface_def.cs_identifier(None),
-            ).into());
+public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#
+                )
+                .into(),
+            );
 
         if interface_def.supported_encodings().supports(&Encoding::Slice1) {
             proxy_impl_builder.add_block(
@@ -92,7 +105,7 @@ private static readonly IActivator _defaultActivator =
             proxy_impl_builder.add_block(
                 format!(
                     r#"
-/// <summary>Implicit conversion to <see cref="{base_impl}" />.</summary>
+/// <summary>Provides implicit conversion to <see cref="{base_impl}" />.</summary>
 public static implicit operator {base_impl}({proxy_impl} proxy) =>
     new() {{ EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }};"#
                 )
@@ -125,7 +138,7 @@ public static {proxy_impl} FromPath(string path) => new() {{ ServiceAddress = ne
 
 /// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
-/// <param name="serviceAddress">The service address. Null is equivalent to <see cref="DefaultServiceAddress" />.</param>
+/// <param name="serviceAddress">The service address. <see langword="null" /> is equivalent to <see cref="DefaultServiceAddress" />.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
 public {proxy_impl}(
     IceRpc.IInvoker invoker,
@@ -146,7 +159,7 @@ public {proxy_impl}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri, Slice
 {{
 }}
 
-/// <summary>Constructs a proxy with the default service address and a null invoker.</summary>
+/// <summary>Constructs a proxy with the default service address and a <see langword="null" /> invoker.</summary>
 public {proxy_impl}()
 {{
 }}"#,
@@ -341,7 +354,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
     class_builder.add_comment(
         "summary",
-        "Converts the arguments of each operation that takes arguments into a request payload.",
+        "Provides static methods that encode operation arguments into request payloads.",
     );
 
     for operation in operations {
@@ -359,8 +372,9 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment(
             "summary",
             format!(
-                "Creates the request payload for operation {}.",
-                operation.cs_identifier(None),
+                "Encodes the argument{s} of operation <c>{slice_operation}</c> into a request payload.",
+                s = if params.len() == 1 { "" } else { "s" },
+                slice_operation = operation.identifier(),
             ),
         );
 
@@ -409,8 +423,8 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     class_builder.add_comment(
         "summary",
         format!(
-            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each remote operation defined in <see cref="{}" />."#,
-            interface_def.interface_name(),
+            r#"Provides a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}" /> for each operation defined in Slice interface {}."#,
+            interface_def.module_scoped_identifier(),
         ),
     );
 
@@ -443,17 +457,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             function_type,
         );
 
-        let comment_content = if members.is_empty() {
-            format!(
-                r#"The <see cref="ResponseDecodeFunc" /> for operation {}."#,
-                operation.cs_identifier(None),
-            )
-        } else {
-            format!(
-                r#"The <see cref="ResponseDecodeFunc{{T}}" /> for operation {}."#,
-                operation.cs_identifier(None),
-            )
-        };
+        let comment_content = format!(
+            r#"Decodes an incoming response for operation <c>{}</c>."#,
+            operation.identifier(),
+        );
+
         builder.add_comment("summary", comment_content);
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
         builder.add_parameter("IceRpc.OutgoingRequest", "request", None, None);
