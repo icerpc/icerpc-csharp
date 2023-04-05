@@ -3,7 +3,7 @@
 namespace IceRpc.Slice;
 
 /// <summary>Assigns a Slice type ID to a class, interface or struct.</summary>
-/// <remarks>The Slice compiler assigns a Slice type ID to classes, interfaces and structs it generates from Slice
+/// <remarks>The Slice compiler assigns Slice type IDs to classes, interfaces and structs it generates from Slice
 /// classes, interfaces and structs.</remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct, Inherited = false)]
 public sealed class SliceTypeIdAttribute : Attribute
@@ -18,8 +18,8 @@ public sealed class SliceTypeIdAttribute : Attribute
 }
 
 /// <summary>Assigns a compact Slice type ID to a class.</summary>
-/// <remarks>The Slice compiler assigns both a Slice type ID and a compact Slice type ID to classes it generates from
-/// Slice classes that specify a compact type ID.</remarks>
+/// <remarks>The Slice compiler assigns both a Slice type ID and a compact Slice type ID to the mapped class of a Slice
+/// class that specifies a compact type ID.</remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class CompactSliceTypeIdAttribute : Attribute
 {
