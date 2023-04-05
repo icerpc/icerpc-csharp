@@ -3,7 +3,7 @@
 set -ue
 
 # Read version from icerpc.version.props
-version=$(cat build/icerpc.version.props | grep IceRpcVersion | sed -E "s/<IceRpcVersion .*>(.*)<\/IceRpcVersion>/\1/g" | sed -e 's/^[[:space:]]*//')
+version=$(cat build/IceRpc.Version.props | grep IceRpcVersion | sed -E "s/<IceRpcVersion .*>(.*)<\/IceRpcVersion>/\1/g" | sed -e 's/^[[:space:]]*//')
 
 usage()
 {

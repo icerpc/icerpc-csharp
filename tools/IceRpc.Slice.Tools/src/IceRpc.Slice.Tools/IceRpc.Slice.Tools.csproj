@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
    <Import Project="$(MSBuildThisFileDirectory)PlatformInfo.props" />
-   <Import Project="$(MSBuildThisFileDirectory)../../../../build/icerpc.version.props" />
+   <Import Project="$(MSBuildThisFileDirectory)../../../../build/IceRpc.Version.props" />
    <PropertyGroup>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
       <Version>$(IceRpcVersion)</Version>

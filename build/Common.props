@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- TODO: the file is misnamed: it's common to tests and src, but not used by examples -->
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="$(MSBuildThisFileDirectory)icerpc.version.props" />
+    <Import Project="$(MSBuildThisFileDirectory)IceRpc.Version.props" />
     <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Prefer32Bit>false</Prefer32Bit>

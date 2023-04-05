@@ -8,5 +8,5 @@
         <!-- TODO Fix repository URL before release -->
         <RepositoryUrl>https://github.com/zeroc-ice/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
-    <Import Project="$(MSBuildThisFileDirectory)common.props" />
+    <Import Project="$(MSBuildThisFileDirectory)Common.props" />
 </Project>
