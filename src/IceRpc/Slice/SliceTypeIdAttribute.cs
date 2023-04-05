@@ -2,8 +2,9 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>This attribute class is used by the generated code to assign a Slice type ID to C# classes, interfaces
-/// and structs mapped from Slice interfaces, classes and exceptions. </summary>
+/// <summary>Assigns a Slice type ID to a class, interface or struct.</summary>
+/// <remarks>The Slice compiler assigns a Slice type ID to classes, interfaces and structs it generates from Slice
+/// classes, interfaces and structs.</remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct, Inherited = false)]
 public sealed class SliceTypeIdAttribute : Attribute
 {
@@ -16,8 +17,9 @@ public sealed class SliceTypeIdAttribute : Attribute
     public SliceTypeIdAttribute(string value) => Value = value;
 }
 
-/// <summary>This attribute class is used by the generated code to assign a compact Slice type ID to C# classes
-///  mapped from Slice classes. </summary>
+/// <summary>Assigns a compact Slice type ID to a class.</summary>
+/// <remarks>The Slice compiler assigns both a Slice type ID and a compact Slice type ID to classes it generates from
+/// Slice classes that specify a compact type ID.</remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class CompactSliceTypeIdAttribute : Attribute
 {
