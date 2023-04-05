@@ -21,7 +21,7 @@ you started using a particular IceRPC feature or programming technique.
   * [Stream](#stream)
   * [Upload](#upload)
 
-## Building Example Applications
+## Building
 
 To build each example application, you can use the `dotnet build` command with the corresponding solution or project
 files. The example applications are configured to use IceRPC NuGet packages.
