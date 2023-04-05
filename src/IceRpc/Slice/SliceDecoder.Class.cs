@@ -66,8 +66,10 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a Slice1 user exception.</summary>
     /// <param name="message">The error message.</param>
-    /// <returns>The decoded Slice exception.</returns>
-    public SliceException DecodeUserException(string? message = null)
+    /// <returns>The decoded Slice exception or a <see cref="DispatchException" /> with status code
+    /// <see cref="StatusCode.ApplicationError" /> if the decoder's activator cannot find an exception class for the
+    /// type ID encoded in the underlying buffer.</returns>
+    public DispatchException DecodeUserException(string? message = null)
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -98,22 +100,28 @@ public ref partial struct SliceDecoder
             sliceException = activator.CreateExceptionInstance(typeId, ref this, message) as SliceException;
             if (sliceException is null && SkipSlice(typeId))
             {
-                // Slice off what we don't understand.
+                // Cannot decode this exception.
                 break;
             }
         }
         while (sliceException is null);
 
-        if (sliceException is not null)
+        if (sliceException is null)
+        {
+            return new DispatchException(
+                StatusCode.ApplicationError,
+                message ??
+                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' and the local runtime cannot decode this exception.")
+            {
+                ConvertToUnhandled = true
+            };
+        }
+        else
         {
             _classContext.Current.FirstSlice = true;
             sliceException.Decode(ref this);
             _classContext.Current = default;
             return sliceException;
-        }
-        else
-        {
-            throw new InvalidDataException($"Cannot not find a class to decode Slice exception with type id '{mostDerivedTypeId}'");
         }
     }
 
@@ -248,7 +256,7 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a class instance.</summary>
     /// <param name="index">The index of the class instance. If greater than 1, it's a reference to a previously
-    /// seen class; if 1, the class's bytes are next. Cannot be 0 or less.</param>
+    /// seen class; if 1, the class instance's bytes are next. Cannot be 0 or less.</param>
     private SliceClass DecodeInstance(int index)
     {
         Debug.Assert(index > 0);
@@ -496,8 +504,8 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Skips and saves the body of the current slice; also skips and save the indirection table (if any).
-    /// </summary>
+    /// <summary>Skips and saves the body of the current slice (save only for classes); also skips and save the
+    /// indirection table (if any).</summary>
     /// <param name="typeId">The type ID or compact ID of the current slice.</param>
     /// <returns><see langword="true" /> when the current slice is the last slice; otherwise, <see langword="false" />.
     /// </returns>
@@ -510,9 +518,11 @@ public ref partial struct SliceDecoder
 
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
         {
-            string kind = _classContext.Current.InstanceType.ToString().ToLowerInvariant();
-            throw new InvalidDataException(
-                $"No {kind} found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead).");
+            // If it's an exception in compact format, we just return true, and the caller (DecodeUserException) will
+            // return a DispatchException.
+            return _classContext.Current.InstanceType == InstanceType.Exception ? true :
+                throw new InvalidDataException(
+                    $"No class found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead).");
         }
 
         bool hasTaggedMembers = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;

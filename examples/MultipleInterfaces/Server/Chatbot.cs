@@ -5,9 +5,9 @@ using IceRpc.Slice;
 
 namespace MultipleInterfacesExample;
 
-/// <summary>A Chatbot is an IceRPC service that implements the 'Hello' and 'RequestCounter' Slice interfaces.
+/// <summary>A Chatbot is an IceRPC service that implements the 'Greeter' and 'RequestCounter' Slice interfaces.
 /// </summary>
-internal class Chatbot : Service, IHelloService, IRequestCounterService
+internal class Chatbot : Service, IGreeterService, IRequestCounterService
 {
     private int _requestCount;
 
@@ -15,12 +15,12 @@ internal class Chatbot : Service, IHelloService, IRequestCounterService
         IFeatureCollection features,
         CancellationToken cancellationToken) => new(_requestCount);
 
-    public ValueTask<string> SayHelloAsync(
+    public ValueTask<string> GreetAsync(
         string name,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching sayHello request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         Interlocked.Increment(ref _requestCount);
         return new($"Hello, {name}!");
     }

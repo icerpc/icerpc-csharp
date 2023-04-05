@@ -1,4 +1,4 @@
-using HelloExample;
+using GreetExample;
 using IceRpc;
 
 await using var server = new Server(new Chatbot());

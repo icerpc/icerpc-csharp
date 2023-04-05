@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice;
 using IceRpc.Locator.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -149,7 +150,8 @@ public readonly record struct Location
 
     internal string Kind => IsAdapterId ? "adapter ID" : "well-known service address";
 
-    /// <inheritdoc/>
+    /// <summary>Returns <see cref="Value"/>.</summary>
+    /// <returns>The adapter ID or path.</returns>
     public override string ToString() => Value;
 }
 

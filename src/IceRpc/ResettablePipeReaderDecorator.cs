@@ -73,10 +73,17 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         _maxBufferSize = maxBufferSize;
     }
 
-    /// <inheritdoc/>
+    /// <summary>Moves forward the pipeline's read cursor to after the consumed data. No data is consumed while
+    /// <see cref="IsResettable"/> value is true.</summary>
+    /// <param name="consumed">Marks the extent of the data that has been successfully processed.</param>
+    /// <seealso cref="PipeReader.AdvanceTo(SequencePosition)"/>
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
-    /// <inheritdoc/>
+    /// <summary>Moves forward the pipeline's read cursor to after the consumed data. No data is consumed while
+    /// <see cref="IsResettable"/> value is true.</summary>
+    /// <param name="consumed">Marks the extent of the data that has been successfully processed.</param>
+    /// <param name="examined">Marks the extent of the data that has been read and examined.</param>
+    /// <seealso cref="PipeReader.AdvanceTo(SequencePosition, SequencePosition)"/>
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
         _isReadingInProgress = _isReadingInProgress ? false :
@@ -111,12 +118,18 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Cancels the pending <see cref="ReadAsync(CancellationToken)"/> operation without causing it to throw
+    /// and without completing the <see cref="PipeReader"/>. If there is no pending operation, this cancels the next
+    /// operation.</summary>
+    /// <seealso cref="PipeReader.CancelPendingRead"/>
     // This method can be called from another thread so we always forward it to the decoratee directly.
     // ReadAsync/ReadAtLeastAsync/TryRead will return IsCanceled as appropriate.
     public override void CancelPendingRead() => _decoratee.CancelPendingRead();
 
-    /// <inheritdoc/>
+    /// <summary>Signals to the producer that the consumer is done reading.</summary>
+    /// <param name="exception">Optional <see cref="Exception "/> indicating a failure that's causing the pipeline to
+    /// complete.</param>
+    /// <seealso cref="PipeReader.Complete(Exception?)"/>
     public override void Complete(Exception? exception = default)
     {
         if (_isResettable)
@@ -142,7 +155,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Asynchronously reads a sequence of bytes from the current <see cref="PipeReader"/>.</summary>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="ValueTask{TResult}"/> representing the asynchronous read operation.</returns>
+    /// <seealso cref="PipeReader.ReadAsync(CancellationToken)"/>
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
@@ -186,7 +202,13 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Attempts to synchronously read data from the <see cref="PipeReader"/>.</summary>
+    /// <param name="result">When this method returns <see langword="true"/>, this value is set to a
+    /// <see cref="ReadResult"/> instance that represents the result of the read call; otherwise, this value is set to
+    /// <see langword="default"/>.</param>
+    /// <returns><see langword="true"/> if data was available, or if the call was canceled or the writer was completed;
+    /// otherwise, <see langword="false"/>.</returns>
+    /// <seealso cref="PipeReader.TryRead(out ReadResult)"/>.
     public override bool TryRead(out ReadResult result)
     {
         _isReadingInProgress = !_isReadingInProgress ? true :
@@ -213,7 +235,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Asynchronously reads a sequence of bytes from the current PipeReader.</summary>
+    /// <param name="minimumSize">The minimum length that needs to be buffered in order for the call to return.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="ValueTask{TResult}"/> representing the asynchronous read operation.</returns>
     protected override async ValueTask<ReadResult> ReadAtLeastAsyncCore(
         int minimumSize,
         CancellationToken cancellationToken = default)

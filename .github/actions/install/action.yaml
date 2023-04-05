@@ -1,8 +1,0 @@
-name: Run Tests
-
-runs:
-  using: "composite"
-  steps:
-  - name: 📦 Install
-    run: ./build.sh install
-    shell: bash

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Ice;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;

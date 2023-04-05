@@ -13,16 +13,16 @@ interface SessionManager {
     createSession(name: string) -> Token
 }
 
-/// Represents a recipient of hello greetings.
-interface Hello {
-    /// Creates a personalized "hello" greeting.
+/// Represents a simple greeter.
+interface Greeter {
+    /// Creates a personalized greeting.
     /// @returns: The greeting.
-    sayHello() -> string
+    greet() -> string
 }
 
 /// Represents a service to configure a simpler greeter.
-interface HelloAdmin {
-    /// Changes the greeting returned by the Hello service.
+interface GreeterAdmin {
+    /// Changes the greeting returned by the Greeter service.
     /// @param greeting: The new greeting.
     changeGreeting(greeting: string)
 }

@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildThisFileDirectory)PlatformInfo.props" />
     <PropertyGroup>
         <EnableDefaultSliceCItems Condition="'$(EnableDefaultSliceCItems)' == ''">true</EnableDefaultSliceCItems>
+        <!-- Workaround for Omnisharp not setting $(Configuration) property when loading C# projects -->
+        <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     </PropertyGroup>
     <Choose>
         <When Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\slicec-cs')">
@@ -16,7 +19,7 @@
         <Otherwise>
             <!-- Use Slice files and Slice compiler from this NuGet package -->
             <PropertyGroup>
-                <SliceCompilerPath>$(MSBuildThisFileDirectory)..\tools</SliceCompilerPath>
+                <SliceCompilerPath>$(MSBuildThisFileDirectory)..\tools\$(OSName)-$(OSArch)</SliceCompilerPath>
                 <SliceBuiltInFilesPath>$(MSBuildThisFileDirectory)..\slice</SliceBuiltInFilesPath>
             </PropertyGroup>
         </Otherwise>

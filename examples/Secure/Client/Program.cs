@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using HelloSecureExample;
+using GreeterSecureExample;
 using IceRpc;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -23,9 +23,9 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions()
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"), clientAuthenticationOptions);
 
-var hello = new HelloProxy(connection);
+var greeter = new GreeterProxy(connection);
 
-string greeting = await hello.SayHelloAsync(Environment.UserName);
+string greeting = await greeter.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
 
