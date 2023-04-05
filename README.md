@@ -7,7 +7,7 @@
 - [Building](#building)
 - [Packaging](#packaging)
 - [Testing](#testing)
-- [Building Example Programs](#building-example-programs)
+- [Examples](#examples)
 - [Project Templates](#project-templates)
 - [Generating API Documentation](#generating-api-documentation)
 
@@ -108,40 +108,9 @@ For Windows
 build test --coverage
 ```
 
-## Building Example Programs
+## Examples
 
-You can build each demo by using `dotnet build` command and the corresponding solution or project files, the example
-programs are configured to use IceRPC NuGet packages.
-
-If you want to build all examples at once run the following command:
-
-For Linux and macOS
-
-```shell
-./build.sh --examples
-```
-
-For Windows
-
-```shell
-build --examples
-```
-
-If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you
-will need to build and install the NuGet package from this repository before building the examples. This can be done by
-running the following command:
-
-For Linux and macOS
-
-```shell
-./build.sh --examples --srcdist
-```
-
-For Windows
-
-```shell
-build --examples --srcdist
-```
+The IceRPC examples can be found in the [examples](./examples) directory of this repository.
 
 ## Project Templates
 
