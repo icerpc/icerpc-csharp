@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Slice;
 using System.Collections.Concurrent;
 
-namespace IceRpc.Slice;
+namespace IceRpc.Ice;
 
-/// <summary>Base class that implements <see cref="IIceObjectService" /> and for services that implement Slice-defined
-/// interfaces.</summary>
+/// <summary>Base class that extends the <see cref="Service" /> base class and provides an implementation of the <see
+/// cref="IIceObjectService" /> interface.</summary>
 public class IceObjectService : Service, IIceObjectService
 {
     // A per type cache of type IDs.
