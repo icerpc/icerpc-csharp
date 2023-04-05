@@ -108,7 +108,7 @@ For Windows
 build test --coverage
 ```
 
-## Example Programs
+## Examples
 
 The IceRPC example programs can be found in the [examples](./examples) directory of this repository.
 
