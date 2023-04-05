@@ -2,7 +2,7 @@
 
 encoding = Slice1
 
-[cs::namespace("IceRpc")]
+[cs::namespace("IceRpc.Ice")]
 module Ice
 
 /// This exception is thrown when an object adapter was not found.
