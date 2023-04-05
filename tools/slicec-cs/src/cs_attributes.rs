@@ -56,10 +56,12 @@ impl LanguageKind for CsAttributeKind {
     }
 }
 
-fn as_cs_attribute(attribute: &Attribute) -> Option<&CsAttributeKind> {
-    match &attribute.kind {
-        AttributeKind::LanguageKind { kind } => kind.as_any().downcast_ref::<CsAttributeKind>(),
-        _ => None,
+pub fn as_cs_attribute(attribute: &Attribute) -> Option<&CsAttributeKind> {
+    // `LanguageKind`s are created by slicec-cs (not slicec), so any `LanguageKind`s MUST be `CsLanguageKind`s.
+    if let AttributeKind::LanguageKind { kind } = &attribute.kind {
+        Some(kind.as_any().downcast_ref::<CsAttributeKind>().unwrap())
+    } else {
+        None
     }
 }
 
