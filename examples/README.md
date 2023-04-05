@@ -23,7 +23,7 @@ you started using a particular IceRPC feature or programming technique.
 
 ## Building
 
-To build each example application, you can use the `dotnet build` command with the corresponding solution or project
+To build each example, you can use the `dotnet build` command with the corresponding solution or project
 files. The example applications are configured to use IceRPC NuGet packages.
 
 If you want to build all the examples at once, you can run the following command:
