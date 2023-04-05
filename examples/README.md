@@ -56,7 +56,7 @@ For Windows
 build -examples -srcdist
 ```
 
-## Example Programs
+## Examples
 
 ### [Authorization](./Authorization/)
 
