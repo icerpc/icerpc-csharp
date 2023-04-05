@@ -110,7 +110,7 @@ build test --coverage
 
 ## Examples
 
-The IceRPC example programs can be found in the [examples](./examples) directory of this repository.
+The IceRPC examples can be found in the [examples](./examples) directory of this repository.
 
 ## Project Templates
 
