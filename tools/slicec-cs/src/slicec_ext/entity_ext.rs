@@ -217,7 +217,7 @@ pub trait EntityExt: Entity {
         comments
     }
 
-    /// Appends remarks to the doc-comments.
+    /// Appends remarks to a doc-comment.
     fn formatted_doc_comment_with_remarks(&self, remarks_content: String) -> Vec<CommentTag> {
         let mut comments = self.formatted_doc_comment();
 

@@ -193,7 +193,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             "summary",
             format!(
                 "Encodes the return value of operation <c>{}</c> into a response payload.",
-                operation.identifier()
+                operation.identifier(),
             ),
         );
 

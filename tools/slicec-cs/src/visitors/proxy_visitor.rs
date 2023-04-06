@@ -73,7 +73,7 @@ This remote service must implement Slice interface {slice_interface}."#
                 format!(
                     r#"
 /// <summary>Gets the default service address for services that implement Slice interface {slice_interface}.
-/// Its protocol is <see cref="IceRpc.Protocol.IceRpc" /> and its path is computed from the Slice interface name.
+/// Its protocol is <see cref="IceRpc.Protocol.IceRpc" /> and its path is computed from the name of the Slice interface.
 /// </summary>
 public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
     new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultPath() }};
@@ -105,7 +105,7 @@ private static readonly IActivator _defaultActivator =
             proxy_impl_builder.add_block(
                 format!(
                     r#"
-/// <summary>Provides implicit conversion to <see cref="{base_impl}" />.</summary>
+/// <summary>Provides an implicit conversion to <see cref="{base_impl}" />.</summary>
 public static implicit operator {base_impl}({proxy_impl} proxy) =>
     new() {{ EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }};"#
                 )
