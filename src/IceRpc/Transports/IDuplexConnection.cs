@@ -6,20 +6,22 @@ namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a duplex transport.</summary>
 /// <remarks>This interface is used by the IceRPC core and the Slic transport implementation. They both provide a number
-/// of guarantees on how they call these methods:
+/// of guarantees on how the methods from this interface are called:
 /// <list type="bullet">
-/// <item><description>it calls the <see cref="ConnectAsync" /> method first and once. It does not call any other method
-/// until the connect task completes.</description></item>
-/// <item><description>it can call the <see cref="ReadAsync" /> and <see cref="WriteAsync" /> methods concurrently.
+/// <item><description>The <see cref="ConnectAsync" /> method is called first and once. No other methods are called
+/// until it completes.</description></item>
+/// <item><description>The <see cref="ReadAsync" /> method is never called concurrently.</description></item>
+/// <item><description>The <see cref="WriteAsync" /> method is never called concurrently.</description></item>
+/// <item><description>The <see cref="ReadAsync" /> and <see cref="WriteAsync" /> methods can be called concurrently.
 /// </description></item>
-/// <item><description>it does not make concurrent <see cref="ReadAsync" /> calls or concurrent <see cref="WriteAsync"
-/// /> calls.</description></item>
-/// <item><description>it can call the <see cref="ReadAsync" /> and <see cref="ShutdownAsync" /> methods concurrently.
+/// <item><description>The <see cref="ReadAsync" /> and <see cref="ShutdownAsync" /> methods can be called concurrently.
 /// </description></item>
-/// <item><description>it calls the <see cref="ShutdownAsync" /> method once but not while a write is in progress.
-/// </description></item>
-/// <item><description>it calls the <see cref="IDisposable.Dispose" /> method once and after the tasks returned by other
-/// methods have completed.</description></item>
+/// <item><description>The <see cref="ShutdownAsync" /> method is called once but not while a <see cref="WriteAsync" />
+/// call is in progress.</description></item>
+/// <item><description>The <see cref="WriteAsync" /> is never called after a <see cref="ShutdownAsync" />
+/// call.</description></item>
+/// <item><description>The <see cref="IDisposable.Dispose" /> method is called once and after the tasks returned by
+/// other methods have completed.</description></item>
 /// </list>
 /// </remarks>
 public interface IDuplexConnection : IDisposable
