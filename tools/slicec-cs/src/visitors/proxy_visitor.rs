@@ -215,7 +215,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
     invocation_builder.arguments_on_newline(true);
 
     // The operation to call
-    invocation_builder.add_argument(format!(r#""{}""#, operation.cs_identifier(None)));
+    invocation_builder.add_argument(format!(r#""{}""#, operation.identifier()));
 
     // The payload argument
     if operation.parameters.is_empty() {

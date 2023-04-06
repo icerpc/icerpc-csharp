@@ -370,7 +370,7 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
     {dispatch_body}
 }}
 "#,
-        name = operation.cs_identifier(None),
+        name = operation.identifier(),
         service_name = operation.parent().unwrap().service_name(),
         dispatch_body = operation_dispatch_body(operation).indent(),
     )
