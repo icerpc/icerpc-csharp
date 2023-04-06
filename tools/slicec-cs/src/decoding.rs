@@ -66,7 +66,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                     "{decoder_extensions_class}.DecodeNullable{name}(ref decoder);",
                     decoder_extensions_class =
                         custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                    name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
+                    name = custom_type_ref.cs_identifier(Case::Pascal),
                 );
                 return code;
             }
@@ -107,7 +107,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = enum_ref.cs_identifier(Some(Case::Pascal)),
+                name = enum_ref.cs_identifier(Case::Pascal),
             );
         }
         TypeRefs::CustomType(custom_type_ref) => {
@@ -116,7 +116,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
+                name = custom_type_ref.cs_identifier(Case::Pascal),
             );
         }
     }
@@ -241,7 +241,7 @@ decoder.DecodeSequence(
                             &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
                             namespace,
                         ),
-                        name = enum_def.cs_identifier(Some(Case::Pascal)),
+                        name = enum_def.cs_identifier(Case::Pascal),
                         underlying_type = enum_def.get_underlying_cs_type(),
                     ))
                 }
@@ -317,7 +317,7 @@ decoder.DecodeSequence(
                             &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
                             namespace,
                         ),
-                        name = enum_def.cs_identifier(Some(Case::Pascal)),
+                        name = enum_def.cs_identifier(Case::Pascal),
                         underlying_type = enum_def.get_underlying_cs_type(),
                     );
                 }
@@ -390,7 +390,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = enum_ref.cs_identifier(Some(Case::Pascal)),
+                name = enum_ref.cs_identifier(Case::Pascal),
             )
         }
         TypeRefs::Struct(_) | TypeRefs::Exception(_) => {
@@ -401,7 +401,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                 "{decoder_extensions_class}.Decode{nullable}{name}(ref decoder)",
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = custom_type_ref.cs_identifier(Some(Case::Pascal)),
+                name = custom_type_ref.cs_identifier(Case::Pascal),
                 nullable = if encoding == Encoding::Slice1 && type_ref.is_optional {
                     "Nullable"
                 } else {

@@ -50,7 +50,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
         writeln!(
             declaration,
             "{} = {},",
-            enumerator.cs_identifier(Some(Case::Pascal)),
+            enumerator.cs_identifier(Case::Pascal),
             enumerator.value()
         );
 
@@ -68,7 +68,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         &format!("{access} static class"),
         &format!(
             "{}{}Extensions",
-            enum_def.cs_identifier(Some(Case::Pascal)),
+            enum_def.cs_identifier(Case::Pascal),
             cs_type.to_case(Case::Pascal),
         ),
     );
@@ -115,7 +115,7 @@ private static readonly global::System.Collections.Generic.HashSet<{cs_type}> _e
     let mut as_enum_block = FunctionBuilder::new(
         format!("{access} static").as_str(),
         &escaped_identifier,
-        format!("As{}", enum_def.cs_identifier(Some(Case::Pascal))).as_str(),
+        format!("As{}", enum_def.cs_identifier(Case::Pascal)).as_str(),
         FunctionType::ExpressionBody,
     );
     as_enum_block
@@ -175,7 +175,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{access} static class"),
-        &format!("{}SliceEncoderExtensions", enum_def.cs_identifier(Some(Case::Pascal))),
+        &format!("{}SliceEncoderExtensions", enum_def.cs_identifier(Case::Pascal)),
     );
 
     builder.add_comment(
@@ -192,7 +192,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
 /// <param name="value">The <see cref="{escaped_identifier}" /> enumerator value to encode.</param>
 {access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
     {encode_enum}(({cs_type})value);"#,
-            identifier = enum_def.cs_identifier(Some(Case::Pascal)),
+            identifier = enum_def.cs_identifier(Case::Pascal),
             encode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("encoder.Encode{}", underlying.definition().type_suffix()),
                 None => "encoder.EncodeSize".to_owned(),
@@ -210,7 +210,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let cs_type = enum_def.get_underlying_cs_type();
     let mut builder = ContainerBuilder::new(
         &format!("{access} static class"),
-        &format!("{}SliceDecoderExtensions", enum_def.cs_identifier(Some(Case::Pascal))),
+        &format!("{}SliceDecoderExtensions", enum_def.cs_identifier(Case::Pascal)),
     );
 
     builder.add_comment(
@@ -220,7 +220,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     let underlying_extensions_class = format!(
         "{}{}Extensions",
-        enum_def.cs_identifier(Some(Case::Pascal)),
+        enum_def.cs_identifier(Case::Pascal),
         cs_type.to_case(Case::Pascal),
     );
 
@@ -233,7 +233,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 /// <returns>The decoded <see cref="{escaped_identifier}" /> enumerator value.</returns>
 {access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
     {underlying_extensions_class}.As{identifier}({decode_enum});"#,
-            identifier = enum_def.cs_identifier(Some(Case::Pascal)),
+            identifier = enum_def.cs_identifier(Case::Pascal),
             decode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("decoder.Decode{}()", underlying.definition().type_suffix()),
                 _ => "decoder.DecodeSize()".to_owned(),
