@@ -5,17 +5,21 @@ using System.Security.Authentication;
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a duplex transport.</summary>
-/// <remarks>This interface is used by the IceRPC core. The IceRPC core provides a number of guarantees on how it calls
-/// these methods:
+/// <remarks>This interface is used by the IceRPC core and the Slic transport implementation. They both provide a number
+/// of guarantees on how they call these methods:
 /// <list type="bullet">
 /// <item><description>it calls the <see cref="ConnectAsync" /> method first and once. It does not call any other method
 /// until the connect task completes.</description></item>
-/// <item><description>it calls the <see cref="ReadAsync" /> and <see cref="WriteAsync" /> methods, sometimes
-/// concurrently. It does not make concurrent reads or concurrent writes.</description></item>
-/// <item><description>it can call the <see cref="ShutdownAsync" /> method once but not while a write is in progress.
+/// <item><description>it can call the <see cref="ReadAsync" /> and <see cref="WriteAsync" /> methods concurrently.
 /// </description></item>
-/// <item><description>it calls the <see cref="IDisposable.Dispose" /> method after the tasks returned by other methods
-/// have completed. It can call this method multiple times but not concurrently.</description></item>
+/// <item><description>it does not make concurrent <see cref="ReadAsync" /> calls or concurrent <see cref="WriteAsync"
+/// /> calls.</description></item>
+/// <item><description>it can call the <see cref="ReadAsync" /> and <see cref="ShutdownAsync" /> methods concurrently.
+/// </description></item>
+/// <item><description>it calls the <see cref="ShutdownAsync" /> method once but not while a write is in progress.
+/// </description></item>
+/// <item><description>it calls the <see cref="IDisposable.Dispose" /> method once and after the tasks returned by other
+/// methods have completed.</description></item>
 /// </list>
 /// </remarks>
 public interface IDuplexConnection : IDisposable
@@ -49,8 +53,8 @@ public interface IDuplexConnection : IDisposable
     /// </list>
     /// </returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
-    /// shutting down, or if a read operation is already in progress.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the connection is not connected or if a read operation is
+    /// already in progress.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
