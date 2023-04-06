@@ -4,11 +4,12 @@ use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
+use slice::convert_case::Case;
 use slice::grammar::{Attributable, Field, Member};
 use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
-    if parameters.iter().any(|p| p.cs_identifier(None) == name) {
+    if parameters.iter().any(|p| p.cs_identifier(Some(Case::Camel)) == name) {
         name.to_owned() + "_"
     } else {
         name.to_owned()
