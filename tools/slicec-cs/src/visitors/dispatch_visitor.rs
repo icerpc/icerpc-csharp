@@ -22,17 +22,19 @@ impl Visitor for DispatchVisitor<'_> {
         let namespace = interface_def.namespace();
         let bases = interface_def.base_interfaces();
         let service_name = interface_def.service_name();
+        let slice_interface = interface_def.module_scoped_identifier();
         let access = interface_def.access_modifier();
         let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &service_name);
 
-        let summary = format!(
-            r#"Interface used to implement services for Slice interface {}. <seealso cref="{}" />."#,
-            interface_def.cs_identifier(None),
-            interface_def.interface_name(),
+        let remarks = format!(
+            r#"
+The Slice compiler generated this service-side interface from Slice interface {slice_interface}.
+Your service implementation must implement this interface and derive from <see cref="IceRpc.Slice.Service" />.
+"#
         );
 
         interface_builder
-            .add_comments(interface_def.formatted_doc_comment_with_summary(summary))
+            .add_comments(interface_def.formatted_doc_comment_with_remarks(remarks))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def);
 
@@ -96,10 +98,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         "Request",
     );
 
-    class_builder.add_comment(
-        "summary",
-        "Provides static methods that read the arguments of requests.",
-    );
+    class_builder.add_comment("summary", "Provides static methods that decode request payloads.");
 
     for operation in operations {
         let parameters = operation.parameters();
@@ -129,9 +128,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         builder.add_comment(
             "summary",
             format!(
-                "Decodes the argument{s} of operation {operation_identifier}.",
-                s = if parameters.len() == 1 { "" } else { "s" },
-                operation_identifier = operation.escape_identifier(),
+                r#"Decodes the request payload of operation <c>{operation_identifier}</c>."#,
+                operation_identifier = operation.identifier(),
             ),
         );
 
@@ -175,7 +173,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
     class_builder.add_comment(
         "summary",
-        "Provides static methods that write the return values of responses.",
+        "Provides static methods that encode return values into response payloads.",
     );
 
     for operation in operations {
@@ -191,12 +189,13 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             FunctionType::BlockBody,
         );
 
-        builder
-            .add_comment(
-                "summary",
-                format!("Creates a response payload for operation {}.", &operation_name),
-            )
-            .add_comment("returns", "A new response payload.");
+        builder.add_comment(
+            "summary",
+            format!(
+                "Encodes the return value of operation <c>{}</c> into a response payload.",
+                operation.identifier(),
+            ),
+        );
 
         match non_streamed_returns.as_slice() {
             [param] => {
@@ -225,6 +224,8 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             Some("null"),
             Some("The Slice encode options.".to_owned()),
         );
+
+        builder.add_comment("returns", "A new response payload.");
 
         builder.set_body(encode_operation(operation, true, "return"));
 
