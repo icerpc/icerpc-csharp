@@ -5,7 +5,6 @@ started using a specific feature or programming technique in IceRPC.
 
 - [Building](#building)
 - [Examples](#examples)
-  * [Authorization](#authorization)
   * [Compress](#compress)
   * [Download](#download)
   * [GenericHost](#generichost)
@@ -57,11 +56,6 @@ build -examples -srcdist
 ```
 
 ## Examples
-
-### [Authorization](./Authorization/)
-
-The Authorization example illustrates how to create an authorization interceptor and middleware that can be used to
-authorize requests.
 
 ### [Compress](./Compress/)
 
