@@ -144,7 +144,7 @@ pub fn decode_tagged(
     let decode = FunctionCallBuilder::new("decoder.DecodeTagged")
         .add_argument(member.tag().unwrap())
         .add_argument_if(encoding == Encoding::Slice1, || {
-            format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format().unwrap())
+            format!("TagFormat.{}", data_type.tag_format().unwrap())
         })
         .add_argument(decode_func(data_type, namespace, encoding))
         .add_argument(format!("useTagEndMarker: {use_tag_end_marker}"))
@@ -511,7 +511,7 @@ pub fn decode_operation_stream(
             .add_argument_unless(dispatch || fixed_wire_size.is_some(), "sender")
             .add_argument_unless(
                 fixed_wire_size.is_some(),
-                "sliceFeature: request.Features.Get<IceRpc.Slice.ISliceFeature>()",
+                "sliceFeature: request.Features.Get<ISliceFeature>()",
             )
             .build(),
     }

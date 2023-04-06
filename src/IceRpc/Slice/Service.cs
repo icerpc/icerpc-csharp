@@ -47,8 +47,8 @@ public class Service : IDispatcher, IIceObjectService
                     foreach (MethodInfo method in interfaceType.GetMethods(
                         BindingFlags.Static | BindingFlags.NonPublic))
                     {
-                        object[] attributes = method.GetCustomAttributes(typeof(OperationAttribute), false);
-                        if (attributes.Length > 0 && attributes[0] is OperationAttribute attribute)
+                        object[] attributes = method.GetCustomAttributes(typeof(SliceOperationAttribute), false);
+                        if (attributes.Length > 0 && attributes[0] is SliceOperationAttribute attribute)
                         {
                             methods.Add(
                                 attribute.Value,

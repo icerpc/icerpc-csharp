@@ -140,7 +140,7 @@ pub trait EntityExt: Entity {
 
     /// The C# Type ID attribute.
     fn type_id_attribute(&self) -> String {
-        format!(r#"IceRpc.Slice.TypeId("::{}")"#, self.module_scoped_identifier())
+        format!(r#"SliceTypeId("::{}")"#, self.module_scoped_identifier())
     }
 
     /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
