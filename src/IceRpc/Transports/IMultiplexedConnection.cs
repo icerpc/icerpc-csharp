@@ -10,10 +10,10 @@ namespace IceRpc.Transports;
 /// <list type="bullet">
 /// <item><description>The <see cref="ConnectAsync" /> method is always called first and once. No other methods are
 /// called until it completes.</description></item>
-/// <item><description>The <see cref="AcceptStreamAsync" /> and <see cref="CreateStreamAsync" /> methods can be called
-/// concurrently.</description></item>
 /// <item><description>The <see cref="AcceptStreamAsync" /> method is never called concurrently.</description></item>
 /// <item><description>The <see cref="CreateStreamAsync" /> method can be called concurrently.</description></item>
+/// <item><description>The <see cref="AcceptStreamAsync" /> and <see cref="CreateStreamAsync" /> methods can be called
+/// concurrently.</description></item>
 /// <item><description>The <see cref="CloseAsync" /> method is called once but not while an <see
 /// cref="AcceptStreamAsync" /> call is in progress. It can be called while a <see cref="CreateStreamAsync" /> call is
 /// in progress.</description></item>
