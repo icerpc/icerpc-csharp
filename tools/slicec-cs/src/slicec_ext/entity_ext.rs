@@ -16,7 +16,7 @@ pub trait EntityExt: Entity {
 
         match identifier_attribute {
             Some(identifier) => identifier,
-            _ => self.identifier().to_case(case),
+            None => self.identifier().to_case(case),
         }
     }
 
