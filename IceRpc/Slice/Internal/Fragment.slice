@@ -2,7 +2,6 @@
 
 encoding = Slice1
 
-[cs::internal]
 module IceRpc::Slice::Internal
 
 /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
