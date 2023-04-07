@@ -9,7 +9,7 @@ use slice::grammar::{Attributable, Field, Member};
 use slice::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
-    if parameters.iter().any(|p| p.cs_identifier(Case::Camel) == name) {
+    if parameters.iter().any(|p| p.parameter_name() == name) {
         name.to_owned() + "_"
     } else {
         name.to_owned()
