@@ -15,11 +15,11 @@ pub trait MemberExt {
 
 impl<T: Member> MemberExt for T {
     fn parameter_name(&self) -> String {
-        escape_keyword(&self.cs_identifier(Some(Case::Camel)))
+        escape_keyword(&self.cs_identifier(Case::Camel))
     }
 
     fn parameter_name_with_prefix(&self, prefix: &str) -> String {
-        let name = prefix.to_owned() + &self.cs_identifier(Some(Case::Camel));
+        let name = prefix.to_owned() + &self.cs_identifier(Case::Camel);
         escape_keyword(&name)
     }
 

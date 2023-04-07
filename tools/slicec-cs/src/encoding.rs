@@ -65,7 +65,7 @@ fn encode_type(
             format!("{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);")
         }
         TypeRefs::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
-            let identifier = custom_type_ref.cs_identifier(None);
+            let identifier = custom_type_ref.cs_identifier(Case::Pascal);
             let nullable = if type_ref.is_optional { "Nullable" } else { "" };
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
@@ -95,7 +95,7 @@ fn encode_type(
                 TypeRefs::CustomType(custom_type_ref) => {
                     let encoder_extensions_class =
                         custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
-                    let identifier = custom_type_ref.cs_identifier(None);
+                    let identifier = custom_type_ref.cs_identifier(Case::Pascal);
                     format!("{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});")
                 }
                 TypeRefs::Sequence(sequence_ref) => format!(
@@ -112,7 +112,7 @@ fn encode_type(
                 TypeRefs::Enum(enum_ref) => {
                     let encoder_extensions_class =
                         enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
-                    let name = enum_ref.cs_identifier(Some(Case::Pascal));
+                    let name = enum_ref.cs_identifier(Case::Pascal);
                     format!("{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});")
                 }
                 _ => panic!("class and proxy types are handled in the outer match"),
@@ -386,7 +386,7 @@ fn encode_action_body(
         TypeRefs::Enum(enum_ref) => {
             let encoder_extensions_class =
                 enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
-            let name = enum_ref.cs_identifier(Some(Case::Pascal));
+            let name = enum_ref.cs_identifier(Case::Pascal);
             write!(code, "{encoder_extensions_class}.Encode{name}(ref encoder, {value})")
         }
         TypeRefs::Dictionary(dictionary_ref) => {
@@ -410,7 +410,7 @@ fn encode_action_body(
         TypeRefs::CustomType(custom_type_ref) => {
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
-            let identifier = custom_type_ref.cs_identifier(None);
+            let identifier = custom_type_ref.cs_identifier(Case::Pascal);
             write!(
                 code,
                 "{encoder_extensions_class}.Encode{identifier}(ref encoder, value)",

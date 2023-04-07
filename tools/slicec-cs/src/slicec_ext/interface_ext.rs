@@ -10,7 +10,7 @@ pub trait InterfaceExt: EntityExt {
     /// The name is always prefixed with 'I' and the first letter is always
     /// capitalized.
     fn interface_name(&self) -> String {
-        format!("I{}", self.cs_identifier(Some(Case::Pascal)))
+        format!("I{}", self.cs_identifier(Case::Pascal))
     }
 
     /// The name of the generated C# service interface for this Slice interface.
@@ -21,7 +21,7 @@ pub trait InterfaceExt: EntityExt {
 
     /// Name of the generated proxy struct, e.g. if the Slice interface is `Foo`, the C# proxy is struct `FooProxy`.
     fn proxy_name(&self) -> String {
-        self.cs_identifier(Some(Case::Pascal)) + "Proxy"
+        self.cs_identifier(Case::Pascal) + "Proxy"
     }
 
     /// Returns the interface name corresponding to this entity's identifier, fully scoped.

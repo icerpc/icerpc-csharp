@@ -9,42 +9,39 @@ use slice::grammar::*;
 use slice::utils::code_gen_util::format_message;
 
 pub trait EntityExt: Entity {
-    // Returns the C# identifier for the entity, which is either the Slice identifier formatted with the specified
-    // casing or the identifier specified by the cs::identifier attribute if present.
-    fn cs_identifier(&self, case: Option<Case>) -> String {
+    // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier
+    /// attribute as-is or the Slice identifier formatted with the specified casing.
+    fn cs_identifier(&self, case: Case) -> String {
         let identifier_attribute = self.attributes(false).into_iter().find_map(match_cs_identifier);
 
         match identifier_attribute {
             Some(identifier) => identifier,
-            None => match case {
-                Some(case) => self.identifier().to_case(case),
-                None => self.identifier().to_string(),
-            },
+            None => self.identifier().to_case(case),
         }
     }
 
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String {
-        escape_keyword(&self.cs_identifier(Some(Case::Pascal)))
+        escape_keyword(&self.cs_identifier(Case::Pascal))
     }
 
     /// Appends the provided prefix to the definition's identifier, without any scoping.
     /// If the resulting string is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier_with_prefix(&self, prefix: &str) -> String {
-        escape_keyword(&format!("{}{}", prefix, self.cs_identifier(Some(Case::Pascal))))
+        escape_keyword(&format!("{}{}", prefix, self.cs_identifier(Case::Pascal)))
     }
 
     /// Concatenates the provided suffix on the definition's identifier, without any scoping.
     /// If the resulting string is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String {
-        escape_keyword(&format!("{}{}", self.cs_identifier(Some(Case::Pascal)), suffix))
+        escape_keyword(&format!("{}{}", self.cs_identifier(Case::Pascal), suffix))
     }
 
     /// Applies the provided prefix and suffix to the definition's identifier, without any scoping.
     /// If the resulting string is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
-        escape_keyword(&format!("{prefix}{}{suffix}", self.cs_identifier(Some(Case::Pascal))))
+        escape_keyword(&format!("{prefix}{}{suffix}", self.cs_identifier(Case::Pascal)))
     }
 
     /// Escapes and returns the definition's identifier, fully scoped.
