@@ -4,7 +4,6 @@ use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
-use slice::convert_case::Case;
 use slice::grammar::{Attributable, Field, Member};
 use slice::utils::code_gen_util::TypeContext;
 
