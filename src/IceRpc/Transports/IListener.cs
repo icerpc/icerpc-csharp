@@ -14,12 +14,13 @@ public interface IListener : IAsyncDisposable
 
 /// <summary>A listener listens for connection requests from clients.</summary>
 /// <typeparam name="T">The connection type.</typeparam>
-/// <remarks>This interface is used by the IceRpc core. It provides a number of guarantees on how the methods from this
-/// interface are called:
+/// <remarks>The IceRPC core and Slice transport implementation uses this interface. It provides the following
+/// guarantees:
 /// <list type="bullet">
 /// <item><description>The <see cref="AcceptAsync" /> method is never called concurrently.</description></item>
-/// <item><description>The <see cref="IAsyncDisposable.DisposeAsync" /> method is called once but not while an <see
-/// cref="AcceptAsync" /> call is in progress.</description></item>
+/// <item><description>The <see cref="IAsyncDisposable.DisposeAsync" /> method can be called while an <see
+/// cref="AcceptAsync" /> call is in progress. It can be called multiple times but not
+/// concurrently.</description></item>
 /// </list>
 /// </remarks>
 public interface IListener<T> : IListener

@@ -5,8 +5,7 @@ using System.Security.Authentication;
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a multiplexed transport.</summary>
-/// <remarks>This interface is used by the IceRpc core. It provides a number of guarantees on how the methods from this
-/// interface are called:
+/// <remarks>The IceRPC core implementation uses this interface. It provides the following guarantees:
 /// <list type="bullet">
 /// <item><description>The <see cref="ConnectAsync" /> method is always called first and once. No other methods are
 /// called until it completes.</description></item>
@@ -19,8 +18,9 @@ namespace IceRpc.Transports;
 /// in progress.</description></item>
 /// <item><description>The <see cref="CreateStreamAsync" /> and <see cref="AcceptStreamAsync" /> methods are never
 /// called after a <see cref="CloseAsync" /> call.</description></item>
-/// <item><description>The <see cref="IAsyncDisposable.DisposeAsync" /> method is called once and can be called while a
-/// <see cref="CreateStreamAsync" /> call is in progress.</description></item>
+/// <item><description>The <see cref="IAsyncDisposable.DisposeAsync" /> method can be called while a <see
+/// cref="CreateStreamAsync" /> call is in progress. It can be called multiple times but not
+/// concurrently.</description></item>
 /// </list>
 /// </remarks>
 public interface IMultiplexedConnection : IAsyncDisposable

@@ -5,8 +5,8 @@ using System.Security.Authentication;
 namespace IceRpc.Transports;
 
 /// <summary>Represents a transport connection created by a duplex transport.</summary>
-/// <remarks>This interface is used by the IceRPC core and the Slic transport implementation. They both provide a number
-/// of guarantees on how the methods from this interface are called:
+/// <remarks>Both the IceRPC core and the Slic transport implementation use this interface. They provide the following
+/// guarantees:
 /// <list type="bullet">
 /// <item><description>The <see cref="ConnectAsync" /> method is called first and once. No other methods are called
 /// until it completes.</description></item>
@@ -20,8 +20,8 @@ namespace IceRpc.Transports;
 /// call is in progress.</description></item>
 /// <item><description>The <see cref="WriteAsync" /> is never called after a <see cref="ShutdownAsync" />
 /// call.</description></item>
-/// <item><description>The <see cref="IDisposable.Dispose" /> method is called once and after the tasks returned by
-/// other methods have completed.</description></item>
+/// <item><description>The <see cref="IDisposable.Dispose" /> method is called after the tasks returned by other methods
+/// have completed. It can be called multiple times but not concurrently.</description></item>
 /// </list>
 /// </remarks>
 public interface IDuplexConnection : IDisposable
