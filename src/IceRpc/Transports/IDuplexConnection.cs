@@ -60,7 +60,7 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
-    /// <summary>Shuts down the connection.</summary>
+    /// <summary>Shuts down the connection to notify the peer that no more data will be sent.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully when the shutdown completes successfully. This task can also
     /// complete with one of the following exceptions:
@@ -73,6 +73,8 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
     /// shutting down, or a write operation is in progress.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <remarks>The implementation of this method should not interrupt a pending <see cref="ReadAsync" />. It should
+    /// only shutdown writes and notify the peer that no more data will be sent.</remarks>
     Task ShutdownAsync(CancellationToken cancellationToken);
 
     /// <summary>Writes data over the connection.</summary>
