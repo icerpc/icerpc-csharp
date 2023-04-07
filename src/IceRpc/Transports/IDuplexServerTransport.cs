@@ -20,6 +20,7 @@ public interface IDuplexServerTransport
     /// <param name="options">The duplex connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
+    /// <remarks>The IceRPC core can call this method concurrently so it must be thread-safe.</remarks>
     IListener<IDuplexConnection> Listen(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,

@@ -80,6 +80,18 @@ fn validate_common_attributes(attribute: &CsAttributeKind, span: &Span, diagnost
     }
 }
 
+/// Validates attributes on constructed types other than custom.
+fn validate_non_custom_type_attributes(
+    attribute: &CsAttributeKind,
+    span: &Span,
+    diagnostic_reporter: &mut DiagnosticReporter,
+) {
+    match attribute {
+        CsAttributeKind::Internal { .. } => {}
+        _ => validate_common_attributes(attribute, span, diagnostic_reporter),
+    }
+}
+
 fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut DiagnosticReporter) {
     match data_type.concrete_type() {
         Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type, diagnostic_reporter),
@@ -125,7 +137,6 @@ impl Visitor for CsValidator<'_> {
                         )
                         .report(self.diagnostic_reporter)
                 }
-                CsAttributeKind::Internal => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -135,8 +146,8 @@ impl Visitor for CsValidator<'_> {
         validate_repeated_attributes(struct_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(struct_def) {
             match attribute {
-                CsAttributeKind::Readonly | CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
-                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
+                CsAttributeKind::Readonly | CsAttributeKind::Attribute { .. } => {}
+                _ => validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }
@@ -145,8 +156,8 @@ impl Visitor for CsValidator<'_> {
         validate_repeated_attributes(class_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(class_def) {
             match attribute {
-                CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
-                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
+                CsAttributeKind::Attribute { .. } => {}
+                _ => validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }
@@ -155,8 +166,8 @@ impl Visitor for CsValidator<'_> {
         validate_repeated_attributes(exception_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(exception_def) {
             match attribute {
-                CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
-                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
+                CsAttributeKind::Attribute { .. } => {}
+                _ => validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }
@@ -164,10 +175,8 @@ impl Visitor for CsValidator<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         validate_repeated_attributes(interface_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(interface_def) {
-            match attribute {
-                CsAttributeKind::Internal => {}
-                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
-            }
+            // TODO: explain why we don't support cs::attribute on interfaces
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
@@ -175,8 +184,8 @@ impl Visitor for CsValidator<'_> {
         validate_repeated_attributes(enum_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(enum_def) {
             match attribute {
-                CsAttributeKind::Internal | CsAttributeKind::Attribute { .. } => {}
-                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
+                CsAttributeKind::Attribute { .. } => {}
+                _ => validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }

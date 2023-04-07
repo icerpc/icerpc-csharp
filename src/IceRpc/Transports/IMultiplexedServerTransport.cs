@@ -20,6 +20,7 @@ public interface IMultiplexedServerTransport
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="serverAuthenticationOptions">The SSL server authentication options.</param>
     /// <returns>The new listener.</returns>
+    /// <remarks>The IceRPC core can call this method concurrently so it must be thread-safe.</remarks>
     IListener<IMultiplexedConnection> Listen(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,

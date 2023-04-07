@@ -20,6 +20,7 @@ public interface IDuplexClientTransport
     /// <param name="options">The duplex connection options.</param>
     /// <param name="clientAuthenticationOptions">The SSL client authentication options.</param>
     /// <returns>The new transport connection. This connection is not yet connected.</returns>
+    /// <remarks>The IceRPC core can call this method concurrently so it must be thread-safe.</remarks>
     IDuplexConnection CreateConnection(
         ServerAddress serverAddress,
         DuplexConnectionOptions options,

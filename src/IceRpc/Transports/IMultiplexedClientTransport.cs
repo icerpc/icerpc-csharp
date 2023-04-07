@@ -19,6 +19,7 @@ public interface IMultiplexedClientTransport
     /// <param name="options">The multiplexed connection options.</param>
     /// <param name="clientAuthenticationOptions">The SSL client authentication options.</param>
     /// <returns>The new transport connection. This connection is not yet connected.</returns>
+    /// <remarks>The IceRPC core can call this method concurrently so it must be thread-safe.</remarks>
     IMultiplexedConnection CreateConnection(
         ServerAddress serverAddress,
         MultiplexedConnectionOptions options,
