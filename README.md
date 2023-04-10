@@ -25,33 +25,33 @@ build fails to fetch `slicec` with a permission denied error, set the following 
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 ```
 
-and then try again. This tells Cargo to use git's executable to fetch dependencies instead of it's own.
+and then try again. This tells Cargo to use git's executable to fetch dependencies instead of its own.
 
 ## Building
 
 You can build IceRPC from a regular command prompt, using the following command:
 
-### Linux or macOS
+Linux or macOS
 
 ```shell
 ./build.sh
 ```
 
-### Windows
+Windows
 
 ```shell
 build.cmd
 ```
 
-This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRPC runtime assemblies, and the IceRPC unit tests in the
-default debug configuration.
+This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRPC runtime assemblies, and the IceRPC unit tests with
+the default debug configuration.
 
 Visual Studio Code users can use `Tasks: Run Build Task...` from the command palette.
 
 ## Testing
 
-You can run the test suite from the command line using the `dotnet test --no-build` command in the repository's
-top-level directory. This command executes all tests from `IceRpc.sln` solution.
+You can run the test suite from the command line using the `dotnet test` command in the repository's top-level directory.
+This command executes all tests from `IceRpc.sln` solution.
 
 For additional options see <https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test>.
 
@@ -71,13 +71,13 @@ dotnet new install IceRpc.ProjectTemplates
 You can install the templates from this source distribution instead of the ones from the published NuGet packages using
 the following command:
 
-### Linux or macOS
+Linux or macOS
 
 ```shell
 ./build.sh install-templates
 ```
 
-### Windows
+Windows
 
 ```shell
 build.cmd install-templates
@@ -104,13 +104,13 @@ For additional options see https://learn.microsoft.com/en-us/dotnet/core/tools/d
 
 After building IceRPC, you can create the corresponding NuGet packages using the following command:
 
-### Linux or macOS
+Linux or macOS
 
 ```shell
 ./build.sh pack
 ```
 
-### Windows
+Windows
 
 ```shell
 build.cmd pack
@@ -118,13 +118,13 @@ build.cmd pack
 
 You can then push the packages to the `global-packages` source using:
 
-### Linux or macOS
+Linux or macOS
 
 ```shell
 ./build.sh push
 ```
 
-### Windows
+Windows
 
 ```shell
 build.cmd push
@@ -139,13 +139,13 @@ system's PATH, with version 2.63 or higher.
 
 To generate the documentation, use the following command:
 
-### Linux or macOS
+Linux or macOS
 
 ```shell
 ./build.sh doc
 ```
 
-### Windows
+Windows
 
 ```shell
 build.cmd doc
