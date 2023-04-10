@@ -86,7 +86,7 @@ examples/Upload/Server/uploads/*
 examples/Download/Client/downloads/*
 
 # docfx
-doc/_site
+docfx/_site
 
 nuget.config
 NuGet.config

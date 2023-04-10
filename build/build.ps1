@@ -160,8 +160,9 @@ function Test($config, $coverage) {
 }
 
 function Doc() {
-    Push-Location "doc"
-    RunCommand "docfx"
+    $dotnetConfiguration = DotnetConfiguration($config)
+    Push-Location "docfx"
+    RunCommand "docfx" @('--property', "Configuration=$dotnetConfiguration")
     Pop-Location
 }
 
