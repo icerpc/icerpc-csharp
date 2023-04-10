@@ -12,8 +12,8 @@
       <Authors>ZeroC</Authors>
       <PackageId>$(AssemblyName)</PackageId>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
-      <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
-      <RepositoryUrl>https://github.com/zeroc-ice/icerpc-csharp</RepositoryUrl>
+      <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+      <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
       <PackageIcon>logo.png</PackageIcon>
       <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
       <Description>IceRPC builder for MSBuild</Description>

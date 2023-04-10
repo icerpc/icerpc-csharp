@@ -1,6 +1,6 @@
 # IceRPC
 
-[![Continuous Integration](https://github.com/zeroc-ice/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zeroc-ice/icerpc-csharp/actions/workflows/dotnet.yml)
+[![Continuous Integration](https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml)
 
 - [IceRPC](#icerpc)
 - [Build Requirements](#build-requirements)
@@ -87,8 +87,8 @@ The `IceRpc.ProjectTemplates` package provides the following templates:
 
 | Template Name      | Description                                    |
 | ------------------ | ---------------------------------------------- |
-| `icerpc-client` | Template for command line client applications. |
-| `icerpc-server` | Template for command line server applications. |
+| `icerpc-client`    | Template for command line client applications. |
+| `icerpc-server`    | Template for command line server applications. |
 
 ### Usage
 

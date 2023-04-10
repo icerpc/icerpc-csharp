@@ -85,7 +85,7 @@
             "_copyrightFooter":"Copyright © ZeroC, Inc.",
             "_enableSearch": true,
             "_gitContribute": {
-                "repo": "https://github.com/zeroc-ice/icerpc-csharp",
+                "repo": "https://github.com/icerpc/icerpc-csharp",
                 "branch": "main",
                 "apiSpecFolder": "docs-overwrite"
             }
