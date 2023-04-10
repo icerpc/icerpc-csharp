@@ -87,8 +87,8 @@ The `IceRpc.ProjectTemplates` package provides the following templates:
 
 | Template Name      | Description                                    |
 | ------------------ | ---------------------------------------------- |
-| `icerpc-client   ` | Template for command line client applications. |
-| `icerpc-server   ` | Template for command line server applications. |
+| `icerpc-client`    | Template for command line client applications. |
+| `icerpc-server`    | Template for command line server applications. |
 
 ### Usage
 
