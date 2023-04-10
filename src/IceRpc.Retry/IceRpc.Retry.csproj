@@ -5,7 +5,7 @@
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
         <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
         <Description>IceRPC Retry.</Description>
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
