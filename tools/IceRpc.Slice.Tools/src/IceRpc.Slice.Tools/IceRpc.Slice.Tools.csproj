@@ -8,12 +8,12 @@
       <TargetFramework>netstandard2.0</TargetFramework>
       <LangVersion>10.0</LangVersion>
       <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-      <Title>IceRpc Builder MSBuild</Title>
+      <Title>IceRPC Slice Tools</Title>
       <Authors>ZeroC</Authors>
       <PackageId>$(AssemblyName)</PackageId>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
-      <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-builder-msbuild</PackageProjectUrl>
-      <RepositoryUrl>https://github.com/zeroc-ice/icerpc-builder-msbuild</RepositoryUrl>
+      <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
+      <RepositoryUrl>https://github.com/zeroc-ice/icerpc-csharp</RepositoryUrl>
       <PackageIcon>logo.png</PackageIcon>
       <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
       <Description>IceRPC builder for MSBuild</Description>
