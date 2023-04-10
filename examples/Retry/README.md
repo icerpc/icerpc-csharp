@@ -3,11 +3,10 @@
 This application illustrates how to use the retry interceptor to retry failed invocations and make the application
 resilient to failures.
 
-The server is configured to randomly fail, and the interceptor will automatically retry failed invocations up to the
-configured max attempts. If the interceptor reaches the max attempts, it gives up on retrying and reports the failure.
-
-If the status code of the response is `Unavailable`, the current server address is excluded from subsequent attempts
-and the client only retries when additional server addresses are configured.
+The server is configured to randomly fail with `DispatchException(StatusCode.Unavailable)`, which can only be retried
+on a different server address. The retry interceptor will automatically retry failed invocations up to the configured
+max attempts. If the retry interceptor reaches the max retry attempts, or if it exhausted all available server addresses
+it gives up on retrying and reports the failure.
 
 First start at least two instances of the Server:
 
@@ -33,9 +32,9 @@ In a separate window, start the Client program, passing the number of server ins
 dotnet run --project Client/Client.csproj -- 3
 ```
 
-The client will continue sending invocations until you stop it with Ctrl+C.
-
-The invocation will only fail if all servers throw `DispatchException(StatusCode.Unavailable)`.
+The client will continue sending invocations until you stop it with Ctrl+C, or until the invocation fails because the
+retry interceptor cannot recover from the failure, which can happen if the retry interceptor reaches the max retry
+attempts, or if it has exhausted all available server addresses.
 
 You can also stop some of the servers while the client is running. The client will keep sending invocations unless all
 remaining servers throw `DispatchException(StatusCode.Unavailable)`.
