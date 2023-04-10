@@ -4,18 +4,18 @@
             "src": [
                 {
                     "files": [
-                        "src/IceRpc/bin/**/IceRpc.dll",
-                        "src/IceRpc.Coloc/bin/**/IceRpc.Coloc.dll",
-                        "src/IceRpc.Deadline/bin/**/IceRpc.Deadline.dll",
-                        "src/IceRpc.Deflate/bin/**/IceRpc.Deflate.dll",
-                        "src/IceRpc.Extensions.DependencyInjection/bin/**/IceRpc.Extensions.DependencyInjection.dll",
-                        "src/IceRpc.Interop/bin/**/IceRpc.Interop.dll",
-                        "src/IceRpc.Locator/bin/**/IceRpc.Locator.dll",
-                        "src/IceRpc.Logger/bin/**/IceRpc.Logger.dll",
-                        "src/IceRpc.Metrics/bin/**/IceRpc.Metrics.dll",
-                        "src/IceRpc.RequestContext/bin/**/IceRpc.RequestContext.dll",
-                        "src/IceRpc.Retry/bin/**/IceRpc.Retry.dll",
-                        "src/IceRpc.Telemetry/bin/**/IceRpc.Telemetry.dll"
+                        "src/IceRpc/IceRpc.csproj",
+                        "src/IceRpc.Coloc/IceRpc.Coloc.csproj",
+                        "src/IceRpc.Deadline/IceRpc.Deadline.csproj",
+                        "src/IceRpc.Deflate/IceRpc.Deflate.csproj",
+                        "src/IceRpc.Extensions.DependencyInjection/IceRpc.Extensions.DependencyInjection.csproj",
+                        "src/IceRpc.Interop/IceRpc.Interop.csproj",
+                        "src/IceRpc.Locator/IceRpc.Locator.csproj",
+                        "src/IceRpc.Logger/IceRpc.Logger.csproj",
+                        "src/IceRpc.Metrics/IceRpc.Metrics.csproj",
+                        "src/IceRpc.RequestContext/IceRpc.RequestContext.csproj",
+                        "src/IceRpc.Retry/IceRpc.Retry.csproj",
+                        "src/IceRpc.Telemetry/IceRpc.Telemetry.csproj"
                     ],
                     "src": "../"
                 }
