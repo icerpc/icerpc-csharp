@@ -1,0 +1,124 @@
+// Copyright (c) ZeroC, Inc.
+
+encoding = Slice1
+
+module IceRpc::Internal
+
+// These definitions help with the encoding of ice frames.
+
+/// Each ice frame has a type identified by this enumeration.
+[cs::internal]
+enum IceFrameType {
+    Request = 0
+    RequestBatch = 1
+    Reply = 2
+    ValidateConnection = 3
+    CloseConnection = 4
+}
+
+/// The ice frame prologue.
+[cs::internal]
+[cs::readonly]
+compact struct IcePrologue {
+    magic1: uint8
+    magic2: uint8
+    magic3: uint8
+    magic4: uint8
+    protocolMajor: uint8
+    protocolMinor: uint8
+    encodingMajor: uint8
+    encodingMinor: uint8
+    frameType: IceFrameType
+    compressionStatus: uint8
+    frameSize: int32
+}
+
+/// Determines the retry behavior an invocation in case of a (potentially) recoverable error. OperationMode is
+/// sent with each ice request to allow the server to verify the assumptions made by the caller.
+[cs::internal]
+enum OperationMode {
+    /// Ordinary operations have <c>Normal</c> mode. These operations can modify object state; invoking such
+    /// an operation twice in a row may have different semantics than invoking it once. The Ice run time guarantees
+    /// that it will not violate at-most-once semantics for <c>Normal</c> operations.
+    Normal
+
+    /// <c>Nonmutating</c> is deprecated; use <c>Idempotent</c> instead.
+    Nonmutating
+
+    /// Operations that use the Slice <c>idempotent</c> keyword can modify object state, but invoking an
+    /// operation twice in a row must result in the same object state as invoking it once. For example,
+    /// <c>x = 1</c> is an idempotent statement, whereas <c>x += 1</c> is not. For idempotent
+    /// operations, the Ice run-time does not guarantee at-most-once semantics.
+    \Idempotent
+}
+
+/// The payload of most request and response frames starts with an encapsulation header that specifies the size of
+/// the encapsulation and its encoding.
+[cs::internal]
+[cs::readonly]
+compact struct EncapsulationHeader {
+    encapsulationSize: int32
+    payloadEncodingMajor: uint8
+    payloadEncodingMinor: uint8
+}
+
+/// Each ice request frame has:
+/// - a frame prologue, with the frame type and the overall frame size
+/// - a request ID
+/// - a request header (below)
+/// - a request payload, with encapsulationSize - 6 bytes
+[cs::internal]
+[cs::readonly]
+compact struct IceRequestHeader {
+    path: Ice::IdentityPath
+    fragment: IceRpc::Slice::Internal::Fragment
+    operation: string
+    operationMode: OperationMode
+    // Manually encoded/decoded
+    // context: dictionary<string, string>
+    // encapsulationHeader: EncapsulationHeader
+}
+
+/// The reply status of an ice response frame.
+/// Each ice response frame has:
+/// - a frame prologue, with the frame type and the overall frame size
+/// - a request ID
+/// - a reply status
+/// - when reply status is OK or UserException, an encapsulation header followed by a response payload, with
+/// encapsulationSize - 6 bytes
+[cs::internal]
+enum ReplyStatus {
+    /// A successful reply message.
+    Ok = 0
+
+    /// A user exception reply message.
+    UserException = 1
+
+    /// The target object does not exist.
+    ObjectNotExistException = 2
+
+    /// The target object does not support the facet.
+    FacetNotExistException = 3
+
+    /// The target object does not support the operation.
+    OperationNotExistException = 4
+
+    /// The reply message carries an unknown Ice local exception.
+    UnknownLocalException = 5
+
+    /// The reply message carries an unknown Ice user exception.
+    UnknownUserException = 6
+
+    /// The reply message carries an unknown exception.
+    UnknownException = 7
+}
+
+/// The data carried by a RequestFailedException (ObjectNotExistException, FacetNotExistException or
+/// OperationNotExistException).
+[cs::internal]
+[cs::readonly]
+compact struct RequestFailedExceptionData {
+    path: Ice::IdentityPath
+    fragment: Slice::Internal::Fragment
+    operation: string
+}
