@@ -159,8 +159,8 @@ run_test()
 
 doc()
 {
-    pushd doc
-    run_command docfx
+    pushd docfx
+    run_command docfx "--property" "Configuration=$dotnet_config"
     popd
 }
 
