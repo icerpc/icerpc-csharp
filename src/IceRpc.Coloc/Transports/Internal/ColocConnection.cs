@@ -95,7 +95,7 @@ internal abstract class ColocConnection : IDuplexConnection
         }
     }
 
-    public Task ShutdownAsync(CancellationToken cancellationToken)
+    public Task ShutdownWriteAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_state.HasFlag(State.Disposed), this);
 
