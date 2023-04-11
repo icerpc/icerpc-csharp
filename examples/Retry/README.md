@@ -5,8 +5,8 @@ resilient to failures.
 
 The server is configured to randomly fail with `DispatchException(StatusCode.Unavailable)`, which can only be retried
 on a different server address. The retry interceptor will automatically retry failed invocations up to the configured
-max attempts. If the retry interceptor reaches the max retry attempts, or if it exhausted all available server addresses
-it gives up on retrying and reports the failure.
+max attempts. If the retry interceptor reaches the max retry attempts, or if it exhausted all available server
+addresses, it gives up on retrying and reports the failure.
 
 First start at least two instances of the Server:
 
