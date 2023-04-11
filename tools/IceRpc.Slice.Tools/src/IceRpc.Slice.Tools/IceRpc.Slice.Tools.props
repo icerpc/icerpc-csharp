@@ -19,7 +19,7 @@
         <Otherwise>
             <!-- Use Slice files and Slice compiler from this NuGet package -->
             <PropertyGroup>
-                <SliceCompilerPath>$(MSBuildThisFileDirectory)..\tools\$(OSName)-$(OSArch)</SliceCompilerPath>
+                <SliceCompilerPath>$(MSBuildThisFileDirectory)..\tools\$(IceRPC_OSName)-$(IceRPC_OSArch)</SliceCompilerPath>
                 <SliceBuiltInFilesPath>$(MSBuildThisFileDirectory)..\slice</SliceBuiltInFilesPath>
             </PropertyGroup>
         </Otherwise>
