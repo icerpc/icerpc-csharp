@@ -5,8 +5,7 @@ using IceRpc.Slice;
 
 namespace IceRpc.Ice;
 
-/// <summary>Provides extension methods for interface <see cref="IProxy" /> and generated proxy structs that implement
-/// this interface.</summary>
+/// <summary>Provides an extension method for interface <see cref="IProxy" />.</summary>
 public static class ProxyExtensions
 {
     /// <summary>Tests whether the target service implements the interface implemented by

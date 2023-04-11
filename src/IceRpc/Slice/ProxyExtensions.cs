@@ -35,8 +35,8 @@ public delegate ValueTask ResponseDecodeFunc(
     GenericProxy sender,
     CancellationToken cancellationToken);
 
-/// <summary>Provides extension methods for interface <see cref="IProxy" /> and generated proxy structs that implement
-/// this interface.</summary>
+/// <summary>Provides extension methods for both the interface <see cref="IProxy" /> and the generated proxy structs
+/// that implement this interface.</summary>
 public static class ProxyExtensions
 {
     private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
