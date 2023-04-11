@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Ice;
 using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
