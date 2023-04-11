@@ -7,7 +7,7 @@ supported platforms instead of including the `slice-cs` compiler from the curren
 with all supported compilers, you must ensure that the binaries are available in the directory specified by
 `SLICE_TOOLS_PATH`. The expected layout for `SLICE_TOOLS_PATH` is `<os-name>-<os-arch>/<compiler-executable>`.
 
-The supported <os-name>-<os-arch> combinations are:
+The supported `<os-name>-<os-arch>` combinations are:
 
 - `linux-x64`: Linux x86_64
 - `linux-arm64`: Linux ARM64
