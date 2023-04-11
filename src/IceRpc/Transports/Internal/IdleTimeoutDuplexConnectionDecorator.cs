@@ -58,7 +58,8 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         }
     }
 
-    public Task ShutdownAsync(CancellationToken cancellationToken) => _decoratee.ShutdownAsync(cancellationToken);
+    public Task ShutdownWriteAsync(CancellationToken cancellationToken) =>
+        _decoratee.ShutdownWriteAsync(cancellationToken);
 
     public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
     {

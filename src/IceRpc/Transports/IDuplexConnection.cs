@@ -14,11 +14,12 @@ namespace IceRpc.Transports;
 /// <item><description>The <see cref="WriteAsync" /> method is never called concurrently.</description></item>
 /// <item><description>The <see cref="ReadAsync" /> and <see cref="WriteAsync" /> methods can be called concurrently.
 /// </description></item>
-/// <item><description>The <see cref="ReadAsync" /> and <see cref="ShutdownAsync" /> methods can be called concurrently.
+/// <item><description>The <see cref="ReadAsync" /> and <see cref="ShutdownWriteAsync" /> methods can be called
+/// concurrently.
 /// </description></item>
-/// <item><description>The <see cref="ShutdownAsync" /> method is called once but not while a <see cref="WriteAsync" />
-/// call is in progress.</description></item>
-/// <item><description>The <see cref="WriteAsync" /> is never called after a <see cref="ShutdownAsync" />
+/// <item><description>The <see cref="ShutdownWriteAsync" /> method is called once but not while a <see
+/// cref="WriteAsync" /> call is in progress.</description></item>
+/// <item><description>The <see cref="WriteAsync" /> is never called after a <see cref="ShutdownWriteAsync" />
 /// call.</description></item>
 /// <item><description>The <see cref="IDisposable.Dispose" /> method is called after the tasks returned by other methods
 /// have completed. It can be called multiple times but not concurrently.</description></item>
@@ -60,7 +61,8 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
-    /// <summary>Shuts down the connection to notify the peer that no more data will be sent.</summary>
+    /// <summary>Shuts down the write side of the connection to notify the peer that no more data will be
+    /// sent.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully when the shutdown completes successfully. This task can also
     /// complete with one of the following exceptions:
@@ -73,9 +75,7 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
     /// shutting down, or a write operation is in progress.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
-    /// <remarks>The implementation of this method should not interrupt a pending <see cref="ReadAsync" />. It should
-    /// only shutdown writes and notify the peer that no more data will be sent.</remarks>
-    Task ShutdownAsync(CancellationToken cancellationToken);
+    Task ShutdownWriteAsync(CancellationToken cancellationToken);
 
     /// <summary>Writes data over the connection.</summary>
     /// <param name="buffers">The buffers containing the data to write.</param>

@@ -243,17 +243,17 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Read_returns_zero_after_shutdown()
+    public async Task Read_on_peer_returns_zero_after_shutdown_write()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
         await sut.AcceptAndConnectAsync();
 
         // Act
-        await sut.Server.ShutdownAsync(CancellationToken.None);
+        await sut.Server.ShutdownWriteAsync(CancellationToken.None);
         int clientRead = await sut.Client.ReadAsync(new byte[1], CancellationToken.None);
 
-        await sut.Client.ShutdownAsync(CancellationToken.None);
+        await sut.Client.ShutdownWriteAsync(CancellationToken.None);
         int serverRead = await sut.Server.ReadAsync(new byte[1], CancellationToken.None);
 
         // Assert
@@ -262,7 +262,7 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Shutdown_connection()
+    public async Task Shutdown_connection_writes()
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .BuildServiceProvider(validateScopes: true);
@@ -271,16 +271,16 @@ public abstract class DuplexConnectionConformanceTests
 
         // Act/Assert
         Assert.That(
-            async () => await sut.Client.ShutdownAsync(CancellationToken.None),
+            async () => await sut.Client.ShutdownWriteAsync(CancellationToken.None),
             Throws.Nothing);
 
         Assert.That(
-            async () => await sut.Server.ShutdownAsync(CancellationToken.None),
+            async () => await sut.Server.ShutdownWriteAsync(CancellationToken.None),
             Throws.Nothing);
     }
 
     [Test]
-    public async Task Shutdown_connection_on_both_sides()
+    public async Task Shutdown_connection_writes_on_both_sides()
     {
         await using ServiceProvider provider = CreateServiceCollection()
             .BuildServiceProvider(validateScopes: true);
@@ -288,8 +288,8 @@ public abstract class DuplexConnectionConformanceTests
         await sut.AcceptAndConnectAsync();
 
         // Act
-        var clientShutdownTask = sut.Client.ShutdownAsync(CancellationToken.None);
-        var serverShutdownTask = sut.Server.ShutdownAsync(CancellationToken.None);
+        var clientShutdownTask = sut.Client.ShutdownWriteAsync(CancellationToken.None);
+        var serverShutdownTask = sut.Server.ShutdownWriteAsync(CancellationToken.None);
 
         // Assert
         Assert.That(async () => await clientShutdownTask, Throws.Nothing);
@@ -390,12 +390,12 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     [Test]
-    public async Task Write_fails_after_shutdown()
+    public async Task Write_fails_after_shutdown_write()
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
         await sut.AcceptAndConnectAsync();
-        await sut.Server.ShutdownAsync(CancellationToken.None);
+        await sut.Server.ShutdownWriteAsync(CancellationToken.None);
 
         // Act/Assert
         Assert.That(

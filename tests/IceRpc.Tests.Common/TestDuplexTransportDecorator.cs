@@ -26,8 +26,8 @@ public enum DuplexTransportOperations
     /// <summary>The <see cref="IDuplexConnection.ReadAsync" /> operation.</summary>
     Read = 8,
 
-    /// <summary>The <see cref="IDuplexConnection.ShutdownAsync" /> operation.</summary>
-    Shutdown = 16,
+    /// <summary>The <see cref="IDuplexConnection.ShutdownWriteAsync" /> operation.</summary>
+    ShutdownWrite = 16,
 
     /// <summary>The <see cref="IDuplexConnection.WriteAsync" /> operation.</summary>
     Write = 32,
@@ -233,10 +233,10 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task ShutdownAsync(CancellationToken cancellationToken) =>
+    public Task ShutdownWriteAsync(CancellationToken cancellationToken) =>
         Operations.CallAsync(
-            DuplexTransportOperations.Shutdown,
-            () => _decoratee.ShutdownAsync(cancellationToken),
+            DuplexTransportOperations.ShutdownWrite,
+            () => _decoratee.ShutdownWriteAsync(cancellationToken),
             cancellationToken);
 
     /// <inheritdoc/>

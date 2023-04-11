@@ -334,7 +334,7 @@ public class SlicTransportTests
             .AddTestDuplexTransportDecorator(
                 serverOperationsOptions: new()
                 {
-                    Hold = DuplexTransportOperations.Shutdown
+                    Hold = DuplexTransportOperations.ShutdownWrite
                 })
             .BuildServiceProvider(validateScopes: true);
 

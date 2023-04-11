@@ -179,7 +179,7 @@ public class ColocTransportTests
     }
 
     [Test]
-    public async Task Shutdown_before_connect_throws_invalid_operation_exception()
+    public async Task Shutdown_writes_before_connect_throws_invalid_operation_exception()
     {
         // Arrange
         var colocTransport = new ColocTransport();
@@ -194,7 +194,7 @@ public class ColocTransportTests
             null);
 
         // Assert
-        Assert.That(async () => await clientConnection.ShutdownAsync(default), Throws.InvalidOperationException);
+        Assert.That(async () => await clientConnection.ShutdownWriteAsync(default), Throws.InvalidOperationException);
     }
 
     [Test]
@@ -231,7 +231,7 @@ public class ColocTransportTests
     }
 
     [Test]
-    public async Task Shutdown_while_write_is_in_progress_throws_invalid_operation_exception()
+    public async Task Shutdown_write_while_write_is_in_progress_throws_invalid_operation_exception()
     {
         var colocTransport = new ColocTransport(
             new ColocTransportOptions
@@ -258,13 +258,13 @@ public class ColocTransportTests
         ValueTask writeTask = clientConnection.WriteAsync(buffer, default);
 
         // Assert
-        Assert.That(() => clientConnection.ShutdownAsync(default), Throws.InstanceOf<InvalidOperationException>());
+        Assert.That(() => clientConnection.ShutdownWriteAsync(default), Throws.InstanceOf<InvalidOperationException>());
         Assert.That(async () => await serverConnection.ReadAsync(new byte[4096], default), Is.EqualTo(4096));
         Assert.That(async () => await writeTask, Throws.Nothing);
     }
 
     [Test]
-    public async Task Write_after_shutdown_throws_invalid_operation_exception()
+    public async Task Write_after_shutdown_write_throws_invalid_operation_exception()
     {
         var colocTransport = new ColocTransport(
             new ColocTransportOptions
@@ -288,7 +288,7 @@ public class ColocTransportTests
         var buffer = new List<ReadOnlyMemory<byte>> { new byte[1] };
 
         // Act
-        await clientConnection.ShutdownAsync(default);
+        await clientConnection.ShutdownWriteAsync(default);
 
         // Assert
         Assert.That(() => clientConnection.WriteAsync(buffer, default), Throws.InstanceOf<InvalidOperationException>());
