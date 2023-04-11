@@ -5,6 +5,10 @@
    <PropertyGroup>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
       <Version>$(IceRpcVersion)</Version>
+      <!--
+        The target framework is netstandard2.0 to support Visual Studio
+        see https://learn.microsoft.com/en-us/visualstudio/msbuild/tutorial-custom-task-code-generation?view=vs-2022#create-the-appsettingstronglytyped-project.
+      -->
       <TargetFramework>netstandard2.0</TargetFramework>
       <LangVersion>10.0</LangVersion>
       <AnalysisMode>AllEnabledByDefault</AnalysisMode>
