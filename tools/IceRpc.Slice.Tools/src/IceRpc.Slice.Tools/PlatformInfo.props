@@ -1,8 +1,0 @@
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <PropertyGroup>
-        <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRPC_OSName>
-        <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRPC_OSName>
-        <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRPC_OSName>
-        <IceRPC_OSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRPC_OSArch>
-    </PropertyGroup>
-</Project>

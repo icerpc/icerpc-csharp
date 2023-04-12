@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-   <Import Project="$(MSBuildThisFileDirectory)PlatformInfo.props" />
    <Import Project="$(MSBuildThisFileDirectory)../../../../build/IceRpc.Version.props" />
    <PropertyGroup>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
@@ -36,6 +35,10 @@
       <RustConfiguration Condition="'$(Configuration)' == 'Debug'">debug</RustConfiguration>
       <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
       <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
+      <!-- Internal properties used to compute the slicec-cs compiler location for the current platform. -->
+      <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRPC_OSName>
+      <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRPC_OSName>
+      <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRPC_OSName>
    </PropertyGroup>
    <ItemGroup>
       <PackageReference Include="Microsoft.Build.Framework" Version="16.11.0" />

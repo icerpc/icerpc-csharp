@@ -62,7 +62,7 @@
         <ItemGroup>
             <SliceC>
                 <!--
-                    Add GeneratePath metadata with the normalized path, this is required for excludes bellow to work
+                    Add GeneratePath metadata with the normalized path, this is required for excludes below to work
                     with different path separators.
                 -->
                 <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
