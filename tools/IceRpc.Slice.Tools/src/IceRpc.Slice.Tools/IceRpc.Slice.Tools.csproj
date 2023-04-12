@@ -58,10 +58,6 @@
          <PackagePath />
          <Pack>true</Pack>
       </Content>
-      <Content Include="PlatformInfo.props">
-         <PackagePath>build/</PackagePath>
-         <Pack>true</Pack>
-      </Content>
       <Content Include="IceRpc.Slice.Tools.props">
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
