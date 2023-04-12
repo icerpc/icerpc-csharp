@@ -3,10 +3,11 @@
 use std::collections::HashMap;
 
 use crate::comments::CommentTag;
-use crate::cs_attributes::match_cs_attribute;
+use crate::cs_attributes::{match_cs_attribute, match_cs_generic};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
+use slice::grammar::*;
 use slice::grammar::{Class, Commentable, Encoding, Entity, Operation};
 use slice::supported_encodings::SupportedEncodings;
 use slice::utils::code_gen_util::{format_message, TypeContext};
@@ -332,7 +333,18 @@ impl FunctionBuilder {
                 &parameter_type,
                 &parameter_name,
                 if context == TypeContext::Encode && parameter.tag.is_some() {
-                    Some("default")
+                    match parameter.data_type.concrete_typeref() {
+                        // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
+                        // 'default' as their default value. Other tagged types are mapped to nullable types and
+                        // can use 'null' as the default value, which makes it clear what the default is.
+                        TypeRefs::Sequence(sequence_ref)
+                            if sequence_ref.has_fixed_size_numeric_elements()
+                                && sequence_ref.find_attribute(false, match_cs_generic).is_none() =>
+                        {
+                            Some("default")
+                        }
+                        _ => Some("null"),
+                    }
                 } else {
                     None
                 },
