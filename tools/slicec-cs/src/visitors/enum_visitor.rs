@@ -129,7 +129,7 @@ private static readonly global::System.Collections.Generic.HashSet<{cs_type}> _e
             "summary",
             format!(
                 r#"
-Converts a <see cref="{cs_type}" /> into the corresponding <see cref="{escaped_identifier}" />
+Converts a <see langword="{cs_type}" /> into the corresponding <see cref="{escaped_identifier}" />
 enumerator."#
             ),
         )
