@@ -657,7 +657,7 @@ public ref partial struct SliceEncoder
 
         if (_classContext.Current.InstanceType != InstanceType.None)
         {
-            _classContext.Current.SliceFlags |= SliceFlags.HasTaggedMembers;
+            _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
         }
     }
 }

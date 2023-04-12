@@ -21,7 +21,7 @@ public sealed class ExceptionTests
             yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.ApplicationError);
 
             yield return new TestCaseData(
-                new MyExceptionWithTaggedMembers(5, 12, 13, 28),
+                new MyExceptionWithTaggedFields(5, 12, 13, 28),
                 StatusCode.ApplicationError);
         }
     }
@@ -37,7 +37,7 @@ public sealed class ExceptionTests
 
             // The generated code attempts to encode the exception and fails to do so since it's Slice2-only.
             yield return new TestCaseData(
-                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                new MyExceptionWithOptionalFields(5, 12, 13, 28),
                 StatusCode.UnhandledException);
         }
     }
@@ -53,7 +53,7 @@ public sealed class ExceptionTests
 
             // The generated code does not attempt to encode this exception, and we transmit it over icerpc.
             yield return new TestCaseData(
-                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                new MyExceptionWithOptionalFields(5, 12, 13, 28),
                 StatusCode.ApplicationError);
         }
     }
@@ -69,7 +69,7 @@ public sealed class ExceptionTests
 
             // The generated code does not attempt to encode this exception, and we transmit it over icerpc.
             yield return new TestCaseData(
-                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                new MyExceptionWithOptionalFields(5, 12, 13, 28),
                 StatusCode.ApplicationError);
         }
     }
@@ -83,7 +83,7 @@ public sealed class ExceptionTests
             yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
 
             yield return new TestCaseData(
-                new MyExceptionWithOptionalMembers(5, 12, 13, 28),
+                new MyExceptionWithOptionalFields(5, 12, 13, 28),
                 StatusCode.ApplicationError);
         }
     }
@@ -181,13 +181,13 @@ public sealed class ExceptionTests
     }
 
     [Test]
-    public void Decode_slice1_exception_with_tagged_members(
+    public void Decode_slice1_exception_with_tagged_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.StartSlice(MyExceptionWithTaggedMembers.SliceTypeId);
+        encoder.StartSlice(MyExceptionWithTaggedFields.SliceTypeId);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
         if (k is not null)
@@ -210,9 +210,9 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedMembers).Assembly));
+            activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedFields).Assembly));
 
-        var value = decoder.DecodeUserException() as MyExceptionWithTaggedMembers;
+        var value = decoder.DecodeUserException() as MyExceptionWithTaggedFields;
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(10));
@@ -249,7 +249,7 @@ public sealed class ExceptionTests
     }
 
     [Test]
-    public void Decode_slice2_exception_with_optional_members(
+    public void Decode_slice2_exception_with_optional_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
@@ -271,7 +271,7 @@ public sealed class ExceptionTests
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MyExceptionWithOptionalMembers(ref decoder, "");
+        var value = new MyExceptionWithOptionalFields(ref decoder, "");
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value.I, Is.EqualTo(10));
@@ -282,7 +282,7 @@ public sealed class ExceptionTests
     }
 
     [Test]
-    public void Decode_slice2_exception_with_tagged_members(
+    public void Decode_slice2_exception_with_tagged_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
@@ -309,7 +309,7 @@ public sealed class ExceptionTests
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
-        var value = new MyExceptionWithTaggedMembers(ref decoder);
+        var value = new MyExceptionWithTaggedFields(ref decoder);
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value.I, Is.EqualTo(10));
@@ -366,13 +366,13 @@ public sealed class ExceptionTests
     }
 
     [Test]
-    public void Encode_slice1_exception_with_tagged_members(
+    public void Encode_slice1_exception_with_tagged_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        var expected = new MyExceptionWithTaggedMembers(10, 20, k, l);
+        var expected = new MyExceptionWithTaggedFields(10, 20, k, l);
 
         expected.Encode(ref encoder);
 
@@ -380,8 +380,8 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedMembers).Assembly));
-        var value = decoder.DecodeUserException() as MyExceptionWithTaggedMembers;
+            activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedFields).Assembly));
+        var value = decoder.DecodeUserException() as MyExceptionWithTaggedFields;
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));
@@ -407,13 +407,13 @@ public sealed class ExceptionTests
     }
 
     [Test]
-    public void Encode_slice2_exception_with_optional_members(
+    public void Encode_slice2_exception_with_optional_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var value = new MyExceptionWithOptionalMembers(10, 20, k, l, "This is my message.");
+        var value = new MyExceptionWithOptionalFields(10, 20, k, l, "This is my message.");
 
         value.Encode(ref encoder);
 
@@ -434,13 +434,13 @@ public sealed class ExceptionTests
     }
 
     [Test]
-    public void Encode_slice2_exception_with_tagged_members(
+    public void Encode_slice2_exception_with_tagged_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var value = new MyExceptionWithTaggedMembers(10, 20, k, l, "This is my message.");
+        var value = new MyExceptionWithTaggedFields(10, 20, k, l, "This is my message.");
 
         value.Encode(ref encoder);
 
@@ -562,8 +562,8 @@ public sealed class ExceptionTests
         public ValueTask OpThrowsNothingAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
 
-        public ValueTask<MyExceptionWithOptionalMembers> OpExceptionParamAsync(
-            MyExceptionWithOptionalMembers exception,
+        public ValueTask<MyExceptionWithOptionalFields> OpExceptionParamAsync(
+            MyExceptionWithOptionalFields exception,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(exception);
     }

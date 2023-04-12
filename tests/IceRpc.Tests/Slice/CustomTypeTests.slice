@@ -6,7 +6,7 @@ module IceRpc::Tests::Slice
 [cs::custom("MyCustomType")]
 custom CustomType
 
-compact struct StructWithCustomTypeMember {
+compact struct StructWithCustomTypeField {
     m: CustomType
 }
 

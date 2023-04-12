@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice
 
-struct MyStructWithTaggedMembers {
+struct MyStructWithTaggedFields {
     tag(1) a: uint8?
     tag(2) b: MyStruct?
     tag(3) c: MyEnum?

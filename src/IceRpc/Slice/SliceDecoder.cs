@@ -476,7 +476,7 @@ public ref partial struct SliceDecoder
                 if (!useTagEndMarker && _reader.End)
                 {
                     // When we don't use an end marker, the end of the buffer indicates the end of the tagged params
-                    // or members.
+                    // or fields.
                     break;
                 }
 
@@ -484,7 +484,7 @@ public ref partial struct SliceDecoder
                 if (useTagEndMarker && v == TagEndMarker)
                 {
                     // When we use an end marker, the end marker (and only the end marker) indicates the end of the
-                    // tagged params / member.
+                    // tagged params / fields.
                     break;
                 }
 
@@ -900,8 +900,8 @@ public ref partial struct SliceDecoder
 
         if (_classContext.Current.InstanceType != InstanceType.None)
         {
-            // tagged member of a class or exception
-            if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) == 0)
+            // tagged fields of a class or exception
+            if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) == 0)
             {
                 // The current slice has no tagged parameter.
                 return false;

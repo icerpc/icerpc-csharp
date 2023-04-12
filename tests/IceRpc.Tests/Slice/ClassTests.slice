@@ -19,11 +19,11 @@ class MyClassC {
 
 class MyCompactClass(15) {}
 
-class MyClassWithTaggedMembers {
+class MyClassWithTaggedFields {
     tag(10) a: int32?
 }
 
-class MyDerivedClassWithTaggedMembers : MyClassWithTaggedMembers {
+class MyDerivedClassWithTaggedFields : MyClassWithTaggedFields {
     tag(20) b: string?
 }
 

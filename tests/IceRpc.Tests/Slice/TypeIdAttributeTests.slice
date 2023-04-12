@@ -4,7 +4,7 @@ module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace {
     interface MyInterface {}
     exception MyException {}
     compact struct MyStruct {
-        b: bool // dummy member; a compact struct can't be empty.
+        b: bool // dummy field; a compact struct can't be empty.
     }
 
     // The constructs in the inner module doesn't use the same case convention that
@@ -15,7 +15,7 @@ module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace {
         interface myInterface {}
         exception myException {}
         compact struct myStruct {
-            b: bool // dummy member; a compact struct can't be empty.
+            b: bool // dummy field; a compact struct can't be empty.
         }
     }
 }

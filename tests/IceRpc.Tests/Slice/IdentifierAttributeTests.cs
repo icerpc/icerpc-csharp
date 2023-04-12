@@ -55,7 +55,7 @@ public class IdentifierAttributeTests
     }
 
     [Test]
-    public void Renamed_class_with_renamed_data_member()
+    public void Renamed_class_with_renamed_field()
     {
         // Act / Assert
         REnamedClass myClass = new REnamedClass(1);
