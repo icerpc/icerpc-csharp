@@ -7,8 +7,7 @@ use crate::cs_attributes::{match_cs_attribute, match_cs_generic};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
-use slice::grammar::*;
-use slice::grammar::{Class, Commentable, Encoding, Entity, Operation};
+use slice::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
 use slice::supported_encodings::SupportedEncodings;
 use slice::utils::code_gen_util::{format_message, TypeContext};
 
@@ -328,26 +327,26 @@ impl FunctionBuilder {
         for parameter in &parameters {
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
+            let default_value = match (context, &parameter.tag, parameter.data_type.concrete_typeref()) {
+                (TypeContext::Encode, Some(_), TypeRefs::Sequence(sequence_ref)) => {
+                    let is_fixed_size_numeric = sequence_ref.has_fixed_size_numeric_elements();
+                    let no_cs_generic = sequence_ref.find_attribute(false, match_cs_generic).is_none();
 
+                    // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
+                    // 'default' as their default value. Other tagged types are mapped to nullable types and
+                    // can use 'null' as the default value, which makes it clear what the default is.
+                    if is_fixed_size_numeric && no_cs_generic {
+                        Some("default")
+                    } else {
+                        Some("null")
+                    }
+                }
+                _ => None,
+            };
             self.add_parameter(
                 &parameter_type,
                 &parameter_name,
-                if context == TypeContext::Encode && parameter.tag.is_some() {
-                    match parameter.data_type.concrete_typeref() {
-                        // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
-                        // 'default' as their default value. Other tagged types are mapped to nullable types and
-                        // can use 'null' as the default value, which makes it clear what the default is.
-                        TypeRefs::Sequence(sequence_ref)
-                            if sequence_ref.has_fixed_size_numeric_elements()
-                                && sequence_ref.find_attribute(false, match_cs_generic).is_none() =>
-                        {
-                            Some("default")
-                        }
-                        _ => Some("null"),
-                    }
-                } else {
-                    None
-                },
+                default_value,
                 parameter.formatted_parameter_doc_comment(),
             );
         }
