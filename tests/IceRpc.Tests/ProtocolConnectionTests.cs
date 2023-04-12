@@ -435,7 +435,7 @@ public sealed class ProtocolConnectionTests
         bool isOneway)
     {
         // Arrange
-        ConnectionOptions? serverConnectionOptions =
+        var serverConnectionOptions =
             new ConnectionOptions
             {
                 Dispatcher = new InlineDispatcher(async (request, cancellationToken) =>

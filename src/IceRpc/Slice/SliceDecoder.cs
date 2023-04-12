@@ -693,7 +693,9 @@ public ref partial struct SliceDecoder
                             _reader.Advance(size);
                         }
 
-                        var builder = ImmutableDictionary.CreateBuilder<string, string>();
+                        ImmutableDictionary<string, string>.Builder builder =
+                            ImmutableDictionary.CreateBuilder<string, string>();
+
                         builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
                         builder.Add("v", Convert.ToBase64String(vSpan));
 

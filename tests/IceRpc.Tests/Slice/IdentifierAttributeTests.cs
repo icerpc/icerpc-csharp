@@ -17,7 +17,7 @@ public class IdentifierAttributeTests
     public void Renamed_struct_identifier()
     {
         // Act
-        REnamedStruct myStruct = new REnamedStruct(1);
+        var myStruct = new REnamedStruct(1);
 
         // Assert
         Assert.That(myStruct.renamedX, Is.EqualTo(1));
@@ -38,7 +38,7 @@ public class IdentifierAttributeTests
     public void Renamed_exception()
     {
         // Act
-        REnamedException ex = new REnamedException();
+        _ = new REnamedException();
 
         // Assert
         Assert.That(typeof(REnamedException).GetSliceTypeId(), Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
@@ -58,7 +58,7 @@ public class IdentifierAttributeTests
     public void Renamed_class_with_renamed_data_member()
     {
         // Act / Assert
-        REnamedClass myClass = new REnamedClass(1);
+        var myClass = new REnamedClass(1);
 
         // Assert
         Assert.That(myClass.renamedX, Is.EqualTo(1));

@@ -285,7 +285,7 @@ public abstract class MultiplexedStreamConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await clientServerConnection.AcceptAndConnectAsync();
-        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync(isBidirectional);
 
         // Act
         sut.Remote.Input.Complete(abort ? new Exception() : null);

@@ -927,8 +927,7 @@ public sealed class ClassTests
             SlicedFormatOperationsProxy.Request.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
+        Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 
@@ -965,8 +964,7 @@ public sealed class ClassTests
             ICompactFormatOperationsService.Response.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
+        Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 
@@ -995,8 +993,7 @@ public sealed class ClassTests
             ISlicedFormatOperationsService.Response.OpMyClass(new MyClassB());
 
         // Assert
-        ReadResult readResult;
-        Assert.That(payload.TryRead(out readResult), Is.True);
+        Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
 

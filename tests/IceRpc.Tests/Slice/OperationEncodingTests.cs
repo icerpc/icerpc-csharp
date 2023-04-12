@@ -115,10 +115,10 @@ public class OperationEncodingTests
             Payload = Encode(10, "hello world!")
         };
 
-        var decoded = await IMyOperationsBService.Request.OpInt32AndStringAsync(request, default);
+        (int p1, string p2) = await IMyOperationsBService.Request.OpInt32AndStringAsync(request, default);
 
-        Assert.That(decoded.P1, Is.EqualTo(10));
-        Assert.That(decoded.P2, Is.EqualTo("hello world!"));
+        Assert.That(p1, Is.EqualTo(10));
+        Assert.That(p2, Is.EqualTo("hello world!"));
 
         static PipeReader Encode(int value1, string value2)
         {
@@ -324,13 +324,13 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        var value =
+        (int r1, string r2, int? r3, string? r4) =
             await MyOperationsBProxy.Response.OpOptionalAsync(response, request, InvalidProxy.Instance, default);
 
-        Assert.That(value.R1, Is.EqualTo(p1));
-        Assert.That(value.R2, Is.EqualTo(p2));
-        Assert.That(value.R3, Is.EqualTo(p3));
-        Assert.That(value.R4, Is.EqualTo(p4));
+        Assert.That(r1, Is.EqualTo(p1));
+        Assert.That(r2, Is.EqualTo(p2));
+        Assert.That(r3, Is.EqualTo(p3));
+        Assert.That(r4, Is.EqualTo(p4));
 
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
@@ -495,13 +495,13 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        var value =
+        (int r1, string? r2, int? r3, string? r4) =
             await MyOperationsBProxy.Response.OpTaggedAsync(response, request, InvalidProxy.Instance, default);
 
-        Assert.That(value.R1, Is.EqualTo(p1));
-        Assert.That(value.R2, Is.EqualTo(p2));
-        Assert.That(value.R3, Is.EqualTo(p3));
-        Assert.That(value.R4, Is.EqualTo(p4));
+        Assert.That(r1, Is.EqualTo(p1));
+        Assert.That(r2, Is.EqualTo(p2));
+        Assert.That(r3, Is.EqualTo(p3));
+        Assert.That(r4, Is.EqualTo(p4));
 
         static PipeReader Encode(int p1, string p2, int? p3, string? p4)
         {
