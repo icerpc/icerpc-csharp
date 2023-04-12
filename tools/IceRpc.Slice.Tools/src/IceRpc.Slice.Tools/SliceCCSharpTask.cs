@@ -10,6 +10,8 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+#nullable enable
+
 namespace IceRpc.Slice.Tools;
 
 /// <summary>A MSbuild task to compile Slice files to C# using the IceRPC slicec-cs compiler.</summary>
