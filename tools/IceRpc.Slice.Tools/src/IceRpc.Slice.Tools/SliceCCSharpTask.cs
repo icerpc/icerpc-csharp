@@ -3,6 +3,7 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,10 +14,10 @@ using System.Text.Json.Serialization;
 
 namespace IceRpc.Slice.Tools;
 
-/// <summary>A MSbuild task to compile Slice files using IceRpc slicec-cs compiler.</summary>
+/// <summary>A MSbuild task to compile Slice files to C# using the IceRPC slicec-cs compiler.</summary>
 public class SliceCCSharpTask : ToolTask
 {
-    /// <summary>Additional options to pass to the slicec compiler.</summary>
+    /// <summary>Additional options to pass to the slicec-cs compiler.</summary>
     public string[] AdditionalOptions { get; set; } = Array.Empty<string>();
 
     /// <summary>The output directory for generated code, correspond to the <c>--output-dir</c> slicec-cs compiler
@@ -24,8 +25,8 @@ public class SliceCCSharpTask : ToolTask
     [Required]
     public string OutputDir { get; set; } = "";
 
-    /// <summary>The files that are needed for referencing, but that no code should be generated for them,
-    /// corresponds to <c>-R</c> slicec-cs compiler option.</summary>
+    /// <summary>The files that are needed for referencing, but that no code should be generated for them, corresponds
+    /// to <c>-R</c> slicec-cs compiler option.</summary>
     public string[] ReferencedFiles { get; set; } = Array.Empty<string>();
 
     /// <summary>The Slice files to compile, these are the input files pass to the slicec-cs compiler.</summary>
@@ -79,7 +80,7 @@ public class SliceCCSharpTask : ToolTask
         string path = Path.Combine(ToolsPath, ToolName);
         if (!File.Exists(path))
         {
-            Log.LogError($"Slice compiler '{path}' not found. Review the IceRpcToolsPath setting");
+            Log.LogError($"Slice compiler '{path}' not found.");
         }
         return path;
     }
@@ -87,7 +88,7 @@ public class SliceCCSharpTask : ToolTask
     /// <inheritdoc/>
     protected override string GetWorkingDirectory() => WorkingDirectory;
 
-    /// <summary> Process the diagnostics emitted by the slicec-cs compiler and send them to the MSBuild logger.
+    /// <summary> Process the diagnostics emitted by the slicec-cs compiler and log them with the MSBuild logger.
     /// </summary>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
     {
@@ -150,17 +151,33 @@ public class SliceCCSharpTask : ToolTask
                 // Log additional notes as messages
                 foreach (Note note in diagnostic.Notes ?? Enumerable.Empty<Note>())
                 {
-                    Log.LogMessage(
-                        "",
-                        diagnostic.ErrorCode ?? "E000",
-                        "",
-                        note.Span?.File,
-                        note.Span?.Start.Row ?? 0,
-                        note.Span?.Start.Col ?? 0,
-                        note.Span?.End.Row ?? 0,
-                        note.Span?.End.Col ?? 0,
-                        MessageImportance.High,
-                        note.Message);
+                    if (diagnostic.Severity == "error")
+                    {
+                        Log.LogError(
+                            "",
+                            diagnostic.ErrorCode ?? "E000",
+                            "",
+                            note.Span?.File,
+                            note.Span?.Start.Row ?? 0,
+                            note.Span?.Start.Col ?? 0,
+                            note.Span?.End.Row ?? 0,
+                            note.Span?.End.Col ?? 0,
+                            note.Message);
+                    }
+                    else
+                    {
+                        Debug.Assert(diagnostic.Severity == "warning");
+                        Log.LogWarning(
+                            "",
+                            diagnostic.ErrorCode ?? "W000",
+                            "",
+                            note.Span?.File,
+                            note.Span?.Start.Row ?? 0,
+                            note.Span?.Start.Col ?? 0,
+                            note.Span?.End.Row ?? 0,
+                            note.Span?.End.Col ?? 0,
+                            note.Message);
+                    }
                 }
             }
 
