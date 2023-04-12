@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.CompilerServices;
 
 namespace IceRpc.Builder.Internal;
 
@@ -52,9 +53,7 @@ internal class DispatcherBuilder : IDispatcherBuilder
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancellationToken) =>
     {
         AsyncServiceScope asyncScope = ServiceProvider.CreateAsyncScope();
-#pragma warning disable IDE0008 //Use explicit type instead of var
-        await using var _ = asyncScope.ConfigureAwait(false);
-#pragma warning restore IDE0008
+        await using ConfiguredAsyncDisposable _ = asyncScope.ConfigureAwait(false);
 
         request.Features = request.Features.With<IServiceProviderFeature>(
             new ServiceProviderFeature(asyncScope.ServiceProvider));

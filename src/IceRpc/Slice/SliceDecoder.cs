@@ -693,9 +693,9 @@ public ref partial struct SliceDecoder
                             _reader.Advance(size);
                         }
 
-#pragma warning disable IDE0008 //Use explicit type instead of var
-                        var builder = ImmutableDictionary.CreateBuilder<string, string>();
-#pragma warning restore IDE0008
+                        ImmutableDictionary<string, string>.Builder builder =
+                            ImmutableDictionary.CreateBuilder<string, string>();
+
                         builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
                         builder.Add("v", Convert.ToBase64String(vSpan));
 
