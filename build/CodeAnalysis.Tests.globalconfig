@@ -12,6 +12,9 @@ dotnet_diagnostic.CA2007.severity = none
 # CA5394: Do not use insecure randomness
 dotnet_diagnostic.CA5394.severity = none
 
+# IDE0008: Use explicit type instead of 'var'
+dotnet_diagnostic.IDE0008.severity = none
+
 # SA0001: XML comment analysis is disabled due to project configuration
 dotnet_diagnostic.SA0001.severity = none
 

@@ -98,9 +98,9 @@ public class MemoryBufferWriterTests
     {
         var writer = new MemoryBufferWriter(new byte[10]);
 
-        Span<byte> span = writer.GetSpan();
+        _ = writer.GetSpan();
         writer.Advance(4);
-        span = writer.GetSpan();
+        Span<byte> span = writer.GetSpan();
 
         Assert.That(span.Length, Is.EqualTo(6));
     }

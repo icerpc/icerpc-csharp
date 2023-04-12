@@ -52,7 +52,9 @@ internal class DispatcherBuilder : IDispatcherBuilder
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancellationToken) =>
     {
         AsyncServiceScope asyncScope = ServiceProvider.CreateAsyncScope();
+#pragma warning disable IDE0008 //Use explicit type instead of var
         await using var _ = asyncScope.ConfigureAwait(false);
+#pragma warning restore IDE0008
 
         request.Features = request.Features.With<IServiceProviderFeature>(
             new ServiceProviderFeature(asyncScope.ServiceProvider));

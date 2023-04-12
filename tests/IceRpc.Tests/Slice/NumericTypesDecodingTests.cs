@@ -101,7 +101,7 @@ public class NumericTypesDecodingTests
     /// <summary>Tests that attempting to decode a variable length unsigned int that that is out of bound throws
     /// an <see cref="InvalidDataException" />.</summary>
     /// <param name="value">A long to encode into a byte array that will fail to be decoded into an uint.</param>
-    [TestCase((ulong)UInt32.MaxValue + 1)]
+    [TestCase((ulong)uint.MaxValue + 1)]
     public void Decode_varuint_invalid_data_fails(ulong value)
     {
         Assert.That(() =>

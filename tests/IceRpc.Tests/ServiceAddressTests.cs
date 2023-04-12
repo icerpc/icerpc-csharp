@@ -473,10 +473,10 @@ public class ServiceAddressTests
         Assert.Throws(Is.InstanceOf<ArgumentException>(), () => new ServiceAddress(uri));
 
     [Test, TestCaseSource(nameof(AltServerAddressesSource))]
-    public void Create_service_address_with_alt_server(ServiceAddress serviceAddress, ServerAddress[] altServerAddresses)
-    {
+    public void Create_service_address_with_alt_server(
+        ServiceAddress serviceAddress,
+        ServerAddress[] altServerAddresses) =>
         Assert.That(serviceAddress.AltServerAddresses, Is.EqualTo(altServerAddresses));
-    }
 
     [Test, TestCaseSource(nameof(ServiceAddressToUriSource))]
     public void Relative_service_address_to_uri(ServiceAddress serviceAddress, string expected)

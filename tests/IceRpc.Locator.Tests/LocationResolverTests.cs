@@ -125,7 +125,7 @@ public class LocationResolverTests
 
         Assert.That(fromCache, Is.False);
         Assert.That(resolved, Is.Null);
-        Assert.That(serverAddressCache.Removed.Contains(location), Is.True);
+        Assert.That(serverAddressCache.Removed, Does.Contain(location));
         Assert.That(serverAddressFinder.Calls, Is.EqualTo(1));
     }
 
