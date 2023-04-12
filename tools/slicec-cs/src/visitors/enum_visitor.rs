@@ -76,7 +76,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         format!(
-            r#"Provides an extension method for creating {} <see cref="{escaped_identifier}" /> from {} <see cref="{cs_type}" />."#,
+            r#"Provides an extension method for creating {} <see cref="{escaped_identifier}" /> from {} <see langword="{cs_type}" />."#,
             in_definite::get_a_or_an(&escaped_identifier),
             in_definite::get_a_or_an(&cs_type),
         ),
