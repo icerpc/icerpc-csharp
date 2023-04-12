@@ -2,6 +2,6 @@
 
 /* Checkout https://getbootstrap.com/docs/5.3/customize/color/ for more customization options */
 body {
-  --bs-link-color-rgb: #43a0f7 !important;
-  --bs-link-hover-color-rgb: #3f97ea !important;
+  --bs-link-color-rgb: 69, 161, 247 !important;
+  --bs-link-hover-color-rgb: 63, 151, 234 !important;
 }
