@@ -180,7 +180,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     builder.add_comment(
         "summary",
-        format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
+        format!(r#"Provides an extension method for encoding a <see cref="{escaped_identifier}" /> using a <see cref="SliceEncoder" />."#),
     );
 
     // Enum encoding
@@ -215,7 +215,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
 
     builder.add_comment(
         "summary",
-        format!(r#"Provide extension methods for encoding <see cref="{escaped_identifier}" />."#),
+        format!(r#"Provides an extension method for decoding a <see cref="{escaped_identifier}" /> using a <see cref="SliceDecoder" />."#),
     );
 
     let underlying_extensions_class = format!(
