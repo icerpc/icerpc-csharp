@@ -2,10 +2,11 @@
 
 ## Packaging
 
-When the `SLICE_TOOLS_PATH` MSBuild property is set, the NuGet package includes the `slicec-cs` compiler for all
+When the `SLICEC_CS_STAGING_PATH` MSBuild property is set, the NuGet package includes the `slicec-cs` compiler for all
 supported platforms instead of including the `slice-cs` compiler from the current source build. To create the package
 with all supported compilers, you must ensure that the binaries are available in the directory specified by
-`SLICE_TOOLS_PATH`. The expected layout for `SLICE_TOOLS_PATH` is `<os-name>-<os-arch>/<compiler-executable>`.
+`SLICEC_CS_STAGING_PATH`. The expected layout for `SLICEC_CS_STAGING_PATH ` is
+`<os-name>-<os-arch>/<compiler-executable>`.
 
 The supported `<os-name>-<os-arch>` combinations are:
 

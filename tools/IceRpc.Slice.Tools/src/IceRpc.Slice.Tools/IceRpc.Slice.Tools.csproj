@@ -20,7 +20,7 @@
       <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
       <PackageIcon>logo.png</PackageIcon>
       <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-      <Description>IceRPC Slice compiler tasks for MSBuild C# projects.</Description>
+      <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
       <PackageReleaseNotes>CHANGELOG.md</PackageReleaseNotes>
       <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
       <PackageTags>IceRPC;MSbuild;Slice</PackageTags>
@@ -90,26 +90,26 @@
       <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
    </ItemGroup>
    <Choose>
-      <When Condition="Exists('$(ICERPC_SLICE_TOOLS_PATH)')">
+      <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
          <!-- Use the pre-built compilers from ICERPC_SLICE_TOOLS_PATH. -->
          <ItemGroup>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/linux-x64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/linux-x64/slicec-cs">
                <PackagePath>tools/linux-x64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/linux-arm64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/linux-arm64/slicec-cs">
                <PackagePath>tools/linux-arm64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/macos-x64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/macos-x64/slicec-cs">
                <PackagePath>tools/macos-x64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/macos-arm64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/macos-arm64/slicec-cs">
                <PackagePath>tools/macos-arm64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/windows-x64/slicec-cs.exe">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe">
                <PackagePath>tools/windows-x64/</PackagePath>
                <Pack>true</Pack>
             </Content>

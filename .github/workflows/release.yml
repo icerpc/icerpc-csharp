@@ -71,7 +71,7 @@ jobs:
         working-directory: tools/IceRpc.Slice.Tools
         run: dotnet pack --configuration Release --output ../../
         env:
-          ICERPC_SLICE_TOOLS_PATH: /tmp/tools
+          SLICEC_CS_STAGING_PATH: /tmp/tools
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
