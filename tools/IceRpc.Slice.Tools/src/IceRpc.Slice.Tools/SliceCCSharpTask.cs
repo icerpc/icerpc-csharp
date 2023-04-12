@@ -13,14 +13,14 @@ using System.Text.Json.Serialization;
 
 namespace IceRpc.Slice.Tools;
 
-/// <summary>A MSbuild task to compile Slice files using IceRpc slicec-cs compiler.</summary>
+/// <summary>A MSbuild task to compile Slice files using the IceRPC slicec-cs compiler.</summary>
 public class SliceCCSharpTask : ToolTask
 {
-    /// <summary>Additional options to pass to the slicec compiler.</summary>
+    /// <summary>Additional options to pass to the <c>slicec-cs</c> compiler.</summary>
     public string[] AdditionalOptions { get; set; } = Array.Empty<string>();
 
-    /// <summary>The output directory for generated code, correspond to the <c>--output-dir</c> slicec-cs compiler
-    /// option.</summary>
+    /// <summary>The output directory for generated code, correspond to the <c>--output-dir</c> option of the
+    /// <c>slicec-cs</c> compiler.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
 
