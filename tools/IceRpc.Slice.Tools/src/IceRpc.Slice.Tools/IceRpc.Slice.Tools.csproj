@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-   <Import Project="$(MSBuildThisFileDirectory)PlatformInfo.props" />
    <Import Project="$(MSBuildThisFileDirectory)../../../../build/IceRpc.Version.props" />
    <PropertyGroup>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
       <Version>$(IceRpcVersion)</Version>
+      <!--
+        The target framework is netstandard2.0 to support Visual Studio
+        see https://learn.microsoft.com/en-us/visualstudio/msbuild/tutorial-custom-task-code-generation?view=vs-2022#create-the-appsettingstronglytyped-project.
+      -->
       <TargetFramework>netstandard2.0</TargetFramework>
       <LangVersion>10.0</LangVersion>
       <AnalysisMode>AllEnabledByDefault</AnalysisMode>
@@ -16,7 +19,7 @@
       <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
       <PackageIcon>logo.png</PackageIcon>
       <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-      <Description>IceRPC builder for MSBuild</Description>
+      <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
       <PackageReleaseNotes>CHANGELOG.md</PackageReleaseNotes>
       <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
       <PackageTags>IceRPC;MSbuild;Slice</PackageTags>
@@ -32,6 +35,11 @@
       <RustConfiguration Condition="'$(Configuration)' == 'Debug'">debug</RustConfiguration>
       <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
       <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
+      <!-- Internal properties used to compute the slicec-cs compiler location for the current platform. -->
+      <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRPC_OSName>
+      <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRPC_OSName>
+      <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRPC_OSName>
+      <IceRPC_OSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRPC_OSArch>
    </PropertyGroup>
    <ItemGroup>
       <PackageReference Include="Microsoft.Build.Framework" Version="16.11.0" />
@@ -49,10 +57,6 @@
       </Content>
       <Content Include="../../README.md">
          <PackagePath />
-         <Pack>true</Pack>
-      </Content>
-      <Content Include="PlatformInfo.props">
-         <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
       <Content Include="IceRpc.Slice.Tools.props">
@@ -86,27 +90,26 @@
       <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
    </ItemGroup>
    <Choose>
-      <When Condition="'$(ICERPC_RELEASE_BUILD)' == 'yes'">
-         <!-- When ICERPC_RELEASE_BUILD is set the NuGet package includes the slicec-cs compiler for all supported platforms.
-         The binaries must be pre-built and stored in ICERPC_SLICE_TOOLS_PATH. -->
+      <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
+         <!-- Use the pre-built compilers from ICERPC_SLICE_TOOLS_PATH. -->
          <ItemGroup>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/linux-x64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/linux-x64/slicec-cs">
                <PackagePath>tools/linux-x64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/linux-arm64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/linux-arm64/slicec-cs">
                <PackagePath>tools/linux-arm64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/macos-x64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/macos-x64/slicec-cs">
                <PackagePath>tools/macos-x64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/macos-arm64/slicec-cs">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/macos-arm64/slicec-cs">
                <PackagePath>tools/macos-arm64/</PackagePath>
                <Pack>true</Pack>
             </Content>
-            <Content Include="$(ICERPC_SLICE_TOOLS_PATH)/windows-x64/slicec-cs.exe">
+            <Content Include="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe">
                <PackagePath>tools/windows-x64/</PackagePath>
                <Pack>true</Pack>
             </Content>
@@ -114,9 +117,9 @@
       </When>
       <Otherwise>
          <ItemGroup>
-            <!-- Otherwise just include the slicec-cs from the current build -->
+            <!-- Use the compilers from this source build. -->
             <Content Include="../../../slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
-               <PackagePath>tools/$(OSName)-$(OSArch)/</PackagePath>
+               <PackagePath>tools/$(IceRPC_OSName)-$(IceRPC_OSArch)/</PackagePath>
                <Pack>true</Pack>
             </Content>
          </ItemGroup>

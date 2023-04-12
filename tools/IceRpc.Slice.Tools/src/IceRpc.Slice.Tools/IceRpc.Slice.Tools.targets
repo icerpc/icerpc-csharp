@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <!-- Import our custom MSbuild tasks used to build IceRpc for CSharp projects -->
-    <UsingTask TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
-               AssemblyFile="$(SliceToolsTaskAssembliesPath)\IceRpc.Slice.Tools.dll" />
+    <!-- Import SliceCCSharpTask -->
+    <UsingTask
+        TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
+        AssemblyFile="$(SliceToolsTaskAssembliesPath)\IceRpc.Slice.Tools.dll" />
 
     <ItemGroup>
         <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProjectItemsSchema.xaml" />
@@ -16,7 +17,7 @@
         <AvailableItemName Include="SliceC"/>
     </ItemGroup>
 
-    <!-- This capability is used to apply the Slice property page designer -->
+    <!-- This capability is used to apply the SliceC property page designer -->
     <ItemGroup>
         <ProjectCapability Include="SliceC" />
     </ItemGroup>
@@ -28,7 +29,10 @@
         </SliceC>
     </ItemGroup>
 
-    <!-- When enable default items is true, *.slice files are included as None items we remove them here -->
+    <!--
+        When EnableDefaultItems property is true, *.slice files are included as "None" items. We remove them here, to
+        include them as "SliceC" items later.
+    -->
     <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
         <None Remove="**\*.slice"/>
     </ItemGroup>
@@ -43,7 +47,7 @@
         <MakeDir Directories="%(SliceC.OutputDir)"/>
 
         <!-- Compile the Slice files -->
-        <SlicecCSharpTask
+        <SliceCCSharpTask
             WorkingDirectory      = "$(MSBuildProjectDirectory)"
             OutputDir             = "%(SliceC.OutputDir)"
             ReferencedFiles       = "%(SliceC.ReferencedFiles);$(SliceBuiltInFilesPath)"
@@ -55,11 +59,12 @@
             Include all C# generated source items that have not been already included. We delay this until we are
             running the SliceC target so that default includes are already processed.
         -->
-
         <ItemGroup>
             <SliceC>
-                <!-- Add GeneratePath metadata with the normalized path, this is required for excludes bellow to work
-                     with different path separators. -->
+                <!--
+                    Add GeneratePath metadata with the normalized path, this is required for excludes below to work
+                    with different path separators.
+                -->
                 <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
             </SliceC>
             <Compile Include="@(SliceC->'%(GeneratedPath)')"
