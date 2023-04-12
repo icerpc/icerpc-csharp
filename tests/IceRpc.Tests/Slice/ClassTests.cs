@@ -67,7 +67,7 @@ public sealed class ClassTests
             Is.EqualTo(
                 (byte)Slice1Definitions.TypeIdKind.String |  // The first Slice include a type Id
                 (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
 
         // MyClassA.theB member encoded inline (2 Slices)
 
@@ -75,7 +75,7 @@ public sealed class ClassTests
 
         // theB - First Slice
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         // theB - Second Slice
@@ -93,7 +93,7 @@ public sealed class ClassTests
         Assert.That(
             decoder.DecodeUInt8(),
             Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetSliceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
@@ -126,7 +126,7 @@ public sealed class ClassTests
                 (byte)Slice1Definitions.SliceFlags.HasSliceSize |        // table and the Slice size for MyClassA
                 (byte)Slice1Definitions.SliceFlags.IsLastSlice));
 
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
 
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size (int size + two references)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1));  // Reference the first entry in the indirection table
@@ -144,7 +144,7 @@ public sealed class ClassTests
             Is.EqualTo(
                 (byte)Slice1Definitions.TypeIdKind.String |
                 (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
@@ -172,7 +172,7 @@ public sealed class ClassTests
                 (byte)Slice1Definitions.TypeIdKind.String |
                 (byte)Slice1Definitions.SliceFlags.HasSliceSize |
                 (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
@@ -213,7 +213,7 @@ public sealed class ClassTests
         Assert.That(
             decoder.DecodeUInt8(),
             Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
 
         // MyClassA.theB member encoded inline (2 Slices)
 
@@ -221,7 +221,7 @@ public sealed class ClassTests
 
         // theB - First Slice
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null reference
 
         // theB - Second Slice
@@ -235,7 +235,7 @@ public sealed class ClassTests
         Assert.That(
             decoder.DecodeUInt8(),
             Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetSliceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(3)); // reference to the 3rd instance
 
         // MyClassA.TheC encoded as an index
@@ -276,7 +276,7 @@ public sealed class ClassTests
                 (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
                 (byte)Slice1Definitions.SliceFlags.HasSliceSize |
                 (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6)); // Slice size
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // (reference 1st entry of the indirection table)
@@ -294,7 +294,7 @@ public sealed class ClassTests
                 (byte)Slice1Definitions.SliceFlags.HasSliceSize));
 
         // theB - First Slice
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
@@ -325,7 +325,7 @@ public sealed class ClassTests
                 (byte)Slice1Definitions.SliceFlags.IsLastSlice));
 
         // First Slice
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassC.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassC).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5)); // Slice size (int size + one reference)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // reference 1st entry of the indirection table
 
@@ -422,7 +422,7 @@ public sealed class ClassTests
                     (byte)Slice1Definitions.TypeIdKind.String |
                     (byte)Slice1Definitions.SliceFlags.HasTaggedMembers));
 
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyDerivedClassWithTaggedMembers.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyDerivedClassWithTaggedMembers).GetSliceTypeId()));
 
         // MyDerivedClassWithTaggedMembers.B
         if (b is not null)
@@ -469,7 +469,7 @@ public sealed class ClassTests
         encoder.EncodeUInt8(
             (byte)Slice1Definitions.TypeIdKind.String |  // The first Slice include a type Id
             (byte)Slice1Definitions.SliceFlags.IsLastSlice);
-        encoder.EncodeString(MyClassA.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassA).GetSliceTypeId()!);
 
         // MyClassA.theB member encoded inline (2 Slices)
 
@@ -477,7 +477,7 @@ public sealed class ClassTests
 
         // MyClassA.theB - First Slice
         encoder.EncodeUInt8((byte)Slice1Definitions.TypeIdKind.String);
-        encoder.EncodeString(MyClassB.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassB).GetSliceTypeId()!);
         encoder.EncodeSize(0); // null instance
 
         // MyClassA.theB - Second Slice
@@ -492,7 +492,7 @@ public sealed class ClassTests
         // MyClassA.theC - First Slice
         encoder.EncodeUInt8(
             (byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice);
-        encoder.EncodeString(MyClassC.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassC).GetSliceTypeId()!);
         encoder.EncodeSize(0); // null instance
 
         var decoder = new SliceDecoder(
@@ -532,7 +532,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.SliceFlags.HasSliceSize |        // table and the Slice size for MyClassA
             (byte)Slice1Definitions.SliceFlags.IsLastSlice);
 
-        encoder.EncodeString(MyClassA.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassA).GetSliceTypeId()!);
 
         encoder.EncodeInt32(6); // Slice size (int size + two references)
         encoder.EncodeSize(1);  // Reference the first entry in the indirection table
@@ -548,7 +548,7 @@ public sealed class ClassTests
         encoder.EncodeUInt8(
             (byte)Slice1Definitions.TypeIdKind.String |
             (byte)Slice1Definitions.SliceFlags.HasSliceSize);
-        encoder.EncodeString(MyClassB.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassB).GetSliceTypeId()!);
         encoder.EncodeInt32(5); // Slice size (int size + one reference)
         encoder.EncodeSize(0); // null instance
 
@@ -571,7 +571,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.TypeIdKind.String |
             (byte)Slice1Definitions.SliceFlags.HasSliceSize |
             (byte)Slice1Definitions.SliceFlags.IsLastSlice);
-        encoder.EncodeString(MyClassC.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassC).GetSliceTypeId()!);
         encoder.EncodeInt32(5); // Slice size (int size + one reference)
         encoder.EncodeSize(0); // null instance
 
@@ -611,7 +611,7 @@ public sealed class ClassTests
         encoder.EncodeSize(1); // Instance marker
 
         encoder.EncodeUInt8((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice);
-        encoder.EncodeString(MyClassA.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassA).GetSliceTypeId()!);
 
         // MyClassA.theB member encoded inline (2 Slices)
 
@@ -619,7 +619,7 @@ public sealed class ClassTests
 
         // theB - First Slice
         encoder.EncodeUInt8((byte)Slice1Definitions.TypeIdKind.String);
-        encoder.EncodeString(MyClassB.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassB).GetSliceTypeId()!);
         encoder.EncodeSize(0); // null reference
 
         // theB - Second Slice
@@ -632,7 +632,7 @@ public sealed class ClassTests
         // MyClassA.theB.theC encoded inline (1 Slice)
         encoder.EncodeUInt8(
             (byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice);
-        encoder.EncodeString(MyClassC.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassC).GetSliceTypeId()!);
         encoder.EncodeSize(3); // reference to instance with index 3
 
         // MyClassA.TheC encoded as an index
@@ -675,7 +675,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.SliceFlags.HasIndirectionTable |
             (byte)Slice1Definitions.SliceFlags.HasSliceSize |
             (byte)Slice1Definitions.SliceFlags.IsLastSlice);
-        encoder.EncodeString(MyClassA.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassA).GetSliceTypeId()!);
         encoder.EncodeInt32(6); // Slice size
 
         encoder.EncodeSize(1); // (reference 1st entry of the indirection table)
@@ -692,7 +692,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.SliceFlags.HasSliceSize);
 
         // theB - First Slice
-        encoder.EncodeString(MyClassB.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassB).GetSliceTypeId()!);
         encoder.EncodeInt32(5); // Slice size (int size + one reference)
         encoder.EncodeSize(0); // null instance
 
@@ -719,7 +719,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.SliceFlags.IsLastSlice);
 
         // First Slice
-        encoder.EncodeString(MyClassC.SliceTypeId);
+        encoder.EncodeString(typeof(MyClassC).GetSliceTypeId()!);
         encoder.EncodeInt32(5); // Slice size (int size + one reference)
         encoder.EncodeSize(1); // reference 1st entry of the indirection table
 
@@ -831,7 +831,7 @@ public sealed class ClassTests
         }
         encoder.EncodeUInt8(sliceFlags);
 
-        encoder.EncodeString(MyDerivedClassWithTaggedMembers.SliceTypeId);
+        encoder.EncodeString(typeof(MyDerivedClassWithTaggedMembers).GetSliceTypeId()!);
 
         // MyDerivedClassWithTaggedMembers.B
         if (b is not null)
@@ -908,7 +908,7 @@ public sealed class ClassTests
 
         // First Slice
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         // Second Slice
@@ -939,7 +939,7 @@ public sealed class ClassTests
         Assert.That(
             decoder.DecodeUInt8(),
             Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
@@ -948,7 +948,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.TypeIdKind.String |
             (byte)Slice1Definitions.SliceFlags.HasSliceSize |
             (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
@@ -974,7 +974,7 @@ public sealed class ClassTests
 
         // First Slice
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
         // Second Slice
@@ -1005,7 +1005,7 @@ public sealed class ClassTests
         Assert.That(
             decoder.DecodeUInt8(),
             Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.HasSliceSize));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassB.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassB).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(5));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
@@ -1014,7 +1014,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.TypeIdKind.String |
             (byte)Slice1Definitions.SliceFlags.HasSliceSize |
             (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(MyClassA).GetSliceTypeId()));
         Assert.That(decoder.DecodeInt32(), Is.EqualTo(6));
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance

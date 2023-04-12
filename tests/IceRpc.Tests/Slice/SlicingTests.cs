@@ -31,7 +31,7 @@ public class SlicingTests
                     typeof(SlicingDerivedClass).Assembly,
                     typeof(SlicingBaseClass).Assembly
                 }),
-            slicedTypeIds: ImmutableList.Create(SlicingMostDerivedClass.SliceTypeId));
+            slicedTypeIds: ImmutableList.Create(typeof(SlicingMostDerivedClass).GetSliceTypeId()!));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
 
         // Act
@@ -62,7 +62,7 @@ public class SlicingTests
         // the Slices are preserved.
         var slicingActivator = new SlicingActivator(
             SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly),
-            slicedTypeIds: ImmutableList.Create(SlicingPreservedDerivedClass1.SliceTypeId));
+            slicedTypeIds: ImmutableList.Create(typeof(SlicingPreservedDerivedClass1).GetSliceTypeId()!));
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
         SliceClass? r1 = decoder.DecodeClass<SliceClass>();

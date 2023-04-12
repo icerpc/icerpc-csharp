@@ -135,7 +135,7 @@ public class TaggedTests
             flags |= (byte)Slice1Definitions.SliceFlags.HasTaggedMembers;
         }
         encoder.EncodeUInt8(flags);
-        encoder.EncodeString(ClassWithTaggedMembers.SliceTypeId);
+        encoder.EncodeString(typeof(ClassWithTaggedMembers).GetSliceTypeId()!);
 
         if (expected.A is not null)
         {
@@ -325,7 +325,7 @@ public class TaggedTests
         }
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(flags));
 
-        Assert.That(decoder.DecodeString(), Is.EqualTo(ClassWithTaggedMembers.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(typeof(ClassWithTaggedMembers).GetSliceTypeId()));
 
         Assert.That(
             decoder.DecodeTagged(

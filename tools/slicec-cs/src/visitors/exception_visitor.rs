@@ -57,11 +57,8 @@ impl Visitor for ExceptionVisitor<'_> {
 
         if exception_def.supported_encodings().supports(&Encoding::Slice1) {
             exception_class_builder.add_block(
-                format!(
-                    "public static{}readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;",
-                    if has_base { " new " } else { " " },
-                )
-                .into(),
+                format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;")
+                    .into(),
             );
         }
 
@@ -139,6 +136,7 @@ ConvertToUnhandled = true;",
                         }
                         code
                     })
+                    .add_never_editor_browsable_attribute()
                     .build(),
             );
         }
@@ -188,6 +186,7 @@ encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
     FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
         .add_parameter("ref SliceEncoder", "encoder", None, None)
         .set_body(body)
+        .add_never_editor_browsable_attribute()
         .build()
 }
 
