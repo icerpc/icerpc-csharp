@@ -103,9 +103,14 @@ impl<'a> Visitor for StructVisitor<'a> {
             )
             .add_comment(
                 "summary",
-                format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> from a decoder."#),
+                format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> from a Slice decoder."#),
             )
-            .add_parameter("ref SliceDecoder", "decoder", None, Some("The decoder.".to_owned()))
+            .add_parameter(
+                "ref SliceDecoder",
+                "decoder",
+                None,
+                Some("The Slice decoder.".to_owned()),
+            )
             .set_body(decode_body)
             .build(),
         );
@@ -135,8 +140,13 @@ impl<'a> Visitor for StructVisitor<'a> {
                 "Encode",
                 FunctionType::BlockBody,
             )
-            .add_comment("summary", "Encodes the fields of this struct.")
-            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder.".to_owned()))
+            .add_comment("summary", "Encodes the fields of this struct with a Slice encoder.")
+            .add_parameter(
+                "ref SliceEncoder",
+                "encoder",
+                None,
+                Some("The Slice encoder.".to_owned()),
+            )
             .set_body(encode_body)
             .build(),
         );
