@@ -327,21 +327,21 @@ impl FunctionBuilder {
         for parameter in &parameters {
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
-            let default_value = match (context, &parameter.tag, parameter.data_type.concrete_typeref()) {
-                (TypeContext::Encode, Some(_), TypeRefs::Sequence(sequence_ref)) => {
-                    let is_fixed_size_numeric = sequence_ref.has_fixed_size_numeric_elements();
-                    let no_cs_generic = sequence_ref.find_attribute(false, match_cs_generic).is_none();
-
+            let default_value = if context == TypeContext::Encode && parameter.tag.is_some() {
+                match parameter.data_type.concrete_typeref() {
                     // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
                     // 'default' as their default value. Other tagged types are mapped to nullable types and
                     // can use 'null' as the default value, which makes it clear what the default is.
-                    if is_fixed_size_numeric && no_cs_generic {
+                    TypeRefs::Sequence(sequence_ref)
+                        if sequence_ref.has_fixed_size_numeric_elements()
+                            && sequence_ref.find_attribute(false, match_cs_generic).is_none() =>
+                    {
                         Some("default")
-                    } else {
-                        Some("null")
                     }
+                    _ => Some("null"),
                 }
-                _ => None,
+            } else {
+                None
             };
             self.add_parameter(
                 &parameter_type,
