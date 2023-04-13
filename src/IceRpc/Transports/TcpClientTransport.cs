@@ -36,11 +36,16 @@ public class TcpClientTransport : IDuplexClientTransport
         DuplexConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
-        if ((serverAddress.Transport is string transport && !IsValidTransportName(transport, serverAddress.Protocol)) ||
-            !CheckParams(serverAddress))
+        if (serverAddress.Transport is string transport && !IsValidTransportName(transport, serverAddress.Protocol))
+        {
+            throw new NotSupportedException(
+                $"The Tcp client transport does not support server addresses with transport '{transport}'.");
+        }
+
+        if (!CheckParams(serverAddress))
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains query parameters that are not valid for the Tcp client transport.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp client transport.",
                 nameof(serverAddress));
         }
 
@@ -81,6 +86,31 @@ public class TcpClientTransport : IDuplexClientTransport
             options.Pool,
             options.MinSegmentSize,
             _options);
+
+        static bool CheckParams(ServerAddress serverAddress)
+        {
+            if (serverAddress.Protocol == Protocol.Ice)
+            {
+                foreach (string name in serverAddress.Params.Keys)
+                {
+                    switch (name)
+                    {
+                        case "t":
+                        case "z":
+                            // we don't check the value since we ignore it
+                            break;
+
+                        default:
+                            return false;
+                    }
+                }
+                return true;
+            }
+            else
+            {
+                return serverAddress.Params.Count == 0;
+            }
+        }
 
         static bool IsValidTransportName(string transportName, Protocol protocol) =>
             protocol == Protocol.Ice ?
@@ -126,35 +156,5 @@ public class TcpClientTransport : IDuplexClientTransport
                 (timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture)) :
                 DefaultTcpTimeout,
             compress: serverAddress.Params.ContainsKey("z")).Encode(ref encoder);
-    }
-
-    /// <summary>Checks if a server address has valid <see cref="ServerAddress.Params" />. Only the params are included
-    /// in this check.</summary>
-    /// <param name="serverAddress">The server address to check.</param>
-    /// <returns><see langword="true" /> when all params of <paramref name="serverAddress" /> are valid; otherwise,
-    /// <see langword="false" />.</returns>
-    private static bool CheckParams(ServerAddress serverAddress)
-    {
-        if (serverAddress.Protocol != Protocol.Ice)
-        {
-            return serverAddress.Params.Count == 0;
-        }
-        else
-        {
-            foreach (string name in serverAddress.Params.Keys)
-            {
-                switch (name)
-                {
-                    case "t":
-                    case "z":
-                        // we don't check the value since we ignore it
-                        break;
-
-                    default:
-                        return false;
-                }
-            }
-            return true;
-        }
     }
 }
