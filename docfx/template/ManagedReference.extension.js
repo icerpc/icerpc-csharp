@@ -13,7 +13,7 @@ exports.postTransform = function (model) {
             }
         });
 
-        const compare_enum_value = function( a, b ) {
+        const compare_enumerator_values = function( a, b ) {
             if ( a._enum_value < b._enum_value ) {
                 return -1;
             }
@@ -24,7 +24,7 @@ exports.postTransform = function (model) {
         }
 
         // Sort the enumerators in ascending order based on their values."
-        model.children[0].children = childrens.sort(compare_enum_value);
+        model.children[0].children = childrens.sort(compare_enumerator_values);
     }
 
     return model;
