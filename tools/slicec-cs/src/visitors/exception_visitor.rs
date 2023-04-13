@@ -70,12 +70,16 @@ impl Visitor for ExceptionVisitor<'_> {
         if has_base {
             exception_class_builder.add_block(
                 FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-                    .add_parameter("ref SliceDecoder", "decoder", None, None)
-                    .add_parameter("string?", "message", Some("null"), None)
+                    .add_parameter("ref SliceDecoder", "decoder", None, Some("The Slice decoder.".to_owned()))
+                    .add_parameter("string?", "message", Some("null"), Some("A message that describes the exception.".to_owned()))
                     .add_base_parameter("ref decoder")
                     .add_base_parameter("message")
                     .set_body(initialize_non_nullable_fields(&fields, FieldType::Exception))
-                    .add_never_editor_browsable_attribute()
+                    .add_comment(
+                        "summary",
+                        format!( r#"Constructs a new instance of <see cref="{}" />, decoding its fields from the given <see cref="IceRpc.Slice.SliceDecoder"/>."#,
+                                &exception_name),
+                    )
                     .build(),
             );
         } else {
@@ -84,8 +88,8 @@ impl Visitor for ExceptionVisitor<'_> {
             // generated code or the application. Hence no "never editor browsable" attribute.
             exception_class_builder.add_block(
                 FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-                    .add_parameter("ref SliceDecoder", "decoder", None, None)
-                    .add_parameter("string?", "message", Some("null"), None)
+                    .add_parameter("ref SliceDecoder", "decoder", None, Some("The Slice decoder.".to_owned()))
+                    .add_parameter("string?", "message", Some("null"), Some("A message that describes the exception.".to_owned()))
                     .add_base_parameter("message")
                     .set_body(
                         EncodingBlockBuilder::new(
@@ -114,6 +118,11 @@ ConvertToUnhandled = true;",
                             .into()
                         })
                         .build(),
+                    )
+                    .add_comment(
+                        "summary",
+                        format!( r#"Constructs a new instance of <see cref="{}" />, decoding its fields from the given <see cref="IceRpc.Slice.SliceDecoder"/>."#,
+                                &exception_name),
                     )
                     .build(),
             );
