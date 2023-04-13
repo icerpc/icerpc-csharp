@@ -15,18 +15,18 @@ public sealed class SliceInfo
     /// <summary>Gets the class instances referenced by this slice.</summary>
     public IReadOnlyList<SliceClass> Instances { get; internal set; }
 
-    /// <summary>Gets a value indicating whether or not the slice contains tagged members.</summary>
-    public bool HasTaggedMembers { get; }
+    /// <summary>Gets a value indicating whether or not the slice contains tagged fields.</summary>
+    public bool HasTaggedFields { get; }
 
     internal SliceInfo(
         string typeId,
         ReadOnlyMemory<byte> bytes,
         IReadOnlyList<SliceClass> instances,
-        bool hasTaggedMembers)
+        bool hasTaggedFields)
     {
         TypeId = typeId;
         Bytes = bytes;
         Instances = instances;
-        HasTaggedMembers = hasTaggedMembers;
+        HasTaggedFields = hasTaggedFields;
     }
 }

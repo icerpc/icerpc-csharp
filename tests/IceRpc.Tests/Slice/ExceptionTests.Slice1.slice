@@ -9,7 +9,7 @@ exception MyException {
     j: int32
 }
 
-exception MyExceptionWithTaggedMembers {
+exception MyExceptionWithTaggedFields {
     i: int32
     j: int32
     tag(1) k: int32?

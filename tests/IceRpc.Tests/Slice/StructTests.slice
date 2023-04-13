@@ -7,7 +7,7 @@ struct MyStruct {
     j: int32
 }
 
-struct MyStructWithOptionalMembers {
+struct MyStructWithOptionalFields {
     i: int32
     j: int32
     k: int32?

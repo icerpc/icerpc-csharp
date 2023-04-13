@@ -65,9 +65,9 @@ public ref partial struct SliceEncoder
             _classContext.Current.SliceFlags |= SliceFlags.IsLastSlice;
         }
 
-        // Encodes the tagged end marker if some tagged members were encoded. Note that tagged members are encoded
-        // before the indirection table and are included in the slice size.
-        if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
+        // Encodes the tagged end marker if some tagged fields were encoded. Note that tagged fields are encoded before
+        // the indirection table and are included in the slice size.
+        if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0)
         {
             EncodeUInt8(Slice1Definitions.TagEndMarker);
         }
@@ -177,9 +177,9 @@ public ref partial struct SliceEncoder
             // Writes the bytes associated with this slice.
             WriteByteSpan(sliceInfo.Bytes.Span);
 
-            if (sliceInfo.HasTaggedMembers)
+            if (sliceInfo.HasTaggedFields)
             {
-                _classContext.Current.SliceFlags |= SliceFlags.HasTaggedMembers;
+                _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
             }
 
             // Make sure to also encode the instance indirection table.

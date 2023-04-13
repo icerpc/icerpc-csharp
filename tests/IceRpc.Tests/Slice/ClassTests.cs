@@ -69,7 +69,7 @@ public sealed class ClassTests
                 (byte)Slice1Definitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
 
-        // MyClassA.theB member encoded inline (2 Slices)
+        // MyClassA.theB field encoded inline (2 Slices)
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
@@ -85,7 +85,7 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // MyClassA.theC member encoded inline (1 Slice)
+        // MyClassA.theC field encoded inline (1 Slice)
 
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(1));
 
@@ -134,7 +134,7 @@ public sealed class ClassTests
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(2));  // Size of the indirection table
 
-        // MyClassA.theB member encoded in the indirection table (2 Slices)
+        // MyClassA.theB field encoded in the indirection table (2 Slices)
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
@@ -161,7 +161,7 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
 
-        // MyClassA.theC member encoded in the indirection table (1 Slices)
+        // MyClassA.theC field encoded in the indirection table (1 Slices)
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
@@ -215,7 +215,7 @@ public sealed class ClassTests
             Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice));
         Assert.That(decoder.DecodeString(), Is.EqualTo(MyClassA.SliceTypeId));
 
-        // MyClassA.theB member encoded inline (2 Slices)
+        // MyClassA.theB field encoded inline (2 Slices)
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
 
@@ -284,7 +284,7 @@ public sealed class ClassTests
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(2)); // Indirection table size
 
-        // MyClassA.theB member encoded in the indirection table (2 Slices)
+        // MyClassA.theB field encoded in the indirection table (2 Slices)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         // First Slice
         Assert.That(
@@ -314,7 +314,7 @@ public sealed class ClassTests
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Indirection table size
 
-        // MyClassA.theB.theC member encoded in the indirection table (1 Slice)
+        // MyClassA.theB.theC field encoded in the indirection table (1 Slice)
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(
             decoder.DecodeUInt8(),
@@ -400,7 +400,7 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Encode_class_with_tagged_members_and_compact_format(
+    public void Encode_class_with_tagged_fields_and_compact_format(
         [Values(10, null)] int? a,
         [Values("hello world!", null)] string? b)
     {
@@ -409,7 +409,7 @@ public sealed class ClassTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
         // Act
-        encoder.EncodeClass(new MyDerivedClassWithTaggedMembers(a, b));
+        encoder.EncodeClass(new MyDerivedClassWithTaggedFields(a, b));
 
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
@@ -420,11 +420,11 @@ public sealed class ClassTests
                 Is.EqualTo((byte)Slice1Definitions.TypeIdKind.String) :
                 Is.EqualTo(
                     (byte)Slice1Definitions.TypeIdKind.String |
-                    (byte)Slice1Definitions.SliceFlags.HasTaggedMembers));
+                    (byte)Slice1Definitions.SliceFlags.HasTaggedFields));
 
-        Assert.That(decoder.DecodeString(), Is.EqualTo(MyDerivedClassWithTaggedMembers.SliceTypeId));
+        Assert.That(decoder.DecodeString(), Is.EqualTo(MyDerivedClassWithTaggedFields.SliceTypeId));
 
-        // MyDerivedClassWithTaggedMembers.B
+        // MyDerivedClassWithTaggedFields.B
         if (b is not null)
         {
             Assert.That(
@@ -441,9 +441,9 @@ public sealed class ClassTests
             a is null ?
                 Is.EqualTo((byte)Slice1Definitions.SliceFlags.IsLastSlice) :
                 Is.EqualTo(
-                    (byte)Slice1Definitions.SliceFlags.HasTaggedMembers |
+                    (byte)Slice1Definitions.SliceFlags.HasTaggedFields |
                     (byte)Slice1Definitions.SliceFlags.IsLastSlice));
-        // MyClassWithTaggedMembers.A
+        // MyClassWithTaggedFields.A
         if (a is not null)
         {
             Assert.That(
@@ -471,7 +471,7 @@ public sealed class ClassTests
             (byte)Slice1Definitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(MyClassA.SliceTypeId);
 
-        // MyClassA.theB member encoded inline (2 Slices)
+        // MyClassA.theB field encoded inline (2 Slices)
 
         encoder.EncodeSize(1); // Instance marker
 
@@ -485,7 +485,7 @@ public sealed class ClassTests
         encoder.EncodeSize(0); // null instance
         encoder.EncodeSize(0); // null instance
 
-        // MyClassA.theC member encoded inline (1 Slice)
+        // MyClassA.theC field encoded inline (1 Slice)
 
         encoder.EncodeSize(1); // Instance marker
 
@@ -540,7 +540,7 @@ public sealed class ClassTests
 
         encoder.EncodeSize(2);  // Size of the indirection table
 
-        // MyClassA.theB member encoded in the indirection table (2 Slices)
+        // MyClassA.theB field encoded in the indirection table (2 Slices)
 
         encoder.EncodeSize(1); // Instance marker
 
@@ -563,7 +563,7 @@ public sealed class ClassTests
         encoder.EncodeSize(0); // null instance
         encoder.EncodeSize(0); // null instance
 
-        // MyClassA.theC member encoded in the indirection table (1 Slices)
+        // MyClassA.theC field encoded in the indirection table (1 Slices)
         encoder.EncodeSize(1); // Instance marker
 
         // theC - First Slice
@@ -613,7 +613,7 @@ public sealed class ClassTests
         encoder.EncodeUInt8((byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice);
         encoder.EncodeString(MyClassA.SliceTypeId);
 
-        // MyClassA.theB member encoded inline (2 Slices)
+        // MyClassA.theB field encoded inline (2 Slices)
 
         encoder.EncodeSize(1); // Instance marker
 
@@ -683,7 +683,7 @@ public sealed class ClassTests
 
         encoder.EncodeSize(2); // Indirection table size
 
-        // MyClassA.theB member encoded in the indirection table (2 Slices)
+        // MyClassA.theB field encoded in the indirection table (2 Slices)
         encoder.EncodeSize(1); // Instance marker
 
         // First Slice
@@ -710,7 +710,7 @@ public sealed class ClassTests
 
         encoder.EncodeSize(1); // Indirection table size
 
-        // MyClassA.theB.theC member encoded in the indirection table (1 Slice)
+        // MyClassA.theB.theC field encoded in the indirection table (1 Slice)
         encoder.EncodeSize(1); // Instance marker
         encoder.EncodeUInt8(
             (byte)Slice1Definitions.TypeIdKind.String |
@@ -814,7 +814,7 @@ public sealed class ClassTests
     }
 
     [Test]
-    public void Decode_class_with_tagged_members_and_compact_format(
+    public void Decode_class_with_tagged_fields_and_compact_format(
         [Values(10, null)] int? a,
         [Values("hello world!", null)] string? b,
         [Values(20, null)] long? c)
@@ -827,13 +827,13 @@ public sealed class ClassTests
         byte sliceFlags = (byte)Slice1Definitions.TypeIdKind.String;
         if (b is not null || c is not null)
         {
-            sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedMembers;
+            sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedFields;
         }
         encoder.EncodeUInt8(sliceFlags);
 
-        encoder.EncodeString(MyDerivedClassWithTaggedMembers.SliceTypeId);
+        encoder.EncodeString(MyDerivedClassWithTaggedFields.SliceTypeId);
 
-        // MyDerivedClassWithTaggedMembers.B
+        // MyDerivedClassWithTaggedFields.B
         if (b is not null)
         {
             encoder.EncodeTagged(
@@ -845,7 +845,7 @@ public sealed class ClassTests
 
         if (c is not null)
         {
-            // Additional tagged member not defined in Slice
+            // Additional tagged field not defined in Slice
             encoder.EncodeTagged(
                 30,
                 TagFormat.F8,
@@ -861,11 +861,11 @@ public sealed class ClassTests
         sliceFlags = (byte)Slice1Definitions.SliceFlags.IsLastSlice;
         if (a is not null)
         {
-            sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedMembers;
+            sliceFlags |= (byte)Slice1Definitions.SliceFlags.HasTaggedFields;
         }
         encoder.EncodeUInt8(sliceFlags);
 
-        // MyClassWithTaggedMembers.A
+        // MyClassWithTaggedFields.A
         if (a is not null)
         {
             encoder.EncodeTagged(
@@ -878,14 +878,14 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedClassWithTaggedMembers).Assembly));
+            activator: SliceDecoder.GetActivator(typeof(MyDerivedClassWithTaggedFields).Assembly));
 
         // Act
-        var classWithTaggedMembers = decoder.DecodeClass<MyDerivedClassWithTaggedMembers>();
+        var classWithTaggedFields = decoder.DecodeClass<MyDerivedClassWithTaggedFields>();
 
         // Assert
-        Assert.That(classWithTaggedMembers.A, Is.EqualTo(a));
-        Assert.That(classWithTaggedMembers.B, Is.EqualTo(b));
+        Assert.That(classWithTaggedFields.A, Is.EqualTo(a));
+        Assert.That(classWithTaggedFields.B, Is.EqualTo(b));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
