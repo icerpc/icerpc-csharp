@@ -142,8 +142,8 @@ public class ServiceAddressTests
         get
         {
             // Service address with alt servers
-            var serviceAddressWithAltServerAddresses = new ServiceAddress(new Uri(
-                "ice://localhost:8080/foo?abc=123#bar"));
+            var serviceAddressWithAltServerAddresses = new ServiceAddress(
+                new Uri("ice://localhost:8080/foo?abc=123#bar"));
             serviceAddressWithAltServerAddresses = serviceAddressWithAltServerAddresses with
             {
                 AltServerAddresses = ImmutableList.Create(
@@ -343,8 +343,8 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Constructing alternate server addresses.
-        var altServerAddresses = ImmutableList.Create(new ServerAddress(new Uri(
-            "icerpc://localhost:10000?transport=foobar")));
+        var altServerAddresses = ImmutableList.Create(new ServerAddress(
+            new Uri("icerpc://localhost:10000?transport=foobar")));
 
         // Act/Assert
         Assert.That(
@@ -518,12 +518,7 @@ public class ServiceAddressTests
         }.ToImmutableList();
 
         // Act/Assert
-        Assert.That(
-            () => serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses },
-            Throws.ArgumentException);
-
-        // Ensure the alt servers weren't updated
-        Assert.That(serviceAddress.AltServerAddresses, Is.Empty);
+        Assert.That(() => serviceAddress with { AltServerAddresses = altServerAddresses }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that setting a server address that uses a protocol different than the service address protocol
@@ -533,15 +528,10 @@ public class ServiceAddressTests
     {
         var serviceAddress = new ServiceAddress(new Uri("ice://host.zeroc.com/hello"));
         ServerAddress? serverAddress = serviceAddress.ServerAddress;
-        ServerAddress newServerAddress = new ServiceAddress(new Uri(
-            "icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
+        ServerAddress newServerAddress = new ServiceAddress(
+            new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
 
-        Assert.That(
-            () => serviceAddress = serviceAddress with { ServerAddress = newServerAddress },
-            Throws.ArgumentException);
-
-        // Ensure the server address wasn't updated
-        Assert.That(serviceAddress.ServerAddress, Is.EqualTo(serverAddress));
+        Assert.That(() => serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that we can set the fragment on an ice service address</summary>
