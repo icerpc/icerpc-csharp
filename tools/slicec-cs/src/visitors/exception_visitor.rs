@@ -77,7 +77,7 @@ impl Visitor for ExceptionVisitor<'_> {
                     .set_body(initialize_non_nullable_fields(&fields, FieldType::Exception))
                     .add_comment(
                         "summary",
-                        format!( r#"Constructs a new instance of <see cref="{}" />, decoding its fields from the given <see cref="IceRpc.Slice.SliceDecoder"/>."#,
+                        format!( r#"Constructs a new instance of <see cref="{}" />, decoding its fields with the given <see cref="IceRpc.Slice.SliceDecoder" />."#,
                                 &exception_name),
                     )
                     .build(),
@@ -121,7 +121,7 @@ ConvertToUnhandled = true;",
                     )
                     .add_comment(
                         "summary",
-                        format!( r#"Constructs a new instance of <see cref="{}" />, decoding its fields from the given <see cref="IceRpc.Slice.SliceDecoder"/>."#,
+                        format!( r#"Constructs a new instance of <see cref="{}" />, decoding its fields with the given <see cref="IceRpc.Slice.SliceDecoder" />."#,
                                 &exception_name),
                     )
                     .build(),
