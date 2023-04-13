@@ -555,9 +555,9 @@ public sealed class Server : IAsyncDisposable
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> with error <see cref="IceRpcError.OperationAborted" /> if the
     /// server is disposed while being shut down.</description></item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException" />if the shutdown timed out.</description></item>
+    /// <item><description><see cref="TimeoutException" /> if the shutdown timed out.</description></item>
     /// </list>
     /// </returns>
     /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>

@@ -25,10 +25,10 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// the connection gets an error from its transport connection. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="AuthenticationException" />if authentication failed.</description></item>
-    /// <item><description><see cref="IceRpcException" />if the connection establishment failed.</description>
+    /// <item><description><see cref="AuthenticationException" /> if authentication failed.</description></item>
+    /// <item><description><see cref="IceRpcException" /> if the connection establishment failed.</description>
     /// </item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
     /// </returns>
@@ -42,8 +42,8 @@ public interface IProtocolConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="IceRpcException" />if the connection shutdown failed.</description></item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="IceRpcException" /> if the connection shutdown failed.</description></item>
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
     /// </returns>

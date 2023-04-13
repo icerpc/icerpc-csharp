@@ -72,48 +72,78 @@ impl Visitor for ExceptionVisitor<'_> {
                     .add_base_parameter("ref decoder")
                     .add_base_parameter("message")
                     .set_body(initialize_non_nullable_fields(&fields, FieldType::Exception))
+                    // This is Slice1 only, there is no exception inheritance with Slice2. We hide this method because
+                    // this must be only called by the Activator.
                     .add_never_editor_browsable_attribute()
                     .build(),
             );
         } else {
             // With Slice1, this constructor should be called only by the Activator and not directly by the application
             // or generated code. With Slice2, it's a regular decoding constructor that can be called directly by the
-            // generated code or the application. Hence no "never editor browsable" attribute.
-            exception_class_builder.add_block(
-                FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-                    .add_parameter("ref SliceDecoder", "decoder", None, None)
-                    .add_parameter("string?", "message", Some("null"), None)
-                    .add_base_parameter("message")
-                    .set_body(
-                        EncodingBlockBuilder::new(
-                            "decoder.Encoding",
-                            &exception_name,
-                            exception_def.supported_encodings(),
-                            false,
-                        )
-                        .add_encoding_block(Encoding::Slice1, || {
-                            format!(
-                                "\
+            // generated code or the application.
+            let mut builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
+            builder
+                .add_parameter(
+                    "ref SliceDecoder",
+                    "decoder",
+                    None,
+                    Some("The Slice decoder.".to_owned()),
+                )
+                .add_parameter(
+                    "string?",
+                    "message",
+                    Some("null"),
+                    Some("A message that describes the exception.".to_owned()),
+                )
+                .add_base_parameter("message")
+                .set_body(
+                    EncodingBlockBuilder::new(
+                        "decoder.Encoding",
+                        &exception_name,
+                        exception_def.supported_encodings(),
+                        false,
+                    )
+                    .add_encoding_block(Encoding::Slice1, || {
+                        format!(
+                            "\
 {}
 ConvertToUnhandled = true;",
-                                initialize_non_nullable_fields(&fields, FieldType::Exception),
-                            )
-                            .into()
-                        })
-                        .add_encoding_block(Encoding::Slice2, || {
-                            format!(
-                                "\
+                            initialize_non_nullable_fields(&fields, FieldType::Exception),
+                        )
+                        .into()
+                    })
+                    .add_encoding_block(Encoding::Slice2, || {
+                        format!(
+                            "\
 {}
 decoder.SkipTagged(useTagEndMarker: true);
 ConvertToUnhandled = true;",
-                                decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2,),
-                            )
-                            .into()
-                        })
-                        .build(),
-                    )
+                            decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2,),
+                        )
+                        .into()
+                    })
                     .build(),
-            );
+                );
+
+            if exception_def.supported_encodings().supports(&Encoding::Slice2) {
+                builder.add_comment(
+                    "summary",
+                    format!(
+                        r#"Constructs a new instance of <see cref="{}" /> and decodes its fields from a Slice decoder."#,
+                        &exception_name
+                    ),
+                );
+                if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+                    builder.add_comment(
+                        "remarks",
+                        r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
+                    );
+                }
+            } else {
+                builder.add_never_editor_browsable_attribute();
+            }
+
+            exception_class_builder.add_block(builder.build());
         }
 
         if exception_def.supported_encodings().supports(&Encoding::Slice1) {
