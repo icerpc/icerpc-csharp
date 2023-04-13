@@ -103,7 +103,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             )
             .add_comment(
                 "summary",
-                format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> from a Slice decoder."#),
+                format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> and decodes its fields from a Slice decoder."#),
             )
             .add_parameter(
                 "ref SliceDecoder",
