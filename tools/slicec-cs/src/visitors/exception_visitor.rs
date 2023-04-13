@@ -83,7 +83,7 @@ impl Visitor for ExceptionVisitor<'_> {
         } else {
             // With Slice1, this constructor should be called only by the Activator and not directly by the application
             // or generated code. With Slice2, it's a regular decoding constructor that can be called directly by the
-            // generated code or the application. Hence no "never editor browsable" attribute.
+            // generated code or the application.
             let mut builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
             builder
                 .add_parameter(
@@ -132,11 +132,11 @@ ConvertToUnhandled = true;",
                 builder.add_comment(
                     "summary",
                     format!(
-                        r#"Constructs a new instance of <see cref="{}" />, decoding its fields from a Slice decoder."#,
+                        r#"Constructs a new instance of <see cref="{}" /> and decodes its fields from a Slice decoder."#,
                         &exception_name
                     ),
                 );
-                if exception_def.supported_encodings().supports(&Encoding::Slice2) {
+                if exception_def.supported_encodings().supports(&Encoding::Slice1) {
                     builder.add_comment(
                         "remarks",
                         r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
