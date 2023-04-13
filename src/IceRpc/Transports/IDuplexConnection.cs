@@ -32,9 +32,9 @@ public interface IDuplexConnection : IDisposable
     /// <returns>A task that completes successfully with transport connection information when the connection is
     /// established. This task can also complete with one of the following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="AuthenticationException" />if authentication failed.</description></item>
-    /// <item><description><see cref="IceRpcException" />if the transport reported an error.</description></item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="AuthenticationException" /> if authentication failed.</description></item>
+    /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
     /// </returns>
@@ -50,8 +50,8 @@ public interface IDuplexConnection : IDisposable
     /// This number is always greater than <c>0</c>. This value task can also complete with one of the following
     /// exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="IceRpcException" />if the transport reported an error.</description></item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
     /// </returns>
@@ -67,8 +67,8 @@ public interface IDuplexConnection : IDisposable
     /// <returns>A task that completes successfully when the shutdown completes successfully. This task can also
     /// complete with one of the following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="IceRpcException" />if the transport reported an error.</description></item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
     /// </returns>
@@ -83,8 +83,8 @@ public interface IDuplexConnection : IDisposable
     /// <returns>A value task that completes successfully when the data is written successfully. This value task can
     /// also complete with one of the following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="IceRpcException" />if the transport reported an error.</description></item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
     /// </list>
     /// </returns>
