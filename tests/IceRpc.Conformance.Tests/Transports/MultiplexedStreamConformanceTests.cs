@@ -666,7 +666,7 @@ public abstract class MultiplexedStreamConformanceTests
             new CancellationToken(canceled: true));
 
         // Assert
-        Assert.That(async () => await task,Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await task, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Creates the service collection used for multiplexed listener conformance tests.</summary>

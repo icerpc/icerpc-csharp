@@ -221,15 +221,15 @@ public sealed class IceRpcProtocolConnectionTests
             .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransportDecorator(
                 serverOperationsOptions: new()
-                    {
-                        Fail = serverConnection ? operation : MultiplexedTransportOperations.None,
-                        FailureException = exception
-                    },
+                {
+                    Fail = serverConnection ? operation : MultiplexedTransportOperations.None,
+                    FailureException = exception
+                },
                 clientOperationsOptions: new()
-                    {
-                        Fail = serverConnection ? MultiplexedTransportOperations.None : operation,
-                        FailureException = exception
-                    })
+                {
+                    Fail = serverConnection ? MultiplexedTransportOperations.None : operation,
+                    FailureException = exception
+                })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -277,13 +277,13 @@ public sealed class IceRpcProtocolConnectionTests
             .AddProtocolTest(Protocol.IceRpc)
             .AddTestMultiplexedTransportDecorator(
                 serverOperationsOptions: new()
-                    {
-                        Hold = serverConnection ? operation : MultiplexedTransportOperations.None
-                    },
+                {
+                    Hold = serverConnection ? operation : MultiplexedTransportOperations.None
+                },
                 clientOperationsOptions: new()
-                    {
-                        Hold = serverConnection ? MultiplexedTransportOperations.None : operation
-                    })
+                {
+                    Hold = serverConnection ? MultiplexedTransportOperations.None : operation
+                })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
@@ -643,16 +643,16 @@ public sealed class IceRpcProtocolConnectionTests
         // sent).
         var payload = new HoldPipeReader(new byte[10]);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
-            {
-                Payload = payload,
-            };
+        {
+            Payload = payload,
+        };
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         PipeReader remotePayload = await remotePayloadTcs.Task;
 
         // We test these two exceptions to ensure the InvokeAsync implementation let them flow and doesn't catch them to
         // wrap then.
         Exception exception =
-            operationCanceledException ? new InvalidOperationException() :  new OperationCanceledException();
+            operationCanceledException ? new InvalidOperationException() : new OperationCanceledException();
 
         // Act
         payload.SetReadException(exception);
@@ -701,9 +701,9 @@ public sealed class IceRpcProtocolConnectionTests
         // sent).
         var payload = new HoldPipeReader(new byte[10]);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
-            {
-                PayloadContinuation = payload
-            };
+        {
+            PayloadContinuation = payload
+        };
         Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request);
         PipeReader remotePayload = await remotePayloadTcs.Task;
         await invokeTask;
@@ -762,10 +762,10 @@ public sealed class IceRpcProtocolConnectionTests
         else
         {
             clientTransport.LastCreatedConnection.StreamOperationsOptions = new()
-                {
-                    Fail = operation,
-                    FailureException = failureException
-                };
+            {
+                Fail = operation,
+                FailureException = failureException
+            };
         }
 
         // Act/Assert

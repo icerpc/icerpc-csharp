@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Transports;
 using IceRpc.Tests.Common;
+using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net.Security;

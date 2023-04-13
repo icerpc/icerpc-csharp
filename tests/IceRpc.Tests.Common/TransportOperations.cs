@@ -4,7 +4,7 @@ namespace IceRpc.Tests.Common;
 
 /// <summary>A property bag used to configure a <see cref="TransportOperations{T}" />. The enum template parameter is
 /// expected to be a flags enumeration that can specify multiple operations.</summary>
-public record class TransportOperationsOptions<T> where T: struct, Enum
+public record class TransportOperationsOptions<T> where T : struct, Enum
 {
     /// <summary>The operations configured to fail.</summary>
     public T Fail { get; set; }

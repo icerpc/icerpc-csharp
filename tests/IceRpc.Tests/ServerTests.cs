@@ -293,7 +293,7 @@ public class ServerTests
         var colocTransport = new ColocTransport();
         var multiplexedServerTransport = new TestMultiplexedServerTransportDecorator(
             new SlicServerTransport(colocTransport.ServerTransport),
-            operationsOptions: new () { FailureException = exception});
+            operationsOptions: new() { FailureException = exception });
         var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(

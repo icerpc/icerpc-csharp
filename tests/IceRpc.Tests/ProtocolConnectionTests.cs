@@ -218,10 +218,10 @@ public sealed class ProtocolConnectionTests
         for (int i = 0; i < 1000; ++i)
         {
             var request = new OutgoingRequest(new ServiceAddress(protocol))
-                {
-                    IsOneway = true,
-                    Payload = PipeReader.Create(new ReadOnlySequence<byte>(payload))
-                };
+            {
+                IsOneway = true,
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(payload))
+            };
             requests.Add((request, sut.Client.InvokeAsync(request, CancellationToken.None)));
             if (i == 0)
             {

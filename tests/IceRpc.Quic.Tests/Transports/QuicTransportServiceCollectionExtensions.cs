@@ -2,7 +2,6 @@
 
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
@@ -18,14 +17,14 @@ public static class QuicTransportServiceCollectionExtensions
     public static IServiceCollection AddQuicTransport(this IServiceCollection services)
     {
         services.AddSingleton(provider => new SslClientAuthenticationOptions
-             {
-                 ClientCertificates = new X509CertificateCollection
+        {
+            ClientCertificates = new X509CertificateCollection
                     {
                         new X509Certificate2("../../../certs/client.p12", "password")
                     },
-                 RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-                     certificate?.Issuer.Contains("Ice Tests CA", StringComparison.Ordinal) ?? false
-            })
+            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                certificate?.Issuer.Contains("Ice Tests CA", StringComparison.Ordinal) ?? false
+        })
             .AddSingleton(provider => new SslServerAuthenticationOptions
             {
                 ClientCertificateRequired = false,

@@ -2,7 +2,6 @@
 
 using IceRpc.Conformance.Tests;
 using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net.Quic;
