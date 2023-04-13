@@ -56,8 +56,8 @@ public class SequenceEncodingTests
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
-    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T}, EncodeAction{T})" />
-    /// with a sequence of non numeric types.</summary>
+    /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence{T}(ref SliceEncoder, IEnumerable{T},
+    /// EncodeAction{T})" /> with a sequence of non numeric types.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the encoding.</param>
     [Test]
     public void Encode_string_sequence(
@@ -89,7 +89,9 @@ public class SequenceEncodingTests
         int?[] expected = Enumerable.Range(0, 1024).Select(i => i % 2 == 0 ? (int?)i : null).ToArray();
 
         // Act
-        sut.EncodeSequenceOfOptionals(expected, (ref SliceEncoder encoder, int? value) => encoder.EncodeInt32(value!.Value));
+        sut.EncodeSequenceOfOptionals(
+            expected,
+            (ref SliceEncoder encoder, int? value) => encoder.EncodeInt32(value!.Value));
 
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
