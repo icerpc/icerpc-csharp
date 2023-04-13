@@ -67,7 +67,7 @@ public class ClientConnectionTests
         ClientConnection sut = provider.GetRequiredService<ClientConnection>();
 
         // Act/Assert
-        Assert.That(async () => await sut.ConnectAsync(), Throws.InstanceOf<TimeoutException>());
+        Assert.That(() => sut.ConnectAsync(), Throws.InstanceOf<TimeoutException>());
     }
 
     /// <summary>Verifies that ConnectAsync can be canceled via its cancellation token.</summary>
@@ -97,7 +97,7 @@ public class ClientConnectionTests
         Task connectTask = sut.ConnectAsync(cts.Token);
 
         // Act/Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(() => connectTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     [Test]
