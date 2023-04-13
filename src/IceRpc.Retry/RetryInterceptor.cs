@@ -10,7 +10,7 @@ using System.Runtime.ExceptionServices;
 namespace IceRpc.Retry;
 
 /// <summary>The retry interceptor is responsible for retrying requests. A request is retryable if:
-/// <list>
+/// <list type="bullet">
 /// <item><description><see cref="RetryOptions.MaxAttempts" /> is not reached.</description></item>
 /// <item><description><see cref="OutgoingFrame.Payload" /> can be read again.</description></item>
 /// <item><description>The failure is retryable.</description></item>
