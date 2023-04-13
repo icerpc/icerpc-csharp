@@ -151,6 +151,6 @@ Windows
 build.cmd doc
 ```
 
-The resulting documentation will be located in the `doc\_site` directory.
+The resulting documentation will be located in the `docfx\_site` directory.
 
 [1]: https://www.nuget.org/packages/docfx

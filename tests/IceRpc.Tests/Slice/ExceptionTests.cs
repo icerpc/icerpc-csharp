@@ -124,12 +124,12 @@ public sealed class ExceptionTests
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
-        encoder.StartSlice(MyDerivedException.SliceTypeId);
+        encoder.StartSlice(typeof(MyDerivedException).GetSliceTypeId()!);
         encoder.EncodeInt32(30);
         encoder.EncodeInt32(40);
         encoder.EndSlice(lastSlice: false);
 
-        encoder.StartSlice(MyException.SliceTypeId);
+        encoder.StartSlice(typeof(MyException).GetSliceTypeId()!);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
         encoder.EndSlice(lastSlice: true);
@@ -154,7 +154,7 @@ public sealed class ExceptionTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.StartSlice(MyException.SliceTypeId);
+        encoder.StartSlice(typeof(MyException).GetSliceTypeId()!);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
         if (taggedValue is not null)
@@ -187,7 +187,7 @@ public sealed class ExceptionTests
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.StartSlice(MyExceptionWithTaggedFields.SliceTypeId);
+        encoder.StartSlice(typeof(MyExceptionWithTaggedFields).GetSliceTypeId()!);
         encoder.EncodeInt32(10);
         encoder.EncodeInt32(20);
         if (k is not null)

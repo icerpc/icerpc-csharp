@@ -71,11 +71,7 @@ impl Visitor for ClassVisitor<'_> {
 
         // Class static type ID string
         class_builder.add_block(
-            format!(
-                "{access} static{} readonly string SliceTypeId = typeof({class_name}).GetSliceTypeId()!;",
-                if has_base_class { " new" } else { "" },
-            )
-            .into(),
+            format!("private static readonly string SliceTypeId = typeof({class_name}).GetSliceTypeId()!;").into(),
         );
 
         if class_def.compact_id.is_some() {
@@ -220,6 +216,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
 
             code
         })
+        .add_never_editor_browsable_attribute()
         .build();
 
     let decode_class = FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
@@ -239,6 +236,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             }
             code
         })
+        .add_never_editor_browsable_attribute()
         .build();
 
     code.add_block(&encode_class);

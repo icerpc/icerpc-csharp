@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 
 namespace IceRpc.Slice;
 
@@ -17,9 +18,11 @@ public abstract class SliceClass
 
     /// <summary>Decodes the properties of this instance.</summary>
     /// <param name="decoder">The Slice decoder.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     protected abstract void DecodeCore(ref SliceDecoder decoder);
 
     /// <summary>Encodes the properties of this instance.</summary>
     /// <param name="encoder">The Slice encoder.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     protected abstract void EncodeCore(ref SliceEncoder encoder);
 }
