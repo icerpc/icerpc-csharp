@@ -98,7 +98,7 @@ dotnet new <template-name>
 
 > :point_up: `dotnet new -h` for help.
 
-For additional options see https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-new
+For additional options see <https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-new>
 
 ## Packaging
 
@@ -134,8 +134,8 @@ This allows you to use the NuGet packages from the local `global-packages` sourc
 
 ## Generating API Documentation
 
-Before generating reference documentation for the IceRPC API, ensure that you have the [docfx](1) command in your
-system's PATH, with version 2.63 or higher.
+Before generating reference documentation for the IceRPC API, ensure that you have the
+[docfx](https://www.nuget.org/packages/docfx) command in your system's PATH, with version 2.63 or higher.
 
 To generate the documentation, use the following command:
 
@@ -152,5 +152,3 @@ build.cmd doc
 ```
 
 The resulting documentation will be located in the `docfx\_site` directory.
-
-[1]: https://www.nuget.org/packages/docfx
