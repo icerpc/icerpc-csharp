@@ -5,7 +5,7 @@ exports.postTransform = function (model) {
         var childrens = model.children[0].children;
 
         // Extract the enumerator value and set the "_enum_value" property.
-        childrens.forEach(function (item) {
+        childrens.forEach((item) => {
             const regex = /[\w\d]+\s?=\s?(\d+),?/gm;
             var m = regex.exec(item.syntax.content[0].value);
             if (m !== null) {
@@ -13,18 +13,8 @@ exports.postTransform = function (model) {
             }
         });
 
-        const compare_enumerator_values = function( a, b ) {
-            if ( a._enum_value < b._enum_value ) {
-                return -1;
-            }
-            if ( a._enum_value > b._enum_value ) {
-                return 1;
-            }
-            return 0;
-        }
-
         // Sort the enumerators in ascending order based on their values."
-        model.children[0].children = childrens.sort(compare_enumerator_values);
+        model.children[0].children = childrens.sort((lhs, rhs) => (lhs._enum_value - rhs._enum_value));
     }
 
     return model;
