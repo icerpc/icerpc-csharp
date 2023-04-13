@@ -76,7 +76,7 @@ impl Visitor for ExceptionVisitor<'_> {
                     .add_base_parameter("message")
                     .set_body(initialize_non_nullable_fields(&fields, FieldType::Exception))
                     // This is Slice1 only, there is no exception inheritance with Slice2. We hide this method because
-                    // this must be only called by the Activator
+                    // this must be only called by the Activator.
                     .add_never_editor_browsable_attribute()
                     .build(),
             );
