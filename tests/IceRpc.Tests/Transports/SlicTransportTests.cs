@@ -82,15 +82,15 @@ public class SlicTransportTests
             .AddSlicTest()
             .AddTestDuplexTransportDecorator(
                 clientOperationsOptions: new()
-                    {
-                        Fail = serverSide ? DuplexTransportOperations.None : operation,
-                        FailureException = exception
-                    },
+                {
+                    Fail = serverSide ? DuplexTransportOperations.None : operation,
+                    FailureException = exception
+                },
                 serverOperationsOptions: new()
-                    {
-                        Fail = serverSide ? operation : DuplexTransportOperations.None,
-                        FailureException = exception
-                    })
+                {
+                    Fail = serverSide ? operation : DuplexTransportOperations.None,
+                    FailureException = exception
+                })
             .BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -116,7 +116,8 @@ public class SlicTransportTests
                         // Prevents unobserved task exceptions.
                     }
                 }
-            } :
+            }
+        :
             async () =>
             {
                 _ = AcceptAsync();
@@ -237,7 +238,8 @@ public class SlicTransportTests
                         // Prevents unobserved task exceptions.
                     }
                 }
-            } :
+            }
+        :
             async () =>
             {
                 _ = AcceptAsync();

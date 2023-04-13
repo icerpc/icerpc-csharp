@@ -27,7 +27,7 @@ public sealed class PayloadPipeReaderDecorator : PipeReader
             {
                 _holdReadTcs.TrySetResult();
             }
-            else if(_holdReadTcs.Task.IsCompleted)
+            else if (_holdReadTcs.Task.IsCompleted)
             {
                 _holdReadTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
             }

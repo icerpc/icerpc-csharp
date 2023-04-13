@@ -88,7 +88,7 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
 
 /// <summary>A helper class to provide access to a local and remote stream. It also ensures the streams are correctly
 /// completed.</summary>
-public sealed class  LocalAndRemoteMultiplexedStreams : IDisposable
+public sealed class LocalAndRemoteMultiplexedStreams : IDisposable
 {
     /// <summary>The local stream.</summary>
     public IMultiplexedStream Local { get; }
@@ -99,8 +99,8 @@ public sealed class  LocalAndRemoteMultiplexedStreams : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-         CleanupStream(Local);
-         CleanupStream(Remote);
+        CleanupStream(Local);
+        CleanupStream(Remote);
     }
 
     internal LocalAndRemoteMultiplexedStreams(IMultiplexedStream localStream, IMultiplexedStream remoteStream)
