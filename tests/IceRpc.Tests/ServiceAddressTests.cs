@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Features;
-using IceRpc.Slice;
-using IceRpc.Tests.Common;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
@@ -146,7 +142,8 @@ public class ServiceAddressTests
         get
         {
             // Service address with alt servers
-            var serviceAddressWithAltServerAddresses = new ServiceAddress(new Uri("ice://localhost:8080/foo?abc=123#bar"));
+            var serviceAddressWithAltServerAddresses = new ServiceAddress(
+                new Uri("ice://localhost:8080/foo?abc=123#bar"));
             serviceAddressWithAltServerAddresses = serviceAddressWithAltServerAddresses with
             {
                 AltServerAddresses = ImmutableList.Create(
@@ -215,7 +212,8 @@ public class ServiceAddressTests
 
     /// <summary>A collection of service address URI strings that are valid, with its expected path and fragment.
     /// </summary>
-    private static readonly (string uriString, string Path, string Fragment)[] _validServiceAddressUris = new (string, string, string)[]
+    private static readonly (string uriString, string Path, string Fragment)[] _validServiceAddressUris =
+        new (string, string, string)[]
         {
             /* spellchecker:disable */
             ("icerpc://host.zeroc.com/path?encoding=foo", "/path", ""),
@@ -300,7 +298,7 @@ public class ServiceAddressTests
         var myParams = new Dictionary<string, string> { ["adapter-id"] = "" }.ToImmutableDictionary();
 
         // Act/Assert
-        Assert.That(() => serviceAddress = serviceAddress with { Params = myParams }, Throws.ArgumentException);
+        Assert.That(() => serviceAddress with { Params = myParams }, Throws.ArgumentException);
     }
 
     [Test]
@@ -312,8 +310,7 @@ public class ServiceAddressTests
         var serverAddress = new ServerAddress(new Uri("icerpc://localhost:10000?transport=foobar"));
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() =>
-            serviceAddress = serviceAddress with { ServerAddress = serverAddress });
+        Assert.That(() => serviceAddress with { ServerAddress = serverAddress }, Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that the service address server address cannot be set when the service address contains any
@@ -329,11 +326,11 @@ public class ServiceAddressTests
 
         // Act/Assert
         Assert.That(
-            () => serviceAddress = serviceAddress with
+            () => serviceAddress with
             {
                 ServerAddress = new ServerAddress(serviceAddress.Protocol!) { Host = "localhost" }
             },
-            Throws.TypeOf<InvalidOperationException>());
+            Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that the service address cannot contain alt servers when the service address server address is
@@ -346,12 +343,13 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Constructing alternate server addresses.
-        var altServerAddresses = ImmutableList.Create(new ServerAddress(new Uri("icerpc://localhost:10000?transport=foobar")));
+        var altServerAddresses = ImmutableList.Create(new ServerAddress(
+            new Uri("icerpc://localhost:10000?transport=foobar")));
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() =>
-            serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }
-        );
+        Assert.That(
+            () => serviceAddress with { AltServerAddresses = altServerAddresses },
+            Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that the service address server address cannot be null when the service address contains has
@@ -364,7 +362,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost:8080/foo?alt-server=localhost:10000"));
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => serviceAddress = serviceAddress with { ServerAddress = null });
+        Assert.That(() => serviceAddress with { ServerAddress = null }, Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that the "fragment" cannot be set when the protocol is null or has no fragment.</summary>
@@ -375,7 +373,7 @@ public class ServiceAddressTests
         Protocol? protocol = protocolName.Length > 0 ? Protocol.Parse(protocolName) : null;
         var serviceAddress = new ServiceAddress(protocol);
 
-        Assert.That(() => serviceAddress = serviceAddress with { Fragment = "bar" }, Throws.TypeOf<InvalidOperationException>());
+        Assert.That(() => serviceAddress with { Fragment = "bar" }, Throws.InvalidOperationException);
 
         if (protocol is not null)
         {
@@ -391,9 +389,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(new Uri("icerpc://localhost/hello"));
         var myParams = new Dictionary<string, string> { ["name"] = "value" }.ToImmutableDictionary();
 
-        Assert.That(
-            () => serviceAddress = serviceAddress with { Params = myParams },
-            Throws.TypeOf<InvalidOperationException>());
+        Assert.That(() => serviceAddress with { Params = myParams }, Throws.InvalidOperationException);
     }
 
     /// <summary>Verifies that a service address can be converted into a string.</summary>
@@ -440,7 +436,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Act/Assert
-        Assert.Throws<ArgumentException>(() => serviceAddress = serviceAddress with { Fragment = "foo<" });
+        Assert.That(() => serviceAddress with { Fragment = "foo<" }, Throws.ArgumentException);
     }
 
     [Test]
@@ -450,7 +446,7 @@ public class ServiceAddressTests
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
 
         // Act/Assert
-        Assert.Throws<ArgumentException>(() => serviceAddress = serviceAddress with { Path = "foo<" });
+        Assert.That(() =>serviceAddress with { Path = "foo<" }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that a service address can be created from a URI.</summary>
@@ -470,7 +466,7 @@ public class ServiceAddressTests
     /// <param name="uri">The URI to parse as a service address</param>
     [Test, TestCaseSource(nameof(ServiceAddressInvalidUriSource))]
     public void Create_service_address_from_invalid_uri(Uri uri) =>
-        Assert.Throws(Is.InstanceOf<ArgumentException>(), () => new ServiceAddress(uri));
+        Assert.That(() => new ServiceAddress(uri), Throws.ArgumentException);
 
     [Test, TestCaseSource(nameof(AltServerAddressesSource))]
     public void Create_service_address_with_alt_server(
@@ -522,12 +518,7 @@ public class ServiceAddressTests
         }.ToImmutableList();
 
         // Act/Assert
-        Assert.That(() =>
-            serviceAddress = serviceAddress with { AltServerAddresses = altServerAddresses }, Throws.ArgumentException
-        );
-
-        // Ensure the alt servers weren't updated
-        Assert.That(serviceAddress.AltServerAddresses, Is.Empty);
+        Assert.That(() => serviceAddress with { AltServerAddresses = altServerAddresses }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that setting a server address that uses a protocol different than the service address protocol
@@ -537,12 +528,10 @@ public class ServiceAddressTests
     {
         var serviceAddress = new ServiceAddress(new Uri("ice://host.zeroc.com/hello"));
         ServerAddress? serverAddress = serviceAddress.ServerAddress;
-        ServerAddress newServerAddress = new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
+        ServerAddress newServerAddress = new ServiceAddress(
+            new Uri("icerpc://host.zeroc.com/hello")).ServerAddress!.Value;
 
-        Assert.That(() => serviceAddress = serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
-
-        // Ensure the server address wasn't updated
-        Assert.That(serviceAddress.ServerAddress, Is.EqualTo(serverAddress));
+        Assert.That(() => serviceAddress with { ServerAddress = newServerAddress }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that we can set the fragment on an ice service address</summary>

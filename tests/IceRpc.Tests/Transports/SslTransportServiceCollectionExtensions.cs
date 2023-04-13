@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Tests.Common;
-using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;

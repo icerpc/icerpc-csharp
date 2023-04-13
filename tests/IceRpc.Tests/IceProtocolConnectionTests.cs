@@ -145,15 +145,15 @@ public sealed class IceProtocolConnectionTests
             .AddProtocolTest(Protocol.Ice)
             .AddTestDuplexTransportDecorator(
                 clientOperationsOptions: new DuplexTransportOperationsOptions
-                    {
-                        Fail = serverConnection ? DuplexTransportOperations.None : operation,
-                        FailureException = exception
-                    },
+                {
+                    Fail = serverConnection ? DuplexTransportOperations.None : operation,
+                    FailureException = exception
+                },
                 serverOperationsOptions: new DuplexTransportOperationsOptions
-                    {
-                        Fail = serverConnection ? operation : DuplexTransportOperations.None,
-                        FailureException = exception
-                    })
+                {
+                    Fail = serverConnection ? operation : DuplexTransportOperations.None,
+                    FailureException = exception
+                })
             .BuildServiceProvider(validateScopes: true);
 
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();

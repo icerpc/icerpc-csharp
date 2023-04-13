@@ -53,4 +53,4 @@ internal class LogTaskExceptionObserver : ITaskExceptionObserver
             // unexpected: from the application code (like a payload read exception) or bug in IceRpc
             _ => LogLevel.Warning
         };
-    }
+}

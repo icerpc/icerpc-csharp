@@ -167,7 +167,8 @@ public sealed class StructTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         encoder.EncodeSequenceOfOptionals(
             expected.I,
-            (ref SliceEncoder encoder, PingableProxy? value) => encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
+            (ref SliceEncoder encoder, PingableProxy? value) =>
+                encoder.EncodeServiceAddress(value!.Value.ServiceAddress));
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         var value = new MyCompactStructWithSequenceOfNullableProxies(ref decoder);

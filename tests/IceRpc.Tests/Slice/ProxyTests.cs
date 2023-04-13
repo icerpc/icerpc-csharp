@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Internal;
 using IceRpc.Features;
+using IceRpc.Ice;
+using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
-using IceRpc.Ice;
 
 namespace IceRpc.Tests.Slice;
 
@@ -146,7 +146,7 @@ public class ProxyTests
 
     /// <summary>Verifies that a proxy decoded from an incoming request has a null invoker by default.</summary>
     [Test]
-    public async Task Proxy_decoded_from_incoming_request_has_null_invoker()
+    public async Task Proxy_decoded_from_an_incoming_request_has_null_invoker()
     {
         // Arrange
         var service = new SendProxyTestService();
@@ -163,7 +163,7 @@ public class ProxyTests
     /// <summary>Verifies that the invoker of a proxy decoded from an incoming request can be set using a Slice
     /// feature.</summary>
     [Test]
-    public async Task Proxy_decoded_from_incoming_request_can_have_invoker_set_through_a_slice_feature()
+    public async Task Proxy_decoded_from_an_incoming_request_can_have_invoker_set_through_a_slice_feature()
     {
         // Arrange
         var service = new SendProxyTestService();
@@ -190,7 +190,7 @@ public class ProxyTests
 
     /// <summary>Verifies that a proxy decoded from an incoming response inherits the callers invoker.</summary>
     [Test]
-    public async Task Proxy_decoded_from_an_outgoing_response_inherits_the_callers_invoker()
+    public async Task Proxy_decoded_from_an_incoming_response_inherits_the_callers_invoker()
     {
         // Arrange
         IInvoker invoker = new ColocInvoker(new ReceiveProxyTestService());
@@ -231,39 +231,5 @@ public class ProxyTests
             ReceivedProxy = proxy;
             return default;
         }
-    }
-
-    /// <summary>An invoker that transforms an outgoing request into an incoming request, dispatches it to the
-    /// dispatcher configured with the invoker and finally transforms the outgoing response to an incoming response that
-    /// is returned to the caller.</summary>
-    private sealed class ColocInvoker : IInvoker
-    {
-        private readonly IDispatcher _dispatcher;
-
-        public async Task<IncomingResponse> InvokeAsync(
-            OutgoingRequest outgoingRequest,
-            CancellationToken cancellationToken)
-        {
-            // Payload continuation are not supported for now.
-            using var incomingRequest = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-            {
-                Payload = outgoingRequest.Payload,
-                Path = outgoingRequest.ServiceAddress.Path,
-                Operation = outgoingRequest.Operation
-            };
-
-            // Dispatch the request.
-            OutgoingResponse outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
-
-            // Payload continuation are not supported for now.
-            PipeReader payload = outgoingResponse.Payload;
-            outgoingResponse.Payload = InvalidPipeReader.Instance;
-            return new IncomingResponse(outgoingRequest, FakeConnectionContext.Instance)
-            {
-                Payload = payload
-            };
-        }
-
-        internal ColocInvoker(IDispatcher dispatcher) => _dispatcher = dispatcher;
     }
 }

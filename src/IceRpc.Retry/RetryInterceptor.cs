@@ -10,7 +10,7 @@ using System.Runtime.ExceptionServices;
 namespace IceRpc.Retry;
 
 /// <summary>The retry interceptor is responsible for retrying requests. A request is retryable if:
-/// <list>
+/// <list type="bullet">
 /// <item><description><see cref="RetryOptions.MaxAttempts" /> is not reached.</description></item>
 /// <item><description><see cref="OutgoingFrame.Payload" /> can be read again.</description></item>
 /// <item><description>The failure is retryable.</description></item>
@@ -18,13 +18,13 @@ namespace IceRpc.Retry;
 /// with <see cref="ResettablePipeReaderDecorator" />. The decorator can be reset as long as the buffered data doesn't
 /// exceed <see cref="RetryOptions.MaxPayloadSize" />.<br/>The request can be retried under the following failure
 /// conditions:
-/// <list>
+/// <list type="bullet">
 /// <item><description>The status code carried by the response is <see cref="StatusCode.Unavailable"
 /// />.</description></item>
 /// <item><description>The status code carried by the response is <see cref="StatusCode.ServiceNotFound" /> and the
 /// protocol is ice.</description></item>
 /// <item><description>The request failed with an <see cref="IceRpcException" /> with one of the following error:
-/// <list>
+/// <list type="bullet">
 /// <item><description>The error code is <see cref="IceRpcError.InvocationCanceled" />.</description></item>
 /// <item><description>The error code is <see cref="IceRpcError.ConnectionAborted" /> or <see
 /// cref="IceRpcError.TruncatedData" /> and the request has the <see cref="RequestFieldKey.Idempotent" />
