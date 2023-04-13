@@ -15,7 +15,7 @@ compact struct VarLengthStruct {
 
 enum MyEnum { One, Two }
 
-class ClassWithTaggedMembers {
+class ClassWithTaggedFields {
     tag(1) a: uint8?               // Uses F1 tag format
     tag(2) b: int16?               // Uses F2 tag format
     tag(3) c: int32?               // Uses F4 tag format

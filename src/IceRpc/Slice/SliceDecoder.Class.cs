@@ -137,7 +137,7 @@ public ref partial struct SliceDecoder
         // Note that EndSlice is not called when we call SkipSlice.
         Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
-        if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
+        if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0)
         {
             SkipTagged(useTagEndMarker: true);
         }
@@ -525,9 +525,9 @@ public ref partial struct SliceDecoder
                     $"No class found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead).");
         }
 
-        bool hasTaggedMembers = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;
+        bool hasTaggedFields = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0;
         byte[] bytes;
-        if (hasTaggedMembers)
+        if (hasTaggedFields)
         {
             // Don't include the tag end marker. It will be re-written by SliceEncoder.EndSlice when the sliced data
             // is re-written.
@@ -576,7 +576,7 @@ public ref partial struct SliceDecoder
             new ReadOnlyMemory<byte>(bytes),
             Array.AsReadOnly(_classContext.Current.IndirectionTable ??
             Array.Empty<SliceClass>()),
-            hasTaggedMembers);
+            hasTaggedFields);
         _classContext.Current.Slices.Add(info);
 
         // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.

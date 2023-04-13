@@ -634,8 +634,8 @@ public ref partial struct SliceEncoder
         EncodedByteCount += count;
     }
 
-    /// <summary>Encodes the header for a tagged parameter or data member. Slice1 only.</summary>
-    /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
+    /// <summary>Encodes the header for a tagged parameter or field. Slice1 only.</summary>
+    /// <param name="tag">The numeric tag associated with the parameter or field.</param>
     /// <param name="format">The tag format.</param>
     private void EncodeTaggedParamHeader(int tag, TagFormat format)
     {
@@ -657,7 +657,7 @@ public ref partial struct SliceEncoder
 
         if (_classContext.Current.InstanceType != InstanceType.None)
         {
-            _classContext.Current.SliceFlags |= SliceFlags.HasTaggedMembers;
+            _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
         }
     }
 }

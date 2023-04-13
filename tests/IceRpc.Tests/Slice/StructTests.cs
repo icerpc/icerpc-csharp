@@ -44,7 +44,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Decode_struct_with_optional_members(
+    public void Decode_struct_with_optional_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
@@ -71,7 +71,7 @@ public sealed class StructTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         // Act
-        var decoded = new MyStructWithOptionalMembers(ref decoder);
+        var decoded = new MyStructWithOptionalFields(ref decoder);
 
         // Assert
         Assert.That(decoded.I, Is.EqualTo(10));
@@ -258,13 +258,13 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_struct_with_optional_members(
+    public void Encode_struct_with_optional_fields(
         [Values(10, null)] int? k,
         [Values(20, null)] int? l)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var expected = new MyStructWithOptionalMembers(10, 20, k, l);
+        var expected = new MyStructWithOptionalFields(10, 20, k, l);
 
         expected.Encode(ref encoder);
 
