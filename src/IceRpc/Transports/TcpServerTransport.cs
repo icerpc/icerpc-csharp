@@ -29,13 +29,11 @@ public class TcpServerTransport : IDuplexServerTransport
         DuplexConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if ((serverAddress.Transport is string transport &&
-            transport != TransportNames.Tcp &&
-            transport != TransportNames.Ssl) ||
+        if ((serverAddress.Transport is string transport && !IsValidTransportName(transport, serverAddress.Protocol)) ||
             serverAddress.Params.Count > 0)
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Tcp server transport.",
+                $"The server address '{serverAddress}' contains query parameters that are not valid for the Tcp server transport.",
                 nameof(serverAddress));
         }
 
@@ -51,5 +49,10 @@ public class TcpServerTransport : IDuplexServerTransport
         }
 
         return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);
+
+        static bool IsValidTransportName(string transportName, Protocol protocol) =>
+            protocol == Protocol.Ice ?
+                transportName is TransportNames.Tcp or TransportNames.Ssl :
+                transportName is TransportNames.Tcp;
     }
 }
