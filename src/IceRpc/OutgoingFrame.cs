@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc;
 
-/// <summary>Base class for outgoing frames.</summary>
+/// <summary>Represents the base class for outgoing frames.</summary>
 public abstract class OutgoingFrame
 {
     /// <summary>Gets or sets the payload of this frame.</summary>

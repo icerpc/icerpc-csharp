@@ -28,8 +28,8 @@ impl Visitor for DispatchVisitor<'_> {
 
         let remarks = format!(
             r#"
-The Slice compiler generated this service-side interface from Slice interface {slice_interface}.
-Your service implementation must implement this interface and derive from <see cref="IceRpc.Slice.Service" />.
+The Slice compiler generated this server-side interface from Slice interface {slice_interface}.
+Your service implementation must implement this interface and derive from <see cref="Service" />.
 "#
         );
 

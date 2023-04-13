@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>An assembly attribute for assemblies that contain Slice generated code.</summary>
+/// <summary>Represents an assembly attribute for assemblies that contain Slice generated code.</summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
 public sealed class SliceAttribute : Attribute
 {

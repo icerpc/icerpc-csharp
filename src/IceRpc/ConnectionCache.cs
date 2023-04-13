@@ -10,9 +10,9 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
 
-/// <summary>A connection cache is an invoker that routes outgoing requests to connections it manages. This routing is
-/// based on the <see cref="IServerAddressFeature" /> and the server addresses of the service address carried by each
-/// outgoing request. The connection cache keeps at most one active connection per server address.</summary>
+/// <summary>Represents an invoker that routes outgoing requests to connections it manages. This routing is based on the
+/// <see cref="IServerAddressFeature" /> and the server addresses of the service address carried by each outgoing
+/// request. The connection cache keeps at most one active connection per server address.</summary>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections.

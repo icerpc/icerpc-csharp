@@ -4,8 +4,7 @@ using IceRpc.Features;
 
 namespace IceRpc;
 
-/// <summary>This class provide extension methods to add built-in interceptors to a <see cref="Pipeline" />.
-/// </summary>
+/// <summary>Provides an extension method for <see cref="Pipeline" />.</summary>
 public static class PipelineExtensions
 {
     /// <summary>Adds an interceptor that sets a feature in all requests.</summary>

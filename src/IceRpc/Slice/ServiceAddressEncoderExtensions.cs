@@ -5,7 +5,7 @@ using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for encoding a ServiceAddress.</summary>
+/// <summary>Provides extension methods for encoding service addresses.</summary>
 public static class ServiceAddressSliceEncoderExtensions
 {
     /// <summary>Encodes a service address.</summary>

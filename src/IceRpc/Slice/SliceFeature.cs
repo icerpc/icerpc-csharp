@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>The default implementation for <see cref="ISliceFeature" />.</summary>
+/// <summary>Default implementation for <see cref="ISliceFeature" />.</summary>
 public sealed class SliceFeature : ISliceFeature
 {
     /// <summary>Gets a <see cref="ISliceFeature" /> with default values for all properties.</summary>

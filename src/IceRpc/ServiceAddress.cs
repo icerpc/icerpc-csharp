@@ -9,9 +9,9 @@ using System.Text;
 
 namespace IceRpc;
 
-/// <summary>A service address corresponds to the URI of a service, parsed and processed for easier consumption by
-/// interceptors, <see cref="ConnectionCache" /> and other elements of the invocation pipeline. It's used to construct
-/// an <see cref="OutgoingRequest" />.</summary>
+/// <summary>Represents the URI of a service, parsed and processed for easier consumption by interceptors. It's used
+/// to construct an <see cref="OutgoingRequest" />.</summary>
+/// <seealso cref="ConnectionCache" />
 // The properties of this class are sorted in URI order.
 [TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress

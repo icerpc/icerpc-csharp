@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for decoding a service address.</summary>
+/// <summary>Provides extension methods for decoding service addresses.</summary>
 public static class ServiceAddressSliceDecoderExtensions
 {
     /// <summary>Decodes a service address.</summary>

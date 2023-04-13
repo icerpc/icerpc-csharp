@@ -2,8 +2,8 @@
 
 namespace IceRpc;
 
-/// <summary>Represents an exception thrown by the peer while dispatching a request. It's decoded from a response with a
-/// status code greater than <see cref="StatusCode.Success" />.</summary>
+/// <summary>Represents an exception thrown while dispatching a request. It's decoded from a response with a status code
+/// greater than <see cref="StatusCode.Success" />.</summary>
 public class DispatchException : Exception
 {
     /// <summary>Gets or sets a value indicating whether the exception should be converted into a <see

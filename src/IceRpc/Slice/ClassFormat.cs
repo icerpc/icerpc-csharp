@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>This enumeration describes the possible formats when encoding classes.</summary>
+/// <summary>Describes the possible formats when encoding classes.</summary>
 public enum ClassFormat
 {
     /// <summary>The Compact format assumes the sender and receiver have the same Slice definitions for classes. If an

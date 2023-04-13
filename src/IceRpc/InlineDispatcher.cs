@@ -2,7 +2,7 @@
 
 namespace IceRpc;
 
-/// <summary>Adapts a dispatcher delegate to the <see cref="IDispatcher" /> interface.</summary>
+/// <summary>Adapts a function to the <see cref="IDispatcher" /> interface.</summary>
 public class InlineDispatcher : IDispatcher
 {
     private readonly Func<IncomingRequest, CancellationToken, ValueTask<OutgoingResponse>> _function;

@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>Enumerations and constants used by Slice2.</summary>
+/// <summary>Provides a constant used by the Slice2 encoding.</summary>
 public static class Slice2Definitions
 {
     /// <summary>A marker that indicates the end of a (possibly empty) sequence of tagged fields.</summary>

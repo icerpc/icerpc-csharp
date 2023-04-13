@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace IceRpc;
 
-/// <summary>Represents a response protocol frame sent by the application.</summary>
+/// <summary>Represents a response frame sent by the application.</summary>
 public sealed class OutgoingResponse : OutgoingFrame
 {
     /// <summary>Gets the error message of this response.</summary>

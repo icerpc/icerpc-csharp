@@ -15,7 +15,7 @@ using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice;
 
-/// <summary>Decodes a byte buffer encoded using the Slice encoding.</summary>
+/// <summary>Provides methods to decode data encoded with Slice1 or Slice2.</summary>
 public ref partial struct SliceDecoder
 {
     /// <summary>Gets the Slice encoding decoded by this decoder.</summary>
