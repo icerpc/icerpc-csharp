@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
 
-/// <summary>Extension methods for <see cref="IncomingFrame" />.</summary>
+/// <summary>Provides an extension method for <see cref="IncomingFrame" />.</summary>
 public static class IncomingFrameExtensions
 {
     /// <summary>Detaches the payload from the incoming frame. The caller takes ownership of the returned payload

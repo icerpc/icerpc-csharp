@@ -6,8 +6,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc;
 
-/// <summary>A <see cref="PipeReader" /> decorator that allows to reset its decoratee to its initial state (from the
-/// caller's perspective).</summary>
+/// <summary>Represents a <see cref="PipeReader" /> decorator that allows to reset its decoratee to its initial state
+/// (from the caller's perspective).</summary>
 // The default CopyToAsync implementation is suitable for this reader implementation. It calls ReadAsync/AdvanceTo to
 // read the data. This ensures that the decorated pipe reader buffered data is not consumed.
 public sealed class ResettablePipeReaderDecorator : PipeReader

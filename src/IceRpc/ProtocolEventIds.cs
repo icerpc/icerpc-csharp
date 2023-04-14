@@ -2,7 +2,7 @@
 
 namespace IceRpc;
 
-/// <summary>This enum contains event ID constants used for protocol connection related logging.</summary>
+/// <summary>Provides event ID constants used for the logging of protocol-related events.</summary>
 public enum ProtocolEventIds
 {
     /// <summary>The protocol listener accepted a new connection.</summary>

@@ -2,12 +2,13 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>The versions of the Slice encoding supported by this IceRPC runtime.</summary>
+/// <summary>Describes the versions of the Slice encoding supported by this IceRPC runtime.</summary>
 public enum SliceEncoding : byte
 {
-    /// <summary>Version 1.1 of the Slice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
+    /// <summary>Slice encoding version 1, supported by IceRPC and Ice 3.5 or greater. In Ice, it's called Ice encoding
+    /// version 1.1.</summary>
     Slice1 = 1,
 
-    /// <summary>Version 2.0 of the Slice encoding, supported by IceRPC.</summary>
+    /// <summary>Slice encoding version 2, supported by IceRPC.</summary>
     Slice2 = 2,
 }

@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Slice;
 
-/// <summary>This class adds extension methods to System.Type.</summary>
+/// <summary>Provides extension methods for <see cref="Type" />.</summary>
 public static class TypeExtensions
 {
     /// <summary>Retrieves the Slice type ID from a type with the attribute IceRpc.TypeId.</summary>

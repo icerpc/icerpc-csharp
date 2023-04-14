@@ -4,8 +4,8 @@ using System.ComponentModel;
 
 namespace IceRpc.Slice;
 
-/// <summary>Represents a fully sliced class instance. The local IceRPC runtime does not know this type or any of its
-/// base classes (other than <see cref="SliceClass" />).</summary>
+/// <summary>Represents a fully sliced class instance. The <see cref="IActivator"/> used during decoding does not know
+/// this type or any of its base classes.</summary>
 public sealed class UnknownSlicedClass : SliceClass
 {
     /// <inheritdoc/>

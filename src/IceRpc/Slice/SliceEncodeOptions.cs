@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
 
-/// <summary>A property bag used to configure the encoding of payloads.</summary>
+/// <summary>Represents a property bag used to configure the encoding of payloads.</summary>
 public sealed class SliceEncodeOptions
 {
     /// <summary>Gets the default instance of <see cref="SliceEncodeOptions" />.</summary>

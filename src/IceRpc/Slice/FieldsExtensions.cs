@@ -5,7 +5,7 @@ using System.Buffers;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension method for field dictionaries.</summary>
+/// <summary>Provides an extension method for field dictionaries.</summary>
 public static class FieldsExtensions
 {
     /// <summary>Retrieves the decoded field value associated with a field key.</summary>

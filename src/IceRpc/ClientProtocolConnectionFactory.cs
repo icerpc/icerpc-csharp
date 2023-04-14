@@ -8,7 +8,7 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>The default implementation of <see cref="IClientProtocolConnectionFactory" />.</summary>
+/// <summary>Default implementation of <see cref="IClientProtocolConnectionFactory" />.</summary>
 public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionFactory
 {
     private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;

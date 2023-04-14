@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc;
 
-/// <summary>Protocol identifies a RPC protocol supported by IceRPC.</summary>
+/// <summary>Represents a RPC protocol supported by IceRPC.</summary>
 public class Protocol
 {
     /// <summary>Gets the ice protocol.</summary>

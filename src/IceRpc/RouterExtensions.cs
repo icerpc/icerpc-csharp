@@ -5,8 +5,7 @@ using IceRpc.Slice;
 
 namespace IceRpc;
 
-/// <summary>This class provide extension methods to add built-in middleware to a <see cref="Router" />.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="Router" />.</summary>
 public static class RouterExtensions
 {
     /// <summary>Registers a route to a service that uses the service default path as the route path. If there is

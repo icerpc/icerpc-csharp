@@ -1,10 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.ComponentModel;
+
 namespace IceRpc.Slice;
 
-/// <summary>This attribute class is used by the generated code to mark Slice-defined operations that can be called from
-/// <see cref="Service.DispatchAsync" />.</summary>
+/// <summary>Represents an attribute that the Slice compiler uses to mark helper methods it generates on Service
+/// interfaces. This attribute is used by <see cref="Service.DispatchAsync" />.</summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class SliceOperationAttribute : Attribute
 {
     /// <summary>Gets the operation name.</summary>

@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice;
 
-/// <summary>Extension methods for <see cref="PipeReader" />.</summary>
+/// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
 public static class PipeReaderExtensions
 {
     /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>

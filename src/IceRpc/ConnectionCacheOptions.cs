@@ -4,7 +4,7 @@ using System.Net.Security;
 
 namespace IceRpc;
 
-/// <summary>A property bag used to configure a <see cref="ConnectionCache" />.</summary>
+/// <summary>Represents a property bag used to configure a <see cref="ConnectionCache" />.</summary>
 public record class ConnectionCacheOptions
 {
     /// <summary>Gets or sets the SSL client authentication options.</summary>

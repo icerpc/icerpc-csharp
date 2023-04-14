@@ -2,7 +2,8 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>A feature to customize the encoding and decoding of request and response payloads.</summary>
+/// <summary>Represents a feature used to customize the encoding and decoding of request and response payloads.
+/// </summary>
 public interface ISliceFeature
 {
     /// <summary>Gets the activator to use when decoding Slice1-encoded classes and exceptions.</summary>

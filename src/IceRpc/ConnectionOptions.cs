@@ -5,7 +5,7 @@ using System.Buffers;
 
 namespace IceRpc;
 
-/// <summary>A property bag used to configure client and server connections.</summary>
+/// <summary>Represents a property bag used to configure client and server connections.</summary>
 public record class ConnectionOptions
 {
     /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection.</summary>

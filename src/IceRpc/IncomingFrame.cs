@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc;
 
-/// <summary>Base class for incoming frames.</summary>
+/// <summary>Represents the base class for incoming frames.</summary>
 public class IncomingFrame
 {
     /// <summary>Gets or sets the connection context.</summary>
