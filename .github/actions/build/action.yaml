@@ -42,6 +42,7 @@ runs:
       sudo dpkg -i packages-microsoft-prod.deb
       rm packages-microsoft-prod.deb
       sudo apt install libmsquic
+    shell: bash
   - name: 🔗 Start SSH Agent
     uses: webfactory/ssh-agent@v0.5.4
     with:
