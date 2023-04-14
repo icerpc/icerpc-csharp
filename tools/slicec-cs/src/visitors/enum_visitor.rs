@@ -32,6 +32,13 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         &enum_def.escape_identifier(),
     )
     .add_comments(enum_def.formatted_doc_comment())
+    .add_comment(
+        "remarks",
+        format!(
+            "The Slice compiler generated this enum from Slice enum <c>{}</c>.",
+            &enum_def.module_scoped_identifier()
+        ),
+    )
     .add_container_attributes(enum_def)
     .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))
@@ -79,6 +86,12 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
             r#"Provides an extension method for creating {} <see cref="{escaped_identifier}" /> from {} <see langword="{cs_type}" />."#,
             in_definite::get_a_or_an(&escaped_identifier),
             in_definite::get_a_or_an(&cs_type),
+        ),
+    ).add_comment(
+        "remarks",
+        format!(
+            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
+            &enum_def.module_scoped_identifier()
         ),
     );
 
@@ -181,6 +194,12 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         format!(r#"Provides an extension method for encoding a <see cref="{escaped_identifier}" /> using a <see cref="SliceEncoder" />."#),
+    ).add_comment(
+        "remarks",
+        format!(
+            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
+            &enum_def.module_scoped_identifier()
+        ),
     );
 
     // Enum encoding
@@ -216,6 +235,12 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         format!(r#"Provides an extension method for decoding a <see cref="{escaped_identifier}" /> using a <see cref="SliceDecoder" />."#),
+    ).add_comment(
+        "remarks",
+        format!(
+            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
+            &enum_def.module_scoped_identifier()
+        ),
     );
 
     let underlying_extensions_class = format!(

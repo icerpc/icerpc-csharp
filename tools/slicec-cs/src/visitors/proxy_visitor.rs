@@ -37,7 +37,7 @@ impl Visitor for ProxyVisitor<'_> {
 
         let remarks = format!(
             r#"
-The Slice compiler generated this client-side interface from Slice interface {slice_interface}.
+The Slice compiler generated this client-side interface from Slice interface <c>{slice_interface}</c>.
 It's implemented by <see cref="{proxy_impl}" />."#
         );
 
@@ -63,6 +63,13 @@ It's implemented by <see cref="{proxy_impl}" />."#
                     r#"
 Implements <see cref="{interface}" /> by making invocations on a remote IceRPC service.
 This remote service must implement Slice interface {slice_interface}."#
+                ),
+            )
+            .add_comment(
+                "remarks",
+                format!(
+                    "The Slice compiler generated this record struct from Slice interface <c>{}</c>.",
+                    &interface_def.module_scoped_identifier()
                 ),
             )
             .add_type_id_attribute(interface_def)
@@ -352,10 +359,18 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
     let mut class_builder = ContainerBuilder::new("public static class", "Request");
 
-    class_builder.add_comment(
-        "summary",
-        "Provides static methods that encode operation arguments into request payloads.",
-    );
+    class_builder
+        .add_comment(
+            "summary",
+            "Provides static methods that encode operation arguments into request payloads.",
+        )
+        .add_comment(
+            "remarks",
+            format!(
+                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
+                &interface_def.module_scoped_identifier()
+            ),
+        );
 
     for operation in operations {
         let params: Vec<&Parameter> = operation.non_streamed_parameters();
@@ -425,6 +440,12 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         format!(
             r#"Provides a <see cref="ResponseDecodeFunc{{T}}" /> for each operation defined in Slice interface {}."#,
             interface_def.module_scoped_identifier(),
+        ),
+    ).add_comment(
+        "remarks",
+        format!(
+            "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
+            &interface_def.module_scoped_identifier()
         ),
     );
 

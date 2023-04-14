@@ -28,7 +28,7 @@ impl Visitor for DispatchVisitor<'_> {
 
         let remarks = format!(
             r#"
-The Slice compiler generated this server-side interface from Slice interface {slice_interface}.
+The Slice compiler generated this server-side interface from Slice interface <c>{slice_interface}</c>.
 Your service implementation must implement this interface and derive from <see cref="Service" />.
 "#
         );
@@ -98,7 +98,15 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         "Request",
     );
 
-    class_builder.add_comment("summary", "Provides static methods that decode request payloads.");
+    class_builder
+        .add_comment("summary", "Provides static methods that decode request payloads.")
+        .add_comment(
+            "remarks",
+            format!(
+                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
+                &interface_def.module_scoped_identifier()
+            ),
+        );
 
     for operation in operations {
         let parameters = operation.parameters();
@@ -133,12 +141,17 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             ),
         );
 
-        builder.add_parameter("IceRpc.IncomingRequest", "request", None, None);
+        builder.add_parameter(
+            "IceRpc.IncomingRequest",
+            "request",
+            None,
+            Some("The incoming request.".to_owned()),
+        );
         builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancellationToken",
             None,
-            None,
+            Some("A cancellation token that receives the cancellation requests.".to_owned()),
         );
         builder.set_body(request_decode_body(operation));
 
@@ -171,10 +184,18 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         "Response",
     );
 
-    class_builder.add_comment(
-        "summary",
-        "Provides static methods that encode return values into response payloads.",
-    );
+    class_builder
+        .add_comment(
+            "summary",
+            "Provides static methods that encode return values into response payloads.",
+        )
+        .add_comment(
+            "remarks",
+            format!(
+                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
+                &interface_def.module_scoped_identifier()
+            ),
+        );
 
     for operation in operations {
         let non_streamed_returns = operation.non_streamed_return_members();
