@@ -11,6 +11,7 @@ use crate::member_util::*;
 use crate::slicec_ext::*;
 
 use slice::code_block::CodeBlock;
+use slice::grammar::NamedSymbol;
 use slice::grammar::{Class, Encoding, Field};
 use slice::utils::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
@@ -49,6 +50,13 @@ impl Visitor for ClassVisitor<'_> {
 
         class_builder
             .add_comments(class_def.formatted_doc_comment())
+            .add_comment(
+                "remarks",
+                format!(
+                    "The Slice compiler generated this class from <c>{}</c> Slice class definition.",
+                    &class_def.module_scoped_identifier()
+                ),
+            )
             .add_type_id_attribute(class_def)
             .add_compact_type_id_attribute(class_def)
             .add_container_attributes(class_def);

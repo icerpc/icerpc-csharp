@@ -11,6 +11,7 @@ use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
+use slice::grammar::NamedSymbol;
 use slice::grammar::{Encoding, Exception, Member, Type};
 use slice::utils::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
@@ -34,6 +35,13 @@ impl Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder
             .add_comments(exception_def.formatted_doc_comment())
+            .add_comment(
+                "remarks",
+                format!(
+                    "The Slice compiler generated this class from <c>{}</c> Slice exception definition.",
+                    &exception_def.module_scoped_identifier()
+                ),
+            )
             .add_container_attributes(exception_def);
 
         if exception_def.supported_encodings().supports(&Encoding::Slice1) {
