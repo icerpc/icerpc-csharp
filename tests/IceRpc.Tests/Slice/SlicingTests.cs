@@ -48,7 +48,7 @@ public class SlicingTests
     }
 
     [Test]
-    public void Slicing_preserve_unknown_slices()
+    public void Slicing_preserve_unknown_slices([Values] bool partialSlicing)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
@@ -58,11 +58,15 @@ public class SlicingTests
         var p1 = new SlicingPreservedDerivedClass1("p1-m1", "p1-m2", p2);
         encoder.EncodeClass(p1);
 
-        // Create an activator that exclude 'SlicingPreservedDerivedClass1' type ID and ensure that the class is sliced and
-        // the Slices are preserved.
-        var slicingActivator = new SlicingActivator(
-            SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly),
-            slicedTypeIds: ImmutableList.Create(typeof(SlicingPreservedDerivedClass1).GetSliceTypeId()!));
+        IActivator? slicingActivator = null;
+        if (partialSlicing)
+        {
+            // Create an activator that exclude 'SlicingPreservedDerivedClass1' type ID and ensure that the class is
+            // sliced and the Slices are preserved.
+            slicingActivator = new SlicingActivator(
+                SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly),
+                slicedTypeIds: ImmutableList.Create(typeof(SlicingPreservedDerivedClass1).GetSliceTypeId()!));
+        }
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
         SliceClass? r1 = decoder.DecodeClass<SliceClass>();
@@ -75,7 +79,14 @@ public class SlicingTests
         encoder.EncodeClass(r1!);
 
         // Assert
-        Assert.That(r1, Is.TypeOf<SlicingPreservedClass>());
+        if (partialSlicing)
+        {
+            Assert.That(r1, Is.TypeOf<SlicingPreservedClass>());
+        }
+        else
+        {
+            Assert.That(r1, Is.TypeOf<UnknownSlicedClass>());
+        }
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
         // Encode again using an activator that knows all the type IDs, the decoded class should contain the preserved Slices.
         decoder = new SliceDecoder(
