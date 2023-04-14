@@ -98,7 +98,7 @@ public static class TypeExtensions
             else
             {
                 throw new ArgumentException(
-                    $"The type '{type}' doesn't have an {nameof(SliceTypeIdAttribute)} attribute.",
+                    $"The type '{type}' doesn't have a {nameof(SliceTypeIdAttribute)} attribute.",
                     nameof(type));
             }
         }
