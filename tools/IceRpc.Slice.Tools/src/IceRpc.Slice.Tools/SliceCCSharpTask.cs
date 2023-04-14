@@ -123,7 +123,7 @@ public class SliceCCSharpTask : ToolTask
         }
 
         void LogSliceCompilerDiagnostic(
-            string? serverity,
+            string? severity,
             string? message,
             string? code,
             string? file,
@@ -133,7 +133,7 @@ public class SliceCCSharpTask : ToolTask
             message ??= "";
             file ??= "";
 
-            if (serverity == "error")
+            if (severity == "error")
             {
                 Log.LogError("", code ?? "E000", "", file, start.Row, start.Col, end.Row, end.Col, message);
             }
