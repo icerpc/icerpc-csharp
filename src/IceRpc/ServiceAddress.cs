@@ -9,9 +9,8 @@ using System.Text;
 
 namespace IceRpc;
 
-/// <summary>Represents the URI of a service, parsed and processed for easier consumption by interceptors. It's used
-/// to construct an <see cref="OutgoingRequest" />.</summary>
-/// <seealso cref="ConnectionCache" />
+/// <summary>Represents the URI of a service, parsed and processed for easier consumption by invokers. It's used to
+/// construct an <see cref="OutgoingRequest" />.</summary>
 // The properties of this class are sorted in URI order.
 [TypeConverter(typeof(ServiceAddressTypeConverter))]
 public sealed record class ServiceAddress

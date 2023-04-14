@@ -92,7 +92,7 @@ public ref partial struct SliceEncoder
     /// </returns>
     public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
-    /// <summary>Constructs an Slice encoder.</summary>
+    /// <summary>Constructs a Slice encoder.</summary>
     /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
     /// <param name="encoding">The Slice encoding.</param>
     /// <param name="classFormat">The class format (Slice1 only).</param>
