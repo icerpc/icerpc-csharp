@@ -36,6 +36,13 @@ runs:
     uses: actions/setup-dotnet@v3
     with:
       dotnet-version: "7.0.x"
+  - name: Install libmsquic
+    run: |
+      wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+      sudo dpkg -i packages-microsoft-prod.deb
+      rm packages-microsoft-prod.deb
+      sudo apt install libmsquic
+    shell: bash
   - name: 🔗 Start SSH Agent
     uses: webfactory/ssh-agent@v0.5.4
     with:
