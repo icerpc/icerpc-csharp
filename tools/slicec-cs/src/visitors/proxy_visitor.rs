@@ -68,7 +68,7 @@ This remote service must implement Slice interface {slice_interface}."#
             .add_comment(
                 "remarks",
                 format!(
-                    "The Slice compiler generated this struct from Slice interface <c>{}</c>.",
+                    "The Slice compiler generated this record struct from Slice interface <c>{}</c>.",
                     &interface_def.module_scoped_identifier()
                 ),
             )
