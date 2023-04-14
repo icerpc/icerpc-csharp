@@ -8,78 +8,82 @@ namespace IceRpc.Tests.Slice.TypeIdAttributeTestNamespace;
 
 public sealed class TypeIdAttributeTests
 {
-    /// <summary>Provides test case data for <see cref="Get_default_path(Type, string)" /> test.</summary>
-    private static IEnumerable<TestCaseData> GetDefaultPathSource
+    /// <summary>Provides test case data for the <see cref="Get_all_slice_type_ids" /> test.</summary>
+    private static IEnumerable<TestCaseData> GetAllSliceTypeIdsSource
     {
         get
         {
-            foreach ((Type type, string path) in _defaultPaths)
+            foreach ((Type type, string[] expected) in _allTypeIds)
             {
-                yield return new TestCaseData(type, path);
+                yield return new TestCaseData(type, expected);
             }
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Get_typeId(Type, string?)" /> test.</summary>
-    private static IEnumerable<TestCaseData> GetSliceTypeIdSource
+    private static readonly Dictionary<Type, string[]> _allTypeIds = new()
     {
-        get
+        [typeof(IceObjectProxy)] = new string[] { "::Ice::Object" },
+        [typeof(PingableProxy)] = new string[] { "::IceRpc::Tests::Slice::Pingable" },
+        [typeof(MyDerivedClass)] = new string[]
         {
-            foreach ((Type type, string? path) in _typeIds)
-            {
-                yield return new TestCaseData(type, path);
-            }
-        }
-    }
-
-    /// <summary>A collection of types generated from Slice definitions and its expected type IDs.</summary>
-    private static readonly Dictionary<Type, string?> _typeIds = new()
-    {
-        [typeof(IceObjectProxy)] = "::Ice::Object",
-        [typeof(PingableProxy)] = "::IceRpc::Tests::Slice::Pingable",
-        [typeof(MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass",
-        [typeof(IMyInterface)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
-        [typeof(MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
-        [typeof(IMyInterfaceService)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
-        [typeof(MyException)] = null, // Slice2 exception
-        [typeof(Inner.MyClass)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myClass",
-        [typeof(Inner.MyInterfaceProxy)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
-        [typeof(Inner.IMyInterfaceService)] = "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
-        [typeof(Inner.MyException)] = null, // Slice2 exception
-    };
-
-    /// <summary>A collection of types generated from Slice definitions and its expected default path.</summary>
-    private static readonly Dictionary<Type, string> _defaultPaths = new()
-    {
-        [typeof(IceObjectProxy)] = "/Ice.Object",
-        [typeof(PingableProxy)] = "/IceRpc.Tests.Slice.Pingable",
-        [typeof(MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyClass",
-        [typeof(IMyInterface)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
-        [typeof(MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
-        [typeof(IMyInterfaceService)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface",
-        [typeof(Inner.MyClass)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myClass",
-        [typeof(Inner.MyInterfaceProxy)] = "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myInterface",
+            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyDerivedClass",
+            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass"
+        },
+        [typeof(IMyDerivedInterface)] = new string[]
+        {
+            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface",
+            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyDerivedInterface",
+            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
+        },
+        [typeof(ServerAddress)] = Array.Empty<string>(),
+        [typeof(ServiceAddress)] = Array.Empty<string>(),
     };
 
     /// <summary>Verifies that types generated from Slice definitions have the expected type ID.</summary>
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
-    [Test, TestCaseSource(nameof(GetSliceTypeIdSource))]
-    public void Get_typeId(Type type, string? expected)
+    [TestCase(typeof(IceObjectProxy), "::Ice::Object")]
+    [TestCase(typeof(PingableProxy), "::IceRpc::Tests::Slice::Pingable")]
+    [TestCase(typeof(MyClass), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass")]
+    [TestCase(typeof(IMyInterface), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
+    [TestCase(typeof(MyInterfaceProxy), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
+    [TestCase(typeof(IMyInterfaceService), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
+    [TestCase(typeof(MyException), null)] // Slice2 exception
+    [TestCase(typeof(Inner.MyClass), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myClass")]
+    [TestCase(typeof(Inner.MyInterfaceProxy), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface")]
+    [TestCase(typeof(Inner.IMyInterfaceService), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::Inner::myInterface")]
+    [TestCase(typeof(Inner.MyException), null)] // Slice2 exception
+    public void Get_slice_type_id(Type type, string? expected)
     {
         string? typeId = type.GetSliceTypeId();
-
         Assert.That(typeId, Is.EqualTo(expected));
+    }
+
+    [Test, TestCaseSource(nameof(GetAllSliceTypeIdsSource))]
+    public void Get_all_slice_type_ids(Type type, string[] expected)
+    {
+        string[] typeIds = type.GetAllSliceTypeIds();
+        Assert.That(typeIds, Is.EqualTo(expected));
     }
 
     /// <summary>Verifies that types generated from Slice definitions have the expected default path.</summary>
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
-    [Test, TestCaseSource(nameof(GetDefaultPathSource))]
-    public void Get_default_path(Type type, string? expected)
+    [TestCase(typeof(IceObjectProxy), "/Ice.Object")]
+    [TestCase(typeof(PingableProxy), "/IceRpc.Tests.Slice.Pingable")]
+    [TestCase(typeof(IMyInterface), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface")]
+    [TestCase(typeof(MyInterfaceProxy), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface")]
+    [TestCase(typeof(IMyInterfaceService), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface")]
+    [TestCase(typeof(Inner.MyInterfaceProxy), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myInterface")]
+    public void Get_default_path(Type type, string expected)
     {
         string defaultPath = type.GetDefaultPath();
-
         Assert.That(defaultPath, Is.EqualTo(expected));
     }
+
+    [TestCase(typeof(MyClass))]
+    [TestCase(typeof(MyException))]
+    [TestCase(typeof(ServerAddress))]
+    public void Get_default_path_exception(Type type) =>
+        Assert.That(() => type.GetDefaultPath(), Throws.ArgumentException);
 }
