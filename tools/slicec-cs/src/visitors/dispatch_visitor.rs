@@ -28,7 +28,7 @@ impl Visitor for DispatchVisitor<'_> {
 
         let remarks = format!(
             r#"
-The Slice compiler generated this service-side interface from Slice interface {slice_interface}.
+The Slice compiler generated this service-side interface from Slice interface <c>{slice_interface}</c>.
 Your service implementation must implement this interface and derive from <see cref="IceRpc.Slice.Service" />.
 "#
         );
@@ -103,7 +103,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         .add_comment(
             "remarks",
             format!(
-                "The Slice compiler generated this static class from <c>{}</c> Slice interface definition.",
+                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
                 &interface_def.module_scoped_identifier()
             ),
         );
@@ -192,7 +192,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         .add_comment(
             "remarks",
             format!(
-                "The Slice compiler generated this static class from <c>{}</c> Slice interface definition.",
+                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
                 &interface_def.module_scoped_identifier()
             ),
         );

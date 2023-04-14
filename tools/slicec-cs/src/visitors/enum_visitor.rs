@@ -35,7 +35,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
     .add_comment(
         "remarks",
         format!(
-            "The Slice compiler generated this enum from <c>{}</c> Slice enum definition.",
+            "The Slice compiler generated this enum from Slice enum <c>{}</c>.",
             &enum_def.module_scoped_identifier()
         ),
     )
@@ -90,7 +90,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     ).add_comment(
         "remarks",
         format!(
-            "The Slice compiler generated this static class from <c>{}</c> Slice enum definition.",
+            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
             &enum_def.module_scoped_identifier()
         ),
     );
@@ -197,7 +197,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     ).add_comment(
         "remarks",
         format!(
-            "The Slice compiler generated this static class from <c>{}</c> Slice enum definition.",
+            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
             &enum_def.module_scoped_identifier()
         ),
     );
@@ -238,7 +238,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     ).add_comment(
         "remarks",
         format!(
-            "The Slice compiler generated this static class from <c>{}</c> Slice enum definition.",
+            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
             &enum_def.module_scoped_identifier()
         ),
     );

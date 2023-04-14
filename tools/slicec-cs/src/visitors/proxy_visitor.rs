@@ -37,7 +37,7 @@ impl Visitor for ProxyVisitor<'_> {
 
         let remarks = format!(
             r#"
-The Slice compiler generated this client-side interface from <c>{slice_interface}</c> Slice interface.
+The Slice compiler generated this client-side interface from Slice interface <c>{slice_interface}</c>.
 It's implemented by <see cref="{proxy_impl}" />."#
         );
 
@@ -68,7 +68,7 @@ This remote service must implement Slice interface {slice_interface}."#
             .add_comment(
                 "remarks",
                 format!(
-                    "The Slice compiler generated this struct from <c>{}</c> Slice interface definition.",
+                    "The Slice compiler generated this struct from Slice interface <c>{}</c>.",
                     &interface_def.module_scoped_identifier()
                 ),
             )
@@ -367,7 +367,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         .add_comment(
             "remarks",
             format!(
-                "The Slice compiler generated this static class from <c>{}</c> Slice interface definition.",
+                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
                 &interface_def.module_scoped_identifier()
             ),
         );
@@ -444,7 +444,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     ).add_comment(
         "remarks",
         format!(
-            "The Slice compiler generated this static class from <c>{}</c> Slice interface definition.",
+            "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
             &interface_def.module_scoped_identifier()
         ),
     );

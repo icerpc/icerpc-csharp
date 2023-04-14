@@ -53,7 +53,7 @@ impl Visitor for ClassVisitor<'_> {
             .add_comment(
                 "remarks",
                 format!(
-                    "The Slice compiler generated this class from <c>{}</c> Slice class definition.",
+                    "The Slice compiler generated this class from Slice class <c>{}</c>.",
                     &class_def.module_scoped_identifier()
                 ),
             )

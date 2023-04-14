@@ -35,7 +35,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_comment(
                 "remarks",
                 format!(
-                    "The Slice compiler generated this record struct from <c>{}</c> Slice struct definition.",
+                    "The Slice compiler generated this record struct from Slice struct <c>{}</c>.",
                     &struct_def.module_scoped_identifier()
                 ),
             )

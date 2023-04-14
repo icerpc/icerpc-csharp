@@ -38,7 +38,7 @@ impl Visitor for ExceptionVisitor<'_> {
             .add_comment(
                 "remarks",
                 format!(
-                    "The Slice compiler generated this class from <c>{}</c> Slice exception definition.",
+                    "The Slice compiler generated this class from Slice exception <c>{}</c>.",
                     &exception_def.module_scoped_identifier()
                 ),
             )
