@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
 
-/// <summary>Extension methods for <see cref="IAsyncEnumerable{T}" />.</summary>
+/// <summary>Provides extension methods for <see cref="IAsyncEnumerable{T}" />.</summary>
 public static class AsyncEnumerableExtensions
 {
     /// <summary>Encodes an async enumerable into a stream of bytes represented by a <see cref="PipeReader"/>.</summary>

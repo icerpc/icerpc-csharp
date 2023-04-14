@@ -7,8 +7,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
 
-/// <summary>Extension methods to decode the payloads of incoming responses when such payloads are encoded with the
-/// Slice encoding.</summary>
+/// <summary>Provides extension methods to decode the Slice-encoded payload of an <see cref="IncomingResponse" />.
+/// </summary>
 public static class IncomingResponseExtensions
 {
     /// <summary>Decodes a response payload.</summary>

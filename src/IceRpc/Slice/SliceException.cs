@@ -4,7 +4,8 @@ using System.ComponentModel;
 
 namespace IceRpc.Slice;
 
-/// <summary>Base class for exceptions defined in Slice.</summary>
+/// <summary>Represents the base class for exceptions defined in Slice. The Slice keyword AnyException maps to this
+/// class.</summary>
 public abstract class SliceException : DispatchException
 {
     /// <summary>Encodes this exception.</summary>

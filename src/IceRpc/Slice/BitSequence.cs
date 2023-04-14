@@ -5,7 +5,7 @@ using System.Buffers;
 
 namespace IceRpc.Slice;
 
-/// <summary>A reader for a bit sequence.</summary>
+/// <summary>Provides a method for reading a bit sequence.</summary>
 public ref struct BitSequenceReader
 {
     private byte _currentByte;
@@ -42,7 +42,7 @@ public ref struct BitSequenceReader
     }
 }
 
-/// <summary>A writer for a bit sequence.</summary>
+/// <summary>Provides a method for writing a bit sequence.</summary>
 public ref struct BitSequenceWriter
 {
     private int _index; // the bit index in _spanEnumerator.Current

@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
 
-/// <summary>Extension methods for <see cref="SliceEncoding" />.</summary>
+/// <summary>Provides an extension method for <see cref="SliceEncoding" />.</summary>
 public static class SliceEncodingExtensions
 {
     private static readonly ReadOnlySequence<byte> _sizeZeroPayload = new(new byte[] { 0 });

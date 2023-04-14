@@ -15,7 +15,7 @@ using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice;
 
-/// <summary>Encodes data into one or more byte buffers using the Slice encoding.</summary>
+/// <summary>Provides methods to encode data with Slice1 or Slice2.</summary>
 public ref partial struct SliceEncoder
 {
     /// <summary>Gets the number of bytes encoded by this encoder into the underlying buffer writer.</summary>
@@ -92,7 +92,7 @@ public ref partial struct SliceEncoder
     /// </returns>
     public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
-    /// <summary>Constructs an Slice encoder.</summary>
+    /// <summary>Constructs a Slice encoder.</summary>
     /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
     /// <param name="encoding">The Slice encoding.</param>
     /// <param name="classFormat">The class format (Slice1 only).</param>

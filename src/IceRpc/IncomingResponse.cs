@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc;
 
-/// <summary>Represents a response protocol frame received by the application.</summary>
+/// <summary>Represents a response frame received by the application.</summary>
 public sealed class IncomingResponse : IncomingFrame
 {
     /// <summary>Gets the error message of this response.</summary>

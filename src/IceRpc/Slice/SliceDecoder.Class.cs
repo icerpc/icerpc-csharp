@@ -12,7 +12,7 @@ using static IceRpc.Slice.Internal.Slice1Definitions;
 
 namespace IceRpc.Slice;
 
-/// <summary>SliceDecoder class encoding methods.</summary>
+/// <summary>Provides methods to decode data encoded with Slice1 or Slice2.</summary>
 public ref partial struct SliceDecoder
 {
     /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced

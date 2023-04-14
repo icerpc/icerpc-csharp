@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace IceRpc;
 
-/// <summary>Represents an ice or icerpc request frame sent by the application.</summary>
+/// <summary>Represents a request frame sent by the application.</summary>
 public sealed class OutgoingRequest : OutgoingFrame, IDisposable
 {
     /// <summary>Gets or sets the features of this request.</summary>

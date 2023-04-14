@@ -5,7 +5,8 @@ using System.ComponentModel;
 
 namespace IceRpc.Slice;
 
-/// <summary>Base class for classes defined in Slice.</summary>
+/// <summary>Represents the base class for classes defined in Slice. The Slice keyword AnyClass maps to this class.
+/// </summary>
 public abstract class SliceClass
 {
     /// <summary>Gets the unknown slices if the class has a preserved-slice base class and has been sliced-off
