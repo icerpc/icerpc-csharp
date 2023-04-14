@@ -27,11 +27,13 @@ public ref partial struct SliceEncoder
         }
         else
         {
-            if (_classContext.Current.InstanceType != InstanceType.None && _classContext.ClassFormat == ClassFormat.Sliced)
+            if (_classContext.Current.InstanceType != InstanceType.None &&
+                _classContext.ClassFormat == ClassFormat.Sliced)
             {
                 // If encoding an instance within a slice and using the sliced format, encode an index of that
                 // slice's indirection table.
-                if (_classContext.Current.IndirectionMap is not null && _classContext.Current.IndirectionMap.TryGetValue(v, out int index))
+                if (_classContext.Current.IndirectionMap is not null &&
+                    _classContext.Current.IndirectionMap.TryGetValue(v, out int index))
                 {
                     // Found, index is position in indirection table + 1
                     Debug.Assert(index > 0);
@@ -76,7 +78,9 @@ public ref partial struct SliceEncoder
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
         {
             // Size includes the size length.
-            EncodeInt32(EncodedByteCount - _classContext.Current.SliceSizeStartPos, _classContext.Current.SliceSizePlaceholder.Span);
+            EncodeInt32(
+                EncodedByteCount - _classContext.Current.SliceSizeStartPos,
+                _classContext.Current.SliceSizePlaceholder.Span);
         }
 
         if (_classContext.Current.IndirectionTable?.Count > 0)
