@@ -275,10 +275,8 @@ internal class SlicConnection : IMultiplexedConnection
             // Enable the idle timeout checks after the connection establishment. The Ping frames sent by the keep alive
             // check are not expected until the Slic connection initialization completes. The idle timeout check uses
             // the smallest idle timeout.
-            TimeSpan idleTimeout =
-                _peerIdleTimeout == Timeout.InfiniteTimeSpan ? _localIdleTimeout :
-                _peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout :
-                _localIdleTimeout;
+            TimeSpan idleTimeout = _peerIdleTimeout == Timeout.InfiniteTimeSpan ? _localIdleTimeout :
+                (_peerIdleTimeout < _localIdleTimeout ? _peerIdleTimeout : _localIdleTimeout);
 
             if (idleTimeout != Timeout.InfiniteTimeSpan)
             {
