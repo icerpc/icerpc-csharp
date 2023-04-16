@@ -36,6 +36,7 @@ public class SlicingTests
 
         // Act
         SliceClass? anyClass = decoder.DecodeClass<SliceClass>();
+        decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
         // Assert
         Assert.That(anyClass, Is.Not.Null);
@@ -61,7 +62,7 @@ public class SlicingTests
         IActivator? slicingActivator = null;
         if (partialSlicing)
         {
-            // Create an activator that exclude 'SlicingPreservedDerivedClass1' type ID and ensure that the class is
+            // Create an activator that excludes 'SlicingPreservedDerivedClass1' type ID and ensure that the class is
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
                 SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly),
@@ -74,27 +75,24 @@ public class SlicingTests
         // Encode the sliced class
         buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
-
-        // Act
         encoder.EncodeClass(r1!);
 
-        // Assert
-        if (partialSlicing)
-        {
-            Assert.That(r1, Is.TypeOf<SlicingPreservedClass>());
-        }
-        else
-        {
-            Assert.That(r1, Is.TypeOf<UnknownSlicedClass>());
-        }
-        Assert.That(r1.UnknownSlices, Is.Not.Empty);
-        // Encode again using an activator that knows all the type IDs, the decoded class should contain the preserved Slices.
+        // Act
+
+        // Decode again using an activator that knows all the type IDs, the decoded class should contain the preserved
+        // Slices.
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
             activator: SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly));
 
         SlicingPreservedDerivedClass1 r2 = decoder.DecodeClass<SlicingPreservedDerivedClass1>();
+        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+
+        // Assert
+        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingPreservedClass>() : Is.TypeOf<UnknownSlicedClass>());
+        Assert.That(r1.UnknownSlices, Is.Not.Empty);
+
         Assert.That(r2.UnknownSlices, Is.Empty);
         Assert.That(r2.M1, Is.EqualTo("p1-m1"));
         Assert.That(r2.M2, Is.EqualTo("p1-m2"));
