@@ -41,7 +41,7 @@ impl Visitor for ProxyVisitor<'_> {
                 .add_comments(interface_def.formatted_doc_comment())
                 .add_generated_remark_with_note(
                     "client-side interface",
-                    format!("It's implemented by <see cref=\"{proxy_impl}\" />"),
+                    format!("It's implemented by <see cref=\"{proxy_impl}\" />."),
                     interface_def,
                 )
                 .add_type_id_attribute(interface_def)

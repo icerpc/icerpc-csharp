@@ -105,7 +105,7 @@ pub trait CommentBuilder {
         self.add_comment(
             "remarks",
             format!(
-                "The Slice compiler generated this {} from Slice {} <c>{}</c>",
+                "The Slice compiler generated this {} from Slice {} <c>{}</c>.",
                 generated_type,
                 slice_type.type_string(),
                 slice_type.module_scoped_identifier()

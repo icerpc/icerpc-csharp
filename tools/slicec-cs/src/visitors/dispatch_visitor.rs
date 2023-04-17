@@ -29,7 +29,7 @@ impl Visitor for DispatchVisitor<'_> {
             .add_comments(interface_def.formatted_doc_comment())
             .add_generated_remark_with_note(
                 "server-side interface",
-                r#"Your service implementation must implement this interface and derive from <see cref="Service" />"#,
+                r#"Your service implementation must implement this interface and derive from <see cref="Service" />."#,
                 interface_def,
             )
             .add_type_id_attribute(interface_def)
