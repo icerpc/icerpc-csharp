@@ -1,13 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
+use super::super::code_gen::compiler_chain;
 use super::super::*;
 use slice::diagnostics::{Diagnostic, Error};
 
 fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
-    let data = match slice::compile_from_strings(&[slice], None)
-        .and_then(|data| unsafe { patch_attributes(data) })
-        .and_then(validate_cs_attributes)
-    {
+    let data = match slice::compile_from_strings(&[slice], None).and_then(compiler_chain) {
         Ok(data) => data,
         Err(data) => data,
     };
