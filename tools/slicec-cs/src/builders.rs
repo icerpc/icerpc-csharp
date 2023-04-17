@@ -127,7 +127,7 @@ pub trait CommentBuilder {
                 generated_type,
                 slice_type.kind(),
                 slice_type.module_scoped_identifier(),
-                note.into()
+                note.into(),
             ),
         );
         self
