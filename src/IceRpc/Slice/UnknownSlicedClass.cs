@@ -16,8 +16,9 @@ public sealed class UnknownSlicedClass : SliceClass
 
     /// <inheritdoc/>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected override void EncodeCore(ref SliceEncoder encoder) =>
-        encoder.EncodeUnknownSlices(UnknownSlices, fullySliced: true);
+    protected override void EncodeCore(ref SliceEncoder encoder)
+    {
+    }
 
     internal UnknownSlicedClass()
     {
