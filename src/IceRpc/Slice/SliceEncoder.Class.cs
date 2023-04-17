@@ -226,7 +226,9 @@ public ref partial struct SliceEncoder
             _classContext.Current.InstanceType = InstanceType.Class;
             _classContext.Current.FirstSlice = true;
 
-            if (v.UnknownSlices.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
+            if (v.UnknownSlices.Count > 0 &&
+                _classContext.ClassFormat == ClassFormat.Sliced &&
+                v is not UnknownSlicedClass)
             {
                 EncodeUnknownSlices(v.UnknownSlices, fullySliced: false);
                 _classContext.Current.FirstSlice = false;
