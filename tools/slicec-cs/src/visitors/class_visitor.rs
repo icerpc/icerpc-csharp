@@ -10,7 +10,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
-use slice::grammar::{Class, Encoding, Field, NamedSymbol};
+use slice::grammar::{Class, Encoding, Field};
 use slice::utils::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
 
@@ -48,13 +48,7 @@ impl Visitor for ClassVisitor<'_> {
 
         class_builder
             .add_comments(class_def.formatted_doc_comment())
-            .add_comment(
-                "remarks",
-                format!(
-                    "The Slice compiler generated this class from Slice class <c>{}</c>.",
-                    &class_def.module_scoped_identifier()
-                ),
-            )
+            .add_generated_remark("class", class_def)
             .add_type_id_attribute(class_def)
             .add_compact_type_id_attribute(class_def)
             .add_container_attributes(class_def);

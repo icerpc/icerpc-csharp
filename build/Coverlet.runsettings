@@ -10,7 +10,7 @@
                     <!-- Exclude test assemblies -->
                     <Exclude>[*]IceRpc.Conformance.Tests*,[*]IceRpc.Tests.Common*</Exclude>
                     <!-- Filter out generated files -->
-                    <ExcludeByFile>**/generated/*.cs,**/LoggerMessage.g.cs</ExcludeByFile>
+                    <ExcludeByFile>**/generated/**/*.cs,**/LoggerMessage.g.cs</ExcludeByFile>
                 </Configuration>
             </DataCollector>
         </DataCollectors>

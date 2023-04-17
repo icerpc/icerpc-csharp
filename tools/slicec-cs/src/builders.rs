@@ -55,6 +55,38 @@ pub trait AttributeBuilder {
 pub trait CommentBuilder {
     fn add_comment(&mut self, tag: &str, content: impl Into<String>) -> &mut Self;
 
+    fn add_generated_remark(&mut self, generated_type: &str, slice_type: &impl Entity) -> &mut Self {
+        self.add_comment(
+            "remarks",
+            format!(
+                "The Slice compiler generated this {} from the Slice {} <c>{}</c>.",
+                generated_type,
+                slice_type.kind(),
+                slice_type.module_scoped_identifier(),
+            ),
+        );
+        self
+    }
+
+    fn add_generated_remark_with_note(
+        &mut self,
+        generated_type: &str,
+        note: impl Into<String>,
+        slice_type: &impl Entity,
+    ) -> &mut Self {
+        self.add_comment(
+            "remarks",
+            format!(
+                "The Slice compiler generated this {} from Slice {} <c>{}</c>.\n{}",
+                generated_type,
+                slice_type.kind(),
+                slice_type.module_scoped_identifier(),
+                note.into(),
+            ),
+        );
+        self
+    }
+
     fn add_comment_with_attribute(
         &mut self,
         tag: &str,

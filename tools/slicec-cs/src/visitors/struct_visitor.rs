@@ -32,13 +32,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
         builder
             .add_comments(struct_def.formatted_doc_comment())
-            .add_comment(
-                "remarks",
-                format!(
-                    "The Slice compiler generated this record struct from Slice struct <c>{}</c>.",
-                    &struct_def.module_scoped_identifier()
-                ),
-            )
+            .add_generated_remark("record struct", struct_def)
             .add_container_attributes(struct_def);
 
         builder.add_block(
