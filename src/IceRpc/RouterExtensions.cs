@@ -19,7 +19,7 @@ public static class RouterExtensions
     /// <seealso cref="Router.Mount(string, IDispatcher)" />
     public static Router Map<TService>(this Router router, IDispatcher service)
         where TService : class =>
-        router.Map(typeof(TService).GetDefaultPath(), service);
+        router.Map(typeof(TService).GetDefaultServicePath(), service);
 
     /// <summary>Creates a sub-router, configures this sub-router and mounts it (with
     /// <see cref="Router.Mount(string, IDispatcher)" />) at the given <c>prefix</c>.</summary>

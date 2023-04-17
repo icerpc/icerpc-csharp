@@ -77,7 +77,7 @@ public sealed class TypeIdAttributeTests
     [TestCase(typeof(Inner.MyInterfaceProxy), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.Inner.myInterface")]
     public void Get_default_path(Type type, string expected)
     {
-        string defaultPath = type.GetDefaultPath();
+        string defaultPath = type.GetDefaultServicePath();
         Assert.That(defaultPath, Is.EqualTo(expected));
     }
 
@@ -85,5 +85,5 @@ public sealed class TypeIdAttributeTests
     [TestCase(typeof(MyException))]
     [TestCase(typeof(ServerAddress))]
     public void Get_default_path_exception(Type type) =>
-        Assert.That(() => type.GetDefaultPath(), Throws.ArgumentException);
+        Assert.That(() => type.GetDefaultServicePath(), Throws.ArgumentException);
 }

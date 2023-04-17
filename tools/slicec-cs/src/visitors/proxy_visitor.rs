@@ -83,7 +83,7 @@ This remote service must implement Slice interface {slice_interface}."#
 /// Its protocol is <see cref="IceRpc.Protocol.IceRpc" /> and its path is computed from the name of the Slice interface.
 /// </summary>
 public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
-    new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultPath() }};
+    new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultServicePath() }};
 
 /// <inheritdoc/>
 public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;

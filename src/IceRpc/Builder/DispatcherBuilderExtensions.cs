@@ -40,5 +40,5 @@ public static class DispatcherBuilderExtensions
     /// <param name="builder">The builder being configured.</param>
     /// <returns>This builder.</returns>
     public static IDispatcherBuilder Map<TService>(this IDispatcherBuilder builder) where TService : notnull =>
-        builder.Map<TService>(typeof(TService).GetDefaultPath());
+        builder.Map<TService>(typeof(TService).GetDefaultServicePath());
 }
