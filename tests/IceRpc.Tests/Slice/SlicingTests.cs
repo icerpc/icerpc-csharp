@@ -36,6 +36,7 @@ public class SlicingTests
 
         // Act
         SliceClass? anyClass = decoder.DecodeClass<SliceClass>();
+        decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
         // Assert
         Assert.That(anyClass, Is.Not.Null);
@@ -48,7 +49,7 @@ public class SlicingTests
     }
 
     [Test]
-    public void Slicing_preserve_unknown_slices()
+    public void Slicing_preserve_unknown_slices([Values] bool partialSlicing)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
@@ -58,11 +59,15 @@ public class SlicingTests
         var p1 = new SlicingPreservedDerivedClass1("p1-m1", "p1-m2", p2);
         encoder.EncodeClass(p1);
 
-        // Create an activator that exclude 'SlicingPreservedDerivedClass1' type ID and ensure that the class is sliced and
-        // the Slices are preserved.
-        var slicingActivator = new SlicingActivator(
-            SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly),
-            slicedTypeIds: ImmutableList.Create(typeof(SlicingPreservedDerivedClass1).GetSliceTypeId()!));
+        IActivator? slicingActivator = null;
+        if (partialSlicing)
+        {
+            // Create an activator that excludes 'SlicingPreservedDerivedClass1' type ID and ensure that the class is
+            // sliced and the Slices are preserved.
+            slicingActivator = new SlicingActivator(
+                SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly),
+                slicedTypeIds: ImmutableList.Create(typeof(SlicingPreservedDerivedClass1).GetSliceTypeId()!));
+        }
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
         SliceClass? r1 = decoder.DecodeClass<SliceClass>();
@@ -70,20 +75,24 @@ public class SlicingTests
         // Encode the sliced class
         buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
-
-        // Act
         encoder.EncodeClass(r1!);
 
-        // Assert
-        Assert.That(r1, Is.TypeOf<SlicingPreservedClass>());
-        Assert.That(r1.UnknownSlices, Is.Not.Empty);
-        // Encode again using an activator that knows all the type IDs, the decoded class should contain the preserved Slices.
+        // Act
+
+        // Decode again using an activator that knows all the type IDs, the decoded class should contain the preserved
+        // Slices.
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
             activator: SliceDecoder.GetActivator(typeof(SlicingPreservedDerivedClass1).Assembly));
 
         SlicingPreservedDerivedClass1 r2 = decoder.DecodeClass<SlicingPreservedDerivedClass1>();
+        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+
+        // Assert
+        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingPreservedClass>() : Is.TypeOf<UnknownSlicedClass>());
+        Assert.That(r1.UnknownSlices, Is.Not.Empty);
+
         Assert.That(r2.UnknownSlices, Is.Empty);
         Assert.That(r2.M1, Is.EqualTo("p1-m1"));
         Assert.That(r2.M2, Is.EqualTo("p1-m2"));
