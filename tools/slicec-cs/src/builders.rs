@@ -101,7 +101,7 @@ pub trait AttributeBuilder {
 pub trait CommentBuilder {
     fn add_comment(&mut self, tag: &str, content: impl Into<String>) -> &mut Self;
 
-    fn add_generated_remark<T: Entity>(&mut self, generated_type: &str, slice_type: &T) -> &mut Self {
+    fn add_generated_remark<T: Entity + Type>(&mut self, generated_type: &str, slice_type: &T) -> &mut Self {
         self.add_comment(
             "remarks",
             format!(
@@ -114,7 +114,7 @@ pub trait CommentBuilder {
         self
     }
 
-    fn add_generated_remark_with_note<T: Entity>(
+    fn add_generated_remark_with_note<T: Entity + Type>(
         &mut self,
         generated_type: &str,
         note: impl Into<String>,
