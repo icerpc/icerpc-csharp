@@ -146,7 +146,7 @@ impl Visitor for CsValidator<'_> {
         validate_repeated_attributes(struct_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(struct_def) {
             match attribute {
-                CsAttributeKind::Readonly | CsAttributeKind::Attribute { .. } => {}
+                CsAttributeKind::Readonly { .. } => {}
                 _ => validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -155,27 +155,20 @@ impl Visitor for CsValidator<'_> {
     fn visit_class_start(&mut self, class_def: &Class) {
         validate_repeated_attributes(class_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(class_def) {
-            match attribute {
-                CsAttributeKind::Attribute { .. } => {}
-                _ => validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter),
-            }
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
     fn visit_exception_start(&mut self, exception_def: &Exception) {
         validate_repeated_attributes(exception_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(exception_def) {
-            match attribute {
-                CsAttributeKind::Attribute { .. } => {}
-                _ => validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter),
-            }
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         validate_repeated_attributes(interface_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(interface_def) {
-            // TODO: explain why we don't support cs::attribute on interfaces
             validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
