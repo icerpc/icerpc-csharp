@@ -12,4 +12,6 @@ module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace {
     {
         class myClass {}
     }
+
+    class MyDerivedClass : MyClass {}
 }
