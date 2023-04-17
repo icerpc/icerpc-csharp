@@ -108,7 +108,7 @@ pub trait CommentBuilder {
                 "The Slice compiler generated this {} from Slice {} <c>{}</c>.",
                 generated_type,
                 slice_type.kind(),
-                slice_type.module_scoped_identifier()
+                slice_type.module_scoped_identifier(),
             ),
         );
         self
