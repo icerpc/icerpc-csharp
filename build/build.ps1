@@ -215,6 +215,13 @@ if ( $help ) {
     exit 0
 }
 
+if ($args) {
+    Write-Host "too many arguments: $args"
+    Write-Host ""
+    Get-Help
+    exit 1
+}
+
 switch ( $action ) {
     "build" {
         Build $config $examples $srcdist
