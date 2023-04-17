@@ -3,14 +3,4 @@
     <NUnit>
       <DisplayName>FullNameSep</DisplayName>
     </NUnit>
-    <DataCollectionRunSettings>
-        <DataCollectors>
-            <DataCollector friendlyName="XPlat code coverage">
-                <Configuration>
-                    <!-- Filter out generated files -->
-                    <ExcludeByFile>**/generated/*.cs,**/LoggerMessage.g.cs</ExcludeByFile>
-                </Configuration>
-            </DataCollector>
-        </DataCollectors>
-    </DataCollectionRunSettings>
 </RunSettings>

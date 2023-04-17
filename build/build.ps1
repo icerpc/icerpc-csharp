@@ -150,7 +150,8 @@ function Test($config, $coverage) {
     $dotnetConfiguration = DotnetConfiguration($config)
     $arguments = @('test', '--no-build', '--configuration', $dotnetConfiguration)
     if ($coverage) {
-       $arguments += @('--collect:"XPlat Code Coverage"')
+       $runsettings = Resolve-Path -Path "./build/Coverlet.runsettings"
+       $arguments += @("/p:RunSettingsFilePath=$runsettings", '--collect:"XPlat Code Coverage"')
     }
     RunCommand "dotnet" $arguments
     if ($coverage) {
