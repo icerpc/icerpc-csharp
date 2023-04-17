@@ -110,36 +110,33 @@ public class SliceCCSharpTask : ToolTask
                 diagnostic.Span.End);
 
             // Log additional notes as messages
-            foreach (Note note in diagnostic.Notes ?? Array.Empty<Note>())
+            foreach (Note note in diagnostic.Notes)
             {
                 LogSliceCompilerDiagnostic(
                     diagnostic.Severity,
                     note.Message,
                     diagnostic.ErrorCode,
-                    note.Span.File,
-                    note.Span.Start,
-                    note.Span.End);
+                    note.SourceSpan.File,
+                    note.SourceSpan.Start,
+                    note.SourceSpan.End);
             }
         }
 
         void LogSliceCompilerDiagnostic(
-            string? severity,
-            string? message,
+            string severity,
+            string message,
             string? code,
-            string? file,
+            string file,
             Location start,
             Location end)
         {
-            message ??= "";
-            file ??= "";
-
             if (severity == "error")
             {
-                Log.LogError("", code ?? "E000", "", file, start.Row, start.Col, end.Row, end.Col, message);
+                Log.LogError("", code ?? "E000", "", file, start.Row, start.Column, end.Row, end.Column, message);
             }
             else
             {
-                Log.LogWarning("", code ?? "W000", "", file, start.Row, start.Col, end.Row, end.Col, message);
+                Log.LogWarning("", code ?? "W000", "", file, start.Row, start.Column, end.Row, end.Column, message);
             }
         }
     }
@@ -150,10 +147,10 @@ public class SliceCCSharpTask : ToolTask
 
 public class Diagnostic
 {
-    public string? Message { get; set; }
-    public string? Severity { get; set; }
-    public Span Span { get; set; } = new Span();
-    public Note[]? Notes { get; set; }
+    public string Message { get; set; } = "";
+    public string Severity { get; set; } = "";
+    public SourceSpan Span { get; set; } = new SourceSpan();
+    public Note[] Notes { get; set; } = Array.Empty<Note>();
 
     [JsonPropertyName("error_code")]
     public string? ErrorCode { get; set; } = null;
@@ -162,18 +159,19 @@ public class Diagnostic
 public class Note
 {
     public string Message { get; set; } = "";
-    public Span Span { get; set; } = new Span();
+    [JsonPropertyName("span")]
+    public SourceSpan SourceSpan { get; set; } = new SourceSpan();
 }
 
-public class Span
+public class SourceSpan
 {
     public Location Start { get; set; }
     public Location End { get; set; }
-    public string? File { get; set; }
+    public string File { get; set; } = "";
 }
 
 public struct Location
 {
     public int Row { get; set; }
-    public int Col { get; set; }
+    public int Column { get; set; }
 }
