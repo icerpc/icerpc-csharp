@@ -152,7 +152,12 @@ run_test()
     run_command dotnet "${arguments[@]}"
 
     if [ "$coverage" == "yes" ]; then
-        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
+        arguments=(
+            "-reports:tests/*/TestResults/*/coverage.cobertura.xml"
+            "-targetdir:tests/CodeCoverageReport"
+            "--"
+            'DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*]IceRpc.Conformance.Tests*,[*]IceRpc.Tests.Common*"',
+            'DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile="**/generated/*.cs,**/generated/*/*.cs,**/LoggerMessage.g.cs"')
         run_command reportgenerator "${arguments[@]}"
     fi
 }
