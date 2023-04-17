@@ -101,20 +101,20 @@ pub trait AttributeBuilder {
 pub trait CommentBuilder {
     fn add_comment(&mut self, tag: &str, content: impl Into<String>) -> &mut Self;
 
-    fn add_generated_remark<T: Entity + Type>(&mut self, generated_type: &str, slice_type: &T) -> &mut Self {
+    fn add_generated_remark<T: Entity>(&mut self, generated_type: &str, slice_type: &T) -> &mut Self {
         self.add_comment(
             "remarks",
             format!(
                 "The Slice compiler generated this {} from Slice {} <c>{}</c>.",
                 generated_type,
-                slice_type.type_string(),
+                slice_type.kind(),
                 slice_type.module_scoped_identifier()
             ),
         );
         self
     }
 
-    fn add_generated_remark_with_note<T: Entity + Type>(
+    fn add_generated_remark_with_note<T: Entity>(
         &mut self,
         generated_type: &str,
         note: impl Into<String>,
@@ -125,7 +125,7 @@ pub trait CommentBuilder {
             format!(
                 "The Slice compiler generated this {} from Slice {} <c>{}</c>.\n{}",
                 generated_type,
-                slice_type.type_string(),
+                slice_type.kind(),
                 slice_type.module_scoped_identifier(),
                 note.into()
             ),
