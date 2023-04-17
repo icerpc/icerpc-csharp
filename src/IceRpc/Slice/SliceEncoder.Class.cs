@@ -144,60 +144,6 @@ public ref partial struct SliceEncoder
         }
     }
 
-    /// <summary>Encodes sliced-off slices.</summary>
-    /// <param name="unknownSlices">The sliced-off slices to encode.</param>
-    /// <param name="fullySliced">When <see langword="true" />, slicedData holds all the data of this instance.</param>
-    internal void EncodeUnknownSlices(ImmutableList<SliceInfo> unknownSlices, bool fullySliced)
-    {
-        Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
-
-        // We only re-encode preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
-        // slices, which essentially "slices" the instance into the most-derived type known by the sender.
-        if (_classContext.ClassFormat != ClassFormat.Sliced)
-        {
-            throw new NotSupportedException($"Cannot encode sliced data into payload using {_classContext.ClassFormat} format.");
-        }
-
-        for (int i = 0; i < unknownSlices.Count; ++i)
-        {
-            SliceInfo sliceInfo = unknownSlices[i];
-
-            // If type ID is a compact ID, extract it.
-            int? compactId = null;
-            if (!sliceInfo.TypeId.StartsWith("::", StringComparison.Ordinal))
-            {
-                try
-                {
-                    compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
-                }
-                catch (FormatException ex)
-                {
-                    throw new InvalidDataException($"Received invalid type ID {sliceInfo.TypeId}.", ex);
-                }
-            }
-
-            StartSlice(sliceInfo.TypeId, compactId);
-
-            // Writes the bytes associated with this slice.
-            WriteByteSpan(sliceInfo.Bytes.Span);
-
-            if (sliceInfo.HasTaggedFields)
-            {
-                _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
-            }
-
-            // Make sure to also encode the instance indirection table.
-            // These instances will be encoded (and assigned instance IDs) in EndSlice.
-            if (sliceInfo.Instances.Count > 0)
-            {
-                _classContext.Current.IndirectionTable ??= new List<SliceClass>();
-                Debug.Assert(_classContext.Current.IndirectionTable.Count == 0);
-                _classContext.Current.IndirectionTable.AddRange(sliceInfo.Instances);
-            }
-            EndSlice(lastSlice: fullySliced && (i == unknownSlices.Count - 1));
-        }
-    }
-
     /// <summary>Encodes this class instance inline if not previously encoded, otherwise just encode its instance
     /// ID.</summary>
     /// <param name="v">The class instance.</param>
@@ -226,11 +172,9 @@ public ref partial struct SliceEncoder
             _classContext.Current.InstanceType = InstanceType.Class;
             _classContext.Current.FirstSlice = true;
 
-            if (v.UnknownSlices.Count > 0 &&
-                _classContext.ClassFormat == ClassFormat.Sliced &&
-                v is not UnknownSlicedClass)
+            if (v.UnknownSlices.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
             {
-                EncodeUnknownSlices(v.UnknownSlices, fullySliced: false);
+                EncodeUnknownSlices(v.UnknownSlices, fullySliced: v is UnknownSlicedClass);
                 _classContext.Current.FirstSlice = false;
             }
             v.Encode(ref this);
@@ -280,6 +224,61 @@ public ref partial struct SliceEncoder
         }
 
         _classContext.Current.SliceFlags |= (SliceFlags)typeIdKind;
+    }
+
+    /// <summary>Encodes sliced-off slices.</summary>
+    /// <param name="unknownSlices">The sliced-off slices to encode.</param>
+    /// <param name="fullySliced">When <see langword="true" />, slicedData holds all the data of this instance.</param>
+    private void EncodeUnknownSlices(ImmutableList<SliceInfo> unknownSlices, bool fullySliced)
+    {
+        Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
+
+        // We only re-encode preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
+        // slices, which essentially "slices" the instance into the most-derived type known by the sender.
+        if (_classContext.ClassFormat != ClassFormat.Sliced)
+        {
+            throw new NotSupportedException(
+                $"Cannot encode sliced data into payload using {_classContext.ClassFormat} format.");
+        }
+
+        for (int i = 0; i < unknownSlices.Count; ++i)
+        {
+            SliceInfo sliceInfo = unknownSlices[i];
+
+            // If type ID is a compact ID, extract it.
+            int? compactId = null;
+            if (!sliceInfo.TypeId.StartsWith("::", StringComparison.Ordinal))
+            {
+                try
+                {
+                    compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
+                }
+                catch (FormatException ex)
+                {
+                    throw new InvalidDataException($"Received invalid type ID {sliceInfo.TypeId}.", ex);
+                }
+            }
+
+            StartSlice(sliceInfo.TypeId, compactId);
+
+            // Writes the bytes associated with this slice.
+            WriteByteSpan(sliceInfo.Bytes.Span);
+
+            if (sliceInfo.HasTaggedFields)
+            {
+                _classContext.Current.SliceFlags |= SliceFlags.HasTaggedFields;
+            }
+
+            // Make sure to also encode the instance indirection table.
+            // These instances will be encoded (and assigned instance IDs) in EndSlice.
+            if (sliceInfo.Instances.Count > 0)
+            {
+                _classContext.Current.IndirectionTable ??= new List<SliceClass>();
+                Debug.Assert(_classContext.Current.IndirectionTable.Count == 0);
+                _classContext.Current.IndirectionTable.AddRange(sliceInfo.Instances);
+            }
+            EndSlice(lastSlice: fullySliced && (i == unknownSlices.Count - 1));
+        }
     }
 
     /// <summary>Registers or looks up a type ID in the _typeIdMap.</summary>
