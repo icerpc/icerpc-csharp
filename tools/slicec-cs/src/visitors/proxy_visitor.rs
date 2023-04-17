@@ -35,16 +35,15 @@ impl Visitor for ProxyVisitor<'_> {
         // proxy bases
         let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
 
-        let remarks = format!(
-            r#"
-The Slice compiler generated this client-side interface from Slice interface <c>{slice_interface}</c>.
-It's implemented by <see cref="{proxy_impl}" />."#
-        );
-
         let mut code = CodeBlock::default();
         code.add_block(
             &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
-                .add_comments(interface_def.formatted_doc_comment_with_remarks(remarks))
+                .add_comments(interface_def.formatted_doc_comment())
+                .add_generated_remark_with_note(
+                    "client-side interface",
+                    format!("It's implemented by <see cref=\"{proxy_impl}\" />."),
+                    interface_def,
+                )
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
                 .add_bases(&interface_bases)
@@ -65,13 +64,7 @@ Implements <see cref="{interface}" /> by making invocations on a remote IceRPC s
 This remote service must implement Slice interface {slice_interface}."#
                 ),
             )
-            .add_comment(
-                "remarks",
-                format!(
-                    "The Slice compiler generated this record struct from Slice interface <c>{}</c>.",
-                    &interface_def.module_scoped_identifier()
-                ),
-            )
+            .add_generated_remark("record struct", interface_def)
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_block(request_class(interface_def))
@@ -364,13 +357,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             "summary",
             "Provides static methods that encode operation arguments into request payloads.",
         )
-        .add_comment(
-            "remarks",
-            format!(
-                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
-                &interface_def.module_scoped_identifier()
-            ),
-        );
+        .add_generated_remark("static class", interface_def);
 
     for operation in operations {
         let params: Vec<&Parameter> = operation.non_streamed_parameters();
@@ -441,13 +428,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             r#"Provides a <see cref="ResponseDecodeFunc{{T}}" /> for each operation defined in Slice interface {}."#,
             interface_def.module_scoped_identifier(),
         ),
-    ).add_comment(
-        "remarks",
-        format!(
-            "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
-            &interface_def.module_scoped_identifier()
-        ),
-    );
+    ).add_generated_remark("static class", interface_def);
 
     for operation in operations {
         let members = operation.return_members();

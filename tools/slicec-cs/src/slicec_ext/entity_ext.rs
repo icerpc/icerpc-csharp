@@ -214,14 +214,6 @@ pub trait EntityExt: Entity {
         comments
     }
 
-    /// Appends remarks to a doc-comment.
-    fn formatted_doc_comment_with_remarks(&self, remarks_content: String) -> Vec<CommentTag> {
-        let mut comments = self.formatted_doc_comment();
-
-        comments.push(CommentTag::new("remarks", remarks_content));
-        comments
-    }
-
     /// Returns a C# link tag that points to this entity from the provided namespace
     /// By default this uses a `<see cref="..." />` tag, but certain types override this default implementation
     /// to emit different kinds of links (like `<paramref name="..." />` for parameters).
