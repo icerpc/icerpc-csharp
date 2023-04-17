@@ -3,7 +3,6 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -109,7 +108,7 @@ public class SliceCCSharpTask : ToolTask
                 diagnostic.Span.Start,
                 diagnostic.Span.End);
 
-            // Log additional notes as messages
+            // Log notes as additional error/warnings.
             foreach (Note note in diagnostic.Notes)
             {
                 LogSliceCompilerDiagnostic(
@@ -142,7 +141,7 @@ public class SliceCCSharpTask : ToolTask
     }
 
     /// <inheritdoc/>
-    protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Low, message);
+    protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
 }
 
 public class Diagnostic
@@ -173,5 +172,6 @@ public class SourceSpan
 public struct Location
 {
     public int Row { get; set; }
+    [JsonPropertyName("col")]
     public int Column { get; set; }
 }
