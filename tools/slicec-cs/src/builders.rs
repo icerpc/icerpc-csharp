@@ -15,52 +15,6 @@ pub trait Builder {
     fn build(&self) -> CodeBlock;
 }
 
-pub trait ParamDisplay {
-    fn param_display(self) -> String;
-}
-
-impl<T: FnOnce() -> String> ParamDisplay for T {
-    fn param_display(self) -> String {
-        self()
-    }
-}
-
-impl ParamDisplay for &str {
-    fn param_display(self) -> String {
-        self.to_owned()
-    }
-}
-
-impl ParamDisplay for String {
-    fn param_display(self) -> String {
-        self
-    }
-}
-
-impl ParamDisplay for CodeBlock {
-    fn param_display(self) -> String {
-        self.to_string()
-    }
-}
-
-impl ParamDisplay for &mut CodeBlock {
-    fn param_display(self) -> String {
-        self.to_string()
-    }
-}
-
-impl ParamDisplay for u32 {
-    fn param_display(self) -> String {
-        self.to_string()
-    }
-}
-
-impl ParamDisplay for bool {
-    fn param_display(self) -> String {
-        self.to_string()
-    }
-}
-
 pub trait AttributeBuilder {
     fn add_attribute(&mut self, attributes: &str) -> &mut Self;
 
@@ -533,53 +487,39 @@ impl FunctionCallBuilder {
         self
     }
 
-    pub fn add_argument<T>(&mut self, argument: T) -> &mut Self
-    where
-        T: ParamDisplay,
-    {
-        self.arguments.push(argument.param_display());
+    pub fn add_argument<T: ToString>(&mut self, argument: T) -> &mut Self {
+        self.arguments.push(argument.to_string());
         self
     }
 
-    pub fn add_argument_if<T>(&mut self, condition: bool, argument: T) -> &mut Self
-    where
-        T: ParamDisplay,
-    {
+    pub fn add_argument_if<T: ToString>(&mut self, condition: bool, argument: T) -> &mut Self {
         if condition {
             self.add_argument(argument);
         }
         self
     }
 
-    pub fn add_argument_if_else<T>(&mut self, condition: bool, true_case: T, false_case: T) -> &mut Self
-    where
-        T: ParamDisplay,
-    {
-        self.add_argument(if condition { true_case } else { false_case })
-    }
-
-    pub fn add_argument_unless<T>(&mut self, condition: bool, argument: T) -> &mut Self
-    where
-        T: ParamDisplay,
-    {
-        self.add_argument_if(!condition, argument);
+    pub fn add_argument_if_present<T: ToString>(&mut self, argument: Option<T>) -> &mut Self {
+        if let Some(arg) = argument {
+            self.add_argument(arg);
+        }
         self
     }
 }
 
 impl Builder for FunctionCallBuilder {
     fn build(&self) -> CodeBlock {
-        let mut function_call: CodeBlock = if self.arguments_on_newline {
-            format!("{}(\n    {})", self.callable, self.arguments.join(",\n    ")).into()
+        let mut function_call = if self.arguments_on_newline {
+            format!("{}(\n    {})", self.callable, self.arguments.join(",\n    "))
         } else {
-            format!("{}({})", self.callable, self.arguments.join(", ")).into()
+            format!("{}({})", self.callable, self.arguments.join(", "))
         };
 
         if self.use_semi_colon {
-            write!(function_call, ";");
+            function_call.push(';');
         }
 
-        function_call
+        function_call.into()
     }
 }
 

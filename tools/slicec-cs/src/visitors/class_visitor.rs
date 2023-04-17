@@ -9,10 +9,8 @@ use crate::encoding::encode_fields;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-
 use slice::code_block::CodeBlock;
-use slice::grammar::NamedSymbol;
-use slice::grammar::{Class, Encoding, Field};
+use slice::grammar::{Class, Encoding, Field, NamedSymbol};
 use slice::utils::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
 
