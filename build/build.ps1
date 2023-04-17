@@ -150,11 +150,8 @@ function Test($config, $coverage) {
     $dotnetConfiguration = DotnetConfiguration($config)
     $arguments = @('test', '--no-build', '--configuration', $dotnetConfiguration)
     if ($coverage) {
-       $arguments += @(
-           '--collect:"XPlat Code Coverage"',
-           '--',
-           'DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*]IceRpc.Conformance.Tests*,[*]IceRpc.Tests.Common*"',
-           'DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile="**/generated/*.cs,**/generated/*/*.cs,**/LoggerMessage.g.cs"')
+       $runsettings = Resolve-Path -Path "./build/Coverlet.runsettings"
+       $arguments += @("/p:RunSettingsFilePath=$runsettings", '--collect:"XPlat Code Coverage"')
     }
     RunCommand "dotnet" $arguments
     if ($coverage) {

@@ -147,17 +147,13 @@ run_test()
 {
     arguments=("test" "--no-build" "-c" "$dotnet_config")
     if [ "$coverage" == "yes" ]; then
-        arguments+=("--collect:\"XPlat Code Coverage\"")
+        runsettings=$(realpath 'build\Coverlet.runsettings')
+        arguments+=("/p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
     fi
     run_command dotnet "${arguments[@]}"
 
     if [ "$coverage" == "yes" ]; then
-        arguments=(
-            "-reports:tests/*/TestResults/*/coverage.cobertura.xml"
-            "-targetdir:tests/CodeCoverageReport"
-            "--"
-            'DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*]IceRpc.Conformance.Tests*,[*]IceRpc.Tests.Common*"',
-            'DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile="**/generated/*.cs,**/generated/*/*.cs,**/LoggerMessage.g.cs"')
+        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
         run_command reportgenerator "${arguments[@]}"
     fi
 }
