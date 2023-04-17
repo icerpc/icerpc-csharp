@@ -157,6 +157,8 @@ function Test($config, $coverage) {
     if ($coverage) {
         $arguments = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageReport')
         RunCommand "reportgenerator" $arguments
+        # Remove code coverage results after the report has been generated.
+        Get-ChildItem -Path .\tests\ -Filter TestResults -Recurse | Remove-Item -Recurse -Force
     }
 }
 

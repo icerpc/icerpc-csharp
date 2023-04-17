@@ -155,6 +155,8 @@ run_test()
     if [ "$coverage" == "yes" ]; then
         arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
         run_command reportgenerator "${arguments[@]}"
+        # Remove code coverage results after the report has been generated.
+        find "tests" -type d -name "TestResults" -prune -exec rm -rf {} \;
     fi
 }
 
