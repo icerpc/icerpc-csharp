@@ -181,7 +181,7 @@ public class SlicTransportTests
         IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
         Assert.That(
             exception?.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionAborted),
+            Is.EqualTo(IceRpcError.IceRpcError),
             $"The test failed with an unexpected IceRpcError {exception}");
 
         if (clientConnectTask is not null)

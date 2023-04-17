@@ -134,7 +134,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // Initialize the Slic connection.
                 if (IsServer)
                 {
-                    // Read the Initialize frame sent by the client.
+                    // Read the Initialize frame.
                     (ulong version, InitializeBody? initializeBody) = await ReadFrameAsync(
                         DecodeInitialize,
                         cancellationToken).ConfigureAwait(false);
@@ -200,7 +200,7 @@ internal class SlicConnection : IMultiplexedConnection
             catch (InvalidDataException exception)
             {
                 throw new IceRpcException(
-                    IceRpcError.ConnectionAborted,
+                    IceRpcError.IceRpcError,
                     "The connection was aborted by a Slic protocol error.",
                     exception);
             }
@@ -327,7 +327,6 @@ internal class SlicConnection : IMultiplexedConnection
             Func<FrameType, ReadOnlySequence<byte>, T> decodeFunc,
             CancellationToken cancellationToken)
         {
-            // Read the Initialize frame sent by the client.
             (FrameType FrameType, int FrameSize, ulong?)? header =
                 await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
 
@@ -909,8 +908,7 @@ internal class SlicConnection : IMultiplexedConnection
                     _peerIdleTimeout = TimeSpan.FromMilliseconds(DecodeParamValue(buffer));
                     if (_peerIdleTimeout == TimeSpan.Zero)
                     {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
+                        throw new InvalidDataException(
                             "The IdleTimeout Slic connection parameter is invalid, it must be greater than 0 s.");
                     }
                     break;
@@ -920,9 +918,8 @@ internal class SlicConnection : IMultiplexedConnection
                     peerPacketMaxSize = DecodeParamValue(buffer);
                     if (peerPacketMaxSize < 1024)
                     {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"The PacketMaxSize Slic connection parameter is invalid, it must be greater than 1KB.");
+                        throw new InvalidDataException(
+                            "The PacketMaxSize Slic connection parameter is invalid, it must be greater than 1KB.");
                     }
                     break;
                 }
@@ -931,9 +928,8 @@ internal class SlicConnection : IMultiplexedConnection
                     peerPauseWriterThreshold = DecodeParamValue(buffer);
                     if (peerPauseWriterThreshold < 1024)
                     {
-                        throw new IceRpcException(
-                            IceRpcError.IceRpcError,
-                            $"The PauseWriterThreshold Slic connection parameter is invalid, it must be greater than 1KB.");
+                        throw new InvalidDataException(
+                            "The PauseWriterThreshold Slic connection parameter is invalid, it must be greater than 1KB.");
                     }
                     break;
                 }
@@ -943,9 +939,8 @@ internal class SlicConnection : IMultiplexedConnection
 
         if (peerPacketMaxSize is null)
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The peer didn't send the required PacketMaxSize Slic connection parameter.");
+            throw new InvalidDataException(
+                "The peer didn't send the required PacketMaxSize Slic connection parameter.");
         }
         else
         {
@@ -954,9 +949,8 @@ internal class SlicConnection : IMultiplexedConnection
 
         if (peerPauseWriterThreshold is null)
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                $"The peer didn't send the required PauseWriterThreshold Slic connection parameter.");
+            throw new InvalidDataException(
+                "The peer didn't send the required PauseWriterThreshold Slic connection parameter.");
         }
         else
         {
@@ -1045,35 +1039,31 @@ internal class SlicConnection : IMultiplexedConnection
             case FrameType.Stream:
             case FrameType.StreamLast:
             {
-                Debug.Assert(streamId is not null);
-                return ReadStreamDataFrameAsync(type, size, streamId.Value, cancellationToken);
+                return ReadStreamDataFrameAsync(type, size, streamId, cancellationToken);
             }
             case FrameType.StreamConsumed:
             {
-                Debug.Assert(streamId is not null);
                 return ReadStreamFrameAsync(
                     size,
-                    streamId.Value,
+                    streamId,
                     (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
                     (stream, frame) => stream.ReceivedConsumedFrame(frame),
                     cancellationToken);
             }
             case FrameType.StreamReset:
             {
-                Debug.Assert(streamId is not null);
                 return ReadStreamFrameAsync(
                     size,
-                    streamId.Value,
+                    streamId,
                     (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
                     (stream, frame) => stream.ReceivedResetFrame(frame),
                     cancellationToken);
             }
             case FrameType.StreamStopSending:
             {
-                Debug.Assert(streamId is not null);
                 return ReadStreamFrameAsync(
                     size,
-                    streamId.Value,
+                    streamId,
                     (ref SliceDecoder decoder) => new StreamStopSendingBody(ref decoder),
                     (stream, frame) => stream.ReceivedStopSendingFrame(frame),
                     cancellationToken);
@@ -1083,8 +1073,7 @@ internal class SlicConnection : IMultiplexedConnection
                 Debug.Assert(streamId is not null);
                 if (size > 0)
                 {
-                    throw new IceRpcException(
-                        IceRpcError.IceRpcError,
+                    throw new InvalidDataException(
                         "Received invalid Slic stream reads completed frame, frame too large.");
                 }
 
@@ -1096,7 +1085,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             default:
             {
-                throw new IceRpcException(IceRpcError.IceRpcError, $"Received unexpected Slic frame '{type}'.");
+                throw new InvalidDataException($"Received unexpected Slic frame '{type}'.");
             }
         }
 
@@ -1172,13 +1161,18 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task ReadStreamFrameAsync<T>(
             int size,
-            ulong streamId,
+            ulong? streamId,
             DecodeFunc<T> decodeFunc,
             Action<SlicStream, T> streamAction,
             CancellationToken cancellationToken)
         {
+            if (streamId is null)
+            {
+                throw new InvalidDataException("Received stream frame without stream ID.");
+            }
+
             T frame = await ReadFrameBodyAsync(size, decodeFunc, cancellationToken).ConfigureAwait(false);
-            if (_streams.TryGetValue(streamId, out SlicStream? stream))
+            if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
             {
                 streamAction(stream, frame);
             }
@@ -1323,7 +1317,7 @@ internal class SlicConnection : IMultiplexedConnection
         catch (InvalidDataException exception)
         {
             var rpcException = new IceRpcException(
-                IceRpcError.ConnectionAborted,
+                IceRpcError.IceRpcError,
                 "The connection was aborted by a Slic protocol error.",
                 exception);
             Close(rpcException, rpcException.Message, IceRpcError.ConnectionAborted);
@@ -1340,28 +1334,31 @@ internal class SlicConnection : IMultiplexedConnection
     private async Task ReadStreamDataFrameAsync(
         FrameType type,
         int size,
-        ulong streamId,
+        ulong? streamId,
         CancellationToken cancellationToken)
     {
+        if (streamId is null)
+        {
+            throw new InvalidDataException("Received stream frame without stream ID.");
+        }
+
         bool endStream = type == FrameType.StreamLast;
         bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
         bool isBidirectional = streamId % 4 < 2;
 
         if (!isBidirectional && !isRemote)
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
+            throw new InvalidDataException(
                 "Received unexpected Slic stream frame on local unidirectional stream.");
         }
         else if (size == 0 && !endStream)
         {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
+            throw new InvalidDataException(
                 "Received invalid Slic stream frame, received 0 bytes without end of stream.");
         }
 
         int readSize = 0;
-        if (_streams.TryGetValue(streamId, out SlicStream? stream))
+        if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
         {
             // Let the stream receive the data.
             readSize = await stream.ReceivedStreamFrameAsync(
@@ -1369,13 +1366,13 @@ internal class SlicConnection : IMultiplexedConnection
                 endStream,
                 cancellationToken).ConfigureAwait(false);
         }
-        else if (isRemote && !IsKnownRemoteStream(streamId, isBidirectional))
+        else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
         {
             // Create a new stream if the remote stream is unknown.
 
             if (size == 0)
             {
-                throw new IceRpcException(IceRpcError.IceRpcError, "Received empty Slic stream frame on new stream.");
+                throw new InvalidDataException("Received empty Slic stream frame on new stream.");
             }
 
             if (isBidirectional)
@@ -1406,7 +1403,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             try
             {
-                AddStream(streamId, stream);
+                AddStream(streamId.Value, stream);
 
                 // Let the stream receive the data.
                 readSize = await stream.ReceivedStreamFrameAsync(
