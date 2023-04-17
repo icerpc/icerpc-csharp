@@ -114,11 +114,11 @@ pub trait CommentBuilder {
         self
     }
 
-    fn add_generated_remark_with_note<T: Entity + Type>(
+    fn add_generated_remark_with_note(
         &mut self,
         generated_type: &str,
         note: impl Into<String>,
-        slice_type: &T,
+        slice_type: &impl Entity,
     ) -> &mut Self {
         self.add_comment(
             "remarks",
