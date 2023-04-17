@@ -32,13 +32,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         &enum_def.escape_identifier(),
     )
     .add_comments(enum_def.formatted_doc_comment())
-    .add_comment(
-        "remarks",
-        format!(
-            "The Slice compiler generated this enum from Slice enum <c>{}</c>.",
-            &enum_def.module_scoped_identifier()
-        ),
-    )
+    .add_generated_remark("enum", enum_def)
     .add_container_attributes(enum_def)
     .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))
@@ -87,13 +81,8 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
             in_definite::get_a_or_an(&escaped_identifier),
             in_definite::get_a_or_an(&cs_type),
         ),
-    ).add_comment(
-        "remarks",
-        format!(
-            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
-            &enum_def.module_scoped_identifier()
-        ),
-    );
+    )
+    .add_generated_remark("static class", enum_def);
 
     // When the number of enumerators is smaller than the distance between the min and max
     // values, the values are not consecutive and we need to use a set to validate the value
@@ -194,13 +183,8 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         format!(r#"Provides an extension method for encoding a <see cref="{escaped_identifier}" /> using a <see cref="SliceEncoder" />."#),
-    ).add_comment(
-        "remarks",
-        format!(
-            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
-            &enum_def.module_scoped_identifier()
-        ),
-    );
+    )
+    .add_generated_remark("static class", enum_def);
 
     // Enum encoding
     builder.add_block(
@@ -235,13 +219,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_comment(
         "summary",
         format!(r#"Provides an extension method for decoding a <see cref="{escaped_identifier}" /> using a <see cref="SliceDecoder" />."#),
-    ).add_comment(
-        "remarks",
-        format!(
-            "The Slice compiler generated this static class from Slice enum <c>{}</c>.",
-            &enum_def.module_scoped_identifier()
-        ),
-    );
+    ).add_generated_remark("static class", enum_def);
 
     let underlying_extensions_class = format!(
         "{}{}Extensions",

@@ -22,19 +22,16 @@ impl Visitor for DispatchVisitor<'_> {
         let namespace = interface_def.namespace();
         let bases = interface_def.base_interfaces();
         let service_name = interface_def.service_name();
-        let slice_interface = interface_def.module_scoped_identifier();
         let access = interface_def.access_modifier();
         let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &service_name);
 
-        let remarks = format!(
-            r#"
-The Slice compiler generated this server-side interface from Slice interface <c>{slice_interface}</c>.
-Your service implementation must implement this interface and derive from <see cref="Service" />.
-"#
-        );
-
         interface_builder
-            .add_comments(interface_def.formatted_doc_comment_with_remarks(remarks))
+            .add_comments(interface_def.formatted_doc_comment())
+            .add_generated_remark_with_note(
+                "server-side interface",
+                r#"Your service implementation must implement this interface and derive from <see cref="Service" />"#,
+                interface_def,
+            )
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def);
 
@@ -100,13 +97,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
     class_builder
         .add_comment("summary", "Provides static methods that decode request payloads.")
-        .add_comment(
-            "remarks",
-            format!(
-                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
-                &interface_def.module_scoped_identifier()
-            ),
-        );
+        .add_generated_remark("static class", interface_def);
 
     for operation in operations {
         let parameters = operation.parameters();
@@ -189,13 +180,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             "summary",
             "Provides static methods that encode return values into response payloads.",
         )
-        .add_comment(
-            "remarks",
-            format!(
-                "The Slice compiler generated this static class from Slice interface <c>{}</c>.",
-                &interface_def.module_scoped_identifier()
-            ),
-        );
+        .add_generated_remark("static class", interface_def);
 
     for operation in operations {
         let non_streamed_returns = operation.non_streamed_return_members();
