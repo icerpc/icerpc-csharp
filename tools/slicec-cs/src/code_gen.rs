@@ -113,13 +113,12 @@ mod test {
         let slice_dir = root_dir.join("slice").display().to_string();
 
         // Use `resolve_files_from` to find all Slice files in the tests directory.
-        let test_slice_files;
-        {
+        let test_slice_files = {
             let mut options = SliceOptions::default();
             options.references.push(tests_dir.clone());
             let mut diagnostic_reporter = DiagnosticReporter::new(&options);
-            test_slice_files = resolve_files_from(&options, &mut diagnostic_reporter);
-        }
+            resolve_files_from(&options, &mut diagnostic_reporter)
+        };
 
         // Compile and generate code for each test Slice file.
         for slice_file in test_slice_files {
