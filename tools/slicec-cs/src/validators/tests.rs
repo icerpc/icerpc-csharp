@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::super::code_gen::compiler_chain;
+use crate::code_gen::compiler_chain;
 use super::super::*;
 use slice::diagnostics::{Diagnostic, Error};
 
