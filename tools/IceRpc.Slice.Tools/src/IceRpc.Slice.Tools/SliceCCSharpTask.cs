@@ -135,6 +135,7 @@ public class SliceCCSharpTask : ToolTask
             }
             else
             {
+                Debug.Assert(diagnostic.Severity == "warning");
                 Log.LogWarning("", code ?? "W000", "", file, start.Row, start.Column, end.Row, end.Column, message);
             }
         }
