@@ -16,7 +16,7 @@ mod slicec_ext;
 mod validators;
 mod visitors;
 
-use code_gen::{compile, generate};
+use code_gen::{compile, generate_code};
 use cs_options::CsOptions;
 use slice::clap::Parser;
 use slice::compilation_result::CompilationResult;
@@ -41,7 +41,7 @@ fn try_main() -> CompilationResult {
 
     if !slice_options.dry_run {
         for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
-            let code_string = generate(slice_file);
+            let code_string = generate_code(slice_file);
 
             let path = match &slice_options.output_dir {
                 Some(output_dir) => Path::new(output_dir),

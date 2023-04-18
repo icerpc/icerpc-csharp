@@ -22,7 +22,7 @@ pub fn compiler_chain(compilation_data: CompilationData) -> CompilationResult {
 }
 
 // Generate the code for a single Slice file.
-pub fn generate(slice_file: &SliceFile) -> String {
+pub fn generate_code(slice_file: &SliceFile) -> String {
     let mut generated_code = GeneratedCode::new();
 
     generated_code.preamble.push(preamble(slice_file));
@@ -97,7 +97,7 @@ using IceRpc.Slice;
 
 #[cfg(test)]
 mod test {
-    use super::{compile, generate};
+    use super::{compile, generate_code};
     use slice::command_line::SliceOptions;
     use slice::diagnostics::DiagnosticReporter;
     use slice::utils::file_util::resolve_files_from;
@@ -129,7 +129,7 @@ mod test {
 
             let compilation_data = compile(&options).unwrap();
 
-            generate(compilation_data.files.values().next().unwrap());
+            generate_code(compilation_data.files.values().next().unwrap());
         }
     }
 }

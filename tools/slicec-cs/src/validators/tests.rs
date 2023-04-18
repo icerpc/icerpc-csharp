@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::code_gen::compiler_chain;
-use super::super::*;
+use crate::cs_attributes;
 use slice::diagnostics::{Diagnostic, Error};
 
 fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
