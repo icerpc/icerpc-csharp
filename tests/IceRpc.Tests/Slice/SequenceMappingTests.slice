@@ -4,35 +4,65 @@ module IceRpc::Tests::Slice
 
 interface SequenceMappingOperations {
 
-    opReturnNumericSequence() -> sequence<int32>
-    opNumericSequenceParameter(p: sequence<int32>)
+    opSequenceOfInt32Return() -> sequence<int32>
+    opSequenceOfInt32Parameter(p: sequence<int32>)
 
-    opReturnStringSequence() -> sequence<string>
-    opStringSequenceParameter(p: sequence<string>)
+    opSequenceOfStringReturn() -> sequence<string>
+    opSequenceOfStringParameter(p: sequence<string>)
 
-    opReturnMyFixedLengthEnumSequence() -> sequence<MyFixedLengthEnum>
-    opMyFixedLengthEnumSequenceParameter(p: sequence<MyFixedLengthEnum>)
+    opSequenceOfMyFixedLengthEnumReturn() -> sequence<MyFixedLengthEnum>
+    opSequenceOfMyFixedLengthEnumParameter(p: sequence<MyFixedLengthEnum>)
 
-    opReturnMyVarLengthEnumSequence() -> sequence<MyVarLengthEnum>
-    opMyVarLengthEnumSequenceParameter(p: sequence<MyVarLengthEnum>)
+    opSequenceOfMyVarLengthEnumReturn() -> sequence<MyVarLengthEnum>
+    opSequenceOfMyVarLengthEnumParameter(p: sequence<MyVarLengthEnum>)
 
-    opReturnMyUncheckedEnumSequence() -> sequence<MyUncheckedEnum>
-    opMyUncheckedEnumSequenceParameter(p: sequence<MyUncheckedEnum>)
+    opSequenceOfMyUncheckedEnumReturn() -> sequence<MyUncheckedEnum>
+    opSequenceOfMyUncheckedEnumParameter(p: sequence<MyUncheckedEnum>)
 
-    opReturnNumericCustomSequence() -> [cs::generic("CustomSequence")] sequence<int32>
-    opNumericCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<int32>)
+    opSequenceOfOptionalInt32Return() -> sequence<int32?>
+    opSequenceOfOptionalInt32Parameter(p: sequence<int32?>)
 
-    opReturnStringCustomSequence() -> [cs::generic("CustomSequence")] sequence<string>
-    opStringCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<string>)
+    opSequenceOfOptionalStringReturn() -> sequence<string?>
+    opSequenceOfOptionalStringParameter(p: sequence<string?>)
 
-    opReturnMyFixedLengthEnumCustomSequence() -> [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>
-    opMyFixedLengthEnumCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>)
+    opSequenceOfOptionalMyFixedLengthEnumReturn() -> sequence<MyFixedLengthEnum?>
+    opSequenceOfOptionalMyFixedLengthEnumParameter(p: sequence<MyFixedLengthEnum?>)
 
-    opReturnMyVarLengthEnumCustomSequence() -> [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>
-    opMyVarLengthEnumCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>)
+    opSequenceOfOptionalMyVarLengthEnumReturn() -> sequence<MyVarLengthEnum?>
+    opSequenceOfOptionalMyVarLengthEnumParameter(p: sequence<MyVarLengthEnum?>)
 
-    opReturnMyUncheckedEnumCustomSequence() -> [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>
-    opMyUncheckedEnumCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>)
+    opSequenceOfOptionalMyUncheckedEnumReturn() -> sequence<MyUncheckedEnum?>
+    opSequenceOfOptionalMyUncheckedEnumParameter(p: sequence<MyUncheckedEnum?>)
+
+    opCustomSequenceOfInt32Return() -> [cs::generic("CustomSequence")] sequence<int32>
+    opCustomSequenceOfInt32Parameter(p: [cs::generic("CustomSequence")] sequence<int32>)
+
+    opCustomSequenceOfStringReturn() -> [cs::generic("CustomSequence")] sequence<string>
+    opCustomSequenceOfStringParameter(p: [cs::generic("CustomSequence")] sequence<string>)
+
+    opCustomSequenceOfMyFixedLengthEnumReturn() -> [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>
+    opCustomSequenceOfMyFixedLengthEnumParameter(p: [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>)
+
+    opCustomSequenceOfMyVarLengthEnumReturn() -> [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>
+    opCustomSequenceOfMyVarLengthEnumParameter(p: [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>)
+
+    opCustomSequenceOfMyUncheckedEnumReturn() -> [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>
+    opCustomSequenceOfMyUncheckedEnumParameter(p: [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>)
+
+    opCustomSequenceOfOptionalInt32Return() -> [cs::generic("CustomSequence")] sequence<int32?>
+    opCustomSequenceOfOptionalInt32Parameter(p: [cs::generic("CustomSequence")] sequence<int32?>)
+
+    opCustomSequenceOfOptionalStringReturn() -> [cs::generic("CustomSequence")] sequence<string?>
+    opCustomSequenceOfOptionalStringParameter(p: [cs::generic("CustomSequence")] sequence<string?>)
+
+    opCustomSequenceOfOptionalMyFixedLengthEnumReturn() -> [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum?>
+    opCustomSequenceOfOptionalMyFixedLengthEnumParameter(p: [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum?>)
+
+    opCustomSequenceOfOptionalMyVarLengthEnumReturn() -> [cs::generic("CustomSequence")] sequence<MyVarLengthEnum?>
+    opCustomSequenceOfOptionalMyVarLengthEnumParameter(p: [cs::generic("CustomSequence")] sequence<MyVarLengthEnum?>)
+
+    opCustomSequenceOfOptionalMyUncheckedEnumReturn() -> [cs::generic("CustomSequence")] sequence<MyUncheckedEnum?>
+    opCustomSequenceOfOptionalMyUncheckedEnumParameter(p: [cs::generic("CustomSequence")] sequence<MyUncheckedEnum?>)
 
     opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>
     opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>
