@@ -357,7 +357,7 @@ impl FunctionBuilder {
         let parameters = operation.parameters();
 
         // Find an index such that all parameters after it are tagged.
-        // We compute this by finding the last required parameter, and adding 1 to it's index.
+        // We compute this by finding the last required parameter, and adding 1 to its index.
         // If we can't find one, that means all parameters were tagged, so we return 0 for this value.
         let trailing_tagged_parameters_index = match parameters.iter().rposition(|p| !p.is_tagged()) {
             Some(last_required_parameter_index) => last_required_parameter_index + 1,
