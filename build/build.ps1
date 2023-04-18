@@ -148,7 +148,7 @@ function Clean($config, $examples) {
 
 function Test($config, $coverage) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    $arguments = @('test', '--no-build', '--configuration', $dotnetConfiguration)
+    $arguments = @('test', '--configuration', $dotnetConfiguration)
     if ($coverage) {
        $runsettings = Resolve-Path -Path "./build/Coverlet.runsettings"
        $arguments += @("/p:RunSettingsFilePath=$runsettings", '--collect:"XPlat Code Coverage"')

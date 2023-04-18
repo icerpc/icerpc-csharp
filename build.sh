@@ -145,7 +145,7 @@ clean()
 
 run_test()
 {
-    arguments=("test" "--no-build" "-c" "$dotnet_config")
+    arguments=("test" "-c" "$dotnet_config")
     if [ "$coverage" == "yes" ]; then
         runsettings=$(realpath 'build/Coverlet.runsettings')
         arguments+=("/p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
