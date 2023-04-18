@@ -132,12 +132,12 @@ public class SliceCCSharpTask : ToolTask
         {
             if (severity == "error")
             {
-                Log.LogError("", code ?? "E000", "", file, start.Row, start.Column, end.Row, end.Column, message);
+                Log.LogError("", code, "", file, start.Row, start.Column, end.Row, end.Column, message);
             }
             else
             {
                 Debug.Assert(diagnostic.Severity == "warning");
-                Log.LogWarning("", code ?? "W000", "", file, start.Row, start.Column, end.Row, end.Column, message);
+                Log.LogWarning("", code, "", file, start.Row, start.Column, end.Row, end.Column, message);
             }
         }
     }
@@ -154,7 +154,7 @@ public class Diagnostic
     public Note[] Notes { get; set; } = Array.Empty<Note>();
 
     [JsonPropertyName("error_code")]
-    public string? ErrorCode { get; set; } = null;
+    public string ErrorCode { get; set; } = "";
 }
 
 public class Note
