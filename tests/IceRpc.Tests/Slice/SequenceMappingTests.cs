@@ -98,7 +98,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public async Task Return_fixed_lenght_enum_sequence()
+    public async Task Return_fixed_length_enum_sequence()
     {
         // Arrange
         var value = new MyFixedLengthEnum[]
@@ -128,7 +128,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public void Fixed_lenght_enum_sequence_parameter()
+    public void Fixed_length_enum_sequence_parameter()
     {
         // Arrange
         var value = new MyFixedLengthEnum[]
@@ -154,7 +154,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public async Task Return_var_lenght_enum_sequence()
+    public async Task Return_var_length_enum_sequence()
     {
         // Arrange
         var value = new MyVarLengthEnum[] { MyVarLengthEnum.Enum1, MyVarLengthEnum.Enum2, MyVarLengthEnum.Enum3 };
@@ -179,7 +179,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public void Var_lenght_enum_sequence_parameter()
+    public void Var_length_enum_sequence_parameter()
     {
         // Arrange
         var value = new MyVarLengthEnum[]
@@ -338,7 +338,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public async Task Return_fixed_lenght_enum_custom_sequence()
+    public async Task Return_fixed_length_enum_custom_sequence()
     {
         // Arrange
         var value = new MyFixedLengthEnum[]
@@ -368,7 +368,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public void Fixed_lenght_enum_custom_sequence_parameter()
+    public void Fixed_length_enum_custom_sequence_parameter()
     {
         // Act
         PipeReader requestPayload = SequenceMappingOperationsProxy.Request.OpMyFixedLengthEnumCustomSequenceParameter(
@@ -392,7 +392,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public async Task Return_var_lenght_enum_custom_sequence()
+    public async Task Return_var_length_enum_custom_sequence()
     {
         // Arrange
         var value = new MyVarLengthEnum[] { MyVarLengthEnum.Enum1, MyVarLengthEnum.Enum2, MyVarLengthEnum.Enum3 };
@@ -417,7 +417,7 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public void Var_lenght_enum_custom_sequence_parameter()
+    public void Var_length_enum_custom_sequence_parameter()
     {
         // Act
         PipeReader requestPayload = SequenceMappingOperationsProxy.Request.OpMyVarLengthEnumCustomSequenceParameter(
