@@ -191,7 +191,7 @@ internal class SlicConnection : IMultiplexedConnection
 
                     // Read the Initialize frame.
                     InitializeAckBody initializeAckBody = await ReadFrameAsync(
-                        DecodeInitializeAck,
+                        DecodeInitializeAckOrVersion,
                         cancellationToken).ConfigureAwait(false);
 
                     DecodeParameters(initializeAckBody.Parameters);
@@ -264,7 +264,7 @@ internal class SlicConnection : IMultiplexedConnection
                 });
         }
 
-        static InitializeAckBody DecodeInitializeAck(FrameType frameType, ReadOnlySequence<byte> buffer)
+        static InitializeAckBody DecodeInitializeAckOrVersion(FrameType frameType, ReadOnlySequence<byte> buffer)
         {
             switch (frameType)
             {
@@ -1320,7 +1320,7 @@ internal class SlicConnection : IMultiplexedConnection
                 IceRpcError.IceRpcError,
                 "The connection was aborted by a Slic protocol error.",
                 exception);
-            Close(rpcException, rpcException.Message, IceRpcError.ConnectionAborted);
+            Close(rpcException, rpcException.Message, IceRpcError.IceRpcError);
             throw rpcException;
         }
         catch (Exception exception)
