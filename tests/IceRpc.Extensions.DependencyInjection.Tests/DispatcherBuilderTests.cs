@@ -72,10 +72,35 @@ public sealed class DispatcherBuilderTests
         Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));
     }
 
-    /// <summary>Verifies that UseMiddleware with a 3 service dependencies works with scoped service dependencies.
+    /// <summary>Verifies that UseMiddleware with 2 service dependencies works with scoped service dependencies.
     /// </summary>
     [Test]
-    public async Task UseMiddleware_with_3_service_dependencies()
+    public async Task UseMiddleware_with_two_service_dependencies()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSingleton<ICallTracker, CallTracker>()
+            .AddSingleton<IPathTracker, PathTracker>()
+            .AddScoped<IUser, User>()
+            .AddScoped<IDep2, Dep2>()
+            .AddScoped<ITestService, TestService>()
+            .BuildServiceProvider(true);
+
+        var builder = new DispatcherBuilder(provider);
+        builder.UseMiddleware<DoubleMiddleware, IUser, IDep2>();
+        builder.Map<ITestService>("/foo");
+        IDispatcher dispatcher = builder.Build();
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance) { Path = "/foo" };
+
+        _ = await dispatcher.DispatchAsync(request);
+
+        Assert.That(provider.GetRequiredService<ICallTracker>().Count, Is.EqualTo(2));
+        Assert.That(provider.GetRequiredService<IPathTracker>().Path, Is.EqualTo("/foo"));
+    }
+
+    /// <summary>Verifies that UseMiddleware with 3 service dependencies works with scoped service dependencies.
+    /// </summary>
+    [Test]
+    public async Task UseMiddleware_with_three_service_dependencies()
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddSingleton<ICallTracker, CallTracker>()
@@ -176,6 +201,24 @@ public sealed class DispatcherBuilderTests
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, IUser dep, CancellationToken cancellationToken)
         {
             var user = dep;
+            user.Path = request.Path;
+            return _next.DispatchAsync(request, cancellationToken);
+        }
+    }
+
+    public class DoubleMiddleware : IMiddleware<IUser, IDep2>
+    {
+        private readonly IDispatcher _next;
+
+        public DoubleMiddleware(IDispatcher next) => _next = next;
+
+        public ValueTask<OutgoingResponse> DispatchAsync(
+            IncomingRequest request,
+            IUser dep1,
+            IDep2 dep2,
+            CancellationToken cancellationToken)
+        {
+            var user = dep1;
             user.Path = request.Path;
             return _next.DispatchAsync(request, cancellationToken);
         }
