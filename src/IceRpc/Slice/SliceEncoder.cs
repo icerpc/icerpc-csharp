@@ -507,7 +507,7 @@ public ref partial struct SliceEncoder
 
     /// <summary>Encodes a fixed-size numeric value.</summary>
     /// <param name="v">The numeric value to encode.</param>
-    internal void EncodeFixedSizeNumeric<T>(T v) where T : struct, INumber<T>
+    internal void EncodeFixedSizeNumeric<T>(T v) where T : struct
     {
         int elementSize = Unsafe.SizeOf<T>();
         Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
