@@ -58,6 +58,11 @@ public sealed class ConnectionCacheTests
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
         Assert.That(server1Address, Is.Not.EqualTo(server2Address));
+
+        // Cleanup
+        await server1.ShutdownAsync();
+        await server2.ShutdownAsync();
+        await cache.ShutdownAsync();
     }
 
     /// <summary>Verifies that the connection cache uses the alt-server when it cannot connect to the main server address.
@@ -96,6 +101,10 @@ public sealed class ConnectionCacheTests
 
         // Assert
         Assert.That(selectedServerAddress?.Host, Is.EqualTo(serverAddress.Host));
+
+        // Cleanup
+        await server.ShutdownAsync();
+        await cache.ShutdownAsync();
     }
 
     /// <summary>Verifies that the connection cache prefers connecting to the main server address.</summary>
@@ -142,6 +151,11 @@ public sealed class ConnectionCacheTests
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
+
+        // Cleanup
+        await server1.ShutdownAsync();
+        await server2.ShutdownAsync();
+        await cache.ShutdownAsync();
     }
 
     /// <summary>Verifies that the connection cache prefers reusing an existing connection when
@@ -192,6 +206,11 @@ public sealed class ConnectionCacheTests
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
         Assert.That(server1Address, Is.Not.EqualTo(server2Address));
+
+        // Cleanup
+        await server1.ShutdownAsync();
+        await server2.ShutdownAsync();
+        await cache.ShutdownAsync();
     }
 
     [Test]
