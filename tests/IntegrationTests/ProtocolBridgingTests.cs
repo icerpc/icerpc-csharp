@@ -66,7 +66,7 @@ public sealed class ProtocolBridgingTests
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {
-            server.Listen();
+            _ = server.Listen();
         }
 
         // TODO: test with the other encoding; currently, the encoding is always slice2
@@ -74,6 +74,8 @@ public sealed class ProtocolBridgingTests
         ProtocolBridgingTestProxy newProxy = await TestProxyAsync(forwarderProxy, direct: false);
         Assert.That((object)newProxy.ServiceAddress.Protocol!.Name, Is.EqualTo(targetProtocol));
         _ = await TestProxyAsync(newProxy, direct: true);
+
+        await serviceProvider.GetRequiredService<ConnectionCache>().ShutdownAsync();
 
         foreach (Server server in serviceProvider.GetServices<Server>())
         {

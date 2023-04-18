@@ -559,4 +559,15 @@ public class ServiceAddressTests
         Assert.That(serviceAddress.Path, Is.EqualTo("/foo"));
         Assert.That(serviceAddress.Protocol, Is.Null);
     }
+
+    [TestCase("icerpc://127.0.0.1/path?transport=foo&p=v&p1=v1", "icerpc://127.0.0.1:4062/path?p1=v1&transport=foo&p=v")]
+    [TestCase("icerpc:/path?p=v&p1=v1", "icerpc:/path?p1=v1&p=v")]
+    [TestCase("icerpc:/path?p=v1,v2,v3&foo=bar", "icerpc:/path?foo=bar&p=v1&p=v2&p=v3")]
+    public void Service_address_equal(ServiceAddress lhs, ServiceAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
+
+    [TestCase("icerpc://127.0.0.1/path", "icerpc://localhost/path")]
+    [TestCase("ice://127.0.0.1/path#foo", "ice://127.0.0.1/path#bar")]
+    [TestCase("icerpc://127.0.0.1/path?transport=foo&p=v", "icerpc://127.0.0.1/path?transport=foo&p=v1")]
+    public void Service_address_not_equal(ServiceAddress lhs, ServiceAddress rhs) =>
+        Assert.That(lhs, Is.Not.EqualTo(rhs));
 }

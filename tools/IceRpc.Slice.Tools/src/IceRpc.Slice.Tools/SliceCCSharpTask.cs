@@ -94,141 +94,86 @@ public class SliceCCSharpTask : ToolTask
     {
         if (messageImportance == MessageImportance.Low)
         {
-            // Ignore all messages from stdout, messageImportance is set to MessageImportance.Low for messages from
-            // stdout.
+            // Ignore messages from stdout, messageImportance is set to MessageImportance.Low for messages from stdout.
             return;
         }
 
-        // Deserialize JSON
-        var options = new JsonSerializerOptions
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        if (JsonSerializer.Deserialize<Diagnostic>(singleLine, options) is Diagnostic diagnostic)
         {
-            PropertyNameCaseInsensitive = true
-        };
+            LogSliceCompilerDiagnostic(
+                diagnostic.Severity,
+                diagnostic.Message,
+                diagnostic.ErrorCode,
+                diagnostic.Span.File,
+                diagnostic.Span.Start,
+                diagnostic.Span.End);
 
-        try
-        {
-            Diagnostic? deserializeDiagnostic = JsonSerializer.Deserialize<Diagnostic>(singleLine, options);
-            /// Parse the JSON
-            if (deserializeDiagnostic is Diagnostic diagnostic)
+            // Log notes as additional error/warnings.
+            foreach (Note note in diagnostic.Notes)
             {
-                // Log the baseline Error or Warning
-                switch (diagnostic.Severity)
-                {
-                    case "error":
-                        {
-                            Log.LogError(
-                                "",
-                                diagnostic.ErrorCode ?? "E000",
-                                "",
-                                diagnostic.Span?.File,
-                                diagnostic.Span?.Start.Row ?? 0,
-                                diagnostic.Span?.Start.Col ?? 0,
-                                diagnostic.Span?.End.Row ?? 0,
-                                diagnostic.Span?.End.Col ?? 0,
-                                diagnostic.Message);
-                            break;
-                        }
-                    case "warning":
-                        {
-                            Log.LogWarning(
-                                "",
-                                diagnostic.ErrorCode ?? "W000",
-                                "",
-                                diagnostic.Span?.File,
-                                diagnostic.Span?.Start.Row ?? 0,
-                                diagnostic.Span?.Start.Col ?? 0,
-                                diagnostic.Span?.End.Row ?? 0,
-                                diagnostic.Span?.End.Col ?? 0,
-                                diagnostic.Message);
-                            break;
-                        }
-                    default:
-                        {
-                            break;
-                        }
-                }
-
-                // Log additional notes as messages
-                foreach (Note note in diagnostic.Notes ?? Enumerable.Empty<Note>())
-                {
-                    if (diagnostic.Severity == "error")
-                    {
-                        Log.LogError(
-                            "",
-                            diagnostic.ErrorCode ?? "E000",
-                            "",
-                            note.Span?.File,
-                            note.Span?.Start.Row ?? 0,
-                            note.Span?.Start.Col ?? 0,
-                            note.Span?.End.Row ?? 0,
-                            note.Span?.End.Col ?? 0,
-                            note.Message);
-                    }
-                    else
-                    {
-                        Debug.Assert(diagnostic.Severity == "warning");
-                        Log.LogWarning(
-                            "",
-                            diagnostic.ErrorCode ?? "W000",
-                            "",
-                            note.Span?.File,
-                            note.Span?.Start.Row ?? 0,
-                            note.Span?.Start.Col ?? 0,
-                            note.Span?.End.Row ?? 0,
-                            note.Span?.End.Col ?? 0,
-                            note.Message);
-                    }
-                }
+                LogSliceCompilerDiagnostic(
+                    diagnostic.Severity,
+                    note.Message,
+                    diagnostic.ErrorCode,
+                    note.SourceSpan.File,
+                    note.SourceSpan.Start,
+                    note.SourceSpan.End);
             }
-
         }
-        catch (JsonException)
+
+        void LogSliceCompilerDiagnostic(
+            string severity,
+            string message,
+            string? code,
+            string file,
+            Location start,
+            Location end)
         {
-            // If we failed to parse the message as Json this is either a compiler panic, or a error from the
-            // compiler that was not correctly formatted.
-            Log.LogError(
-                "",
-                "",
-                "",
-                "",
-                0,
-                0,
-                0,
-                0,
-                singleLine);
+            if (severity == "error")
+            {
+                Log.LogError("", code ?? "E000", "", file, start.Row, start.Column, end.Row, end.Column, message);
+            }
+            else
+            {
+                Debug.Assert(diagnostic.Severity == "warning");
+                Log.LogWarning("", code ?? "W000", "", file, start.Row, start.Column, end.Row, end.Column, message);
+            }
         }
     }
 
     /// <inheritdoc/>
-    protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Low, message);
+    protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
 }
 
 public class Diagnostic
 {
-    public string Message { get; set; } = default!;
-    public string Severity { get; set; } = default!;
-    public Span Span { get; set; } = default!;
-    public Note[] Notes { get; set; } = default!;
+    public string Message { get; set; } = "";
+    public string Severity { get; set; } = "";
+    public SourceSpan Span { get; set; } = new SourceSpan();
+    public Note[] Notes { get; set; } = Array.Empty<Note>();
 
     [JsonPropertyName("error_code")]
-    public string? ErrorCode { get; set; } = default!;
+    public string? ErrorCode { get; set; } = null;
 }
 
 public class Note
 {
-    public string Message { get; set; } = default!;
-    public Span Span { get; set; } = default!;
+    public string Message { get; set; } = "";
+    [JsonPropertyName("span")]
+    public SourceSpan SourceSpan { get; set; } = new SourceSpan();
 }
 
-public class Span
+public class SourceSpan
 {
-    public Location Start { get; set; } = default!;
-    public Location End { get; set; } = default!;
-    public string File { get; set; } = default!;
+    public Location Start { get; set; }
+    public Location End { get; set; }
+    public string File { get; set; } = "";
 }
 
-public class Location
+public struct Location
 {
     public int Row { get; set; }
-    public int Col { get; set; }
+    [JsonPropertyName("col")]
+    public int Column { get; set; }
 }

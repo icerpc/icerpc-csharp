@@ -248,9 +248,9 @@ internal class SlicStream : IMultiplexedStream
         CancellationToken cancellationToken) =>
         _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
-    internal void ReceivedConsumedFrame(int size)
+    internal void ReceivedConsumedFrame(StreamConsumedBody frame)
     {
-        int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame(size);
+        int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame((int)frame.Size);
 
         // Ensure the peer is not trying to increase the credit to a value which is larger than what it is allowed to.
         if (newSendCredit > _connection.PeerPauseWriterThreshold)
@@ -277,11 +277,11 @@ internal class SlicStream : IMultiplexedStream
         _outputPipeWriter?.CompleteWrites(exception: null);
     }
 
-    internal void ReceivedResetFrame(ulong errorCode)
+    internal void ReceivedResetFrame(StreamResetBody frame)
     {
         TrySetReadsCompleted();
 
-        if (errorCode == 0ul)
+        if (frame.ApplicationErrorCode == 0ul)
         {
             // Read operations will return a TruncatedData if the peer aborted writes.
             _inputPipeReader?.CompleteReads(new IceRpcException(IceRpcError.TruncatedData));
@@ -291,15 +291,15 @@ internal class SlicStream : IMultiplexedStream
             // The peer aborted writes with unknown application error code.
             _inputPipeReader?.CompleteReads(new IceRpcException(
                 IceRpcError.TruncatedData,
-                $"The peer aborted stream writes with an unknown application error code: '{errorCode}'"));
+                $"The peer aborted stream writes with an unknown application error code: '{frame.ApplicationErrorCode}'"));
         }
     }
 
-    internal void ReceivedStopSendingFrame(ulong errorCode)
+    internal void ReceivedStopSendingFrame(StreamStopSendingBody frame)
     {
         TrySetWritesCompleted();
 
-        if (errorCode == 0ul)
+        if (frame.ApplicationErrorCode == 0ul)
         {
             // Write operations will return a completed flush result regardless of wether or not the peer aborted
             // reads with the 0ul error code or completed reads.
@@ -310,7 +310,7 @@ internal class SlicStream : IMultiplexedStream
             // The peer aborted reads with unknown application error code.
             _outputPipeWriter?.CompleteWrites(new IceRpcException(
                 IceRpcError.TruncatedData,
-                $"The peer aborted stream reads with an unknown application error code: '{errorCode}'"));
+                $"The peer aborted stream reads with an unknown application error code: '{frame.ApplicationErrorCode}'"));
         }
     }
 
