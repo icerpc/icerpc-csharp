@@ -2,7 +2,12 @@
   "version": "0.2",
   "language": "en",
   "words": [
-    "test"
+    "browsable",
+    "coloc",
+    "commentable",
+    "pingable",
+    "slicec",
+    "TypeRef"
   ],
   "dictionaries": [
     "csharp",
