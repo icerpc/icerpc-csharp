@@ -270,17 +270,23 @@ public class TcpTransportTests
 
     /// <summary>Verifies that a ssl client fails to connect to a tcp server.</summary>
     [Test]
-    public async Task Ssl_client_cannot_connect_to_tcp_server()
+    public async Task Ssl_client_fails_to_connect_to_tcp_server()
     {
         // Arrange
         await using IListener<IDuplexConnection> listener = CreateTcpListener(
             new ServerAddress(new Uri("ice://[::0]:0")));
 
         ServerAddress sslAddress = listener.ServerAddress with { Transport = "ssl" };
-        using TcpClientConnection clientConnection = CreateTcpClientConnection(sslAddress);
+        using TcpClientConnection clientConnection = CreateTcpClientConnection(
+            sslAddress,
+            authenticationOptions: DefaultSslClientAuthenticationOptions);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
 
         // Act/Assert
-        Assert.That(async () => await clientConnection.ConnectAsync(default), Throws.InstanceOf<IceRpcException>());
+        Assert.That(
+            async () => await clientConnection.ConnectAsync(cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
     }
 
     [TestCase("ice://[::0]:0")]
