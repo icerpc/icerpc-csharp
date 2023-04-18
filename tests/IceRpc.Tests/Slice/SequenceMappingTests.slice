@@ -3,17 +3,41 @@
 module IceRpc::Tests::Slice
 
 interface SequenceMappingOperations {
-    // We don't need to add tests for other cs::generic arguments because the code path is always the same. The argument
-    // must be a non-abstract generic type that implements IEnumerable<T> and provides a constructor that allows to
-    // initialize the sequence contents from an IEnumerable<T>.
-    opReturnTuple() ->
-        (r1: [cs::generic("CustomSequence")] sequence<int32>
-         r2: [cs::generic("CustomSequence")] sequence<int32>)
 
-    opReturnSingleType() -> [cs::generic("CustomSequence")] sequence<int32>
+    opReturnNumericSequence() -> sequence<int32>
+    opNumericSequenceParameter(p: sequence<int32>)
 
-    opSingleParameter(p: [cs::generic("CustomSequence")] sequence<int32>)
+    opReturnStringSequence() -> sequence<string>
+    opStringSequenceParameter(p: sequence<string>)
+
+    opReturnMyFixedLengthEnumSequence() -> sequence<MyFixedLengthEnum>
+    opMyFixedLengthEnumSequenceParameter(p: sequence<MyFixedLengthEnum>)
+
+    opReturnMyVarLengthEnumSequence() -> sequence<MyVarLengthEnum>
+    opMyVarLengthEnumSequenceParameter(p: sequence<MyVarLengthEnum>)
+
+    opReturnMyUncheckedEnumSequence() -> sequence<MyUncheckedEnum>
+    opMyUncheckedEnumSequenceParameter(p: sequence<MyUncheckedEnum>)
+
+    opReturnNumericCustomSequence() -> [cs::generic("CustomSequence")] sequence<int32>
+    opNumericCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<int32>)
+
+    opReturnStringCustomSequence() -> [cs::generic("CustomSequence")] sequence<string>
+    opStringCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<string>)
+
+    opReturnMyFixedLengthEnumCustomSequence() -> [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>
+    opMyFixedLengthEnumCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>)
+
+    opReturnMyVarLengthEnumCustomSequence() -> [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>
+    opMyVarLengthEnumCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>)
+
+    opReturnMyUncheckedEnumCustomSequence() -> [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>
+    opMyUncheckedEnumCustomSequenceParameter(p: [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>)
 
     opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>
     opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>
+
+    opReturnTuple() ->
+        (r1: [cs::generic("CustomSequence")] sequence<int32>
+         r2: [cs::generic("CustomSequence")] sequence<int32>)
 }

@@ -14,7 +14,7 @@ enum MyFixedLengthEnum : int16 {
     SEnum3
 }
 
-enum MyEnumWithCustomEnumerators: varint32 {
+enum MyVarLengthEnum: varint32 {
     Enum1 = -10
     Enum2 = 20
     Enum3 = 30

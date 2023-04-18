@@ -286,8 +286,8 @@ fn encode_sequence(
     encoding: Encoding,
 ) -> CodeBlock {
     let has_custom_type = sequence_ref.has_attribute(false, match_cs_generic);
-    if sequence_ref.has_fixed_size_numeric_elements() {
-        if type_context == TypeContext::Encode && !has_custom_type {
+    if sequence_ref.has_fixed_size_numeric_elements() && !has_custom_type {
+        if type_context == TypeContext::Encode {
             format!("{encoder_param}.EncodeSpan({value}.Span)")
         } else {
             format!("{encoder_param}.EncodeSequence({value})")

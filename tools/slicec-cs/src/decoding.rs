@@ -223,7 +223,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
                     element_type.cs_type_string(namespace, TypeContext::Decode, true),
                 ))
             }
-            Types::Enum(enum_def) if enum_def.underlying.is_some() => {
+            Types::Enum(enum_def) if enum_def.underlying.is_some() && enum_def.fixed_wire_size().is_some() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than decoding the collection elements one by one.
                 if enum_def.is_unchecked {
@@ -299,7 +299,7 @@ decoder.DecodeSequenceOfOptionals(
                     element_type.cs_type_string(namespace, TypeContext::Decode, true),
                 )
             }
-            Types::Enum(enum_def) if enum_def.underlying.is_some() => {
+            Types::Enum(enum_def) if enum_def.underlying.is_some() && enum_def.fixed_wire_size().is_some() => {
                 if enum_def.is_unchecked {
                     write!(
                         code,
