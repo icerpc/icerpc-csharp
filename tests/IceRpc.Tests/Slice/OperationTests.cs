@@ -558,11 +558,11 @@ public class OperationTests
         var proxy = new MyTaggedOperationsProxy(invoker);
 
         // Act
-        await proxy.OpAsync(1, z: 10);
+        await proxy.OpAsync(null, 1, z: 10);
 
         // Assert
-        Assert.That(service.X, Is.EqualTo(1));
-        Assert.That(service.Y, Is.Null);
+        Assert.That(service.X, Is.Null);
+        Assert.That(service.Y, Is.EqualTo(1));
         Assert.That(service.Z, Is.EqualTo(10));
     }
 
@@ -757,11 +757,11 @@ public class OperationTests
 
     private sealed class MyTaggedOperationsService : Service, IMyTaggedOperationsService
     {
-        internal int X { get; set; }
-        internal int? Y { get; set; }
+        internal int? X { get; set; }
+        internal int Y { get; set; }
         internal int? Z { get; set; }
 
-        public ValueTask OpAsync(int x, int? y, int? z, IFeatureCollection features, CancellationToken cancellationToken)
+        public ValueTask OpAsync(int? x, int y, int? z, IFeatureCollection features, CancellationToken cancellationToken)
         {
             X = x;
             Y = y;

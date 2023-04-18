@@ -331,7 +331,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 
     let use_default_decode_func = parameters.len() == 1
         && get_bit_sequence_size(operation.encoding, &parameters) == 0
-        && parameters.first().unwrap().tag.is_none();
+        && !parameters.first().unwrap().is_tagged();
 
     if use_default_decode_func {
         let param = parameters.first().unwrap();

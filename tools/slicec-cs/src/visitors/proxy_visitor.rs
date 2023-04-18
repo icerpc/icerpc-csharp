@@ -608,7 +608,7 @@ fn return_value_decode_func(operation: &Operation) -> CodeBlock {
 
     if members.len() == 1
         && get_bit_sequence_size(operation.encoding, &members) == 0
-        && members.first().unwrap().tag.is_none()
+        && !members.first().unwrap().is_tagged()
     {
         decode_func(members.first().unwrap().data_type(), namespace, operation.encoding)
     } else {
