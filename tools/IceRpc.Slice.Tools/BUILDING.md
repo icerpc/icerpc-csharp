@@ -6,7 +6,7 @@ When the `SLICEC_CS_STAGING_PATH` MSBuild property is set, the NuGet package inc
 supported platforms instead of including the `slice-cs` compiler from the current source build. To create the package
 with all supported compilers, you must ensure that the binaries for all the supported compilers are available in the
 directory specified by `SLICEC_CS_STAGING_PATH` or the packaging task will fail with an error. The expected layout for
-`SLICEC_CS_STAGING_PATH ` is `<os-name>-<os-arch>/<compiler-executable>`.
+`SLICEC_CS_STAGING_PATH` is `<os-name>-<os-arch>/<compiler-executable>`.
 
 The supported `<os-name>-<os-arch>` combinations are:
 
