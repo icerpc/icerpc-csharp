@@ -319,7 +319,7 @@ public class TcpTransportTests
     [TestCase("icerpc://[::0]:0?transport=foo", typeof(NotSupportedException))]
     [TestCase("icerpc://[::0]:0?transport=ssl", typeof(NotSupportedException))]
     [TestCase("icerpc://[::0]:0?transport=tcp&z", typeof(ArgumentException))]
-    public void Cannot_create_connection_to_invalid_tcp_server_address(ServerAddress serverAddress, Type exceptionType)
+    public void Create_connection_to_invalid_tcp_server_address_fails(ServerAddress serverAddress, Type exceptionType)
     {
         Assert.That(
             () =>
@@ -332,10 +332,12 @@ public class TcpTransportTests
 
     [TestCase("ice://[::0]:0?transport=foo", typeof(NotSupportedException))]
     [TestCase("ice://[::0]:0?transport=tcp&z&t=30000", typeof(ArgumentException))]
+    [TestCase("ice://localhost:0?transport=tcp", typeof(ArgumentException))]
     [TestCase("icerpc://[::0]:0?transport=foo", typeof(NotSupportedException))]
     [TestCase("icerpc://[::0]:0?transport=ssl", typeof(NotSupportedException))]
     [TestCase("icerpc://[::0]:0?transport=tcp&z", typeof(ArgumentException))]
-    public void Cannot_listen_on_invalid_tcp_server_address(ServerAddress serverAddress, Type exceptionType) =>
+    [TestCase("icerpc://localhost:0?transport=tcp", typeof(ArgumentException))]
+    public void Listen_on_invalid_tcp_server_address_fails(ServerAddress serverAddress, Type exceptionType) =>
          Assert.That(
             () =>
                 new TcpServerTransport().Listen(
@@ -345,7 +347,7 @@ public class TcpTransportTests
             Throws.InstanceOf(exceptionType));
 
     [Test]
-    public void Cannot_listen_on_ssl_server_address_without_cert() =>
+    public void Listen_on_ssl_server_address_without_cert_fails() =>
          Assert.That(
             () =>
                 new TcpServerTransport().Listen(
