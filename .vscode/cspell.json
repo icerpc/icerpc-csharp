@@ -19,11 +19,11 @@
     "icerpc",
     "localizable",
     "Memberwise",
+    "Nonmutating",
+    "Oneway",
     "parallelizable",
     "parameterless",
     "pingable",
-    "Oneway",
-    "Nonmutating",
     "QUIC",
     "retryable",
     "rposition",
@@ -43,7 +43,7 @@
     "varint",
     "varuint",
     "ZeroC",
-    "Zipkin",
+    "Zipkin"
   ],
   "dictionaries": [
     "csharp",
