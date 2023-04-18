@@ -285,4 +285,13 @@ public class ServerAddressTests
 
         Assert.That(serverAddress.Params, Has.Count.EqualTo(0));
     }
+
+    [TestCase("icerpc://127.0.0.1?transport=foo&p=v&p1=v1", "icerpc://127.0.0.1:4062?p1=v1&transport=foo&p=v")]
+    [TestCase("icerpc://127.0.0.1?transport=foo&p=v1&p=v2&p=v3", "icerpc://127.0.0.1:4062?p=v1,v2,v3&transport=foo")]
+    public void Server_address_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.EqualTo(rhs));
+
+    [TestCase("icerpc://127.0.0.1", "icerpc://localhost")]
+    [TestCase("icerpc://127.0.0.1?transport=foo&p=v", "icerpc://127.0.0.1?transport=foo&p=v1")]
+    [TestCase("icerpc://127.0.0.1?p=v1&p=v2", "icerpc://127.0.0.1?p=v2&p=v1")]
+    public void Server_address_not_equal(ServerAddress lhs, ServerAddress rhs) => Assert.That(lhs, Is.Not.EqualTo(rhs));
 }
