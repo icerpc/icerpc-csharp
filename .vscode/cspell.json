@@ -5,7 +5,9 @@
     "browsable",
     "coloc",
     "commentable",
+    "parallelizable",
     "pingable",
+    "rposition",
     "slicec",
     "TypeRef"
   ],
