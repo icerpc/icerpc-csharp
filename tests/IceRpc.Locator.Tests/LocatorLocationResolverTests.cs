@@ -9,7 +9,7 @@ public class LocatorLocationResolverTests
 {
     [TestCase(0, 2)]
     [TestCase(1, 1)]
-    public async Task Location_resolver_cache(int maxCacheSize, int resolveCalls)
+    public async Task Location_resolver_cache(int maxCacheSize, int resolvedCount)
     {
         // Arrange
         var locator = new FakeLocator(new ServiceAddress(new Uri("ice://localhost/dummy:10000")), false);
@@ -33,7 +33,7 @@ public class LocatorLocationResolverTests
             refreshCache: false,
             CancellationToken.None);
 
-        Assert.That(locator.Resolved, Is.EqualTo(resolveCalls));
+        Assert.That(locator.ResolvedCount, Is.EqualTo(resolvedCount));
         Assert.That(resolvedAddress1, Is.Not.Null);
         Assert.That(resolvedAddress1, Is.EqualTo(resolvedAddress2));
     }

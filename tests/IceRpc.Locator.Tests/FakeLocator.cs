@@ -5,24 +5,20 @@ using IceRpc.Ice;
 
 namespace IceRpc.Locator.Tests;
 
+/// <summary>An <see cref="ILocator"/> implmentation used by the tests.</summary>
 internal sealed class FakeLocator : ILocator
 {
-    internal int Resolved { get; set; }
+    internal int ResolvedCount { get; set; }
     
     private readonly ServiceAddress _serviceAddress;
     private readonly bool _adapterId;
 
-    public FakeLocator(ServiceAddress serviceAddress, bool adapterId)
-    {
-        _serviceAddress = serviceAddress;
-        _adapterId = adapterId;
-    }
-
     public Task<ServiceAddress?> FindAdapterByIdAsync(
-        string id, IFeatureCollection? features,
+        string id,
+        IFeatureCollection? features,
         CancellationToken cancellationToken)
     {
-        Resolved++;
+        ResolvedCount++;
         return Task.FromResult(id == "good" && _adapterId ? _serviceAddress : null);
     }
 
@@ -31,7 +27,7 @@ internal sealed class FakeLocator : ILocator
         IFeatureCollection? features,
         CancellationToken cancellationToken)
     {
-        Resolved++;
+        ResolvedCount++;
         return Task.FromResult(id == "good" && !_adapterId ? _serviceAddress : null);
     }
 
@@ -39,4 +35,16 @@ internal sealed class FakeLocator : ILocator
         IFeatureCollection? features,
         CancellationToken cancellationToken) =>
         throw new NotImplementedException();
+
+    /// <summary>Constructs a locator that resolves the object or adapter-id with value "good" to the given service
+    /// address.</summary>
+    /// <param name="serviceAddress">The <see cref="ServiceAddress"/> returned when the locator resolves an "id" with
+    /// the value "good".</param>
+    /// <param name="adapterId">Whether the <paramref name="serviceAddress"/> should be returned when resolving an
+    /// object by ID or an adpater ID.</param>
+    internal FakeLocator(ServiceAddress serviceAddress, bool adapterId)
+    {
+        _serviceAddress = serviceAddress;
+        _adapterId = adapterId;
+    }
 }
