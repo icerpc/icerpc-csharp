@@ -245,15 +245,14 @@ fn encode_tagged_type(
     };
 
     let encode_tagged_call = FunctionCallBuilder::new(&format!("{encoder_param}.EncodeTagged"))
-        .add_argument(tag.to_string())
-        .add_argument_if(
-            encoding == Encoding::Slice1 && data_type.tag_format() != Some(TagFormat::VSize),
-            || format!("TagFormat.{}", data_type.tag_format().unwrap()),
+        .add_argument(tag)
+        .add_argument_if_present(
+            (encoding == Encoding::Slice1 && data_type.tag_format() != Some(TagFormat::VSize))
+                .then(|| format!("TagFormat.{}", data_type.tag_format().unwrap())),
         )
-        .add_argument_if(size_parameter.is_some(), || {
-            format!("size: {}", size_parameter.unwrap())
-        })
-        .add_argument_if_else(read_only_memory, value, unwrapped_name)
+        .add_argument_if_present(size_parameter.map(|size| format!("size: {size}")))
+        .add_argument_if(read_only_memory, value)
+        .add_argument_if(!read_only_memory, unwrapped_name)
         .add_argument(encode_action(data_type, type_context, namespace, encoding, true))
         .build();
 
