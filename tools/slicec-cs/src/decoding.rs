@@ -215,7 +215,11 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
 
     if generic_attribute.is_some() {
         let arg: Option<String> = match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.is_numeric_or_bool() && primitive.fixed_wire_size().is_some() => {
+            Types::Primitive(primitive)
+                if primitive.is_numeric_or_bool()
+                    && primitive.fixed_wire_size().is_some()
+                    && !element_type.is_optional =>
+            {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than decoding the collection elements one by one.
                 Some(format!(
@@ -223,7 +227,11 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
                     element_type.cs_type_string(namespace, TypeContext::Decode, true),
                 ))
             }
-            Types::Enum(enum_def) if enum_def.underlying.is_some() && enum_def.fixed_wire_size().is_some() => {
+            Types::Enum(enum_def)
+                if enum_def.underlying.is_some()
+                    && enum_def.fixed_wire_size().is_some()
+                    && !element_type.is_optional =>
+            {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than decoding the collection elements one by one.
                 if enum_def.is_unchecked {
@@ -361,32 +369,40 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
         type_ref.cs_type_string(namespace, TypeContext::Decode, false)
     };
 
-    let mut code: CodeBlock = match &type_ref.concrete_typeref() {
+    let mut code = CodeBlock::default();
+    if type_ref.is_optional && !type_ref.is_value_type() {
+        write!(code, "({type_name})");
+    }
+    match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if encoding == Encoding::Slice1 && type_ref.is_optional {
-                format!("decoder.DecodeNullableProxy<{type_name}>()")
+                write!(code, "decoder.DecodeNullableProxy<{type_name}>()")
             } else {
-                format!("decoder.DecodeProxy<{type_name}>()")
+                write!(code, "decoder.DecodeProxy<{type_name}>()")
             }
         }
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             assert!(encoding == Encoding::Slice1);
             if type_ref.is_optional {
-                format!(
+                write!(
+                    code,
                     "decoder.DecodeNullableClass<{}>()",
                     type_ref.cs_type_string(namespace, TypeContext::Decode, true),
                 )
             } else {
-                format!("decoder.DecodeClass<{type_name}>()")
+                write!(code, "decoder.DecodeClass<{type_name}>()")
             }
         }
         // Primitive::AnyClass is handled above by is_class_type branch
-        TypeRefs::Primitive(primitive_ref) => format!("decoder.Decode{}()", primitive_ref.type_suffix()),
-        TypeRefs::Sequence(sequence_ref) => decode_sequence(sequence_ref, namespace, encoding).to_string(),
-        TypeRefs::Dictionary(dictionary_ref) => decode_dictionary(dictionary_ref, namespace, encoding).to_string(),
+        TypeRefs::Primitive(primitive_ref) => write!(code, "decoder.Decode{}()", primitive_ref.type_suffix()),
+        TypeRefs::Sequence(sequence_ref) => write!(code, "{}", decode_sequence(sequence_ref, namespace, encoding)),
+        TypeRefs::Dictionary(dictionary_ref) => {
+            write!(code, "{}", decode_dictionary(dictionary_ref, namespace, encoding))
+        }
         TypeRefs::Enum(enum_ref) => {
-            format!(
+            write!(
+                code,
                 "{decoder_extensions_class}.Decode{name}(ref decoder)",
                 decoder_extensions_class =
                     enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
@@ -394,10 +410,11 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
             )
         }
         TypeRefs::Struct(_) | TypeRefs::Exception(_) => {
-            format!("new {type_name}(ref decoder)")
+            write!(code, "new {type_name}(ref decoder)")
         }
         TypeRefs::CustomType(custom_type_ref) => {
-            format!(
+            write!(
+                code,
                 "{decoder_extensions_class}.Decode{nullable}{name}(ref decoder)",
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
@@ -411,12 +428,10 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
     }
-    .into();
 
     if type_ref.is_optional && type_ref.is_value_type() {
         write!(code, " as {type_name}?");
     }
-
     code
 }
 

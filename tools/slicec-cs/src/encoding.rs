@@ -284,8 +284,8 @@ fn encode_sequence(
     encoder_param: &str,
     encoding: Encoding,
 ) -> CodeBlock {
-    if sequence_ref.has_fixed_size_numeric_elements() {
-        if type_context == TypeContext::Encode && !sequence_ref.has_attribute(false, match_cs_generic) {
+    if sequence_ref.has_fixed_size_numeric_elements() && !sequence_ref.has_attribute(false, match_cs_generic) {
+        if type_context == TypeContext::Encode {
             format!("{encoder_param}.EncodeSpan({value}.Span)")
         } else {
             format!("{encoder_param}.EncodeSequence({value})")
