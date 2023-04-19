@@ -14,7 +14,8 @@ public class LocatorServerAddressFinderTests
     public async Task Find_adapter_by_id()
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
-        IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new FakeLocator(expectedServiceAddress, adapterId: true));
+        IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
+            new FakeLocator(expectedServiceAddress, adapterId: true));
         var location = new Location { IsAdapterId = true, Value = "good" };
 
         ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
@@ -26,6 +27,21 @@ public class LocatorServerAddressFinderTests
     /// <see cref="AdapterNotFoundException" />.</summary>
     [Test]
     public async Task Find_adapter_by_id_not_found()
+    {
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
+            new FakeLocator(expectedServiceAddress, adapterId: true));
+        var location = new Location { IsAdapterId = true, Value = "bad" };
+
+        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+
+        Assert.That(serviceAddress, Is.Null);
+    }
+
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly handles
+    /// <see cref="AdapterNotFoundException" />.</summary>
+    [Test]
+    public async Task Find_adapter_by_id_not_found_exception()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new NotFoundLocator());
         var location = new Location { IsAdapterId = true, Value = "good" };
@@ -65,6 +81,21 @@ public class LocatorServerAddressFinderTests
     /// <see cref="ObjectNotFoundException" />.</summary>
     [Test]
     public async Task Find_object_by_id_not_found()
+    {
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
+        IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
+            new FakeLocator(expectedServiceAddress, adapterId: false));
+        var location = new Location { IsAdapterId = false, Value = "bad" };
+
+        ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
+
+        Assert.That(serviceAddress, Is.Null);
+    }
+
+    /// <summary>Verifies that <see cref="LocatorServerAddressFinder" /> correctly handles
+    /// <see cref="ObjectNotFoundException" />.</summary>
+    [Test]
+    public async Task Find_object_by_id_not_found_exception()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new NotFoundLocator());
         var location = new Location { IsAdapterId = false, Value = "good" };
@@ -190,39 +221,6 @@ public class LocatorServerAddressFinderTests
         public void Remove(Location location) => Cache.Remove(location);
         public void Set(Location location, ServiceAddress serviceAddress) => Cache[location] = serviceAddress;
         public bool TryGetValue(Location location, out (TimeSpan InsertionTime, ServiceAddress ServiceAddress) value) =>
-            throw new NotImplementedException();
-    }
-
-    private sealed class FakeLocator : ILocator
-    {
-        private readonly ServiceAddress _serviceAddress;
-        private readonly bool _adapterId;
-
-        public FakeLocator(ServiceAddress serviceAddress, bool adapterId)
-        {
-            _serviceAddress = serviceAddress;
-            _adapterId = adapterId;
-        }
-
-        public Task<ServiceAddress?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
-            Task.FromResult<ServiceAddress?>(id == "good" && _adapterId ? _serviceAddress : null);
-
-        public Task<ServiceAddress?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
-            Task.FromResult<ServiceAddress?>(id == "good" && !_adapterId ? _serviceAddress : null);
-
-        Task<LocatorRegistryProxy?> ILocator.GetRegistryAsync(IFeatureCollection? features, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
-    }
-
-    private sealed class NotFoundLocator : ILocator
-    {
-        public Task<ServiceAddress?> FindAdapterByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
-            throw new AdapterNotFoundException();
-
-        public Task<ServiceAddress?> FindObjectByIdAsync(string id, IFeatureCollection? features, CancellationToken cancellationToken) =>
-            throw new ObjectNotFoundException();
-
-        public Task<LocatorRegistryProxy?> GetRegistryAsync(IFeatureCollection? features, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
     }
 }
