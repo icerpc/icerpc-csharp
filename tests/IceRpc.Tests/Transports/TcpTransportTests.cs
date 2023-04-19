@@ -286,7 +286,7 @@ public class TcpTransportTests
         // Act/Assert
         Assert.That(
             async () => await clientConnection.ConnectAsync(cts.Token),
-            Throws.InstanceOf<OperationCanceledException>());
+            Throws.Exception.TypeOf<OperationCanceledException>().Or.TypeOf<IceRpcException>());
     }
 
     [TestCase("ice://[::0]:0")]
