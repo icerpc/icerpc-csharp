@@ -310,10 +310,19 @@ impl FunctionBuilder {
     pub fn add_operation_parameters(&mut self, operation: &Operation, context: TypeContext) -> &mut Self {
         let parameters = operation.parameters();
 
-        for parameter in &parameters {
+        // Find an index such that all parameters after it are tagged.
+        // We compute this by finding the last required parameter, and adding 1 to its index.
+        // If we can't find one, that means all parameters were tagged, so we return 0 for this value.
+        let trailing_tagged_parameters_index = match parameters.iter().rposition(|p| !p.is_tagged()) {
+            Some(last_required_parameter_index) => last_required_parameter_index + 1,
+            None => 0,
+        };
+
+        for (index, parameter) in parameters.iter().enumerate() {
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
-            let default_value = if context == TypeContext::Encode && parameter.tag.is_some() {
+
+            let default_value = if context == TypeContext::Encode && (index >= trailing_tagged_parameters_index) {
                 match parameter.data_type.concrete_typeref() {
                     // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
                     // 'default' as their default value. Other tagged types are mapped to nullable types and
@@ -329,6 +338,7 @@ impl FunctionBuilder {
             } else {
                 None
             };
+
             self.add_parameter(
                 &parameter_type,
                 &parameter_name,

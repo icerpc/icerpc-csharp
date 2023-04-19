@@ -64,7 +64,7 @@ interface MyDerivedOperationsA : MyOperationsA {
 }
 
 interface MyTaggedOperations {
-    op(x: int32, tag(1) y: int32?, tag(2) z: int32?)
+    op(tag(1) x: int32?, y: int32, tag(2) z: int32?)
 }
 
 interface MyTaggedOperationsReadOnlyMemoryParams {
