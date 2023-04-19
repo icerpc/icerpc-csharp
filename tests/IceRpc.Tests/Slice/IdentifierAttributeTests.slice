@@ -10,11 +10,10 @@ struct OriginalStruct {
 [cs::identifier("REnamedInterface")]
 interface OriginalInterface {
     [cs::identifier("REnamedOp")]
-    op([cs::identifier("renamedParam")] myParam: OriginalStruct) ->
-        (
-            [cs::identifier("renamedReturnOne")] myReturnOne: int32
-            [cs::identifier("renamedReturnTwo")] myReturnTwo: int32
-        )
+    op([cs::identifier("renamedParam")] myParam: OriginalStruct) -> (
+        [cs::identifier("renamedReturnOne")] myReturnOne: int32
+        [cs::identifier("renamedReturnTwo")] myReturnTwo: int32
+    )
 }
 
 [cs::identifier("REnamedEnum")]
