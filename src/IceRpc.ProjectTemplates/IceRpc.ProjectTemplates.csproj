@@ -27,11 +27,11 @@
     </Content>
     <Compile Remove="**\*" />
     <Content Include="..\..\LICENSE">
-        <PackagePath></PackagePath>
+        <PackagePath>.</PackagePath>
         <Pack>true</Pack>
     </Content>
     <None Include="..\..\build\logo.png">
-        <Pack>True</Pack>
+        <Pack>true</Pack>
         <PackagePath>.</PackagePath>
     </None>
   </ItemGroup>

@@ -80,7 +80,7 @@
          <Pack>true</Pack>
       </Content>
       <None Include="../../logo.png">
-         <Pack>True</Pack>
+         <Pack>true</Pack>
          <PackagePath />
       </None>
       <Content Include="../../../../slice/**/*.slice"
