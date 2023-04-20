@@ -13,8 +13,9 @@ public class CacheLessLocationResolverTests
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/dummy"));
-        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
+        ILocationResolver locationResolver =
+            new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
@@ -27,12 +28,35 @@ public class CacheLessLocationResolverTests
     }
 
     [Test]
+    public async Task Resolving_a_known_location_returns_a_proxy_indirectly(
+        [Values(true, false)] bool refreshCache)
+    {
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
+
+        // The identity of the intermediary indirect proxy is ignored.
+        var intermediary = new ServiceAddress(new Uri("ice:/dummy?adapter-id=GoodAdapter"));
+
+        ILocationResolver locationResolver =
+            new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress, intermediary));
+
+        (ServiceAddress? serviceAddress, bool fromCache) =
+            await locationResolver.ResolveAsync(
+                new Location { IsAdapterId = false, Value = "good" },
+                refreshCache: refreshCache,
+                cancellationToken: default);
+
+        Assert.That(serviceAddress, Is.EqualTo(expectedServiceAddress));
+        Assert.That(fromCache, Is.False);
+    }
+
+    [Test]
     public async Task Resolving_an_unknown_location_returns_null(
         [Values(true, false)] bool isAdapterId,
         [Values(true, false)] bool refreshCache)
     {
-        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/dummy"));
-        ILocationResolver locationResolver = new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
+        ILocationResolver locationResolver =
+            new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress));
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
@@ -44,13 +68,50 @@ public class CacheLessLocationResolverTests
         Assert.That(fromCache, Is.False);
     }
 
+    [Test]
+    public async Task Resolving_an_unknown_location_returns_null_indirectly(
+        [Values(true, false)] bool refreshCache)
+    {
+        var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
+        var intermediary = new ServiceAddress(new Uri("ice:/xxx?adapter-id=BadAdapter"));
+        ILocationResolver locationResolver =
+            new CacheLessLocationResolver(new FakeServerAddressFinder(expectedServiceAddress, intermediary));
+
+        (ServiceAddress? serviceAddress, bool fromCache) =
+            await locationResolver.ResolveAsync(
+                new Location { IsAdapterId = false, Value = "any" },
+                refreshCache: refreshCache,
+                cancellationToken: default);
+
+        Assert.That(serviceAddress, Is.Null);
+        Assert.That(fromCache, Is.False);
+    }
+
     private sealed class FakeServerAddressFinder : IServerAddressFinder
     {
-        private readonly ServiceAddress _serviceAddress;
+        private readonly ServiceAddress? _intermediary;
+        private readonly ServiceAddress _target;
 
-        public FakeServerAddressFinder(ServiceAddress serviceAddress) => _serviceAddress = serviceAddress;
+        public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)
+        {
+            if (_intermediary is null)
+            {
+                return Task.FromResult(location.Value == "good" ? _target : null);
+            }
+            else if (location.IsAdapterId)
+            {
+                return Task.FromResult(location.Value == "GoodAdapter" ? _target : null);
+            }
+            else
+            {
+                return Task.FromResult<ServiceAddress?>(_intermediary);
+            }
+        }
 
-        Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancellationToken) =>
-            Task.FromResult(location.Value == "good" ? _serviceAddress : null);
+        internal FakeServerAddressFinder(ServiceAddress target, ServiceAddress? intermediary = null)
+        {
+            _target = target;
+            _intermediary = intermediary;
+        }
     }
 }
