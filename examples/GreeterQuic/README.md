@@ -2,7 +2,7 @@
 
 This example application illustrates how to use the QUIC multiplexed transport.
 
-For build instructions check the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../README.md#building).
 
 First start the Server program:
 

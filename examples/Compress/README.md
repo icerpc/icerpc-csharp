@@ -3,7 +3,7 @@
 This example application illustrates how to use the compress interceptor and middleware to
 transparently compress and decompress requests and responses.
 
-For build instructions check the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../README.md#building).
 
 First start the Server program:
 

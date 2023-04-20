@@ -2,7 +2,7 @@
 
 The Greeter example illustrates how to send a request and wait for the response.
 
-For build instructions check the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../README.md#building).
 
 First start the Server program:
 

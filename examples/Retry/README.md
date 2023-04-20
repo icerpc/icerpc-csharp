@@ -8,6 +8,8 @@ on a different server address. The retry interceptor will automatically retry fa
 max attempts. If the retry interceptor reaches the max retry attempts, or if it exhausted all available server
 addresses, it gives up on retrying and reports the failure.
 
+For build instructions check the top-level [README.md](../README.md#building).
+
 First start at least two instances of the Server:
 
 ```shell

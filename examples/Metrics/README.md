@@ -3,7 +3,7 @@
 This example application illustrates how to use the metrics middleware with `dotnet-counters` to
 monitor the requests dispatched by a server.
 
-For build instructions check the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../README.md#building).
 To collect counter metrics, install the `dotnet-counters` tools.
 
 First start the Server program:

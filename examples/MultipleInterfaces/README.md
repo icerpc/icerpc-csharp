@@ -2,7 +2,7 @@
 
 This example shows a service that implements multiple Slice interfaces.
 
-For build instructions check the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../README.md#building).
 
 First start the Server program:
 
