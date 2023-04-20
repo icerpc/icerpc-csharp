@@ -22,7 +22,7 @@
       <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
       <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
       <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-      <PackageTags>IceRPC;MSbuild;Slice</PackageTags>
+      <PackageTags>IceRPC;RPC;MSbuild;Slice</PackageTags>
       <PackageReadmeFile>README.md</PackageReadmeFile>
       <PackageType>Dependency</PackageType>
       <IncludeBuildOutput>false</IncludeBuildOutput>

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Title>IceRpc.Coloc .NET library</Title>
-        <PackageVersion>$(IceRpcVersion)</PackageVersion>
-        <Authors>ZeroC</Authors>
-        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
-        <PackageIcon>logo.png</PackageIcon>
+        <Authors>ZeroC, Inc.</Authors>
         <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-        <Description>IceRPC C#/.NET SDK.</Description>
-        <PackageReleaseNotes>TODO</PackageReleaseNotes>
+        <Description>IceRPC coloc transport.</Description>
+        <PackageIcon>logo.png</PackageIcon>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageTags>IceRPC</PackageTags>
+        <PackageTags>IceRPC;RPC</PackageTags>
+        <PackageVersion>$(IceRpcVersion)</PackageVersion>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
@@ -22,6 +22,10 @@
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
+      <Content Include="..\..\LICENSE">
+        <PackagePath></PackagePath>
+        <Pack>true</Pack>
+      </Content>
       <None Include="..\..\build\logo.png">
           <Pack>True</Pack>
           <PackagePath>.</PackagePath>
