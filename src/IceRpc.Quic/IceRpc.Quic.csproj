@@ -12,6 +12,8 @@
         <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
+        <!-- Properties for .NET QUIC -->
+        <EnablePreviewFeatures>True</EnablePreviewFeatures>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />

@@ -5,7 +5,7 @@ IceRPC tools provides support for compiling Slice source files (`.slice` files) 
 This package contains:
 
 - The `slicec-cs` compiler, for compiling Slice files to C#.
-- The Slice definitions for IceRPC well-known types, IceRPC common definitions, and Ice interoperatbility.
+- The Slice definitions for IceRPC well-known types, IceRPC common definitions, and Ice interoperability.
 - The MSBuild project integration.
 
 ## Contents
