@@ -13,19 +13,19 @@ class SlicingDerivedClass : SlicingBaseClass {
 }
 
 class SlicingMostDerivedClass : SlicingDerivedClass {
-    m3: string
+    m3: SlicingBaseClass?
 }
 
-class SlicingCompactBaseClass(1) {
+class SlicingBaseClassWithCompactId(1) {
     m1: string
 }
 
-class SlicingCompactDerivedClass(2) : SlicingCompactBaseClass {
+class SlicingDerivedClassWithCompactId(2) : SlicingBaseClassWithCompactId {
     m2: string
 }
 
-class SlicingCompactMostDerivedClass(3) : SlicingCompactDerivedClass {
-    m3: string
+class SlicingMostDerivedClassWithCompactId(3) : SlicingDerivedClassWithCompactId {
+    m3: SlicingBaseClassWithCompactId?
 }
 
 exception SlicingBaseException {
@@ -38,16 +38,4 @@ exception SlicingDerivedException : SlicingBaseException {
 
 exception SlicingMostDerivedException : SlicingDerivedException {
     m3: string
-}
-
-class SlicingPreservedClass : SlicingBaseClass {
-    m2: string
-}
-
-class SlicingPreservedDerivedClass1 : SlicingPreservedClass {
-    m3: SlicingBaseClass
-}
-
-class SlicingPreservedDerivedClass2(56) : SlicingPreservedClass {
-    m3: SlicingBaseClass
 }
