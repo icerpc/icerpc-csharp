@@ -3,7 +3,6 @@
 This folder contains example applications for various IceRPC components. These examples are here to help you get
 started using a specific feature or programming technique in IceRPC.
 
-- [Building](#building)
 - [Examples](#examples)
   * [Compress](#compress)
   * [Download](#download)
@@ -19,41 +18,6 @@ started using a specific feature or programming technique in IceRPC.
   * [Secure](#secure)
   * [Stream](#stream)
   * [Upload](#upload)
-
-## Building
-
-To build each example, you can use the `dotnet build` command with the corresponding solution or project
-files. The project files are configured to use IceRPC NuGet packages.
-
-If you want to build all the examples at once, you can run the following command:
-
-For Linux and macOS:
-
-```shell
-./build.sh --examples
-```
-
-For Windows
-
-```shell
-build -examples
-```
-
-To use the IceRPC distribution from this repository instead of the one from the published NuGet packages, you need to
-build and install the NuGet packages from this repository before building the examples. You can do this by running the
-following command:
-
-For Linux and macOS
-
-```shell
-./build.sh --examples --srcdist
-```
-
-For Windows
-
-```shell
-build -examples -srcdist
-```
 
 ## Examples
 

@@ -8,6 +8,12 @@ on a different server address. The retry interceptor will automatically retry fa
 max attempts. If the retry interceptor reaches the max retry attempts, or if it exhausted all available server
 addresses, it gives up on retrying and reports the failure.
 
+You can build the client and server applications with:
+
+``` shell
+dotnet build
+```
+
 First start at least two instances of the Server:
 
 ```shell

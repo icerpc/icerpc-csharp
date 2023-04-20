@@ -2,7 +2,11 @@
 
 This example adds logging to the [Greeter](../Greeter/README.md) example.
 
-For build instructions check the top-level [README.md](../../README.md).
+You can build the client and server applications with:
+
+``` shell
+dotnet build
+```
 
 First start the Server program:
 
