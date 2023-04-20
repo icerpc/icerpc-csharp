@@ -47,7 +47,8 @@ internal class CacheLessLocationResolver : ILocationResolver
         Location location,
         CancellationToken cancellationToken)
     {
-        ServiceAddress? serviceAddress = await _serverAddressFinder.FindAsync(location, cancellationToken).ConfigureAwait(false);
+        ServiceAddress? serviceAddress = await _serverAddressFinder.FindAsync(location, cancellationToken)
+            .ConfigureAwait(false);
 
         // A well-known service address resolution can return a service address with an adapter ID
         if (serviceAddress is not null && serviceAddress.Params.TryGetValue("adapter-id", out string? adapterId))
