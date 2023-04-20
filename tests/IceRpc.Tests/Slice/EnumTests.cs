@@ -14,26 +14,26 @@ public class EnumTests
     [TestCase((short)MyFixedLengthEnum.SEnum1, 0)]
     [TestCase((short)MyFixedLengthEnum.SEnum2, 1)]
     [TestCase((short)MyFixedLengthEnum.SEnum3, 2)]
-    [TestCase((int)MyVarLengthEnum.Enum1, -10)]
-    [TestCase((int)MyVarLengthEnum.Enum2, 20)]
-    [TestCase((int)MyVarLengthEnum.Enum3, 30)]
+    [TestCase((int)MyVarSizeEnum.Enum1, -10)]
+    [TestCase((int)MyVarSizeEnum.Enum2, 20)]
+    [TestCase((int)MyVarSizeEnum.Enum3, 30)]
     [TestCase((uint)MyUncheckedEnum.E0, 1)]
     [TestCase((uint)MyUncheckedEnum.E4, 16)]
     public void Enumerator_has_the_expected_value(object value, object expectedValue) =>
         Assert.That(value, Is.EqualTo(expectedValue));
 
-    [TestCase(-10, MyVarLengthEnum.Enum1)]
-    [TestCase(30, MyVarLengthEnum.Enum3)]
-    public void As_enum_for_an_enum_with_non_contiguous_enumerators(int value, MyVarLengthEnum expected) =>
+    [TestCase(-10, MyVarSizeEnum.Enum1)]
+    [TestCase(30, MyVarSizeEnum.Enum3)]
+    public void As_enum_for_an_enum_with_non_contiguous_enumerators(int value, MyVarSizeEnum expected) =>
         Assert.That(
-            value.AsMyVarLengthEnum(),
+            value.AsMyVarSizeEnum(),
             Is.EqualTo(expected));
 
     [TestCase(-30)]
     [TestCase(40)]
     public void As_enum_for_an_enum_with_non_contiguous_enumerators_fails_for_invalid_value(int value) =>
         Assert.That(
-            () => value.AsMyVarLengthEnum(),
+            () => value.AsMyVarSizeEnum(),
             Throws.TypeOf<InvalidDataException>());
 
     [TestCase(0, MyEnum.Enum1)]

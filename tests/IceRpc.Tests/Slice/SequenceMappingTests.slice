@@ -13,8 +13,8 @@ interface SequenceMappingOperations {
     returnSequenceOfMyFixedLengthEnum() -> sequence<MyFixedLengthEnum>
     sendSequenceOfMyFixedLengthEnum(p: sequence<MyFixedLengthEnum>)
 
-    returnSequenceOfMyVarLengthEnum() -> sequence<MyVarLengthEnum>
-    sendSequenceOfMyVarLengthEnum(p: sequence<MyVarLengthEnum>)
+    returnSequenceOfMyVarSizeEnum() -> sequence<MyVarSizeEnum>
+    sendSequenceOfMyVarSizeEnum(p: sequence<MyVarSizeEnum>)
 
     returnSequenceOfMyUncheckedEnum() -> sequence<MyUncheckedEnum>
     sendSequenceOfMyUncheckedEnum(p: sequence<MyUncheckedEnum>)
@@ -28,8 +28,8 @@ interface SequenceMappingOperations {
     returnSequenceOfOptionalMyFixedLengthEnum() -> sequence<MyFixedLengthEnum?>
     sendSequenceOfOptionalMyFixedLengthEnum(p: sequence<MyFixedLengthEnum?>)
 
-    returnSequenceOfOptionalMyVarLengthEnum() -> sequence<MyVarLengthEnum?>
-    sendSequenceOfOptionalMyVarLengthEnum(p: sequence<MyVarLengthEnum?>)
+    returnSequenceOfOptionalMyVarSizeEnum() -> sequence<MyVarSizeEnum?>
+    sendSequenceOfOptionalMyVarSizeEnum(p: sequence<MyVarSizeEnum?>)
 
     returnSequenceOfOptionalMyUncheckedEnum() -> sequence<MyUncheckedEnum?>
     sendSequenceOfOptionalMyUncheckedEnum(p: sequence<MyUncheckedEnum?>)
@@ -43,8 +43,8 @@ interface SequenceMappingOperations {
     returnCustomSequenceOfMyFixedLengthEnum() -> [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>
     sendCustomSequenceOfMyFixedLengthEnum(p: [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum>)
 
-    returnCustomSequenceOfMyVarLengthEnum() -> [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>
-    sendCustomSequenceOfMyVarLengthEnum(p: [cs::generic("CustomSequence")] sequence<MyVarLengthEnum>)
+    returnCustomSequenceOfMyVarSizeEnum() -> [cs::generic("CustomSequence")] sequence<MyVarSizeEnum>
+    sendCustomSequenceOfMyVarSizeEnum(p: [cs::generic("CustomSequence")] sequence<MyVarSizeEnum>)
 
     returnCustomSequenceOfMyUncheckedEnum() -> [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>
     sendCustomSequenceOfMyUncheckedEnum(p: [cs::generic("CustomSequence")] sequence<MyUncheckedEnum>)
@@ -58,8 +58,8 @@ interface SequenceMappingOperations {
     returnCustomSequenceOfOptionalMyFixedLengthEnum() -> [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum?>
     sendCustomSequenceOfOptionalMyFixedLengthEnum(p: [cs::generic("CustomSequence")] sequence<MyFixedLengthEnum?>)
 
-    returnCustomSequenceOfOptionalMyVarLengthEnum() -> [cs::generic("CustomSequence")] sequence<MyVarLengthEnum?>
-    sendCustomSequenceOfOptionalMyVarLengthEnum(p: [cs::generic("CustomSequence")] sequence<MyVarLengthEnum?>)
+    returnCustomSequenceOfOptionalMyVarSizeEnum() -> [cs::generic("CustomSequence")] sequence<MyVarSizeEnum?>
+    sendCustomSequenceOfOptionalMyVarSizeEnum(p: [cs::generic("CustomSequence")] sequence<MyVarSizeEnum?>)
 
     returnCustomSequenceOfOptionalMyUncheckedEnum() -> [cs::generic("CustomSequence")] sequence<MyUncheckedEnum?>
     sendCustomSequenceOfOptionalMyUncheckedEnum(p: [cs::generic("CustomSequence")] sequence<MyUncheckedEnum?>)
