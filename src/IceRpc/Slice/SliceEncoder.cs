@@ -1,12 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using IceRpc.Slice.Internal;
-using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -513,66 +510,6 @@ public ref partial struct SliceEncoder
         Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
         MemoryMarshal.Write(data, ref v);
         Advance(elementSize);
-    }
-
-    /// <summary>Encodes a server address in a nested encapsulation (Slice1 only).</summary>
-    /// <param name="serverAddress">The server address to encode.</param>
-    internal void EncodeServerAddress(ServerAddress serverAddress)
-    {
-        Debug.Assert(Encoding == SliceEncoding.Slice1);
-
-        // If the server address does not specify a transport, we default to TCP.
-        string transport = serverAddress.Transport ?? TransportNames.Tcp;
-
-        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here. The preferred and
-        // fallback encoding for new transports is TransportCode.Uri.
-
-        if (serverAddress.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
-        {
-            // Opaque server address encoding
-
-            (short transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
-                serverAddress.ParseOpaqueParams();
-
-            EncodeInt16(transportCode);
-            EncodeInt32(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
-            EncodeUInt8(encodingMajor);
-            EncodeUInt8(encodingMinor);
-            WriteByteSpan(bytes.Span);
-        }
-        else
-        {
-            TransportCode transportCode = serverAddress.Protocol == Protocol.Ice ?
-                transport switch
-                {
-                    TransportNames.Ssl => TransportCode.Ssl,
-                    TransportNames.Tcp => TransportCode.Tcp,
-                    _ => TransportCode.Uri
-                } :
-                TransportCode.Uri;
-
-            EncodeInt16((short)transportCode);
-
-            int startPos = EncodedByteCount; // size includes size-length
-            Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
-            EncodeUInt8(1); // encoding version major
-            EncodeUInt8(1); // encoding version minor
-
-            switch (transportCode)
-            {
-                case TransportCode.Tcp:
-                case TransportCode.Ssl:
-                    Transports.TcpClientTransport.EncodeServerAddress(ref this, serverAddress);
-                    break;
-
-                default:
-                    Debug.Assert(transportCode == TransportCode.Uri);
-                    EncodeString(serverAddress.ToString());
-                    break;
-            }
-
-            EncodeInt32(EncodedByteCount - startPos, sizePlaceholder);
-        }
     }
 
     /// <summary>Gets a placeholder to be filled-in later.</summary>
