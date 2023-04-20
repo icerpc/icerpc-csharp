@@ -43,6 +43,8 @@ public class ProxyTests
     [TestCase("icerpc://host:1000/identity?foo=bar", null, SliceEncoding.Slice1)]
     [TestCase("ice://host:10000/identity?transport=tcp", null, SliceEncoding.Slice2)]
     [TestCase("ice://host:10000/identity?transport=tcp", null, SliceEncoding.Slice1)]
+    [TestCase("ice://host:10000/identity?transport=foo", null, SliceEncoding.Slice2)]
+    [TestCase("ice://host:10000/identity?transport=foo", null, SliceEncoding.Slice1)]
     [TestCase("ice://host:10000/identity?transport=ssl&t=30000&z", null, SliceEncoding.Slice2)]
     [TestCase("ice://host:10000/identity?transport=ssl&t=30000&z", null, SliceEncoding.Slice1)]
     [TestCase("ice://host:10000/identity?t=infinite", null, SliceEncoding.Slice2)]
@@ -51,16 +53,24 @@ public class ProxyTests
         "ice://host:10000/identity?t=-1&transport=tcp",
         SliceEncoding.Slice1)]
     [TestCase(
-        "ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
-        "ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+        "ice://opaque/identity?transport=opaque&e=1.1&t=1&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+        null,
         SliceEncoding.Slice2)]
     [TestCase(
-        "ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+        "ice://opaque/identity?transport=opaque&e=1.1&t=1&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
         "ice://127.0.0.1:12010/identity?transport=tcp&t=10000",
         SliceEncoding.Slice1)]
     [TestCase(
-        "ice://opaque/identity?e=1.0&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+        "ice://opaque/identity?transport=opaque&e=1.0&t=1&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
         "ice://127.0.0.1:12010/identity?transport=tcp&t=10000",
+        SliceEncoding.Slice1)]
+    [TestCase(
+        "ice://opaque/identity?transport=opaque&t=99&v=1234",
+        null,
+        SliceEncoding.Slice1)]
+    [TestCase(
+        "ice://opaque/identity?transport=opaque&e=1.0&t=99&v=1234",
+        null,
         SliceEncoding.Slice1)]
     [TestCase("ice:/path?adapter-id=foo", null, SliceEncoding.Slice1)]
     [TestCase("ice:/path", null, SliceEncoding.Slice1)]

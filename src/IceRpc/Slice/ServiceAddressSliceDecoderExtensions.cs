@@ -118,6 +118,12 @@ public static class ServiceAddressSliceDecoderExtensions
                         ImmutableDictionary<string, string>.Builder builder =
                             ImmutableDictionary.CreateBuilder<string, string>();
 
+                        if (encodingMinor == 0)
+                        {
+                            builder.Add("e", "1.0");
+                        }
+                        // else no e
+
                         builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
                         builder.Add("v", decoder.ReadBytesAsBase64String(size));
 
