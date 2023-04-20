@@ -2,7 +2,6 @@
 
 using IceRpc.Locator.Internal;
 using NUnit.Framework;
-using System.Collections.Immutable;
 
 namespace IceRpc.Locator.Tests;
 
@@ -19,7 +18,7 @@ public class CacheLessLocationResolverTests
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
-                new Location { IsAdapterId = isAdapterId, Value = isAdapterId ? "indirect" : "good" },
+                new Location { IsAdapterId = isAdapterId, Value = "good" },
                 refreshCache: refreshCache,
                 cancellationToken: default);
 
@@ -52,16 +51,6 @@ public class CacheLessLocationResolverTests
         public FakeServerAddressFinder(ServiceAddress serviceAddress) => _serviceAddress = serviceAddress;
 
         Task<ServiceAddress?> IServerAddressFinder.FindAsync(Location location, CancellationToken cancellationToken) =>
-            (location.Value, location.IsAdapterId) switch
-            {
-                ("indirect", true) => Task.FromResult<ServiceAddress?>(
-                        new ServiceAddress(Protocol.Ice)
-                        {
-                            Params = new Dictionary<string, string> { ["adapter-id"] = "good" }.ToImmutableDictionary()
-                        }),
-                ("good", _) => Task.FromResult<ServiceAddress?>(_serviceAddress),
-                _ => Task.FromResult<ServiceAddress?>(null)
-
-            };
+            Task.FromResult(location.Value == "good" ? _serviceAddress : null);
     }
 }
