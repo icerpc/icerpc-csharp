@@ -8,7 +8,6 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentityTests
 {
-
     /// <summary>Verifies that any arbitrary Ice Identity can represented by an URI path.</summary>
     /// <param name="name">The name field of the Identity.</param>
     /// <param name="category">The category field of the Identity.</param>
@@ -29,4 +28,10 @@ public class IdentityTests
 
         Assert.That(path, Is.EqualTo(referencePath));
     }
+
+    [TestCase("/a/b/c", typeof(FormatException))]
+    [TestCase("", typeof(ArgumentException))]
+    [TestCase("foo", typeof(ArgumentException))]
+    public void Parse_bad_path_fails(string path, Type exceptionType) =>
+        Assert.That(() => Identity.Parse(path), Throws.TypeOf(exceptionType));
 }
