@@ -77,7 +77,7 @@ public class TaggedTests
                     30,
                     40,
                     new FixedLengthStruct(1, 1),
-                    new VarLengthStruct("hello world!"),
+                    new VarSizeStruct("hello world!"),
                     Tagged.Slice1.MyEnum.Two,
                     new byte[] { 1, 2, 3 },
                     new int[] { 4, 5, 6 },
@@ -188,7 +188,7 @@ public class TaggedTests
                 6,
                 TagFormat.FSize,
                 expected.F.Value,
-                (ref SliceEncoder encoder, VarLengthStruct value) => value.Encode(ref encoder));
+                (ref SliceEncoder encoder, VarSizeStruct value) => value.Encode(ref encoder));
         }
 
         if (expected.G is not null)
@@ -371,7 +371,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 6,
                 TagFormat.FSize,
-                (ref SliceDecoder decoder) => new VarLengthStruct(ref decoder) as VarLengthStruct?,
+                (ref SliceDecoder decoder) => new VarSizeStruct(ref decoder) as VarSizeStruct?,
                 useTagEndMarker: false),
             Is.EqualTo(c.F));
 

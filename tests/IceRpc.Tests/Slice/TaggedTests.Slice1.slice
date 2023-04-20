@@ -9,7 +9,7 @@ compact struct FixedLengthStruct {
     y: int32
 }
 
-compact struct VarLengthStruct {
+compact struct VarSizeStruct {
     s: string
 }
 
@@ -21,7 +21,7 @@ class ClassWithTaggedFields {
     tag(3) c: int32?               // Uses F4 tag format
     tag(4) d: int64?               // Uses F8 tag format
     tag(5) e: FixedLengthStruct?   // Uses VSize tag format
-    tag(6) f: VarLengthStruct?     // Use FSize tag format
+    tag(6) f: VarSizeStruct?       // Use FSize tag format
     tag(7) g: MyEnum?              // Uses Size tag format
     tag(8) h: sequence<uint8>?     // Uses OptimizedVSize tag format
     tag(9) i: sequence<int32>?     // Uses FSize tag format
