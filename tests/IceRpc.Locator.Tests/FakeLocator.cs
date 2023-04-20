@@ -5,7 +5,7 @@ using IceRpc.Ice;
 
 namespace IceRpc.Locator.Tests;
 
-/// <summary>An <see cref="ILocator"/> implmentation used by the tests.</summary>
+/// <summary>An <see cref="ILocator"/> implementation used by the tests.</summary>
 internal sealed class FakeLocator : ILocator
 {
     internal int ResolvedCount { get; set; }
@@ -41,7 +41,7 @@ internal sealed class FakeLocator : ILocator
     /// <param name="serviceAddress">The <see cref="ServiceAddress"/> returned when the locator resolves an "id" with
     /// the value "good".</param>
     /// <param name="adapterId">Whether the <paramref name="serviceAddress"/> should be returned when resolving an
-    /// object by ID or an adpater ID.</param>
+    /// object by ID or an adapter ID.</param>
     internal FakeLocator(ServiceAddress serviceAddress, bool adapterId)
     {
         _serviceAddress = serviceAddress;
