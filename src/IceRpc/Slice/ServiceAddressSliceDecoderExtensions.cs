@@ -2,7 +2,11 @@
 
 using IceRpc.Ice;
 using IceRpc.Slice.Internal;
+using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice;
@@ -54,6 +58,110 @@ public static class ServiceAddressSliceDecoderExtensions
         }
         string path = decoder.DecodeIdentityPath();
         return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
+    }
+
+    /// <summary>Decodes a server address (Slice1 only).</summary>
+    /// <param name="decoder">The Slice decoder.</param>
+    /// <param name="protocol">The protocol of this server address.</param>
+    /// <returns>The server address decoded by this decoder.</returns>
+    private static ServerAddress DecodeServerAddress(this ref SliceDecoder decoder, Protocol protocol)
+    {
+        Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
+
+        // The Slice1 ice server addresses are transport-specific, and hard-coded here and in the
+        // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
+
+        ServerAddress? serverAddress = null;
+        var transportCode = (TransportCode)decoder.DecodeInt16();
+
+        int size = decoder.DecodeInt32();
+        if (size < 6)
+        {
+            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too small.");
+        }
+
+        // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
+        size -= 6;
+
+        byte encodingMajor = decoder.DecodeUInt8();
+        byte encodingMinor = decoder.DecodeUInt8();
+
+        if (encodingMajor == 1 && encodingMinor <= 1)
+        {
+            long oldPos = decoder.Consumed;
+
+            if (protocol == Protocol.Ice)
+            {
+                switch (transportCode)
+                {
+                    case TransportCode.Tcp:
+                    case TransportCode.Ssl:
+                        serverAddress = TcpClientTransport.DecodeServerAddress(
+                            ref decoder,
+                            transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
+                        break;
+
+                    case TransportCode.Uri:
+                        serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                        if (serverAddress.Value.Protocol != protocol)
+                        {
+                            throw new InvalidDataException(
+                                $"Expected {protocol} server address but received '{serverAddress.Value}'.");
+                        }
+                        break;
+
+                    default:
+                        // Create a server address for transport opaque
+                        ImmutableDictionary<string, string>.Builder builder =
+                            ImmutableDictionary.CreateBuilder<string, string>();
+
+                        if (encodingMinor == 0)
+                        {
+                            builder.Add("e", "1.0");
+                        }
+                        // else no e
+
+                        builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
+                        builder.Add("v", decoder.ReadBytesAsBase64String(size));
+
+                        serverAddress = new ServerAddress(
+                            Protocol.Ice,
+                            host: "opaque", // not a real host obviously
+                            port: Protocol.Ice.DefaultPort,
+                            TransportNames.Opaque,
+                            builder.ToImmutable());
+                        break;
+                }
+            }
+            else if (transportCode == TransportCode.Uri)
+            {
+                // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
+                serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
+                if (serverAddress.Value.Protocol != protocol)
+                {
+                    throw new InvalidDataException(
+                        $"Expected {protocol} server address but received '{serverAddress.Value}'.");
+                }
+            }
+
+            if (serverAddress is not null)
+            {
+                // Make sure we read the full encapsulation.
+                if (decoder.Consumed != oldPos + size)
+                {
+                    throw new InvalidDataException(
+                        $"There are {oldPos + size - decoder.Consumed} bytes left in server address encapsulation.");
+                }
+            }
+        }
+
+        if (serverAddress is null)
+        {
+            throw new InvalidDataException(
+                $"Cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'.");
+        }
+
+        return serverAddress.Value;
     }
 
     /// <summary>Helper method to decode a service address encoded with Slice1.</summary>

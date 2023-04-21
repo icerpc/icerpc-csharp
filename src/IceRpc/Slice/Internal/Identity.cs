@@ -14,6 +14,11 @@ internal readonly partial record struct Identity
     /// <returns>The corresponding identity. Its name can be empty.</returns>
     internal static Identity Parse(string path)
     {
+        if (path.Length == 0 || path[0] != '/')
+        {
+            throw new ArgumentException("path must start with a /", nameof(path));
+        }
+
         string workingPath = path[1..]; // removes leading /.
 
         int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);

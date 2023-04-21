@@ -15,60 +15,10 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Decode_proxy(ServiceAddress, ServiceAddress, SliceEncoding)" />
-    /// test.</summary>
-    private static IEnumerable<TestCaseData> DecodeProxyDataSource
-    {
-        get
-        {
-            (string, string?, SliceEncoding)[] testData =
-            {
-                // cSpell:disable
-                ("icerpc://host:1000/identity?foo=bar", null, SliceEncoding.Slice2),
-                ("icerpc://host:1000/identity?foo=bar", null, SliceEncoding.Slice1),
-                ("ice://host:10000/identity?transport=tcp", null, SliceEncoding.Slice2),
-                ("ice://host:10000/identity?transport=tcp", null, SliceEncoding.Slice1),
-                ("ice://host:10000/identity?transport=ssl&t=30000&z", null, SliceEncoding.Slice2),
-                ("ice://host:10000/identity?transport=ssl&t=30000&z", null, SliceEncoding.Slice1),
-                ("ice://host:10000/identity?t=infinite", null, SliceEncoding.Slice2),
-                ("ice://host:10000/identity?t=infinite",
-                    "ice://host:10000/identity?t=-1&transport=tcp",
-                    SliceEncoding.Slice1),
-                ("ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
-                    "ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
-                    SliceEncoding.Slice2),
-                ("ice://opaque/identity?e=1.1&t=1&transport=opaque&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
-                    "ice://127.0.0.1:12010/identity?transport=tcp&t=10000",
-                    SliceEncoding.Slice1),
-                ("ice:/path?adapter-id=foo", null, SliceEncoding.Slice1),
-                ("ice:/path", null, SliceEncoding.Slice1)
-                // cSpell:enable
-            };
-            foreach ((
-                string value,
-                string? expected,
-                SliceEncoding encoding) in testData)
-            {
-                yield return new TestCaseData(
-                    new ServiceAddress(new Uri(value)),
-                    new ServiceAddress(new Uri(expected ?? value)),
-                    encoding);
-            }
-        }
-    }
-
-    private static IEnumerable<ServiceAddress?> DecodeNullableProxySource
-    {
-        get
-        {
-            yield return new ServiceAddress(new Uri("icerpc://host.zeroc.com/hello"));
-            yield return null;
-        }
-    }
-
     /// <summary>Verifies that nullable proxies are correctly encoded withSlice1 encoding.</summary>
     /// <param name="expected">The nullable proxy to test with.</param>
-    [Test, TestCaseSource(nameof(DecodeNullableProxySource))]
+    [TestCase("icerpc://host.zeroc.com/hello")]
+    [TestCase(null)]
     public void Decode_slice1_nullable_proxy(ServiceAddress? expected)
     {
         // Arrange
@@ -88,10 +38,47 @@ public class ProxyTests
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     /// <param name="encoding">The encoding used to decode the service address.</param>
-    [Test, TestCaseSource(nameof(DecodeProxyDataSource))]
-    public void Decode_proxy(ServiceAddress value, ServiceAddress expected, SliceEncoding encoding)
+    // cSpell:disable
+    [TestCase("icerpc://host:1000/path?foo=bar", null, SliceEncoding.Slice2)]
+    [TestCase("icerpc://host:1000/path?foo=bar", null, SliceEncoding.Slice1)]
+    [TestCase("ice://host:10000/cat/name?transport=tcp", null, SliceEncoding.Slice2)]
+    [TestCase("ice://host:10000/cat/name?transport=tcp", null, SliceEncoding.Slice1)]
+    [TestCase("ice://host:10000/cat/name?transport=foo", null, SliceEncoding.Slice2)]
+    [TestCase("ice://host:10000/cat/name?transport=foo", null, SliceEncoding.Slice1)]
+    [TestCase("ice://host:10000/cat/name?transport=ssl&t=30000&z", null, SliceEncoding.Slice2)]
+    [TestCase("ice://host:10000/cat/name?transport=ssl&t=30000&z", null, SliceEncoding.Slice1)]
+    [TestCase("ice://host:10000/cat/name?t=infinite", null, SliceEncoding.Slice2)]
+    [TestCase(
+        "ice://host:10000/cat/name?t=infinite",
+        "ice://host:10000/cat/name?t=-1&transport=tcp",
+        SliceEncoding.Slice1)]
+    [TestCase(
+        "ice://opaque/cat/name?transport=opaque&e=1.1&t=1&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+        null,
+        SliceEncoding.Slice2)]
+    [TestCase(
+        "ice://opaque/cat/name?transport=opaque&e=1.1&t=1&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+        "ice://127.0.0.1:12010/cat/name?transport=tcp&t=10000",
+        SliceEncoding.Slice1)]
+    [TestCase(
+        "ice://opaque/cat/name?transport=opaque&e=1.0&t=1&v=CTEyNy4wLjAuMeouAAAQJwAAAA==",
+        "ice://127.0.0.1:12010/cat/name?transport=tcp&t=10000",
+        SliceEncoding.Slice1)]
+    [TestCase(
+        "ice://opaque/cat/name?transport=opaque&t=99&v=1234",
+        null,
+        SliceEncoding.Slice1)]
+    [TestCase(
+        "ice://opaque/cat/name?transport=opaque&e=1.0&t=99&v=1234",
+        null,
+        SliceEncoding.Slice1)]
+    [TestCase("ice:/cat/name?adapter-id=foo", null, SliceEncoding.Slice1)]
+    [TestCase("ice:/cat/name", null, SliceEncoding.Slice1)]
+    // cSpell:enable
+    public void Decode_proxy(ServiceAddress value, ServiceAddress? expected, SliceEncoding encoding)
     {
         // Arrange
+        expected ??= value;
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(bufferWriter, encoding);
         encoder.EncodeServiceAddress(value);
@@ -149,6 +136,22 @@ public class ProxyTests
         // Assert
         Assert.That(derived, Is.Null);
     }
+
+    [TestCase("ice://host/path?transport=opaque&t=-10")] // invalid value for t
+    [TestCase("ice://host/path?transport=opaque&t=abc")] // invalid value for t
+    [TestCase("ice://host/path?transport=opaque&v=1234")] // no t
+    [TestCase("ice://host/path?transport=opaque&t=1&v=%1234")] // invalid value for v
+    [TestCase("ice://host/path?transport=opaque&t=1")] // no v
+    [TestCase("ice://host/path?transport=opaque&t=1&v=1234&foo=bar")] // unknown param
+    [TestCase("ice://host/path?transport=opaque&e=2.0&t=1&v=1234")] // bad e
+    public void Encode_invalid_opaque_service_address_fails(ServiceAddress serviceAddress) =>
+        Assert.That(() =>
+        {
+            var bufferWriter = new MemoryBufferWriter(new byte[256]);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+            encoder.EncodeServiceAddress(serviceAddress);
+        },
+        Throws.TypeOf<FormatException>());
 
     /// <summary>Verifies that a proxy decoded from an incoming request has a null invoker by default.</summary>
     [Test]

@@ -2,11 +2,8 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Internal;
 using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -563,16 +560,6 @@ public ref partial struct SliceDecoder
         _reader.AdvanceToEnd();
     }
 
-    internal void IncreaseCollectionAllocation(int byteCount)
-    {
-        _currentCollectionAllocation += byteCount;
-        if (_currentCollectionAllocation > _maxCollectionAllocation)
-        {
-            throw new InvalidDataException(
-                $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
-        }
-    }
-
     /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
     /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not
     /// copied.</returns>
@@ -613,129 +600,42 @@ public ref partial struct SliceDecoder
         return fields;
     }
 
-    /// <summary>Decodes a server address (Slice1 only).</summary>
-    /// <param name="protocol">The protocol of this server address.</param>
-    /// <returns>The server address decoded by this decoder.</returns>
-    internal ServerAddress DecodeServerAddress(Protocol protocol)
+    internal void IncreaseCollectionAllocation(int byteCount)
     {
-        Debug.Assert(Encoding == SliceEncoding.Slice1);
-
-        // The Slice1 ice server addresses are transport-specific, and hard-coded here and in the
-        // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
-
-        ServerAddress? serverAddress = null;
-        var transportCode = (TransportCode)DecodeInt16();
-
-        int size = DecodeInt32();
-        if (size < 6)
-        {
-            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too small.");
-        }
-
-        if (size - 4 > _reader.Remaining)
+        _currentCollectionAllocation += byteCount;
+        if (_currentCollectionAllocation > _maxCollectionAllocation)
         {
             throw new InvalidDataException(
-                $"The encapsulation's size ({size}) extends beyond the end of the buffer.");
+                $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
         }
+    }
 
-        // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
-        size -= 6;
+    internal string ReadBytesAsBase64String(int byteCount)
+    {
+        using IMemoryOwner<byte>? memoryOwner =
+            _reader.UnreadSpan.Length < byteCount ? MemoryPool<byte>.Shared.Rent(byteCount) : null;
 
-        byte encodingMajor = DecodeUInt8();
-        byte encodingMinor = DecodeUInt8();
+        ReadOnlySpan<byte> vSpan;
 
-        if (encodingMajor == 1 && encodingMinor <= 1)
+        if (memoryOwner?.Memory is Memory<byte> buffer)
         {
-            long oldPos = _reader.Consumed;
-
-            if (protocol == Protocol.Ice)
-            {
-                switch (transportCode)
-                {
-                    case TransportCode.Tcp:
-                    case TransportCode.Ssl:
-                    {
-                        serverAddress = Transports.TcpClientTransport.DecodeServerAddress(
-                            ref this,
-                            transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
-                        break;
-                    }
-
-                    case TransportCode.Uri:
-                        serverAddress = new ServerAddress(new Uri(DecodeString()));
-                        if (serverAddress.Value.Protocol != protocol)
-                        {
-                            throw new InvalidDataException(
-                                $"Expected {protocol} server address but received '{serverAddress.Value}'.");
-                        }
-                        break;
-
-                    default:
-                    {
-                        // Create a server address for transport opaque
-
-                        using IMemoryOwner<byte>? memoryOwner =
-                            _reader.UnreadSpan.Length < size ? MemoryPool<byte>.Shared.Rent(size) : null;
-
-                        ReadOnlySpan<byte> vSpan;
-
-                        if (memoryOwner?.Memory is Memory<byte> buffer)
-                        {
-                            Span<byte> span = buffer.Span[0..size];
-                            CopyTo(span);
-                            vSpan = span;
-                        }
-                        else
-                        {
-                            vSpan = _reader.UnreadSpan[0..size];
-                            _reader.Advance(size);
-                        }
-
-                        ImmutableDictionary<string, string>.Builder builder =
-                            ImmutableDictionary.CreateBuilder<string, string>();
-
-                        builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                        builder.Add("v", Convert.ToBase64String(vSpan));
-
-                        serverAddress = new ServerAddress(
-                            Protocol.Ice,
-                            host: "opaque", // not a real host obviously
-                            port: Protocol.Ice.DefaultPort,
-                            TransportNames.Opaque,
-                            builder.ToImmutable());
-                        break;
-                    }
-                }
-            }
-            else if (transportCode == TransportCode.Uri)
-            {
-                // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
-                serverAddress = new ServerAddress(new Uri(DecodeString()));
-                if (serverAddress.Value.Protocol != protocol)
-                {
-                    throw new InvalidDataException(
-                        $"Expected {protocol} server address but received '{serverAddress.Value}'.");
-                }
-            }
-
-            if (serverAddress is not null)
-            {
-                // Make sure we read the full encapsulation.
-                if (_reader.Consumed != oldPos + size)
-                {
-                    throw new InvalidDataException(
-                        $"There are {oldPos + size - _reader.Consumed} bytes left in server address encapsulation.");
-                }
-            }
+            Span<byte> span = buffer.Span[0..byteCount];
+            CopyTo(span);
+            vSpan = span;
         }
-
-        if (serverAddress is null)
+        else
         {
-            throw new InvalidDataException(
-                $"Cannot decode server address for protocol '{protocol}' and transport '{transportCode.ToString().ToLowerInvariant()}' with server address encapsulation encoded with encoding '{encodingMajor}.{encodingMinor}'.");
+            if (_reader.UnreadSpan.Length <= byteCount)
+            {
+                vSpan = _reader.UnreadSpan[0..byteCount];
+                _reader.Advance(byteCount);
+            }
+            else
+            {
+                throw new InvalidDataException(EndOfBufferMessage);
+            }
         }
-
-        return serverAddress.Value;
+        return Convert.ToBase64String(vSpan);
     }
 
     /// <summary>Tries to decode a Slice uint8 into a byte.</summary>

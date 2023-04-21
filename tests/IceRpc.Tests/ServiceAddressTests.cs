@@ -433,20 +433,21 @@ public class ServiceAddressTests
     public void Invalid_fragment_throws_exception()
     {
         // Arrange
-        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(Protocol.Ice);
 
         // Act/Assert
         Assert.That(() => serviceAddress with { Fragment = "foo<" }, Throws.ArgumentException);
     }
 
-    [Test]
-    public void Invalid_path_throws_exception()
+    [TestCase("icerpc", "/foo<")]
+    [TestCase("ice", "/a/b/c")]
+    public void Invalid_path_throws_exception(string protocol, string path)
     {
         // Arrange
-        var serviceAddress = new ServiceAddress(Protocol.IceRpc);
+        var serviceAddress = new ServiceAddress(Protocol.Parse(protocol));
 
         // Act/Assert
-        Assert.That(() =>serviceAddress with { Path = "foo<" }, Throws.ArgumentException);
+        Assert.That(() => serviceAddress with { Path = path }, Throws.ArgumentException);
     }
 
     /// <summary>Verifies that a service address can be created from a URI.</summary>
