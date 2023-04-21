@@ -225,7 +225,7 @@ public class SlicingTests
     }
 
     [Test]
-    public void Skiped_instances_triggers_graph_max_depth_check()
+    public void Skipped_instances_triggers_graph_max_depth_check()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
