@@ -14,7 +14,7 @@
         <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
         <SliceC Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
             <PrivateAssets>all</PrivateAssets>
