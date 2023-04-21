@@ -156,6 +156,9 @@ function Test($config, $coverage) {
     RunCommand "dotnet" $arguments
     if ($coverage) {
         $arguments = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageReport')
+        if ($env:REPORTGENERATOR_LICENSE) {
+            $arguments += @("-version:$env:REPORTGENERATOR_LICENSE")
+        }
         RunCommand "reportgenerator" $arguments
         # Remove code coverage results after the report has been generated.
         Get-ChildItem -Path .\tests\ -Filter TestResults -Recurse | Remove-Item -Recurse -Force
