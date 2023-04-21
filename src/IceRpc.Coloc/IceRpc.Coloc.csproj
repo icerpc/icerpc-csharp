@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Authors>ZeroC, Inc.</Authors>
         <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-        <Description>IceRPC coloc transport.</Description>
+        <Description>IceRPC coloc duplex transport.</Description>
         <PackageIcon>logo.png</PackageIcon>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
@@ -16,19 +16,23 @@
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
-      <Content Include="..\..\LICENSE">
-        <PackagePath>.</PackagePath>
-        <Pack>true</Pack>
-      </Content>
-      <None Include="..\..\build\logo.png">
-          <Pack>true</Pack>
-          <PackagePath>.</PackagePath>
-      </None>
+        <Content Include="..\..\LICENSE">
+            <PackagePath />
+            <Pack>true</Pack>
+        </Content>
+        <Content Include="README.md">
+            <PackagePath />
+            <Pack>true</Pack>
+        </Content>
+        <None Include="..\..\build\logo.png">
+            <PackagePath />
+            <Pack>true</Pack>
+        </None>
     </ItemGroup>
 </Project>

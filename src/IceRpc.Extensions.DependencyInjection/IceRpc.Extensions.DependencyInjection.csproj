@@ -25,12 +25,16 @@
     <!-- NuGet package contents-->
     <ItemGroup>
         <Content Include="..\..\LICENSE">
-            <PackagePath>.</PackagePath>
+            <PackagePath />
+            <Pack>true</Pack>
+        </Content>
+        <Content Include="README.md">
+            <PackagePath />
             <Pack>true</Pack>
         </Content>
         <None Include="..\..\build\logo.png">
+            <PackagePath />
             <Pack>true</Pack>
-            <PackagePath>.</PackagePath>
         </None>
     </ItemGroup>
 </Project>

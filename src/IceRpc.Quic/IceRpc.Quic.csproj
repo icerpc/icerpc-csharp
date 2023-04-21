@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Authors>ZeroC, Inc.</Authors>
         <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-        <Description>IceRPC QUIC transport.</Description>
+        <Description>IceRPC QUIC multiplexed transport.</Description>
         <PackageIcon>logo.png</PackageIcon>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
@@ -25,12 +25,16 @@
     <!-- NuGet package contents-->
     <ItemGroup>
         <Content Include="..\..\LICENSE">
-            <PackagePath>.</PackagePath>
+            <PackagePath />
+            <Pack>true</Pack>
+        </Content>
+        <Content Include="README.md">
+            <PackagePath />
             <Pack>true</Pack>
         </Content>
         <None Include="..\..\build\logo.png">
+            <PackagePath />
             <Pack>true</Pack>
-            <PackagePath>.</PackagePath>
         </None>
     </ItemGroup>
 </Project>

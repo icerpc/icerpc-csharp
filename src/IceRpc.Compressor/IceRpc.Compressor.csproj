@@ -16,19 +16,23 @@
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
         <Content Include="..\..\LICENSE">
-            <PackagePath>.</PackagePath>
+            <PackagePath />
+            <Pack>true</Pack>
+        </Content>
+        <Content Include="README.md">
+            <PackagePath />
             <Pack>true</Pack>
         </Content>
         <None Include="..\..\build\logo.png">
+            <PackagePath />
             <Pack>true</Pack>
-            <PackagePath>.</PackagePath>
         </None>
     </ItemGroup>
 </Project>
