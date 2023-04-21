@@ -96,12 +96,10 @@ public static class ServiceAddressSliceDecoderExtensions
                 {
                     case TransportCode.Tcp:
                     case TransportCode.Ssl:
-                    {
                         serverAddress = TcpClientTransport.DecodeServerAddress(
                             ref decoder,
                             transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
                         break;
-                    }
 
                     case TransportCode.Uri:
                         serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
@@ -113,7 +111,6 @@ public static class ServiceAddressSliceDecoderExtensions
                         break;
 
                     default:
-                    {
                         // Create a server address for transport opaque
                         ImmutableDictionary<string, string>.Builder builder =
                             ImmutableDictionary.CreateBuilder<string, string>();
@@ -134,7 +131,6 @@ public static class ServiceAddressSliceDecoderExtensions
                             TransportNames.Opaque,
                             builder.ToImmutable());
                         break;
-                    }
                 }
             }
             else if (transportCode == TransportCode.Uri)

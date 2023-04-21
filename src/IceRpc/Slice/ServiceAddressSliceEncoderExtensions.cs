@@ -19,20 +19,17 @@ public static class ServiceAddressSliceEncoderExtensions
     {
         if (encoder.Encoding == SliceEncoding.Slice1)
         {
-            // With Slice1, a proxy is encoded as a kind of discriminated union with:
-            // - Identity
-            // - If Identity is not the null identity:
-            //     - the fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
-            //     - a sequence of server addresses (can be empty)
-            //     - an adapter ID string present only when the sequence of server addresses is empty
-
-            encoder.EncodeIdentityPath(value.Path);
-
             if (value.Protocol is not Protocol protocol)
             {
                 throw new NotSupportedException("Cannot encode a relative service address with Slice1.");
             }
 
+            // With Slice1, a non-null proxy/service address is encoded as:
+            // - identity, fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
+            // - a sequence of server addresses (can be empty)
+            // - an adapter ID string present only when the sequence of server addresses is empty
+
+            encoder.EncodeIdentityPath(value.Path);
             encoder.EncodeFragment(value.Fragment);
             encoder.EncodeInvocationMode(InvocationMode.Twoway);
             encoder.EncodeBool(false);               // Secure
