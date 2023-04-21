@@ -17,7 +17,7 @@ This document describes how to build and use the source code in this repository.
 
 Building requires Rust and .NET development environments:
 
-- A Rust development environment, the recomended way to install Rust is [rustup](https://rustup.rs/).
+- A Rust development environment, the recommended way to install Rust is [rustup](https://rustup.rs/).
 - The [.NET 7.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/7.0).
 
 ## Building
@@ -53,7 +53,7 @@ For additional options see <https://docs.microsoft.com/en-us/dotnet/core/tools/d
 Before generating the code coverage report, ensure that you have the
 [reportgenerator](https://github.com/danielpalme/ReportGenerator) command in your system's PATH.
 
-You can create the code coverage report using the following comamnd:
+You can create the code coverage report using the following command:
 
 Linux or macOS
 

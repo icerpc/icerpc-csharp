@@ -4,7 +4,7 @@
 
 - [IceRPC](#icerpc)
 - [What is IceRPC](#what-is-icerpc)
-- [How can I contributte](#how-can-i-contribute)
+- [How can I contribute](#how-can-i-contribute)
 - [License](#license)
 
 This repository contains the source code to build IceRPC for C# libraries and tools.
@@ -16,7 +16,7 @@ TODO
 ## How can I contribute
 
 - [Contributing](./CONTRIBUTING.MD) explains how you can contribute to this project.
-- [Workflow](./docs/workflow.md ) explains how you can build the source code.
+- [Workflow](./docs/workflow.md ) explains how you can build and use the source code.
 
 ## License
 

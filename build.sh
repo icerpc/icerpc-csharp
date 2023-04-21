@@ -24,7 +24,7 @@ usage()
     echo "  --srcdist                 Use IceRPC NuGet packages from this source distribution when building the examples."
     echo "                            The NuGet packages are pushed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
-    echo "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator."
+    echo "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator."
     echo "  --help   | -h             Print help and exit."
 }
 
