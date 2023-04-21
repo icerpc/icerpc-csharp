@@ -17,6 +17,11 @@ class MyClassC {
     theB: MyClassB?
 }
 
+class Person {
+    spouse: Person?
+    emergencyContact: Person?
+}
+
 class MyCompactClass(15) {}
 
 class MyClassWithTaggedFields {

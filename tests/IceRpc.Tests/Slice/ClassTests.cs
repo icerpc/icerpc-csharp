@@ -758,6 +758,36 @@ public sealed class ClassTests
     }
 
     [Test]
+    public void Encode_decode_circular_graph([Values] ClassFormat classFormat)
+    {
+        var john = new Person();
+        var yoko = new Person(john, null);
+        john.Spouse = yoko;
+        john.EmergencyContact = yoko;
+
+        // Encode/decode it.
+        var buffer = new MemoryBufferWriter(new byte[1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: classFormat);
+        encoder.EncodeClass(john);
+        encoder.EncodeClass(yoko);
+
+        var decoder = new SliceDecoder(
+            buffer.WrittenMemory,
+            SliceEncoding.Slice1,
+            activator: SliceDecoder.GetActivator(typeof(Person).Assembly));
+
+        // Act
+        Person newJohn = decoder.DecodeClass<Person>();
+        Person newYoko = decoder.DecodeClass<Person>();
+
+        // Verify we get the same graph.
+        Assert.That(newJohn.Spouse, Is.SameAs(newYoko));
+        Assert.That(newJohn.EmergencyContact, Is.SameAs(newYoko));
+        Assert.That(newYoko.Spouse, Is.SameAs(newJohn));
+        Assert.That(newYoko.EmergencyContact, Is.Null);
+    }
+
+    [Test]
     public void Decode_class_with_compact_id_and_compact_format()
     {
         // Arrange
