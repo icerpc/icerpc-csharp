@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Verifies that nullable proxies are correctly encoded withSlice1 encoding.</summary>
+    /// <summary>Verifies that nullable proxies are correctly encoded with Slice1 encoding.</summary>
     /// <param name="expected">The nullable proxy to test with.</param>
     [TestCase("icerpc://host.zeroc.com/hello")]
     [TestCase(null)]
@@ -152,6 +152,18 @@ public class ProxyTests
             encoder.EncodeServiceAddress(serviceAddress);
         },
         Throws.TypeOf<FormatException>());
+
+    // we have to use icerpc since for an ice service address these path are rejected
+    [TestCase("icerpc://host:10000")]
+    [TestCase("icerpc://host:10000/foo/")]
+    public void Encode_service_address_with_null_identity_fails(ServiceAddress serviceAddress) =>
+        Assert.That(() =>
+        {
+            var bufferWriter = new MemoryBufferWriter(new byte[256]);
+            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+            encoder.EncodeServiceAddress(serviceAddress);
+        },
+        Throws.TypeOf<ArgumentException>());
 
     /// <summary>Verifies that a proxy decoded from an incoming request has a null invoker by default.</summary>
     [Test]
