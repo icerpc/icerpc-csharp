@@ -14,7 +14,7 @@
         <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(NetRuntimeVersion)" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="$(NetRuntimeVersion)" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
