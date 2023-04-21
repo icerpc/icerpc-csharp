@@ -32,16 +32,17 @@ public sealed class ClassTests
         encoder.EncodeClass(theA);
 
         // Act/Assert
-        Assert.That(() =>
-        {
-            var decoder = new SliceDecoder(
-                buffer.WrittenMemory,
-                SliceEncoding.Slice1,
-                activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly),
-                maxDepth: 100);
-            decoder.DecodeClass<MyClassA>();
-        },
-        Throws.TypeOf<InvalidDataException>());
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice1,
+                    activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly),
+                    maxDepth: 100);
+                decoder.DecodeClass<MyClassA>();
+            },
+            Throws.TypeOf<InvalidDataException>());
     }
 
     [Test]
@@ -52,11 +53,12 @@ public sealed class ClassTests
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
         // Act
-        encoder.EncodeClass(new MyClassA
-        {
-            TheB = new MyClassB(),
-            TheC = new MyClassC(),
-        });
+        encoder.EncodeClass(
+            new MyClassA
+            {
+                TheB = new MyClassB(),
+                TheC = new MyClassC(),
+            });
 
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);

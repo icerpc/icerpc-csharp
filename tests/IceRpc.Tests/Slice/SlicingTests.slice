@@ -16,6 +16,11 @@ class SlicingMostDerivedClass : SlicingDerivedClass {
     m3: SlicingBaseClass?
 }
 
+class SlicingClassWithTaggedFields : SlicingDerivedClass {
+    m3: SlicingBaseClass?
+    tag(1) m4: string?
+}
+
 class SlicingBaseClassWithCompactId(1) {
     m1: string
 }
