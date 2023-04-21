@@ -12,17 +12,17 @@
       <LangVersion>10.0</LangVersion>
       <AnalysisMode>AllEnabledByDefault</AnalysisMode>
       <Title>IceRPC Slice Tools</Title>
-      <Authors>ZeroC</Authors>
+      <Authors>ZeroC, Inc.</Authors>
       <PackageId>$(AssemblyName)</PackageId>
-      <PackageLicenseExpression>MIT</PackageLicenseExpression>
+      <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
       <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
       <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
+      <RepositoryType>git</RepositoryType>
       <PackageIcon>logo.png</PackageIcon>
       <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
       <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
-      <PackageReleaseNotes>CHANGELOG.md</PackageReleaseNotes>
       <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-      <PackageTags>IceRPC;MSbuild;Slice</PackageTags>
+      <PackageTags>IceRPC;RPC;MSbuild;Slice</PackageTags>
       <PackageReadmeFile>README.md</PackageReadmeFile>
       <PackageType>Dependency</PackageType>
       <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -80,10 +80,11 @@
          <Pack>true</Pack>
       </Content>
       <None Include="../../logo.png">
-         <Pack>True</Pack>
+         <Pack>true</Pack>
          <PackagePath />
       </None>
-      <Content Include="../../../../slice/**/*.slice">
+      <Content Include="../../../../slice/**/*.slice"
+               Exclude="../../../../slice/**/Internal/*.slice">
          <Pack>true</Pack>
          <PackagePath>slice/</PackagePath>
       </Content>

@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <Authors>ZeroC, Inc.</Authors>
+    <ContentTargetFolders>Templates</ContentTargetFolders>
+    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
+    <Description>IceRPC project templates.</Description>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageId>IceRpc.ProjectTemplates</PackageId>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>IceRPC;RPC;Templates</PackageTags>
     <PackageType>Template</PackageType>
     <PackageVersion>$(IceRpcVersion)</PackageVersion>
-    <PackageId>IceRpc.ProjectTemplates</PackageId>
-    <PackageTags>icerpc;templates</PackageTags>
-
-    <Authors>ZeroC</Authors>
-    <PackageIcon>logo.png</PackageIcon>
-    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-    <Title>IceRPC Project Templates.</Title>
-    <Description>TODO</Description>
-    <PackageReleaseNotes>TODO</PackageReleaseNotes>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-
-    <IncludeContentInPack>true</IncludeContentInPack>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
-    <ContentTargetFolders>Templates</ContentTargetFolders>
-
-    <NoWarn>NU5128</NoWarn>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
+    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Templates\**\*" Exclude="Templates\**\bin\**;Templates\**\obj\**">
@@ -28,11 +27,11 @@
     </Content>
     <Compile Remove="**\*" />
     <Content Include="..\..\LICENSE">
-        <PackagePath></PackagePath>
+        <PackagePath>.</PackagePath>
         <Pack>true</Pack>
     </Content>
     <None Include="..\..\build\logo.png">
-        <Pack>True</Pack>
+        <Pack>true</Pack>
         <PackagePath>.</PackagePath>
     </None>
   </ItemGroup>

@@ -1,22 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Title>IceRpc Request Context</Title>
-        <PackageVersion>$(IceRpcVersion)</PackageVersion>
-        <Authors>ZeroC</Authors>
-        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+        <Authors>ZeroC, Inc.</Authors>
         <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-        <Description>IceRPC Request Context.</Description>
-        <PackageReleaseNotes>TODO</PackageReleaseNotes>
+        <Description>IceRPC request context interceptor and middleware.</Description>
+        <PackageIcon>logo.png</PackageIcon>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageTags>IceRPC</PackageTags>
+        <PackageTags>IceRPC;RPC</PackageTags>
+        <PackageVersion>$(IceRpcVersion)</PackageVersion>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+    </ItemGroup>
+    <!-- NuGet package contents-->
+    <ItemGroup>
+        <Content Include="..\..\LICENSE">
+            <PackagePath>.</PackagePath>
+            <Pack>true</Pack>
+        </Content>
+        <None Include="..\..\build\logo.png">
+            <Pack>true</Pack>
+            <PackagePath>.</PackagePath>
+        </None>
     </ItemGroup>
 </Project>
