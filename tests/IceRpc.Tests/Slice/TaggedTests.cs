@@ -234,7 +234,7 @@ public class TaggedTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(ClassWithTaggedFields).Assembly));
+            activator: IActivator.FromAssembly(typeof(ClassWithTaggedFields).Assembly));
 
         // Act
         var c = decoder.DecodeClass<ClassWithTaggedFields>();

@@ -137,7 +137,7 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyException).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
         var value = decoder.DecodeUserException() as MyDerivedException;
 
@@ -170,7 +170,7 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyException).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
         var value = decoder.DecodeUserException() as MyException;
 
@@ -210,7 +210,7 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedFields).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
 
         var value = decoder.DecodeUserException() as MyExceptionWithTaggedFields;
 
@@ -333,7 +333,7 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyException).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
         // TODO how we test this without using DecodeUserException?
         var decoded = decoder.DecodeUserException() as MyDerivedException;
@@ -357,7 +357,7 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyException).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyException).Assembly));
         var value = decoder.DecodeUserException() as MyException;
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(expected.I));
@@ -380,7 +380,7 @@ public sealed class ExceptionTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyExceptionWithTaggedFields).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
         var value = decoder.DecodeUserException() as MyExceptionWithTaggedFields;
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(10));

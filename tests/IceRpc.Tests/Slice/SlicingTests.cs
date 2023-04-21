@@ -27,7 +27,7 @@ public class SlicingTests
             // Create an activator that excludes 'SlicingMostDerivedClass' type ID and ensure that the class is
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(typeof(SlicingMostDerivedClass).Assembly),
+                IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedClass).GetSliceTypeId());
         }
 
@@ -46,7 +46,7 @@ public class SlicingTests
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(SlicingMostDerivedClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly));
 
         SlicingMostDerivedClass r2 = decoder.DecodeClass<SlicingMostDerivedClass>();
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
@@ -82,7 +82,7 @@ public class SlicingTests
             // Create an activator that excludes 'SlicingMostDerivedClassWithCompactId' type ID and ensure that the class is
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(typeof(SlicingMostDerivedClassWithCompactId).Assembly),
+                IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedClassWithCompactId).GetCompactSliceTypeId().ToString());
         }
 
@@ -101,7 +101,7 @@ public class SlicingTests
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
+            activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
 
         SlicingMostDerivedClassWithCompactId r2 = decoder.DecodeClass<SlicingMostDerivedClassWithCompactId>();
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
@@ -137,7 +137,7 @@ public class SlicingTests
             // Create an activator that excludes 'SlicingClassWithTaggedFields' type ID and ensure that the class is
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(typeof(SlicingClassWithTaggedFields).Assembly),
+                IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly),
                 excludeTypeId: typeof(SlicingClassWithTaggedFields).GetSliceTypeId());
         }
 
@@ -156,7 +156,7 @@ public class SlicingTests
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(SlicingClassWithTaggedFields).Assembly));
+            activator: IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly));
 
         SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>();
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
@@ -193,7 +193,7 @@ public class SlicingTests
         if (partialSlicing)
         {
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(typeof(SlicingMostDerivedException).Assembly),
+                IActivator.FromAssembly(typeof(SlicingMostDerivedException).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedException).GetSliceTypeId());
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
