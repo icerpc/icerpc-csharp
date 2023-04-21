@@ -121,6 +121,63 @@ public class SlicingTests
     }
 
     [Test]
+    public void Decoding_a_class_with_tagged_fields_skips_and_preserves_unknown_slices([Values] bool partialSlicing)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
+
+        var p2 = new SlicingClassWithTaggedFields("p2-m1", "p2-m2", null, "p2-m4");
+        var p1 = new SlicingClassWithTaggedFields("p1-m1", "p1-m2", p2, "p1-m4");
+        encoder.EncodeClass(p1);
+
+        IActivator? slicingActivator = null;
+        if (partialSlicing)
+        {
+            // Create an activator that excludes 'SlicingClassWithTaggedFields' type ID and ensure that the class is
+            // sliced and the Slices are preserved.
+            slicingActivator = new SlicingActivator(
+                SliceDecoder.GetActivator(typeof(SlicingClassWithTaggedFields).Assembly),
+                excludeTypeId: typeof(SlicingClassWithTaggedFields).GetSliceTypeId());
+        }
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
+        SliceClass? r1 = decoder.DecodeClass<SliceClass>();
+
+        // Encode the sliced class
+        buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
+        encoder.EncodeClass(r1!);
+
+        // Act
+
+        // Decode again using an activator that knows all the type IDs, the decoded class should contain the preserved
+        // Slices.
+        decoder = new SliceDecoder(
+            buffer.WrittenMemory,
+            SliceEncoding.Slice1,
+            activator: SliceDecoder.GetActivator(typeof(SlicingClassWithTaggedFields).Assembly));
+
+        SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>();
+        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+
+        // Assert
+        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSlicedClass>());
+        Assert.That(r1.UnknownSlices, Is.Not.Empty);
+
+        Assert.That(r2.UnknownSlices, Is.Empty);
+        Assert.That(r2.M1, Is.EqualTo("p1-m1"));
+        Assert.That(r2.M2, Is.EqualTo("p1-m2"));
+        Assert.That(r2.M3, Is.InstanceOf<SlicingClassWithTaggedFields>());
+        Assert.That(r2.M4, Is.EqualTo("p1-m4"));
+        var r3 = (SlicingClassWithTaggedFields)r2.M3;
+        Assert.That(r3!.M1, Is.EqualTo("p2-m1"));
+        Assert.That(r3.M2, Is.EqualTo("p2-m2"));
+        Assert.That(r3!.M3, Is.Null);
+        Assert.That(r3.M4, Is.EqualTo("p2-m4"));
+    }
+
+    [Test]
     public void Decoding_an_exception_skips_unknown_slices([Values] bool partialSlicing)
     {
         // Arrange
@@ -165,6 +222,32 @@ public class SlicingTests
         {
             Assert.That(dispatchException, Is.TypeOf<DispatchException>());
         }
+    }
+
+    [Test]
+    public void Skipped_instances_triggers_graph_max_depth_check()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
+
+        var p5 = new SlicingMostDerivedClass("p5-m1", "p5-m2", null);
+        var p4 = new SlicingMostDerivedClass("p4-m1", "p4-m2", p5);
+        var p3 = new SlicingMostDerivedClass("p3-m1", "p3-m2", p4);
+        var p2 = new SlicingMostDerivedClass("p2-m1", "p2-m2", p3);
+        var p1 = new SlicingMostDerivedClass("p1-m1", "p1-m2", p2);
+        encoder.EncodeClass(p1);
+
+        Assert.That(
+            () =>
+            {
+                var decoder = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice1,
+                    maxDepth: 3);
+                SliceClass? r1 = decoder.DecodeClass<SliceClass>();
+            },
+            Throws.TypeOf<InvalidDataException>());
     }
 
     /// <summary>An activator that delegates to another activator except for the Sliced type IDs, for which it
