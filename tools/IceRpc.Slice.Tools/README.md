@@ -10,19 +10,8 @@ This package contains:
 
 ## Contents
 
-* [Usage](#usage)
 * [Adding Slice Files to your Project](#adding-slice-files-to-your-project)
 * [SliceC Item Metadata](#slicec-item-metadata)
-
-## Usage
-
-To use the IceRPC Slice Tools, add the `IceRpc.Slice.Tools` [NuGet package][1] to your C# project.
-
-```
-<ItemGroup>
-  <PackageReference Include="IceRpc.Slice.Tools" Version="0.1.0" PrivateAssets="All" />
-</ItemGroup>
-```
 
 ## Adding Slice Files to your Project
 

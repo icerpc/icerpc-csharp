@@ -7,7 +7,7 @@
     <Description>IceRPC project templates.</Description>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <IncludeContentInPack>true</IncludeContentInPack>
-    <NoWarn>NU5128</NoWarn>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
     <PackageIcon>logo.png</PackageIcon>
     <PackageId>IceRpc.ProjectTemplates</PackageId>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
