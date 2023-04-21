@@ -1,8 +1,6 @@
 # Workflow Guide
 
-This document describes how to build IceRPC for C# from the source code in this repository.
-
-- [IceRPC](#icerpc)
+- [Workflow Guide](#workflow-guide)
 - [Build Requirements](#build-requirements)
 - [Building](#building)
 - [Testing](#testing)
@@ -12,6 +10,8 @@ This document describes how to build IceRPC for C# from the source code in this 
 - [Packaging](#packaging)
 - [Pushing Packages](#pushing-packages)
 - [Generating API Documentation](#generating-api-documentation)
+
+This document describes how to build and use the source code in this repository.
 
 ## Build Requirements
 
