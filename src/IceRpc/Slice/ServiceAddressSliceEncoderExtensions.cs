@@ -29,7 +29,15 @@ public static class ServiceAddressSliceEncoderExtensions
             // - a sequence of server addresses (can be empty)
             // - an adapter ID string present only when the sequence of server addresses is empty
 
-            encoder.EncodeIdentityPath(value.Path);
+            var identity = Identity.Parse(value.Path);
+            if (identity.Name.Length == 0)
+            {
+                throw new ArgumentException(
+                    "Cannot encode a non-null service address with a null Ice identity.",
+                    nameof(value));
+            }
+            identity.Encode(ref encoder);
+
             encoder.EncodeFragment(value.Fragment);
             encoder.EncodeInvocationMode(InvocationMode.Twoway);
             encoder.EncodeBool(false);               // Secure
