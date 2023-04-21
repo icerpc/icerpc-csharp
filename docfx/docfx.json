@@ -4,18 +4,10 @@
             "src": [
                 {
                     "files": [
-                        "src/IceRpc/IceRpc.csproj",
-                        "src/IceRpc.Coloc/IceRpc.Coloc.csproj",
-                        "src/IceRpc.Deadline/IceRpc.Deadline.csproj",
-                        "src/IceRpc.Deflate/IceRpc.Deflate.csproj",
-                        "src/IceRpc.Extensions.DependencyInjection/IceRpc.Extensions.DependencyInjection.csproj",
-                        "src/IceRpc.Interop/IceRpc.Interop.csproj",
-                        "src/IceRpc.Locator/IceRpc.Locator.csproj",
-                        "src/IceRpc.Logger/IceRpc.Logger.csproj",
-                        "src/IceRpc.Metrics/IceRpc.Metrics.csproj",
-                        "src/IceRpc.RequestContext/IceRpc.RequestContext.csproj",
-                        "src/IceRpc.Retry/IceRpc.Retry.csproj",
-                        "src/IceRpc.Telemetry/IceRpc.Telemetry.csproj"
+                        "src/*/*.csproj",
+                    ],
+                    "exclude": [
+                        "src/IceRpc.ProjectTemplates/**"
                     ],
                     "src": "../"
                 }
