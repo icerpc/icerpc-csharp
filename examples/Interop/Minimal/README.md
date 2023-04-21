@@ -3,7 +3,11 @@
 This example application illustrates how IceRPC can communicate with ZeroC Ice using the `ice` protocol and `Slice1`
 encoding. The server application uses ZeroC Ice and the client application uses IceRPC.
 
-For build instructions check the top-level [README.md](../../../README.md).
+You can build the client applications with:
+
+``` shell
+dotnet build
+```
 
 First, start a hello server by following the instructions provided in any of the following `minimal` ZeroC Ice example
 applications:

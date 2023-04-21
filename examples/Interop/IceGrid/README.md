@@ -3,7 +3,11 @@
 This example application illustrates how an IceRPC client can call services in a Ice server managed by IceGrid.
 The server application uses ZeroC Ice, and the client application uses IceRPC.
 
-For build instructions check the top-level [README.md](../../../README.md).
+You can build the client applications with:
+
+``` shell
+dotnet build
+```
 
 First, start an IceGrid registry by following the instructions provided in any of the following `simple` IceGrid example
 applications:

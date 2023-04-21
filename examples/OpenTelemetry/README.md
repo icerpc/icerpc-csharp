@@ -5,7 +5,11 @@ with OpenTelemetry to export traces to Zipkin. The application also shows how th
 client to the front-end Greeter server, and from the front-end Greeter server to the back-end CRM server, by just
 configuring the IceRPC telemetry interceptor and middleware.
 
-For build instructions check the top-level [README.md](../../README.md).
+You can build the client and server applications with:
+
+``` shell
+dotnet build
+```
 
 First start the Zipkin service as documented in the Zipkin quick start guide:
 

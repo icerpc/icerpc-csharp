@@ -4,7 +4,11 @@ This application illustrates how to use the RequestContext interceptor to encode
 decode it using the RequestContext middleware. The request context is a collection of string key value pairs encoded in
 a request header field.
 
-For build instructions check the top-level [README.md](../../README.md).
+You can build the client and server applications with:
+
+``` shell
+dotnet build
+```
 
 First start the Server program:
 

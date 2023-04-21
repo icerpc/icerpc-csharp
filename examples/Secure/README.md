@@ -2,7 +2,11 @@
 
 This example application illustrates how to configure the client and server to use SSL secured connections.
 
-For build instructions check the top-level [README.md](../../README.md).
+You can build the client and server applications with:
+
+``` shell
+dotnet build
+```
 
 First start the Server program:
 

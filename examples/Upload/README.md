@@ -2,7 +2,11 @@
 
 This example application illustrates how to stream bytes from a local file to a server.
 
-For build instructions check the top-level [README.md](../../README.md).
+You can build the client and server applications with:
+
+``` shell
+dotnet build
+```
 
 First start the Server program:
 
