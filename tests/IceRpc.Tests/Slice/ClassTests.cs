@@ -896,8 +896,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            CompactFormatOperationsProxy.Request.OpAnyClass(new MyClassB()) :
-            CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
+            ClassOperationsProxy.Request.OpAnyClassCompact(new MyClassB()) :
+            ClassOperationsProxy.Request.OpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -925,8 +925,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            SlicedFormatOperationsProxy.Request.OpAnyClass(new MyClassB()) :
-            SlicedFormatOperationsProxy.Request.OpMyClass(new MyClassB());
+            ClassOperationsProxy.Request.OpAnyClassSliced(new MyClassB()) :
+            ClassOperationsProxy.Request.OpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -962,8 +962,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ICompactFormatOperationsService.Response.OpAnyClass(new MyClassB()) :
-            ICompactFormatOperationsService.Response.OpMyClass(new MyClassB());
+            IClassOperationsService.Response.OpAnyClassCompact(new MyClassB()) :
+            IClassOperationsService.Response.OpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -991,8 +991,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ISlicedFormatOperationsService.Response.OpAnyClass(new MyClassB()) :
-            ISlicedFormatOperationsService.Response.OpMyClass(new MyClassB());
+            IClassOperationsService.Response.OpAnyClassSliced(new MyClassB()) :
+            IClassOperationsService.Response.OpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
