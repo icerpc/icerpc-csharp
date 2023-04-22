@@ -332,7 +332,7 @@ public ref partial struct SliceDecoder
                     {
                         _reader.Rewind(-distance);
                     }
-                    _classContext.Current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
+                    _classContext.Current.Slices[i].Instances = DecodeIndirectionTable();
                 }
                 // else remains empty
             }
@@ -565,8 +565,7 @@ public ref partial struct SliceDecoder
             var info = new SliceInfo(
                 typeId,
                 new ReadOnlyMemory<byte>(bytes),
-                Array.AsReadOnly(_classContext.Current.IndirectionTable ??
-                Array.Empty<SliceClass>()),
+                _classContext.Current.IndirectionTable ?? Array.Empty<SliceClass>(),
                 hasTaggedFields);
 
             _classContext.Current.Slices ??= new List<SliceInfo>();
