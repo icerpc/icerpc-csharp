@@ -115,4 +115,12 @@ public class ActivatorTests
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
     }
+
+    [TestCase(typeof(ClassB), typeof(ClassA))]
+    [TestCase(typeof(ClassC))]
+    [TestCase(typeof(ClassD), typeof(ClassDPrime))]
+    public void Create_activator_from_assemblies(params Type[] types) =>
+        Assert.That(
+            () => IActivator.FromAssemblies(types.Select(type => type.Assembly).ToArray()),
+            Throws.Nothing);
 }
