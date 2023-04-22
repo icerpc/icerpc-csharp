@@ -5,8 +5,12 @@ using System.Reflection;
 
 namespace IceRpc.Slice;
 
-/// <summary>Slice decoders use activators to create instances of Slice classes and exceptions from Slice type IDs.
-/// </summary>
+/// <summary>Provides methods that create class and exception instances from Slice type IDs.</summary>
+/// <remarks>When decoding a Slice1-encoded buffer, a Slice decoder uses its activator to create a class or exception
+/// instance before decoding the instance's fields.</remarks>
+/// <seealso cref="SliceDecoder.DecodeClass{T}" />
+/// <seealso cref="SliceDecoder.DecodeNullableClass{T}" />
+/// <seealso cref="SliceDecoder.DecodeUserException(string?)" />
 public interface IActivator
 {
     /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
