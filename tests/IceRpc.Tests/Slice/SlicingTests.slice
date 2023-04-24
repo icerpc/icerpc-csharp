@@ -10,15 +10,16 @@ class SlicingBaseClass {
 
 class SlicingDerivedClass : SlicingBaseClass {
     m2: string
+    m3: SlicingBaseClass?
 }
 
 class SlicingMostDerivedClass : SlicingDerivedClass {
-    m3: SlicingBaseClass?
+    m4: SlicingBaseClass?
 }
 
 class SlicingClassWithTaggedFields : SlicingDerivedClass {
-    m3: SlicingBaseClass?
-    tag(1) m4: string?
+    m4: SlicingBaseClass?
+    tag(1) m5: string?
 }
 
 class SlicingBaseClassWithCompactId(1) {
