@@ -332,7 +332,7 @@ public ref partial struct SliceDecoder
                     {
                         _reader.Rewind(-distance);
                     }
-                    _classContext.Current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
+                    _classContext.Current.Slices[i].Instances = DecodeIndirectionTable();
                 }
                 // else remains empty
             }
@@ -561,6 +561,15 @@ public ref partial struct SliceDecoder
             {
                 _classContext.Current.DeferredIndirectionTableList.Add(0); // keep a slot for each slice
             }
+
+            var info = new SliceInfo(
+                typeId,
+                new ReadOnlyMemory<byte>(bytes),
+                _classContext.Current.IndirectionTable ?? Array.Empty<SliceClass>(),
+                hasTaggedFields);
+
+            _classContext.Current.Slices ??= new List<SliceInfo>();
+            _classContext.Current.Slices.Add(info);
         }
         else if (hasIndirectionTable)
         {
@@ -570,15 +579,6 @@ public ref partial struct SliceDecoder
             _reader.Advance(_classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed);
             _classContext.Current.PosAfterIndirectionTable = null;
         }
-
-        _classContext.Current.Slices ??= new List<SliceInfo>();
-        var info = new SliceInfo(
-            typeId,
-            new ReadOnlyMemory<byte>(bytes),
-            Array.AsReadOnly(_classContext.Current.IndirectionTable ??
-            Array.Empty<SliceClass>()),
-            hasTaggedFields);
-        _classContext.Current.Slices.Add(info);
 
         // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.
         _classContext.Current.IndirectionTable = null;

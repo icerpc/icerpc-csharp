@@ -42,5 +42,5 @@ exception SlicingDerivedException : SlicingBaseException {
 }
 
 exception SlicingMostDerivedException : SlicingDerivedException {
-    m3: string
+    m3: SlicingBaseClass?
 }

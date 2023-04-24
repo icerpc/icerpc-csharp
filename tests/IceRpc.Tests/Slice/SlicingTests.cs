@@ -184,7 +184,7 @@ public class SlicingTests
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
-        var p1 = new SlicingMostDerivedException("most-derived", "derived", "base");
+        var p1 = new SlicingMostDerivedException("most-derived-m1", "most-derived-m2", new SlicingBaseClass("base-m1"));
         p1.Encode(ref encoder);
 
         // Create an activator that exclude 'SlicingMostDerivedException' type ID and ensure that the class is decoded
@@ -193,13 +193,7 @@ public class SlicingTests
         if (partialSlicing)
         {
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(
-                    new Assembly[]
-                    {
-                        typeof(SlicingMostDerivedException).Assembly,
-                        typeof(SlicingDerivedException).Assembly,
-                        typeof(SlicingBaseException).Assembly
-                    }),
+                SliceDecoder.GetActivator(typeof(SlicingMostDerivedException).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedException).GetSliceTypeId());
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
