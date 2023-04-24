@@ -464,4 +464,162 @@ public class TaggedTests
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
+
+    [Test, TestCaseSource(nameof(DecodeSlice1TaggedFieldsSource))]
+    public void Skip_tagged_fields(ClassWithTaggedFields expected)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        bool hasTaggedFields =
+            expected.A is not null ||
+            expected.B is not null ||
+            expected.D is not null ||
+            expected.E is not null ||
+            expected.F is not null ||
+            expected.G is not null ||
+            expected.H is not null ||
+            expected.I is not null ||
+            expected.J is not null;
+
+        encoder.EncodeSize(1); // Instance marker
+        byte flags = (byte)Slice1Definitions.TypeIdKind.String | (byte)Slice1Definitions.SliceFlags.IsLastSlice;
+        if (hasTaggedFields)
+        {
+            flags |= (byte)Slice1Definitions.SliceFlags.HasTaggedFields;
+        }
+        encoder.EncodeUInt8(flags);
+        encoder.EncodeString(typeof(ClassWithTaggedFields).GetSliceTypeId()!);
+
+        if (expected.A is not null)
+        {
+            encoder.EncodeTagged(
+                1,
+                TagFormat.F1,
+                expected.A.Value,
+                (ref SliceEncoder encoder, byte value) => encoder.EncodeUInt8(value));
+        }
+
+        if (expected.B is not null)
+        {
+            encoder.EncodeTagged(
+                2,
+                TagFormat.F2,
+                expected.B.Value,
+                (ref SliceEncoder encoder, short value) => encoder.EncodeInt16(value));
+        }
+
+        if (expected.C is not null)
+        {
+            encoder.EncodeTagged(
+                3,
+                TagFormat.F4,
+                expected.C.Value,
+                (ref SliceEncoder encoder, int value) => encoder.EncodeInt32(value));
+        }
+
+        if (expected.D is not null)
+        {
+            encoder.EncodeTagged(
+                4,
+                TagFormat.F8,
+                expected.D.Value,
+                (ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value));
+        }
+
+        if (expected.E is not null)
+        {
+            encoder.EncodeTagged(
+                5,
+                size: 8,
+                expected.E.Value,
+                (ref SliceEncoder encoder, FixedLengthStruct value) => value.Encode(ref encoder));
+        }
+
+        if (expected.F is not null)
+        {
+            encoder.EncodeTagged(
+                6,
+                TagFormat.FSize,
+                expected.F.Value,
+                (ref SliceEncoder encoder, VarSizeStruct value) => value.Encode(ref encoder));
+        }
+
+        if (expected.G is not null)
+        {
+            encoder.EncodeTagged(
+                7,
+                TagFormat.Size,
+                expected.G.Value,
+                (ref SliceEncoder encoder, Tagged.Slice1.MyEnum value) => encoder.EncodeMyEnum(value));
+        }
+
+        if (expected.H is not null)
+        {
+            encoder.EncodeTagged(
+                8,
+                TagFormat.OptimizedVSize,
+                expected.H,
+                (ref SliceEncoder encoder, IList<byte> value) => encoder.EncodeSequence(value));
+        }
+
+        if (expected.I is not null)
+        {
+            encoder.EncodeTagged(
+                9,
+                size: encoder.GetSizeLength(expected.I.Count) + (4 * expected.I.Count),
+                expected.I,
+                (ref SliceEncoder encoder, IList<int> value) => encoder.EncodeSequence(value));
+        }
+
+        if (expected.J is not null)
+        {
+            encoder.EncodeTagged(
+                10,
+                TagFormat.OptimizedVSize,
+                expected.J,
+                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+        }
+
+        if (hasTaggedFields)
+        {
+            encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
+        }
+
+        // Create an activator that replaces ClassWithTaggedFields by ClassWithoutTaggedFields, both classes
+        // are equal except that ClassWithoutTaggedFields doesn't contain any of the tagged fields. Decoding
+        // ClassWithTaggedFields as  ClassWithoutTaggedFields exercise skipping of tagged values.
+        var activator = new TypeReplacementActivator(
+            SliceDecoder.GetActivator(typeof(ClassWithTaggedFields).Assembly),
+            typeof(ClassWithTaggedFields).GetSliceTypeId()!,
+            typeof(ClassWithoutTaggedFields).GetSliceTypeId()!);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: activator);
+
+        // Act
+        var c = decoder.DecodeClass<ClassWithoutTaggedFields>();
+
+        // Assert
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    internal class TypeReplacementActivator : IActivator
+    {
+        private readonly IActivator _decoratee;
+        private readonly string _replacementTypeId;
+        private readonly string _typeId;
+
+        public object? CreateClassInstance(string typeId, ref SliceDecoder decoder) =>
+            _decoratee.CreateClassInstance(typeId == _typeId ? _replacementTypeId : typeId, ref decoder);
+
+        public object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message) =>
+            _decoratee.CreateExceptionInstance(typeId, ref decoder, message);
+
+        internal TypeReplacementActivator(IActivator decoratee, string typeId, string replacementTypeId)
+        {
+            _decoratee = decoratee;
+            _typeId = typeId;
+            _replacementTypeId = replacementTypeId;
+        }
+    }
 }
