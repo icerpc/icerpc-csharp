@@ -2,6 +2,11 @@
 
 set -ue
 
+# Everything in this script is relative to the directory containing this script.
+# This works most of the time but is not perfect. It will fail if the script is sourced or if the script is
+# executed from a symlink.
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
 # Read version from icerpc.version.props
 version=$(cat build/IceRpc.Version.props | grep IceRpcVersion | sed -E "s/<IceRpcVersion .*>(.*)<\/IceRpcVersion>/\1/g" | sed -e 's/^[[:space:]]*//')
 
@@ -147,7 +152,7 @@ run_test()
 {
     arguments=("test" "-c" "$dotnet_config")
     if [ "$coverage" == "yes" ]; then
-        runsettings=$(realpath 'build/Coverlet.runsettings')
+        runsettings=${PWD}/build/Coverlet.runsettings
         arguments+=("/p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
     fi
     run_command dotnet "${arguments[@]}"
