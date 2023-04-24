@@ -17,6 +17,11 @@ class MyClassC {
     theB: MyClassB?
 }
 
+class Person {
+    spouse: Person?
+    emergencyContact: Person?
+}
+
 class MyCompactClass(15) {}
 
 class MyClassWithTaggedFields {
@@ -29,14 +34,23 @@ class MyDerivedClassWithTaggedFields : MyClassWithTaggedFields {
 
 class MyDerivedCompactClass(789) : MyCompactClass {}
 
-[format(Compact)]
-interface CompactFormatOperations {
-    OpAnyClass(p1: AnyClass) -> AnyClass
-    OpMyClass(p1: MyClassA) -> MyClassA
+// Tests for operations that accept and return class instances
+interface ClassOperations {
+    // Compact format
+    opAnyClassCompact(p1: AnyClass) -> AnyClass
+    opMyClassCompact(p1: MyClassA) -> MyClassA
+
+    // Sliced format
+    [format(Sliced)] opAnyClassSliced(p1: AnyClass) -> AnyClass
+    [format(Sliced)] opMyClassSliced(p1: MyClassA) -> MyClassA
 }
 
-[format(Sliced)]
-interface SlicedFormatOperations {
-    OpAnyClass(p1: AnyClass) -> AnyClass
-    OpMyClass(p1: MyClassA) -> MyClassA
+[cs::internal]
+class MyInternalBaseClass {
+    m1: string
+}
+
+[cs::internal]
+class MyInternalClass : MyInternalBaseClass {
+    m2: string
 }

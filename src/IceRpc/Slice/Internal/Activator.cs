@@ -73,10 +73,10 @@ internal class ActivatorFactory
                 {
                     var dict = new Dictionary<string, Lazy<ActivateObject>>();
 
-                    foreach (Type type in assembly.GetExportedTypes())
+                    foreach (Type type in assembly.GetTypes())
                     {
                         // We're only interested in generated Slice classes and exceptions.
-                        if (type.GetSliceTypeId() is string typeId && type.IsClass)
+                        if (type.IsClass && type.GetSliceTypeId() is string typeId)
                         {
                             var lazy = new Lazy<ActivateObject>(() => CreateActivateObject(type));
 
@@ -111,7 +111,7 @@ internal class ActivatorFactory
                 new Type[] { typeof(SliceDecoder).MakeByRefType() };
 
             ConstructorInfo? constructor = type.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 null,
                 types,
                 null);

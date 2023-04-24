@@ -27,3 +27,6 @@ class ClassWithTaggedFields {
     tag(9) i: sequence<int32>?     // Uses FSize tag format
     tag(10) j: string?             // Uses OptimizedVSize tag format
 }
+
+class ClassWithoutTaggedFields {
+}

@@ -38,11 +38,31 @@ public sealed class ClassTests
                 var decoder = new SliceDecoder(
                     buffer.WrittenMemory,
                     SliceEncoding.Slice1,
-                    activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly),
+                    activator: IActivator.FromAssembly(typeof(MyClassA).Assembly),
                     maxDepth: 100);
                 decoder.DecodeClass<MyClassA>();
             },
             Throws.TypeOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Encode_and_decode_internal_class()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        encoder.EncodeClass(new MyInternalClass("m1", "m2"));
+
+        var decoder = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice1,
+                    activator: IActivator.FromAssemblies(typeof(MyInternalClass).Assembly),
+                    maxDepth: 100);
+        // Act
+        MyInternalClass decoded = decoder.DecodeClass<MyInternalClass>();
+
+        Assert.That(decoded.M1, Is.EqualTo("m1"));
+        Assert.That(decoded.M2, Is.EqualTo("m2"));
     }
 
     [Test]
@@ -377,7 +397,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(
@@ -500,7 +520,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -580,7 +600,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -643,7 +663,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -735,7 +755,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -758,6 +778,36 @@ public sealed class ClassTests
     }
 
     [Test]
+    public void Encode_decode_circular_graph([Values] ClassFormat classFormat)
+    {
+        var john = new Person();
+        var yoko = new Person(john, null);
+        john.Spouse = yoko;
+        john.EmergencyContact = yoko;
+
+        // Encode/decode it.
+        var buffer = new MemoryBufferWriter(new byte[1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: classFormat);
+        encoder.EncodeClass(john);
+        encoder.EncodeClass(yoko);
+
+        var decoder = new SliceDecoder(
+            buffer.WrittenMemory,
+            SliceEncoding.Slice1,
+            activator: IActivator.FromAssembly(typeof(Person).Assembly));
+
+        // Act
+        Person newJohn = decoder.DecodeClass<Person>();
+        Person newYoko = decoder.DecodeClass<Person>();
+
+        // Verify we get the same graph.
+        Assert.That(newJohn.Spouse, Is.SameAs(newYoko));
+        Assert.That(newJohn.EmergencyContact, Is.SameAs(newYoko));
+        Assert.That(newYoko.Spouse, Is.SameAs(newJohn));
+        Assert.That(newYoko.EmergencyContact, Is.Null);
+    }
+
+    [Test]
     public void Decode_class_with_compact_id_and_compact_format()
     {
         // Arrange
@@ -773,7 +823,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         // Act
         _ = decoder.DecodeClass<MyDerivedCompactClass>();
@@ -806,7 +856,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         // Act
         _ = decoder.DecodeClass<MyDerivedCompactClass>();
@@ -880,7 +930,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedClassWithTaggedFields).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedClassWithTaggedFields).Assembly));
 
         // Act
         var classWithTaggedFields = decoder.DecodeClass<MyDerivedClassWithTaggedFields>();
@@ -896,8 +946,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            CompactFormatOperationsProxy.Request.OpAnyClass(new MyClassB()) :
-            CompactFormatOperationsProxy.Request.OpMyClass(new MyClassB());
+            ClassOperationsProxy.Request.OpAnyClassCompact(new MyClassB()) :
+            ClassOperationsProxy.Request.OpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -925,8 +975,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            SlicedFormatOperationsProxy.Request.OpAnyClass(new MyClassB()) :
-            SlicedFormatOperationsProxy.Request.OpMyClass(new MyClassB());
+            ClassOperationsProxy.Request.OpAnyClassSliced(new MyClassB()) :
+            ClassOperationsProxy.Request.OpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -962,8 +1012,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ICompactFormatOperationsService.Response.OpAnyClass(new MyClassB()) :
-            ICompactFormatOperationsService.Response.OpMyClass(new MyClassB());
+            IClassOperationsService.Response.OpAnyClassCompact(new MyClassB()) :
+            IClassOperationsService.Response.OpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -991,8 +1041,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ISlicedFormatOperationsService.Response.OpAnyClass(new MyClassB()) :
-            ISlicedFormatOperationsService.Response.OpMyClass(new MyClassB());
+            IClassOperationsService.Response.OpAnyClassSliced(new MyClassB()) :
+            IClassOperationsService.Response.OpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);

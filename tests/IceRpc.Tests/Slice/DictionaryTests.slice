@@ -6,9 +6,10 @@ interface DictionaryMappingOperations {
     // We don't need to add tests for other cs::generic arguments because the code path is always the same. The argument
     // must be a non-abstract generic type that implements IDictionary<TKey, TValue> and provides a constructor with an
     // initial capacity parameter.
-    opReturnTuple() ->
-        (r1: [cs::generic("CustomDictionary")] dictionary<int32, int32>
-         r2: [cs::generic("CustomDictionary")] dictionary<int32, int32>)
+    opReturnTuple() -> (
+        r1: [cs::generic("CustomDictionary")] dictionary<int32, int32>
+        r2: [cs::generic("CustomDictionary")] dictionary<int32, int32>
+    )
 
     opReturnSingleType() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>
 

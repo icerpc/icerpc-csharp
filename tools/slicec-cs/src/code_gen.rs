@@ -109,7 +109,7 @@ mod test {
     #[test]
     fn compile_all_test_slice() {
         let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
-        let tests_dir = root_dir.join("tests").display().to_string();
+        let tests_dir = root_dir.join("tests").join("IceRpc.Tests").display().to_string();
         let slice_dir = root_dir.join("slice").display().to_string();
 
         // Use `resolve_files_from` to find all Slice files in the tests directory.
@@ -127,7 +127,13 @@ mod test {
             options.references.push(slice_dir.clone());
             options.references.push(tests_dir.clone());
 
-            let compilation_data = compile(&options).unwrap();
+            let compilation_data = match compile(&options) {
+                Ok(compilation_data) => compilation_data,
+                Err(compilation_data) => {
+                    compilation_data.into_exit_code(); // This prints the diagnostics
+                    panic!("Failed to compile IceRpc.Tests Slice files");
+                }
+            };
 
             generate_code(compilation_data.files.values().next().unwrap());
         }
