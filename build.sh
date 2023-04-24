@@ -154,7 +154,7 @@ run_test()
 
     if [ "$coverage" == "yes" ]; then
         arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
-        if [ -n "${REPORTGENERATOR_LICENSE}" ]; then
+        if [ -n "${REPORTGENERATOR_LICENSE:-}" ]; then
             arguments+=("-license:${REPORTGENERATOR_LICENSE}")
         fi
 
