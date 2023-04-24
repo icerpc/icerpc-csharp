@@ -56,7 +56,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
                     buffer.WrittenMemory,
                     SliceEncoding.Slice1,
-                    activator: SliceDecoder.GetActivator(typeof(MyInternalClass).Assembly),
+                    activator: IActivator.FromAssemblies(typeof(MyInternalClass).Assembly),
                     maxDepth: 100);
         // Act
         MyInternalClass decoded = decoder.DecodeClass<MyInternalClass>();
