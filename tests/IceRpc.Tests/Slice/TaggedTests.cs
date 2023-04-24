@@ -54,6 +54,30 @@ public class TaggedTests
         }
     }
 
+    public static IEnumerable<TestCaseData> SkipSlice1TaggedFieldsSourceWithClassFormat
+    {
+        get
+        {
+            yield return new TestCaseData(_classWithTaggedFields[0], ClassFormat.Sliced).SetName(
+                "Decode_slice1_tagged_fields(all_fields_set, ClassFormat.Sliced)");
+
+            yield return new TestCaseData(_classWithTaggedFields[0], ClassFormat.Compact).SetName(
+                "Decode_slice1_tagged_fields(all_fields_set, ClassFormat.Compact)");
+
+            yield return new TestCaseData(_classWithTaggedFields[1], ClassFormat.Sliced).SetName(
+                "Decode_slice1_tagged_fields(no_fields_set, ClassFormat.Sliced)");
+
+            yield return new TestCaseData(_classWithTaggedFields[1], ClassFormat.Compact).SetName(
+                "Decode_slice1_tagged_fields(no_fields_set, ClassFormat.Compact)");
+
+            yield return new TestCaseData(_classWithTaggedFields[2], ClassFormat.Sliced).SetName(
+                "Decode_slice1_tagged_fields(some_fields_set, ClassFormat.Sliced)");
+
+            yield return new TestCaseData(_classWithTaggedFields[2], ClassFormat.Compact).SetName(
+                "Decode_slice1_tagged_fields(some_fields_set, ClassFormat.Compact)");
+        }
+    }
+
     public static IEnumerable<TestCaseData> DecodeSlice2TaggedFieldsSource
     {
         get
@@ -463,5 +487,50 @@ public class TaggedTests
 
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test, TestCaseSource(nameof(SkipSlice1TaggedFieldsSourceWithClassFormat))]
+    public void Skip_tagged_fields(ClassWithTaggedFields expected, ClassFormat classFormat)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat);
+        encoder.EncodeClass(expected);
+
+        // Create an activator that replaces ClassWithTaggedFields by ClassWithoutTaggedFields, both classes
+        // are equal except that ClassWithoutTaggedFields doesn't contain any of the tagged fields. Decoding
+        // ClassWithTaggedFields as ClassWithoutTaggedFields exercise skipping of tagged values.
+        var activator = new TypeReplacementActivator(
+            IActivator.FromAssembly(typeof(ClassWithTaggedFields).Assembly),
+            typeof(ClassWithTaggedFields).GetSliceTypeId()!,
+            typeof(ClassWithoutTaggedFields).GetSliceTypeId()!);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: activator);
+
+        // Act
+        _ = decoder.DecodeClass<ClassWithoutTaggedFields>();
+
+        // Assert
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    private class TypeReplacementActivator : IActivator
+    {
+        private readonly IActivator _decoratee;
+        private readonly string _replacementTypeId;
+        private readonly string _typeId;
+
+        public object? CreateClassInstance(string typeId, ref SliceDecoder decoder) =>
+            _decoratee.CreateClassInstance(typeId == _typeId ? _replacementTypeId : typeId, ref decoder);
+
+        public object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message) =>
+            _decoratee.CreateExceptionInstance(typeId, ref decoder, message);
+
+        internal TypeReplacementActivator(IActivator decoratee, string typeId, string replacementTypeId)
+        {
+            _decoratee = decoratee;
+            _typeId = typeId;
+            _replacementTypeId = replacementTypeId;
+        }
     }
 }
