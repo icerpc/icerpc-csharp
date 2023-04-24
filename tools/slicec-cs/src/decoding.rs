@@ -150,7 +150,7 @@ pub fn decode_tagged(
         .add_argument(format!("useTagEndMarker: {use_tag_end_marker}"))
         .build();
 
-    format!("{param} = {decode};").into()
+    format!("{param} = {decode}").into()
 }
 
 pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
