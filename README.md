@@ -16,7 +16,7 @@ TODO
 ## How can I contribute
 
 - [Contributing](./CONTRIBUTING.md) explains how you can contribute to this project.
-- [Workflow](./docs/workflow.md ) explains how you can build and use the source code.
+- [Building](BUILDING.md ) explains how you can build and use the source code.
 
 ## License
 
