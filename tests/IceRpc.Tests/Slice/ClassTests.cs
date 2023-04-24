@@ -38,11 +38,31 @@ public sealed class ClassTests
                 var decoder = new SliceDecoder(
                     buffer.WrittenMemory,
                     SliceEncoding.Slice1,
-                    activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly),
+                    activator: IActivator.FromAssembly(typeof(MyClassA).Assembly),
                     maxDepth: 100);
                 decoder.DecodeClass<MyClassA>();
             },
             Throws.TypeOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Encode_and_decode_internal_class()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
+        encoder.EncodeClass(new MyInternalClass("m1", "m2"));
+
+        var decoder = new SliceDecoder(
+                    buffer.WrittenMemory,
+                    SliceEncoding.Slice1,
+                    activator: IActivator.FromAssemblies(typeof(MyInternalClass).Assembly),
+                    maxDepth: 100);
+        // Act
+        MyInternalClass decoded = decoder.DecodeClass<MyInternalClass>();
+
+        Assert.That(decoded.M1, Is.EqualTo("m1"));
+        Assert.That(decoded.M2, Is.EqualTo("m2"));
     }
 
     [Test]
@@ -377,7 +397,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         Assert.That(decoder.DecodeSize(), Is.EqualTo(1)); // Instance marker
         Assert.That(
@@ -500,7 +520,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -580,7 +600,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -643,7 +663,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -735,7 +755,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyClassA).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyClassA).Assembly));
 
         // Act
         MyClassA theA = decoder.DecodeClass<MyClassA>();
@@ -774,7 +794,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(Person).Assembly));
+            activator: IActivator.FromAssembly(typeof(Person).Assembly));
 
         // Act
         Person newJohn = decoder.DecodeClass<Person>();
@@ -803,7 +823,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         // Act
         _ = decoder.DecodeClass<MyDerivedCompactClass>();
@@ -836,7 +856,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedCompactClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedCompactClass).Assembly));
 
         // Act
         _ = decoder.DecodeClass<MyDerivedCompactClass>();
@@ -910,7 +930,7 @@ public sealed class ClassTests
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(MyDerivedClassWithTaggedFields).Assembly));
+            activator: IActivator.FromAssembly(typeof(MyDerivedClassWithTaggedFields).Assembly));
 
         // Act
         var classWithTaggedFields = decoder.DecodeClass<MyDerivedClassWithTaggedFields>();

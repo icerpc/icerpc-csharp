@@ -51,7 +51,7 @@ impl Visitor for DispatchVisitor<'_> {
                 format!(
                     "\
 private static readonly IActivator _defaultActivator =
-    SliceDecoder.GetActivator(typeof({service_name}).Assembly);"
+    IActivator.FromAssembly(typeof({service_name}).Assembly);"
                 )
                 .into(),
             );

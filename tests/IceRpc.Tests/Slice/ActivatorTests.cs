@@ -68,7 +68,7 @@ public class ActivatorTests
     public void Activator_cannot_create_instances_of_classes_defined_in_unknown_assemblies(string typeId)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = SliceDecoder.GetActivator(typeof(SliceDecoder).Assembly);
+        IActivator sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
 
         object? instance = sut.CreateClassInstance(typeId, ref decoder);
 
@@ -79,7 +79,7 @@ public class ActivatorTests
     public void Activator_cannot_create_instances_of_exceptions_defined_in_unknown_assemblies(string typeId)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = SliceDecoder.GetActivator(typeof(SliceDecoder).Assembly);
+        IActivator sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
 
         object? instance = sut.CreateExceptionInstance(typeId, ref decoder, message: null);
 
@@ -93,7 +93,7 @@ public class ActivatorTests
         Type expectedType)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = SliceDecoder.GetActivator(assembly);
+        IActivator sut = IActivator.FromAssembly(assembly);
 
         object? instance = sut.CreateClassInstance(typeId, ref decoder);
 
@@ -108,11 +108,19 @@ public class ActivatorTests
         Type expectedType)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = SliceDecoder.GetActivator(assembly);
+        IActivator sut = IActivator.FromAssembly(assembly);
 
         object? instance = sut.CreateExceptionInstance(typeId, ref decoder, message: null);
 
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
     }
+
+    [TestCase(typeof(ClassB), typeof(ClassA))]
+    [TestCase(typeof(ClassC))]
+    [TestCase(typeof(ClassD), typeof(ClassDPrime))]
+    public void Create_activator_from_assemblies(params Type[] types) =>
+        Assert.That(
+            () => IActivator.FromAssemblies(types.Select(type => type.Assembly).ToArray()),
+            Throws.Nothing);
 }

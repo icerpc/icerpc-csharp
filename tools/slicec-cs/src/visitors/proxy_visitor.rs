@@ -95,7 +95,7 @@ public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAdd
                 format!(
                     "\
 private static readonly IActivator _defaultActivator =
-    SliceDecoder.GetActivator(typeof({proxy_impl}).Assembly);"
+    IActivator.FromAssembly(typeof({proxy_impl}).Assembly);"
                 )
                 .into(),
             );
