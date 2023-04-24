@@ -44,3 +44,13 @@ interface ClassOperations {
     [format(Sliced)] opAnyClassSliced(p1: AnyClass) -> AnyClass
     [format(Sliced)] opMyClassSliced(p1: MyClassA) -> MyClassA
 }
+
+[cs::internal]
+class MyInternalBaseClass {
+    m1: string
+}
+
+[cs::internal]
+class MyInternalClass : MyInternalBaseClass {
+    m2: string
+}
