@@ -47,7 +47,8 @@ interface LocatorRegistry {
     idempotent setReplicatedAdapterDirectProxy(
         adapterId: string
         replicaGroupId: string
-        proxy: WellKnownTypes::ServiceAddress?) throws AnyException
+        proxy: WellKnownTypes::ServiceAddress?
+    ) throws AnyException
 
     /// Registers a proxy for the {@link Process} service of a server application.
     /// @param serverId: The server ID.

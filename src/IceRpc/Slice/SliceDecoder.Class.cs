@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 using static IceRpc.Slice.Internal.Slice1Definitions;
@@ -15,24 +14,6 @@ namespace IceRpc.Slice;
 /// <summary>Provides methods to decode data encoded with Slice1 or Slice2.</summary>
 public ref partial struct SliceDecoder
 {
-    /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
-    /// assemblies.</summary>
-    /// <param name="assembly">The assembly.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assembly" /> provided this
-    /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute" />
-    /// attribute). Types defined in assemblies referenced by <paramref name="assembly" /> are included as well,
-    /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
-    /// considered.</returns>
-    public static IActivator GetActivator(Assembly assembly) => ActivatorFactory.Instance.Get(assembly);
-
-    /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
-    /// referenced assemblies.</summary>
-    /// <param name="assemblies">The assemblies.</param>
-    /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies" /> and their
-    /// referenced assemblies. See <see cref="GetActivator(Assembly)" />.</returns>
-    public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
-        Internal.Activator.Merge(assemblies.Select(ActivatorFactory.Instance.Get));
-
     /// <summary>Decodes a class instance.</summary>
     /// <typeparam name="T">The class type.</typeparam>
     /// <returns>The decoded class instance.</returns>
@@ -332,7 +313,7 @@ public ref partial struct SliceDecoder
                     {
                         _reader.Rewind(-distance);
                     }
-                    _classContext.Current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
+                    _classContext.Current.Slices[i].Instances = DecodeIndirectionTable();
                 }
                 // else remains empty
             }
@@ -561,6 +542,15 @@ public ref partial struct SliceDecoder
             {
                 _classContext.Current.DeferredIndirectionTableList.Add(0); // keep a slot for each slice
             }
+
+            var info = new SliceInfo(
+                typeId,
+                new ReadOnlyMemory<byte>(bytes),
+                _classContext.Current.IndirectionTable ?? Array.Empty<SliceClass>(),
+                hasTaggedFields);
+
+            _classContext.Current.Slices ??= new List<SliceInfo>();
+            _classContext.Current.Slices.Add(info);
         }
         else if (hasIndirectionTable)
         {
@@ -570,15 +560,6 @@ public ref partial struct SliceDecoder
             _reader.Advance(_classContext.Current.PosAfterIndirectionTable.Value - _reader.Consumed);
             _classContext.Current.PosAfterIndirectionTable = null;
         }
-
-        _classContext.Current.Slices ??= new List<SliceInfo>();
-        var info = new SliceInfo(
-            typeId,
-            new ReadOnlyMemory<byte>(bytes),
-            Array.AsReadOnly(_classContext.Current.IndirectionTable ??
-            Array.Empty<SliceClass>()),
-            hasTaggedFields);
-        _classContext.Current.Slices.Add(info);
 
         // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.
         _classContext.Current.IndirectionTable = null;

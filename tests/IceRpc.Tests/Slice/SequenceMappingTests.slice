@@ -67,7 +67,8 @@ interface SequenceMappingOperations {
     opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>
     opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>
 
-    opReturnTuple() ->
-        (r1: [cs::generic("CustomSequence")] sequence<int32>
-         r2: [cs::generic("CustomSequence")] sequence<int32>)
+    opReturnTuple() -> (
+        r1: [cs::generic("CustomSequence")] sequence<int32>
+        r2: [cs::generic("CustomSequence")] sequence<int32>
+    )
 }

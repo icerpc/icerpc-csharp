@@ -17,8 +17,8 @@ public class SlicingTests
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
-        var p2 = new SlicingMostDerivedClass("p2-m1", "p2-m2", null);
-        var p1 = new SlicingMostDerivedClass("p1-m1", "p1-m2", p2);
+        var p2 = new SlicingMostDerivedClass("p2-m1", "p2-m2", null, null);
+        var p1 = new SlicingMostDerivedClass("p1-m1", "p1-m2", p2, p2);
         encoder.EncodeClass(p1);
 
         IActivator? slicingActivator = null;
@@ -27,7 +27,7 @@ public class SlicingTests
             // Create an activator that excludes 'SlicingMostDerivedClass' type ID and ensure that the class is
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(typeof(SlicingMostDerivedClass).Assembly),
+                IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedClass).GetSliceTypeId());
         }
 
@@ -46,7 +46,7 @@ public class SlicingTests
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(SlicingMostDerivedClass).Assembly));
+            activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly));
 
         SlicingMostDerivedClass r2 = decoder.DecodeClass<SlicingMostDerivedClass>();
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
@@ -54,11 +54,17 @@ public class SlicingTests
         // Assert
         Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSlicedClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
+        if (partialSlicing)
+        {
+            Assert.That(((SlicingDerivedClass)r1).M3, Is.TypeOf<SlicingDerivedClass>());
+            Assert.That(((SlicingDerivedClass)r1).M3.M1, Is.EqualTo("p2-m1"));
+        }
 
         Assert.That(r2.UnknownSlices, Is.Empty);
         Assert.That(r2.M1, Is.EqualTo("p1-m1"));
         Assert.That(r2.M2, Is.EqualTo("p1-m2"));
         Assert.That(r2.M3, Is.InstanceOf<SlicingMostDerivedClass>());
+        Assert.That(r2.M3, Is.SameAs(r2.M4));
         var r3 = (SlicingMostDerivedClass)r2.M3;
         Assert.That(r3!.M1, Is.EqualTo("p2-m1"));
         Assert.That(r3.M2, Is.EqualTo("p2-m2"));
@@ -82,7 +88,7 @@ public class SlicingTests
             // Create an activator that excludes 'SlicingMostDerivedClassWithCompactId' type ID and ensure that the class is
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(typeof(SlicingMostDerivedClassWithCompactId).Assembly),
+                IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedClassWithCompactId).GetCompactSliceTypeId().ToString());
         }
 
@@ -101,7 +107,7 @@ public class SlicingTests
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
+            activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
 
         SlicingMostDerivedClassWithCompactId r2 = decoder.DecodeClass<SlicingMostDerivedClassWithCompactId>();
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
@@ -127,8 +133,8 @@ public class SlicingTests
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
-        var p2 = new SlicingClassWithTaggedFields("p2-m1", "p2-m2", null, "p2-m4");
-        var p1 = new SlicingClassWithTaggedFields("p1-m1", "p1-m2", p2, "p1-m4");
+        var p2 = new SlicingClassWithTaggedFields("p2-m1", "p2-m2", null, null, "p2-m5");
+        var p1 = new SlicingClassWithTaggedFields("p1-m1", "p1-m2", p2, p2, "p1-m5");
         encoder.EncodeClass(p1);
 
         IActivator? slicingActivator = null;
@@ -137,7 +143,7 @@ public class SlicingTests
             // Create an activator that excludes 'SlicingClassWithTaggedFields' type ID and ensure that the class is
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(typeof(SlicingClassWithTaggedFields).Assembly),
+                IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly),
                 excludeTypeId: typeof(SlicingClassWithTaggedFields).GetSliceTypeId());
         }
 
@@ -156,7 +162,7 @@ public class SlicingTests
         decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
-            activator: SliceDecoder.GetActivator(typeof(SlicingClassWithTaggedFields).Assembly));
+            activator: IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly));
 
         SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>();
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
@@ -169,12 +175,12 @@ public class SlicingTests
         Assert.That(r2.M1, Is.EqualTo("p1-m1"));
         Assert.That(r2.M2, Is.EqualTo("p1-m2"));
         Assert.That(r2.M3, Is.InstanceOf<SlicingClassWithTaggedFields>());
-        Assert.That(r2.M4, Is.EqualTo("p1-m4"));
+        Assert.That(r2.M5, Is.EqualTo("p1-m5"));
         var r3 = (SlicingClassWithTaggedFields)r2.M3;
         Assert.That(r3!.M1, Is.EqualTo("p2-m1"));
         Assert.That(r3.M2, Is.EqualTo("p2-m2"));
         Assert.That(r3!.M3, Is.Null);
-        Assert.That(r3.M4, Is.EqualTo("p2-m4"));
+        Assert.That(r3.M5, Is.EqualTo("p2-m5"));
     }
 
     [Test]
@@ -184,7 +190,7 @@ public class SlicingTests
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
-        var p1 = new SlicingMostDerivedException("most-derived", "derived", "base");
+        var p1 = new SlicingMostDerivedException("most-derived-m1", "most-derived-m2", new SlicingBaseClass("base-m1"));
         p1.Encode(ref encoder);
 
         // Create an activator that exclude 'SlicingMostDerivedException' type ID and ensure that the class is decoded
@@ -193,13 +199,7 @@ public class SlicingTests
         if (partialSlicing)
         {
             slicingActivator = new SlicingActivator(
-                SliceDecoder.GetActivator(
-                    new Assembly[]
-                    {
-                        typeof(SlicingMostDerivedException).Assembly,
-                        typeof(SlicingDerivedException).Assembly,
-                        typeof(SlicingBaseException).Assembly
-                    }),
+                IActivator.FromAssembly(typeof(SlicingMostDerivedException).Assembly),
                 excludeTypeId: typeof(SlicingMostDerivedException).GetSliceTypeId());
         }
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
@@ -231,11 +231,11 @@ public class SlicingTests
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
 
-        var p5 = new SlicingMostDerivedClass("p5-m1", "p5-m2", null);
-        var p4 = new SlicingMostDerivedClass("p4-m1", "p4-m2", p5);
-        var p3 = new SlicingMostDerivedClass("p3-m1", "p3-m2", p4);
-        var p2 = new SlicingMostDerivedClass("p2-m1", "p2-m2", p3);
-        var p1 = new SlicingMostDerivedClass("p1-m1", "p1-m2", p2);
+        var p5 = new SlicingMostDerivedClass("p5-m1", "p5-m2", null, null);
+        var p4 = new SlicingMostDerivedClass("p4-m1", "p4-m2", p5, p5);
+        var p3 = new SlicingMostDerivedClass("p3-m1", "p3-m2", p4, p4);
+        var p2 = new SlicingMostDerivedClass("p2-m1", "p2-m2", p3, p3);
+        var p1 = new SlicingMostDerivedClass("p1-m1", "p1-m2", p2, p2);
         encoder.EncodeClass(p1);
 
         Assert.That(
