@@ -42,4 +42,11 @@ interface SlicedFormatOperations {
 }
 
 [cs::internal]
-class MyInternalClass {}
+class MyInternalBaseClass {
+    m1: string
+}
+
+[cs::internal]
+class MyInternalClass : MyInternalBaseClass {
+    m2: string
+}

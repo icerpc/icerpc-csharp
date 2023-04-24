@@ -48,21 +48,21 @@ public sealed class ClassTests
     [Test]
     public void Encode_and_decode_internal_class()
     {
+        // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        encoder.EncodeClass(new MyInternalClass());
+        encoder.EncodeClass(new MyInternalClass("m1", "m2"));
 
-        Assert.That(
-            () =>
-            {
-                var decoder = new SliceDecoder(
+        var decoder = new SliceDecoder(
                     buffer.WrittenMemory,
                     SliceEncoding.Slice1,
                     activator: SliceDecoder.GetActivator(typeof(MyInternalClass).Assembly),
                     maxDepth: 100);
-                return decoder.DecodeClass<MyInternalClass>();
-            },
-            Is.TypeOf<MyInternalClass>());
+        // Act
+        MyInternalClass decoded = decoder.DecodeClass<MyInternalClass>();
+
+        Assert.That(decoded.M1, Is.EqualTo("m1"));
+        Assert.That(decoded.M2, Is.EqualTo("m2"));
     }
 
     [Test]

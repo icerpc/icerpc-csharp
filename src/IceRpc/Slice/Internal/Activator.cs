@@ -76,7 +76,7 @@ internal class ActivatorFactory
                     foreach (Type type in assembly.GetTypes())
                     {
                         // We're only interested in generated Slice classes and exceptions.
-                        if (type.GetSliceTypeId() is string typeId && type.IsClass)
+                        if (type.IsClass && type.GetSliceTypeId() is string typeId)
                         {
                             var lazy = new Lazy<ActivateObject>(() => CreateActivateObject(type));
 
