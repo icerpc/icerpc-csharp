@@ -588,7 +588,7 @@ public class TaggedTests
 
         // Create an activator that replaces ClassWithTaggedFields by ClassWithoutTaggedFields, both classes
         // are equal except that ClassWithoutTaggedFields doesn't contain any of the tagged fields. Decoding
-        // ClassWithTaggedFields as  ClassWithoutTaggedFields exercise skipping of tagged values.
+        // ClassWithTaggedFields as ClassWithoutTaggedFields exercise skipping of tagged values.
         var activator = new TypeReplacementActivator(
             SliceDecoder.GetActivator(typeof(ClassWithTaggedFields).Assembly),
             typeof(ClassWithTaggedFields).GetSliceTypeId()!,
