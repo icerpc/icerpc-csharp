@@ -6,6 +6,8 @@ RPCs to services hosted by IceRPC servers in your local application.
 The primary use case for this transport is testing. Several unit tests running in the same process can easily and cheaply
 create their own private coloc connections.
 
+This transport does not use network APIs. It is available on all platforms.
+
 [Source code][source] | [Package][package] | [API reference documentation][api] | [Product documentation][product]
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.html
