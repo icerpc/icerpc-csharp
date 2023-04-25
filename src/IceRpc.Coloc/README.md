@@ -3,7 +3,7 @@
 IceRpc.Coloc is an implementation of [IceRPC][icerpc]'s duplex transport abstraction. You can use this transport to send
 RPCs to services hosted by IceRPC servers in your local application.
 
-The primary use-case for this transport is testing. Several unit tests running in the same process can easily and cheaply
+The primary use case for this transport is testing. Several unit tests running in the same process can easily and cheaply
 create their own private coloc connections.
 
 [Source code][source] | [Package][package] | [API reference documentation][api] | [Product documentation][product]
