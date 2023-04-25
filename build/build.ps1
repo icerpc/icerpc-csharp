@@ -206,7 +206,7 @@ function Get-Help() {
     Write-Host "  -srcdist                  Use IceRPC NuGet packages from this source distribution when building the examples."
     Write-Host "                            The NuGet packages are pushed to the local global-packages source."
     Write-Host "  -coverage                 Collect code coverage from test runs."
-    Write-Host "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator"
+    Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -help                     Print help and exit."
 }
 
