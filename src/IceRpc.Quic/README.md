@@ -1,8 +1,8 @@
 # QUIC Transport for IceRPC
 
-IceRpc.Quic allows you to use QUIC with [IceRPC][icerpc].
+IceRpc.Quic allows you to use QUIC with [IceRPC][icerpc]. It's a thin layer over [`System.Net.Quic`][quic].
 
-[QUIC][quic] is a new UDP-based multiplexed transport; it's the underlying transport for HTTP/3.
+QUIC is new UDP-based multiplexed transport used by HTTP/3 and several other application protocols.
 
 [Source code][source] | [Package][package] | [Example code][example] | [API reference documentation][api] | [Product documentation][product]
 
