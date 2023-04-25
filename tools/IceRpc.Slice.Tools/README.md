@@ -1,41 +1,43 @@
-# IceRPC Tools
+# Slice Tools for IceRPC
 
-IceRPC tools provides support for compiling Slice source files (`.slice` files) in C# MSBuild projects.
+IceRpc.Slice.Tools allows you compile Slice source files (`.slice` files) into C# source files within MSBuild projects.
 
-This package contains:
+The Slice files are compiled using the `slicec-cs` compiler included in this package. `slicec-cs` is a native tool, 
+written in Rust.
 
-- The `slicec-cs` compiler, for compiling Slice files to C#.
-- The Slice definitions for IceRPC well-known types, IceRPC common definitions, and Ice interoperability.
-- The MSBuild project integration.
+[Source code][source] | [Package][package] | [Slice documentation][slice]
 
-## Contents
+## Adding Slice files to your project
 
-* [Adding Slice Files to your Project](#adding-slice-files-to-your-project)
-* [SliceC Item Metadata](#slicec-item-metadata)
+Once you've added IceRpc.Slice.Tools to your project, all the Slice files in the project's home directory and any
+of its sub-directories (and sub-sub directories, recursively) are automatically compiled into C# files every time
+you build this project.
 
-## Adding Slice Files to your Project
+TODO: describe that we don't change the files when the new C# files are identical to the old ones. Or I believe
+that's what is happening. Is this already documented anywhere??
 
-You need to tell the IceRPC Tools which Slice files (files with a `.slice` extension) to compile, by adding these files to your project.
+You can disable this automatic Slice compilation by setting either `EnableDefaultItems` or `EnableDefaultSliceCItems`
+to `false`.
 
-You can add all Slice files found in your project's home directory and any of its sub-directories (and sub-sub directories, recursively) to your project by setting both `EnableDefaultItems` and `EnableDefaultSliceCItems` to true.
-
-The default value for `EnableDefaultSliceCItems` and `EnableDefaultItems` is true.
-
-As an alternative, you can add Slice files to your project using the `SliceC` item type, for example:
+You can also specify explicitly which Slice file to compile with the `SliceC` item type. For example:
 ```
 <ItemGroup>
     <SliceC Include="../Hello.slice"/>
 </ItemGroup>
 ```
 
-## SliceC Item Metadata
+## SliceC item metadata
 
-The following metadata are recognized on the `<SliceC>` items:
+The following metadata are recognized on `SliceC` items:
 
-| Name                 | Default     | Description                                                                                                                                                            |
-| -------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AdditionalOptions    | (na)        | Additional options to pass to the `slicec-cs` compiler.                                                                                                                |
-| OutputDir            | generated   | The output directory for the generated code; corresponds to the `--output-dir`option of the `slicec-cs` compiler.                                                      |
-| ReferencedFiles      | (na)        | Specify additional directories containing Slice files or Slice files to resolve Slice definitions during compilation. Corresponds to `-R` `slicec-cs` compiler option. |
+| Name                 | Default     | Description                                                                                                                                                       |
+| -------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AdditionalOptions    |          | Additional options to pass to the `slicec-cs` compiler.                                                                                                           |
+| OutputDir            | generated   | Output directory for the generated code. This metadata corresponds to the `--output-dir` option of the `slicec-cs` compiler.                                        |
+| ReferencedFiles      |           | Reference Slice files. The Slice files compiled by `slicec-cs` can reference types and other definitions from these files. This metadata corresponds to the `-R` option of the `slicec-cs` compiler. |
 
-[1]: https://www.nuget.org/packages/IceRpc.Slice.Tools/
+TODO: fix metadata name above. Maybe simply Reference? Should Reference have a default? How do you reference the well-known types? The Ice Slice files?
+
+[package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
+[slice]: https://docs.testing.zeroc.com/docs/slice
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/tools.IceRpc.Slice.Tools
