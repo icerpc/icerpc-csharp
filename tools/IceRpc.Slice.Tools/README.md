@@ -1,11 +1,11 @@
 # Slice Tools for IceRPC
 
-IceRpc.Slice.Tools allows you compile Slice source files (`.slice` files) into C# source files within MSBuild projects.
+IceRpc.Slice.Tools allows you compile Slice source definitions (in `.slice` files) into C# code 
+(in `.cs` files) within MSBuild projects. The generated C# code depends on [IceRPC][icerpc].
 
-The Slice files are compiled using the `slicec-cs` compiler included in this package. `slicec-cs` is a native tool, 
-written in Rust.
+This package includes `slicec-cs`, the Slice compiler for C#. This compiler is a native tool written in Rust.
 
-[Source code][source] | [Package][package] | [Slice documentation][slice]
+[Source code][source] | [Package][package] | [slicec-cs documentation][slicec-cs] |  [Slice documentation][slice]
 
 ## Adding Slice files to your project
 
@@ -22,13 +22,13 @@ to `false`.
 You can also specify explicitly which Slice file to compile with the `SliceC` item type. For example:
 ```
 <ItemGroup>
-    <SliceC Include="../Hello.slice"/>
+    <SliceC Include="../Greeter.slice"/>
 </ItemGroup>
 ```
 
 ## SliceC item metadata
 
-The following metadata are recognized on `SliceC` items:
+You can use the following `SliceC` item metadata to customize the compilation of your Slice files:
 
 | Name                 | Default     | Description                                                                                                                                                       |
 | -------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -38,6 +38,8 @@ The following metadata are recognized on `SliceC` items:
 
 TODO: fix metadata name above. Maybe simply Reference? Should Reference have a default? How do you reference the well-known types? The Ice Slice files?
 
+[icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
 [slice]: https://docs.testing.zeroc.com/docs/slice
+[slicec-cs]: TODO
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/tools.IceRpc.Slice.Tools
