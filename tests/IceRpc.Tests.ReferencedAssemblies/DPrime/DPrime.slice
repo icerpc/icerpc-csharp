@@ -8,7 +8,7 @@ module IceRpc::Tests::ReferencedAssemblies
 // The type IDs remain the same.
 
 [cs::identifier("ClassDPrime")]
-class ClassD : ClassC {
+class ClassD : ClassB {
     dValue: string
 }
 
