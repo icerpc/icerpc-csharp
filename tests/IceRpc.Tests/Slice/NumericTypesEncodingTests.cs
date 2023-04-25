@@ -109,11 +109,48 @@ public class NumericTypesEncodingTests
         Assert.That(buffer[0..bufferWriter.WrittenMemory.Length], Is.EqualTo(expected));
     }
 
+    /// <summary>Tests the encoding of a variable size unsigned long.</summary>
+    /// <param name="value">The ulong to be encoded.</param>
+    /// <param name="expected">The expected byte array produced from encoding value.</param>
+    [TestCase(SliceEncoder.VarUInt62MinValue, new byte[] { 0x00 })]
+    [TestCase((ulong)512, new byte[] { 0x01, 0x08 })]
+    [TestCase((ulong)32768, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
+    [TestCase(SliceEncoder.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
+    public void Encode_varuint62_value_with_a_fixed_number_of_bytes(ulong value, byte[] expected)
+    {
+        var buffer = new byte[expected.Length];
+
+        SliceEncoder.EncodeVarUInt62(value, buffer);
+
+        Assert.That(buffer, Is.EqualTo(expected));
+    }
+
+    /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong, Span{byte})" /> will throw an
+    /// <see cref="ArgumentOutOfRangeException"/> if the value cannot be encoded in the given number of bytes.</summary>
+    /// <param name="value">The value to be encoded.</param>
+    /// <param name="numBytes">The number of bytes used for encoding value.</param>
+    [TestCase(64u, 1)]
+    [TestCase(16_384u, 2)]
+    [TestCase(1_073_741_824u, 4)]
+    [TestCase(SliceEncoder.VarUInt62MaxValue + 1, 8)]
+    public void Encode_varuint62_value_throws_out_of_range(ulong value, int numBytes)
+    {
+        // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
+        // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
+        Assert.That(() =>
+        {
+            var buffer = new byte[numBytes];
+
+            SliceEncoder.EncodeVarUInt62(value, buffer);
+
+        }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+    }
+
     /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong)" /> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varuint62.</summary>
     /// <param name="value">The value to be encoded.</param>
     [TestCase(SliceEncoder.VarUInt62MaxValue + 1)]
-    public void Encode_varuint62_value_throws_out_of_range(ulong value)
+    public void Encode_varuint62_value_with_a_fixed_number_of_bytes_throws_out_of_range(ulong value)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
         // being unable to use ref local inside anonymous methods, lambda expressions, or query expressions.
