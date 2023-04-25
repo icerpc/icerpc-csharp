@@ -4,7 +4,7 @@ encoding = Slice1
 
 module IceRpc::Tests::ReferencedAssemblies
 
-class ClassD : ClassC {
+class ClassD : ClassB {
     dValue: string
 }
 
