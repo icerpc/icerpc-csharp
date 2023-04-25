@@ -68,9 +68,7 @@ build.cmd test -coverage
 
 ## Examples
 
-To build the examples using the IceRPC distribution from this repository instead of the one from the published NuGet
-packages, you need to build and install the NuGet packages from this repository before building the examples. You can
-do this by running the following command:
+To use the IceRPC distribution from this repository instead of the one from the published NuGet packages, you'll need to build and install the NuGet packages from this repository before building the examples. To do so, run the following command:
 
 For Linux and macOS
 
