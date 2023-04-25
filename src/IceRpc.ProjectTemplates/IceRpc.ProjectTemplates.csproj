@@ -12,6 +12,7 @@
         <PackageId>IceRpc.ProjectTemplates</PackageId>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC;RPC;Templates</PackageTags>
         <PackageType>Template</PackageType>
@@ -26,17 +27,8 @@
             <Pack>true</Pack>
         </Content>
         <Compile Remove="**\*" />
-        <Content Include="..\..\LICENSE">
-            <PackagePath />
-            <Pack>true</Pack>
-        </Content>
-        <Content Include="README.md">
-            <PackagePath />
-            <Pack>true</Pack>
-        </Content>
-        <None Include="..\..\build\logo.png">
-            <PackagePath />
-            <Pack>true</Pack>
-        </None>
+        <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+        <Content Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\build\logo.png" Pack="true" PackagePath="\" />
     </ItemGroup>
 </Project>

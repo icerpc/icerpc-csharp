@@ -1,6 +1,8 @@
+# IceRpc
+
 This package contains the IceRPC .NET implementation, IceRPC is a modern, high-performance, contract-first RPC library.
 
-# Links
+## Links
 
 - [Homepage](https://icerpc.com)
 - [Documentation](https://doc.icerpc.com)

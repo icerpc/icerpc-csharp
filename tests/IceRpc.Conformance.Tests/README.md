@@ -1,6 +1,6 @@
-# IceRpc.Quic
+# IceRpc.Conformance.Tests
 
-This package contains the QUIC multiplexed transport for [IceRPC .NET](https://www.nuget.org/packages/IceRpc).
+This package contains the [IceRPC](https://icerpc.com) transport conformance tests.
 
 ## Links
 

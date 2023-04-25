@@ -1,6 +1,6 @@
-# IceRpc.Quic
+# IceRpc.Tests.Common
 
-This package contains the QUIC multiplexed transport for [IceRPC .NET](https://www.nuget.org/packages/IceRpc).
+This package contains helper classes used by [IceRPC](https://icerpc.com) test suite.
 
 ## Links
 

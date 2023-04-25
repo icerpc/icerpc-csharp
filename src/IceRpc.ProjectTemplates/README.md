@@ -1,3 +1,5 @@
+# IceRpc.ProjectTemplates
+
 This package contains `dotnet new` project templates for [IceRPC .NET](https://www.nuget.org/packages/IceRpc).
 
 The `IceRpc.ProjectTemplates` package provides the following templates:
@@ -7,7 +9,7 @@ The `IceRpc.ProjectTemplates` package provides the following templates:
 | `icerpc-client` | Template for IceRPC command line client applications. |
 | `icerpc-server` | Template for IceRPC command line server applications. |
 
-# Links
+## Links
 
 - [Homepage](https://icerpc.com)
 - [Documentation](https://doc.icerpc.com)

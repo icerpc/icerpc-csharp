@@ -1,6 +1,8 @@
+# IceRpc.Locator
+
 This package contains the locator interceptor for [IceRPC .NET](https://www.nuget.org/packages/IceRpc), that allows IceRPC applications to use an Ice location service.
 
-# Links
+## Links
 
 - [Homepage](https://icerpc.com)
 - [Documentation](https://doc.icerpc.com)
