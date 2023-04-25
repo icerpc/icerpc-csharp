@@ -8,8 +8,8 @@ QUIC is new UDP-based multiplexed transport used by HTTP/3 and several other app
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterQuic
-[icerpc]: https://www.nuget.org/packages/icerpc
+[icerpc]: https://www.nuget.org/packages/IceRpc
 [quic]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview
-[package]: https://www.nuget.org/packages/icerpc.quic
+[package]: https://www.nuget.org/packages/IceRpc.Quic
 [product]: https://docs.testing.zeroc.com/docs/icerpc-core
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Quic
