@@ -1,6 +1,5 @@
-# Workflow Guide
+# Building from source
 
-- [Workflow Guide](#workflow-guide)
 - [Build Requirements](#build-requirements)
 - [Building](#building)
 - [Testing](#testing)
@@ -101,7 +100,7 @@ Windows
 build.cmd pack
 ```
 
-### IceRPC Slice Tools
+### Slice Tools
 
 When the `SLICEC_CS_STAGING_PATH` MSBuild property is set, the NuGet package includes the `slicec-cs` compiler for all
 supported platforms instead of including the `slice-cs` compiler from the current source build. To create the package
