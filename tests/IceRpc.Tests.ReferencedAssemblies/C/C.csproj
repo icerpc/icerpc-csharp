@@ -2,7 +2,7 @@
 
   <ItemDefinitionGroup>
     <SliceC>
-      <ReferencedFiles>../A;../B</ReferencedFiles>
+      <ReferencedFiles>../A</ReferencedFiles>
     </SliceC>
   </ItemDefinitionGroup>
 
@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\B\B.csproj" />
+    <ProjectReference Include="..\A\A.csproj" />
   </ItemGroup>
 
   <Target Name="CopyTestAssemblies" AfterTargets="CopyFilesToOutputDirectory">

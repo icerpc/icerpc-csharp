@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\B\B.csproj" />
     <ProjectReference Include="..\C\C.csproj" />
   </ItemGroup>
 
