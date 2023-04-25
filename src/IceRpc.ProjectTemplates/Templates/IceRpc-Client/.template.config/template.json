@@ -1,19 +1,19 @@
 {
     "$schema": "http://json.schemastore.org/template",
     "author": "ZeroC",
-    "classifications": ["IceRPC", "Server"],
-    "identity": "IceRpc.Server",
-    "name": "IceRPC Server",
-    "shortName": "icerpc-server",
+    "classifications": ["IceRPC", "Client"],
+    "identity": "IceRpc.Client",
+    "name": "IceRPC Client",
+    "shortName": "icerpc-client",
     "tags": {
         "language": "C#",
         "type": "project"
     },
-    "sourceName": "Server",
+    "sourceName": "IceRpc-Client",
     "preferNameDirectory": true,
     "primaryOutputs": [
         {
-            "path": "Server.csproj"
+            "path": "IceRpc-Client.csproj"
         }
     ]
 }
