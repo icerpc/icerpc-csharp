@@ -4,6 +4,19 @@
     <IsPackable>true</IsPackable>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
+
+    <Authors>ZeroC, Inc.</Authors>
+    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
+    <Description>IceRPC transport conformance tests.</Description>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>IceRPC;RPC</PackageTags>
+    <PackageVersion>$(IceRpcVersion)</PackageVersion>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +35,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" ExactVersion="true" />
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" ExactVersion="true" />
+  </ItemGroup>
+
+  <!-- NuGet package contents-->
+  <ItemGroup>
+    <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <Content Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\build\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
