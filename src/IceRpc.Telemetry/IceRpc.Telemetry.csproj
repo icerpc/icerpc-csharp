@@ -7,6 +7,7 @@
         <PackageIcon>logo.png</PackageIcon>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageReleaseNotes>https://github.com/icerpc/icerpc-csharp/releases/tag/v0.1.0</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC;RPC;Telemetry</PackageTags>
@@ -23,13 +24,8 @@
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
-        <Content Include="..\..\LICENSE">
-            <PackagePath>.</PackagePath>
-            <Pack>true</Pack>
-        </Content>
-        <None Include="..\..\build\logo.png">
-            <Pack>true</Pack>
-            <PackagePath>.</PackagePath>
-        </None>
+        <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+        <Content Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\build\logo.png" Pack="true" PackagePath="\" />
     </ItemGroup>
 </Project>
