@@ -127,7 +127,7 @@ function Pack($config) {
     Pop-Location
     RunCommand "dotnet"  @('pack', '-nr:false', '--configuration', $dotnetConfiguration)
     Push-Location "src\IceRpc.ProjectTemplates"
-    RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('pack', '-nr:false', '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
