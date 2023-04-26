@@ -15,12 +15,23 @@
         <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
     <ItemGroup>
-        <SliceC Include="../../slice/$(AssemblyName)/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
-        <SliceC Include="../../slice/Ice/Object.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
+        <SliceC
+          Include="../../slice/WellKnownTypes/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated"
+          Pack="true"
+          PackagePath="slice/WellKnownTypes"/>
+        <SliceC
+          Include="../../slice/$(AssemblyName)/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated"
+          Pack="true"
+          PackagePath="slice/$(AssemblyName)"/>
+        <SliceC
+          Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated"
+          Pack="true"
+          PackagePath="slice/Ice" />
         <SliceC Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceC Include="../../slice/$(AssemblyName)/Slice/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/generated" />
         <SliceC Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
-        <SliceC Include="../../slice/$(AssemblyName)/Transports/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/generated" />
         <SliceC Include="../../slice/$(AssemblyName)/Transports/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Internal/generated" />
     </ItemGroup>
     <ItemGroup>
@@ -37,5 +48,7 @@
         <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
         <Content Include="README.md" Pack="true" PackagePath="\" />
         <None Include="..\..\build\logo.png" Pack="true" PackagePath="\" />
+        <Content Include="IceRpc.props" Pack="true" PackagePath="build" />
     </ItemGroup>
 </Project>
+

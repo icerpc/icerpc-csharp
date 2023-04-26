@@ -6,5 +6,7 @@
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.globalconfig" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Tests.globalconfig" />
+        <!-- Reference the built-in Slice files -->
+        <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice" />
     </ItemGroup>
 </Project>
