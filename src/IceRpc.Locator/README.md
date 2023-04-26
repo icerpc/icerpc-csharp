@@ -21,12 +21,12 @@ await using var connectionCache = new ConnectionCache();
 var pipeline = new Pipeline();
 
 // You can use the same invocation pipeline for all your proxies.
-var locator = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
+var locatorProxy = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
 
 // If you install the retry interceptor, install it before the locator interceptor.
 pipeline = pipeline
     .UseRetry()
-    .UseLocator(locator)
+    .UseLocator(locatorProxy)
     .Into(connectionCache);
     
 // A call on this proxy will use the locator to find the server address(es) associated with
