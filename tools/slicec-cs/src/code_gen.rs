@@ -9,7 +9,9 @@ use super::visitors::{
 use slice::code_block::CodeBlock;
 use slice::command_line::SliceOptions;
 use slice::compilation_result::{CompilationData, CompilationResult};
+use slice::diagnostics::{Diagnostic, Error};
 use slice::slice_file::SliceFile;
+use std::io;
 
 // Compile the Slice into a CompilationResult, then run the compiler chain.
 pub fn compile(slice_options: &SliceOptions) -> CompilationResult {
@@ -18,7 +20,33 @@ pub fn compile(slice_options: &SliceOptions) -> CompilationResult {
 
 // The compiler chain is a series of steps that are run on the compilation data.
 pub fn compiler_chain(compilation_data: CompilationData) -> CompilationResult {
-    unsafe { patch_attributes(compilation_data) }.and_then(validate_cs_attributes)
+    unsafe { patch_attributes(compilation_data) }
+        .and_then(validate_cs_attributes)
+        .and_then(check_for_unique_names)
+}
+
+fn check_for_unique_names(mut compilation_data: CompilationData) -> CompilationResult {
+    let reporter = &mut compilation_data.diagnostic_reporter;
+    let mut file_map = std::collections::HashMap::new();
+
+    for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
+        if let Some(old_path) = file_map.insert(&slice_file.filename, &slice_file.relative_path) {
+            let relative_path = &slice_file.relative_path;
+            Diagnostic::new(Error::IO {
+                action: "generate code for",
+                path: slice_file.relative_path.clone(),
+                error: io::ErrorKind::InvalidInput.into(),
+            })
+            .add_note(
+                format!("Generated code for '{relative_path}' would overwrite that of '{old_path}'"),
+                None,
+            )
+            .add_note("Multiple source files can not have the same filename as generated files are written to a common directory.", None)
+            .report(reporter)
+        }
+    }
+
+    compilation_data.into()
 }
 
 // Generate the code for a single Slice file.
@@ -99,8 +127,11 @@ using IceRpc.Slice;
 mod test {
     use super::{compile, generate_code};
     use slice::command_line::SliceOptions;
-    use slice::diagnostics::DiagnosticReporter;
+    use slice::compilation_result::CompilationData;
+    use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
+    use slice::test_helpers::{check_diagnostics, diagnostics_from_compilation_data};
     use slice::utils::file_util::resolve_files_from;
+    use std::io;
     use std::path::Path;
 
     // This test compiles all the Slice files in the tests directory (recursive).
@@ -137,5 +168,41 @@ mod test {
 
             generate_code(compilation_data.files.values().next().unwrap());
         }
+    }
+
+    #[test]
+    fn unique_filenames() {
+        // Arrange
+        let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
+        let greeter1 = root_dir
+            .join("src")
+            .join("IceRpc.ProjectTemplates")
+            .join("Templates")
+            .join("IceRpc-Client")
+            .join("Greeter.slice");
+        let greeter2 = root_dir
+            .join("src")
+            .join("IceRpc.ProjectTemplates")
+            .join("Templates")
+            .join("IceRpc-Server")
+            .join("Greeter.slice");
+
+        let mut options = SliceOptions::default();
+        options.sources.push(greeter1.display().to_string());
+        options.sources.push(greeter2.display().to_string());
+
+        // Act
+
+        let compilation_data: CompilationData = compile(&options).into();
+
+        // Assert
+        let expected = [Diagnostic::new(Error::IO {
+            action: "generate code for",
+            path: compilation_data.files.values().last().unwrap().relative_path.clone(),
+            error: io::ErrorKind::InvalidInput.into(),
+        })];
+        let diagnostics = diagnostics_from_compilation_data(compilation_data);
+
+        check_diagnostics(diagnostics, expected);
     }
 }
