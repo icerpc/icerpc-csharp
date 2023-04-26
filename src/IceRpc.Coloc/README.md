@@ -30,7 +30,7 @@ server.Listen();
 // Create a client connection to this server
 
 await using var connection = new ClientConnection(
-    new Uri("icerpc://anyhost"),
+    new Uri("icerpc://host"), // you can use any host and port with coloc
     multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
     
 await connection.ConnectAsync();
