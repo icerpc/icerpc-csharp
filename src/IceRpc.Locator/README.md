@@ -7,7 +7,7 @@ Use this interceptor in IceRPC client applications that call services hosted by 
 
 _Ice interop only_
 
-[Source code][source] | [Package][package] | [Example code][example] | [API reference documentation][api] | [Ice interop][interop]
+[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Ice interop][interop]
 
 ## Sample code
 
