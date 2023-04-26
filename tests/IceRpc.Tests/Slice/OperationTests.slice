@@ -67,6 +67,11 @@ interface MyTaggedOperations {
     op(tag(1) x: int32?, y: int32, tag(2) z: int32?)
 }
 
+// A prior version of MyTaggedOperations which doesn't contain any of the tagged parameters.
+interface MyTaggedOperationsV0 {
+    op(y: int32)
+}
+
 interface MyTaggedOperationsReadOnlyMemoryParams {
     op(x: sequence<int32>, tag(1) y: sequence<int32>?, tag(2) z: sequence<int32>?)
 }
