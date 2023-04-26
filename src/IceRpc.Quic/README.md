@@ -1,10 +1,15 @@
-# IceRpc.Quic
+# QUIC Transport for IceRPC
 
-This package contains the QUIC multiplexed transport for [IceRPC .NET](https://www.nuget.org/packages/IceRpc).
+IceRpc.Quic allows you to use QUIC with [IceRPC][icerpc]. It's a thin layer over [`System.Net.Quic`][quic].
 
-## Links
+QUIC is new UDP-based multiplexed transport used by HTTP/3 and several other application protocols.
 
-- [Homepage](https://icerpc.com)
-- [Documentation](https://doc.icerpc.com)
-- [API Reference](https://api.icerpc.com/csharp/api/IceRpc.Transports.html)
-- [GitHub](https://github.com/icerpc/icerpc-csharp)
+[Source code][source] | [Package][package] | [Example code][example] | [API reference documentation][api] | [Product documentation][product]
+
+[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.html
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterQuic
+[icerpc]: https://www.nuget.org/packages/IceRpc
+[quic]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview
+[package]: https://www.nuget.org/packages/IceRpc.Quic
+[product]: https://docs.testing.zeroc.com/docs/icerpc-core
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Quic
