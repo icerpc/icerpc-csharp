@@ -1,9 +1,9 @@
 # Locator Interceptor for IceRPC
 
-IceRpc.Locator provides an IceRPC][icerpc] interceptor that allows you to resolve ice service addresses
+IceRpc.Locator provides an [IceRPC][icerpc] interceptor that allows you to resolve ice service addresses
 using an [Ice locator][locator].
 
-Use this interceptor in IceRPC client applications that call services hosted in IceGrid-managed servers.
+Use this interceptor in IceRPC client applications that call services hosted by IceGrid-managed servers.
 
 _Ice interop only_
 
