@@ -7,6 +7,8 @@ Use this interceptor in IceRPC client applications that call services hosted in 
 
 _Ice interop only_
 
+[Source code][source] | [Package][package] | [Example code][example] | [API reference documentation][api] | [Ice interop][interop]
+
 ## Sample code
 
 ```csharp
@@ -31,8 +33,6 @@ pipeline = pipeline
 // `/hello`. The locator interceptor caches successful resolutions.
 var helloProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
 ```
-
-[Source code][source] | [Package][package] | [Example code][example] | [API reference documentation][api] | [Ice interop][interop]
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Locator.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Interop/IceGrid
