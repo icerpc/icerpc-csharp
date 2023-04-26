@@ -10,6 +10,31 @@ This transport does not use network APIs. It is available on all platforms.
 
 [Source code][source] | [Package][package] | [API reference documentation][api] | [Product documentation][product]
 
+## Sample code
+
+```csharp
+// Create an IceRPC server with Coloc
+
+using IceRpc;
+using IceRpc.Transports;
+
+var coloc = new ColocTransport();
+IDispatcher dispatcher = ...;
+
+await using var server = new Server(
+    dispatcher,
+    multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
+    
+server.Listen();
+
+// Create a client connection to this server
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://anyhost"),
+    multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
+    
+await connection.ConnectAsync();
+```
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.html
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Coloc
