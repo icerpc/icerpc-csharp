@@ -1,10 +1,36 @@
 # Locator Interceptor for IceRPC
 
-IceRpc.Locator provides an interceptor that allows you to resolve ice service addresses using an [Ice locator][locator].
+IceRpc.Locator provides an IceRPC][icerpc] interceptor that allows you to resolve ice service addresses
+using an [Ice locator][locator].
 
-Use this interceptor in [IceRPC][icerpc] client applications that call services hosted in IceGrid-managed servers.
+Use this interceptor in IceRPC client applications that call services hosted in IceGrid-managed servers.
 
 _Ice interop only_
+
+## Sample code
+
+```csharp
+using IceRpc;
+using IceRpc.Ice;
+
+// You typically use the locator interceptor with a connection cache.
+await using var connectionCache = new ConnectionCache();
+
+var pipeline = new Pipeline();
+
+// You can use the same invocation pipeline for all your proxies.
+var locator = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
+
+// If you install the retry interceptor, install it before the locator interceptor.
+pipeline = pipeline
+    .UseRetry()
+    .UseLocator(locator)
+    .Into(connectionCache);
+    
+// A call on this proxy will use the locator to find the server address(es) associated with
+// `/hello`. The locator interceptor caches successful resolutions.
+var helloProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
+```
 
 [Source code][source] | [Package][package] | [Example code][example] | [API reference documentation][api] | [Ice interop][interop]
 
