@@ -17,12 +17,12 @@ automatically compiled into C# files every time you build this project.
 ## Adding Slice files to your project
 
 By default, the Slice files of your project are all the `.slice` files in the project's home directory and any of
-its subsidirectories, recursively.
+its subdirectories, recursively.
 
 You can prevent this auto-inclusion of `.slice` files by setting either [`EnableDefaultItems`][default_items] or
 `EnableDefaultSliceCItems` to `false`. The default value of these properties is `true`.
 
-You can also add files to your project's Slice files explicitely with the `SliceC` item type. 
+You can also add files to your project's Slice files explicitly with the `SliceC` item type. 
 
 For example:
 ```
@@ -32,7 +32,7 @@ For example:
 ```
 
 This adds `Greeter.slice` to your project's Slice files even though this file is not in the project's home 
-directory or any its sub-directories.
+directory or any its subdirectories.
 
 > Slice files must have a `.slice` extension.
 
