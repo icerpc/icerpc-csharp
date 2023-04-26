@@ -112,43 +112,45 @@ public class TaggedTests
     private static readonly ClassWithTaggedFields[] _classWithTaggedFields = new[]
     {
         new ClassWithTaggedFields(
-                    10,
-                    20,
-                    30,
-                    40,
-                    new FixedLengthStruct(1, 1),
-                    new VarSizeStruct("hello world!"),
-                    Tagged.Slice1.MyEnum.Two,
-                    new byte[] { 1, 2, 3 },
-                    new int[] { 4, 5, 6 },
-                    "hello world!"),
+            10,
+            20,
+            30,
+            40,
+            new FixedLengthStruct(1, 1),
+            new VarSizeStruct("hello world!"),
+            Tagged.Slice1.MyEnum.Two,
+            new byte[] { 1, 2, 3 },
+            new int[] { 4, 5, 6 },
+            "hello world!"),
         new ClassWithTaggedFields(),
         new ClassWithTaggedFields(
-                    10,
-                    null,
-                    30,
-                    null,
-                    new FixedLengthStruct(1, 1),
-                    null,
-                    Tagged.Slice1.MyEnum.Two,
-                    null,
-                    new int[] { 4, 5, 6 },
-                    null)
+            10,
+            null,
+            30,
+            null,
+            new FixedLengthStruct(1, 1),
+            null,
+            Tagged.Slice1.MyEnum.Two,
+            null,
+            new int[] { 4, 5, 6 },
+            null)
     };
 
     private static readonly MyStructWithTaggedFields[] _structWithTaggedFields = new[]
     {
-        new MyStructWithTaggedFields(10,
-                                      new MyStruct(20, 20),
-                                      MyEnum.Enum1,
-                                      new byte[] { 1, 2, 3},
-                                      "hello world!"),
+        new MyStructWithTaggedFields(
+            10,
+            new MyStruct(20, 20),
+            MyEnum.Enum1,
+            new byte[] { 1, 2, 3},
+            "hello world!"),
         new MyStructWithTaggedFields(),
-        new MyStructWithTaggedFields(10,
-                                      null,
-                                      MyEnum.Enum1,
-                                      null,
-                                      "hello world!"),
+        new MyStructWithTaggedFields(
+            10,
+            null,
+            MyEnum.Enum1,
+            null,
+            "hello world!"),
     };
 
     [Test, TestCaseSource(nameof(DecodeSlice1TaggedFieldsSource))]
