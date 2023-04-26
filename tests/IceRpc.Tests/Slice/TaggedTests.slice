@@ -9,3 +9,5 @@ struct MyStructWithTaggedFields {
     tag(4) d: sequence<uint8>?
     tag(5) e: string?
 }
+
+struct MyStructWithoutTaggedFields {}

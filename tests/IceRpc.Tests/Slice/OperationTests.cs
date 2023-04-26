@@ -547,6 +547,20 @@ public class OperationTests
             Is.EqualTo(p));
     }
 
+    /// <summary>Verifies that tagged parameters are correctly skipped. The interface MyTaggedOperationsV0 doesn't
+    /// support any of the tagged parameters used by MyTaggedOperations interface.</summary>
+    [Test]
+    public void Skip_tagged_parameters()
+    {
+        // Arrange
+        var service = new MyTaggedOperationsV0Service();
+        var invoker = new ColocInvoker(service);
+        var proxy = new MyTaggedOperationsProxy(invoker);
+
+        // Act/Assert
+        Assert.That(() => proxy.OpAsync(10, 1, 12), Throws.Nothing);
+    }
+
     /// <summary>Verifies that tagged parameters has a default value that is equivalent to a non set tagged parameter.
     /// </summary>
     [Test]
@@ -558,12 +572,12 @@ public class OperationTests
         var proxy = new MyTaggedOperationsProxy(invoker);
 
         // Act
-        await proxy.OpAsync(null, 1, z: 10);
+        await proxy.OpAsync(10, 1);
 
         // Assert
-        Assert.That(service.X, Is.Null);
+        Assert.That(service.X, Is.EqualTo(10));
         Assert.That(service.Y, Is.EqualTo(1));
-        Assert.That(service.Z, Is.EqualTo(10));
+        Assert.That(service.Z, Is.Null);
     }
 
     /// <summary>Verifies that a tagged sequence parameter that uses the <see cref="ReadOnlyMemory{T}" /> mapping has a
@@ -768,6 +782,11 @@ public class OperationTests
             Z = z;
             return default;
         }
+    }
+
+    private sealed class MyTaggedOperationsV0Service : Service, IMyTaggedOperationsV0Service
+    {
+        public ValueTask OpAsync(int y, IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
     private sealed class MyTaggedOperationsReadOnlyMemoryParamsService : Service, IMyTaggedOperationsReadOnlyMemoryParamsService
