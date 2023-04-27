@@ -3,8 +3,8 @@
 IceRpc.Compressor provides an [IceRPC][icerpc] interceptor that allows you to compress the payloads of the requests
 you send. This interceptor can also decompress the payloads of the responses you receive.
 
-In addition, IceRpc.Compressor provides an IceRPC middleware that allows you to compress the responses you send back. This
-middleware can also decompress the payloads of the requests you receive.
+In addition, IceRpc.Compressor provides an IceRPC middleware that allows you to compress the payloads of the responses
+you send back. This middleware can also decompress the payloads of the requests you receive.
 
 [Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
@@ -51,7 +51,7 @@ Pipeline pipeline = new Pipeline()
 ## Remarks
 
 The Compressor interceptor and middleware compress and decompress payloads regardless of how
-these payloads are encoded. They work well with Slice but don't depend on Slice.
+these payloads are encoded. They work well with Slice but don't require Slice.
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Compressor.html
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
