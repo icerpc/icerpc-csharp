@@ -31,17 +31,16 @@ fn check_for_unique_names(mut compilation_data: CompilationData) -> CompilationR
 
     for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
         if let Some(old_path) = file_map.insert(&slice_file.filename, &slice_file.relative_path) {
-            let relative_path = &slice_file.relative_path;
             Diagnostic::new(Error::IO {
                 action: "generate code for",
                 path: slice_file.relative_path.clone(),
                 error: io::ErrorKind::InvalidInput.into(),
             })
+            .add_note("Multiple source files cannot have the same filename because the generated files are written to a common directory.", None)
             .add_note(
-                format!("Generated code for '{relative_path}' would overwrite that of '{old_path}'"),
+                format!("Other file is '{old_path}'."),
                 None,
             )
-            .add_note("Multiple source files can not have the same filename as generated files are written to a common directory.", None)
             .report(reporter)
         }
     }
