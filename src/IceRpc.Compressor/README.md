@@ -22,21 +22,6 @@ interface Greeter {
 ```
 
 ```csharp
-// Server application
-
-using IceRpc;
-
-// Add the Compressor middleware to the dispatch pipeline.
-Router router = new Router()
-    .UseCompressor(CompressionFormat.Brotli);
-
-router.Map<...>(...);
-
-await using var server = new Server(router);
-server.Listen();
-```
-
-```csharp
 // Client application
 
 using IceRpc;
@@ -47,6 +32,28 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 Pipeline pipeline = new Pipeline()
     .UseCompressor(CompressionFormat.Brotli)
     .Into(connection);
+    
+// Create the proxy using the invocation pipeline.
+var greeter = new GreeterProxy(pipeline);
+
+// The Compressor interceptor compresses the request payload. It also decompresses the response payload
+// (if it comes back compressed).
+string greeting = await greeter.GreetAsync(Environment.UserName);
+```
+
+```csharp
+// Server application
+
+using IceRpc;
+
+// Add the Compressor middleware to the dispatch pipeline.
+Router router = new Router()
+    .UseCompressor(CompressionFormat.Brotli);
+
+router.Map<IGreeterService>(new Chatbot());
+
+await using var server = new Server(router);
+server.Listen();
 ```
 
 ## Remarks
