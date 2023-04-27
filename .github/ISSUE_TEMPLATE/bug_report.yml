@@ -37,7 +37,7 @@ body:
     attributes:
       label: Actual behavior
       description: |
-        Provide a description of the actual behavior observed. If applicable please include any error messages, exception stacktraces or memory dumps.
+        Provide a description of the actual behavior observed. If applicable, please include any error messages or exception stack traces.
       placeholder: Actual behavior
     validations:
       required: true
@@ -46,8 +46,8 @@ body:
     attributes:
       label: Configuration
       description: |
-        Please provide more information on your IceRpc configuration:
-          - Which version of IceRpc are you using?
+        Please provide more information on your IceRPC configuration:
+          - Which version of IceRPC are you using?
           - What operating system, version, and architecture?
       placeholder: Configuration
     validations:
