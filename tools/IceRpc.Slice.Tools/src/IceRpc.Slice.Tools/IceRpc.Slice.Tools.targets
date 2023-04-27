@@ -50,7 +50,7 @@
         <SliceCCSharpTask
             WorkingDirectory      = "$(MSBuildProjectDirectory)"
             OutputDir             = "%(SliceC.OutputDir)"
-            ReferencedFiles       = "%(SliceC.ReferencedFiles);$(SliceBuiltInFilesPath)"
+            ReferencedFiles       = "%(SliceC.ReferencedFiles);@(SliceDirectory->'%(FullPath)')"
             ToolsPath             = "$(SliceCompilerPath)"
             AdditionalOptions     = "%(SliceC.AdditionalOptions)"
             Sources               = "@(SliceC)"/>
@@ -74,5 +74,17 @@
 
     <Target Name="SliceCClean" BeforeTargets="Clean">
         <Delete Files="@(SliceC->'%(OutputDir)\%(Filename).cs')"/>
+    </Target>
+
+    <!-- Package SliceC items -->
+    <Target Name="PackSliceCItems" BeforeTargets="GenerateNuspec">
+        <CreateItem
+            Include="@(SliceC)"
+            Condition="'%(SliceC.Pack)' == 'true'"
+            AdditionalMetadata="PackagePath=%(SliceC.PackagePath)">
+            <Output
+                TaskParameter="Include"
+                ItemName="_PackageFiles"/>
+        </CreateItem>
     </Target>
 </Project>
