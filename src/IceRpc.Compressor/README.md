@@ -1,10 +1,10 @@
 # Compressor Interceptor and Middleware for IceRPC
 
 IceRpc.Compressor provides an [IceRPC][icerpc] interceptor that allows you to compress the payloads of the requests
-you send. This interceptor can also decompress the payloads of the responses you receive.
+you send. This interceptor decompresses the payloads of the responses you receive when these payloads are compressed.
 
 In addition, IceRpc.Compressor provides an IceRPC middleware that allows you to compress the payloads of the responses
-you send back. This middleware can also decompress the payloads of the requests you receive.
+you send back. This middleware decompresses the payloads of the requests you receive when these payloads are compressed.
 
 [Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
@@ -26,7 +26,7 @@ interface Greeter {
 
 using IceRpc;
 
-// Add the compressor middleware to the dispatch pipeline.
+// Add the Compressor middleware to the dispatch pipeline.
 Router router = new Router()
     .UseCompressor(CompressionFormat.Brotli);
 
@@ -43,7 +43,7 @@ using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-// Add the compressor interceptor to the invocation pipeline.
+// Add the Compressor interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline()
     .UseCompressor(CompressionFormat.Brotli)
     .Into(connection);
