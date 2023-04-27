@@ -191,7 +191,6 @@ mod test {
         options.sources.push(greeter2.display().to_string());
 
         // Act
-
         let compilation_data: CompilationData = compile(&options).into();
 
         // Assert
