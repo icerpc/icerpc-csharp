@@ -40,7 +40,7 @@ fn check_for_unique_names(mut compilation_data: CompilationData) -> CompilationR
                 format!("Other file is '{old_path}'."),
                 None,
             )
-            .report(&mut compilation_data.error_reporter)
+            .report(&mut compilation_data.diagnostic_reporter)
         }
     }
 
@@ -137,7 +137,7 @@ mod test {
     // generate code coverage data.
     #[test]
     fn compile_all_test_slice() {
-        let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
+        let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let tests_dir = root_dir.join("tests").join("IceRpc.Tests").display().to_string();
         let slice_dir = root_dir.join("slice").display().to_string();
 
@@ -171,19 +171,9 @@ mod test {
     #[test]
     fn unique_filenames() {
         // Arrange
-        let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
-        let greeter1 = root_dir
-            .join("src")
-            .join("IceRpc.ProjectTemplates")
-            .join("Templates")
-            .join("IceRpc-Client")
-            .join("Greeter.slice");
-        let greeter2 = root_dir
-            .join("src")
-            .join("IceRpc.ProjectTemplates")
-            .join("Templates")
-            .join("IceRpc-Server")
-            .join("Greeter.slice");
+        let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let greeter1 = root_dir.join("src/IceRpc.ProjectTemplates/Templates/IceRpc-Client/Greeter.slice");
+        let greeter2 = root_dir.join("src/IceRpc.ProjectTemplates/Templates/IceRpc-Server/Greeter.slice");
 
         let mut options = SliceOptions::default();
         options.sources.push(greeter1.display().to_string());
