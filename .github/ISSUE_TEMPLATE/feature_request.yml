@@ -24,9 +24,9 @@ body:
     validations:
       required: true
   - type: textarea
-    id: Alternatives
+    id: alternatives
     attributes:
-      label: alternatives
+      label: Alternatives
       description: |
         Describe alternatives you've considered
       placeholder: Alternatives
