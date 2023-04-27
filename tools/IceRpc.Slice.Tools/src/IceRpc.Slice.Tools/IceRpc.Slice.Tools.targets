@@ -4,7 +4,7 @@
     <!-- Import SliceCCSharpTask -->
     <UsingTask
         TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
-        AssemblyFile="$(SliceToolsTaskAssembliesPath)\IceRpc.Slice.Tools.dll" />
+        AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll" />
 
     <ItemGroup>
         <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
@@ -51,7 +51,7 @@
         <SliceCCSharpTask
             WorkingDirectory      = "$(MSBuildProjectDirectory)"
             OutputDir             = "%(SliceFile.OutputDir)"
-            ReferencedFiles       = "%(SliceFile.ReferencedFiles);@(SliceDirectory->'%(FullPath)')"
+            ReferencedFiles       = "@(SliceDirectory->'%(FullPath)')"
             ToolsPath             = "$(SliceCompilerPath)"
             AdditionalOptions     = "%(SliceFile.AdditionalOptions)"
             Sources               = "@(SliceFile)"/>
@@ -89,15 +89,4 @@
         </CreateItem>
     </Target>
 
-    <!-- Package SliceC items -->
-    <Target Name="PackSliceCItems" BeforeTargets="GenerateNuspec">
-        <CreateItem
-            Include="@(SliceC)"
-            Condition="'%(SliceC.Pack)' == 'true'"
-            AdditionalMetadata="PackagePath=%(SliceC.PackagePath)">
-            <Output
-                TaskParameter="Include"
-                ItemName="_PackageFiles"/>
-        </CreateItem>
-    </Target>
 </Project>
