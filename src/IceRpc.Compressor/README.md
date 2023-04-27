@@ -14,8 +14,9 @@ you send back. This middleware can also decompress the payloads of the requests 
 // Slice definitions
 
 interface Greeter {
-    // The Compress attribute works with the Compressor interceptor and middleware.
-    // Without this attribute, the request and response payloads are not compressed or decompressed.
+    // The Compress attribute instructs the Compressor interceptor or middleware (if installed)
+    // to compress the payload of the outgoing request or response. The Compressor interceptor
+    // or middleware does not compress the payloads of Slice operations without this attribute.
     [compress(Args, Return)] greet(name: string) -> string
 }
 ```
