@@ -10,10 +10,15 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Compressor;
 
-/// <summary>An interceptor that applies compression to the payload of a request depending on the
-/// <see cref="ICompressFeature" /> feature, and decompresses the response payload when it is compressed with a
-/// supported format. This interceptor supports the <see cref="CompressionFormat.Deflate"/> and
-/// <see cref="CompressionFormat.Brotli"/> compression formats.</summary>
+/// <summary>Represents an interceptor that compresses the payloads of outgoing requests and decompresses the payloads
+/// of incoming responses.</summary>
+/// <remarks>This interceptor compresses the payload of a request and sets the
+/// <see cref="RequestFieldKey.CompressionFormat" /> field when this request has the <see cref="ICompressFeature" />
+/// feature set and the CompressionFormat field is unset.<br/>
+/// This interceptor decompresses the payload of a response when this response's status code is
+/// <see cref="StatusCode.Success" /> and the response carries a <see cref="ResponseFieldKey.CompressionFormat" /> field
+/// with a supported compression format (currently <see cref="CompressionFormat.Brotli" /> or
+/// <see cref="CompressionFormat.Deflate" />).</remarks>
 public class CompressorInterceptor : IInvoker
 {
     private readonly CompressionFormat _compressionFormat;
@@ -21,7 +26,7 @@ public class CompressorInterceptor : IInvoker
     private readonly ReadOnlySequence<byte> _encodedCompressionFormatValue;
     private readonly IInvoker _next;
 
-    /// <summary>Constructs a compressor interceptor.</summary>
+    /// <summary>Constructs a Compressor interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="compressionFormat">The compression format for the compress operation.</param>
     /// <param name="compressionLevel">The compression level for the compress operation.</param>
@@ -43,7 +48,7 @@ public class CompressorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        // The CompressPayload feature is typically set through the Slice compress attribute.
+        // The ICompressFeature feature is typically set through the Slice compress attribute.
 
         if (request.Protocol.HasFields &&
             request.Features.Get<ICompressFeature>() is ICompressFeature compress &&

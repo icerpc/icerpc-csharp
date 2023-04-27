@@ -2,7 +2,7 @@
 
 namespace IceRpc.Deadline;
 
-/// <summary>The default implementation of <see cref="IDeadlineFeature" />.</summary>
+/// <summary>Default implementation of <see cref="IDeadlineFeature" />.</summary>
 public sealed class DeadlineFeature : IDeadlineFeature
 {
     /// <summary>Creates a deadline from a timeout.</summary>

@@ -3,7 +3,7 @@
 using CompressExample;
 using IceRpc;
 
-// Add the compressor middleware to the dispatch pipeline.
+// Add the Compressor middleware to the dispatch pipeline.
 Router router = new Router().UseCompressor(CompressionFormat.Brotli);
 router.Map<IGreeterService>(new Chatbot());
 

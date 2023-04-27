@@ -10,10 +10,14 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Compressor;
 
-/// <summary>A middleware that decompresses the request payload when it is compressed with a supported format and
-/// applies compression to the payload of a response depending on the <see cref="ICompressFeature" /> feature. This
-/// middleware supports the <see cref="CompressionFormat.Deflate"/> and <see cref="CompressionFormat.Brotli"/>
-/// compression formats.</summary>
+/// <summary>Represents a middleware that decompresses the payloads of incoming requests and compresses the payloads of
+/// outgoing responses.</summary>
+/// <remarks>This middleware decompresses the payload of an incoming request when the request carries a
+/// <see cref="RequestFieldKey.CompressionFormat" /> field with a supported compression format (currently
+/// <see cref="CompressionFormat.Brotli" /> or <see cref="CompressionFormat.Deflate" />).<br/>
+/// This middleware compresses the payload of a response and sets the <see cref="ResponseFieldKey.CompressionFormat" />
+/// field when the request has the <see cref="ICompressFeature" /> feature set and the response's CompressionFormat
+/// field is unset.</remarks>
 public class CompressorMiddleware : IDispatcher
 {
     private readonly CompressionFormat _compressionFormat;
@@ -21,7 +25,7 @@ public class CompressorMiddleware : IDispatcher
     private readonly ReadOnlySequence<byte> _encodedCompressionFormatValue;
     private readonly IDispatcher _next;
 
-    /// <summary>Constructs a compress middleware.</summary>
+    /// <summary>Constructs a Compressor middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
     /// <param name="compressionFormat">The compression format for the compress operation.</param>
     /// <param name="compressionLevel">The compression level for the compress operation.</param>
@@ -76,7 +80,7 @@ public class CompressorMiddleware : IDispatcher
 
         OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
 
-        // The CompressPayload feature is typically set through the Slice compress attribute.
+        // The ICompressFeature feature is typically set through the Slice compress attribute.
 
         if (request.Protocol.HasFields &&
             response.StatusCode == StatusCode.Success &&
