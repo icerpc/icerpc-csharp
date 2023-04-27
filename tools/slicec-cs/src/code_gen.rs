@@ -40,7 +40,7 @@ fn check_for_unique_names(mut compilation_data: CompilationData) -> CompilationR
                 format!("Other file is '{old_path}'."),
                 None,
             )
-            .report(reporter)
+            .report(&mut compilation_data.error_reporter)
         }
     }
 
