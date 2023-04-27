@@ -9,7 +9,7 @@ QUIC is a new UDP-based multiplexed transport used by HTTP/3 and several other a
 ## Sample code
 
 ```csharp
-// Create an IceRPC client connection with QUIC
+//  Create an IceRPC client connection with QUIC
 
 using IceRpc;
 using IceRpc.Transports;
