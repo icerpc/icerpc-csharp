@@ -1,12 +1,42 @@
 # Locator Interceptor for IceRPC
 
-IceRpc.Locator provides an interceptor that allows you to resolve ice service addresses using an [Ice locator][locator].
+IceRpc.Locator provides an [IceRPC][icerpc] interceptor that allows you to resolve ice service addresses
+using an [Ice locator][locator].
 
-Use this interceptor in [IceRPC][icerpc] client applications that call services hosted in IceGrid-managed servers.
+Use this interceptor in IceRPC client applications that call services hosted by IceGrid-managed servers.
 
 _Ice interop only_
 
-[Source code][source] | [Package][package] | [Example code][example] | [API reference documentation][api] | [Ice interop][interop]
+[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Ice interop][interop]
+
+## Sample code
+
+```csharp
+using IceRpc;
+using IceRpc.Ice;
+
+// Create an invocation pipeline.
+var pipeline = new Pipeline();
+
+// You typically use the locator interceptor with a connection cache.
+await using var connectionCache = new ConnectionCache();
+
+// You can use the same invocation pipeline for all your proxies.
+var locatorProxy = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
+
+// If you install the retry interceptor, install it before the locator interceptor.
+pipeline = pipeline
+    .UseRetry()
+    .UseLocator(locatorProxy)
+    .Into(connectionCache);
+    
+// A call on this proxy will use the locator to find the server address(es) associated with `/hello`. 
+// The locator interceptor caches successful resolutions.
+var wellKnownProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
+
+// The locator also resolves ice proxies with an adapter-id parameter. 
+var indirectProxy = new HelloProxy(pipeline, new Uri("ice:/hello?adapter-id=HelloAdapter"));
+```
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Locator.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Interop/IceGrid
