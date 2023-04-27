@@ -67,14 +67,18 @@
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
-      <Content Include="SliceCCSharp.xaml">
+      <Content Include="SliceFile.ProjectSchema.xaml">
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
-      <Content Include="SliceCCSharp.File.xaml">
+      <Content Include="SliceFile.FileSchema.SliceTools.xaml">
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
+     <Content Include="SliceFile.FileSchema.General.xaml">
+       <PackagePath>build/</PackagePath>
+       <Pack>true</Pack>
+     </Content>
       <Content Include="ProjectItemsSchema.xaml">
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
