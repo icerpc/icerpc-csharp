@@ -193,13 +193,13 @@ mod test {
         let compilation_data: CompilationData = compile(&options).into();
 
         // Assert
-        let expected = [Diagnostic::new(Error::IO {
+        let expected = Diagnostic::new(Error::IO {
             action: "generate code for",
             path: compilation_data.files.values().last().unwrap().relative_path.clone(),
             error: io::ErrorKind::InvalidInput.into(),
-        })];
+        });
         let diagnostics = diagnostics_from_compilation_data(compilation_data);
 
-        check_diagnostics(diagnostics, expected);
+        check_diagnostics(diagnostics, [expected]);
     }
 }
