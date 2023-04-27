@@ -75,4 +75,16 @@
     <Target Name="SliceCClean" BeforeTargets="Clean">
         <Delete Files="@(SliceC->'%(OutputDir)\%(Filename).cs')"/>
     </Target>
+
+    <!-- Package SliceC items -->
+    <Target Name="PackSliceCItems" BeforeTargets="GenerateNuspec">
+        <CreateItem
+            Include="@(SliceC)"
+            Condition="'%(SliceC.Pack)' == 'true'"
+            AdditionalMetadata="PackagePath=%(SliceC.PackagePath)">
+            <Output
+                TaskParameter="Include"
+                ItemName="_PackageFiles"/>
+        </CreateItem>
+    </Target>
 </Project>
