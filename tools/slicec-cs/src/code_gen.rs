@@ -26,7 +26,6 @@ pub fn compiler_chain(compilation_data: CompilationData) -> CompilationResult {
 }
 
 fn check_for_unique_names(mut compilation_data: CompilationData) -> CompilationResult {
-    let reporter = &mut compilation_data.diagnostic_reporter;
     let mut file_map = std::collections::HashMap::new();
 
     for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
