@@ -7,7 +7,7 @@ body:
       value: |
         We welcome bug reports! Please fill out the following fields to help us address your issue.
   - type: textarea
-    id: background
+    id: description
     attributes:
       label: Description
       description: Please share a clear and concise description of the problem.
@@ -47,9 +47,8 @@ body:
       label: Configuration
       description: |
         Please provide more information on your IceRpc configuration:
-          * Which version of IceRpc is the code running on?
-          * What OS and version, and what distro if applicable?
-          * What is the architecture (x64, x86, ARM, ARM64)?
+          * Which version of IceRpc are you using?
+          * What operating system, version, and architecture?
       placeholder: Configuration
     validations:
       required: false
