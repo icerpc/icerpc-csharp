@@ -15,10 +15,11 @@ _Ice interop only_
 using IceRpc;
 using IceRpc.Ice;
 
+// Create an invocation pipeline.
+var pipeline = new Pipeline();
+
 // You typically use the locator interceptor with a connection cache.
 await using var connectionCache = new ConnectionCache();
-
-var pipeline = new Pipeline();
 
 // You can use the same invocation pipeline for all your proxies.
 var locatorProxy = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
@@ -29,9 +30,12 @@ pipeline = pipeline
     .UseLocator(locatorProxy)
     .Into(connectionCache);
     
-// A call on this proxy will use the locator to find the server address(es) associated with
-// `/hello`. The locator interceptor caches successful resolutions.
-var helloProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
+// A call on this proxy will use the locator to find the server address(es) associated with `/hello`. 
+// The locator interceptor caches successful resolutions.
+var wellKnownProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
+
+// The locator also resolves ice proxies with an adapter-id parameter. 
+var indirectProxy = new HelloProxy(pipeline, new Uri("ice:/hello?adapter-id=HelloAdapter"));
 ```
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Locator.html
