@@ -47,8 +47,8 @@ body:
       label: Configuration
       description: |
         Please provide more information on your IceRpc configuration:
-          * Which version of IceRpc are you using?
-          * What operating system, version, and architecture?
+          - Which version of IceRpc are you using?
+          - What operating system, version, and architecture?
       placeholder: Configuration
     validations:
       required: false
