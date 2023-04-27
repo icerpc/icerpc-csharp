@@ -7,31 +7,31 @@ body:
       value: |
         We welcome feature requests! Please fill out the following fields to help us evaluate your feature request.
   - type: textarea
+    id: desired-feature
+    attributes:
+      label: Desired feature
+      description: |
+        Describe the feature you'd like
+      placeholder: Desired solution
+  validations:
+    required: true
+  - type: textarea
     id: background
     attributes:
       label: Problem
       description: Is your feature request related to a problem? If so, please describe.
       placeholder: Problem description
     validations:
-      required: true
-  - type: textarea
-    id: desired-solution
-    attributes:
-      label: Desired solution
-      description: |
-        Describe the solution you'd like
-      placeholder: Desired solution
-    validations:
-      required: true
+      required: false
   - type: textarea
     id: Alternatives
     attributes:
       label: alternatives
       description: |
-        Describe alternatives you've considered
+        Describe alternatives you've considered.
       placeholder: Alternatives
     validations:
-      required: true
+      required: false
   - type: textarea
     id: additional-context
     attributes:
@@ -40,4 +40,4 @@ body:
         Add any other context or screenshots about the feature request here.
       placeholder: Additional context
     validations:
-      required: true
+      required: false
