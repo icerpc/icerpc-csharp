@@ -11,12 +11,14 @@ namespace IceRpc.Deadline;
 /// encodes the deadline value as a <see cref="RequestFieldKey.Deadline" /> field and makes the invocation throw a
 /// <see cref="TimeoutException" /> upon expiration of this deadline.<br/>
 /// The dispatch of a one-way request cannot be canceled since the invocation typically completes before this dispatch
-/// starts; as a result, for a one-way request, the deadline must be enforced by the <see cref="DeadlineMiddleware"/>.
+/// starts; as a result, for a one-way request, the deadline must be enforced by a <see cref="DeadlineMiddleware"/>.
 /// <br/>
 /// If the server installs a <see cref="DeadlineMiddleware"/>, this deadline middleware decodes the deadline and
 /// enforces it. In the unlikely event the middleware detects the expiration of the deadline before this interceptor,
 /// the invocation will fail with a <see cref="DispatchException"/> carrying status code
-/// <see cref="StatusCode.DeadlineExpired"/>.</remarks>
+/// <see cref="StatusCode.DeadlineExpired"/>.<br/>
+/// The Deadline interceptor must be installed before any interceptor than can run multiple times per request. In
+/// particular, it must be installed before the Retry interceptor.</remarks>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;
