@@ -13,8 +13,8 @@ body:
       description: |
         Describe the feature you'd like
       placeholder: Desired solution
-  validations:
-    required: true
+    validations:
+      required: true
   - type: textarea
     id: background
     attributes:
