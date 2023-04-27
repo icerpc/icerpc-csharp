@@ -19,10 +19,9 @@ using IceRpc;
 using IceRpc.Transports;
 
 var coloc = new ColocTransport();
-var dispatcher = new InlineDispatcher((request, cancellationToken) => new(new OutgoingResponse(request));
 
 await using var server = new Server(
-    dispatcher,
+    dispatcher: ...,
     multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
     
 server.Listen();
