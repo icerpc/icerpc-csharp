@@ -10,7 +10,7 @@ incoming requests.
 ## Sample code
 
 ```csharp
-// Set a 20 seconds deadline on all invocations with a non-cancelable cancellation token.
+// Set a deadline on all invocations with a non-cancelable cancellation token.
 
 using IceRpc;
 
@@ -18,7 +18,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 
 // Add the Deadline interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline()
-    .UseDeadline(TimeSpan.FromSeconds(20))
+    .UseDeadline(TimeSpan.FromSeconds(20)) // The deadline is now + 20 seconds.
     .Into(connection);
 ```
 
