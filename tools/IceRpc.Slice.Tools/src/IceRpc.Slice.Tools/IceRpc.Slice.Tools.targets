@@ -7,15 +7,12 @@
         AssemblyFile="$(SliceToolsTaskAssembliesPath)\IceRpc.Slice.Tools.dll" />
 
     <ItemGroup>
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProjectItemsSchema.xaml" />
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectSchema.xaml">
+        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
+        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">
             <Context>Project</Context>
         </PropertyPageSchema>
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.FileSchema.General.xaml">
-          <Context>File;BrowseObject</Context>
-        </PropertyPageSchema>
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.FileSchema.SliceTools.xaml">
-          <Context>File;BrowseObject</Context>
+        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.FileProperties.xaml">
+            <Context>File;BrowseObject</Context>
         </PropertyPageSchema>
         <AvailableItemName Include="SliceFile"/>
     </ItemGroup>
@@ -25,7 +22,7 @@
         <ProjectCapability Include="SliceFile" />
     </ItemGroup>
 
-     <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
+    <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
         <SliceFile Update="@(SliceFile)">
             <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
             <Link Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))">%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
@@ -41,13 +38,14 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-      <SliceFile Condition="'$(EnableDefaultSliceFileItems)' == 'true'" Include="**\*.slice"
-              Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);@(SliceFile)"/>
+        <SliceFile
+            Condition="'$(EnableDefaultSliceFileItems)' == 'true'" Include="**\*.slice"
+            Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"/>
     </ItemGroup>
 
     <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
 
-        <MakeDir Directories="%(SliceC.OutputDir)"/>
+        <MakeDir Directories="%(SliceFile.OutputDir)"/>
 
         <!-- Compile the Slice files -->
         <SliceCCSharpTask
@@ -63,7 +61,7 @@
             running the SliceC target so that default includes are already processed.
         -->
         <ItemGroup>
-          <SliceFile>
+            <SliceFile>
                 <!--
                     Add GeneratePath metadata with the normalized path, this is required for excludes below to work
                     with different path separators.

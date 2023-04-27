@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Rule
-    Name="SliceFile"
+    Name="SliceSourceFile"
     DisplayName="General"
     PageTemplate="generic"
     Description="General properties for Slice files"
     xmlns="http://schemas.microsoft.com/build/2009/properties">
 
     <Rule.DataSource>
-        <DataSource Persistence="ProjectFile" Label="IceRpcTools" HasConfigurationCondition="false" ItemType="SliceFile" SourceOfDefaultValue="AfterContext"/>
+        <DataSource
+            Persistence="ProjectFile"
+            Label="SliceTools"
+            HasConfigurationCondition="false"
+            ItemType="SliceFile"
+            SourceOfDefaultValue="AfterContext" />
     </Rule.DataSource>
 
     <Rule.Categories>
         <Category Name="Advanced" DisplayName="Advanced" />
         <Category Name="Misc" DisplayName="Misc" />
-        <Category Name="SliceTools" DisplayName="Slice Tools for IceRPC" />
+        <Category Name="SliceTools" DisplayName="Slice Tools" />
     </Rule.Categories>
 
     <DynamicEnumProperty
@@ -31,7 +36,11 @@
         Category="Misc"
         Description="The item specified in the Include attribute.">
         <StringProperty.DataSource>
-            <DataSource Persistence="Intrinsic" ItemType="SliceFile" PersistedName="Identity" SourceOfDefaultValue="AfterContext" />
+            <DataSource 
+                Persistence="Intrinsic"
+                ItemType="SliceFile"
+                PersistedName="Identity"
+                SourceOfDefaultValue="AfterContext" />
         </StringProperty.DataSource>
     </StringProperty>
 
@@ -42,7 +51,11 @@
         Category="Misc"
         Description="Location of the file.">
         <StringProperty.DataSource>
-            <DataSource Persistence="Intrinsic" ItemType="SliceFile" PersistedName="FullPath" SourceOfDefaultValue="AfterContext" />
+            <DataSource
+                Persistence="Intrinsic"
+                ItemType="SliceFile"
+                PersistedName="FullPath"
+                SourceOfDefaultValue="AfterContext" />
         </StringProperty.DataSource>
     </StringProperty>
 
@@ -66,7 +79,7 @@
             <DataSource
                 Persistence="ProjectFile"
                 ItemType="SliceFile"
-                Label="IceRpcTools"
+                Label="SliceTools"
                 HasConfigurationCondition="false"
                 SourceOfDefaultValue="AfterContext"/>
         </StringProperty.DataSource>
@@ -83,7 +96,7 @@
             <DataSource
                 Persistence="ProjectFile"
                 ItemType="SliceFile"
-                Label="IceRpcTools"
+                Label="SliceTools"
                 HasConfigurationCondition="false"
                 SourceOfDefaultValue="AfterContext"/>
         </StringListProperty.DataSource>
@@ -98,8 +111,8 @@
         <StringListProperty.DataSource>
             <DataSource
                 Persistence="ProjectFile"
-                ItemType="SliceC"
-                Label="IceRpcTools"
+                ItemType="SliceFile"
+                Label="SliceTools"
                 HasConfigurationCondition="false"
                 SourceOfDefaultValue="AfterContext"/>
         </StringListProperty.DataSource>

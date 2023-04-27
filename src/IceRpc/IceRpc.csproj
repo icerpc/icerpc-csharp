@@ -15,24 +15,24 @@
         <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
     <ItemGroup>
-        <SliceC
-          Include="../../slice/WellKnownTypes/*.slice"
-          OutputDir="$(MSBuildProjectDirectory)/generated"
-          Pack="true"
-          PackagePath="slice/WellKnownTypes"/>
-        <SliceC
+      <SliceFile
+        Include="../../slice/WellKnownTypes/*.slice"
+        OutputDir="$(MSBuildProjectDirectory)/generated"
+        Pack="true"
+        PackagePath="slice/WellKnownTypes"/>
+        <SliceFile
           Include="../../slice/$(AssemblyName)/*.slice"
           OutputDir="$(MSBuildProjectDirectory)/generated"
           Pack="true"
           PackagePath="slice/$(AssemblyName)"/>
-        <SliceC
+        <SliceFile
           Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice"
           OutputDir="$(MSBuildProjectDirectory)/generated"
           Pack="true"
           PackagePath="slice/Ice" />
-        <SliceC Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceC Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
-        <SliceC Include="../../slice/$(AssemblyName)/Transports/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Internal/generated" />
+        <SliceFile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+        <SliceFile Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
+        <SliceFile Include="../../slice/$(AssemblyName)/Transports/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Internal/generated" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />

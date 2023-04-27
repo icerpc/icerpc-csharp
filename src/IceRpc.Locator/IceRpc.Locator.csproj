@@ -16,7 +16,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
-        <SliceC
+        <SliceFile
           Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice"
           OutputDir="$(MSBuildProjectDirectory)/generated"
           Pack="true"
