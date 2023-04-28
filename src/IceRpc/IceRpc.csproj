@@ -33,7 +33,6 @@
         <SliceFile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
         <SliceFile Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
         <SliceFile Include="../../slice/$(AssemblyName)/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
-        <SliceFile Include="../../slice/$(AssemblyName)/Transports/Tcp/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Tcp/Internal/generated" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
