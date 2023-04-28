@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) ZeroC, Inc. -->
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+    <ContentType Name="SliceFile" DisplayName="Slice file" ItemType="SliceFile" />
+    <ItemType Name="SliceFile" DisplayName="Slice file" />
+    <FileExtension Name=".slice" ContentType="SliceSourceFile" />
+</ProjectSchemaDefinitions>

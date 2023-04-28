@@ -16,11 +16,11 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
-        <SliceC
-          Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice"
-          OutputDir="$(MSBuildProjectDirectory)/generated"
-          Pack="true"
-          PackagePath="slice/Ice" />
+        <SliceFile
+            Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice"
+            OutputDir="$(MSBuildProjectDirectory)/generated"
+            Pack="true"
+            PackagePath="slice/Ice" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

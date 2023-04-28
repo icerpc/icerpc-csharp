@@ -27,7 +27,7 @@ public class SliceCCSharpTask : ToolTask
 
     /// <summary>The files that are needed for referencing, but that no code should be generated for them, corresponds
     /// to <c>-R</c> slicec-cs compiler option.</summary>
-    public string[] ReferencedFiles { get; set; } = Array.Empty<string>();
+    public string[] References { get; set; } = Array.Empty<string>();
 
     /// <summary>The Slice files to compile, these are the input files pass to the slicec-cs compiler.</summary>
     [Required]
@@ -56,9 +56,9 @@ public class SliceCCSharpTask : ToolTask
             builder.AppendFileNameIfNotNull(OutputDir);
         }
 
-        foreach (string path in ReferencedFiles)
+        foreach (string reference in References)
         {
-            builder.AppendSwitchIfNotNull("-R", path);
+            builder.AppendSwitchIfNotNull("-R", reference);
         }
 
         foreach (string option in AdditionalOptions)
