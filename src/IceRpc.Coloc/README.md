@@ -16,7 +16,7 @@ This transport does not use network APIs. It is available on all platforms.
 // Create an IceRPC server with Coloc
 
 using IceRpc;
-using IceRpc.Transports;
+using IceRpc.Transports.Coloc;
 
 var coloc = new ColocTransport();
 

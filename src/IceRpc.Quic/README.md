@@ -12,7 +12,7 @@ QUIC is a new UDP-based multiplexed transport used by HTTP/3 and several other a
 //  Create an IceRPC client connection with QUIC
 
 using IceRpc;
-using IceRpc.Transports;
+using IceRpc.Transports.Quic;
 using System.Net.Security;
 
 await using var connection = new ClientConnection(
@@ -25,7 +25,7 @@ await using var connection = new ClientConnection(
 // Create an IceRPC server with QUIC
 
 using IceRpc;
-using IceRpc.Transports;
+using IceRpc.Transports.Quic;
 using System.Net.Security;
 
 IDispatcher dispatcher = ...;
