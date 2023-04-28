@@ -2,7 +2,7 @@
 
 using System.Net.Sockets;
 
-namespace IceRpc.Transports.Internal;
+namespace IceRpc.Transports.Tcp.Internal;
 
 internal static class IOExceptionExtensions
 {
