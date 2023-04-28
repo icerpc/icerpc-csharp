@@ -3,6 +3,9 @@
 using IceRpc.Internal; // ServiceNotFoundDispatcher
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
+using IceRpc.Transports.Coloc;
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 

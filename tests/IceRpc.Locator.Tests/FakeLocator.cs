@@ -9,7 +9,7 @@ namespace IceRpc.Locator.Tests;
 internal sealed class FakeLocator : ILocator
 {
     internal int ResolvedCount { get; set; }
-    
+
     private readonly ServiceAddress _serviceAddress;
     private readonly bool _adapterId;
 

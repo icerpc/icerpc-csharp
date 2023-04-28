@@ -3,7 +3,8 @@
 using IceRpc.Features;
 using IceRpc.Tests.Common;
 using IceRpc.Tests.Slice;
-using IceRpc.Transports;
+using IceRpc.Transports.Coloc;
+using IceRpc.Transports.Slic;
 using NUnit.Framework;
 
 namespace IceRpc.Tests;

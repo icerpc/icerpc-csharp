@@ -2,8 +2,8 @@
 
 using IceRpc.Ice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using IceRpc.Transports.Tcp;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;

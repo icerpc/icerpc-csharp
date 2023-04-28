@@ -2,12 +2,10 @@
 
 using IceRpc.Features;
 using IceRpc.Ice;
-using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Slice;
 

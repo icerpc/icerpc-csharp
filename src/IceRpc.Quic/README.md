@@ -44,7 +44,7 @@ IceRpc.Quic has the same platform requirements as `System.Net.Quic`. Microsoft d
 these requirements as the [HTTP/3 platform dependencies][platform].
 
 
-[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.html
+[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.Quic.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterQuic
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [quic]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview

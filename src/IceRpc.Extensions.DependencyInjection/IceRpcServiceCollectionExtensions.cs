@@ -4,6 +4,8 @@ using IceRpc;
 using IceRpc.Builder;
 using IceRpc.Builder.Internal;
 using IceRpc.Transports;
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
