@@ -14,8 +14,8 @@ you send back. This middleware decompresses the payloads of the requests you rec
 // Slice definitions
 
 interface Greeter {
-    // The Compress attribute instructs the Compressor interceptor or middleware (if installed)
-    // to compress the payload of the outgoing request or response. The Compressor interceptor
+    // The compress attribute instructs the compressor interceptor or middleware (if installed)
+    // to compress the payload of the outgoing request or response. The compressor interceptor
     // or middleware does not compress the payloads of Slice operations without this attribute.
     [compress(Args, Return)] greet(name: string) -> string
 }
@@ -28,7 +28,7 @@ using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-// Add the Compressor interceptor to the invocation pipeline.
+// Add the compressor interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline()
     .UseCompressor(CompressionFormat.Brotli)
     .Into(connection);
@@ -36,7 +36,7 @@ Pipeline pipeline = new Pipeline()
 // Create the proxy using the invocation pipeline.
 var greeter = new GreeterProxy(pipeline);
 
-// The Compressor interceptor compresses the request payload. It also decompresses the response payload
+// The compressor interceptor compresses the request payload. It also decompresses the response payload
 // (if it comes back compressed).
 string greeting = await greeter.GreetAsync(Environment.UserName);
 ```
@@ -46,7 +46,7 @@ string greeting = await greeter.GreetAsync(Environment.UserName);
 
 using IceRpc;
 
-// Add the Compressor middleware to the dispatch pipeline.
+// Add the compressor middleware to the dispatch pipeline.
 Router router = new Router()
     .UseCompressor(CompressionFormat.Brotli);
 
@@ -58,7 +58,7 @@ server.Listen();
 
 ## Remarks
 
-The Compressor interceptor and middleware compress and decompress payloads regardless of how
+The compressor interceptor and middleware compress and decompress payloads regardless of how
 these payloads are encoded. They work well with Slice but don't require Slice.
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Compressor.html
