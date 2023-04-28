@@ -2,6 +2,7 @@
 
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
+using IceRpc.Transports.Quic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Net.Security;

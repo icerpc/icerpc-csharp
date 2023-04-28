@@ -12,7 +12,7 @@ QUIC is a new UDP-based multiplexed transport used by HTTP/3 and several other a
 //  Create an IceRPC client connection with QUIC
 
 using IceRpc;
-using IceRpc.Transports;
+using IceRpc.Transports.Quic;
 using System.Net.Security;
 
 await using var connection = new ClientConnection(
@@ -25,7 +25,7 @@ await using var connection = new ClientConnection(
 // Create an IceRPC server with QUIC
 
 using IceRpc;
-using IceRpc.Transports;
+using IceRpc.Transports.Quic;
 using System.Net.Security;
 
 IDispatcher dispatcher = ...;
@@ -44,7 +44,7 @@ IceRpc.Quic has the same platform requirements as `System.Net.Quic`. Microsoft d
 these requirements as the [HTTP/3 platform dependencies][platform].
 
 
-[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.html
+[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.Quic.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterQuic
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [quic]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview

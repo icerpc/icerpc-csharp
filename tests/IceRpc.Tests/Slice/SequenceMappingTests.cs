@@ -370,7 +370,7 @@ public class SequenceMappingTests
     public void Operation_sending_a_sequence_of_optional_fixed_size_enum()
     {
         // Act
-        PipeReader requestPayload = 
+        PipeReader requestPayload =
             SequenceMappingOperationsProxy.Request.SendSequenceOfOptionalMyFixedLengthEnum(
                 new MyFixedLengthEnum?[] { MyFixedLengthEnum.SEnum1, null, MyFixedLengthEnum.SEnum3 });
 
@@ -665,7 +665,7 @@ public class SequenceMappingTests
     {
         // Arrange
         var value = new MyUncheckedEnum[] { MyUncheckedEnum.E1, MyUncheckedEnum.E2, MyUncheckedEnum.E3 };
-        PipeReader responsePayload = 
+        PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.ReturnCustomSequenceOfMyUncheckedEnum(value);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)

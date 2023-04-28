@@ -2,7 +2,7 @@
 
 using GreeterQuicExample;
 using IceRpc;
-using IceRpc.Transports;
+using IceRpc.Transports.Quic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 

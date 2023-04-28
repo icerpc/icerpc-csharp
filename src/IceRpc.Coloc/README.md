@@ -16,7 +16,7 @@ This transport does not use network APIs. It is available on all platforms.
 // Create an IceRPC server with Coloc
 
 using IceRpc;
-using IceRpc.Transports;
+using IceRpc.Transports.Coloc;
 
 var coloc = new ColocTransport();
 
@@ -34,7 +34,7 @@ await using var connection = new ClientConnection(
     
 await connection.ConnectAsync();
 ```
-[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.html
+[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.Coloc.html
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Coloc
 [product]: https://docs.testing.zeroc.com/docs/icerpc-core

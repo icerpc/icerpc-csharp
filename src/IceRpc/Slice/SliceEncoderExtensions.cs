@@ -2,7 +2,6 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice;

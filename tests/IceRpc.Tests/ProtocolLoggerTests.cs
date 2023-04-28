@@ -3,6 +3,8 @@
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
+using IceRpc.Transports.Coloc;
+using IceRpc.Transports.Slic;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Security;

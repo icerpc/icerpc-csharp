@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using System.Net.Security;
 
 namespace IceRpc.Transports;

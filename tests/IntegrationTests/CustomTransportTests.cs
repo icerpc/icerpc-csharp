@@ -3,6 +3,8 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Transports;
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using NUnit.Framework;
 using System.Net.Security;
 
