@@ -2,17 +2,19 @@
 
 namespace IceRpc.Features;
 
-/// <summary>The default implementation for <see cref="ICompressFeature" />.</summary>
+/// <summary>Default implementation for <see cref="ICompressFeature" />.</summary>
 public sealed class CompressFeature : ICompressFeature
 {
-    /// <summary>Gets the <see cref="CompressFeature" /> instance that specifies that the payload of a request or
-    /// response must be compressed.</summary>
-    /// <value>The <see cref="CompressFeature" /> instance to specify that the payload should be compressed.</value>
+    /// <summary>Gets an <see cref="ICompressFeature" /> with <see cref="Value" /> set to <see langword="true" />.
+    /// </summary>
+    /// <value>A shared <see cref="ICompressFeature" /> with <see cref="Value" /> set to <see langword="true" />.
+    /// </value>
     public static ICompressFeature Compress { get; } = new CompressFeature(true);
 
-    /// <summary>Gets <see cref="CompressFeature" /> instance that specifies that the payload of a request or response
-    /// must not be compressed.</summary>
-    /// <value>The <see cref="CompressFeature" /> instance to specify that the payload should not be compressed.</value>
+    /// <summary>Gets an <see cref="ICompressFeature" /> with <see cref="Value" /> set to <see langword="false" />.
+    /// </summary>
+    /// <value>A shared <see cref="ICompressFeature" /> with <see cref="Value" /> set to <see langword="false" />.
+    /// </value>
     public static ICompressFeature DoNotCompress { get; } = new CompressFeature(false);
 
     /// <inheritdoc/>

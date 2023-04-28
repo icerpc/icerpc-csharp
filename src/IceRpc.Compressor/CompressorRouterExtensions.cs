@@ -5,11 +5,10 @@ using System.IO.Compression;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to add the compressor middleware to a <see cref="Router" />.
-/// </summary>
+/// <summary>Provides an extension method to add the compressor middleware to a <see cref="Router" />.</summary>
 public static class CompressorRouterExtensions
 {
-    /// <summary>Adds a <see cref="CompressorMiddleware" /> to the router.</summary>
+    /// <summary>Adds a <see cref="CompressorMiddleware" /> to this router.</summary>
     /// <param name="router">The router being configured.</param>
     /// <param name="compressionFormat">The compression format for the compress operation.</param>
     /// <param name="compressionLevel">The compression level for the compress operation.</param>

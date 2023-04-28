@@ -5,8 +5,8 @@ using System.IO.Compression;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provides extension methods to add the compressor middleware to a
-/// <see cref="IDispatcherBuilder" />.</summary>
+/// <summary>Provides an extension method to add the compressor middleware to an <see cref="IDispatcherBuilder" />.
+/// </summary>
 public static class CompressorDispatcherBuilderExtensions
 {
     /// <summary>Adds a <see cref="CompressorMiddleware" /> to this dispatcher builder.</summary>

@@ -2,10 +2,10 @@
 
 namespace IceRpc.Deadline;
 
-/// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the caller is no
-/// longer interested in the response and the request should be discarded by the application code and IceRPC. This
-/// deadline feature is encoded into the deadline field by the deadline interceptor and decoded from a field by the
-/// deadline middleware.</summary>
+/// <summary>Represents the expiration time of a request. Once the deadline of a two-way request is reached, the caller
+/// is no longer interested in the response and the request should be discarded by the application code and IceRPC. For
+/// a one-way request, the processing of the request should be canceled once its deadline is reached. The value of this
+/// deadline feature is transmitted with requests using the <see cref="RequestFieldKey.Deadline" /> field.</summary>
 public interface IDeadlineFeature
 {
     /// <summary>Gets the value of deadline.</summary>
