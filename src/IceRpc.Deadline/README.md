@@ -1,33 +1,33 @@
 # Deadline Interceptor and Middleware for IceRPC
 
-IceRpc.Deadline provides an [IceRPC][icerpc] interceptor that adds a deadline to the requests you send.
+IceRpc.Deadline provides an [IceRPC][icerpc] interceptor that adds deadline fields to the requests you send.
 
-In addition, IceRpc.Deadline provides a middleware that decodes and enforces the deadlines received with 
-incoming requests.
+In addition, IceRpc.Deadline provides a middleware that decodes and enforces the deadline fields received 
+with incoming requests.
 
 [Source code][source] | [Package][package] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
 
 ```csharp
-// Set a deadline on all invocations with a non-cancelable cancellation token.
+// Client application
 
 using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-// Add the Deadline interceptor to the invocation pipeline.
+// Add the deadline interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline()
-    .UseDeadline(TimeSpan.FromSeconds(20)) // The deadline is now + 20 seconds.
+    .UseDeadline(TimeSpan.FromSeconds(20))
     .Into(connection);
 ```
 
 ```csharp
-// Decode and enforce the deadlines received with incoming requests.
+// Server application
 
 using IceRpc;
 
-// Add the Deadline middleware to the dispatch pipeline.
+// Add the deadline middleware to the dispatch pipeline.
 Router router = new Router()
     .UseDeadline();
     
