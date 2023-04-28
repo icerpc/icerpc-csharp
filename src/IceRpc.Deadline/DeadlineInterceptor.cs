@@ -17,8 +17,8 @@ namespace IceRpc.Deadline;
 /// enforces it. In the unlikely event the middleware detects the expiration of the deadline before this interceptor,
 /// the invocation will fail with a <see cref="DispatchException"/> carrying status code
 /// <see cref="StatusCode.DeadlineExpired"/>.<br/>
-/// The Deadline interceptor must be installed before any interceptor than can run multiple times per request. In
-/// particular, it must be installed before the Retry interceptor.</remarks>
+/// The deadline interceptor must be installed before any interceptor than can run multiple times per request. In
+/// particular, it must be installed before the retry interceptor.</remarks>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;
@@ -27,8 +27,8 @@ public class DeadlineInterceptor : IInvoker
 
     /// <summary>Constructs a Deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
-    /// <param name="defaultTimeout">The default timeout. When infinite, the interceptor enforces the deadlines it
-    /// receives and does not create new deadlines.</param>
+    /// <param name="defaultTimeout">The default timeout. When not infinite, the interceptor adds a deadline to requests
+    /// without a deadline.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
     /// interceptor always creates a cancellation token source to enforce this deadline. When <see langword="false" />
     /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline

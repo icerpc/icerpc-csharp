@@ -7,15 +7,16 @@ namespace IceRpc;
 /// <summary>Provides extension methods to add the Deadline interceptor to a <see cref="Pipeline" />.</summary>
 public static class DeadlinePipelineExtensions
 {
-    /// <summary>Adds a <see cref="DeadlineInterceptor" /> with an infinite default timeout to this pipeline.</summary>
+    /// <summary>Adds a <see cref="DeadlineInterceptor" /> with an infinite default timeout to this pipeline.
+    /// This interceptor enforces the deadlines it receives and does not create new deadlines.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
     public static Pipeline UseDeadline(this Pipeline pipeline) => pipeline.UseDeadline(Timeout.InfiniteTimeSpan);
 
-    /// <summary>Adds a <see cref="DeadlineInterceptor" /> to the pipeline.</summary>
+    /// <summary>Adds a <see cref="DeadlineInterceptor" /> to this pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="defaultTimeout">The default timeout. When infinite, the interceptor enforces the deadlines it
-    /// receives and does not create new deadlines.</param>
+    /// <param name="defaultTimeout">The default timeout. When not infinite, the interceptor adds a deadline to requests
+    /// without a deadline.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
     /// interceptor always creates a cancellation token source to enforce this deadline. When <see langword="false" />
     /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline

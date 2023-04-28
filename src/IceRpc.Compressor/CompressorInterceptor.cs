@@ -48,7 +48,7 @@ public class CompressorInterceptor : IInvoker
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        // The ICompressFeature feature is typically set through the Slice compress attribute.
+        // The ICompressFeature is typically set through the Slice compress attribute.
 
         if (request.Protocol.HasFields &&
             request.Features.Get<ICompressFeature>() is ICompressFeature compress &&

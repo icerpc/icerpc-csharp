@@ -80,7 +80,7 @@ public class CompressorMiddleware : IDispatcher
 
         OutgoingResponse response = await _next.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
 
-        // The ICompressFeature feature is typically set through the Slice compress attribute.
+        // The ICompressFeature is typically set through the Slice compress attribute.
 
         if (request.Protocol.HasFields &&
             response.StatusCode == StatusCode.Success &&
