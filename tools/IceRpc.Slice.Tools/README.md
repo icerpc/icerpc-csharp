@@ -1,6 +1,6 @@
 # Slice Tools for IceRPC
 
-IceRpc.Slice.Tools allows to compile Slice source definitions (in `.slice` files) into C# code (in `.cs` files)
+IceRpc.Slice.Tools allows you to compile Slice source definitions (in `.slice` files) into C# code (in `.cs` files)
 within MSBuild projects. The generated C# code depends on [IceRPC][icerpc].
 
 This package includes the Slice compiler for C#, `slicec-cs`. This compiler is a native tool with binaries for
@@ -45,15 +45,15 @@ You can use the following `SliceFile` item metadata to customize the compilation
 |-------------------|-----------|------------------------------------------------------------------------------------------------------------------------------|
 | AdditionalOptions |           | Additional options to pass to the `slicec-cs` compiler.                                                                      |
 | OutputDir         | generated | Output directory for the generated code. This metadata corresponds to the `--output-dir` option of the `slicec-cs` compiler. |
-| Pack              |           | Whether or not to include the items in the NuGet package.                                                                    |
-| PackagePath       |           | The target path in the NuGet package.                                                                                        |
+| Pack              | `false`   | Whether or not to include the items in the NuGet package.                                                                    |
+| PackagePath       | slice     | The target path in the NuGet package.                                                                                        |
 
 ## Adding Slice directories to the compiler's reference path
 
 To add a directory to the compiler's reference path, use the `SliceDirectory` item type. These items represent
-directories that the compiler references, but for which no code should be generated. The full path of these items is
-passed to the `-R` option of the slicec-cs compiler. This is typically used to reference Slice definitions that are
-required but compiled in a separate project or package.
+directories containing Slice files that the compiler references, but for which no code is generated. The full path of
+these items is items is passed to the `-R` option of the slicec-cs compiler. This is typically used to reference Slice
+definitions that are required but compiled in a separate project or package.
 
 ``` xml
 <ItemGroup>

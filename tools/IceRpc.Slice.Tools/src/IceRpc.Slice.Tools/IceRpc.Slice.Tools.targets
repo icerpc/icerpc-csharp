@@ -51,7 +51,7 @@
         <SliceCCSharpTask
             WorkingDirectory      = "$(MSBuildProjectDirectory)"
             OutputDir             = "%(SliceFile.OutputDir)"
-            ReferencedFiles       = "@(SliceDirectory->'%(FullPath)')"
+            References            = "@(SliceDirectory->'%(FullPath)')"
             ToolsPath             = "$(SliceCompilerPath)"
             AdditionalOptions     = "%(SliceFile.AdditionalOptions)"
             Sources               = "@(SliceFile)"/>

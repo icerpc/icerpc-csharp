@@ -43,6 +43,8 @@
     <ItemDefinitionGroup>
         <SliceFile>
             <OutputDir>$(MSBuildProjectDirectory)\generated</OutputDir>
+            <Pack>false</Pack>
+            <PackagePath>slice</PackagePath>
         </SliceFile>
     </ItemDefinitionGroup>
 </Project>
