@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <SliceC Include="../Greeter.slice" />
+    <SliceFile Include="../Greeter.slice" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />

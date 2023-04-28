@@ -1,26 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemDefinitionGroup>
-    <SliceC>
-      <ReferencedFiles>../A;../B;../C</ReferencedFiles>
-    </SliceC>
-  </ItemDefinitionGroup>
-
   <ItemGroup>
+    <SliceDirectory Include="..\A;..\B;..\C" />
+    <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\B\B.csproj" />
+    <ProjectReference Include="..\C\C.csproj" />
     <PackageReference Include="coverlet.collector" Version="3.2.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\B\B.csproj" />
-    <ProjectReference Include="..\C\C.csproj" />
-  </ItemGroup>
-
-  <Target Name="CopyTestAssemblies" AfterTargets="CopyFilesToOutputDirectory">
-    <Copy SourceFiles="$(OutputPath)/$(TargetName)$(TargetExt)" DestinationFolder="$(MSBuildThisFileDirectory)../../IceRpc.Tests.Internal/$(TargetFramework)" />
-  </Target>
 
 </Project>
