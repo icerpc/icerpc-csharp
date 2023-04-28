@@ -1,8 +1,8 @@
 # RequestContext
 
-This application illustrates how to use the RequestContext interceptor to encode the request context into a field, and
-decode it using the RequestContext middleware. The request context is a collection of string key value pairs encoded in
-a request header field.
+This application illustrates how to use the request context interceptor to encode the request context into a field, and
+decode it using the request context middleware. The request context is a dictionary of string to string encoded in a
+request header field.
 
 You can build the client and server applications with:
 
