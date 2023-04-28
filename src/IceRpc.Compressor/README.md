@@ -36,8 +36,8 @@ Pipeline pipeline = new Pipeline()
 // Create the proxy using the invocation pipeline.
 var greeter = new GreeterProxy(pipeline);
 
-// The compressor interceptor compresses the request payload. It also decompresses the response payload
-// (if it comes back compressed).
+// The compressor interceptor compresses the request payload. It also decompresses the 
+// response payload (if it comes back compressed).
 string greeting = await greeter.GreetAsync(Environment.UserName);
 ```
 
