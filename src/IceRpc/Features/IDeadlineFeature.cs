@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Deadline;
+namespace IceRpc.Features;
 
 /// <summary>Represents the expiration time of a request. Once the deadline of a two-way request is reached, the caller
 /// is no longer interested in the response and the request should be discarded by the application code and IceRPC. For

@@ -2,9 +2,9 @@
 
 using System.Collections.Immutable;
 
-namespace IceRpc.RequestContext;
+namespace IceRpc.Features;
 
-/// <summary>The default implementation of <see cref="IRequestContextFeature" />.</summary>
+/// <summary>Default implementation for <see cref="IRequestContextFeature" />.</summary>
 public sealed class RequestContextFeature : IRequestContextFeature
 {
     /// <inheritdoc/>
