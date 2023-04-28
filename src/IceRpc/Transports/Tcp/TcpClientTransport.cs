@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice;
-using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tcp.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -14,7 +13,10 @@ namespace IceRpc.Transports.Tcp;
 public class TcpClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
-    public string Name => TransportNames.Tcp;
+    public string Name => TcpName;
+
+    internal const string SslName = "ssl";
+    internal const string TcpName = "tcp";
 
     /// <summary>The default timeout value for tcp/ssl server addresses with Slice1.</summary>
     private const int DefaultTcpTimeout = 60_000; // 60s
@@ -56,7 +58,7 @@ public class TcpClientTransport : IDuplexClientTransport
         }
 
         SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
-            (serverAddress.Transport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
+            (serverAddress.Transport == SslName ? new SslClientAuthenticationOptions() : null);
 
         if (authenticationOptions is not null)
         {
@@ -114,9 +116,7 @@ public class TcpClientTransport : IDuplexClientTransport
         }
 
         static bool IsValidTransportName(string transportName, Protocol protocol) =>
-            protocol == Protocol.Ice ?
-                transportName is TransportNames.Tcp or TransportNames.Ssl :
-                transportName is TransportNames.Tcp;
+            protocol == Protocol.Ice ? transportName is TcpName or SslName : transportName is TcpName;
     }
 
     /// <summary>Decodes the body of a tcp or ssl server address encoded using Slice1.</summary>

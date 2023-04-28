@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tcp.Internal;
 using System.Net.Security;
 
@@ -10,7 +9,10 @@ namespace IceRpc.Transports.Tcp;
 public class TcpServerTransport : IDuplexServerTransport
 {
     /// <inheritdoc/>
-    public string Name => TransportNames.Tcp;
+    public string Name => TcpName;
+
+    private const string SslName = "ssl";
+    private const string TcpName = "tcp";
 
     private readonly TcpServerTransportOptions _options;
 
@@ -47,7 +49,7 @@ public class TcpServerTransport : IDuplexServerTransport
         {
             serverAddress = serverAddress with { Transport = Name };
         }
-        else if (serverAddress.Transport == TransportNames.Ssl && serverAuthenticationOptions is null)
+        else if (serverAddress.Transport == SslName && serverAuthenticationOptions is null)
         {
             throw new ArgumentNullException(
                 nameof(serverAuthenticationOptions),
@@ -57,8 +59,6 @@ public class TcpServerTransport : IDuplexServerTransport
         return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);
 
         static bool IsValidTransportName(string transportName, Protocol protocol) =>
-            protocol == Protocol.Ice ?
-                transportName is TransportNames.Tcp or TransportNames.Ssl :
-                transportName is TransportNames.Tcp;
+            protocol == Protocol.Ice ? transportName is TcpName or SslName : transportName is TcpName;
     }
 }

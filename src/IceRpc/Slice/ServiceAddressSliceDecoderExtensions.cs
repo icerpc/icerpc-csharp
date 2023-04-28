@@ -2,7 +2,6 @@
 
 using IceRpc.Ice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tcp;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -95,10 +94,15 @@ public static class ServiceAddressSliceDecoderExtensions
                 switch (transportCode)
                 {
                     case TransportCode.Tcp:
+                        serverAddress = TcpClientTransport.DecodeServerAddress(
+                            ref decoder,
+                            TcpClientTransport.TcpName);
+                        break;
+
                     case TransportCode.Ssl:
                         serverAddress = TcpClientTransport.DecodeServerAddress(
                             ref decoder,
-                            transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
+                            TcpClientTransport.SslName);
                         break;
 
                     case TransportCode.Uri:
@@ -128,7 +132,7 @@ public static class ServiceAddressSliceDecoderExtensions
                             Protocol.Ice,
                             host: "opaque", // not a real host obviously
                             port: Protocol.Ice.DefaultPort,
-                            TransportNames.Opaque,
+                            transport: "opaque",
                             builder.ToImmutable());
                         break;
                 }
