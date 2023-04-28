@@ -1,7 +1,7 @@
 # Deadline
 
 The Deadline example illustrates how to use the deadline interceptor to add an invocation deadline and shows
-how invocations that exceed the deadline fail with TimeoutException, it also demonstrates how the IDealineFeature
+how invocations that exceed the deadline fail with TimeoutException, it also demonstrates how the IDeadlineFeature
 can be used to set the deadline for an invocation.
 
 You can build the client and server applications with:
