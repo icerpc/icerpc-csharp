@@ -2,6 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
    <Import Project="$(MSBuildThisFileDirectory)../../../../build/IceRpc.Version.props" />
    <PropertyGroup>
+      <Nullable>enable</Nullable>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
       <Version>$(IceRpcVersion)</Version>
       <!--

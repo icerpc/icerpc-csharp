@@ -10,8 +10,6 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-#nullable enable
-
 namespace IceRpc.Slice.Tools;
 
 /// <summary>A MSbuild task to compile Slice files to C# using the IceRPC <c>slicec-cs</c> compiler.</summary>
@@ -101,17 +99,21 @@ public class SliceCCSharpTask : ToolTask
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         if (JsonSerializer.Deserialize<Diagnostic>(singleLine, options) is Diagnostic diagnostic)
         {
+            diagnostic.SourceSpan ??= new SourceSpan();
+
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
                 diagnostic.Message,
                 diagnostic.ErrorCode,
-                diagnostic.Span.File,
-                diagnostic.Span.Start,
-                diagnostic.Span.End);
+                diagnostic.SourceSpan.File,
+                diagnostic.SourceSpan.Start,
+                diagnostic.SourceSpan.End);
 
             // Log notes as additional error/warnings.
             foreach (Note note in diagnostic.Notes)
             {
+                note.SourceSpan ??= new SourceSpan();
+
                 LogSliceCompilerDiagnostic(
                     diagnostic.Severity,
                     note.Message,
@@ -150,7 +152,9 @@ public class Diagnostic
 {
     public string Message { get; set; } = "";
     public string Severity { get; set; } = "";
-    public SourceSpan Span { get; set; } = new SourceSpan();
+
+    [JsonPropertyName("span")]
+    public SourceSpan? SourceSpan { get; set; } = null;
     public Note[] Notes { get; set; } = Array.Empty<Note>();
 
     [JsonPropertyName("error_code")]
@@ -161,7 +165,7 @@ public class Note
 {
     public string Message { get; set; } = "";
     [JsonPropertyName("span")]
-    public SourceSpan SourceSpan { get; set; } = new SourceSpan();
+    public SourceSpan? SourceSpan { get; set; } = null;
 }
 
 public class SourceSpan
