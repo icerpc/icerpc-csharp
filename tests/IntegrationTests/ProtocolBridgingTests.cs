@@ -88,10 +88,7 @@ public sealed class ProtocolBridgingTests
             Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(expectedPath));
             Assert.That(await proxy.OpAsync(13), Is.EqualTo(13));
             IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
-                new RequestContextFeature
-                {
-                    Value = new Dictionary<string, string> { ["MyCtx"] = "hello" }
-                });
+                new RequestContextFeature { Value = { ["MyCtx"] = "hello" } });
 
             await proxy.OpContextAsync(features);
             Assert.That(features.Get<IRequestContextFeature>()?.Value, Is.EqualTo(targetService.Context));

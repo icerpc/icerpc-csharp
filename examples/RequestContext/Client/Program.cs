@@ -11,13 +11,11 @@ Pipeline pipeline = new Pipeline().UseRequestContext().Into(connection);
 
 var greeter = new GreeterProxy(pipeline);
 
-var features = new FeatureCollection();
-
-// Set the request context feature in features.
-features.Set<IRequestContextFeature>(
+// Create a feature collection holding an IRequestContextFeature.
+IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
     new RequestContextFeature
     {
-        Value = new Dictionary<string, string>
+        Value =
         {
             ["UserId"] = Environment.UserName.ToLowerInvariant(),
             ["MachineName"] = Environment.MachineName

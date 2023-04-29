@@ -6,7 +6,7 @@ namespace IceRpc.Features;
 /// as a <see cref="RequestFieldKey.Context" /> field with both ice and icerpc.</summary>
 public interface IRequestContextFeature
 {
-    /// <summary>Gets or sets the value of this feature.</summary>
+    /// <summary>Gets the value of this feature.</summary>
     /// <value>The request context.</value>
-    IDictionary<string, string> Value { get; set; }
+    IDictionary<string, string> Value { get; }
 }

@@ -34,8 +34,7 @@ public class RequestContextMiddleware : IDispatcher
                 valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString());
             if (context.Count > 0)
             {
-                request.Features = request.Features.With<IRequestContextFeature>(
-                    new RequestContextFeature { Value = context });
+                request.Features = request.Features.With<IRequestContextFeature>(new RequestContextFeature(context));
             }
         }
         return _next.DispatchAsync(request, cancellationToken);
