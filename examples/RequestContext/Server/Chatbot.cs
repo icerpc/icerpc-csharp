@@ -15,7 +15,8 @@ internal class Chatbot : Service, IGreeterService
     {
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
 
-        // The request context sent by the client is available to the dispatch as the IRequestContextFeature.
+        // The request context middleware decoded the request context field sent by the client (as an
+        // IRequestContextFeature) and inserted this feature in features.
         if (features.Get<IRequestContextFeature>() is IRequestContextFeature contextFeature)
         {
             Console.WriteLine("with RequestContext:");

@@ -13,7 +13,7 @@ var greeter = new GreeterProxy(pipeline);
 
 var features = new FeatureCollection();
 
-// Add the request context feature to the request features for the Greet invocation.
+// Set the request context feature in features.
 features.Set<IRequestContextFeature>(
     new RequestContextFeature
     {
@@ -24,6 +24,7 @@ features.Set<IRequestContextFeature>(
         }
     });
 
+// The request context interceptor encodes the request context feature into the request context field.
 string greeting = await greeter.GreetAsync(Environment.UserName, features);
 
 Console.WriteLine(greeting);

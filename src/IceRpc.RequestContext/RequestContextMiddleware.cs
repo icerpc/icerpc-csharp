@@ -7,6 +7,9 @@ using System.Buffers;
 namespace IceRpc.RequestContext;
 
 /// <summary>Represents a middleware that decodes the request context field into a request context feature.</summary>
+/// <remarks>Both the ice protocol and the icerpc protocol can transmit the request context field with requests; while
+/// icerpc can transmit all request fields, ice can only transmit this request context field and the idempotent field.
+/// </remarks>
 public class RequestContextMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
