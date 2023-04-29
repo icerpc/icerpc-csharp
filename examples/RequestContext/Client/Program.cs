@@ -15,11 +15,8 @@ var greeter = new GreeterProxy(pipeline);
 IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
     new RequestContextFeature
     {
-        Value =
-        {
-            ["UserId"] = Environment.UserName.ToLowerInvariant(),
-            ["MachineName"] = Environment.MachineName
-        }
+        ["UserId"] = Environment.UserName.ToLowerInvariant(),
+        ["MachineName"] = Environment.MachineName
     });
 
 // The request context interceptor encodes the request context feature into the request context field.
