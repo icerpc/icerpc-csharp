@@ -11,6 +11,6 @@
     <SliceFile Include="../Greeter.slice" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Quic" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Transports.Quic" Version="$(IceRpcVersion)" />
   </ItemGroup>
 </Project>

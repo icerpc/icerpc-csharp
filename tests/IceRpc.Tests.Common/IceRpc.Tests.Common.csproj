@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" ExactVersion="true" />
-    <ProjectReference Include="..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" ExactVersion="true" />
+    <ProjectReference Include="..\..\src\IceRpc.Transports.Coloc\IceRpc.Transports.Coloc.csproj" ExactVersion="true" />
     <ProjectReference Include="..\..\src\IceRpc.Logger\IceRpc.Logger.csproj" ExactVersion="true" />
     <ProjectReference Include="..\..\src\IceRpc.Extensions.DependencyInjection\IceRpc.Extensions.DependencyInjection.csproj" ExactVersion="true" />
   </ItemGroup>
