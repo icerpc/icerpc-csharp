@@ -2,19 +2,31 @@
 
 using System.Buffers;
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Tests.Common;
 
 /// <summary>Implements a buffer writer over a single Memory{byte}.</summary>
-internal class MemoryBufferWriter : IBufferWriter<byte>
+public class MemoryBufferWriter : IBufferWriter<byte>
 {
     /// <summary>Gets the written portion of the underlying buffer.</summary>
-    internal Memory<byte> WrittenMemory => _initialBuffer[0.._written];
+    public Memory<byte> WrittenMemory => _initialBuffer[0.._written];
 
     private Memory<byte> _available;
 
     private readonly Memory<byte> _initialBuffer;
 
     private int _written;
+
+    /// <summary>Constructs a new memory buffer writer over a buffer.</summary>
+    /// <param name="buffer">The underlying buffer.</param>
+    public MemoryBufferWriter(Memory<byte> buffer)
+    {
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
+        }
+        _initialBuffer = buffer;
+        _available = _initialBuffer;
+    }
 
     /// <inheritdoc/>
     public void Advance(int count)
@@ -52,16 +64,4 @@ internal class MemoryBufferWriter : IBufferWriter<byte>
 
     /// <inheritdoc/>
     public Span<byte> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
-
-    /// <summary>Constructs a new memory buffer writer over a buffer.</summary>
-    /// <param name="buffer">The underlying buffer.</param>
-    internal MemoryBufferWriter(Memory<byte> buffer)
-    {
-        if (buffer.IsEmpty)
-        {
-            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
-        }
-        _initialBuffer = buffer;
-        _available = _initialBuffer;
-    }
 }
