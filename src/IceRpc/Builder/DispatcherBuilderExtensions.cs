@@ -5,8 +5,7 @@ using IceRpc.Slice;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provide extension methods to add built-in middleware to a <see cref="IDispatcherBuilder" />.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="IDispatcherBuilder" />.</summary>
 public static class DispatcherBuilderExtensions
 {
     /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature" /> feature

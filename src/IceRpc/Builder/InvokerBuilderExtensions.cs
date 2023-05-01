@@ -4,8 +4,7 @@ using IceRpc.Features;
 
 namespace IceRpc.Builder;
 
-/// <summary>This class provide extension methods for interface <see cref="IInvokerBuilder" />.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="IInvokerBuilder" />.</summary>
 public static class InvokerBuilderExtensions
 {
     /// <summary>Sets the last invoker of the invocation pipeline to be a DI service managed by the service provider.
