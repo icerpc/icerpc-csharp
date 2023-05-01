@@ -8,7 +8,7 @@ set -ue
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # Read version from icerpc.version.props
-version=$(cat build/IceRpc.Version.props | grep Version | sed -E "s/<Version .*>(.*)<\/Version>/\1/g" | sed -e 's/^[[:space:]]*//')
+version=$(cat build/IceRpc.Version.props | grep "<Version" | sed -E "s/<Version .*>(.*)<\/Version>/\1/g" | sed -e 's/^[[:space:]]*//')
 
 usage()
 {
