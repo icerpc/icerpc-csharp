@@ -32,7 +32,7 @@
             PackagePath="slice/Ice" />
         <SliceFile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
         <SliceFile Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
-        <SliceFile Include="../../slice/$(AssemblyName)/Transports/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Internal/generated" />
+        <SliceFile Include="../../slice/$(AssemblyName)/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
@@ -51,4 +51,3 @@
         <Content Include="IceRpc.props" Pack="true" PackagePath="build" />
     </ItemGroup>
 </Project>
-

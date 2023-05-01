@@ -1,23 +1,18 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
-using IceRpc.Transports.Internal;
 using IceRpc.Transports.Tcp.Internal;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Globalization;
 using System.Net.Security;
 
 namespace IceRpc.Transports.Tcp;
 
-/// <summary>Implements <see cref="IDuplexClientTransport" /> for the tcp and ssl transports.</summary>
+/// <summary>Implements <see cref="IDuplexClientTransport" /> for the tcp transport.</summary>
 public class TcpClientTransport : IDuplexClientTransport
 {
     /// <inheritdoc/>
-    public string Name => TransportNames.Tcp;
+    public string Name => TcpName;
 
-    /// <summary>The default timeout value for tcp/ssl server addresses with Slice1.</summary>
-    private const int DefaultTcpTimeout = 60_000; // 60s
+    private const string SslName = "ssl";
+    private const string TcpName = "tcp";
 
     private readonly TcpClientTransportOptions _options;
 
@@ -56,7 +51,7 @@ public class TcpClientTransport : IDuplexClientTransport
         }
 
         SslClientAuthenticationOptions? authenticationOptions = clientAuthenticationOptions?.Clone() ??
-            (serverAddress.Transport == TransportNames.Ssl ? new SslClientAuthenticationOptions() : null);
+            (serverAddress.Transport == SslName ? new SslClientAuthenticationOptions() : null);
 
         if (authenticationOptions is not null)
         {
@@ -114,48 +109,6 @@ public class TcpClientTransport : IDuplexClientTransport
         }
 
         static bool IsValidTransportName(string transportName, Protocol protocol) =>
-            protocol == Protocol.Ice ?
-                transportName is TransportNames.Tcp or TransportNames.Ssl :
-                transportName is TransportNames.Tcp;
-    }
-
-    /// <summary>Decodes the body of a tcp or ssl server address encoded using Slice1.</summary>
-    internal static ServerAddress DecodeServerAddress(ref SliceDecoder decoder, string transport)
-    {
-        Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
-
-        var body = new TcpServerAddressBody(ref decoder);
-
-        if (Uri.CheckHostName(body.Host) == UriHostNameType.Unknown)
-        {
-            throw new InvalidDataException($"Received service address with invalid host '{body.Host}'.");
-        }
-
-        ImmutableDictionary<string, string> parameters = ImmutableDictionary<string, string>.Empty;
-        if (body.Timeout != DefaultTcpTimeout)
-        {
-            parameters = parameters.Add("t", body.Timeout.ToString(CultureInfo.InvariantCulture));
-        }
-        if (body.Compress)
-        {
-            parameters = parameters.Add("z", "");
-        }
-
-        return new ServerAddress(Protocol.Ice, body.Host, checked((ushort)body.Port), transport, parameters);
-    }
-
-    /// <summary>Encodes the body of a tcp or ssl server address using Slice1.</summary>
-    internal static void EncodeServerAddress(ref SliceEncoder encoder, ServerAddress serverAddress)
-    {
-        Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
-        Debug.Assert(serverAddress.Protocol == Protocol.Ice);
-
-        new TcpServerAddressBody(
-            serverAddress.Host,
-            serverAddress.Port,
-            timeout: serverAddress.Params.TryGetValue("t", out string? timeoutValue) ?
-                (timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture)) :
-                DefaultTcpTimeout,
-            compress: serverAddress.Params.ContainsKey("z")).Encode(ref encoder);
+            protocol == Protocol.Ice ? transportName is TcpName or SslName : transportName is TcpName;
     }
 }

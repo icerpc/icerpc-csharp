@@ -2,8 +2,6 @@
 
 using IceRpc.Ice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Internal;
-using IceRpc.Transports.Tcp;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
@@ -95,10 +93,13 @@ public static class ServiceAddressSliceDecoderExtensions
                 switch (transportCode)
                 {
                     case TransportCode.Tcp:
+                        serverAddress = decoder.DecodeTcpServerAddressBody(
+                            ServiceAddressSliceEncoderExtensions.TcpName);
+                        break;
+
                     case TransportCode.Ssl:
-                        serverAddress = TcpClientTransport.DecodeServerAddress(
-                            ref decoder,
-                            transportCode == TransportCode.Tcp ? TransportNames.Tcp : TransportNames.Ssl);
+                        serverAddress = decoder.DecodeTcpServerAddressBody(
+                            ServiceAddressSliceEncoderExtensions.SslName);
                         break;
 
                     case TransportCode.Uri:
@@ -128,7 +129,7 @@ public static class ServiceAddressSliceDecoderExtensions
                             Protocol.Ice,
                             host: "opaque", // not a real host obviously
                             port: Protocol.Ice.DefaultPort,
-                            TransportNames.Opaque,
+                            transport: ServiceAddressSliceEncoderExtensions.OpaqueName,
                             builder.ToImmutable());
                         break;
                 }
@@ -249,5 +250,30 @@ public static class ServiceAddressSliceDecoderExtensions
         {
             throw new InvalidDataException("Received invalid service address.", exception);
         }
+    }
+
+    /// <summary>Decodes the body of a tcp or ssl server address encoded using Slice1.</summary>
+    private static ServerAddress DecodeTcpServerAddressBody(this ref SliceDecoder decoder, string transport)
+    {
+        Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
+
+        var body = new TcpServerAddressBody(ref decoder);
+
+        if (Uri.CheckHostName(body.Host) == UriHostNameType.Unknown)
+        {
+            throw new InvalidDataException($"Received service address with invalid host '{body.Host}'.");
+        }
+
+        ImmutableDictionary<string, string> parameters = ImmutableDictionary<string, string>.Empty;
+        if (body.Timeout != ServiceAddressSliceEncoderExtensions.DefaultTcpTimeout)
+        {
+            parameters = parameters.Add("t", body.Timeout.ToString(CultureInfo.InvariantCulture));
+        }
+        if (body.Compress)
+        {
+            parameters = parameters.Add("z", "");
+        }
+
+        return new ServerAddress(Protocol.Ice, body.Host, checked((ushort)body.Port), transport, parameters);
     }
 }

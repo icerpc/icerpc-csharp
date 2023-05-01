@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 // These definitions help with the encoding of Slic frames.
-module IceRpc::Transports::Internal
+module IceRpc::Transports::Slic::Internal
 
 /// The Slic frame types.
 [cs::internal]
