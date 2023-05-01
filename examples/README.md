@@ -5,6 +5,7 @@ started using a specific feature or programming technique in IceRPC.
 
 - [Examples](#examples)
   * [Compress](#compress)
+  * [Deadline](#deadline)
   * [Download](#download)
   * [GenericHost](#generichost)
   * [Greeter](#greeter)
@@ -23,8 +24,12 @@ started using a specific feature or programming technique in IceRPC.
 
 ### [Compress](./Compress/)
 
-The Compress example shows how to use the deflate interceptor and middleware to compress and decompress the arguments
+The Compress example shows how to use the compress interceptor and middleware to compress and decompress the arguments
 and return the value of an invocation.
+
+### [Deadline](./Deadline/)
+
+The Deadline example shows how to use the deadline interceptor to set the invocation deadline.
 
 ### [Download](./Download/)
 
