@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Tcp;
 using System.Diagnostics;
 using System.Globalization;
 
@@ -10,6 +9,13 @@ namespace IceRpc.Slice;
 /// <summary>Provides extension methods for encoding service addresses.</summary>
 public static class ServiceAddressSliceEncoderExtensions
 {
+    /// <summary>The default timeout value for tcp/ssl server addresses with Slice1.</summary>
+    internal const int DefaultTcpTimeout = 60_000; // 60s
+
+    internal const string OpaqueName = "opaque";
+    internal const string SslName = "ssl";
+    internal const string TcpName = "tcp";
+
     /// <summary>Encodes a service address.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The value to encode.</param>
@@ -99,12 +105,12 @@ public static class ServiceAddressSliceEncoderExtensions
     private static void EncodeServerAddress(this ref SliceEncoder encoder, ServerAddress serverAddress)
     {
         // If the server address does not specify a transport, we default to TCP.
-        string transport = serverAddress.Transport ?? TcpClientTransport.TcpName;
+        string transport = serverAddress.Transport ?? TcpName;
 
         // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here. The preferred and
         // fallback encoding for new transports is TransportCode.Uri.
 
-        if (serverAddress.Protocol == Protocol.Ice && transport == "opaque")
+        if (serverAddress.Protocol == Protocol.Ice && transport == OpaqueName)
         {
             // Opaque server address encoding
 
@@ -124,8 +130,8 @@ public static class ServiceAddressSliceEncoderExtensions
             TransportCode transportCode = serverAddress.Protocol == Protocol.Ice ?
                 transport switch
                 {
-                    TcpClientTransport.SslName => TransportCode.Ssl,
-                    TcpClientTransport.TcpName => TransportCode.Tcp,
+                    SslName => TransportCode.Ssl,
+                    TcpName => TransportCode.Tcp,
                     _ => TransportCode.Uri
                 } :
                 TransportCode.Uri;
@@ -141,7 +147,7 @@ public static class ServiceAddressSliceEncoderExtensions
             {
                 case TransportCode.Tcp:
                 case TransportCode.Ssl:
-                    TcpClientTransport.EncodeServerAddress(ref encoder, serverAddress);
+                    encoder.EncodeTcpServerAddressBody(serverAddress);
                     break;
 
                 default:
@@ -152,6 +158,21 @@ public static class ServiceAddressSliceEncoderExtensions
 
             SliceEncoder.EncodeInt32(encoder.EncodedByteCount - startPos, sizePlaceholder);
         }
+    }
+
+    /// <summary>Encodes the body of a tcp or ssl server address using Slice1.</summary>
+    private static void EncodeTcpServerAddressBody(this ref SliceEncoder encoder, ServerAddress serverAddress)
+    {
+        Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
+        Debug.Assert(serverAddress.Protocol == Protocol.Ice);
+
+        new TcpServerAddressBody(
+            serverAddress.Host,
+            serverAddress.Port,
+            timeout: serverAddress.Params.TryGetValue("t", out string? timeoutValue) ?
+                (timeoutValue == "infinite" ? -1 : int.Parse(timeoutValue, CultureInfo.InvariantCulture)) :
+                DefaultTcpTimeout,
+            compress: serverAddress.Params.ContainsKey("z")).Encode(ref encoder);
     }
 
     /// <summary>Parses the params of an opaque server address (Slice1 only).</summary>
