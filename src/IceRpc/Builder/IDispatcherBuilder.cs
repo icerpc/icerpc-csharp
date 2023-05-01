@@ -18,6 +18,8 @@ public interface IDispatcherBuilder
     /// must start with a <c>/</c>.</param>
     /// <exception cref="FormatException">Thrown if <paramref name="path" /> is not a valid path.</exception>
     /// <returns>This builder.</returns>
+    /// <remarks>With Slice, it is common for <typeparamref name="TService" /> to correspond to a generated
+    /// I{name}Service interface. This generated interface does not extend <see cref="IDispatcher" />.</remarks>
     IDispatcherBuilder Map<TService>(string path) where TService : notnull;
 
     /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
@@ -28,6 +30,8 @@ public interface IDispatcherBuilder
     /// the request.</param>
     /// <exception cref="FormatException">Thrown if <paramref name="prefix" /> is not a valid path.</exception>
     /// <returns>This builder.</returns>
+    /// <remarks>With Slice, it is common for <typeparamref name="TService" /> to correspond to a generated
+    /// I{name}Service interface. This generated interface does not extend <see cref="IDispatcher" />.</remarks>
     IDispatcherBuilder Mount<TService>(string prefix) where TService : notnull;
 
     /// <summary>Creates a sub-router, configures this sub-router and mounts it at the given <c>prefix</c>.</summary>

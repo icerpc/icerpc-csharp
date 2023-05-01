@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Ice;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice;
@@ -127,7 +127,7 @@ public class WellKnownTypesTests
         encoder.EncodeUri(uri);
 
         var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-        Uri decodedUri = new Uri(decoder.DecodeString(), UriKind.RelativeOrAbsolute);
+        var decodedUri = new Uri(decoder.DecodeString(), UriKind.RelativeOrAbsolute);
 
         Assert.That(decodedUri, Is.EqualTo(uri));
     }

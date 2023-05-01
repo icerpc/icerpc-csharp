@@ -1,7 +1,7 @@
 # Coloc Transport for IceRPC
 
-IceRpc.Coloc is an implementation of [IceRPC][icerpc]'s duplex transport abstraction. You can use this transport to send
-RPCs to services hosted by IceRPC servers in your local application.
+IceRpc.Transports.Coloc is an implementation of [IceRPC][icerpc]'s duplex transport abstraction. You can use this
+transport to send RPCs to services hosted by IceRPC servers in your local application.
 
 The primary use case for this transport is testing. Several unit tests running in the same process can easily and cheaply
 create their own private coloc connections.
@@ -34,8 +34,9 @@ await using var connection = new ClientConnection(
     
 await connection.ConnectAsync();
 ```
+
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.Coloc.html
 [icerpc]: https://www.nuget.org/packages/IceRpc
-[package]: https://www.nuget.org/packages/IceRpc.Coloc
+[package]: https://www.nuget.org/packages/IceRpc.Transports.Coloc
 [product]: https://docs.testing.zeroc.com/docs/icerpc-core
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Coloc
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Transports.Coloc

@@ -39,6 +39,8 @@ public static class DispatcherBuilderExtensions
     /// service must implement <see cref="IDispatcher" />.</typeparam>
     /// <param name="builder">The builder being configured.</param>
     /// <returns>This builder.</returns>
+    /// <remarks>With Slice, it is common for <typeparamref name="TService" /> to correspond to a generated
+    /// I{name}Service interface. This generated interface does not extend <see cref="IDispatcher" />.</remarks>
     public static IDispatcherBuilder Map<TService>(this IDispatcherBuilder builder) where TService : notnull =>
         builder.Map<TService>(typeof(TService).GetDefaultServicePath());
 }

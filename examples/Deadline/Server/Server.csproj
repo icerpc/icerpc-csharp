@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <SliceFile Include="../Greeter.slice" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Deadline" Version="$(IceRpcVersion)" />
+    <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+  </ItemGroup>
+</Project>
