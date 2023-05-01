@@ -11,7 +11,7 @@ param (
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
 
-Get-Content .\build\IceRpc.Version.props -Raw | Where {$_ -match "<IceRpcVersion .*>(.*)</IceRpcVersion>"} | Out-Null
+Get-Content .\build\IceRpc.Version.props -Raw | Where {$_ -match "<Version .*>(.*)</Version>"} | Out-Null
 $version = $Matches.1
 
 function BuildCompiler($config) {

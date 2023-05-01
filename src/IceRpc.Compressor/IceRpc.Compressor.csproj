@@ -1,18 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Authors>ZeroC, Inc.</Authors>
-        <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-        <Description>IceRPC compressor interceptor and middleware.</Description>
-        <PackageIcon>logo.png</PackageIcon>
-        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <Description>Compressor Interceptor and Middleware for IceRPC</Description>
+        <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
-        <PackageVersion>$(IceRpcVersion)</PackageVersion>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
