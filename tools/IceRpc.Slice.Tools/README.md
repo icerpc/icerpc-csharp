@@ -1,10 +1,10 @@
 # Slice Tools for IceRPC
 
-IceRpc.Slice.Tools allows you to compile Slice source definitions (in `.slice` files) into C# code (in `.cs` files)
-within MSBuild projects. The generated C# code depends on [IceRPC][icerpc].
+IceRpc.Slice.Tools allows you to compile Slice definitions (in `.slice` files) into C# code (in `.cs` files) within
+MSBuild projects. The generated C# code depends on the [IceRpc][icerpc] NuGet package.
 
-This package includes the Slice compiler for C#, `slicec-cs`. This compiler is a native tool with binaries for
-Linux (x64 and arm64), macOS (x64 and arm64) and Windows (x64).
+This package includes the Slice compiler for C#, `slicec-cs`. This compiler is a native tool with binaries for Linux
+(x64 and arm64), macOS (x64 and arm64) and Windows (x64).
 
 Once you've added the IceRpc.Slice.Tools NuGet package to your project, the Slice files of your project are
 automatically compiled into C# files every time you build this project.
@@ -14,53 +14,78 @@ automatically compiled into C# files every time you build this project.
 
 [Source code][source] | [Package][package] | [slicec-cs documentation][slicec-cs] | [Slice documentation][slice]
 
-## Adding Slice files to your project
+## Slice files and Slice directories
 
-The `SliceFile` item type represents a Slice file that will be compiled into a C# file using the `slicec-cs` compiler. By
-default, all `.slice` files located in the project's home directory and any of its subdirectories, recursively, are added
-to the project as `SliceFile` items.
+The Slice compiler for C# accepts two main inputs:
+ - the Slice files to compile into C# code (the Slice files)
+ - directories that contain reference Slice files (the Slice directories)
 
-You can prevent this auto-inclusion of `.slice` files by setting either [`EnableDefaultItems`][default_items] or
-`EnableDefaultSliceFileItems` to `false`. The default value of these properties is `true`.
+The Slice compiler parses the reference Slice files found in the Slice directories but does not generate code for them.
+They typically contain definitions referenced by the source Slice files.
 
-You can also add files to your project's Slice files explicitly with the `SliceFile` item type.
+> The Slice files and Slice directories can overlap.
 
-For example:
-``` xml
+You select which files to include in your project's Slice files with the `SliceFile` item type. And you select which
+directory to include in your project's Slice directories with the `SliceDirectory` item type.
+
+By default, all `.slice` files located in your project's home directory and any of its subdirectories, recursively, are
+included in `SliceFile`. You can prevent this auto-inclusion of `.slice` files by setting either
+[`EnableDefaultItems`][default_items] or `EnableDefaultSliceFileItems` to `false`. The default value of these properties
+is `true`.
+
+You can also add Slice files to your project explicitly. For example:
+```xml
 <ItemGroup>
     <SliceFile Include="../Greeter.slice"/>
 </ItemGroup>
 ```
 
-This adds `Greeter.slice` to your project's Slice files even though this file is not in the project's home
-directory or any of its subdirectories.
+This adds `Greeter.slice` to your project's Slice files even though this file is not in the project's home directory or
+any of its subdirectories.
 
 > Slice files must have a `.slice` extension.
 
-## SliceFile item metadata
+The Slice directories are an aggregate of the `SliceDirectory` defined in your project (if any) and the `SliceDirectory`
+defined in NuGet packages referenced by your project.
 
-You can use the following `SliceFile` item metadata to customize the compilation of your Slice files:
-
-| Name              | Default   | Description                                                                                                                  |
-|-------------------|-----------|------------------------------------------------------------------------------------------------------------------------------|
-| AdditionalOptions |           | Additional options to pass to the `slicec-cs` compiler.                                                                      |
-| OutputDir         | generated | Output directory for the generated code. This metadata corresponds to the `--output-dir` option of the `slicec-cs` compiler. |
-| Pack              | `false`   | Whether or not to include the items in the NuGet package.                                                                    |
-| PackagePath       | slice     | The target path in the NuGet package.                                                                                        |
-
-## Adding Slice directories to the compiler's reference path
-
-To add a directory to the compiler's reference path, use the `SliceDirectory` item type. These items represent
-directories containing Slice files that the compiler references, but for which no code is generated. The full path of
-these items is items is passed to the `-R` option of the slicec-cs compiler. This is typically used to reference Slice
-definitions that are required but compiled in a separate project or package.
-
-``` xml
+For example:
+```xml
 <ItemGroup>
+    <!-- My Slice files reference definitions in this common directory -->
+    <SliceDirectory Include="$(MSBuildThisFileDirectory)../common/slice"/>
+</ItemGroup>
+```
+
+## Slice directory and NuGet Package
+
+As a general rule, when you package an assembly in a NuGet package and this assembly exports C# symbols generated by the
+Slice compiler for C#, you should include the corresponding Slice files in your NuGet package. This allows consumers of
+your NuGet package to easily retrieve these Slice files.
+
+You can also define `SliceDirectory` in this NuGet package so that any project that references this package
+automatically sees these Slice files when compiling. For example:
+```xml
+<!-- In the build/<PackageName>.props file you pack into your NuGet package -->
+<ItemGroup>
+    <!-- This NuGet package installs Slice files in its slice directory -->
     <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice"/>
 </ItemGroup>
 ```
 
+The [IceRpc][icerpc] NuGet package follows this pattern and provides definitions for common Slice types such as
+WellKnownTypes::Duration, WellKnownTypes::TimeStamp and WellKnownTypes::Uri.
+
+## SliceFile item metadata
+
+You can use the following `SliceFile` item metadata to customize the compilation and packaging of your Slice files. Each
+unique set of options results in a separate execution of `slicec-cs`.
+
+| Name              | Default   | Description                                                                                                              |
+|-------------------|-----------|--------------------------------------------------------------------------------------------------------------------------|
+| AdditionalOptions |           | Specifies additional options to pass to `slicec-cs`.                                                                     |
+| OutputDir         | generated | Sets the output directory for the generated code. This metadata corresponds to the `--output-dir` option of `slicec-cs`. |
+| Pack              | `false`   | Specifies whether or not to include the items (Slice files) in the NuGet package.                                        |
+| PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                |
 
 [default_items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
