@@ -65,7 +65,7 @@ your NuGet package to easily retrieve these Slice files.
 You can also define `SliceDirectory` in this NuGet package so that any project that references this package
 automatically sees these Slice files when compiling. For example:
 ```xml
-<!-- In the PackageName.props file you pack into your NuGet package -->
+<!-- In the build/<PackageName>.props file you pack into your NuGet package -->
 <ItemGroup>
     <!-- This NuGet package installs Slice files in its slice directory -->
     <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice"/>
