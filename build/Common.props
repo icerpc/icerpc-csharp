@@ -41,7 +41,7 @@
         <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageVersion>$(IceRpcVersion)</PackageVersion>
+        <PackageVersion>$(Version)</PackageVersion>
         <Product>IceRPC</Product>
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>

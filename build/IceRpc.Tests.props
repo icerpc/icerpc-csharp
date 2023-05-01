@@ -2,7 +2,6 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSbuildThisFileDirectory)/Common.props" />
   <PropertyGroup>
-    <PackageVersion>$(IceRpcVersion)</PackageVersion>
     <IsPackable>false</IsPackable>
     <ThreadPoolMinThreads>50</ThreadPoolMinThreads>
     <OutputPath>.</OutputPath>

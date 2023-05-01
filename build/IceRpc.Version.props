@@ -1,7 +1,6 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
+        <!-- The version used by NuGet packages and assembly files -->
         <Version Condition="'$(Version)' == ''">0.1.0</Version>
-        <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.1.0-preview3</IceRpcVersion>
-        <PackageVersion>$(IceRpcVersion)</PackageVersion>
     </PropertyGroup>
 </Project>
