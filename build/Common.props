@@ -31,4 +31,19 @@
         <Optimize>true</Optimize>
         <RustConfiguration>release</RustConfiguration>
     </PropertyGroup>
+
+    <!-- Common Assembly & Packaging properties -->
+    <PropertyGroup>
+        <Authors>ZeroC, Inc.</Authors>
+        <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
+        <PackageIcon>logo.png</PackageIcon>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageVersion>$(IceRpcVersion)</PackageVersion>
+        <Product>IceRPC</Product>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
+    </PropertyGroup>
 </Project>

@@ -1,24 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Authors>ZeroC, Inc.</Authors>
         <ContentTargetFolders>Templates</ContentTargetFolders>
-        <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
         <Description>IceRPC project templates.</Description>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <IncludeContentInPack>true</IncludeContentInPack>
         <NoWarn>$(NoWarn);NU5128</NoWarn>
-        <PackageIcon>logo.png</PackageIcon>
         <PackageId>IceRpc.ProjectTemplates</PackageId>
-        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC;RPC;Templates</PackageTags>
         <PackageType>Template</PackageType>
-        <PackageVersion>$(IceRpcVersion)</PackageVersion>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
         <TargetFramework>net7.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
