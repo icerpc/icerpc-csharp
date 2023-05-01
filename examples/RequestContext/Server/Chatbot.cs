@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.RequestContext;
 using IceRpc.Slice;
 
 namespace RequestContextExample;
@@ -15,7 +14,9 @@ internal class Chatbot : Service, IGreeterService
         CancellationToken cancellationToken)
     {
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
-        // The request context sent by the client is available to the dispatch as the IRequestContextFeature.
+
+        // The request context middleware decoded the request context field sent by the client (as an
+        // IRequestContextFeature) and inserted this feature in features.
         if (features.Get<IRequestContextFeature>() is IRequestContextFeature contextFeature)
         {
             Console.WriteLine("with RequestContext:");
@@ -24,6 +25,7 @@ internal class Chatbot : Service, IGreeterService
                 Console.WriteLine($"  {key}: {value}");
             }
         }
+
         return new($"Hello, {name}!");
     }
 }

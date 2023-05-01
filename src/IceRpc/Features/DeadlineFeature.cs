@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Deadline;
+namespace IceRpc.Features;
 
 /// <summary>Default implementation of <see cref="IDeadlineFeature" />.</summary>
 public sealed class DeadlineFeature : IDeadlineFeature

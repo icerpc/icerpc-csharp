@@ -18,11 +18,7 @@ public sealed class RequestContextInterceptorTests
         var proxy = new ServiceAddress(Protocol.IceRpc);
         using var request = new OutgoingRequest(proxy)
         {
-            Features = new FeatureCollection().With<IRequestContextFeature>(
-                new RequestContextFeature()
-                {
-                    Value = context
-                })
+            Features = new FeatureCollection().With<IRequestContextFeature>(new RequestContextFeature(context))
         };
         Dictionary<string, string>? decoded = null;
         var sut = new RequestContextInterceptor(
@@ -62,11 +58,7 @@ public sealed class RequestContextInterceptorTests
         var proxy = new ServiceAddress(Protocol.IceRpc);
         using var request = new OutgoingRequest(proxy)
         {
-            Features = new FeatureCollection().With<IRequestContextFeature>(
-                new RequestContextFeature()
-                {
-                    Value = context
-                })
+            Features = new FeatureCollection().With<IRequestContextFeature>(new RequestContextFeature(context))
         };
 
         bool hasContextField = true;
