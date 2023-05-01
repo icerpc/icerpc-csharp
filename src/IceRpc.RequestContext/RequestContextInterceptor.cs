@@ -5,9 +5,9 @@ using IceRpc.Slice;
 
 namespace IceRpc.RequestContext;
 
-/// <summary>Represents an interceptor that encodes the request context feature into a request context field.</summary>
-/// <remarks>Both the ice protocol and the icerpc protocol can transmit the request context field with requests; while
-/// icerpc can transmit all request fields, ice can only transmit this request context field and the idempotent field.
+/// <summary>Represents an interceptor that encodes request context features into request context fields.</summary>
+/// <remarks>Both the ice protocol and the icerpc protocol can transmit request context fields with requests; while
+/// icerpc can transmit all request fields, ice can only transmit request context fields and idempotent fields.
 /// </remarks>
 public class RequestContextInterceptor : IInvoker
 {
