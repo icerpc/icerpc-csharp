@@ -1,19 +1,19 @@
 {
     "$schema": "http://json.schemastore.org/template",
     "author": "ZeroC",
-    "classifications": ["IceRPC", "Client"],
-    "identity": "IceRpc.DIClient",
-    "name": "IceRPC DI Client",
-    "shortName": "icerpc-di-client",
+    "classifications": ["IceRPC", "Server"],
+    "identity": "IceRpc.DIServer",
+    "name": "IceRPC DI Server",
+    "shortName": "icerpc-di-server",
     "tags": {
         "language": "C#",
         "type": "project"
     },
-    "sourceName": "IceRpc-DI-Client",
+    "sourceName": "IceRpc-DI-Server",
     "preferNameDirectory": true,
     "primaryOutputs": [
         {
-            "path": "IceRpc-DI-Client.csproj"
+            "path": "IceRpc-DI-Server.csproj"
         }
     ]
 }
