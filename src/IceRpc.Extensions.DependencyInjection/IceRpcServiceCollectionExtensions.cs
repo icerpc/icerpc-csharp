@@ -12,7 +12,8 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>Extension methods for setting up IceRPC services in an <see cref="IServiceCollection" />.</summary>
+/// <summary>Provides extension methods for setting up IceRPC services in an <see cref="IServiceCollection" />.
+/// </summary>
 public static class IceRpcServiceCollectionExtensions
 {
     /// <summary>Adds a <see cref="ClientConnection" /> and <see cref="IInvoker" /> singleton to this service
@@ -162,7 +163,6 @@ public static class IceRpcServiceCollectionExtensions
                    provider.GetRequiredService<IOptions<TcpServerTransportOptions>>().Value));
 
         services
-            .AddOptions()
             .TryAddSingleton<IMultiplexedServerTransport>(
                 provider => new SlicServerTransport(
                     provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
