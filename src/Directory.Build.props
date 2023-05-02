@@ -18,6 +18,6 @@
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.globalconfig" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Src.globalconfig" Condition="'$(IsSrcProject)' == 'true'" />
         <!-- Reference the built-in Slice files -->
-        <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice" />
+        <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice" Condition="'$(IsSrcProject)' == 'true'" />
     </ItemGroup>
 </Project>

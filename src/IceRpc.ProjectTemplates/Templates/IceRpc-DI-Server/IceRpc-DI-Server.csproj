@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>10.0</LangVersion>
+        <ImplicitUsings>true</ImplicitUsings>
+        <WarningLevel>4</WarningLevel>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="7.0.0" />
+        <PackageReference Include="IceRpc.Slice.Tools" Version="0.1.0" PrivateAssets="All" />
+        <PackageReference Include="IceRpc" Version="0.1.0" />
+        <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="0.1.0" />
+        <PackageReference Include="IceRpc.Logger" Version="0.1.0" />
+        <PackageReference Include="IceRpc.Deadline" Version="0.1.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+</Project>

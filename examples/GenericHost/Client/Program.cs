@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-// Build generic host.
+// Configure and build the host.
 IHost host = Host.CreateDefaultBuilder(args)
     // Set the content root path to the build directory of the client (e.g.: Client/bin/Debug/net7.0)
     .UseContentRoot(AppContext.BaseDirectory)

@@ -14,3 +14,9 @@ runs:
   - name: 🧪 Test IceRpc Server Template
     run: mkdir -p templates-test/server && cd templates-test/server && dotnet new icerpc-server && dotnet build
     shell: bash
+  - name: 🧪 Test IceRpc DI  Client Template
+    run: mkdir -p templates-test/di-client && cd templates-test/di-client && dotnet new icerpc-di-client && dotnet build
+    shell: bash
+  - name: 🧪 Test IceRpc DI Server Template
+    run: mkdir -p templates-test/di-server && cd templates-test/di-server && dotnet new icerpc-di-server && dotnet build
+    shell: bash
