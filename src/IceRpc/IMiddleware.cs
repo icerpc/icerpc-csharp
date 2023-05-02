@@ -5,8 +5,9 @@ namespace IceRpc;
 /// <summary>Represents a middleware with a single injected service dependency in its <see cref="DispatchAsync" />
 /// method.</summary>
 /// <typeparam name="TDep">The type of the injected dependency.</typeparam>
-/// <remarks>This interface is implemented by a DI idiomatic middleware that communicates with other middleware via
-/// auto-wired injected services.</remarks>
+/// <remarks>This interface is implemented by a middleware that communicates with other middleware via injected
+/// services.</remarks>
+/// <seealso href="https://docs.testing.zeroc.com/docs/icerpc-core/dependency-injection/dispatch-pipeline-with-di#middleware-with-injected-services">Middleware with injected services.</seealso>
 public interface IMiddleware<TDep> where TDep : notnull
 {
     /// <summary>Dispatches a request and returns a response.</summary>
@@ -21,8 +22,9 @@ public interface IMiddleware<TDep> where TDep : notnull
 /// method.</summary>
 /// <typeparam name="TDep1">The type of the first injected dependency.</typeparam>
 /// <typeparam name="TDep2">The type of the second injected dependency.</typeparam>
-/// <remarks>This interface is implemented by a DI idiomatic middleware that communicates with other middleware via
-/// auto-wired injected services.</remarks>
+/// <remarks>This interface is implemented by a middleware that communicates with other middleware via injected
+/// services.</remarks>
+/// <seealso href="https://docs.testing.zeroc.com/docs/icerpc-core/dependency-injection/dispatch-pipeline-with-di#middleware-with-injected-services">Middleware with injected services.</seealso>
 public interface IMiddleware<TDep1, TDep2>
     where TDep1 : notnull
     where TDep2 : notnull
@@ -45,8 +47,9 @@ public interface IMiddleware<TDep1, TDep2>
 /// <typeparam name="TDep1">The type of the first injected dependency.</typeparam>
 /// <typeparam name="TDep2">The type of the second injected dependency.</typeparam>
 /// <typeparam name="TDep3">The type of the third injected dependency.</typeparam>
-/// <remarks>This interface is implemented by a DI idiomatic middleware that communicates with other middleware via
-/// auto-wired injected services.</remarks>
+/// <remarks>This interface is implemented by a middleware that communicates with other middleware via injected
+/// services.</remarks>
+/// <seealso href="https://docs.testing.zeroc.com/docs/icerpc-core/dependency-injection/dispatch-pipeline-with-di#middleware-with-injected-services">Middleware with injected services.</seealso>
 public interface IMiddleware<TDep1, TDep2, TDep3>
     where TDep1 : notnull
     where TDep2 : notnull
