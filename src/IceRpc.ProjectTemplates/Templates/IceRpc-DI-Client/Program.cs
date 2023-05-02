@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 
-// Build generic host.
+// Configure and build the host.
 IHost host = Host.CreateDefaultBuilder(args)
     // Set the content root path to the build directory of the client (e.g.: Client/bin/Debug/net7.0)
     .UseContentRoot(AppContext.BaseDirectory)

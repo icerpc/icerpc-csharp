@@ -9,10 +9,13 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(
 // Create a logger for category `IceRpc.ClientConnection`.
 ILogger logger = loggerFactory.CreateLogger<ClientConnection>();
 
-await using var connection = new ClientConnection(new Uri("icerpc://127.0.0.1"), logger: logger);
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: null,
+    logger: logger);
 
 Pipeline pipeline = new Pipeline()
-    .UseLogger(logger)
+    .UseLogger(loggerFactory)
     .UseDeadline(defaultTimeout: TimeSpan.FromSeconds(10))
     .Into(connection);
 

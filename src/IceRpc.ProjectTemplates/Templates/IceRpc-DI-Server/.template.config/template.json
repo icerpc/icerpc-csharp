@@ -5,7 +5,7 @@
     "groupIdentity": "IceRpc",
     "identity": "IceRpc.DI.Server.0.1",
     "name": "IceRPC DI Server",
-    "description": "A project template for creating an IceRPC server console application using Microsoft DI container.",
+    "description": "A project template for creating an IceRPC server console application using Microsoft's DI container.",
     "shortName": "icerpc-di-server",
     "tags": {
         "language": "C#",

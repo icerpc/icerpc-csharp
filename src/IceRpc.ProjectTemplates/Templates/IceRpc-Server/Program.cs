@@ -10,7 +10,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(
 ILogger logger = loggerFactory.CreateLogger<Server>();
 
 Router router = new Router()
-    .UseLogger(logger)
+    .UseLogger(loggerFactory)
     .UseDeadline()
     .Map<IGreeterService>(new Chatbot());
 
