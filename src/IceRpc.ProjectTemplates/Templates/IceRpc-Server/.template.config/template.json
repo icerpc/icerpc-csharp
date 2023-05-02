@@ -2,8 +2,10 @@
     "$schema": "http://json.schemastore.org/template",
     "author": "ZeroC",
     "classifications": ["IceRPC", "Server"],
-    "identity": "IceRpc.Server",
+    "groupIdentity": "IceRpc",
+    "identity": "IceRpc.Server.0.1",
     "name": "IceRPC Server",
+    "description": "A project template for creating an IceRPC server console application.",
     "shortName": "icerpc-server",
     "tags": {
         "language": "C#",
@@ -11,6 +13,7 @@
     },
     "sourceName": "IceRpc-Server",
     "preferNameDirectory": true,
+    "defaultName": "Server",
     "primaryOutputs": [
         {
             "path": "IceRpc-Server.csproj"
