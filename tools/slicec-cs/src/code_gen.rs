@@ -172,15 +172,15 @@ mod test {
     fn unique_filenames() {
         // Arrange
         let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let greeter1 = root_dir.join("src/IceRpc.ProjectTemplates/Templates/IceRpc-Client/Greeter.slice");
-        let greeter2 = root_dir.join("src/IceRpc.ProjectTemplates/Templates/IceRpc-Server/Greeter.slice");
+        let slice1 = root_dir.join("tests/IceRpc.Tests/Slice/Pingable.slice");
+        let slice2 = root_dir.join("tests/IntegrationTests/Pingable.slice");
 
         let mut options = SliceOptions::default();
-        options.sources.push(greeter1.display().to_string());
-        options.sources.push(greeter2.display().to_string());
+        options.sources.push(slice1.display().to_string());
+        options.sources.push(slice2.display().to_string());
 
         // Act
-        let compilation_data: CompilationData = compile(&options).into();
+        let compilation_data = CompilationData::from(compile(&options));
 
         // Assert
         let expected = Diagnostic::new(Error::IO {
