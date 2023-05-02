@@ -2,7 +2,6 @@
     "$schema": "http://json.schemastore.org/template",
     "author": "ZeroC",
     "classifications": ["IceRPC", "Server"],
-    "groupIdentity": "IceRpc",
     "identity": "IceRpc.DI.Server.0.1",
     "name": "IceRPC DI Server",
     "description": "A project template for creating an IceRPC server console application using Microsoft's DI container.",
