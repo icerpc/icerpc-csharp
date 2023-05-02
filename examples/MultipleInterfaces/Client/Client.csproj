@@ -3,7 +3,7 @@
   <ItemGroup>
     <SliceFile Include="../Greeter.slice" />
     <SliceFile Include="../RequestCounter.slice" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
   </ItemGroup>
 </Project>

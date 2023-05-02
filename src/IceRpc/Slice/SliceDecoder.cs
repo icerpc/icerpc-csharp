@@ -625,7 +625,7 @@ public ref partial struct SliceDecoder
         }
         else
         {
-            if (_reader.UnreadSpan.Length <= byteCount)
+            if (_reader.UnreadSpan.Length >= byteCount)
             {
                 vSpan = _reader.UnreadSpan[0..byteCount];
                 _reader.Advance(byteCount);

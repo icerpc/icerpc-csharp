@@ -20,10 +20,10 @@
     <SliceFile Include="../Greeter.slice" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
   </ItemGroup>
 </Project>

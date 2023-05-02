@@ -4,10 +4,10 @@
     <SliceFile Include="../Hello.slice" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Locator" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Retry" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Locator" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Retry" Version="$(Version)" />
   </ItemGroup>
 </Project>

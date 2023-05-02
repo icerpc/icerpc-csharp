@@ -4,8 +4,8 @@
     <SliceFile Include="../Greeter.slice" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>

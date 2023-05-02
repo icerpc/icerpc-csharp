@@ -2,8 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <SliceFile Include="../Greeter.slice" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.RequestContext" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.RequestContext" Version="$(Version)" />
   </ItemGroup>
 </Project>
