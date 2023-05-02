@@ -12,5 +12,9 @@
   <ItemGroup>
     <PackageReference Include="IceRpc.Slice.Tools" Version="0.1.0" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="0.1.0" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.1.0" />
+    <PackageReference Include="IceRpc.Logger" Version="0.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
   </ItemGroup>
 </Project>

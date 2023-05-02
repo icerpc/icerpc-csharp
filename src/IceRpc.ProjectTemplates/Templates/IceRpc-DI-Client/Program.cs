@@ -25,14 +25,16 @@ IHost host = Host.CreateDefaultBuilder(args)
             .Bind(hostContext.Configuration.GetSection("Client"));
 
         services
-            // The activity source used by the telemetry interceptor.
-            .AddSingleton(_ => new ActivitySource("IceRpc"))
             // Add a ClientConnection singleton. This ClientConnections uses the ClientConnectionOptions provided by the
             // the IOptions<ClientConnectionOptions> configured/bound above.
             .AddIceRpcClientConnection()
             // Add an invoker singleton; this invoker corresponds to the invocation pipeline. This invocation pipeline
             // flows into the ClientConnection singleton.
-            .AddIceRpcInvoker(builder => builder.UseTelemetry().UseLogger().Into<ClientConnection>())
+            .AddIceRpcInvoker(
+                builder => builder
+                    .UseDeadline(defaultTimeout: hostContext.Configuration.GetValue<TimeSpan>("Deadline:DefaultTimeout"))
+                    .UseLogger()
+                    .Into<ClientConnection>())
             // Add an IGreeter singleton using the invoker singleton registered above.
             .AddIceRpcProxy<IGreeter, GreeterProxy>();
     })

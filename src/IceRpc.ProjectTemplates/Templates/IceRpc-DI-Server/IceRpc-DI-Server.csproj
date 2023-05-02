@@ -21,6 +21,6 @@
         <PackageReference Include="IceRpc" Version="0.1.0" />
         <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="0.1.0" />
         <PackageReference Include="IceRpc.Logger" Version="0.1.0" />
-        <PackageReference Include="IceRpc.Telemetry" Version="0.1.0" />
+        <PackageReference Include="IceRpc.Deadline" Version="0.1.0" />
     </ItemGroup>
 </Project>

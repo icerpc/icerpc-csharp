@@ -6,9 +6,6 @@ using IceRpc.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System.Diagnostics;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 // Build generic host.
 IHost host = Host.CreateDefaultBuilder(args)
@@ -20,9 +17,6 @@ IHost host = Host.CreateDefaultBuilder(args)
     {
         // Add the ServerHostedService to the hosted services of the .NET Generic Host.
         services.AddHostedService<ServerHostedService>();
-
-        // The activity source used by the telemetry interceptor.
-        services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
         // Bind the server options to the "appsettings.json" configuration "Server" section.
         services
@@ -36,7 +30,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         // provided by the IOptions<ServerOptions> singleton configured/bound above.
         services.AddIceRpcServer(
             builder => builder
-                .UseTelemetry()
+                .UseDeadline()
                 .UseLogger()
                 .Map<IGreeterService>());
     })
