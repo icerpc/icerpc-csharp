@@ -6,33 +6,28 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Builder.Internal;
 
-/// <summary>Provides the default implementation of <see cref="IDispatcherBuilder" />.</summary>
-internal class DispatcherBuilder : IDispatcherBuilder
+/// <summary>Implements <see cref="IDispatcherBuilder" /> for Microsoft's DI container.</summary>
+internal sealed class DispatcherBuilder : IDispatcherBuilder
 {
-    /// <inheritdoc/>
     public IServiceProvider ServiceProvider { get; }
 
     private readonly Router _router;
 
-    /// <inheritdoc/>
     public IDispatcherBuilder Map<TService>(string path) where TService : notnull
     {
         _router.Map(path, new ServiceAdapter<TService>());
         return this;
     }
 
-    /// <inheritdoc/>
     public IDispatcherBuilder Mount<TService>(string prefix) where TService : notnull
     {
         _router.Mount(prefix, new ServiceAdapter<TService>());
         return this;
     }
 
-    /// <inheritdoc/>
     public void Route(string prefix, Action<IDispatcherBuilder> configure) =>
         _router.Route(prefix, router => configure(new DispatcherBuilder(router, ServiceProvider)));
 
-    /// <inheritdoc/>
     public IDispatcherBuilder Use(Func<IDispatcher, IDispatcher> middleware)
     {
         _router.Use(middleware);
@@ -42,12 +37,6 @@ internal class DispatcherBuilder : IDispatcherBuilder
     internal DispatcherBuilder(IServiceProvider provider)
         : this(new Router(), provider)
     {
-    }
-
-    private DispatcherBuilder(Router router, IServiceProvider provider)
-    {
-        _router = router;
-        ServiceProvider = provider;
     }
 
     internal IDispatcher Build() => new InlineDispatcher(async (request, cancellationToken) =>
@@ -60,4 +49,10 @@ internal class DispatcherBuilder : IDispatcherBuilder
 
         return await _router.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
     });
+
+    private DispatcherBuilder(Router router, IServiceProvider provider)
+    {
+        _router = router;
+        ServiceProvider = provider;
+    }
 }
