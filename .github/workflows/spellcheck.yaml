@@ -1,8 +1,7 @@
-name: "Check spelling"
+name: 'Check spelling'
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review]
   push:
 
 jobs:
