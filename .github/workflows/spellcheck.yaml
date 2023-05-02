@@ -1,9 +1,10 @@
-name: "Check spelling"
+name: 'Check spelling'
 
 on:
-  pull_request:
-    types: [opened, reopened, ready_for_review]
   push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
   spellcheck:

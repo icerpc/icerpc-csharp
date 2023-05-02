@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace IceRpc.Builder;
 
-/// <summary>Extension methods for <see cref="IDispatcherBuilder" />.</summary>
+/// <summary>Provides extension methods for <see cref="IDispatcherBuilder" />.</summary>
 public static class MiddlewareDispatcherBuilderExtensions
 {
     /// <summary>Registers a middleware with one service dependency in its DispatchAsync method. Such a middleware

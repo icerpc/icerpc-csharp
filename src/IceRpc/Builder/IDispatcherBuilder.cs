@@ -2,8 +2,8 @@
 
 namespace IceRpc.Builder;
 
-/// <summary>Provides the mechanism to configure a dispatcher when using Dependency Injection (DI). Each request will
-/// be dispatched in its own scope.</summary>
+/// <summary>Provides the mechanism to configure a dispatcher when using Dependency Injection (DI). Each request is
+/// dispatched in its own scope.</summary>
 public interface IDispatcherBuilder
 {
     /// <summary>Gets the service provider.</summary>
