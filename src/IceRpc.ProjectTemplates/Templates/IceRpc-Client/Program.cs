@@ -6,13 +6,10 @@ using Microsoft.Extensions.Logging;
 using ILoggerFactory loggerFactory = LoggerFactory.Create(
     builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Trace));
 
-// Create a logger for category `IceRpc.ClientConnection`.
-ILogger logger = loggerFactory.CreateLogger<ClientConnection>();
-
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
     clientAuthenticationOptions: null,
-    logger: logger);
+    logger: loggerFactory.CreateLogger<ClientConnection>());
 
 Pipeline pipeline = new Pipeline()
     .UseLogger(loggerFactory)
