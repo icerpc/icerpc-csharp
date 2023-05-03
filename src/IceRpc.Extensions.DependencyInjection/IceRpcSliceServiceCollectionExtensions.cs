@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
 using IceRpc.Slice;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for setting up IceRpc.Slice services in an <see cref="IServiceCollection" />.
 /// </summary>

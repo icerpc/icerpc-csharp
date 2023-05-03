@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Builder.Internal;
+using IceRpc.Builder;
+
+namespace IceRpc.Extensions.DependencyInjection.Internal;
 
 /// <summary>Implements <see cref="IInvokerBuilder" /> for Microsoft's DI container.</summary>
 internal sealed class InvokerBuilder : IInvokerBuilder

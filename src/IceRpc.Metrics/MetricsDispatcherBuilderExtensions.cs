@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Builder;
 using IceRpc.Metrics;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>This class provides extension methods to add the metrics middleware to a <see cref="IDispatcherBuilder" />.
 /// </summary>

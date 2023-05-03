@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Builder;
 using IceRpc.Locator;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>This class provides extension methods to install the locator interceptor in an
 /// <see cref="IInvokerBuilder" />.</summary>

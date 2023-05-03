@@ -3,7 +3,7 @@
 using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IceRpc.Builder.Internal;
+namespace IceRpc.Extensions.DependencyInjection.Internal;
 
 /// <summary>Adapts a service managed by the DI container to an IDispatcher.</summary>
 internal class ServiceAdapter<TService> : IDispatcher where TService : notnull

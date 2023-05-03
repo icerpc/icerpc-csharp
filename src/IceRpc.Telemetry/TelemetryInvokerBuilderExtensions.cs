@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Builder;
 using IceRpc.Telemetry;
 using System.Diagnostics;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>This class provide extension methods to add the telemetry interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>

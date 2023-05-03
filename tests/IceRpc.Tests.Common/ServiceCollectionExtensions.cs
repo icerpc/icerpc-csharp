@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Transports;
 using IceRpc.Transports.Coloc;
 using Microsoft.Extensions.DependencyInjection;

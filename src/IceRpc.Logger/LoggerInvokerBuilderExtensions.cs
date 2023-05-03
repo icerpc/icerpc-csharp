@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Builder;
 using IceRpc.Logger;
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>This class provides extension methods to add the logger interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>

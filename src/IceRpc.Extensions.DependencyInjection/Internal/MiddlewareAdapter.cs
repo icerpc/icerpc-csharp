@@ -3,7 +3,7 @@
 using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace IceRpc.Builder.Internal;
+namespace IceRpc.Extensions.DependencyInjection.Internal;
 
 /// <summary>Adapts a middleware with a single service dependency to an IDispatcher.</summary>
 internal class MiddlewareAdapter<TDep> : IDispatcher where TDep : notnull
