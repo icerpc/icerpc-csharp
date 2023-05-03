@@ -1,4 +1,4 @@
-# ProjectTemplates for IceRPC
+# Project Templates for IceRPC
 
 IceRpc.ProjectTemplates provides `dotnet new` project templates for [IceRPC][icerpc]. The following templates
 are included:
