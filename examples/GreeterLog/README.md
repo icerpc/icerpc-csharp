@@ -26,6 +26,6 @@ In a separate window, start the Client program:
 dotnet run --project Client/Client.csproj
 ```
 
-You will notice the two logger categories in the output. The client shows log messages for`IceRpc.ClientConnection` and
+You will notice the two logger categories in the output. The client shows log messages for `IceRpc.ClientConnection` and
 `IceRpc.Logger.LoggerInterceptor`, while the server shows log messages for `IceRpc.Server` and
 `IceRpc.Logger.LoggerMiddleware`.
