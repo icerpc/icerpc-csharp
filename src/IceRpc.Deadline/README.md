@@ -42,7 +42,6 @@ server.Listen();
 // Client application
 
 using IceRpc;
-using IceRpc.Builder;
 using IceRpc.Extensions.DependencyInjection;
 
 var hostBuilder = Host.CreateDefaultBuilder(args);
@@ -64,7 +63,6 @@ host.Run();
 // Server application
 
 using IceRpc;
-using IceRpc.Builder;
 using IceRpc.Extensions.DependencyInjection;
 
 var hostBuilder = Host.CreateDefaultBuilder(args);
