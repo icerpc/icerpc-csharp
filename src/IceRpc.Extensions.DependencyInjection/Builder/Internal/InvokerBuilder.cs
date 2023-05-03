@@ -28,5 +28,6 @@ internal sealed class InvokerBuilder : IInvokerBuilder
 
     internal IInvoker Build() =>
         _isIntoCalled ? _pipeline :
-            throw new InvalidOperationException($"Missing call to {nameof(Into)} on the invoker builder.");
+            throw new InvalidOperationException(
+                $"The configure action on the {nameof(IInvokerBuilder)} must include a call to {nameof(Into)}.");
 }
