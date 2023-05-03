@@ -7,8 +7,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-// Configure and build the host.
-IHost host = Host.CreateDefaultBuilder(args)
+// Configure the host.
+IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
     // Set the content root path to the build directory of the server (e.g.: Server/bin/Debug/net7.0)
     .UseContentRoot(AppContext.BaseDirectory)
 
@@ -33,8 +33,10 @@ IHost host = Host.CreateDefaultBuilder(args)
                 .UseDeadline()
                 .UseLogger()
                 .Map<IGreeterService>());
-    })
-    .Build();
+    });
+
+// Build the host.
+using IHost host = hostBuilder.Build();
 
 // Run hosted program.
 host.Run();
