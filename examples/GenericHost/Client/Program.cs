@@ -11,8 +11,8 @@ using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-// Configure and build the host.
-IHost host = Host.CreateDefaultBuilder(args)
+// Configure the host.
+var hostBuilder = Host.CreateDefaultBuilder(args)
     // Set the content root path to the build directory of the client (e.g.: Client/bin/Debug/net7.0)
     .UseContentRoot(AppContext.BaseDirectory)
 
@@ -60,8 +60,10 @@ IHost host = Host.CreateDefaultBuilder(args)
             .AddIceRpcInvoker(builder => builder.UseTelemetry().UseLogger().Into<ClientConnection>())
             // Add an IGreeter singleton using the invoker singleton registered above.
             .AddIceRpcProxy<IGreeter, GreeterProxy>();
-    })
-    .Build();
+    });
+
+// Build the host.
+using IHost host = hostBuilder.Build();
 
 // Run hosted program.
 host.Run();
