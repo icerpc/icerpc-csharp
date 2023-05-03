@@ -6,7 +6,7 @@ using IceRpc;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(
-    builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Trace));
+    builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Debug));
 
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
 await using var connection = new ClientConnection(
