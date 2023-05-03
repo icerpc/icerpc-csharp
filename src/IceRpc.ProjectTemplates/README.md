@@ -36,7 +36,6 @@ dotnet build
 dotnet run
 ```
 
-
 [Source code][source] | [Package][package]
 
 [icerpc]: https://www.nuget.org/packages/IceRpc
