@@ -91,7 +91,7 @@ public static class ServerServiceCollectionExtensions
         Action<IDispatcherBuilder> configure) =>
         services.AddIceRpcServer(optionsName: Options.DefaultName, configure);
 
-    /// <summary>Adds a <see cref="Server" /> to this service collection; its dispatch pipeline is the
+    /// <summary>Adds a <see cref="Server" /> to this service collection, as a singleton; its dispatch pipeline is the
     /// <see cref="IDispatcher" /> provided by the DI container and you can specify the server's options by injecting an
     /// <see cref="IOptions{T}" /> of <see cref="ServerOptions" />.</summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -111,7 +111,7 @@ public static class ServerServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     /// <example>
     /// A server application many need to host multiple <see cref="Server" /> instances, each with its own options. A
-    /// typical example if when you want to process requests for clients over both the icerpc protocol and the ice
+    /// typical example if when you want to accept requests from clients over both the icerpc protocol and the ice
     /// protocol. This overload allows you create two (or more) server singletons, each with its own options:
     /// ```csharp
     /// IDispatcher dispatcher = ...; // the dispatch pipeline
@@ -145,11 +145,16 @@ public static class ServerServiceCollectionExtensions
         return services.AddIceRpcServer(optionsName);
     }
 
-    /// <summary>Adds a <see cref="Server" /> with the specified name to this service collection. </summary>
+    /// <summary>Adds a <see cref="Server" /> to this service collection and build a dispatch pipeline for this server;
+    /// you can specify the server's options by injecting an <see cref="IOptionsMonitor{T}" /> of
+    /// <see cref="ServerOptions" /> with name <paramref name="optionsName" />.</summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="optionsName">The name of the ServerOptions instance.</param>
-    /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder" />.</param>
+    /// <param name="optionsName">The name of the options instance.</param>
+    /// <param name="configure">The action to configure the dispatch pipeline using an
+    /// <see cref="IDispatcherBuilder" />.</param>
     /// <returns>The service collection.</returns>
+    /// <remarks>The dispatch pipeline built by this method is not registered in the DI container.</remarks>
+    /// <seealso cref="AddIceRpcServer(IServiceCollection, string, IDispatcher)" />
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
         string optionsName,
@@ -171,10 +176,16 @@ public static class ServerServiceCollectionExtensions
                     provider.GetService<ILogger<Server>>());
             });
 
-    /// <summary>Adds a <see cref="Server" /> to this service collection.</summary>
+    /// <summary>Adds a <see cref="Server" /> to this service collection, as a singleton; its dispatch pipeline is the
+    /// <see cref="IDispatcher" /> provided by the DI container and you can specify the server's options by injecting an
+    /// <see cref="IOptionsMonitor{T}" /> of <see cref="ServerOptions" /> with name <paramref name="optionsName" />.
+    /// </summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="optionsName">The name of the ServerOptions instance.</param>
+    /// <param name="optionsName">The name of the options instance.</param>
     /// <returns>The service collection.</returns>
+    /// <remarks>You can build a dispatch pipeline singleton with
+    /// <see cref="IceRpcServiceCollectionExtensions.AddIceRpcDispatcher" />.</remarks>
+    /// <seealso cref="AddIceRpcServer(IServiceCollection, string, IDispatcher)" />
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, string optionsName) =>
         services
             .TryAddIceRpcServerTransport()
