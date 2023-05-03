@@ -6,9 +6,9 @@ are included:
 | Template Name      | Description                                                                                          |
 |--------------------|------------------------------------------------------------------------------------------------------|
 | `icerpc-client`    | A project template for creating an IceRPC client console application.                                |
+| `icerpc-server`    | A project template for creating an IceRPC server console application.                                |
 | `icerpc-di-client` | A project template for creating an IceRPC client console application using Microsoft's DI container. |
 | `icerpc-di-server` | A project template for creating an IceRPC server console application using Microsoft's DI container. |
-| `icerpc-server`    | A project template for creating an IceRPC server console application.                                |
 
 ## Installation
 
@@ -21,8 +21,8 @@ dotnet new install IceRpc.ProjectTemplates
 Create a command line server application:
 
 ``` shell
-dotnet new icerpc-server -o IceRpcServer
-cd IceRpcServer
+dotnet new icerpc-server -o MyServer
+cd MyServer
 dotnet build
 dotnet run
 ```
@@ -30,8 +30,8 @@ dotnet run
 Create a command line client application:
 
 ``` shell
-dotnet new icerpc-client -o IceRpcClient
-cd IceRpcClient
+dotnet new icerpc-client -o MyClient
+cd MyClient
 dotnet build
 dotnet run
 ```
