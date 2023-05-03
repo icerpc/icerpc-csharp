@@ -2,10 +2,10 @@
 
 IceRpc.Deadline provides an [IceRPC][icerpc] interceptor that adds deadline fields to the requests you send.
 
-In addition, IceRpc.Deadline provides a middleware that decodes and enforces the deadline fields received 
+In addition, IceRpc.Deadline provides a middleware that decodes and enforces the deadline fields received
 with incoming requests.
 
-[Source code][source] | [Package][package] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
+[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
 
@@ -30,16 +30,61 @@ using IceRpc;
 // Add the deadline middleware to the dispatch pipeline.
 Router router = new Router()
     .UseDeadline();
-    
-router.Map<...>(...);
+    .Map<...>(...);
 
 await using var server = new Server(router);
 server.Listen();
 ```
 
+## Sample code with DI
+
+```csharp
+// Client application
+
+using IceRpc;
+using IceRpc.Builder;
+using IceRpc.Extensions.DependencyInjection;
+
+var hostBuilder = Host.CreateDefaultBuilder(args);
+
+hostBuilder.ConfigureServices(services =>
+    services
+        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+        .AddIceRpcInvoker(builder =>
+            builder
+                // Add the deadline interceptor to the invocation pipeline.
+               .UseDeadline(TimeSpan.FromSeconds(20))
+               .Into<ClientConnection>()));
+
+using var host = hostBuilder.Build();
+host.Run();
+```
+
+```csharp
+// Server application
+
+using IceRpc;
+using IceRpc.Builder;
+using IceRpc.Extensions.DependencyInjection;
+
+var hostBuilder = Host.CreateDefaultBuilder(args);
+
+hostBuilder.ConfigureServices(services =>
+    services
+        .AddIceRpcServer(builder =>
+            builder
+                // Add the deadline middleware to the dispatch pipeline.
+                .UseDeadline()
+                .Map<...>()));
+
+using var host = hostBuilder.Build();
+host.Run();
+```
+
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Deadline.html
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Deadline
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware
-[package]: https://www.nuget.org/packages/IceRpc.Deadline 
+[package]: https://www.nuget.org/packages/IceRpc.Deadline
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Deadline
