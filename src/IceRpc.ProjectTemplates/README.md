@@ -1,17 +1,43 @@
-# IceRpc.ProjectTemplates
+# Project Templates for IceRPC
 
-This package contains `dotnet new` project templates for [IceRPC .NET](https://www.nuget.org/packages/IceRpc).
+IceRpc.ProjectTemplates provides `dotnet new` project templates for [IceRPC][icerpc]. The following templates
+are included:
 
-The `IceRpc.ProjectTemplates` package provides the following templates:
+| Template Name      | Description                                                                                          |
+|--------------------|------------------------------------------------------------------------------------------------------|
+| `icerpc-client`    | A project template for creating an IceRPC client console application.                                |
+| `icerpc-server`    | A project template for creating an IceRPC server console application.                                |
+| `icerpc-di-client` | A project template for creating an IceRPC client console application using Microsoft's DI container. |
+| `icerpc-di-server` | A project template for creating an IceRPC server console application using Microsoft's DI container. |
 
-| Template Name   | Description                                           |
-|-----------------|-------------------------------------------------------|
-| `icerpc-client` | Template for IceRPC command line client applications. |
-| `icerpc-server` | Template for IceRPC command line server applications. |
+## Installation
 
-## Links
+``` shell
+dotnet new install IceRpc.ProjectTemplates
+```
 
-- [Homepage](https://icerpc.com)
-- [Documentation](https://doc.icerpc.com)
-- [API Reference](https://api.icerpc.com/csharp/api/IceRpc.html)
-- [GitHub](https://github.com/icerpc/icerpc-csharp)
+## Sample Code
+
+Create a command line server application:
+
+``` shell
+dotnet new icerpc-server -o MyServer
+cd MyServer
+dotnet build
+dotnet run
+```
+
+Create a command line client application:
+
+``` shell
+dotnet new icerpc-client -o MyClient
+cd MyClient
+dotnet build
+dotnet run
+```
+
+[Source code][source] | [Package][package]
+
+[icerpc]: https://www.nuget.org/packages/IceRpc
+[package]: https://www.nuget.org/packages/IceRpc.ProjectTemplates
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.ProjectTemplates
