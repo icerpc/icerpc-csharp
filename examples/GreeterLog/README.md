@@ -5,7 +5,7 @@ This example augments [Greeter](../Greeter/README.md) with logging.
 The client is a more typical client than Greeter's client because it creates an invocation pipeline and installs an
 interceptor in this pipeline (the logger interceptor).
 
-And the server is a more typical server than Greeter's server because it creates a dispatch pipeline (a Router) and
+And the server is a more typical server than Greeter's server because it creates a router (dispatch pipeline) and
 installs a middleware in this pipeline (the logger middleware).
 
 You can build the client and server applications with:
