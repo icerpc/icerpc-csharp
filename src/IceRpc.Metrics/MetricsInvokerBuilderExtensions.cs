@@ -2,7 +2,7 @@
 
 using IceRpc.Metrics;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>This class provides extension methods to add the metrics interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>

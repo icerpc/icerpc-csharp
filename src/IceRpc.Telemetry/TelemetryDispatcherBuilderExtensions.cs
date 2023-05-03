@@ -3,7 +3,7 @@
 using IceRpc.Telemetry;
 using System.Diagnostics;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>This class provides extension methods to add the telemetry middleware to a
 /// <see cref="IDispatcherBuilder" />.</summary>

@@ -1,16 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
-using IceRpc.Builder;
-using IceRpc.Builder.Internal;
+using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for setting up IceRPC services in an <see cref="IServiceCollection" />.
 /// </summary>
@@ -93,7 +92,7 @@ public static class IceRpcServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services) =>
-        services.AddIceRpcServer(Options.Options.DefaultName);
+        services.AddIceRpcServer(Options.DefaultName);
 
     /// <summary>Adds a <see cref="Server" /> with the specified dispatcher to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -116,7 +115,7 @@ public static class IceRpcServiceCollectionExtensions
     /// <param name="dispatcher">The server dispatcher.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, IDispatcher dispatcher) =>
-        services.AddIceRpcServer(optionsName: Options.Options.DefaultName, dispatcher);
+        services.AddIceRpcServer(optionsName: Options.DefaultName, dispatcher);
 
     /// <summary>Adds a <see cref="Server" /> with the specified name to this service collection. </summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -152,7 +151,7 @@ public static class IceRpcServiceCollectionExtensions
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
-        services.AddIceRpcServer(optionsName: Options.Options.DefaultName, configure);
+        services.AddIceRpcServer(optionsName: Options.DefaultName, configure);
 
     private static IServiceCollection TryAddIceRpcServerTransport(this IServiceCollection services)
     {

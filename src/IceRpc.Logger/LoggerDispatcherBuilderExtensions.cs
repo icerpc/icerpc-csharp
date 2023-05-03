@@ -3,7 +3,7 @@
 using IceRpc.Logger;
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>This class provides extension methods to add the logger middleware to a <see cref="IDispatcherBuilder" />.
 /// </summary>
