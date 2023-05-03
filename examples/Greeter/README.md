@@ -20,5 +20,5 @@ In a separate window, start the Client program:
 dotnet run --project Client/Client.csproj
 ```
 
-> This example is a minimal example with very few lines of code.  If you are looking for a more realistic example, see
+> This is a concise example with minimal code.
 > the [GreeterLog](../GreeterLog/README.md) example.
