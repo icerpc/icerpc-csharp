@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Features;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Default implementation for <see cref="IServiceProviderFeature" />.</summary>
 public sealed class ServiceProviderFeature : IServiceProviderFeature
