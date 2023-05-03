@@ -17,7 +17,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 
 // Add the request context interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline()
-    .UseRequestContext())
+    .UseRequestContext()
     .Into(connection);
 ```
 
@@ -29,11 +29,53 @@ using IceRpc;
 // Add the request context middleware to the dispatch pipeline.
 Router router = new Router()
     .UseRequestContext();
-
-router.Map<...>(...);
+    .Map<...>(...);
 
 await using var server = new Server(router);
 server.Listen();
+```
+
+## Sample code with DI
+
+```csharp
+// Client application
+
+using IceRpc;
+using IceRpc.Extensions.DependencyInjection;
+
+var hostBuilder = Host.CreateDefaultBuilder(args);
+
+hostBuilder.ConfigureServices(services =>
+    services
+        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+        .AddIceRpcInvoker(builder =>
+            builder
+                // Add the request context interceptor to the invocation pipeline.
+               .UseRequestContext()
+               .Into<ClientConnection>()));
+
+using var host = hostBuilder.Build();
+host.Run();
+```
+
+```csharp
+// Server application
+
+using IceRpc;
+using IceRpc.Extensions.DependencyInjection;
+
+var hostBuilder = Host.CreateDefaultBuilder(args);
+
+hostBuilder.ConfigureServices(services =>
+    services
+        .AddIceRpcServer(builder =>
+            builder
+                // Add the request context middleware to the dispatch pipeline.
+                .UseRequestContext()
+                .Map<...>()));
+
+using var host = hostBuilder.Build();
+host.Run();
 ```
 
 ## Ice interop
