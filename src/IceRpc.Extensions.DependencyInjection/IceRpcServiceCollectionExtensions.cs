@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class IceRpcServiceCollectionExtensions
 {
-    /// <summary>Adds a <see cref="ClientConnection" /> and <see cref="IInvoker" /> singleton to this service
+    /// <summary>Adds a <see cref="ClientConnection" /> and an <see cref="IInvoker" /> singleton to this service
     /// collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
@@ -31,8 +31,8 @@ public static class IceRpcServiceCollectionExtensions
                     provider.GetService<ILogger<ClientConnection>>()))
             .AddSingleton<IInvoker>(provider => provider.GetRequiredService<ClientConnection>());
 
-    /// <summary>Adds a <see cref="ConnectionCache" /> and <see cref="IInvoker" /> singleton to this service collection.
-    /// </summary>
+    /// <summary>Adds a <see cref="ConnectionCache" /> and an <see cref="IInvoker" /> singleton to this service
+    /// collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcConnectionCache(this IServiceCollection services) =>
@@ -120,7 +120,7 @@ public static class IceRpcServiceCollectionExtensions
 
     /// <summary>Adds a <see cref="Server" /> with the specified name to this service collection. </summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="optionsName">The server name.</param>
+    /// <param name="optionsName">The name of the ServerOptions instance.</param>
     /// <param name="configure">The action to configure the dispatcher using a <see cref="DispatcherBuilder" />.</param>
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddIceRpcServer(

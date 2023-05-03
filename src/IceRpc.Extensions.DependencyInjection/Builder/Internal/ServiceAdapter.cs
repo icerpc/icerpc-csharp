@@ -11,7 +11,8 @@ internal class ServiceAdapter<TService> : IDispatcher where TService : notnull
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         IServiceProviderFeature feature = request.Features.Get<IServiceProviderFeature>() ??
-            throw new InvalidOperationException("no service provider feature in request features");
+            throw new InvalidOperationException(
+                $"There is no {nameof(IServiceProviderFeature)} in the request features.");
 
         TService service = feature.ServiceProvider.GetRequiredService<TService>();
 
