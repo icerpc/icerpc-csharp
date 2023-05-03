@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Builder;
 using IceRpc.Deadline;
 
 namespace IceRpc.Extensions.DependencyInjection;

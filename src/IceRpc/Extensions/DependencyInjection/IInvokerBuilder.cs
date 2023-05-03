@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides the mechanism to configure an invoker when using Dependency Injection (DI).</summary>
 public interface IInvokerBuilder

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Builder;
 using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Slic;

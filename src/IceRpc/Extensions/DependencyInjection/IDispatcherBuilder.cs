@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides the mechanism to configure a dispatcher when using Dependency Injection (DI). Each request is
 /// dispatched in its own scope.</summary>

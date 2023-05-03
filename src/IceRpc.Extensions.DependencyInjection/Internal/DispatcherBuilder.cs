@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Builder;
 using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.CompilerServices;
