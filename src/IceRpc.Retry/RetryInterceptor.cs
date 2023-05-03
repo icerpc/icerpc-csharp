@@ -9,15 +9,18 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc.Retry;
 
-/// <summary>The retry interceptor is responsible for retrying requests. A request is retryable if:
+/// <summary>The retry interceptor is responsible for retrying failed requests when the failure condition can be
+/// retried.</summary>
+/// <remarks>A failed request can be retried if:
 /// <list type="bullet">
 /// <item><description><see cref="RetryOptions.MaxAttempts" /> is not reached.</description></item>
 /// <item><description><see cref="OutgoingFrame.Payload" /> can be read again.</description></item>
-/// <item><description>The failure is retryable.</description></item>
-/// </list><br/>In order to be able to read again the request's payload, the retry interceptor decorates the payload
+/// <item><description>The failure condition can be retried.</description></item>
+/// </list>
+/// <para>In order to be able to read again the request's payload, the retry interceptor decorates the payload
 /// with <see cref="ResettablePipeReaderDecorator" />. The decorator can be reset as long as the buffered data doesn't
-/// exceed <see cref="RetryOptions.MaxPayloadSize" />.<br/>The request can be retried under the following failure
-/// conditions:
+/// exceed <see cref="RetryOptions.MaxPayloadSize" />.</para>
+/// <para>The request can be retried under the following failure conditions:</para>
 /// <list type="bullet">
 /// <item><description>The status code carried by the response is <see cref="StatusCode.Unavailable"
 /// />.</description></item>
@@ -30,10 +33,10 @@ namespace IceRpc.Retry;
 /// cref="IceRpcError.TruncatedData" /> and the request has the <see cref="RequestFieldKey.Idempotent" />
 /// field.</description></item>
 /// </list></description></item>
-/// </list><br/>If the status code carried by the response is <see cref="StatusCode.Unavailable" /> or <see
+/// </list>
+/// <para>If the status code carried by the response is <see cref="StatusCode.Unavailable" /> or <see
 /// cref="StatusCode.ServiceNotFound" /> (with the ice protocol), the address of the server is removed from the set of
-/// server addresses to retry on. This ensures the request won't be retried on the unavailable server.
-/// </summary>
+/// server addresses to retry on. This ensures the request won't be retried on the unavailable server.</para></remarks>
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;
