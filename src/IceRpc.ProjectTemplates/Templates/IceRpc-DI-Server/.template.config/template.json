@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "ZeroC",
+    "classifications": ["IceRPC", "Server"],
+    "identity": "IceRpc.DI.Server.0.1",
+    "name": "IceRPC DI Server",
+    "description": "A project template for creating an IceRPC server console application using Microsoft's DI container.",
+    "shortName": "icerpc-di-server",
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "sourceName": "IceRpc-DI-Server",
+    "preferNameDirectory": true,
+    "defaultName": "Server",
+    "primaryOutputs": [
+        {
+            "path": "IceRpc-DI-Server.csproj"
+        }
+    ]
+}

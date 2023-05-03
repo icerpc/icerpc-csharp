@@ -172,7 +172,8 @@ run_test()
 doc()
 {
     pushd docfx
-    run_command docfx "--property" "Configuration=$dotnet_config"
+    run_command docfx "metadata" "--property" "Configuration=$dotnet_config"
+    run_command docfx "build"
     popd
 }
 
