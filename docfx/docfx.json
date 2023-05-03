@@ -44,7 +44,8 @@
         "overwrite": [
             {
                 "files": [
-                    "overwrite/**.md"
+                    "overwrite/**.md",
+                    "namespaces/**.md"
                 ],
                 "exclude": [
                     "obj/**",
