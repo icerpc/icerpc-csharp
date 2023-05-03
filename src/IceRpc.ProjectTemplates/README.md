@@ -3,12 +3,12 @@
 IceRpc.ProjectTemplates provides `dotnet new` project templates for [IceRPC][icerpc]. The following templates
 are included:
 
-| Template Name      | Description                                                                          |
-|--------------------|--------------------------------------------------------------------------------------|
-| `icerpc-client`    | Template for IceRPC command line client applications.                                |
-| `icerpc-di-client` | Template for IceRPC command line client applications using Microsoft's DI container. |
-| `icerpc-di-server` | Template for IceRPC command line server applications using Microsoft's DI container. |
-| `icerpc-server`    | Template for IceRPC command line server applications.                                |
+| Template Name      | Description                                                                                          |
+|--------------------|------------------------------------------------------------------------------------------------------|
+| `icerpc-client`    | A project template for creating an IceRPC client console application.                                |
+| `icerpc-di-client` | A project template for creating an IceRPC client console application using Microsoft's DI container. |
+| `icerpc-di-server` | A project template for creating an IceRPC server console application using Microsoft's DI container. |
+| `icerpc-server`    | A project template for creating an IceRPC server console application.                                |
 
 ## Installation
 
