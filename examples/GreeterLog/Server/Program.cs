@@ -8,11 +8,15 @@ using IceRpc;
 using ILoggerFactory loggerFactory = LoggerFactory.Create(
     builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Trace));
 
-// Create a logger for category `IceRpc.Server`.
-ILogger logger = loggerFactory.CreateLogger<Server>();
+// Create a router (dispatch pipeline) and install the logger middleware. This middleware logs dispatches using category
+// `IceRpc.Logger.LoggerMiddleware`.
+// We also map our implementation of `IGreeterService` at the default path for this service:
+// `/GreeterLogExample.Greeter`
+Router router = new Router().UseLogger(loggerFactory).Map<IGreeterService>(new Chatbot());
 
-// Create a server that logs messages using logger.
-await using var server = new Server(new Chatbot(), logger: logger);
+// Create a server that logs message to a logger with category `IceRpc.Server`.
+await using var server = new Server(router, logger: loggerFactory.CreateLogger<Server>());
+
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
