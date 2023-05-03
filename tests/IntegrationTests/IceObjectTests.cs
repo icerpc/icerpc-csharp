@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Ice;
 using IceRpc.Slice;

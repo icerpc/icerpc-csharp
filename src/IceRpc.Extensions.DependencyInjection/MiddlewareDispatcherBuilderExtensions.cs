@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Builder.Internal;
+using IceRpc.Extensions.DependencyInjection.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for <see cref="IDispatcherBuilder" />.</summary>
 public static class MiddlewareDispatcherBuilderExtensions

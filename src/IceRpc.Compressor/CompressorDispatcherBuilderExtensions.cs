@@ -3,7 +3,7 @@
 using IceRpc.Compressor;
 using System.IO.Compression;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides an extension method to add the compressor middleware to an <see cref="IDispatcherBuilder" />.
 /// </summary>

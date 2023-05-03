@@ -1,16 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
-using IceRpc.Builder;
-using IceRpc.Builder.Internal;
+using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for adding a <see cref="Server" /> as a singleton service in an
 /// <see cref="IServiceCollection" />.</summary>
@@ -62,7 +61,7 @@ public static class ServerServiceCollectionExtensions
     /// an <see cref="IOptions{T}" /> of <see cref="TcpServerTransportOptions" />.
     /// </example>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, IDispatcher dispatcher) =>
-        services.AddIceRpcServer(optionsName: Options.Options.DefaultName, dispatcher);
+        services.AddIceRpcServer(optionsName: Options.DefaultName, dispatcher);
 
     /// <summary>Adds a <see cref="Server" /> to this service collection and build a dispatch pipeline for this server;
     /// you can specify the server's options by injecting an <see cref="IOptions{T}" /> of <see cref="ServerOptions" />.
@@ -90,7 +89,7 @@ public static class ServerServiceCollectionExtensions
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
-        services.AddIceRpcServer(optionsName: Options.Options.DefaultName, configure);
+        services.AddIceRpcServer(optionsName: Options.DefaultName, configure);
 
     /// <summary>Adds a <see cref="Server" /> to this service collection; its dispatch pipeline is the
     /// <see cref="IDispatcher" /> provided by the DI container and you can specify the server's options by injecting an
@@ -101,7 +100,7 @@ public static class ServerServiceCollectionExtensions
     /// <see cref="IceRpcServiceCollectionExtensions.AddIceRpcDispatcher" />.</remarks>
     /// <seealso cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services) =>
-        services.AddIceRpcServer(Options.Options.DefaultName);
+        services.AddIceRpcServer(Options.DefaultName);
 
     /// <summary>Adds a <see cref="Server" /> with the specified dispatcher to this service collection, as a singleton;
     /// you can specify the server's options by injecting an <see cref="IOptionsMonitor{T}" /> of
@@ -133,6 +132,8 @@ public static class ServerServiceCollectionExtensions
     ///     services.AddIceRpcServer("IceRpcGreeter", dispatcher);
     ///     services.AddIceRpcServer("IceGreeter", dispatcher));
     /// });
+    /// ```
+    /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
     /// </example>
     public static IServiceCollection AddIceRpcServer(
         this IServiceCollection services,

@@ -3,7 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for <see cref="IDispatcherBuilder" />.</summary>
 public static class DispatcherBuilderExtensions

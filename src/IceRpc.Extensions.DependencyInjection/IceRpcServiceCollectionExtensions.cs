@@ -1,16 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
-using IceRpc.Builder;
-using IceRpc.Builder.Internal;
+using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for setting up IceRPC services in an <see cref="IServiceCollection" />.
 /// </summary>

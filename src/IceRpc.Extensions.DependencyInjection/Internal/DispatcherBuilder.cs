@@ -4,7 +4,7 @@ using IceRpc.Features;
 using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.CompilerServices;
 
-namespace IceRpc.Builder.Internal;
+namespace IceRpc.Extensions.DependencyInjection.Internal;
 
 /// <summary>Implements <see cref="IDispatcherBuilder" /> for Microsoft's DI container.</summary>
 internal sealed class DispatcherBuilder : IDispatcherBuilder

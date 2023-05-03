@@ -2,7 +2,7 @@
 
 using IceRpc.Deadline;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods to add the Deadline interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>

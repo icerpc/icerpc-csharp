@@ -2,7 +2,7 @@
 
 using IceRpc.Features;
 
-namespace IceRpc.Builder;
+namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides extension methods for <see cref="IInvokerBuilder" />.</summary>
 public static class InvokerBuilderExtensions

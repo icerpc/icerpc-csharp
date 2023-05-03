@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Builder;
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using IceRpc.RequestContext;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
