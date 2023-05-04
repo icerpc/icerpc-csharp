@@ -30,7 +30,7 @@ usage()
     echo "                            The NuGet packages are pushed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
     echo "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator."
-    echo " --icerpc-version           The IceRPC version override of the NuGet packages."
+    echo " --version                  The version override for the NuGet packages."
     echo "  --help   | -h             Print help and exit."
 }
 
@@ -130,7 +130,7 @@ build()
         fi
         for solution in examples/*/*.sln examples/*/*/*.sln
         do
-            run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" "$solution"
+            run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" "$solution" $dotnet_version_property
         done
     fi
 }
@@ -207,7 +207,7 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
-        --icerpc-version)
+        --version)
             version=$2
             dotnet_version_property="/p:Version=$version"
             shift

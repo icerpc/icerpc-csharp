@@ -3,6 +3,7 @@
 param (
     $action="build",
     $config="debug",
+    $version="",
     [switch]$examples,
     [switch]$srcdist,
     [switch]$coverage,
@@ -11,8 +12,12 @@ param (
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
 
-Get-Content .\build\IceRpc.Version.props -Raw | Where {$_ -match "<Version .*>(.*)</Version>"} | Out-Null
-$version = $Matches.1
+if ($version) {
+    $dotnetVersionProperty = "-p:Version=$version"
+} else {
+    Get-Content .\build\IceRpc.Version.props -Raw | Where { $_ -match "<Version .*>(.*)</Version>" } | Out-Null
+    $version = $Matches.1
+}
 
 function BuildCompiler($config) {
     Push-Location "tools\slicec-cs"
@@ -33,26 +38,26 @@ function CleanCompiler($config) {
 function BuildIceRpcSliceTools($config) {
     Push-Location "tools\IceRpc.Slice.Tools"
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('build', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
 function CleanIceRpcSliceTools($config) {
     Push-Location "tools\IceRpc.Slice.Tools"
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '-nr:false', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
 function BuildIceRpc($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('build', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
 }
 
 function CleanIceRpcProjectTemplates($config) {
     Push-Location "src\IceRpc.ProjectTemplates"
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
@@ -60,20 +65,20 @@ function BuildIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('build', '-nr:false', '--configuration', $dotnetConfiguration, "$example")
+        RunCommand "dotnet" @('build', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
 function CleanIceRpc($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '-nr:false', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
 }
 
 function CleanIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('clean', '-nr:false', '--configuration', $dotnetConfiguration, "$example")
+        RunCommand "dotnet" @('clean', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
@@ -123,11 +128,11 @@ function InstallTemplates($config) {
 function Pack($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     Push-Location "tools\IceRpc.Slice.Tools"
-    RunCommand "dotnet"  @('pack', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet"  @('pack', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
-    RunCommand "dotnet"  @('pack', '-nr:false', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet"  @('pack', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
     Push-Location "src\IceRpc.ProjectTemplates"
-    RunCommand "dotnet" @('pack', '-nr:false', '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('pack', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
@@ -208,6 +213,7 @@ function Get-Help() {
     Write-Host "                            The NuGet packages are pushed to the local global-packages source."
     Write-Host "  -coverage                 Collect code coverage from test runs."
     Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
+    Write-Host "  -version                  The version override for the IceRPC NuGet packages. The default version is the one specified in the build/IceRpv.Version.props file."
     Write-Host "  -help                     Print help and exit."
 }
 
