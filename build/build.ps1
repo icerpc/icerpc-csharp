@@ -102,7 +102,7 @@ function Push($config) {
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
     Remove-Item $global_packages"\IceRpc.Slice.Tools\$version" -Recurse -Force -ErrorAction Ignore
-    $packages = Get-Childitem -Path "." -Include *.nupkg -Recurse
+    $packages = Get-Childitem -Path "." -Include *.$version.nupkg -Recurse
     foreach ($package in $packages)
     {
         $package_name = (Get-Item $package).Basename
