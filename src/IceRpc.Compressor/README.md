@@ -32,11 +32,11 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 Pipeline pipeline = new Pipeline()
     .UseCompressor(CompressionFormat.Brotli)
     .Into(connection);
-    
+
 // Create the proxy using the invocation pipeline.
 var greeter = new GreeterProxy(pipeline);
 
-// The compressor interceptor compresses the request payload. It also decompresses the 
+// The compressor interceptor compresses the request payload. It also decompresses the
 // response payload (if it comes back compressed).
 string greeting = await greeter.GreetAsync(Environment.UserName);
 ```
@@ -49,11 +49,67 @@ using IceRpc;
 // Add the compressor middleware to the dispatch pipeline.
 Router router = new Router()
     .UseCompressor(CompressionFormat.Brotli);
-
-router.Map<IGreeterService>(new Chatbot());
+    .Map<IGreeterService>(new Chatbot());
 
 await using var server = new Server(router);
 server.Listen();
+```
+
+## Sample code with DI
+
+```slice
+// Slice definitions
+
+interface Greeter {
+    // The compress attribute instructs the compressor interceptor or middleware (if installed)
+    // to compress the payload of the outgoing request or response. The compressor interceptor
+    // or middleware does not compress the payloads of Slice operations without this attribute.
+    [compress(Args, Return)] greet(name: string) -> string
+}
+```
+
+```csharp
+// Client application
+
+using IceRpc;
+using IceRpc.Extensions.DependencyInjection;
+
+var hostBuilder = Host.CreateDefaultBuilder(args);
+
+hostBuilder.ConfigureServices(services =>
+    services
+        .AddIceRpcClientConnection(new Uri("icerpc://localhost"))
+        .AddIceRpcInvoker(builder =>
+            builder
+                // Add the compressor interceptor to the invocation pipeline.
+               .UseCompressor(CompressionFormat.Brotli)
+               .Into<ClientConnection>())
+        // Add an IGreeter singleton using the IInvoker singleton registered above.
+       .AddIceRpcProxy<IGreeter, GreeterProxy>());
+
+using var host = hostBuilder.Build();
+host.Run();
+```
+
+```csharp
+// Server application
+
+using IceRpc;
+using IceRpc.Extensions.DependencyInjection;
+
+var hostBuilder = Host.CreateDefaultBuilder(args);
+
+hostBuilder.ConfigureServices(services =>
+    services
+        .AddSingleton<IGreeterService, Chatbot>()
+        .AddIceRpcServer(builder =>
+            builder
+                // Add the compressor middleware to the dispatch pipeline.
+                .UseCompressor(CompressionFormat.Brotli)
+                .Map<IGreeterService>()));
+
+using var host = hostBuilder.Build();
+host.Run();
 ```
 
 ## Remarks
@@ -66,5 +122,5 @@ these payloads are encoded. They work well with Slice but don't require Slice.
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware
-[package]: https://www.nuget.org/packages/IceRpc.Compressor 
+[package]: https://www.nuget.org/packages/IceRpc.Compressor
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Compressor
