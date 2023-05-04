@@ -80,8 +80,8 @@ host.Run();
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Deadline.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Deadline
-[interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [icerpc]: https://www.nuget.org/packages/IceRpc
+[interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Deadline
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Deadline

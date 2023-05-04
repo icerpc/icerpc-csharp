@@ -39,9 +39,9 @@ var indirectProxy = new HelloProxy(pipeline, new Uri("ice:/hello?adapter-id=Hell
 ```
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Locator.html
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Interop/IceGrid
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [interop]: https://docs.testing.zeroc.com/docs/icerpc-for-ice-users
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Interop/IceGrid
 [locator]: https://doc.zeroc.com/ice/3.7/client-server-features/locators
 [package]: https://www.nuget.org/packages/IceRpc.Locator
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Locator
