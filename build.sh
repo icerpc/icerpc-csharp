@@ -30,6 +30,8 @@ usage()
     echo "                            The NuGet packages are pushed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
     echo "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator."
+    echo "  --version                 The version override for the IceRPC NuGet packages. The default version is the version"
+    echo "                            specified in the build/IceRpc.Version.props file."
     echo "  --help   | -h             Print help and exit."
 }
 
@@ -54,42 +56,42 @@ clean_compiler()
 build_icerpc_slice_tools()
 {
     pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 }
 
 clean_icerpc_slice_tools()
 {
     pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "clean" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 }
 
 build_icerpc()
 {
-    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
 }
 
 clean_icerpc()
 {
-    run_command dotnet "clean" "-nr:false"
+    run_command dotnet "clean" "-nr:false"$version_property
 }
 
 clean_icerpc_project_templates()
 {
     pushd src/IceRpc.ProjectTemplates
-    run_command dotnet "clean" "-nr:false"
+    run_command dotnet "clean"$version_property "-nr:false"
     popd
 }
 
 pack()
 {
     pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
-    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     pushd src/IceRpc.ProjectTemplates
-    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 }
 
@@ -129,7 +131,7 @@ build()
         fi
         for solution in examples/*/*.sln examples/*/*/*.sln
         do
-            run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" "$solution"
+            run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
         done
     fi
 }
@@ -153,7 +155,7 @@ run_test()
     arguments=("test" "-c" "$dotnet_config")
     if [ "$coverage" == "yes" ]; then
         runsettings=${PWD}/build/Coverlet.runsettings
-        arguments+=("/p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
+        arguments+=("-p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
     fi
     run_command dotnet "${arguments[@]}"
 
@@ -193,6 +195,7 @@ config=""
 coverage="no"
 examples="no"
 srcdist="no"
+version_property=""
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -202,6 +205,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         -c|--config)
             config=$2
+            shift
+            shift
+            ;;
+        --version)
+            version=$2
+            version_property=" -p:Version=$version"
             shift
             shift
             ;;
