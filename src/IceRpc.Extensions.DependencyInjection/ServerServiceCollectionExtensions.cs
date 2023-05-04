@@ -23,40 +23,14 @@ public static class ServerServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     /// <example>
     /// The following code adds a Server singleton to the service collection.
-    /// ```csharp
-    /// IDispatcher dispatcher = ...; // the dispatch pipeline
-    /// var builder = Host.CreateDefaultBuilder(args);
-    /// builder.ConfigureServices(services => services.AddIceRpcServer(dispatcher));
-    /// ```
+    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="DefaultServer" lang="csharp" />
     /// The resulting singleton is a default server: it uses the default server address, the default multiplexed
     /// transport (tcp) and <c>null</c> for its authentication options (so no TLS). If you want to add a more custom
-    /// server, add an <see cref="IOptions{T}" /> of <see cref="ServerOptions" /> to your DI container. For example:
-    /// ```csharp
-    /// IDispatcher dispatcher = ...; // the dispatch pipeline
-    /// var builder = Host.CreateDefaultBuilder(args);
-    /// builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
-    /// {
-    ///     services
-    ///         .AddOptions&lt;ServerOptions>()
-    ///         // Read the server options from configuration.
-    ///         .Bind(hostContext.Configuration.GetSection("Server"));
-    ///
-    ///     services.AddIceRpcServer(dispatcher);
-    /// }
-    /// ```
+    /// server, add an <see cref="IOptions{T}" /> of <see cref="ServerOptions" /> to your DI container:
+    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithOptions" lang="csharp" />
     /// You can also inject a server transport--a <see cref="IMultiplexedServerTransport" /> for the icerpc protocol,
     /// or a <see cref="IDuplexServerTransport" /> for the ice protocol.
-    /// ```csharp
-    /// using IceRpc.Transports.Quic;
-    ///
-    /// IDispatcher dispatcher = ...; // the dispatch pipeline
-    /// var builder = Host.CreateDefaultBuilder(args)
-    /// builder.ConfigureServices(services =>
-    ///     // Inject an IMultiplexedServerTransport singleton implemented by QUIC.
-    ///     services
-    ///         .AddSingleton&lt;IMultiplexedServerTransport>(provider => new QuicServerTransport())
-    ///         .AddIceRpcServer(dispatcher));
-    /// ```
+    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithQuic" lang="csharp" />
     /// If you want to keep the default transport (tcp) but want to customize its options, you just need to inject
     /// an <see cref="IOptions{T}" /> of <see cref="TcpServerTransportOptions" />.
     /// </example>
@@ -74,16 +48,7 @@ public static class ServerServiceCollectionExtensions
     /// <example>
     /// The following code builds a dispatch pipeline and adds a server to the service collection with this dispatch
     /// pipeline.
-    /// ```csharp
-    /// var hostBuilder = Host.CreateDefaultBuilder(args);
-    /// hostBuilder.ConfigureServices(services =>
-    ///     services
-    ///        .AddIceRpcServer(builder =>
-    ///            builder
-    ///                .UseTelemetry()
-    ///                .UseLogger()
-    ///                .Map&lt;IGreeterService>());
-    /// ```
+    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithDispatcherBuilder" lang="csharp" />
     /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
     /// </example>
     public static IServiceCollection AddIceRpcServer(
@@ -113,26 +78,7 @@ public static class ServerServiceCollectionExtensions
     /// A server application many need to host multiple <see cref="Server" /> instances, each with its own options. A
     /// typical example if when you want to accept requests from clients over both the icerpc protocol and the ice
     /// protocol. This overload allows you create two (or more) server singletons, each with its own options:
-    /// ```csharp
-    /// IDispatcher dispatcher = ...; // the dispatch pipeline
-    /// var builder = Host.CreateDefaultBuilder(args);
-    /// builder.ConfigureServices(services =>
-    /// {
-    ///     // The server options for the icerpc server
-    ///     services
-    ///         .AddOptions&lt;ServerOptions>("IceRpcGreeter") // named option
-    ///         .Bind(hostContext.Configuration.GetSection("IceRpcGreeter"));
-    ///
-    ///     // The server options for the ice server
-    ///     services
-    ///       .AddOptions&lt;ServerOptions>("IceGreeter")
-    ///       .Bind(hostContext.Configuration.GetSection("IceGreeter"));
-    ///
-    ///     // We pass the named server options to get the correct server options for each server.
-    ///     services.AddIceRpcServer("IceRpcGreeter", dispatcher);
-    ///     services.AddIceRpcServer("IceGreeter", dispatcher));
-    /// });
-    /// ```
+    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithNamedOptions" lang="csharp" />
     /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
     /// </example>
     public static IServiceCollection AddIceRpcServer(
