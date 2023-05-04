@@ -129,7 +129,6 @@ public sealed class IceProtocolConnectionTests
     [TestCase(false, false, DuplexTransportOperations.Read)]
     [TestCase(false, true, DuplexTransportOperations.Connect)]
     [TestCase(true, false, DuplexTransportOperations.Connect)]
-    [TestCase(true, false, DuplexTransportOperations.Write)]
     [TestCase(true, true, DuplexTransportOperations.Connect)]
     public async Task Connect_exception_handling_on_transport_failure(
         bool serverConnection,
@@ -320,46 +319,12 @@ public sealed class IceProtocolConnectionTests
     }
 
     [Test]
-    public async Task Invocation_exception_handling_on_write_transport_failure()
-    {
-        // Arrange
-
-        // Exceptions thrown by the transport are propagated to the InvokeAsync caller.
-        var failureException = new IceRpcException(IceRpcError.IceRpcError);
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice)
-            .AddTestDuplexTransportDecorator(clientOperationsOptions: new() { FailureException = failureException })
-            .BuildServiceProvider(validateScopes: true);
-
-        var clientTransport = provider.GetRequiredService<TestDuplexClientTransportDecorator>();
-
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        _ = await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
-        clientTransport!.LastCreatedConnection.Operations.Fail = DuplexTransportOperations.Write;
-
-        // Act
-        var invokeTask = sut.Client.InvokeAsync(request);
-
-        // Assert
-        Assert.That(() =>
-            invokeTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled)
-                .And.With.Property("InnerException").EqualTo(failureException));
-
-        Assert.That(
-            async () => await sut.Client.ShutdownAsync(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted)
-                .And.With.Property("InnerException").EqualTo(failureException));
-    }
-
-    [Test]
-    public async Task Invocation_cancellation_on_duplex_transport_hang([Values] bool oneway)
+    public async Task Invocation_cancellation_on_duplex_transport_hang()
     {
         // Arrange
 
         // Make sure the dispatcher does not return the response immediately when one-way is false.
-        using var dispatcher = new TestDispatcher(holdDispatchCount: oneway ? 0 : 1);
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .AddTestDuplexTransportDecorator(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Write })
@@ -371,7 +336,7 @@ public sealed class IceProtocolConnectionTests
         var clientConnection = provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
         Task writeCalledTask = clientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
 
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice)) { IsOneway = oneway };
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
         using var cts = new CancellationTokenSource();
 
         Task invokeTask = sut.Client.InvokeAsync(request, cts.Token);
@@ -383,21 +348,8 @@ public sealed class IceProtocolConnectionTests
         cts.Cancel();
 
         // Assert
-        await Task.Delay(10);
-        Assert.That(invokeTask.IsCompleted, Is.False); // Write is not cancellable.
-
-        // Unblock the transport write call.
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
         clientConnection.Operations.Hold = DuplexTransportOperations.None;
-        if (oneway)
-        {
-            // The one-way invocation should succeed since it has been sent successfully.
-            Assert.That(async () => await invokeTask, Throws.Nothing);
-        }
-        else
-        {
-            // The two-way invocation wait for the response is canceled after the request has been written.
-            Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
-        }
     }
 
     /// <summary>Verifies that a timeout mismatch can lead to the idle monitor aborting the connection.</summary>
@@ -444,57 +396,6 @@ public sealed class IceProtocolConnectionTests
         Assert.That(
             async () => await sut.Client.ShutdownAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
-    }
-
-    /// <summary>Verifies that canceling an invocation while the request is being written does not interrupt the write.
-    /// The connection remains active and subsequent request are not affected.</summary>
-    [Test]
-    public async Task Invocation_cancellation_does_not_interrupt_payload_writing()
-    {
-        // Arrange
-        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
-
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.Ice, dispatcher)
-            .AddTestDuplexTransportDecorator()
-            .BuildServiceProvider(validateScopes: true);
-
-        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-
-        using var request1 = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
-        {
-            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
-        };
-
-        using var request2 = new OutgoingRequest(new ServiceAddress(Protocol.Ice))
-        {
-            Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1024]))
-        };
-
-        using var cts = new CancellationTokenSource();
-
-        // Hold writes to ensure the invocation blocks writing the request.
-        var clientConnection = provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
-        clientConnection.Operations.Hold = DuplexTransportOperations.Write;
-        Task writeCalledTask = clientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
-
-        Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1, cts.Token);
-        Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request1, default);
-
-        // Wait for the connection write to start.
-        await writeCalledTask;
-
-        // Act
-        cts.Cancel();
-        await Task.Delay(TimeSpan.FromMilliseconds(100));
-
-        // Assert
-        Assert.That(invokeTask1.IsCompleted, Is.False);
-        clientConnection.Operations.Hold = DuplexTransportOperations.None;
-        Assert.That(async () => await invokeTask1, Throws.TypeOf<OperationCanceledException>());
-        dispatcher.ReleaseDispatch();
-        Assert.That(async () => await invokeTask2, Throws.Nothing);
     }
 
     /// <summary>Verifies that the connection shutdown waits for pending invocations and dispatches to complete.

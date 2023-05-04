@@ -1,27 +1,44 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal;
 
 /// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
-/// PipeWriter.</summary>
-internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
+/// PipeWriter. The data written to this writer is copied and buffered with an internal pipe. The data from the pipe is
+/// written on the duplex connection with a background task. This allows prompt cancellation of writes and improves
+/// write concurrency since multiple writes can be buffered and sent with a single <see
+/// cref="IDuplexConnection.WriteAsync" /> call.</summary>
+internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
 {
+    private Task? _backgroundWriteTask;
     private readonly IDuplexConnection _connection;
+    private readonly CancellationTokenSource _disposeCts = new();
+    private readonly int _maxWriteSize;
+    private readonly object _mutex = new();
     private readonly Pipe _pipe;
-    private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
+    private readonly List<ReadOnlyMemory<byte>> _segments = new() { ReadOnlyMemory<byte>.Empty };
 
     /// <inheritdoc/>
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
     /// <inheritdoc/>
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _pipe.Writer.Complete();
+        _disposeCts.Cancel();
+        lock (_mutex)
+        {
+            // Make sure that the background task is not started in case WriteAsync is called concurrently.
+            _backgroundWriteTask ??= Task.CompletedTask;
+        }
+
+        await _backgroundWriteTask.ConfigureAwait(false);
+
         _pipe.Reader.Complete();
+        _pipe.Writer.Complete();
+
+        _disposeCts.Dispose();
     }
 
     /// <inheritdoc/>
@@ -33,23 +50,31 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     /// <summary>Constructs a duplex connection writer.</summary>
     /// <param name="connection">The duplex connection to write to.</param>
     /// <param name="pool">The memory pool to use.</param>
-    /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref name="pool"/>.
-    /// </param>
-    internal DuplexConnectionWriter(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
+    /// <param name="maxWriteSize">The maximum size of data to write on the duplex connection.</param>
+    /// <param name="maxBufferSize">The maximum size of data to buffer.</param>
+    internal DuplexConnectionWriter(
+        IDuplexConnection connection,
+        MemoryPool<byte> pool,
+        int maxWriteSize,
+        int maxBufferSize)
     {
         _connection = connection;
+        _maxWriteSize = maxWriteSize;
+
+        // The segment size allocated by the pool is set to the maximum write size. This ensures that sequence elements
+        // returned from the reader will be up to this size given that we never request larger segments from the writer.
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
-            minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline));
+            minimumSegmentSize: maxWriteSize,
+            resumeWriterThreshold: maxWriteSize,
+            pauseWriterThreshold: maxBufferSize));
     }
 
-    /// <summary>Flush the buffered data.</summary>
+    internal void Complete() => _pipe.Writer.Complete();
+
     internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
         WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancellationToken);
 
-    /// <summary>Writes a sequence of bytes.</summary>
     internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken) =>
         WriteAsync(source, ReadOnlySequence<byte>.Empty, cancellationToken);
 
@@ -59,74 +84,80 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
         ReadOnlySequence<byte> source2,
         CancellationToken cancellationToken)
     {
-        if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
+        if (_backgroundWriteTask is null)
         {
-            return;
-        }
-
-        _sendBuffers.Clear();
-
-        // First add the data from the internal pipe.
-        SequencePosition? consumed = null;
-        if (_pipe.Writer.UnflushedBytes > 0)
-        {
-            await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-            _pipe.Reader.TryRead(out ReadResult readResult);
-
-            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
-
-            consumed = readResult.Buffer.GetPosition(readResult.Buffer.Length);
-            AddToSendBuffers(readResult.Buffer);
-        }
-
-        // Next add the data from source1 and source2.
-        AddToSendBuffers(source1);
-        AddToSendBuffers(source2);
-
-        try
-        {
-            ValueTask task = _connection.WriteAsync(_sendBuffers, cancellationToken);
-            if (cancellationToken.CanBeCanceled && !task.IsCompleted)
+            // Start the background task if it's not already started.
+            lock (_mutex)
             {
-                await task.AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await task.ConfigureAwait(false);
-            }
-        }
-        catch (ObjectDisposedException exception)
-        {
-            throw new IceRpcException(
-                IceRpcError.OperationAborted,
-                "The write operation was aborted by the disposal of the duplex connection.",
-                exception);
-        }
-        finally
-        {
-            if (consumed is not null)
-            {
-                _pipe.Reader.AdvanceTo(consumed.Value);
+                _backgroundWriteTask ??= Task.Run(BackgroundWritesAsync, CancellationToken.None);
             }
         }
 
-        void AddToSendBuffers(ReadOnlySequence<byte> source)
+        if (source1.Length > 0)
         {
-            if (source.IsEmpty)
+            Write(source1);
+        }
+        if (source2.Length > 0)
+        {
+            Write(source2);
+        }
+
+        await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+        void Write(ReadOnlySequence<byte> sequence)
+        {
+            foreach (ReadOnlyMemory<byte> buffer in sequence)
             {
-                // Nothing to add.
-            }
-            else if (source.IsSingleSegment)
-            {
-                _sendBuffers.Add(source.First);
-            }
-            else
-            {
-                foreach (ReadOnlyMemory<byte> memory in source)
+                ReadOnlyMemory<byte> source = buffer;
+                while (source.Length > 0)
                 {
-                    _sendBuffers.Add(memory);
+                    Memory<byte> destination = _pipe.Writer.GetMemory();
+                    if (destination.Length < source.Length)
+                    {
+                        source[0..destination.Length].CopyTo(destination);
+                        _pipe.Writer.Advance(destination.Length);
+                        source = source[destination.Length..];
+                    }
+                    else
+                    {
+                        source.CopyTo(destination);
+                        _pipe.Writer.Advance(source.Length);
+                        source = ReadOnlyMemory<byte>.Empty;
+                    }
                 }
             }
+        }
+    }
+
+    private async Task BackgroundWritesAsync()
+    {
+        try
+        {
+            while (true)
+            {
+                ReadResult readResult = await _pipe.Reader.ReadAsync(_disposeCts.Token).ConfigureAwait(false);
+
+                if (readResult.Buffer.Length > 0)
+                {
+                    // TODO: change the IDuplexConnection.WriteAsync API to use ReadOnlySequence<byte> instead.
+                    int size = Math.Min(readResult.Buffer.First.Length, _maxWriteSize);
+                    ReadOnlyMemory<byte> buffer = readResult.Buffer.First[0..size];
+                    _segments[0] = buffer;
+                    await _connection.WriteAsync(_segments, _disposeCts.Token).ConfigureAwait(false);
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(buffer.Length));
+                }
+
+                if (readResult.IsCompleted)
+                {
+                    await _connection.ShutdownWriteAsync(_disposeCts.Token).ConfigureAwait(false);
+                    break;
+                }
+            }
+            _pipe.Reader.Complete();
+        }
+        catch (Exception exception)
+        {
+            _pipe.Reader.Complete(exception);
         }
     }
 }

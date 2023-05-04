@@ -271,7 +271,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // It's safe to dispose the reader/writer since no more threads are sending/receiving data.
             _duplexConnectionReader.Dispose();
-            _duplexConnectionWriter.Dispose();
+            await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
 
             _disposedCts.Dispose();
             _twowayDispatchesCts.Dispose();
@@ -624,7 +624,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         _duplexConnection = duplexConnection;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, _memoryPool, _minSegmentSize);
-        _duplexConnectionWriter = new DuplexConnectionWriter(_duplexConnection, _memoryPool, _minSegmentSize);
+        _duplexConnectionWriter = new DuplexConnectionWriter(
+            _duplexConnection,
+            _memoryPool,
+            maxWriteSize: 16 * 1024, // The max size of an SSL frame.
+            maxBufferSize: 32 * 1024); // Allows buffering 2 frames.
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {
@@ -987,6 +991,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 IceRpcError.ConnectionAborted,
                 "The connection was aborted because a previous write operation failed.",
                 _writeException);
+        }
+
+        // Flush the writer before writing data. If a previous flush was canceled, this will block again until there's
+        // enough buffer space to start writing again.
+        try
+        {
+            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            semaphoreLock.Dispose();
+            throw;
         }
 
         return semaphoreLock;

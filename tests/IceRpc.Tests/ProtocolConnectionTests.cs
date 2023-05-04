@@ -237,10 +237,10 @@ public sealed class ProtocolConnectionTests
             invocationsCompleted &= task.IsCompleted;
         }
 
-        // Something's wrong with flow control if all the invocations completed. The sending of 1000 requests with a 64KB
-        // payload should trigger the transport flow control. If all the invocations completed successfully it would
-        // imply that the server connection read all the requests even though only one dispatch is allowed and hanging.
-        // This would result in the server buffering 64MB of data.
+        // Something's wrong with flow control if all the invocations completed. The sending of 1000 requests with a
+        // 64KB payload should trigger the transport flow control. If all the invocations completed successfully it
+        // would imply that the server connection read all the requests even though only one dispatch is allowed and
+        // hanging. This would result in the server buffering 64MB of data.
         Assert.That(invocationsCompleted, Is.False);
 
         // Cleanup
