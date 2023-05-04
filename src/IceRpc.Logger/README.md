@@ -1,7 +1,7 @@
 # Logger Interceptor and Middleware for IceRPC
 
-IceRpc.Logger provides an [IceRPC][icerpc] interceptor that logs every invocations and an IceRPC middleware that logs
-every dispatches.
+IceRpc.Logger provides an [IceRPC][icerpc] interceptor that logs every invocation and an IceRPC middleware that logs
+every dispatch.
 
 [Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
