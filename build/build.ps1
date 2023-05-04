@@ -13,7 +13,7 @@ param (
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
 
 if ($version) {
-    $dotnetVersionProperty = "-p:Version=$version"
+    $versionProperty = "-p:Version=$version"
 } else {
     Get-Content .\build\IceRpc.Version.props -Raw | Where { $_ -match "<Version .*>(.*)</Version>" } | Out-Null
     $version = $Matches.1
@@ -38,26 +38,26 @@ function CleanCompiler($config) {
 function BuildIceRpcSliceTools($config) {
     Push-Location "tools\IceRpc.Slice.Tools"
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('build', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
 function CleanIceRpcSliceTools($config) {
     Push-Location "tools\IceRpc.Slice.Tools"
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
 function BuildIceRpc($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('build', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
 function CleanIceRpcProjectTemplates($config) {
     Push-Location "src\IceRpc.ProjectTemplates"
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
@@ -65,20 +65,20 @@ function BuildIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('build', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration, "$example")
+        RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
 function CleanIceRpc($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
 function CleanIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     foreach ($example in $exampleProjects)
     {
-        RunCommand "dotnet" @('clean', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration, "$example")
+        RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration, "$example")
     }
 }
 
@@ -128,11 +128,11 @@ function InstallTemplates($config) {
 function Pack($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     Push-Location "tools\IceRpc.Slice.Tools"
-    RunCommand "dotnet"  @('pack', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
-    RunCommand "dotnet"  @('pack', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet"  @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Push-Location "src\IceRpc.ProjectTemplates"
-    RunCommand "dotnet" @('pack', '-nr:false', $dotnetVersionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }
 
@@ -156,7 +156,7 @@ function Test($config, $coverage) {
     $arguments = @('test', '--configuration', $dotnetConfiguration)
     if ($coverage) {
        $runsettings = Resolve-Path -Path "./build/Coverlet.runsettings"
-       $arguments += @("/p:RunSettingsFilePath=$runsettings", '--collect:"XPlat Code Coverage"')
+       $arguments += @("-p:RunSettingsFilePath=$runsettings", '--collect:"XPlat Code Coverage"')
     }
     RunCommand "dotnet" $arguments
     if ($coverage) {
