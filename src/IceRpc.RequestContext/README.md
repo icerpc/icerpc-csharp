@@ -80,7 +80,8 @@ host.Run();
 
 ## Ice interop
 
-The ice protocol can send and receive request context fields. See also [Ice request contexts][ice_request_contexts].
+The ice protocol can send and receive request context fields. They correspond to
+[request contexts][ice_request_contexts] in Ice.
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.RequestContext.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/RequestContext
