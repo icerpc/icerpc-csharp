@@ -30,7 +30,8 @@ usage()
     echo "                            The NuGet packages are pushed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
     echo "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator."
-    echo " --version                  The version override for the NuGet packages."
+    echo "  --version                 The version override for the IceRPC NuGet packages. The default version is the version"
+    echo "                            specified in the build/IceRpc.Version.props file."
     echo "  --help   | -h             Print help and exit."
 }
 
