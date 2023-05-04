@@ -30,6 +30,7 @@ usage()
     echo "                            The NuGet packages are pushed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
     echo "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator."
+    echo " --icerpc-version           The IceRPC version override of the NuGet packages."
     echo "  --help   | -h             Print help and exit."
 }
 
@@ -54,25 +55,25 @@ clean_compiler()
 build_icerpc_slice_tools()
 {
     pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" $dotnet_version_property
     popd
 }
 
 clean_icerpc_slice_tools()
 {
     pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "clean" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "clean" "-nr:false" "-c" "$dotnet_config" $dotnet_version_property
     popd
 }
 
 build_icerpc()
 {
-    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "build" "-nr:false" "-c" "$dotnet_config" $dotnet_version_property
 }
 
 clean_icerpc()
 {
-    run_command dotnet "clean" "-nr:false"
+    run_command dotnet "clean" "-nr:false" $dotnet_version_property
 }
 
 clean_icerpc_project_templates()
@@ -85,11 +86,11 @@ clean_icerpc_project_templates()
 pack()
 {
     pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config" $dotnet_version_property
     popd
-    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config" $dotnet_version_property
     pushd src/IceRpc.ProjectTemplates
-    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config"
+    run_command dotnet "pack" "-nr:false" "-c" "$dotnet_config" $dotnet_version_property
     popd
 }
 
@@ -193,6 +194,7 @@ config=""
 coverage="no"
 examples="no"
 srcdist="no"
+dotnet_version_property=""
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -202,6 +204,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         -c|--config)
             config=$2
+            shift
+            shift
+            ;;
+        --icerpc-version)
+            version=$2
+            dotnet_version_property="/p:Version=$version"
             shift
             shift
             ;;
