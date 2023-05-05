@@ -1,4 +1,4 @@
-# QUIC Transport for IceRPC
+# QUIC transport for IceRPC
 
 IceRpc.Transports.Quic allows you to use QUIC with [IceRPC][icerpc]. It's a thin layer over [`System.Net.Quic`][quic].
 
@@ -44,8 +44,8 @@ IceRpc.Transports.Quic has the same platform requirements as `System.Net.Quic`. 
 these requirements as the [HTTP/3 platform dependencies][platform].
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.Quic.html
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterQuic
 [icerpc]: https://www.nuget.org/packages/IceRpc
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterQuic
 [quic]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview
 [package]: https://www.nuget.org/packages/IceRpc.Transports.Quic
 [platform]: https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-http3#platform-dependencies

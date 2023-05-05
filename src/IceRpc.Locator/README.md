@@ -1,7 +1,7 @@
-# Locator Interceptor for IceRPC
+# Locator interceptor for IceRPC
 
-IceRpc.Locator provides an [IceRPC][icerpc] interceptor that allows you to resolve ice service addresses
-using an [Ice locator][locator].
+IceRpc.Locator provides an [IceRPC][icerpc] interceptor that allows you to resolve ice service addresses using an
+[Ice locator][locator].
 
 Use this interceptor in IceRPC client applications that call services hosted by IceGrid-managed servers.
 
@@ -29,19 +29,19 @@ pipeline = pipeline
     .UseRetry()
     .UseLocator(locatorProxy)
     .Into(connectionCache);
-    
-// A call on this proxy will use the locator to find the server address(es) associated with `/hello`. 
+
+// A call on this proxy will use the locator to find the server address(es) associated with `/hello`.
 // The locator interceptor caches successful resolutions.
 var wellKnownProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
-// The locator also resolves ice proxies with an adapter-id parameter. 
+// The locator also resolves ice proxies with an adapter-id parameter.
 var indirectProxy = new HelloProxy(pipeline, new Uri("ice:/hello?adapter-id=HelloAdapter"));
 ```
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Locator.html
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Interop/IceGrid
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [interop]: https://docs.testing.zeroc.com/docs/icerpc-for-ice-users
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Interop/IceGrid
 [locator]: https://doc.zeroc.com/ice/3.7/client-server-features/locators
 [package]: https://www.nuget.org/packages/IceRpc.Locator
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Locator

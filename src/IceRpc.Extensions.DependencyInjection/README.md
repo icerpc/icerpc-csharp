@@ -1,4 +1,4 @@
-# IceRPC Extensions for Microsoft's DI Container
+# IceRPC extensions for Microsoft's DI container
 
 IceRpc.Extensions.DependencyInjection helps you build applications with [IceRPC][icerpc] and
 [Microsoft's DI container][ms_di].
