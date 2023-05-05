@@ -1,4 +1,4 @@
-# RequestContext Interceptor and Middleware for IceRPC
+# RequestContext interceptor and middleware for IceRPC
 
 IceRpc.RequestContext provides an [IceRPC][icerpc] interceptor that encodes request context features into request
 context fields. It also provides the corresponding middleware that decodes request context fields into request context
@@ -28,7 +28,7 @@ using IceRpc;
 
 // Add the request context middleware to the dispatch pipeline.
 Router router = new Router()
-    .UseRequestContext();
+    .UseRequestContext()
     .Map<...>(...);
 
 await using var server = new Server(router);

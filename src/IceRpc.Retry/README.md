@@ -1,4 +1,4 @@
-# Retry Interceptor for IceRPC
+# Retry interceptor for IceRPC
 
 IceRpc.Retry provides an [IceRPC][icerpc] interceptor that retries failed invocations automatically.
 
@@ -14,7 +14,9 @@ using IceRpc;
 await using var connectionCache = new ConnectionCache();
 
 // Create an invocation pipeline and install the retry interceptor.
-Pipeline pipeline = new Pipeline().UseRetry().Into(connectionCache);
+Pipeline pipeline = new Pipeline()
+    .UseRetry()
+    .Into(connectionCache);
 ```
 
 ## Sample code with DI

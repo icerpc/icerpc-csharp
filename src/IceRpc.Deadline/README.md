@@ -1,8 +1,9 @@
-# Deadline Interceptor and Middleware for IceRPC
+# Deadline interceptor and middleware for IceRPC
 
-IceRpc.Deadline provides an [IceRPC][icerpc] interceptor that adds deadline fields to the requests you send.
+IceRpc.Deadline provides an [IceRPC][icerpc] interceptor and the corresponding middleware.
 
-In addition, IceRpc.Deadline provides a middleware that decodes the deadline fields received with incoming requests.
+The deadline interceptor adds deadline fields to outgoing requests, while the deadline middleware decodes deadline
+fields received with incoming requests.
 
 [Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 

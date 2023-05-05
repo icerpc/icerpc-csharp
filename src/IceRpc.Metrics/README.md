@@ -1,9 +1,11 @@
-# Metrics Interceptor and Middleware for IceRPC
+# Metrics interceptor and middleware for IceRPC
 
-IceRpc.Metrics provides an [IceRPC][icerpc] interceptor that instruments invocations using the [Meter API][meter]. You
-can display the collected measurements with [dotnet-counters][dotnet_counters] and other tools.
+IceRpc.Metrics provides an [IceRPC][icerpc] interceptor and an IceRPC middleware.
 
-IceRpc.Metrics also provides a middleware that instruments dispatches in a similar fashion.
+The metrics interceptor instruments invocations using the [Meter API][meter], while the metrics middleware instruments
+dispatches using the same API.
+
+You can display the collected measurements with [dotnet-counters][dotnet_counters] and other tools.
 
 [Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 

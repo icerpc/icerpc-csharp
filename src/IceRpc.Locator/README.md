@@ -1,4 +1,4 @@
-# Locator Interceptor for IceRPC
+# Locator interceptor for IceRPC
 
 IceRpc.Locator provides an [IceRPC][icerpc] interceptor that allows you to resolve ice service addresses using an
 [Ice locator][locator].

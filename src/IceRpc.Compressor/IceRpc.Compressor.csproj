@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Description>Compressor Interceptor and Middleware for IceRPC</Description>
+        <Description>Compressor interceptor and middleware for IceRPC</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
     </PropertyGroup>

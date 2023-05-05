@@ -1,4 +1,4 @@
-# QUIC Transport for IceRPC
+# QUIC transport for IceRPC
 
 IceRpc.Transports.Quic allows you to use QUIC with [IceRPC][icerpc]. It's a thin layer over [`System.Net.Quic`][quic].
 
