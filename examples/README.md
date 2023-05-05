@@ -13,11 +13,11 @@ started using a specific feature or programming technique in IceRPC.
   * [GreeterQuic](#greeterquic)
   * [GreeterLog](#greeterlog)
   * [Metrics](#metrics)
-  * [OpenTelemetry](#opentelemetry)
   * [RequestContext](#requestcontext)
   * [Retry](#retry)
   * [Secure](#secure)
   * [Stream](#stream)
+  * [Telemetry](#telemetry)
   * [Upload](#upload)
 
 ## Examples
@@ -66,11 +66,6 @@ Contains examples that shows how IceRPC interoperates with [ZeroC Ice][1].
 The Metrics example shows how to use the metric interceptor and middleware with `dotnet-counters` and `dotnet-trace` to
 monitor requests dispatched by a server.
 
-### [OpenTelemetry](./OpenTelemetry/)
-
-The OpenTelemetry example shows how to use the telemetry interceptor and middleware and how to integrated them with
-[OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin][2].
-
 ### [RequestContext](./RequestContext/)
 
 The RequestContext example shows how to attach contextual information to the invocation and access this information from
@@ -87,6 +82,11 @@ The Secure example shows how to create client and server applications that commu
 ### [Stream](./Stream/)
 
 The Stream example shows how to stream data from a client to a server.
+
+### [Telemetry](./Telemetry/)
+
+The Telemetry example shows how to use the telemetry interceptor and middleware and how to integrated them with
+[OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin][2].
 
 ### [Upload](./Upload/)
 
