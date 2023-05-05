@@ -274,6 +274,15 @@ public static class ServiceAddressSliceDecoderExtensions
             parameters = parameters.Add("z", "");
         }
 
-        return new ServerAddress(Protocol.Ice, body.Host, checked((ushort)body.Port), transport, parameters);
+        try
+        {
+            return new ServerAddress(Protocol.Ice, body.Host, checked((ushort)body.Port), transport, parameters);
+        }
+        catch (OverflowException exception)
+        {
+            throw new InvalidDataException(
+                "Can't decode a server address with a port value larger than an unsigned short maximum value.",
+                exception);
+        }
     }
 }
