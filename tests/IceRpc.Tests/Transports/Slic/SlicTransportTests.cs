@@ -620,8 +620,10 @@ public class SlicTransportTests
         await writeTask;
     }
 
+    /// <summary>Verifies that a pending write operation on the stream fails with <see cref="OperationCanceledException"
+    /// /> when canceled.</summary>
     [Test]
-    public async Task Stream_write_cancellation_cancels_write_if_writing_data_on_duplex_connection_hangs()
+    public async Task Stream_write_cancellation()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()

@@ -352,8 +352,8 @@ public abstract class DuplexConnectionConformanceTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
-    /// <summary>Verifies that pending write operation fails with <see cref="OperationCanceledException" /> once the
-    /// cancellation token is canceled.</summary>
+    /// <summary>Verifies that a pending write operation on the connection fails with <see
+    /// cref="OperationCanceledException" /> when canceled.</summary>
     [Test]
     public async Task Write_cancellation()
     {
