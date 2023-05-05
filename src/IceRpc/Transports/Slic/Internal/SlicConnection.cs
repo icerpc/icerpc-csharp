@@ -565,14 +565,9 @@ internal class SlicConnection : IMultiplexedConnection
         _duplexConnection = duplexConnectionDecorator;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
 
-        // TODO: Should the pauseWriterThreshold and resumeWriterThreshold also be configurable? They are configurable
-        // for Slic streams and for now we use the Slic stream defaults. These parameters can improve throughput but at
-        // the expense of memory consumption.
-        _duplexConnectionWriter = new DuplexConnectionWriter(
-            _duplexConnection,
-            options.Pool,
-            pauseWriterThreshold: 65536,
-            resumeWriterThreshold: 32768);
+        // Note: Slic doesn't need to limit the amount of data buffered by the duplex connection writer in order to
+        // provide connection level flow control. Flow-control is implemented at the stream level.
+        _duplexConnectionWriter = new DuplexConnectionWriter(_duplexConnection, options.Pool);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first initialize
         // frame.

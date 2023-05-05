@@ -50,14 +50,15 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     /// <param name="connection">The duplex connection to write to.</param>
     /// <param name="pool">The memory pool to use.</param>
     /// <param name="pauseWriterThreshold">The number of buffered data in bytes when <see cref="FlushAsync" /> or <see
-    /// cref="WriteAsync(ReadOnlySequence{byte}, CancellationToken)" /> starts blocking.</param>
+    /// cref="WriteAsync(ReadOnlySequence{byte}, CancellationToken)" /> starts blocking. A value of <c>0</c>, prevents
+    /// these calls from blocking.</param>
     /// <param name="resumeWriterThreshold">The number of free buffer space in bytes when <see cref="FlushAsync" /> or
     /// <see cref="WriteAsync(ReadOnlySequence{byte}, CancellationToken)" /> stops blocking.</param>
     internal DuplexConnectionWriter(
         IDuplexConnection connection,
         MemoryPool<byte> pool,
-        int pauseWriterThreshold,
-        int resumeWriterThreshold)
+        int pauseWriterThreshold = 0,
+        int resumeWriterThreshold = 0)
     {
         _connection = connection;
 
@@ -68,8 +69,8 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: 16384,
-            resumeWriterThreshold: resumeWriterThreshold,
-            pauseWriterThreshold: pauseWriterThreshold));
+            pauseWriterThreshold: pauseWriterThreshold,
+            resumeWriterThreshold: resumeWriterThreshold));
     }
 
     internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
