@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module OpenTelemetryExample
+module TelemetryExample
 
 /// Represents a simple greeter.
 interface Greeter {

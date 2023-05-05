@@ -4,7 +4,7 @@ using IceRpc;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using OpenTelemetryExample;
+using TelemetryExample;
 using System.Diagnostics;
 
 // The activity source used by the telemetry middleware.
