@@ -15,10 +15,11 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// </summary>
 public static class ServerServiceCollectionExtensions
 {
-    /// <summary>Adds a <see cref="Server" /> with the specified dispatcher to this service collection; you can specify
-    /// the server's options by injecting an <see cref="IOptions{T}" /> of <see cref="ServerOptions" />.</summary>
+    /// <summary>Adds a <see cref="Server" /> with the specified dispatch pipeline to this service collection; you can
+    /// specify the server's options by injecting an <see cref="IOptions{T}" /> of <see cref="ServerOptions" />.
+    /// </summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="dispatcher">The server dispatcher.</param>
+    /// <param name="dispatcher">The dispatch pipeline.</param>
     /// <returns>The service collection.</returns>
     /// <example>
     /// The following code adds a Server singleton to the service collection.
@@ -32,6 +33,7 @@ public static class ServerServiceCollectionExtensions
     /// <item><description>an <see cref="IDuplexServerTransport" /> for the ice protocol</description></item>
     /// <item><description>an <see cref="IMultiplexedServerTransport" /> for the icerpc protocol</description></item>
     /// </list>
+    ///
     /// For example, you can create a QUIC server as follows:
     /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithQuic" lang="csharp" />
     /// If you want to customize the options of the default transport (tcp), you just need to inject
@@ -40,8 +42,9 @@ public static class ServerServiceCollectionExtensions
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services, IDispatcher dispatcher) =>
         services.AddIceRpcServer(optionsName: Options.DefaultName, dispatcher);
 
-    /// <summary>Adds a <see cref="Server" /> to this service collection and builds a dispatch pipeline for this server;
-    /// you can specify the server's options by injecting an <see cref="IOptions{T}" /> of <see cref="ServerOptions" />.
+    /// <summary>Adds a <see cref="Server" /> to this service collection and configures the dispatch pipeline of this
+    /// server; you can specify the server's options by injecting an <see cref="IOptions{T}" /> of
+    /// <see cref="ServerOptions" />.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the dispatch pipeline using an
@@ -49,9 +52,10 @@ public static class ServerServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     /// <remarks>The dispatch pipeline built by this method is not registered in the DI container.</remarks>
     /// <example>
-    /// The following code builds a dispatch pipeline and adds a server to the service collection with this dispatch
-    /// pipeline.
-    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithDispatcherBuilder" lang="csharp" />
+    /// The following code builds a dispatch pipeline and adds a server with this dispatch pipeline to the service
+    /// collection.
+    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithDispatcherBuilder"
+    /// lang="csharp" />
     /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
     /// </example>
     public static IServiceCollection AddIceRpcServer(
@@ -59,24 +63,24 @@ public static class ServerServiceCollectionExtensions
         Action<IDispatcherBuilder> configure) =>
         services.AddIceRpcServer(optionsName: Options.DefaultName, configure);
 
-    /// <summary>Adds a <see cref="Server" /> to this service collection, as a singleton; you specify the server's
-    /// options by injecting an <see cref="IOptions{T}" /> of <see cref="ServerOptions" />.</summary>
+    /// <summary>Adds a <see cref="Server" /> to this service collection; you specify the server's options by injecting
+    /// an <see cref="IOptions{T}" /> of <see cref="ServerOptions" />.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
     /// <remarks>You need to set a least the dispatcher in the injected options.</remarks>
     public static IServiceCollection AddIceRpcServer(this IServiceCollection services) =>
         services.AddIceRpcServer(Options.DefaultName);
 
-    /// <summary>Adds a <see cref="Server" /> with the specified dispatcher to this service collection; you can specify
-    /// the server's options by injecting an <see cref="IOptionsMonitor{T}" /> of <see cref="ServerOptions" /> named
-    /// <paramref name="optionsName" />.</summary>
+    /// <summary>Adds a <see cref="Server" /> with the specified dispatch pipeline to this service collection; you can
+    /// specify the server's options by injecting an <see cref="IOptionsMonitor{T}" /> of <see cref="ServerOptions" />
+    /// named <paramref name="optionsName" />.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the options instance.</param>
     /// <param name="dispatcher">The dispatch pipeline of the server.</param>
     /// <returns>The service collection.</returns>
     /// <example>
     /// A server application may need to host multiple <see cref="Server" /> instances, each with its own options. A
-    /// typical example if when you want to accept requests from clients over both the icerpc protocol and the ice
+    /// typical example is when you want to accept requests from clients over both the icerpc protocol and the ice
     /// protocol. This overload allows you create two (or more) server singletons, each with its own options:
     /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithNamedOptions" lang="csharp" />
     /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
@@ -91,8 +95,8 @@ public static class ServerServiceCollectionExtensions
         return services.AddIceRpcServer(optionsName);
     }
 
-    /// <summary>Adds a <see cref="Server" /> to this service collection and builds a dispatch pipeline for this server;
-    /// you can specify the server's options by injecting an <see cref="IOptionsMonitor{T}" /> of
+    /// <summary>Adds a <see cref="Server" /> to this service collection and configures the dispatch pipeline of this
+    /// server; you can specify the server's options by injecting an <see cref="IOptionsMonitor{T}" /> of
     /// <see cref="ServerOptions" /> named <paramref name="optionsName" />.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="optionsName">The name of the options instance.</param>
