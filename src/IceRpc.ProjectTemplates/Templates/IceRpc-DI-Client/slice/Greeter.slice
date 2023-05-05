@@ -1,4 +1,5 @@
-module GreeterExample
+[cs::namespace("IceRpc_DI_Client")]
+module Hello
 
 interface Greeter {
     greet(name: string) -> string

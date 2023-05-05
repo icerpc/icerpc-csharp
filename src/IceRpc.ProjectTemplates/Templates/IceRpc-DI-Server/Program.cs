@@ -1,11 +1,10 @@
-// Copyright (c) ZeroC, Inc.
-
-using GreeterExample;
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
+using IceRpc_DI_Server;
 
 // Configure the host.
 IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
