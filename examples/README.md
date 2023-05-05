@@ -85,7 +85,7 @@ The Stream example shows how to stream data from a client to a server.
 
 ### [Telemetry](./Telemetry/)
 
-The Telemetry example shows how to use the telemetry interceptor and middleware and how to integrated them with
+The Telemetry example shows how to use the telemetry interceptor and middleware and how to integrate them with
 [OpenTelemetry](https://opentelemetry.io/) to export traces to [Zipkin][2].
 
 ### [Upload](./Upload/)
