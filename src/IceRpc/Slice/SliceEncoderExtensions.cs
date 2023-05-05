@@ -89,6 +89,10 @@ public static class SliceEncoderExtensions
                 encoder.EncodeSpan((ReadOnlySpan<T>)vArraySegment.AsSpan());
                 break;
 
+            case List<T> list:
+                encoder.EncodeSpan((ReadOnlySpan<T>)CollectionsMarshal.AsSpan(list));
+                break;
+
             default:
                 encoder.EncodeSequence(
                     v,
