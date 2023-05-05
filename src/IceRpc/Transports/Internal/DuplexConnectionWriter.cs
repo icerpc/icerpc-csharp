@@ -163,6 +163,10 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
             }
             _pipe.Reader.Complete();
         }
+        catch (OperationCanceledException)
+        {
+            // DisposeAsync was called.
+        }
         catch (Exception exception)
         {
             _pipe.Reader.Complete(exception);
