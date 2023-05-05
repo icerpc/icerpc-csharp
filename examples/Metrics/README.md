@@ -1,7 +1,7 @@
 # Metrics
 
 This example application illustrates how to use the metrics interceptor and middleware, and how to use
-`dotnet-counters` to monitor the client invocations metrics and the server dispatches metrics.
+`dotnet-counters` to monitor the client invocation metrics and the server dispatch metrics.
 
 To collect counter metrics, you need to install the `dotnet-counters` tools.
 
