@@ -15,7 +15,6 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     private Task? _backgroundWriteTask;
     private readonly IDuplexConnection _connection;
     private readonly CancellationTokenSource _disposeCts = new();
-    private readonly int _maxWriteSize;
     private readonly object _mutex = new();
     private readonly Pipe _pipe;
     private readonly List<ReadOnlyMemory<byte>> _segments = new() { ReadOnlyMemory<byte>.Empty };
@@ -50,30 +49,35 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     /// <summary>Constructs a duplex connection writer.</summary>
     /// <param name="connection">The duplex connection to write to.</param>
     /// <param name="pool">The memory pool to use.</param>
-    /// <param name="maxWriteSize">The maximum size of data to write on the duplex connection.</param>
-    /// <param name="maxBufferSize">The maximum size of data to buffer.</param>
+    /// <param name="pauseWriterThreshold">The number of buffered data in bytes when <see cref="FlushAsync" /> or <see
+    /// cref="WriteAsync(ReadOnlySequence{byte}, CancellationToken)" /> starts blocking.</param>
+    /// <param name="resumeWriterThreshold">The number of free buffer space in bytes when <see cref="FlushAsync" /> or
+    /// <see cref="WriteAsync(ReadOnlySequence{byte}, CancellationToken)" /> stops blocking.</param>
     internal DuplexConnectionWriter(
         IDuplexConnection connection,
         MemoryPool<byte> pool,
-        int maxWriteSize,
-        int maxBufferSize)
+        int pauseWriterThreshold,
+        int resumeWriterThreshold)
     {
         _connection = connection;
-        _maxWriteSize = maxWriteSize;
 
-        // The segment size allocated by the pool is set to the maximum write size. This ensures that sequence elements
-        // returned from the reader will be up to this size given that we never request larger segments from the writer.
+        // The segment size allocated by the pipe is set to 16KB. This ensures that the size of sequence elements
+        // returned by the pipe won't be larger since we never provide a size hint to PipeWriter.GetMemory(). It's set
+        // to the maximum SSL record size to avoid the SSL stream from having to split the data for encryption algorithm
+        // whose encrypted data size is the same as the input data size.
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
-            minimumSegmentSize: maxWriteSize,
-            resumeWriterThreshold: maxWriteSize,
-            pauseWriterThreshold: maxBufferSize));
+            minimumSegmentSize: 16384,
+            resumeWriterThreshold: resumeWriterThreshold,
+            pauseWriterThreshold: pauseWriterThreshold));
     }
-
-    internal void Complete() => _pipe.Writer.Complete();
 
     internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
         WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancellationToken);
+
+    /// <summary>Shuts down the duplex connection. The background task will take care of it once a read returns a
+    /// completed result.</summary>
+    internal void Shutdown() => _pipe.Writer.Complete();
 
     internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken) =>
         WriteAsync(source, ReadOnlySequence<byte>.Empty, cancellationToken);
@@ -139,12 +143,15 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
 
                 if (readResult.Buffer.Length > 0)
                 {
+                    _segments.Clear();
+                    foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
+                    {
+                        _segments.Add(segment);
+                    }
+
                     // TODO: change the IDuplexConnection.WriteAsync API to use ReadOnlySequence<byte> instead.
-                    int size = Math.Min(readResult.Buffer.First.Length, _maxWriteSize);
-                    ReadOnlyMemory<byte> buffer = readResult.Buffer.First[0..size];
-                    _segments[0] = buffer;
                     await _connection.WriteAsync(_segments, _disposeCts.Token).ConfigureAwait(false);
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(buffer.Length));
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.End);
                 }
 
                 if (readResult.IsCompleted)

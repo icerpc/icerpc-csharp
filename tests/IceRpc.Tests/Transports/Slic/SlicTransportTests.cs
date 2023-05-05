@@ -423,8 +423,8 @@ public class SlicTransportTests
         await using var writer = new DuplexConnectionWriter(
             duplexClientConnection,
             MemoryPool<byte>.Shared,
-            maxWriteSize: 4096,
-            maxBufferSize: 8192);
+            pauseWriterThreshold: 16384,
+            resumeWriterThreshold: 8192);
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
@@ -624,15 +624,10 @@ public class SlicTransportTests
     public async Task Stream_write_cancellation_cancels_write_if_writing_data_on_duplex_connection_hangs()
     {
         // Arrange
-        var services = new ServiceCollection()
+        await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
-            .AddTestDuplexTransportDecorator();
-
-        services.Configure<SlicTransportOptions>(
-            "client",
-            options => options.PacketMaxSize = 1024);
-
-        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+            .AddTestDuplexTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -645,7 +640,7 @@ public class SlicTransportTests
 
         // Act
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[8192], writeCts.Token);
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[128 * 1024], writeCts.Token);
         writeCts.Cancel();
 
         // Assert

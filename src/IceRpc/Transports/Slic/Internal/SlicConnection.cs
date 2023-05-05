@@ -115,7 +115,6 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new InvalidOperationException("Cannot connect a closed Slic connection.");
             }
-
             _connectTask = PerformConnectAsync();
         }
         return _connectTask;
@@ -393,7 +392,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // The sending of the client-side Close frame is followed by the shutdown of the duplex connection. For
                 // TCP, it's important to always shutdown the connection on the client-side first to avoid TIME_WAIT
                 // states on the server-side.
-                _duplexConnectionWriter.Complete();
+                _duplexConnectionWriter.Shutdown();
             }
         }
     }
@@ -565,11 +564,15 @@ internal class SlicConnection : IMultiplexedConnection
 
         _duplexConnection = duplexConnectionDecorator;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
+
+        // TODO: Should the pauseWriterThreshold and resumeWriterThreshold also be configurable? They are configurable
+        // for Slic streams and for now we use the Slic stream defaults. These parameters can improve throughput but at
+        // the expense of memory consumption.
         _duplexConnectionWriter = new DuplexConnectionWriter(
             _duplexConnection,
             options.Pool,
-            maxWriteSize: slicOptions.PacketMaxSize,
-            maxBufferSize: slicOptions.PacketMaxSize * 2);
+            pauseWriterThreshold: 65536,
+            resumeWriterThreshold: 32768);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first initialize
         // frame.
@@ -1150,7 +1153,7 @@ internal class SlicConnection : IMultiplexedConnection
                 if (!IsServer)
                 {
                     using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
-                    _duplexConnectionWriter.Complete();
+                    _duplexConnectionWriter.Shutdown();
                 }
             }
         }
@@ -1315,7 +1318,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
                 using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(_disposedCts.Token).ConfigureAwait(false);
-                _duplexConnectionWriter.Complete();
+                _duplexConnectionWriter.Shutdown();
             }
         }
         catch (OperationCanceledException)

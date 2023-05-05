@@ -624,11 +624,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         _duplexConnection = duplexConnection;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, _memoryPool, _minSegmentSize);
+
+        // TODO: Should the pauseWriterThreshold and resumeWriterThreshold also be configurable? They are configurable
+        // for Slic streams and for now we use the Slic stream defaults. These parameters can improve throughput but at
+        // the expense of memory consumption.
         _duplexConnectionWriter = new DuplexConnectionWriter(
             _duplexConnection,
             _memoryPool,
-            maxWriteSize: 16 * 1024, // The max size of an SSL frame.
-            maxBufferSize: 32 * 1024); // Allows buffering 2 frames.
+            pauseWriterThreshold: 65536,
+            resumeWriterThreshold: 32768);
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {
