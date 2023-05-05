@@ -4,5 +4,6 @@
     <SliceFile Include="../Greeter.slice" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Metrics" Version="$(Version)" />
   </ItemGroup>
 </Project>

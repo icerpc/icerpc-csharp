@@ -3,7 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace OpenTelemetryExample;
+namespace TelemetryExample;
 
 internal class Crm : Service, ICrmService
 {

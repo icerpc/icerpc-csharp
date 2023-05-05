@@ -3,7 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 
-namespace OpenTelemetryExample;
+namespace TelemetryExample;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
 internal class Chatbot : Service, IGreeterService
