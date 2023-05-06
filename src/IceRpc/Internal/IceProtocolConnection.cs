@@ -631,6 +631,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         _duplexConnectionWriter = new DuplexConnectionWriter(
             _duplexConnection,
             _memoryPool,
+            _minSegmentSize,
             pauseWriterThreshold: 65536,
             resumeWriterThreshold: 32768);
 

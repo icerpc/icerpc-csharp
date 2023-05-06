@@ -6,38 +6,48 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
-/// PipeWriter. The data written to this writer is copied and buffered with an internal pipe. The data from the pipe is
-/// written on the duplex connection with a background task. This allows prompt cancellation of writes and improves
-/// write concurrency since multiple writes can be buffered and sent with a single <see
-/// cref="IDuplexConnection.WriteAsync" /> call.</summary>
+/// PipeWriter. Like a PipeWriter, its methods shouldn't be called concurrently. The data written to this writer is
+/// copied and buffered with an internal pipe. The data from the pipe is written on the duplex connection with a
+/// background task. This allows prompt cancellation of writes and improves write concurrency since multiple writes can
+/// be buffered and sent with a single <see cref="IDuplexConnection.WriteAsync" /> call.</summary>
 internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
 {
     private Task? _backgroundWriteTask;
     private readonly IDuplexConnection _connection;
     private readonly CancellationTokenSource _disposeCts = new();
+    private Task? _disposeTask;
     private readonly object _mutex = new();
     private readonly Pipe _pipe;
+    // This field is temporary and will be removed once IDuplexConnection.WriteAsync no longer requires an
+    // IReadOnlyList<ReadOnlyMemory<byte> parameter.
     private readonly List<ReadOnlyMemory<byte>> _segments = new() { ReadOnlyMemory<byte>.Empty };
 
     /// <inheritdoc/>
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        _disposeCts.Cancel();
         lock (_mutex)
         {
-            // Make sure that the background task is not started in case WriteAsync is called concurrently.
-            _backgroundWriteTask ??= Task.CompletedTask;
+            _disposeTask ??= PerformDisposeAsync();
         }
+        return new(_disposeTask);
 
-        await _backgroundWriteTask.ConfigureAwait(false);
+        async Task PerformDisposeAsync()
+        {
+            _disposeCts.Cancel();
 
-        _pipe.Reader.Complete();
-        _pipe.Writer.Complete();
+            if (_backgroundWriteTask is not null)
+            {
+                await _backgroundWriteTask.ConfigureAwait(false);
+            }
 
-        _disposeCts.Dispose();
+            _pipe.Reader.Complete();
+            _pipe.Writer.Complete();
+
+            _disposeCts.Dispose();
+        }
     }
 
     /// <inheritdoc/>
@@ -49,6 +59,8 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     /// <summary>Constructs a duplex connection writer.</summary>
     /// <param name="connection">The duplex connection to write to.</param>
     /// <param name="pool">The memory pool to use.</param>
+    /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref
+    /// name="pool"/>.</param>
     /// <param name="pauseWriterThreshold">The number of buffered data in bytes when <see cref="FlushAsync" /> or <see
     /// cref="WriteAsync(ReadOnlySequence{byte}, CancellationToken)" /> starts blocking. A value of <c>0</c>, prevents
     /// these calls from blocking.</param>
@@ -57,18 +69,14 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     internal DuplexConnectionWriter(
         IDuplexConnection connection,
         MemoryPool<byte> pool,
+        int minimumSegmentSize,
         int pauseWriterThreshold = 0,
         int resumeWriterThreshold = 0)
     {
         _connection = connection;
-
-        // The segment size allocated by the pipe is set to 16KB. This ensures that the size of sequence elements
-        // returned by the pipe won't be larger since we never provide a size hint to PipeWriter.GetMemory(). It's set
-        // to the maximum SSL record size to avoid the SSL stream from having to split the data for encryption algorithm
-        // whose encrypted data size is the same as the input data size.
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
-            minimumSegmentSize: 16384,
+            minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: pauseWriterThreshold,
             resumeWriterThreshold: resumeWriterThreshold));
     }
@@ -76,8 +84,8 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
         WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancellationToken);
 
-    /// <summary>Shuts down the duplex connection. The background task will take care of it once a read returns a
-    /// completed result.</summary>
+    /// <summary>Requests the shut down of the duplex connection after the buffered data is written on the duplex
+    /// connection.</summary>
     internal void Shutdown() => _pipe.Writer.Complete();
 
     internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken) =>
@@ -94,7 +102,14 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
             // Start the background task if it's not already started.
             lock (_mutex)
             {
-                _backgroundWriteTask ??= Task.Run(BackgroundWritesAsync, CancellationToken.None);
+                if (_disposeTask is null)
+                {
+                    _backgroundWriteTask ??= Task.Run(BackgroundWritesAsync, CancellationToken.None);
+                }
+                else
+                {
+                    throw new ObjectDisposedException(nameof(DuplexConnectionWriter));
+                }
             }
         }
 

@@ -8,7 +8,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Internal;
 
 /// <summary>A helper class to efficiently read data from a duplex connection. It provides a PipeReader-like API but is
-/// not a PipeReader.</summary>
+/// not a PipeReader. Like a PipeReader, its methods shouldn't be called concurrently.</summary>
 internal class DuplexConnectionReader : IDisposable
 {
     private readonly IDuplexConnection _connection;
