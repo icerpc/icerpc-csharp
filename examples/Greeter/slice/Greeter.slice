@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module GreeterExample
+module Hello
 
 /// Represents a simple greeter.
 interface Greeter {

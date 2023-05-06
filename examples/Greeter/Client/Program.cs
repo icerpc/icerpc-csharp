@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterExample;
+using Hello;
 using IceRpc;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
