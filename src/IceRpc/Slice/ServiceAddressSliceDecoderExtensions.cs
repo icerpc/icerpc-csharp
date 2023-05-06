@@ -281,7 +281,7 @@ public static class ServiceAddressSliceDecoderExtensions
         catch (OverflowException exception)
         {
             throw new InvalidDataException(
-                "Can't decode a server address with a port value larger than an unsigned short maximum value.",
+                "Cannot decode a server address with a port number larger than 65,535.",
                 exception);
         }
     }
