@@ -475,10 +475,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         tokenRegistration.Dispose();
                     }
 
-                    // Send the payload continuation on a separate task instead of starting the task synchronously with
-                    // _ = SendPayloadContinuationAsync(...). This makes sure that InvokeAsync won't be further delayed
-                    // by the payload continuation in case a payload writer interceptor needs to perform potentially
-                    // slow computation (e.g.: payload compression).
+                    // Send the payload continuation on a separate thread instead of starting the task synchronously
+                    // with _ = SendPayloadContinuationAsync(...). This ensures that the synchronous activity that could
+                    // result from reading or writing the payload continuation doesn't delay in any way the caller.
                     _ = Task.Run(
                         () => SendPayloadContinuationAsync(payloadContinuation, payloadWriter, writesClosed),
                         CancellationToken.None); // must run no matter what to complete the payload continuation
