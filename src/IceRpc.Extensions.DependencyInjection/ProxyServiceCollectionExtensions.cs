@@ -2,6 +2,7 @@
 
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
@@ -15,6 +16,10 @@ public static class ProxyServiceCollectionExtensions
     /// <param name="serviceAddress">The service address of the proxy; null is equivalent to the default service address
     /// for the proxy type.</param>
     /// <returns>The service collection.</returns>
+    /// <remarks>The new proxy uses the <see cref="IInvoker" /> registered with the DI container as its invocation
+    /// pipeline. You can also customize the <see cref="SliceEncodeOptions" /> of this new proxy by injecting a
+    /// <see cref="SliceEncodeOptions" /> singleton into your DI container. Don't wrap these options in an
+    /// <see cref="IOptions{TOptions}" />.</remarks>
     public static IServiceCollection AddIceRpcProxy<T, TProxy>(
         this IServiceCollection services,
         ServiceAddress? serviceAddress = null)
@@ -44,6 +49,10 @@ public static class ProxyServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="serviceAddressUri">The service address of the proxy as a URI.</param>
     /// <returns>The service collection.</returns>
+    /// <remarks>The new proxy uses the <see cref="IInvoker" /> registered with the DI container as its invocation
+    /// pipeline. You can also customize the <see cref="SliceEncodeOptions" /> of this new proxy by injecting a
+    /// <see cref="SliceEncodeOptions" /> singleton into your DI container. Don't wrap these options in an
+    /// <see cref="IOptions{TOptions}" />.</remarks>
     public static IServiceCollection AddIceRpcProxy<T, TProxy>(
         this IServiceCollection services,
         Uri serviceAddressUri)

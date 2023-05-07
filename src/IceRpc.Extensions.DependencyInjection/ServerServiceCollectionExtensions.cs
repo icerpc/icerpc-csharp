@@ -33,7 +33,6 @@ public static class ServerServiceCollectionExtensions
     /// <item><description>an <see cref="IDuplexServerTransport" /> for the ice protocol</description></item>
     /// <item><description>an <see cref="IMultiplexedServerTransport" /> for the icerpc protocol</description></item>
     /// </list>
-    ///
     /// For example, you can create a QUIC server as follows:
     /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithQuic" lang="csharp" />
     /// If you want to customize the options of the default transport (tcp), you just need to inject

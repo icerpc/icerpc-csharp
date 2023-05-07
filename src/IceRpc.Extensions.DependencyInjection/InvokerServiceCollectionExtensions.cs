@@ -12,13 +12,16 @@ public static class InvokerServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the new invoker.</param>
     /// <returns>The service collection.</returns>
+    /// <remarks>The new invoker singleton is typically used as the invocation pipeline of proxies added using
+    /// <see cref="ProxyServiceCollectionExtensions.AddIceRpcProxy{T, TProxy}(IServiceCollection, ServiceAddress?)" />.
+    /// </remarks>
     public static IServiceCollection AddIceRpcInvoker(
         this IServiceCollection services,
         Action<IInvokerBuilder> configure) =>
         services.AddSingleton(provider =>
-            {
-                var builder = new InvokerBuilder(provider);
-                configure(builder);
-                return builder.Build();
-            });
+        {
+            var builder = new InvokerBuilder(provider);
+            configure(builder);
+            return builder.Build();
+        });
 }
