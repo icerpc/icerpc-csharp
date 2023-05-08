@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Metrics.Internal;
 using System.Diagnostics.Metrics;
 
@@ -8,6 +9,8 @@ namespace IceRpc.Metrics;
 /// <summary>An interceptor that publishes invocation metrics using a singleton meter named "IceRpc.Invocation".
 /// </summary>
 /// <seealso cref="Meter"/>
+/// <seealso cref="MetricsPipelineExtensions.UseMetrics(Pipeline)"/>
+/// <seealso cref="MetricsInvokerBuilderExtensions.UseMetrics(IInvokerBuilder)"/>
 public class MetricsInterceptor : IInvoker
 {
     private readonly IInvoker _next;

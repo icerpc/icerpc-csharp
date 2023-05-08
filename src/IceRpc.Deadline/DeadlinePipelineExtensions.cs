@@ -11,6 +11,10 @@ public static class DeadlinePipelineExtensions
     /// This interceptor enforces the deadlines it receives and does not create new deadlines.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
+    /// <example>
+    /// The following code adds the deadline interceptor to the invocation pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Deadline.Examples/DeadlineInterceptorExamples.cs" region="UseDeadline" lang="csharp" />
+    /// </example>
     public static Pipeline UseDeadline(this Pipeline pipeline) => pipeline.UseDeadline(Timeout.InfiniteTimeSpan);
 
     /// <summary>Adds a <see cref="DeadlineInterceptor" /> to this pipeline.</summary>
@@ -23,6 +27,10 @@ public static class DeadlinePipelineExtensions
     /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
     /// </param>
     /// <returns>The builder being configured.</returns>
+    /// <example>
+    /// The following code adds the deadline interceptor to the invocation pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Deadline.Examples/DeadlineInterceptorExamples.cs" region="UseDeadlineWithDefaultTimeout" lang="csharp" />
+    /// </example>
     public static Pipeline UseDeadline(
         this Pipeline pipeline,
         TimeSpan defaultTimeout,

@@ -11,6 +11,10 @@ public static class MetricsRouterExtensions
     /// <summary>Adds a <see cref="MetricsMiddleware" /> to the router.</summary>
     /// <param name="router">The router being configured.</param>
     /// <returns>The router being configured.</returns>
+    /// <example>
+    /// The following code adds the metrics middleware to the dispatch pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Metrics.Examples/MetricsMiddlewareExamples.cs" region="UseMetrics" lang="csharp" />
+    /// </example>
     public static Router UseMetrics(this Router router) =>
         router.Use(next => new MetricsMiddleware(next));
 }
