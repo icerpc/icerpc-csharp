@@ -20,12 +20,12 @@ public static class ConnectionCacheServiceCollectionExtensions
     /// <see cref="ConnectionCacheOptions" />.</remarks>
     /// <example>
     /// The following code adds a ConnectionCache singleton to the service collection.
-    /// <code source="../../docfx/examples/AddIceRpcConnectionCacheExamples.cs" region="DefaultConnectionCache"
-    /// lang="csharp" />
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcConnectionCacheExamples.cs"
+    /// region="DefaultConnectionCache" lang="csharp" />
     /// The resulting singleton is a default connection cache. If you want to customize this connection cache, add an
     /// <see cref="IOptions{T}" /> of <see cref="ConnectionCacheOptions" /> to your DI container:
-    /// <code source="../../docfx/examples/AddIceRpcConnectionCacheExamples.cs" region="ConnectionCacheWithOptions"
-    /// lang="csharp" />
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcConnectionCacheExamples.cs"
+    /// region="ConnectionCacheWithOptions" lang="csharp" />
     /// You can also inject a client transport:
     /// <list type="bullet">
     /// <item><description>an <see cref="IDuplexClientTransport" /> for the ice protocol</description></item>
@@ -33,7 +33,8 @@ public static class ConnectionCacheServiceCollectionExtensions
     /// </list>
     /// The following example shows a connection cache that uses QUIC for icerpc connections and keeps the default
     /// duplex transport (tcp) for ice connections.
-    /// <code source="../../docfx/examples/AddIceRpcConnectionCacheExamples.cs" region="ConnectionCacheWithQuic"
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcConnectionCacheExamples.cs"
+    /// region="ConnectionCacheWithQuic"
     /// lang="csharp" />
     /// If you want to customize the options of the default transport (tcp), you just need to inject an
     /// <see cref="IOptions{T}" /> of <see cref="TcpClientTransportOptions" />.
