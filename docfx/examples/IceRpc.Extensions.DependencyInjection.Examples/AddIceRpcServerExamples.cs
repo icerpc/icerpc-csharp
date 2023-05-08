@@ -1,27 +1,32 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
+using GreeterExample;
+using IceRpc.Transports;
 using IceRpc.Transports.Quic;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+namespace IceRpc.Extensions.DependencyInjection.Examples;
 
 // This class provides code snippets used by the doc-comments of the AddIceRpcServer examples.
 public static class AddIceRpcServerExamples
 {
-    public static void AddDefaultServer()
+    public static void AddDefaultServer(string[] args)
     {
         #region DefaultServer
         var router = new Router(); // the dispatch pipeline
 
-        var builder = Host.CreateDefaultBuilder(args);
+        IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.ConfigureServices(services => services.AddIceRpcServer(router));
         #endregion
     }
 
-    public static void AddServerWithOptions()
+    public static void AddServerWithOptions(string[] args)
     {
         #region ServerWithOptions
         var router = new Router(); // the dispatch pipeline
 
-        var builder = Host.CreateDefaultBuilder(args);
+        IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
         {
             services
@@ -34,12 +39,12 @@ public static class AddIceRpcServerExamples
         #endregion
     }
 
-    public static void AddServerWithQuic()
+    public static void AddServerWithQuic(string[] args)
     {
         #region ServerWithQuic
         var router = new Router(); // the dispatch pipeline
 
-        var builder = Host.CreateDefaultBuilder(args);
+        IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.ConfigureServices(services =>
             // Inject an IMultiplexedServerTransport singleton implemented by QUIC.
             services
@@ -48,10 +53,10 @@ public static class AddIceRpcServerExamples
         #endregion
     }
 
-    public static void AddServerWithDispatcherBuilder()
+    public static void AddServerWithDispatcherBuilder(string[] args)
     {
         #region ServerWithDispatcherBuilder
-        var hostBuilder = Host.CreateDefaultBuilder(args);
+        IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args);
         hostBuilder.ConfigureServices(services =>
             services
                 .AddIceRpcServer(builder =>
@@ -63,12 +68,12 @@ public static class AddIceRpcServerExamples
         #endregion
     }
 
-    public static void AddServerWithNamedOptions()
+    public static void AddServerWithNamedOptions(string[] args)
     {
         #region ServerWithNamedOptions
         var router = new Router(); // the dispatch pipeline
 
-        var builder = Host.CreateDefaultBuilder(args);
+        IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.UseContentRoot(AppContext.BaseDirectory).ConfigureServices((hostContext, services) =>
         {
             // The server options for the icerpc server
