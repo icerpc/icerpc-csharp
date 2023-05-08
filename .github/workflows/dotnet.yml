@@ -16,9 +16,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     - name: Subtree Rules
-        uses: icerpc/subtree-rules@main
-        with:
-          subtreePath: 'slice/'
+      uses: icerpc/subtree-rules@main
+      with:
+        subtreePath: 'slice/'
     - name: Build
       uses: ./.github/actions/build
       env:
