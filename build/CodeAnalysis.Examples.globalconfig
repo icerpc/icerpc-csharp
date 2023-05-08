@@ -7,5 +7,5 @@ dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.CA1849.severity = suggestion
 
 # IDE0130: Namespace does not match folder structure
-# We use ExampleName.{Client, Server} instead of {Client, Server}.
+# We use ExampleName{Client, Server} instead of {Client, Server}.
 dotnet_diagnostic.IDE0130.severity = none
