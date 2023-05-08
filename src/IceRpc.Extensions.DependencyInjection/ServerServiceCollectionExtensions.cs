@@ -23,18 +23,24 @@ public static class ServerServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     /// <example>
     /// The following code adds a Server singleton to the service collection.
-    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="DefaultServer" lang="csharp" />
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcServerExamples.cs" region="DefaultServer" lang="csharp" />
     /// The resulting singleton is a default server: it uses the default server address, the default multiplexed
     /// transport (tcp) and <c>null</c> for its authentication options (so no TLS). If you want to customize this
     /// server, add an <see cref="IOptions{T}" /> of <see cref="ServerOptions" /> to your DI container:
-    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithOptions" lang="csharp" />
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcServerExamples.cs" region="ServerWithOptions" lang="csharp" />
     /// You can also inject a server transport:
     /// <list type="bullet">
     /// <item><description>an <see cref="IDuplexServerTransport" /> for the ice protocol</description></item>
     /// <item><description>an <see cref="IMultiplexedServerTransport" /> for the icerpc protocol</description></item>
     /// </list>
+<<<<<<< HEAD
     /// For example, you can add a QUIC server as follows:
     /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithQuic" lang="csharp" />
+=======
+    ///
+    /// For example, you can create a QUIC server as follows:
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcServerExamples.cs" region="ServerWithQuic" lang="csharp" />
+>>>>>>> origin/main
     /// If you want to customize the options of the default transport (tcp), you just need to inject
     /// an <see cref="IOptions{T}" /> of <see cref="TcpServerTransportOptions" />.
     /// </example>
@@ -53,7 +59,7 @@ public static class ServerServiceCollectionExtensions
     /// <example>
     /// The following code builds a dispatch pipeline and adds a server with this dispatch pipeline to the service
     /// collection.
-    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithDispatcherBuilder"
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcServerExamples.cs" region="ServerWithDispatcherBuilder"
     /// lang="csharp" />
     /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
     /// </example>
@@ -80,8 +86,9 @@ public static class ServerServiceCollectionExtensions
     /// <example>
     /// A server application may need to host multiple <see cref="Server" /> instances, each with its own options. A
     /// typical example is when you want to accept requests from clients over both the icerpc protocol and the ice
-    /// protocol. This overload allows you add two (or more) server singletons, each with its own options:
-    /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithNamedOptions" lang="csharp" />
+    /// protocol. This overload allows you to add two (or more) server singletons, each with its own options:
+    /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcServerExamples.cs"
+    /// region="ServerWithNamedOptions" lang="csharp" />
     /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
     /// </example>
     public static IServiceCollection AddIceRpcServer(

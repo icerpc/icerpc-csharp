@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="../Chatbot.cs" />
+    <SliceFile Include="../Greeter.slice" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Metrics" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

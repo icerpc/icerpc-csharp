@@ -5,12 +5,14 @@ param (
     $config="debug",
     $version="",
     [switch]$examples,
+    [switch]$docfxExamples,
     [switch]$srcdist,
     [switch]$coverage,
     [switch]$help
 )
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
+$docfxExampleProjects = $packages = Get-Childitem -Path "docfx\examples" -Include *.csproj -Recurse
 
 if ($version) {
     $versionProperty = "-p:Version=$version"
@@ -69,6 +71,14 @@ function BuildIceRpcExamples($config) {
     }
 }
 
+function BuildDocfxExamples($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    foreach ($example in $docfxExampleProjects)
+    {
+        RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration, "$example")
+    }
+}
+
 function CleanIceRpc($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
@@ -82,16 +92,29 @@ function CleanIceRpcExamples($config) {
     }
 }
 
-function Build($config, $examples, $srcdist) {
+function CleanDocfxExamples($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    foreach ($example in $docfxExampleProjects)
+    {
+        RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration, "$example")
+    }
+}
+
+function Build($config, $examples, $docfxExamples, $srcdist) {
+    BuildCompiler $config
+    BuildIceRpcSliceTools $config
+    BuildIceRpc $config
+
+    if ($srcdist) {
+        Push $config
+    }
+
     if ($examples) {
-        if ($srcdist) {
-           Push $config
-        }
         BuildIceRpcExamples $config
-    } else {
-        BuildCompiler $config
-        BuildIceRpcSliceTools $config
-        BuildIceRpc $config
+    }
+
+    if ($docfxExamples) {
+        BuildDocfxExamples $config
     }
 }
 
@@ -136,9 +159,9 @@ function Pack($config) {
     Pop-Location
 }
 
-function Rebuild($config, $examples, $srcdist) {
+function Rebuild($config, $examples, $docfxExamples, $srcdist) {
     Clean $config $examples
-    Build $config $examples $srcdist
+    Build $config $examples  $docfxExamples $srcdist
 }
 
 function Clean($config, $examples) {
@@ -148,6 +171,11 @@ function Clean($config, $examples) {
     if ($examples)
     {
         CleanIceRpcExamples($config)
+    }
+
+    if ($docfxExamples)
+    {
+        CleanDocfxExamples($config)
     }
 }
 
@@ -209,6 +237,7 @@ function Get-Help() {
     Write-Host "Arguments:"
     Write-Host "  -config                   Build configuration: debug or release, the default is debug."
     Write-Host "  -examples                 Build examples solutions instead of the source solutions."
+    Write-Host "  -docfxExamples            Build docfx examples solutions instead of the source solutions."
     Write-Host "  -srcdist                  Use IceRPC NuGet packages from this source distribution when building the examples."
     Write-Host "                            The NuGet packages are pushed to the local global-packages source."
     Write-Host "  -coverage                 Collect code coverage from test runs."
@@ -238,7 +267,7 @@ if ($args) {
 
 switch ( $action ) {
     "build" {
-        Build $config $examples $srcdist
+        Build $config $examples $docfxExamples $srcdist
     }
     "pack" {
         Pack $config
@@ -250,10 +279,10 @@ switch ( $action ) {
         InstallTemplates $config
     }
     "rebuild" {
-        Rebuild $config $examples $srcdist
+        Rebuild $config $examples $docfxExamples $srcdist
     }
     "clean" {
-        Clean $config $examples
+        Clean $config $examples $docfxExamples
     }
     "test" {
        Test $config $coverage
