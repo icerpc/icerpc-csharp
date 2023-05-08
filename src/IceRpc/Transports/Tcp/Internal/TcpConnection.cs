@@ -27,8 +27,8 @@ internal abstract class TcpConnection : IDuplexConnection
 
     private bool _isShutdown;
     private readonly int _maxSslBufferSize;
-    private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
+    private readonly int _poolSegmentSize;
     private readonly List<ArraySegment<byte>> _segments = new();
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
@@ -173,8 +173,8 @@ internal abstract class TcpConnection : IDuplexConnection
                         }
                         else if (writeBufferSize > 0)
                         {
-                            Debug.Assert(writeBufferSize <= _minSegmentSize);
-                            using IMemoryOwner<byte> writeBufferOwner = _pool.Rent(_minSegmentSize);
+                            Debug.Assert(writeBufferSize <= _poolSegmentSize);
+                            using IMemoryOwner<byte> writeBufferOwner = _pool.Rent(_poolSegmentSize);
                             Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
                             int offset = 0;
                             for (int i = 0; i < index; ++i)
@@ -247,11 +247,11 @@ internal abstract class TcpConnection : IDuplexConnection
     private protected TcpConnection(MemoryPool<byte> pool, int minimumSegmentSize)
     {
         _pool = pool;
-        _minSegmentSize = minimumSegmentSize;
+        _poolSegmentSize = minimumSegmentSize;
 
         // When coalescing leading buffers in WriteAsync, we don't want to copy into a buffer greater than the standard
-        // segment size in the memory pool (minimumSegmentSize, by default 4K) or greater than MaxSslDataSize (16K).
-        _maxSslBufferSize = Math.Min(minimumSegmentSize, MaxSslDataSize);
+        // segment size in the memory pool (by default 4K) or greater than MaxSslDataSize (16K).
+        _maxSslBufferSize = Math.Min(_poolSegmentSize, MaxSslDataSize);
     }
 
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
