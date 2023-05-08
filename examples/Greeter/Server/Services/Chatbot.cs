@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using Hello;
 using IceRpc.Features;
 using IceRpc.Slice;
+using VisitorCenter;
 
-namespace Server.Services;
+namespace Greeter.Server.Services;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
 internal class Chatbot : Service, IGreeterService
