@@ -33,7 +33,7 @@ public static class ServerServiceCollectionExtensions
     /// <item><description>an <see cref="IDuplexServerTransport" /> for the ice protocol</description></item>
     /// <item><description>an <see cref="IMultiplexedServerTransport" /> for the icerpc protocol</description></item>
     /// </list>
-    /// For example, you can create a QUIC server as follows:
+    /// For example, you can add a QUIC server as follows:
     /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithQuic" lang="csharp" />
     /// If you want to customize the options of the default transport (tcp), you just need to inject
     /// an <see cref="IOptions{T}" /> of <see cref="TcpServerTransportOptions" />.
@@ -80,7 +80,7 @@ public static class ServerServiceCollectionExtensions
     /// <example>
     /// A server application may need to host multiple <see cref="Server" /> instances, each with its own options. A
     /// typical example is when you want to accept requests from clients over both the icerpc protocol and the ice
-    /// protocol. This overload allows you create two (or more) server singletons, each with its own options:
+    /// protocol. This overload allows you add two (or more) server singletons, each with its own options:
     /// <code source="../../docfx/examples/AddIceRpcServerExamples.cs" region="ServerWithNamedOptions" lang="csharp" />
     /// See also <see cref="AddIceRpcServer(IServiceCollection, IDispatcher)" />.
     /// </example>

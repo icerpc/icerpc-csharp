@@ -29,7 +29,7 @@ public static class ClientConnectionServiceCollectionExtensions
     /// <item><description>an <see cref="IDuplexClientTransport" /> for the ice protocol</description></item>
     /// <item><description>an <see cref="IMultiplexedClientTransport" /> for the icerpc protocol</description></item>
     /// </list>
-    /// For example, you can create a QUIC client connection as follows:
+    /// For example, you can add a QUIC client connection as follows:
     /// <code source="../../docfx/examples/AddIceRpcClientConnectionExamples.cs" region="ClientConnectionWithQuic"
     /// lang="csharp" />
     /// If you want to customize the options of the default transport (tcp), you just need to inject an
