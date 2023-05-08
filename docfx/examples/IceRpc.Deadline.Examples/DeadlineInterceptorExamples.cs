@@ -17,7 +17,6 @@ public static class DeadlineInterceptorExamples
         #endregion
     }
 
-
     public static async Task UseDeadlineWithDefaultTimeout()
     {
         #region UseDeadlineWithDefaultTimeout
