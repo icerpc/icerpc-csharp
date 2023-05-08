@@ -31,7 +31,7 @@ public static class RetryInterceptorExamples
             .UseRetry(new RetryOptions
             {
                 MaxAttempts = 5, // Make up to 5 attempts before giving up.
-                MaxPayloadSize = 3 * 1024, // 3 MB
+                MaxPayloadSize = 10 * 1024, // Do not allow retries for payloads larger than 10 KB
             })
             .Into(connectionCache);
         #endregion
