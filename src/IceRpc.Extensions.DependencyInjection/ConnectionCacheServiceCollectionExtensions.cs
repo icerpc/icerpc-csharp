@@ -16,7 +16,7 @@ public static class ConnectionCacheServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection.</returns>
-    /// <remarks>This method uses the connection options cache provided by the <see cref="IOptions{T}" /> of
+    /// <remarks>This method uses the connection cache options provided by the <see cref="IOptions{T}" /> of
     /// <see cref="ConnectionCacheOptions" />.</remarks>
     /// <example>
     /// The following code adds a ConnectionCache singleton to the service collection.
