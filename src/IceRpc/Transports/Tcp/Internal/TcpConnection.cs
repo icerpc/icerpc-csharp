@@ -154,7 +154,7 @@ internal abstract class TcpConnection : IDuplexConnection
                         do
                         {
                             ReadOnlyMemory<byte> buffer = buffers[index];
-                            if (writeBufferSize + buffer.Length < _maxSslBufferSize)
+                            if (writeBufferSize + buffer.Length <= _maxSslBufferSize)
                             {
                                 index++;
                                 writeBufferSize += buffer.Length;
