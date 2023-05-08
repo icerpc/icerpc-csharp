@@ -9,7 +9,7 @@ public static class AddIceRpcClientConnectionExamples
     public static void AddClientConnectionWithOptions()
     {
         #region ClientConnectionWithOptions
-        var builder = Host.CreateDefaultBuilder(args);
+        IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder
             .AddOptions<ClientConnectionOptions>()
             // We need to set at least ServerAddress in the options.
