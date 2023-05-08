@@ -1,11 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
 namespace IceRpc.Logger;
 
 /// <summary>An interceptor that writes a log entry to an <see cref="ILogger" /> for each invocation.</summary>
+/// <seealso cref="LoggerPipelineExtensions.UseLogger(Pipeline, ILoggerFactory)"/>
+/// <seealso cref="LoggerInvokerBuilderExtensions.UseLogger(IInvokerBuilder)"/>
 public class LoggerInterceptor : IInvoker
 {
     private readonly ILogger _logger;

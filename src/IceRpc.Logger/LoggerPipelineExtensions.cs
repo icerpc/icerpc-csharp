@@ -13,6 +13,10 @@ public static class LoggerPipelineExtensions
     /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
     /// <see cref="LoggerInterceptor" />.</param>
     /// <returns>The pipeline being configured.</returns>
+    /// <example>
+    /// The following code adds the logger interceptor to the invocation pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Logger.Examples/LoggerInterceptorExamples.cs" region="UseLogger" lang="csharp" />
+    /// </example>
     public static Pipeline UseLogger(this Pipeline pipeline, ILoggerFactory loggerFactory) =>
         pipeline.Use(next => new LoggerInterceptor(next, loggerFactory.CreateLogger<LoggerInterceptor>()));
 }

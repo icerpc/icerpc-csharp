@@ -13,6 +13,10 @@ public static class LoggerRouterExtensions
     /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
     /// <see cref="LoggerMiddleware" />.</param>
     /// <returns>The router being configured.</returns>
+    /// <example>
+    /// The following code adds the logger interceptor to the dispatch pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Logger.Examples/LoggerMiddlewareExamples.cs" region="UseLogger" lang="csharp" />
+    /// </example>
     public static Router UseLogger(this Router router, ILoggerFactory loggerFactory) =>
        router.Use(next => new LoggerMiddleware(next, loggerFactory.CreateLogger<LoggerMiddleware>()));
 }
