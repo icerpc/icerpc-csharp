@@ -26,6 +26,7 @@ internal abstract class TcpConnection : IDuplexConnection
     private const int MaxSslDataSize = 16 * 1024;
 
     private bool _isShutdown;
+    private readonly int _maxSslBufferSize;
     private readonly int _minSegmentSize;
     private readonly MemoryPool<byte> _pool;
     private readonly List<ArraySegment<byte>> _segments = new();
@@ -146,14 +147,14 @@ internal abstract class TcpConnection : IDuplexConnection
                     }
                     else
                     {
-                        // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are
-                        // large enough and don't need coalescing.
+                        // Coalesce leading small buffers up to _maxSslBufferSize. We don't coalesce trailing buffers
+                        // as we assume they are large enough.
                         int index = 0;
                         int writeBufferSize = 0;
                         do
                         {
                             ReadOnlyMemory<byte> buffer = buffers[index];
-                            if (writeBufferSize + buffer.Length < MaxSslDataSize)
+                            if (writeBufferSize + buffer.Length < _maxSslBufferSize)
                             {
                                 index++;
                                 writeBufferSize += buffer.Length;
@@ -172,8 +173,8 @@ internal abstract class TcpConnection : IDuplexConnection
                         }
                         else if (writeBufferSize > 0)
                         {
-                            using IMemoryOwner<byte> writeBufferOwner =
-                                _pool.Rent(Math.Max(_minSegmentSize, writeBufferSize));
+                            Debug.Assert(writeBufferSize <= _minSegmentSize);
+                            using IMemoryOwner<byte> writeBufferOwner = _pool.Rent(_minSegmentSize);
                             Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
                             int offset = 0;
                             for (int i = 0; i < index; ++i)
@@ -247,6 +248,10 @@ internal abstract class TcpConnection : IDuplexConnection
     {
         _pool = pool;
         _minSegmentSize = minimumSegmentSize;
+
+        // When coalescing leading buffers in WriteAsync, we don't want to copy into a buffer greater than the standard
+        // segment size in the memory pool (minimumSegmentSize, by default 4K) or greater than MaxSslDataSize (16K).
+        _maxSslBufferSize = Math.Min(minimumSegmentSize, MaxSslDataSize);
     }
 
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
