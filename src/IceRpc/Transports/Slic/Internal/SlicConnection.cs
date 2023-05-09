@@ -565,10 +565,16 @@ internal class SlicConnection : IMultiplexedConnection
         _duplexConnection = duplexConnectionDecorator;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
 
-        // Slic implements flow-control at the stream level so there's no need to limit the amount of data buffered by
-        // the duplex connection writer. The amount of data buffered by the duplex connection writer will be limited to
-        // (MaxBidirectionalStreams + MaxUnidirectionalStreams) * PeerPauseWriterThreshold bytes.
-        _duplexConnectionWriter = new DuplexConnectionWriter(_duplexConnection, options.Pool, options.MinSegmentSize);
+        // We set pauseWriterThreshold to 0 because Slic implements flow-control at the stream level. So there's no need
+        // to limit the amount of data buffered by the duplex connection writer. The amount of data buffered by the
+        // duplex connection writer will be limited to (MaxBidirectionalStreams + MaxUnidirectionalStreams) *
+        // PeerPauseWriterThreshold bytes.
+        _duplexConnectionWriter = new DuplexConnectionWriter(
+            _duplexConnection,
+            options.Pool,
+            options.MinSegmentSize,
+            pauseWriterThreshold: 0,
+            resumeWriterThreshold: 0);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first initialize
         // frame.

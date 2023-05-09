@@ -12,11 +12,10 @@ namespace IceRpc.Transports.Internal;
 /// be buffered and sent with a single <see cref="IDuplexConnection.WriteAsync" /> call.</summary>
 internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
 {
-    private Task? _backgroundWriteTask;
+    private readonly Task _backgroundWriteTask;
     private readonly IDuplexConnection _connection;
     private readonly CancellationTokenSource _disposeCts = new();
     private Task? _disposeTask;
-    private readonly object _mutex = new();
     private readonly Pipe _pipe;
     // This field is temporary and will be removed once IDuplexConnection.WriteAsync no longer requires an
     // IReadOnlyList<ReadOnlyMemory<byte> parameter.
@@ -28,20 +27,14 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
     /// <inheritdoc/>
     public ValueTask DisposeAsync()
     {
-        lock (_mutex)
-        {
-            _disposeTask ??= PerformDisposeAsync();
-        }
+        _disposeTask ??= PerformDisposeAsync();
         return new(_disposeTask);
 
         async Task PerformDisposeAsync()
         {
             _disposeCts.Cancel();
 
-            if (_backgroundWriteTask is not null)
-            {
-                await _backgroundWriteTask.ConfigureAwait(false);
-            }
+            await _backgroundWriteTask.ConfigureAwait(false);
 
             _pipe.Reader.Complete();
             _pipe.Writer.Complete();
@@ -70,8 +63,8 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
         IDuplexConnection connection,
         MemoryPool<byte> pool,
         int minimumSegmentSize,
-        int pauseWriterThreshold = 0,
-        int resumeWriterThreshold = 0)
+        int pauseWriterThreshold,
+        int resumeWriterThreshold)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(
@@ -79,6 +72,46 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: pauseWriterThreshold,
             resumeWriterThreshold: resumeWriterThreshold));
+
+        _backgroundWriteTask = Task.Run(
+            async () =>
+            {
+                try
+                {
+                    while (true)
+                    {
+                        ReadResult readResult = await _pipe.Reader.ReadAsync(_disposeCts.Token).ConfigureAwait(false);
+
+                        if (readResult.Buffer.Length > 0)
+                        {
+                            _segments.Clear();
+                            foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
+                            {
+                                _segments.Add(segment);
+                            }
+
+                            // TODO: change the IDuplexConnection.WriteAsync API to use ReadOnlySequence<byte> instead.
+                            await _connection.WriteAsync(_segments, _disposeCts.Token).ConfigureAwait(false);
+                            _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+                        }
+
+                        if (readResult.IsCompleted)
+                        {
+                            await _connection.ShutdownWriteAsync(_disposeCts.Token).ConfigureAwait(false);
+                            break;
+                        }
+                    }
+                    _pipe.Reader.Complete();
+                }
+                catch (OperationCanceledException)
+                {
+                    // DisposeAsync was called.
+                }
+                catch (Exception exception)
+                {
+                    _pipe.Reader.Complete(exception);
+                }
+            });
     }
 
     internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
@@ -97,22 +130,6 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
         ReadOnlySequence<byte> source2,
         CancellationToken cancellationToken)
     {
-        if (_backgroundWriteTask is null)
-        {
-            // Start the background task if it's not already started.
-            lock (_mutex)
-            {
-                if (_disposeTask is null)
-                {
-                    _backgroundWriteTask ??= Task.Run(BackgroundWritesAsync, CancellationToken.None);
-                }
-                else
-                {
-                    throw new ObjectDisposedException(nameof(DuplexConnectionWriter));
-                }
-            }
-        }
-
         if (source1.Length > 0)
         {
             Write(source1);
@@ -146,45 +163,6 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
                     }
                 }
             }
-        }
-    }
-
-    private async Task BackgroundWritesAsync()
-    {
-        try
-        {
-            while (true)
-            {
-                ReadResult readResult = await _pipe.Reader.ReadAsync(_disposeCts.Token).ConfigureAwait(false);
-
-                if (readResult.Buffer.Length > 0)
-                {
-                    _segments.Clear();
-                    foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
-                    {
-                        _segments.Add(segment);
-                    }
-
-                    // TODO: change the IDuplexConnection.WriteAsync API to use ReadOnlySequence<byte> instead.
-                    await _connection.WriteAsync(_segments, _disposeCts.Token).ConfigureAwait(false);
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.End);
-                }
-
-                if (readResult.IsCompleted)
-                {
-                    await _connection.ShutdownWriteAsync(_disposeCts.Token).ConfigureAwait(false);
-                    break;
-                }
-            }
-            _pipe.Reader.Complete();
-        }
-        catch (OperationCanceledException)
-        {
-            // DisposeAsync was called.
-        }
-        catch (Exception exception)
-        {
-            _pipe.Reader.Complete(exception);
         }
     }
 }
