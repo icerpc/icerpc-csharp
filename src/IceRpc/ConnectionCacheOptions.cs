@@ -8,7 +8,7 @@ namespace IceRpc;
 public record class ConnectionCacheOptions
 {
     /// <summary>Gets or sets the SSL client authentication options.</summary>
-    /// <value>The SSL client authentication options.When not <see langword="null" />,
+    /// <value>The SSL client authentication options. When not <see langword="null" />,
     /// <see cref="ClientConnection.ConnectAsync(CancellationToken)" /> will either establish a secure connection or
     /// fail.</value>
     public SslClientAuthenticationOptions? ClientAuthenticationOptions { get; set; }
