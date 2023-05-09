@@ -5,8 +5,7 @@ runs:
   steps:
   - name: 🔗 Install Templates
     run: |
-      ./build.sh push
-      ./build.sh install-templates
+      ./build.sh --publish --install-templates
     shell: bash
   - name: 🧪 Test IceRpc Client Template
     run: mkdir -p templates-test/client && cd templates-test/client && dotnet new icerpc-client && dotnet build

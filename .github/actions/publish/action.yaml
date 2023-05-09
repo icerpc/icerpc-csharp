@@ -3,6 +3,6 @@ name: Run Tests
 runs:
   using: "composite"
   steps:
-  - name: 📦 Push Packages
-    run: ./build.sh push
+  - name: 📦 Publish Packages
+    run: ./build.sh --publish
     shell: bash
