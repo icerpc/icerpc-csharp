@@ -3,7 +3,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Transports.Internal;
+namespace IceRpc.Transports.Slic.Internal;
 
 /// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
 /// PipeWriter. Like a PipeWriter, its methods shouldn't be called concurrently. The data written to this writer is
