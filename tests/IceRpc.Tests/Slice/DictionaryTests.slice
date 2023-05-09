@@ -18,7 +18,6 @@ interface DictionaryMappingOperations {
 
 [cs::readonly] compact struct LargeStruct {
     x: int64
-
     y: int64
 }
 
