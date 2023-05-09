@@ -1,12 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
-using Microsoft.Extensions.Logging;
 using GreeterLogExample;
 using IceRpc;
+using Microsoft.Extensions.Logging;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
-using ILoggerFactory loggerFactory = LoggerFactory.Create(
-    builder => builder.AddSimpleConsole().AddFilter("IceRpc", LogLevel.Debug));
+using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+    builder
+        .AddSimpleConsole()
+        .AddFilter("IceRpc", LogLevel.Debug));
 
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
 await using var connection = new ClientConnection(
@@ -15,7 +17,9 @@ await using var connection = new ClientConnection(
 
 // Create an invocation pipeline and install the logger interceptor. This interceptor logs invocations using category
 // `IceRpc.Logger.LoggerInterceptor`.
-Pipeline pipeline = new Pipeline().UseLogger(loggerFactory).Into(connection);
+Pipeline pipeline = new Pipeline()
+    .UseLogger(loggerFactory)
+    .Into(connection);
 
 // Create a greeter proxy with this invocation pipeline.
 var greeterProxy = new GreeterProxy(pipeline);
