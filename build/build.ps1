@@ -215,8 +215,8 @@ function Get-Help() {
     Write-Host "Actions (defaults to -build):"
     Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
     Write-Host "  -pack                     Create the IceRPC NuGet packages."
-    Write-Host "  -examples                 Build the example project."
-    Write-Host "  -docfxExamples            Build the examples used in docfx generated documentation."
+    Write-Host "  -examples                 Build the example project (uses installed NuGet packages)."
+    Write-Host "  -docfxExamples            Build the examples used in docfx generated documentation (uses installed NuGet packages)."
     Write-Host "  -publish                  Publish the IceRPC NuGet packages to the global-packages source."
     Write-Host "  -installTemplates         Install the IceRPC dotnet new project templates."
     Write-Host "  -clean                    Clean all build artifacts."
@@ -303,6 +303,5 @@ foreach ($action in $passedInActions) {
         }
     }
 }
-
 
 exit 0
