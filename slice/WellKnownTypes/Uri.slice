@@ -1,8 +1,0 @@
-// Copyright (c) ZeroC, Inc.
-
-[cs::namespace("IceRpc.Slice")]
-module WellKnownTypes
-
-/// Represents a Uniform Resource Identifier (URI), encoded as a string.
-[cs::custom("System.Uri")]
-custom Uri
