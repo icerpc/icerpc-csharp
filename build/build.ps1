@@ -1,14 +1,18 @@
 # Copyright (c) ZeroC, Inc.
 
 param (
-    $action="build",
-    $config="debug",
+    [string]$config="debug",
     $version="",
+    [switch]$build,
+    [switch]$clean,
+    [switch]$doc,
+    [switch]$test,
+    [switch]$pack,
+    [switch]$publish,
     [switch]$examples,
     [switch]$docfxExamples,
-    [switch]$srcdist,
-    [switch]$coverage,
-    [switch]$help
+    [switch]$help,
+    [switch]$coverage
 )
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
@@ -104,21 +108,9 @@ function Build($config, $examples, $docfxExamples, $srcdist) {
     BuildCompiler $config
     BuildIceRpcSliceTools $config
     BuildIceRpc $config
-
-    if ($srcdist) {
-        Push $config
-    }
-
-    if ($examples) {
-        BuildIceRpcExamples $config
-    }
-
-    if ($docfxExamples) {
-        BuildDocfxExamples $config
-    }
 }
 
-function Push($config) {
+function Publish($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     BuildCompiler $config
     Pack $config
@@ -157,11 +149,6 @@ function Pack($config) {
     Push-Location "src\IceRpc.ProjectTemplates"
     RunCommand "dotnet" @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
-}
-
-function Rebuild($config, $examples, $docfxExamples, $srcdist) {
-    Clean $config $examples
-    Build $config $examples  $docfxExamples $srcdist
 }
 
 function Clean($config, $examples) {
@@ -223,27 +210,25 @@ function DotnetConfiguration($config) {
 }
 
 function Get-Help() {
-    Write-Host "Usage: build [command] [arguments]"
-    Write-Host "Commands (defaults to build):"
-    Write-Host "  build                     Build the IceRPC assemblies and the slicec-cs compiler."
-    Write-Host "  pack                      Create the IceRPC NuGet packages."
-    Write-Host "  push                      Push the IceRPC NuGet packages to the global-packages source."
-    Write-Host "  install-templates         Install the IceRPC dotnet new project templates."
-    Write-Host "  clean                     Clean build artifacts."
-    Write-Host "  rebuild                   Rebuild."
-    Write-Host "  test                      Runs tests."
-    Write-Host "  doc                       Generate the C# API documentation"
+    Write-Host "Usage: build [actions] [arguments]"
+    Write-Host "Actions (defaults to -build):"
+    Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
+    Write-Host "  -pack                     Create the IceRPC NuGet packages."
+    Write-Host "  -examples                 Build the example project."
+    Write-Host "  -docfxExamples            Build the examples used in docfx generated documentation."
+    Write-Host "  -publish                  Publish the IceRPC NuGet packages to the global-packages source."
+    Write-Host "  -installTemplates         Install the IceRPC dotnet new project templates."
+    Write-Host "  -clean                    Clean all build artifacts."
+    Write-Host "  -test                     Runs tests."
+    Write-Host "  -doc                      Generate the C# API documentation"
     Write-Host "                            Requires docfx from https://github.com/dotnet/docfx"
+    Write-Host ""
     Write-Host "Arguments:"
     Write-Host "  -config                   Build configuration: debug or release, the default is debug."
-    Write-Host "  -examples                 Build examples solutions instead of the source solutions."
-    Write-Host "  -docfxExamples            Build docfx examples solutions instead of the source solutions."
-    Write-Host "  -srcdist                  Use IceRPC NuGet packages from this source distribution when building the examples."
-    Write-Host "                            The NuGet packages are pushed to the local global-packages source."
-    Write-Host "  -coverage                 Collect code coverage from test runs."
-    Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -version                  The version override for the IceRPC NuGet packages. The default version is the version"
     Write-Host "                            specified in the build/IceRpc.Version.props file."
+    Write-Host "  -coverage                 Collect code coverage from test runs."
+    Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -help                     Print help and exit."
 }
 
@@ -251,6 +236,19 @@ $configs = "debug","release"
 if ( $configs -notcontains $config ) {
     Get-Help
     throw new-object system.ArgumentException "config must debug or release"
+}
+
+$actions = @("build", "clean", "doc", "test", "pack", "publish", "examples", "docfxExamples")
+$passedInActions = @()
+
+foreach ($key in $PSBoundParameters.Keys) {
+    if ($actions -contains $key) {
+        $passedInActions += @($key)
+    }
+}
+
+if ($passedInActions.Length -eq 0) {
+    $passedInActions = @("build")
 }
 
 if ( $help ) {
@@ -265,35 +263,45 @@ if ($args) {
     exit 1
 }
 
-switch ( $action ) {
-    "build" {
-        Build $config $examples $docfxExamples $srcdist
-    }
-    "pack" {
-        Pack $config
-    }
-    "push" {
-        Push $config
-    }
-    "install-templates" {
-        InstallTemplates $config
-    }
-    "rebuild" {
-        Rebuild $config $examples $docfxExamples $srcdist
-    }
-    "clean" {
-        Clean $config $examples $docfxExamples
-    }
-    "test" {
-       Test $config $coverage
-    }
-    "doc" {
-        Doc
-    }
-    default {
-        Write-Error "Invalid action value" $action
-        Get-Help
-        exit 1
+foreach ($action in $passedInActions) {
+    switch ( $action ) {
+        "build" {
+            Build $config
+        }
+        "pack" {
+            Pack $config
+        }
+        "publish" {
+            Publish $config
+        }
+        "installTemplates" {
+            InstallTemplates $config
+        }
+        "clean" {
+            Clean $config
+        }
+        "test" {
+           Test $config $coverage
+        }
+        "examples" {
+            BuildIceRpcExamples $config
+        }
+        "docfxExamples" {
+            BuildDocfxExamples $config
+        }
+        "doc" {
+            Doc
+        }
+        "help" {
+            Get-Help
+        }
+        default {
+            Write-Error "Invalid action value" $action
+            Get-Help
+            exit 1
+        }
     }
 }
+
+
 exit 0
