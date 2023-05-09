@@ -39,7 +39,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private Task? _disposeTask;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
-    private readonly DuplexConnectionWriter _duplexConnectionWriter;
+    private readonly IceDuplexConnectionWriter _duplexConnectionWriter;
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
     private int _invocationCount;
@@ -271,7 +271,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             // It's safe to dispose the reader/writer since no more threads are sending/receiving data.
             _duplexConnectionReader.Dispose();
-            await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
+            _duplexConnectionWriter.Dispose();
 
             _disposedCts.Dispose();
             _twowayDispatchesCts.Dispose();
@@ -624,16 +624,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         _duplexConnection = duplexConnection;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, _memoryPool, _minSegmentSize);
-
-        // TODO: Should the pauseWriterThreshold and resumeWriterThreshold also be configurable? They are configurable
-        // for Slic streams and for now we use the Slic stream defaults. These parameters can improve throughput but at
-        // the expense of memory consumption.
-        _duplexConnectionWriter = new DuplexConnectionWriter(
-            _duplexConnection,
-            _memoryPool,
-            _minSegmentSize,
-            pauseWriterThreshold: 65536,
-            resumeWriterThreshold: 32768);
+        _duplexConnectionWriter = new IceDuplexConnectionWriter(_duplexConnection, _memoryPool, _minSegmentSize);
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {
@@ -996,18 +987,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 IceRpcError.ConnectionAborted,
                 "The connection was aborted because a previous write operation failed.",
                 _writeException);
-        }
-
-        // Flush the writer before writing data. If a previous flush was canceled, this will block again until there's
-        // enough buffer space to start writing again.
-        try
-        {
-            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            semaphoreLock.Dispose();
-            throw;
         }
 
         return semaphoreLock;

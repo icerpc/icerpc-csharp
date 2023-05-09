@@ -43,7 +43,7 @@ internal class SlicConnection : IMultiplexedConnection
     private Task? _disposeTask;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
-    private readonly DuplexConnectionWriter _duplexConnectionWriter;
+    private readonly SlicDuplexConnectionWriter _duplexConnectionWriter;
     private readonly Action<TimeSpan, Action?> _enableIdleTimeoutAndKeepAlive;
     private bool _isClosed;
     private ulong? _lastRemoteBidirectionalStreamId;
@@ -564,17 +564,10 @@ internal class SlicConnection : IMultiplexedConnection
 
         _duplexConnection = duplexConnectionDecorator;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
-
-        // We set pauseWriterThreshold to 0 because Slic implements flow-control at the stream level. So there's no need
-        // to limit the amount of data buffered by the duplex connection writer. The amount of data buffered by the
-        // duplex connection writer will be limited to (MaxBidirectionalStreams + MaxUnidirectionalStreams) *
-        // PeerPauseWriterThreshold bytes.
-        _duplexConnectionWriter = new DuplexConnectionWriter(
+        _duplexConnectionWriter = new SlicDuplexConnectionWriter(
             _duplexConnection,
             options.Pool,
-            options.MinSegmentSize,
-            pauseWriterThreshold: 0,
-            resumeWriterThreshold: 0);
+            options.MinSegmentSize);
 
         // Initially set the peer packet max size to the local max size to ensure we can receive the first initialize
         // frame.
