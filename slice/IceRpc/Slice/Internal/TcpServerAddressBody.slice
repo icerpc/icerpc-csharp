@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc.
+
+encoding = Slice1
+
+module IceRpc::Slice::Internal
+
+/// Represents the body of a tcp or ssl server address in an ice service address. Used only with Slice1.
+[cs::internal]
+[cs::readonly]
+compact struct TcpServerAddressBody {
+    host: string
+    port: int32
+    timeout: int32
+    compress: bool
+}
