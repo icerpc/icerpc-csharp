@@ -16,9 +16,9 @@ public static class DispatcherServiceCollectionExtensions
         this IServiceCollection services,
         Action<IDispatcherBuilder> configure) =>
         services.AddSingleton(provider =>
-            {
-                var builder = new DispatcherBuilder(provider);
-                configure(builder);
-                return builder.Build();
-            });
+        {
+            var builder = new DispatcherBuilder(provider);
+            configure(builder);
+            return builder.Build();
+        });
 }
