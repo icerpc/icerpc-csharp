@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice;
@@ -18,6 +19,8 @@ namespace IceRpc.Compressor;
 /// This middleware compresses the payload of a response and sets the <see cref="ResponseFieldKey.CompressionFormat" />
 /// field when the request has the <see cref="ICompressFeature" /> feature set and the response's CompressionFormat
 /// field is unset.</remarks>
+/// <seealso cref="CompressorRouterExtensions.UseCompressor(Router, CompressionFormat, CompressionLevel)"/>
+/// <seealso cref="CompressorDispatcherBuilderExtensions.UseCompressor(IDispatcherBuilder, CompressionFormat, CompressionLevel)"/>
 public class CompressorMiddleware : IDispatcher
 {
     private readonly CompressionFormat _compressionFormat;

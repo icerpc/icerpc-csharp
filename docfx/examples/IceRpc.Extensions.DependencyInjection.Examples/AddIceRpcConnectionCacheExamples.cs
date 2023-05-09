@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterExample;
 using IceRpc.Transports;
 using IceRpc.Transports.Quic;
 using Microsoft.Extensions.DependencyInjection;

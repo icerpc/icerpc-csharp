@@ -19,6 +19,7 @@ public static class RetryPipelineExtensions
     /// pipeline.
     /// <code source="../../docfx/examples/IceRpc.Retry.Examples/RetryInterceptorExamples.cs" region="UseRetry" lang="csharp" />
     /// </example>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Retry"/>
     public static Pipeline UseRetry(this Pipeline pipeline) =>
         pipeline.UseRetry(new RetryOptions());
 
@@ -31,6 +32,7 @@ public static class RetryPipelineExtensions
     /// pipeline.
     /// <code source="../../docfx/examples/IceRpc.Retry.Examples/RetryInterceptorExamples.cs" region="UseRetryWithOptions" lang="csharp" />
     /// </example>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Retry"/>
     public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options) =>
         pipeline.UseRetry(options, NullLoggerFactory.Instance);
 
@@ -45,6 +47,7 @@ public static class RetryPipelineExtensions
     /// <see cref="RetryOptions"/> to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.Retry.Examples/RetryInterceptorExamples.cs" region="UseRetryWithLoggerFactory" lang="csharp" />
     /// </example>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Retry"/>
     public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options, ILoggerFactory loggerFactory) =>
         pipeline.Use(next => new RetryInterceptor(next, options, loggerFactory.CreateLogger<RetryInterceptor>()));
 }
