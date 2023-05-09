@@ -4,22 +4,20 @@ use crate::cs_attributes;
 use crate::cs_attributes::CsAttributeKind;
 
 use slice::ast::node::Node;
-use slice::compilation_result::{CompilationData, CompilationResult};
+use slice::compilation_state::CompilationState;
 use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
 use slice::grammar::{Attribute, AttributeKind};
 use slice::slice_file::Span;
 
-pub unsafe fn patch_attributes(mut compilation_data: CompilationData) -> CompilationResult {
-    let reporter = &mut compilation_data.diagnostic_reporter;
-    let mut patcher = AttributePatcher { reporter };
+pub unsafe fn patch_attributes(compilation_state: &mut CompilationState) {
+    let diagnostic_reporter = &mut compilation_state.diagnostic_reporter;
+    let mut patcher = AttributePatcher { diagnostic_reporter };
 
-    for node in compilation_data.ast.as_mut_slice() {
+    for node in compilation_state.ast.as_mut_slice() {
         if let Node::Attribute(attribute) = node {
             patcher.patch_attribute(attribute.borrow_mut());
         }
     }
-
-    compilation_data.into()
 }
 
 struct GeneralAttribute<'a> {
@@ -29,7 +27,7 @@ struct GeneralAttribute<'a> {
 }
 
 struct AttributePatcher<'a> {
-    reporter: &'a mut DiagnosticReporter,
+    diagnostic_reporter: &'a mut DiagnosticReporter,
 }
 
 impl AttributePatcher<'_> {
@@ -83,7 +81,7 @@ impl AttributePatcher<'_> {
                     attribute: attribute.directive.to_owned(),
                 })
                 .set_span(attribute.span)
-                .report(self.reporter);
+                .report(self.diagnostic_reporter);
                 None
             }
         }
@@ -120,12 +118,12 @@ impl AttributePatcher<'_> {
             argument: required_argument,
         })
         .set_span(span)
-        .report(self.reporter);
+        .report(self.diagnostic_reporter);
     }
 
     fn error_too_many(&mut self, expected: String, span: &Span) {
         Diagnostic::new(Error::TooManyArguments { expected })
             .set_span(span)
-            .report(self.reporter);
+            .report(self.diagnostic_reporter);
     }
 }

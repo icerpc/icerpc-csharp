@@ -16,10 +16,9 @@ mod slicec_ext;
 mod validators;
 mod visitors;
 
-use code_gen::{compile, generate_code};
+use code_gen::{cs_compile, generate_code};
 use cs_options::CsOptions;
 use slice::clap::Parser;
-use slice::compilation_result::CompilationResult;
 use slice::diagnostics::{Diagnostic, Error};
 use std::fs::File;
 use std::io;
@@ -27,20 +26,13 @@ use std::io::prelude::*;
 use std::path::Path;
 
 pub fn main() {
-    let compilation_data = match try_main() {
-        Ok(data) => data,
-        Err(data) => data,
-    };
-    std::process::exit(compilation_data.into_exit_code());
-}
-
-fn try_main() -> CompilationResult {
     let options = CsOptions::parse();
     let slice_options = &options.slice_options;
-    let mut compilation_data = compile(slice_options)?;
+    let mut compilation_state = slice::compile_from_options(slice_options);
+    cs_compile(&mut compilation_state);
 
     if !slice_options.dry_run {
-        for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
+        for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
             let code_string = generate_code(slice_file);
 
             let path = match &slice_options.output_dir {
@@ -63,14 +55,14 @@ fn try_main() -> CompilationResult {
                         path: path.display().to_string(),
                         error,
                     })
-                    .report(&mut compilation_data.diagnostic_reporter);
+                    .report(&mut compilation_state.diagnostic_reporter);
                     continue;
                 }
             }
         }
     }
 
-    compilation_data.into()
+    std::process::exit(compilation_state.into_exit_code())
 }
 
 fn write_file(path: &Path, contents: &str) -> Result<(), io::Error> {

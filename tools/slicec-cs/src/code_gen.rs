@@ -7,28 +7,21 @@ use super::visitors::{
     ClassVisitor, DispatchVisitor, EnumVisitor, ExceptionVisitor, ModuleVisitor, ProxyVisitor, StructVisitor,
 };
 use slice::code_block::CodeBlock;
-use slice::command_line::SliceOptions;
-use slice::compilation_result::{CompilationData, CompilationResult};
+use slice::compilation_state::CompilationState;
 use slice::diagnostics::{Diagnostic, Error};
 use slice::slice_file::SliceFile;
 use std::io;
 
-// Compile the Slice into a CompilationResult, then run the compiler chain.
-pub fn compile(slice_options: &SliceOptions) -> CompilationResult {
-    slice::compile_from_options(slice_options).and_then(compiler_chain)
+pub fn cs_compile(compilation_state: &mut CompilationState) {
+    unsafe { compilation_state.apply_unsafe(patch_attributes) };
+    compilation_state.apply(validate_cs_attributes);
+    compilation_state.apply(check_for_unique_names);
 }
 
-// The compiler chain is a series of steps that are run on the compilation data.
-pub fn compiler_chain(compilation_data: CompilationData) -> CompilationResult {
-    unsafe { patch_attributes(compilation_data) }
-        .and_then(validate_cs_attributes)
-        .and_then(check_for_unique_names)
-}
-
-fn check_for_unique_names(mut compilation_data: CompilationData) -> CompilationResult {
+fn check_for_unique_names(compilation_state: &mut CompilationState) {
     let mut file_map = std::collections::HashMap::new();
 
-    for slice_file in compilation_data.files.values().filter(|file| file.is_source) {
+    for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
         if let Some(old_path) = file_map.insert(&slice_file.filename, &slice_file.relative_path) {
             Diagnostic::new(Error::IO {
                 action: "generate code for",
@@ -40,11 +33,9 @@ fn check_for_unique_names(mut compilation_data: CompilationData) -> CompilationR
                 format!("Other file is '{old_path}'."),
                 None,
             )
-            .report(&mut compilation_data.diagnostic_reporter)
+            .report(&mut compilation_state.diagnostic_reporter)
         }
     }
-
-    compilation_data.into()
 }
 
 // Generate the code for a single Slice file.
@@ -121,11 +112,10 @@ using IceRpc.Slice;
 
 #[cfg(test)]
 mod test {
-    use super::{compile, generate_code};
+    use super::{cs_compile, generate_code};
     use slice::command_line::SliceOptions;
-    use slice::compilation_result::CompilationData;
     use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
-    use slice::test_helpers::{check_diagnostics, diagnostics_from_compilation_data};
+    use slice::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
     use slice::utils::file_util::resolve_files_from;
     use std::io;
     use std::path::Path;
@@ -154,15 +144,14 @@ mod test {
             options.references.push(slice_dir.clone());
             options.references.push(tests_dir.clone());
 
-            let compilation_data = match compile(&options) {
-                Ok(compilation_data) => compilation_data,
-                Err(compilation_data) => {
-                    compilation_data.into_exit_code(); // This prints the diagnostics
-                    panic!("Failed to compile IceRpc.Tests Slice files");
-                }
-            };
+            let mut compilation_state = slice::compile_from_options(&options);
+            cs_compile(&mut compilation_state);
+            if compilation_state.diagnostic_reporter.has_errors() {
+                compilation_state.into_exit_code(); // This prints the diagnostics
+                panic!("Failed to compile IceRpc.Tests Slice files");
+            }
 
-            generate_code(compilation_data.files.values().next().unwrap());
+            generate_code(compilation_state.files.values().next().unwrap());
         }
     }
 
@@ -176,17 +165,18 @@ mod test {
         let mut options = SliceOptions::default();
         options.sources.push(slice1.display().to_string());
         options.sources.push(slice2.display().to_string());
+        let mut compilation_state = slice::compile_from_options(&options);
 
         // Act
-        let compilation_data = CompilationData::from(compile(&options));
+        cs_compile(&mut compilation_state);
 
         // Assert
         let expected = Diagnostic::new(Error::IO {
             action: "generate code for",
-            path: compilation_data.files.values().last().unwrap().relative_path.clone(),
+            path: compilation_state.files.values().last().unwrap().relative_path.clone(),
             error: io::ErrorKind::InvalidInput.into(),
         });
-        let diagnostics = diagnostics_from_compilation_data(compilation_data);
+        let diagnostics = diagnostics_from_compilation_state(compilation_state);
 
         check_diagnostics(diagnostics, [expected]);
     }

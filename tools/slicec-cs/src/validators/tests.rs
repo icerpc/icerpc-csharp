@@ -1,18 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::code_gen::compiler_chain;
+use crate::code_gen::cs_compile;
 use crate::cs_attributes;
 use slice::diagnostics::{Diagnostic, Error};
+use slice::test_helpers::diagnostics_from_compilation_state;
 
 fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
-    let data = match slice::compile_from_strings(&[slice], None).and_then(compiler_chain) {
-        Ok(data) => data,
-        Err(data) => data,
-    };
-
-    data.diagnostic_reporter
-        .into_diagnostics(&data.ast, &data.files)
-        .collect()
+    let mut state = slice::compile_from_strings(&[slice], None);
+    cs_compile(&mut state);
+    diagnostics_from_compilation_state(state)
 }
 
 #[test]

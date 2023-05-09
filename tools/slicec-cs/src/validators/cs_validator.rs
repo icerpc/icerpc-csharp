@@ -1,20 +1,19 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::cs_attributes::{self, match_cs_custom, CsAttributeKind};
-use slice::compilation_result::{CompilationData, CompilationResult};
+use slice::compilation_state::CompilationState;
 use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
 use slice::grammar::*;
 use slice::slice_file::{SliceFile, Span};
 use slice::visitor::Visitor;
 
-pub(crate) fn validate_cs_attributes(mut compilation_data: CompilationData) -> CompilationResult {
-    let mut visitor = CsValidator {
-        diagnostic_reporter: &mut compilation_data.diagnostic_reporter,
-    };
-    for slice_file in compilation_data.files.values() {
+pub(crate) fn validate_cs_attributes(compilation_state: &mut CompilationState) {
+    let diagnostic_reporter = &mut compilation_state.diagnostic_reporter;
+    let mut visitor = CsValidator { diagnostic_reporter };
+
+    for slice_file in compilation_state.files.values() {
         slice_file.visit_with(&mut visitor);
     }
-    compilation_data.into()
 }
 
 /// CsValidator visits all the elements in a slice file to check for errors and warnings specific to
