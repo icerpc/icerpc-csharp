@@ -256,6 +256,114 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
+    /// <summary>Ensures a dispatch is canceled  when the peer shuts down its side of the connection.</summary>
+    [Test]
+    public async Task Dispatch_canceled_by_peer_shutdown()
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var invocationCts = new CancellationTokenSource();
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
+
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        // Canceling the invocation is required because ShutdownAsync waits for invocations to complete.
+        invocationCts.Cancel();
+
+        // Act
+        await sut.Client.ShutdownAsync();
+
+        // Assert
+        Assert.That(() => dispatcher.DispatchComplete, Is.InstanceOf<OperationCanceledException>());
+        Assert.That(() => invokeTask, Throws.Exception); // Observe the exception.
+    }
+
+    /// <summary>Ensures the reading of the outgoing response payload is canceled when when the peer shuts down its side
+    /// of the connection or when the connection is disposed.</summary>
+    [Test]
+    public async Task Dispatch_response_payload_read_canceled_by_dispose_or_peer_shutdown([Values] bool peerShutdown)
+    {
+        // Arrange
+        var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
+        responsePayload.HoldRead = true;
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                new InlineDispatcher(
+                    (request, cancellationToken) => new(new OutgoingResponse(request) { Payload = responsePayload })))
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (_, Task serverShutdownRequested) = await sut.ConnectAsync();
+        _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var invocationCts = new CancellationTokenSource();
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
+        await responsePayload.ReadCalled;
+
+        // Act
+        if (peerShutdown)
+        {
+            // Canceling the invocation is required because ShutdownAsync waits for invocations to complete.
+            invocationCts.Cancel();
+            await sut.Client.ShutdownAsync();
+        }
+        else
+        {
+            await sut.Server.DisposeAsync();
+        }
+
+        // Assert
+        Assert.That(responsePayload.IsReadCanceled, Is.True);
+        Assert.That(() => invokeTask, Throws.Exception); // Observe the exception.
+    }
+
+    /// <summary>Ensures the writing of the outgoing response payload is canceled when the connection is disposed. Note
+    /// that it's not canceled when the peer shuts down its side of the connection because writes on the duplex
+    /// connection are only canceled on ice protocol connection disposal.</summary>
+    [Test]
+    public async Task Dispatch_write_response_canceled_by_dispose()
+    {
+        // Arrange
+
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .AddTestDuplexTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        _ = await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice));
+        using var invocationCts = new CancellationTokenSource();
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
+
+        await dispatcher.DispatchStart;
+
+        var serverConnection = provider.GetRequiredService<TestDuplexServerTransportDecorator>().LastAcceptedConnection;
+        Task writeCalled = serverConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
+        serverConnection.Operations.Hold = DuplexTransportOperations.Write;
+
+        dispatcher.ReleaseDispatch();
+        await writeCalled;
+
+        // Act/Assert
+        await sut.Server.DisposeAsync();
+
+        Assert.That(() => invokeTask, Throws.Exception); // Observe the exception
+    }
+
     [Test]
     public async Task Dispose_aborts_connect()
     {
