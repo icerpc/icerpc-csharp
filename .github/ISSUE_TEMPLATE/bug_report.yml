@@ -1,0 +1,63 @@
+name: Bug Report
+description: Create a report to help us improve
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We welcome bug reports! Please fill out the following fields to help us address your issue.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Please share a clear and concise description of the problem.
+      placeholder: Description
+    validations:
+      required: true
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: Reproduction steps
+      description: |
+        Please include minimal steps to reproduce the problem if possible. E.g.: the smallest possible code snippet; or a small project, with steps to run it.
+      placeholder: Minimal reproduction
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: |
+        Provide a description of the expected behavior.
+      placeholder: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: |
+        Provide a description of the actual behavior observed. If applicable, please include any error messages or exception stack traces.
+      placeholder: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration
+      description: |
+        Please provide more information on your IceRPC configuration:
+          - Which version of IceRPC are you using?
+          - What operating system, version, and architecture?
+      placeholder: Configuration
+    validations:
+      required: false
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information
+      description: |
+        If you have any additional information to share about the problem's location, please share it here along with any relevant code, modifications, or related issues you are aware of.
+      placeholder: Other information
+    validations:
+      required: false

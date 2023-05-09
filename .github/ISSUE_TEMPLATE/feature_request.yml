@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest an idea for this project
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We welcome feature requests! Please fill out the following fields to help us evaluate your feature request.
+  - type: textarea
+    id: desired-feature
+    attributes:
+      label: Desired feature
+      description: |
+        Describe the feature you'd like.
+      placeholder: Description
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: Problem
+      description: Is your feature request related to a problem? If so, please describe.
+      placeholder: Description
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: |
+        Describe alternatives you've considered.
+      placeholder: Description
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: |
+        Add any other context here.
+      placeholder: Additional context
+    validations:
+      required: false
