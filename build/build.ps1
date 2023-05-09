@@ -11,6 +11,7 @@ param (
     [switch]$publish,
     [switch]$examples,
     [switch]$docfxExamples,
+    [switch]$installTemplates,
     [switch]$help,
     [switch]$coverage
 )
@@ -238,7 +239,7 @@ if ( $configs -notcontains $config ) {
     throw new-object system.ArgumentException "config must debug or release"
 }
 
-$actions = @("build", "clean", "doc", "test", "pack", "publish", "examples", "docfxExamples")
+$actions = @("build", "clean", "doc", "test", "pack", "publish", "examples", "docfxExamples", "installTemplates")
 $passedInActions = @()
 
 foreach ($key in $PSBoundParameters.Keys) {
