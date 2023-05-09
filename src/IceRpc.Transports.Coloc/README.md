@@ -1,4 +1,4 @@
-# Coloc Transport for IceRPC
+# Coloc transport for IceRPC
 
 IceRpc.Transports.Coloc is an implementation of [IceRPC][icerpc]'s duplex transport abstraction. You can use this
 transport to send RPCs to services hosted by IceRPC servers in your local application.
@@ -23,7 +23,7 @@ var coloc = new ColocTransport();
 await using var server = new Server(
     dispatcher: ...,
     multiplexedServerTransport: new SlicServerTransport(coloc.ServerTransport));
-    
+
 server.Listen();
 
 // Create a client connection to this server
@@ -31,7 +31,7 @@ server.Listen();
 await using var connection = new ClientConnection(
     new Uri("icerpc://host"), // you can use any host and port with coloc
     multiplexedClientTransport: new SlicClientTransport(coloc.ClientTransport));
-    
+
 await connection.ConnectAsync();
 ```
 

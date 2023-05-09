@@ -1,0 +1,6 @@
+[cs::namespace("IceRpc_Client")]
+module Hello
+
+interface Greeter {
+    greet(name: string) -> string
+}

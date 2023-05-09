@@ -26,6 +26,7 @@ usage()
     echo "Arguments:"
     echo "  --config | -c             Build configuration: debug or release, the default is debug."
     echo "  --examples                Build examples solutions instead of the source solutions."
+    echo "  --docfxExamples           Build docfx examples solutions instead of the source solutions."
     echo "  --srcdist                 Use IceRPC NuGet packages from this source distribution when building the examples."
     echo "                            The NuGet packages are pushed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
@@ -121,17 +122,27 @@ install_templates()
 
 build()
 {
-    if [ "$examples" == "no" ]; then
-        build_compiler
-        build_icerpc_slice_tools
-        build_icerpc
-    else
+    build_compiler
+    build_icerpc_slice_tools
+    build_icerpc
+
+    if [ "$examples" == "yes" ] || [ "$docfxExamples" == "yes" ]; then
         if [ "$srcdist" == "yes" ]; then
             push
         fi
+    fi
+
+    if [ "$examples" == "yes" ]; then
         for solution in examples/*/*.sln examples/*/*/*.sln
         do
             run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
+        done
+    fi
+
+    if [ "$docfxExamples" == "yes" ]; then
+        for project in docfx/examples/*/*.csproj
+        do
+            run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
         done
     fi
 }
@@ -147,6 +158,19 @@ clean()
     clean_compiler
     clean_icerpc_slice_tools
     clean_icerpc
+    if [ "$examples" == "yes" ]; then
+        for solution in examples/*/*.sln examples/*/*/*.sln
+        do
+            run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
+        done
+    fi
+
+    if [ "$docfxExamples" == "yes" ]; then
+        for project in docfx/examples/*/*.csproj
+        do
+            run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
+        done
+    fi
     clean_icerpc_project_templates
 }
 
@@ -193,6 +217,7 @@ run_command()
 action=""
 config=""
 coverage="no"
+docfxExamples="no"
 examples="no"
 srcdist="no"
 version_property=""
@@ -216,6 +241,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --examples)
             examples="yes"
+            shift
+            ;;
+        --docfxExamples)
+            docfxExamples="yes"
             shift
             ;;
         --srcdist)

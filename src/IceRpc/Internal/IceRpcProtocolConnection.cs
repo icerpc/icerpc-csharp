@@ -475,6 +475,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         tokenRegistration.Dispose();
                     }
 
+                    // Send the payload continuation on a separate thread instead of starting the task synchronously
+                    // with _ = SendPayloadContinuationAsync(...). This ensures that the synchronous activity that could
+                    // result from reading or writing the payload continuation doesn't delay in any way the caller.
                     _ = Task.Run(
                         () => SendPayloadContinuationAsync(payloadContinuation, payloadWriter, writesClosed),
                         CancellationToken.None); // must run no matter what to complete the payload continuation
@@ -943,8 +946,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 _ = ReleaseStreamCountOnReadsAndWritesClosedAsync(stream);
 
-                // Start a task to read the stream and dispatch the request. We pass CancellationToken.None
-                // to Task.Run because DispatchRequestAsync must clean-up the stream.
+                // Start a task to read the stream and dispatch the request. We pass CancellationToken.None to Task.Run
+                // because DispatchRequestAsync must clean-up the stream.
                 _ = Task.Run(() => DispatchRequestAsync(stream), CancellationToken.None);
             }
         }

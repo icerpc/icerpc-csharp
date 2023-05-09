@@ -4,5 +4,5 @@ runs:
   using: "composite"
   steps:
   - name: 🔨 Build Examples
-    run: ./build.sh --examples
+    run: ./build.sh --examples --docfxExamples
     shell: bash

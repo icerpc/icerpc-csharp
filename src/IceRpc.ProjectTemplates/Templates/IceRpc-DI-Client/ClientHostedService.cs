@@ -1,9 +1,7 @@
-// Copyright (c) ZeroC, Inc.
-
 using IceRpc;
 using Microsoft.Extensions.Hosting;
 
-namespace GreeterExample;
+namespace IceRpc_DI_Client;
 
 /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
 public class ClientHostedService : BackgroundService

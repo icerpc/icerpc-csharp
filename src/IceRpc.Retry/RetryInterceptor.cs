@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Retry.Internal;
 using Microsoft.Extensions.Logging;
@@ -37,6 +38,8 @@ namespace IceRpc.Retry;
 /// <para>If the status code carried by the response is <see cref="StatusCode.Unavailable" /> or <see
 /// cref="StatusCode.ServiceNotFound" /> (with the ice protocol), the address of the server is removed from the set of
 /// server addresses to retry on. This ensures the request won't be retried on the unavailable server.</para></remarks>
+/// <seealso cref="RetryPipelineExtensions.UseRetry(Pipeline)"/>
+/// <seealso cref="RetryInvokerBuilderExtensions.UseRetry(IInvokerBuilder)"/>
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;

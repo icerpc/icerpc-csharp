@@ -14,6 +14,11 @@ public static class RetryPipelineExtensions
     /// pipeline.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <returns>The pipeline being configured.</returns>
+    /// <example>
+    /// The following code adds the retry interceptor using the default <see cref="RetryOptions"/> to the invocation
+    /// pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Retry.Examples/RetryInterceptorExamples.cs" region="UseRetry" lang="csharp" />
+    /// </example>
     public static Pipeline UseRetry(this Pipeline pipeline) =>
         pipeline.UseRetry(new RetryOptions());
 
@@ -21,6 +26,11 @@ public static class RetryPipelineExtensions
     /// <param name="pipeline">The pipeline being configured.</param>
     /// <param name="options">The options to configure the <see cref="RetryInterceptor" />.</param>
     /// <returns>The pipeline being configured.</returns>
+    /// <example>
+    /// The following code adds the retry interceptor using the provided <see cref="RetryOptions"/> to the invocation
+    /// pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Retry.Examples/RetryInterceptorExamples.cs" region="UseRetryWithOptions" lang="csharp" />
+    /// </example>
     public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options) =>
         pipeline.UseRetry(options, NullLoggerFactory.Instance);
 
@@ -30,6 +40,11 @@ public static class RetryPipelineExtensions
     /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
     /// <see cref="RetryInterceptor" />.</param>
     /// <returns>The pipeline being configured.</returns>
+    /// <example>
+    /// The following code adds the retry interceptor using the provided <see cref="ILoggerFactory"/> and
+    /// <see cref="RetryOptions"/> to the invocation pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Retry.Examples/RetryInterceptorExamples.cs" region="UseRetryWithLoggerFactory" lang="csharp" />
+    /// </example>
     public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options, ILoggerFactory loggerFactory) =>
         pipeline.Use(next => new RetryInterceptor(next, options, loggerFactory.CreateLogger<RetryInterceptor>()));
 }

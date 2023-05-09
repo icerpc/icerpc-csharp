@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Slice;
 
@@ -20,6 +21,8 @@ namespace IceRpc.Deadline;
 /// <see cref="StatusCode.DeadlineExpired"/>.<br/>
 /// The deadline interceptor must be installed before any interceptor than can run multiple times per request. In
 /// particular, it must be installed before the retry interceptor.</remarks>
+/// <seealso cref="DeadlineRouterExtensions.UseDeadline(Router)"/>
+/// <seealso cref="DeadlineDispatcherBuilderExtensions.UseDeadline(IDispatcherBuilder)"/>
 public class DeadlineInterceptor : IInvoker
 {
     private readonly bool _alwaysEnforceDeadline;

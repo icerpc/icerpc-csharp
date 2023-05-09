@@ -1,10 +1,12 @@
-# Compressor Interceptor and Middleware for IceRPC
+# Compressor interceptor and middleware for IceRPC
 
-IceRpc.Compressor provides an [IceRPC][icerpc] interceptor that allows you to compress the payloads of the requests
-you send. This interceptor decompresses the payloads of the responses you receive when these payloads are compressed.
+IceRpc.Compressor provides an [IceRPC][icerpc] interceptor and the corresponding IceRPC middleware.
 
-In addition, IceRpc.Compressor provides an IceRPC middleware that allows you to compress the payloads of the responses
-you send back. This middleware decompresses the payloads of the requests you receive when these payloads are compressed.
+The compressor interceptor allows you to compress the payloads of outgoing requests. It also decompresses the payloads
+of incoming responses when these payloads are compressed.
+
+The compressor middleware allows you to compress the payloads of outgoing responses. It also decompresses the payloads
+of incoming requests these payloads are compressed.
 
 [Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
@@ -114,13 +116,13 @@ host.Run();
 
 ## Remarks
 
-The compressor interceptor and middleware compress and decompress payloads regardless of how
-these payloads are encoded. They work well with Slice but don't require Slice.
+The compressor interceptor and middleware compress and decompress payloads regardless of how these payloads are encoded.
+They work well with Slice but don't require Slice.
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Compressor.html
+[icerpc]: https://www.nuget.org/packages/IceRpc
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress
-[icerpc]: https://www.nuget.org/packages/IceRpc
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Compressor
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Compressor
