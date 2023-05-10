@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use slice::clap;
-use slice::clap::Parser;
+use clap::Parser;
 use slice::command_line::SliceOptions;
 
 // Note: Clap uses the doc-comments of fields to populate the '--help' output of slicec-cs.

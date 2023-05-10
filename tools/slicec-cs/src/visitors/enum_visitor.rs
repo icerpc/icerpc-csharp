@@ -3,11 +3,9 @@
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
+use convert_case::{Case, Casing};
 use slice::code_block::CodeBlock;
-
-use slice::convert_case::{Case, Casing};
 use slice::grammar::*;
-use slice::in_definite;
 use slice::visitor::Visitor;
 
 #[derive(Debug)]

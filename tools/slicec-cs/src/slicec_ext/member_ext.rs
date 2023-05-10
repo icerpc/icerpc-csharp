@@ -2,7 +2,7 @@
 
 use super::{EntityExt, TypeRefExt};
 use crate::cs_util::{escape_keyword, mangle_name, FieldType};
-use slice::convert_case::Case;
+use convert_case::Case;
 use slice::grammar::*;
 use slice::utils::code_gen_util::{format_message, TypeContext};
 

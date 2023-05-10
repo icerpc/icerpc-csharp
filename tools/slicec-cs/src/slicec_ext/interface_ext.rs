@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{scoped_identifier, EntityExt};
-use slice::convert_case::Case;
+use convert_case::Case;
 use slice::grammar::Interface;
 
 pub trait InterfaceExt: EntityExt {

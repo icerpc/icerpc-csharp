@@ -4,9 +4,8 @@ use crate::builders::{Builder, FunctionCallBuilder};
 use crate::cs_attributes::match_cs_generic;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
+use convert_case::{Case, Casing};
 use slice::code_block::CodeBlock;
-
-use slice::convert_case::{Case, Casing};
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
 

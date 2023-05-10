@@ -16,9 +16,9 @@ mod slicec_ext;
 mod validators;
 mod visitors;
 
-use code_gen::{cs_compile, generate_code};
-use cs_options::CsOptions;
-use slice::clap::Parser;
+use crate::code_gen::{cs_compile, generate_code};
+use crate::cs_options::CsOptions;
+use clap::Parser;
 use slice::diagnostics::{Diagnostic, Error};
 use std::fs::File;
 use std::io;
