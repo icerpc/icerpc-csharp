@@ -48,19 +48,12 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 
     /// <summary>Flush the buffered data.</summary>
     internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
-        WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancellationToken);
+        WriteAsync(ReadOnlySequence<byte>.Empty, cancellationToken);
 
     /// <summary>Writes a sequence of bytes.</summary>
-    internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken) =>
-        WriteAsync(source, ReadOnlySequence<byte>.Empty, cancellationToken);
-
-    /// <summary>Writes two sequences of bytes.</summary>
-    internal async ValueTask WriteAsync(
-        ReadOnlySequence<byte> source1,
-        ReadOnlySequence<byte> source2,
-        CancellationToken cancellationToken)
+    internal async ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken)
     {
-        if (_pipe.Writer.UnflushedBytes == 0 && source1.IsEmpty && source2.IsEmpty)
+        if (_pipe.Writer.UnflushedBytes == 0 && source.IsEmpty)
         {
             return;
         }
@@ -71,7 +64,7 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
         SequencePosition? consumed = null;
         if (_pipe.Writer.UnflushedBytes > 0)
         {
-            await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
             _pipe.Reader.TryRead(out ReadResult readResult);
 
             Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
@@ -80,9 +73,8 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
             AddToSendBuffers(readResult.Buffer);
         }
 
-        // Next add the data from source1 and source2.
-        AddToSendBuffers(source1);
-        AddToSendBuffers(source2);
+        // Next add the data from source
+        AddToSendBuffers(source);
 
         try
         {
