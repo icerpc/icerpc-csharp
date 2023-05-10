@@ -997,12 +997,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     /// <summary>Dispatches an incoming request. This method executes in a task spawn from the read frames loop.
     /// </summary>
-    private async Task DispatchRequestAsync(
-        IncomingRequest request,
-        int requestId,
-        PipeReader? contextReader,
-        CancellationToken cancellationToken)
+    private async Task DispatchRequestAsync(IncomingRequest request, int requestId, PipeReader? contextReader)
     {
+        CancellationToken cancellationToken = request.IsOneway ? _disposedCts.Token : _twowayDispatchesCts.Token;
+
         OutgoingResponse? response;
         try
         {
@@ -1033,7 +1031,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
         {
-            // The connection is disposed or aborted. We're not sending anything back.
+            // expected when the connection is disposed or the request is canceled by the peer's shutdown
             response = null;
         }
         catch (Exception exception)
@@ -1108,6 +1106,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     throw;
                 }
             }
+        }
+        catch (OperationCanceledException exception) when (
+            exception.CancellationToken == _disposedCts.Token ||
+            exception.CancellationToken == cancellationToken)
+        {
+            // expected when the connection is disposed or the request is canceled by the peer's shutdown
         }
         finally
         {
@@ -1490,20 +1494,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         Payload = requestFrameReader,
                     };
 
-                    CancellationToken cancellationToken = request.IsOneway ?
-                        _disposedCts.Token : _twowayDispatchesCts.Token;
-
                     try
                     {
                         await DispatchRequestAsync(
                             request,
                             requestId,
-                            contextReader,
-                            cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
-                    {
-                        // expected when the connection is disposed or the request is canceled by the peer's shutdown
+                            contextReader).ConfigureAwait(false);
                     }
                     catch (IceRpcException)
                     {
