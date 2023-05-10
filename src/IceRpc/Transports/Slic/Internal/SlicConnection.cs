@@ -799,9 +799,8 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private async ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
+    private ValueTask<SemaphoreLock> AcquireWriteLockAsync(CancellationToken cancellationToken)
     {
-        ValueTask<SemaphoreLock> acquireLockTask;
         lock (_mutex)
         {
             // Make sure the connection is not being closed or closed when we acquire the semaphore.
@@ -809,25 +808,8 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
             }
-            acquireLockTask = _writeSemaphore.AcquireAsync(cancellationToken);
+            return _writeSemaphore.AcquireAsync(cancellationToken);
         }
-
-        // Wait for the write lock acquisition.
-        SemaphoreLock acquiredLock = await acquireLockTask.ConfigureAwait(false);
-
-        // Flush the writer before writing data. If a previous flush was canceled, this will block again until there's
-        // enough buffer space to start writing again.
-        try
-        {
-            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            acquiredLock.Dispose();
-            throw;
-        }
-
-        return acquiredLock;
     }
 
     private void AddStream(ulong id, SlicStream stream)
