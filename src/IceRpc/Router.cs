@@ -2,7 +2,19 @@
 
 namespace IceRpc;
 
-/// <summary>A router routes incoming requests to dispatchers.</summary>
+/// <summary>A router allows you to compose a dispatch pipeline from zero or more dispatchers installed by calling
+/// <see cref="Map(string, IDispatcher)"/>, <see cref="Mount(string, IDispatcher)"/>, and
+/// <see cref="Use(Func{IDispatcher, IDispatcher})"/>.</summary>
+/// <example>
+/// A server application would typically create a dispatch pipeline using the <see cref="Router"/> class, which map
+/// the services provided by the server to different paths.
+/// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouter" lang="csharp" />
+/// The next examples shows a more realistic scenario, where you install some middleware handling cross cutting
+/// concerns like logging, and compression, and then map some services that take care of the business logic.
+/// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouterWithMiddleware" lang="csharp" />
+/// The above examples showed how the IceRPC logger and compressor middleware can be installed in the dispatch pipeline,
+/// but you can aswell install any <see cref="IDispatcher"/> using <see cref="Use(Func{IDispatcher, IDispatcher})"/>
+/// </example>
 public sealed class Router : IDispatcher
 {
     /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this
