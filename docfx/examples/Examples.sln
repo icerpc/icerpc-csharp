@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Telemetry.Examples",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Compressor.Examples", "IceRpc.Compressor.Examples\IceRpc.Compressor.Examples.csproj", "{C605475E-7E12-4F56-A309-DB40A6047E76}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.RequestContext.Examples", "IceRpc.RequestContext.Examples\IceRpc.RequestContext.Examples.csproj", "{3E373279-8C79-4A9D-ADDE-C2FBF55CDE79}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{C605475E-7E12-4F56-A309-DB40A6047E76}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C605475E-7E12-4F56-A309-DB40A6047E76}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C605475E-7E12-4F56-A309-DB40A6047E76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E373279-8C79-4A9D-ADDE-C2FBF55CDE79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E373279-8C79-4A9D-ADDE-C2FBF55CDE79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E373279-8C79-4A9D-ADDE-C2FBF55CDE79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E373279-8C79-4A9D-ADDE-C2FBF55CDE79}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
