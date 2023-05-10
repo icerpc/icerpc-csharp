@@ -213,11 +213,18 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
 /// provide access to the last created <see cref="IMultiplexedStream" /> stream.</summary>
 public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
 {
-    /// <summary>The last stream either created or accepted by this connection.</summary>
-    public TestMultiplexedStreamDecorator LastStream
+    /// <summary>The last stream created by this connection.</summary>
+    public TestMultiplexedStreamDecorator LastAcceptedStream
     {
-        get => _lastStream ?? throw new InvalidOperationException("No stream created yet.");
-        set => _lastStream = value;
+        get => _lastAcceptedStream ?? throw new InvalidOperationException("No stream accepted yet.");
+        set => _lastAcceptedStream = value;
+    }
+
+    /// <summary>The last stream created by this connection.</summary>
+    public TestMultiplexedStreamDecorator LastCreatedStream
+    {
+        get => _lastCreatedStream ?? throw new InvalidOperationException("No stream created yet.");
+        set => _lastCreatedStream = value;
     }
 
     /// <summary>The operations options used to create streams.</summary>
@@ -228,7 +235,8 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
     public TransportOperations<MultiplexedTransportOperations> Operations { get; }
 
     private readonly IMultiplexedConnection _decoratee;
-    private TestMultiplexedStreamDecorator? _lastStream;
+    private TestMultiplexedStreamDecorator? _lastAcceptedStream;
+    private TestMultiplexedStreamDecorator? _lastCreatedStream;
     private Action<TestMultiplexedStreamDecorator>? _onAcceptStream;
     private Action<TestMultiplexedStreamDecorator>? _onCreateStream;
 
@@ -241,7 +249,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                 var stream = new TestMultiplexedStreamDecorator(
                     await _decoratee.AcceptStreamAsync(cancellationToken),
                     StreamOperationsOptions);
-                _lastStream = stream;
+                _lastAcceptedStream = stream;
                 if (Operations.Fail.HasFlag(MultiplexedTransportOperations.AcceptStream))
                 {
                     // Cleanup the stream if the operation is configured to fail.
@@ -251,7 +259,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                     }
                     stream.Input.Complete();
                 }
-                _onAcceptStream?.Invoke(_lastStream);
+                _onAcceptStream?.Invoke(_lastAcceptedStream);
                 return stream;
             },
             cancellationToken);
@@ -267,7 +275,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                 var stream = new TestMultiplexedStreamDecorator(
                     await _decoratee.CreateStreamAsync(bidirectional, cancellationToken),
                     StreamOperationsOptions);
-                _lastStream = stream;
+                _lastCreatedStream = stream;
                 if (Operations.Fail.HasFlag(MultiplexedTransportOperations.CreateStream))
                 {
                     // Cleanup the stream if the operation is not configure to fail.
@@ -277,7 +285,7 @@ public sealed class TestMultiplexedConnectionDecorator : IMultiplexedConnection
                         stream.Input.Complete();
                     }
                 }
-                _onCreateStream?.Invoke(_lastStream);
+                _onCreateStream?.Invoke(_lastCreatedStream);
                 return stream;
             },
             cancellationToken);
