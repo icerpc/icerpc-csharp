@@ -786,6 +786,40 @@ public sealed class IceProtocolConnectionTests
         Assert.That(readResult.IsCompleted, Is.True);
     }
 
+    /// <summary>Ensure that ShutdownAsync is canceled in the scenario where the transport hangs while sending the
+    /// CloseConnection frame.</summary>
+    [Test]
+    public async Task Shutdown_cancellation_on_duplex_transport_hang()
+    {
+        // Arrange
+
+        // Make sure the dispatcher does not return the response immediately when one-way is false.
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice)
+            .AddTestDuplexTransportDecorator(clientOperationsOptions: new() { Hold = DuplexTransportOperations.Write })
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        var clientConnection = provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+        Task writeCalledTask = clientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
+
+        using var cts = new CancellationTokenSource();
+        Task shutdownTask = sut.Client.ShutdownAsync(cts.Token);
+
+        // Wait for the shutdown to start writing the CloseConnection frame.
+        await writeCalledTask;
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        Assert.That(
+            async () => await shutdownTask,
+            Throws.InstanceOf<OperationCanceledException>().With.Property("CancellationToken").EqualTo(cts.Token));
+    }
+
     /// <summary>Ensure that ShutdownAsync fails if ConnectAsync fails.</summary>
     [Test]
     public async Task Shutdown_fails_if_connect_fails()
