@@ -18,7 +18,7 @@ public static class PipelineExamples
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
             builder
                 .AddSimpleConsole()
-                .AddFilter("IceRpc", LogLevel.Debug));
+                .AddFilter("IceRpc", LogLevel.Information));
 
         // Create an invocation pipeline with the retry and logger interceptors.
         Pipeline pipeline = new Pipeline()

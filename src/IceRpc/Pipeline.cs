@@ -14,10 +14,9 @@ namespace IceRpc;
 /// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="UseWithInlineInvoker" lang="csharp" />
 /// </example>
 /// <remarks>A pipeline allows you to compose a chain of invokers through which requests flow into the final invoker.
-/// The final invoker is responsible for sending the request to the peer. In a typical IceRPC application,
-/// you would commonly use either the <see cref="ClientConnection"/> or the <see cref="ConnectionCache"/> as the final invokers,
-/// which are designed to send requests over an <see cref="IProtocolConnection"/>. However, it is also possible to use
-/// your custom final invoker to handle the request transmission.</remarks>
+/// The final invoker is responsible for sending the request to the peer. A typical IceRPC application uses either the
+/// <see cref="ClientConnection"/> or the <see cref="ConnectionCache"/> as the final invoker. However, it is also
+/// possible to use your custom final invoker to handle the request transmission.</remarks>
 /// <seealso cref="InlineInvoker"/>
 /// <seealso cref="Router"/>
 public sealed class Pipeline : IInvoker
