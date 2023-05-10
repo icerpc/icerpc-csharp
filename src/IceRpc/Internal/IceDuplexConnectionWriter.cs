@@ -1,14 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Transports;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
-namespace IceRpc.Transports.Internal;
+namespace IceRpc.Internal;
 
 /// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
-/// PipeWriter.</summary>
-internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
+/// PipeWriter. Like a PipeWriter, its methods shouldn't be called concurrently.</summary>
+internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
     private readonly IDuplexConnection _connection;
     private readonly Pipe _pipe;
@@ -35,7 +36,7 @@ internal class DuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     /// <param name="pool">The memory pool to use.</param>
     /// <param name="minimumSegmentSize">The minimum segment size for buffers allocated from <paramref name="pool"/>.
     /// </param>
-    internal DuplexConnectionWriter(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
+    internal IceDuplexConnectionWriter(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
     {
         _connection = connection;
         _pipe = new Pipe(new PipeOptions(

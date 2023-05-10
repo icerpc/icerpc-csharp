@@ -64,10 +64,8 @@ public class SlicTransportTests
 
     [TestCase(false, false, DuplexTransportOperations.Connect)]
     [TestCase(false, false, DuplexTransportOperations.Read)]
-    [TestCase(false, false, DuplexTransportOperations.Write)]
     [TestCase(false, true, DuplexTransportOperations.Connect)]
     [TestCase(true, false, DuplexTransportOperations.Connect)]
-    [TestCase(true, false, DuplexTransportOperations.Write)]
     [TestCase(true, false, DuplexTransportOperations.Read)]
     [TestCase(true, true, DuplexTransportOperations.Connect)]
     public async Task Connect_exception_handling_on_transport_failure(
@@ -203,7 +201,6 @@ public class SlicTransportTests
     [TestCase(false, DuplexTransportOperations.Read)]
     [TestCase(false, DuplexTransportOperations.Write)]
     [TestCase(true, DuplexTransportOperations.Connect)]
-    [TestCase(true, DuplexTransportOperations.Write)]
     [TestCase(true, DuplexTransportOperations.Read)]
     public async Task Connect_cancellation_on_transport_hang(bool serverSide, DuplexTransportOperations operation)
     {
@@ -423,7 +420,10 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
 
-        using var writer = new DuplexConnectionWriter(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+        await using var writer = new SlicDuplexConnectionWriter(
+            duplexClientConnection,
+            MemoryPool<byte>.Shared,
+            minimumSegmentSize: 4096);
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
@@ -619,15 +619,16 @@ public class SlicTransportTests
         await writeTask;
     }
 
+    /// <summary>Verifies that a pending write operation on the stream fails with <see cref="OperationCanceledException"
+    /// /> when canceled.</summary>
     [Test]
-    public async Task Stream_write_cancellation_does_not_cancel_write_if_writing_data_on_duplex_connection()
+    public async Task Stream_write_cancellation()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .AddTestDuplexTransportDecorator()
             .BuildServiceProvider(validateScopes: true);
-
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
@@ -640,14 +641,14 @@ public class SlicTransportTests
 
         // Act
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.Write;
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[1], writeCts.Token);
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[128 * 1024], writeCts.Token);
         writeCts.Cancel();
-        await Task.Delay(TimeSpan.FromMilliseconds(10));
 
         // Assert
-        Assert.That(writeTask.IsCompleted, Is.False);
+        Assert.That(
+            async () => await writeTask,
+            Throws.InstanceOf<OperationCanceledException>().With.Property("CancellationToken").EqualTo(writeCts.Token));
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
-        Assert.That(async () => await writeTask, Throws.Nothing);
     }
 
     [TestCase(64 * 1024, 32 * 1024)]

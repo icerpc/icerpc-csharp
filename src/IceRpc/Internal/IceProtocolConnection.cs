@@ -39,7 +39,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private Task? _disposeTask;
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
-    private readonly DuplexConnectionWriter _duplexConnectionWriter;
+    private readonly IceDuplexConnectionWriter _duplexConnectionWriter;
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
     private int _invocationCount;
@@ -624,7 +624,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         _duplexConnection = duplexConnection;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, _memoryPool, _minSegmentSize);
-        _duplexConnectionWriter = new DuplexConnectionWriter(_duplexConnection, _memoryPool, _minSegmentSize);
+        _duplexConnectionWriter = new IceDuplexConnectionWriter(_duplexConnection, _memoryPool, _minSegmentSize);
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {
