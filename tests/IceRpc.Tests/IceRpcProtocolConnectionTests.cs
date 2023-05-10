@@ -23,14 +23,16 @@ public sealed class IceRpcProtocolConnectionTests
             yield return new TestCaseData(new byte[] { 0xff });
 
             // GoAway frame (0x01) followed by segment size > MaxGoAwayFrameBodySize (32768)
-            yield return new TestCaseData(new byte[] { 0x00, 0x02, 0x00, 0x02, 0x00 });
+            yield return new TestCaseData(new byte[] { 0x01, 0x02, 0x00, 0x02, 0x00 });
 
             // Truncated frame
             yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.GoAway,
                 (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue));
 
             // Frame with extra data
             yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.GoAway,
                 (ref SliceEncoder encoder) =>
                 {
                     encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
@@ -52,14 +54,17 @@ public sealed class IceRpcProtocolConnectionTests
 
             // Bogus dictionary size
             yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
                 (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue));
 
             // Truncated frame (dictionary with 3 elements but no encoded elements)
             yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
                 (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(3));
 
             // Frame with extra data
             yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
                 (ref SliceEncoder encoder) =>
                 {
                     encoder.EncodeVarUInt62(0);
@@ -68,6 +73,7 @@ public sealed class IceRpcProtocolConnectionTests
 
             // Invalid MaxHeaderSize
             yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
                 (ref SliceEncoder encoder) =>
                 {
                     var settings = new IceRpcSettings(
@@ -1803,11 +1809,11 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    private static TestCaseData CreateFrameTestCaseData(EncodeAction encode)
+    private static TestCaseData CreateFrameTestCaseData(IceRpcControlFrameType frameType, EncodeAction encode)
     {
         var writer = new MemoryBufferWriter(new byte[1024]);
         var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-        encoder.EncodeUInt8(0x00); // Settings frame
+        encoder.EncodeUInt8((byte)frameType);
         Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
         int startPos = encoder.EncodedByteCount;
         encode(ref encoder);
