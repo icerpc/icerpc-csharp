@@ -1109,7 +1109,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (OperationCanceledException exception) when (
             exception.CancellationToken == _disposedCts.Token ||
-            exception.CancellationToken == _twowayDispatchesCts.Token)
+            exception.CancellationToken == cancellationToken)
         {
             // expected when the connection is disposed or the request is canceled by the peer's shutdown
         }
