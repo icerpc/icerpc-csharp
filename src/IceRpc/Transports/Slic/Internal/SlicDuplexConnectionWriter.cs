@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -108,15 +109,12 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
             });
     }
 
-    internal ValueTask FlushAsync(CancellationToken cancellationToken) =>
-        WriteAsync(ReadOnlySequence<byte>.Empty, ReadOnlySequence<byte>.Empty, cancellationToken);
+    internal async ValueTask FlushAsync(CancellationToken cancellationToken) =>
+        _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
     /// <summary>Requests the shut down of the duplex connection after the buffered data is written on the duplex
     /// connection.</summary>
     internal void Shutdown() => _pipe.Writer.Complete();
-
-    internal ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken) =>
-        WriteAsync(source, ReadOnlySequence<byte>.Empty, cancellationToken);
 
     /// <summary>Writes two sequences of bytes.</summary>
     internal async ValueTask WriteAsync(
@@ -126,37 +124,13 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     {
         if (source1.Length > 0)
         {
-            Write(source1);
+            _pipe.Writer.Write(source1);
         }
         if (source2.Length > 0)
         {
-            Write(source2);
+            _pipe.Writer.Write(source2);
         }
 
         await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-
-        void Write(ReadOnlySequence<byte> sequence)
-        {
-            foreach (ReadOnlyMemory<byte> buffer in sequence)
-            {
-                ReadOnlyMemory<byte> source = buffer;
-                while (source.Length > 0)
-                {
-                    Memory<byte> destination = _pipe.Writer.GetMemory();
-                    if (destination.Length < source.Length)
-                    {
-                        source[0..destination.Length].CopyTo(destination);
-                        _pipe.Writer.Advance(destination.Length);
-                        source = source[destination.Length..];
-                    }
-                    else
-                    {
-                        source.CopyTo(destination);
-                        _pipe.Writer.Advance(source.Length);
-                        source = ReadOnlyMemory<byte>.Empty;
-                    }
-                }
-            }
-        }
     }
 }
