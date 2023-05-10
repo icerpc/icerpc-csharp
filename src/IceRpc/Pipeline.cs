@@ -2,23 +2,18 @@
 
 namespace IceRpc;
 
-/// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use"/>,
-/// and a final invoker installed by calling <see cref="Into"/>.</summary>
-/// <example>
-/// The following code demonstrates how an application would typically create the pipeline and use it as the invoker
-/// for a proxy.
+/// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling
+/// <see cref="Use(Func{IInvoker, IInvoker})"/>, and a final invoker installed by calling <see cref="Into(IInvoker)"/>.
+/// </summary>
+/// <example>The following example demonstrates how an application would typically create the pipeline and use it as
+/// the invoker for a proxy.
 /// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="CreatingAndUsingThePipeline" lang="csharp" />
-/// In the example above, the logger and retry interceptors are added to the pipeline, but the pipeline allows for the addition
-/// of any <see cref="IInvoker"/> implementation using <see cref="Use(Func{IInvoker, IInvoker})"/>.
-/// The next code example shows how you can add an <see cref="InlineInvoker"/> to the pipeline.
-/// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="UseWithInlineInvoker" lang="csharp" />
+/// You can easily create your own interceptor and add it to the pipeline. The next example shows how you can create an
+/// interceptor using an <see cref="InlineInvoker"/> and add it to the pipeline using <see cref="Use(Func{IInvoker, IInvoker})"/>.
+/// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="UseWithInlineInterceptor" lang="csharp" />
 /// </example>
-/// <remarks>A pipeline allows you to compose a chain of invokers through which requests flow into the final invoker.
-/// The final invoker is responsible for sending the request to the peer. A typical IceRPC application uses either the
-/// <see cref="ClientConnection"/> or the <see cref="ConnectionCache"/> as the final invoker. However, it is also
-/// possible to use your custom final invoker to handle the request transmission.</remarks>
-/// <seealso cref="InlineInvoker"/>
 /// <seealso cref="Router"/>
+/// <seealso href="https://docs.testing.zeroc.com/docs/icerpc-core/invocation/invocation-pipeline"/>
 public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();

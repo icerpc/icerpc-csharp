@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using GreeterExample;
-using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
+using System.Collections.Immutable;
 
 namespace IceRpc.Examples;
 
@@ -22,20 +22,27 @@ public static class PipelineExamples
 
         // Create an invocation pipeline with the retry and logger interceptors.
         Pipeline pipeline = new Pipeline()
-            .UseRetry(
-                new RetryOptions { MaxAttempts = 5 },
-                loggerFactory)
+            .UseRetry()
             .UseLogger(loggerFactory)
             .Into(connectionCache);
 
-        // Create a proxy that uses the pipeline.
-        IGreeter greeterProxy = new GreeterProxy(pipeline);
+        // Create a proxy that uses the pipeline as its invoker.
+        var greeterProxy = new GreeterProxy(
+            pipeline,
+            new ServiceAddress(new Uri("icerpc://host1/greeter"))
+            {
+                AltServerAddresses = new[]
+                {
+                    new ServerAddress(new Uri("icerpc://host2/greeter")),
+                    new ServerAddress(new Uri("icerpc://host3/greeter")),
+                }.ToImmutableList()
+            });
         #endregion
     }
 
-    public static void UseWithInlineInvoker()
+    public static void UseWithInlineInterceptor()
     {
-        #region UseWithInlineInvoker
+        #region UseWithInlineInterceptor
         Pipeline pipeline = new Pipeline()
             .Use(next => new InlineInvoker(async (request, cancel) =>
             {
