@@ -1,10 +1,35 @@
 # IceRpc
 
-This package contains the IceRPC .NET implementation, IceRPC is a modern, high-performance, contract-first RPC library.
+IceRpc provides the C# implementation for [IceRPC][icerpc].
 
-## Links
+[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api]
 
-- [Homepage](https://icerpc.com)
-- [Documentation](https://doc.icerpc.com)
-- [API Reference](https://api.icerpc.com/csharp/api/IceRpc.html)
-- [GitHub](https://github.com/icerpc/icerpc-csharp)
+## Sample Code
+
+```csharp
+// Client application
+
+using GreeterExample;
+using IceRpc;
+
+await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+var greeterProxy = new GreeterProxy(connection);
+string greeting = await greeterProxy.GreetAsync(Environment.UserName);
+...
+await connection.ShutdownAsync();
+```
+
+```csharp
+// Server application
+using GreeterExample;
+using IceRpc;
+
+await using var server = new Server(...);
+server.Listen();
+```
+
+[api]: https://api.icerpc.com/csharp/api/
+[icerpc]:https://docs.testing.zeroc.com/docs/
+[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Greeter
+[package]: https://www.nuget.org/packages/IceRpc
+[source]: https://github.com/icerpc/icerpc-csharp
