@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice;
@@ -19,6 +20,8 @@ namespace IceRpc.Compressor;
 /// <see cref="StatusCode.Success" /> and the response carries a <see cref="ResponseFieldKey.CompressionFormat" /> field
 /// with a supported compression format (currently <see cref="CompressionFormat.Brotli" /> or
 /// <see cref="CompressionFormat.Deflate" />).</remarks>
+/// <seealso cref="CompressorPipelineExtensions.UseCompressor(Pipeline, CompressionFormat, CompressionLevel)"/>
+/// <seealso cref="CompressorDispatcherBuilderExtensions.UseCompressor(IDispatcherBuilder, CompressionFormat, CompressionLevel)"/>
 public class CompressorInterceptor : IInvoker
 {
     private readonly CompressionFormat _compressionFormat;

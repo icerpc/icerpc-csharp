@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Slice;
 using System.Buffers;
 using System.Diagnostics;
@@ -10,6 +11,8 @@ namespace IceRpc.Telemetry;
 /// activity context is written in the request <see cref="RequestFieldKey.TraceContext" /> field and can be restored on
 /// the server-side by installing the <see cref="TelemetryMiddleware" />.</summary>
 /// <remarks>The activities are only created for requests using the icerpc protocol.</remarks>
+/// <seealso cref="TelemetryPipelineExtensions.UseTelemetry(Pipeline, ActivitySource)"/>
+/// <seealso cref="TelemetryDispatcherBuilderExtensions.UseTelemetry(IDispatcherBuilder)"/>
 public class TelemetryInterceptor : IInvoker
 {
     private readonly IInvoker _next;

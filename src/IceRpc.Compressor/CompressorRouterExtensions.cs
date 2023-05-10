@@ -13,6 +13,11 @@ public static class CompressorRouterExtensions
     /// <param name="compressionFormat">The compression format for the compress operation.</param>
     /// <param name="compressionLevel">The compression level for the compress operation.</param>
     /// <returns>The router being configured.</returns>
+    /// <example>
+    /// The following code adds the compressor middleware to the dispatch pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Compressor.Examples/CompressorMiddlewareExamples.cs" region="UseCompressor" lang="csharp" />
+    /// </example>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress"/>
     public static Router UseCompressor(
         this Router router,
         CompressionFormat compressionFormat,

@@ -13,6 +13,11 @@ public static class CompressorPipelineExtensions
     /// <param name="compressionFormat">The compression format for the compress operation.</param>
     /// <param name="compressionLevel">The compression level for the compress operation.</param>
     /// <returns>The pipeline being configured.</returns>
+    /// <example>
+    /// The following code adds the compressor interceptor to the invocation pipeline.
+    /// <code source="../../docfx/examples/IceRpc.Compressor.Examples/CompressorInterceptorExamples.cs" region="UseCompressor" lang="csharp" />
+    /// </example>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress"/>
     public static Pipeline UseCompressor(
         this Pipeline pipeline,
         CompressionFormat compressionFormat,
