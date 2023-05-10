@@ -25,7 +25,7 @@ public sealed class IceRpcProtocolConnectionTests
             // GoAway frame (0x01) followed by segment size > MaxGoAwayFrameBodySize (32768)
             yield return new TestCaseData(new byte[] { 0x00, 0x02, 0x00, 0x02, 0x00 });
 
-            // Truncated frame.
+            // Truncated frame
             yield return CreateFrameTestCaseData(
                 (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue));
 
@@ -273,7 +273,7 @@ public sealed class IceRpcProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         Task acceptTask = sut.AcceptAsync();
 
-        // Create the client-side control stream used to send bogus data to the server connection establishment.
+        // Get a hold of the client protocol connection control stream.
         var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
         _ = await clientTransport.LastCreatedConnection.ConnectAsync(default);
         var clientControlStream =
@@ -1641,6 +1641,7 @@ public sealed class IceRpcProtocolConnectionTests
         // Act
         await clientControlStream.Output.WriteAsync(invalidGoAwayFrame);
 
+        // Assert
         Assert.That(
             () => shutdownTask,
             Throws.InstanceOf<IceRpcException>()
