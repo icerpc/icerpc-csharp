@@ -197,6 +197,30 @@ public class SlicTransportTests
         }
     }
 
+    /// <summary>Verifies that ConnectAsync can be canceled.</summary>
+    [Test]
+    public async Task Connect_cancellation()
+    {
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        using var cts = new CancellationTokenSource();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        var clientConnection = clientTransport.CreateConnection(
+            listener.ServerAddress,
+            new MultiplexedConnectionOptions(),
+            clientAuthenticationOptions: null);
+        var connectTask = clientConnection.ConnectAsync(cts.Token);
+
+        // Act
+        cts.Cancel();
+
+        // Assert
+        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
+    }
+
     [TestCase(false, DuplexTransportOperations.Connect)]
     [TestCase(false, DuplexTransportOperations.Read)]
     [TestCase(false, DuplexTransportOperations.Write)]
