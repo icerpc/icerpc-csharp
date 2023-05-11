@@ -687,14 +687,13 @@ public abstract class MultiplexedStreamConformanceTests
             output.Write(bufferedData);
         }
 
-        FlushResult flushResult;
         if (output is ReadOnlySequencePipeWriter writer)
         {
-            flushResult = await writer.WriteAsync(writeData, endStream: false, CancellationToken.None);
+            _ = await writer.WriteAsync(writeData, endStream: false, CancellationToken.None);
         }
         else
         {
-            flushResult = await output.WriteAsync(writeData.ToArray());
+            _ = await output.WriteAsync(writeData.ToArray());
         }
         output.Complete();
 
