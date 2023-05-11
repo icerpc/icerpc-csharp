@@ -10,9 +10,9 @@ namespace IceRpc.Tests.Slice;
 public class DictionaryMappingTests
 {
     [Test]
-    public async Task Return_tuple_with_elements_using_cs_generic_attribute()
+    public async Task Operation_returning_a_tuple_with_dictionary_elements()
     {
-        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.OpReturnTuple(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionaryTuple(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -22,7 +22,7 @@ public class DictionaryMappingTests
         };
 
         (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
-            await DictionaryMappingOperationsProxy.Response.OpReturnTupleAsync(
+            await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryTupleAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -33,9 +33,10 @@ public class DictionaryMappingTests
     }
 
     [Test]
-    public async Task Return_type_using_cs_generic_attribute()
+    public async Task Operation_returning_a_tuple_with_custom_dictionary_elements()
     {
-        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.OpReturnSingleType(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionaryTuple(
+            new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -43,7 +44,29 @@ public class DictionaryMappingTests
             Payload = responsePayload
         };
 
-        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.OpReturnSingleTypeAsync(
+        (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
+            await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryTupleAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        Assert.That(r1, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
+        Assert.That(r2, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_dictionary()
+    {
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionary(
+            new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryAsync(
             response,
             request,
             InvalidProxy.Instance,
@@ -53,15 +76,53 @@ public class DictionaryMappingTests
     }
 
     [Test]
-    public void Parameter_using_cs_generic_attribute()
+    public async Task Operation_returning_a_custom_dictionary()
+    {
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionary(
+            new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryAsync(
+            response,
+            request,
+            InvalidProxy.Instance,
+            default);
+
+        Assert.That(r, Is.EqualTo(new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 }));
+    }
+
+    [Test]
+    public void Operation_sending_a_dictionary()
     {
         // Arrange
-        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.OpSingleParameter(
+        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.SendCustomDictionary(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
 
         // Act/Assert
         Assert.That(
-            async () => await IDictionaryMappingOperationsService.Request.OpSingleParameterAsync(
+            async () => await IDictionaryMappingOperationsService.Request.SendCustomDictionaryAsync(
+                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+                {
+                    Payload = requestPayload
+                },
+                default),
+            Throws.Nothing);
+    }
+
+    [Test]
+    public void Operation_sending_a_custom_dictionary()
+    {
+        // Arrange
+        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.SendCustomDictionary(
+            new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
+
+        // Act/Assert
+        Assert.That(
+            async () => await IDictionaryMappingOperationsService.Request.SendCustomDictionaryAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = requestPayload
