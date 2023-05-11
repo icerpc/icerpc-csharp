@@ -13,6 +13,27 @@ namespace IceRpc.Conformance.Tests;
 /// <summary>Conformance tests for the multiplexed transports streams.</summary>
 public abstract class MultiplexedStreamConformanceTests
 {
+    private static IEnumerable<TestCaseData> WriteData
+    {
+        get
+        {
+            // These tests assume that the default segment size of the stream output is 4096.
+
+            byte[] bytes1K = new byte[1024];
+            byte[] bytes2K = new byte[2048];
+            byte[] bytes3K = new byte[3072];
+            byte[] bytes8K = new byte[8192];
+
+            yield return new TestCaseData(Array.Empty<byte>(), ReadOnlySequence<byte>.Empty);
+            yield return new TestCaseData(Array.Empty<byte>(), CreateSequence(new byte[][] { bytes1K }));
+            yield return new TestCaseData(Array.Empty<byte>(), CreateSequence(new byte[][] { bytes1K, bytes1K }));
+
+            yield return new TestCaseData(bytes1K, CreateSequence(new byte[][] { bytes1K }));
+            yield return new TestCaseData(bytes2K, CreateSequence(new byte[][] { bytes3K }));
+            yield return new TestCaseData(bytes8K, CreateSequence(new byte[][] { bytes1K }));
+        }
+    }
+
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
     /// <summary>Ensures that completing the stream output after writing data doesn't discard the data. A successful
@@ -649,6 +670,47 @@ public abstract class MultiplexedStreamConformanceTests
         Assert.That(readResult.Buffer.Length, Is.EqualTo(1));
     }
 
+    [TestCaseSource(nameof(WriteData))]
+    public async Task Stream_write(byte[] bufferedData, ReadOnlySequence<byte> writeData)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
+        PipeWriter output = sut.Local.Output;
+        PipeReader input = sut.Remote.Input;
+
+        // Act
+        if (bufferedData.Length > 0)
+        {
+            output.Write(bufferedData);
+        }
+
+        FlushResult flushResult;
+        if (output is ReadOnlySequencePipeWriter writer)
+        {
+            flushResult = await writer.WriteAsync(writeData, endStream: false, CancellationToken.None);
+        }
+        else
+        {
+            flushResult = await output.WriteAsync(writeData.ToArray());
+        }
+        output.Complete();
+
+        // Assert
+        ReadResult readResult;
+        long length = 0;
+        do
+        {
+            readResult = await input.ReadAsync();
+            length += readResult.Buffer.Length;
+            input.AdvanceTo(readResult.Buffer.End);
+        }
+        while (!readResult.IsCompleted);
+        Assert.That(length, Is.EqualTo(bufferedData.Length + writeData.Length));
+    }
+
     /// <summary>Verifies that calling write with a canceled cancellation token fails with
     /// <see cref="OperationCanceledException" />.</summary>
     [Test]
@@ -671,4 +733,46 @@ public abstract class MultiplexedStreamConformanceTests
 
     /// <summary>Creates the service collection used for multiplexed listener conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
+
+    private static ReadOnlySequence<byte> CreateSequence(byte[][] buffers)
+    {
+        if (buffers.Length == 0)
+        {
+            return ReadOnlySequence<byte>.Empty;
+        }
+        if (buffers.Length == 1)
+        {
+            return new ReadOnlySequence<byte>(buffers[0]);
+        }
+        else
+        {
+            MemorySegment? first = null;
+            MemorySegment? last = null;
+            foreach (ReadOnlyMemory<byte> buffer in buffers)
+            {
+                if (first is null)
+                {
+                    first = new MemorySegment(buffer);
+                    last = first;
+                }
+                else
+                {
+                    last = last!.Append(buffer);
+                }
+            }
+            return new ReadOnlySequence<byte>(first!, 0, last!, last!.Memory.Length);
+        }
+    }
+
+    private class MemorySegment : ReadOnlySequenceSegment<byte>
+    {
+        internal MemorySegment(ReadOnlyMemory<byte> buffer) => Memory = buffer;
+
+        internal MemorySegment Append(ReadOnlyMemory<byte> buffer)
+        {
+            var next = new MemorySegment(buffer) { RunningIndex = RunningIndex + Memory.Length };
+            Next = next;
+            return next;
+        }
+    }
 }
