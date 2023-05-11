@@ -20,7 +20,7 @@ public sealed class PayloadPipeWriterDecorator : PipeWriter
     /// <inheritdoc/>
     public override void Complete(Exception? exception = null)
     {
-        _completed.SetResult(exception);
+        _completed.TrySetResult(exception);
         _decoratee.Complete(exception);
     }
 
