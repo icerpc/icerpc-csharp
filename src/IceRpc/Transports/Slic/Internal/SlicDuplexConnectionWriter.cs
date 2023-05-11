@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -18,9 +17,7 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     private readonly CancellationTokenSource _disposeCts = new();
     private Task? _disposeTask;
     private readonly Pipe _pipe;
-    // This field is temporary and will be removed once the IDuplexConnection WriteAsync operation no longer requires an
-    // IReadOnlyList<ReadOnlyMemory<byte> parameter.
-    private readonly List<ReadOnlyMemory<byte>> _segments = new() { ReadOnlyMemory<byte>.Empty };
+    private readonly List<ReadOnlyMemory<byte>> _segments = new(16);
 
     /// <inheritdoc/>
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
@@ -84,8 +81,6 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
                             {
                                 _segments.Add(segment);
                             }
-
-                            // TODO: change the IDuplexConnection.WriteAsync API to use ReadOnlySequence<byte> instead.
                             await _connection.WriteAsync(_segments, _disposeCts.Token).ConfigureAwait(false);
                             _pipe.Reader.AdvanceTo(readResult.Buffer.End);
                         }
@@ -115,22 +110,4 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     /// <summary>Requests the shut down of the duplex connection after the buffered data is written on the duplex
     /// connection.</summary>
     internal void Shutdown() => _pipe.Writer.Complete();
-
-    /// <summary>Writes two sequences of bytes.</summary>
-    internal async ValueTask WriteAsync(
-        ReadOnlySequence<byte> source1,
-        ReadOnlySequence<byte> source2,
-        CancellationToken cancellationToken)
-    {
-        if (source1.Length > 0)
-        {
-            _pipe.Writer.Write(source1);
-        }
-        if (source2.Length > 0)
-        {
-            _pipe.Writer.Write(source2);
-        }
-
-        await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-    }
 }
