@@ -84,6 +84,8 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
                             {
                                 _segments.Add(segment);
                             }
+
+                            // TODO: change the IDuplexConnection.WriteAsync API to use ReadOnlySequence<byte> instead.
                             await _connection.WriteAsync(_segments, _disposeCts.Token).ConfigureAwait(false);
                             _pipe.Reader.AdvanceTo(readResult.Buffer.End);
                         }

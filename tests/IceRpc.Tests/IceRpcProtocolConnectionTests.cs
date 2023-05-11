@@ -19,6 +19,9 @@ public sealed class IceRpcProtocolConnectionTests
     {
         get
         {
+            // empty control frame to complete the stream
+            yield return new TestCaseData(Array.Empty<byte>());
+
             // bogus control frame type
             yield return new TestCaseData(new byte[] { 0xff });
 
@@ -293,7 +296,6 @@ public sealed class IceRpcProtocolConnectionTests
             () => acceptTask,
             Throws.InstanceOf<IceRpcException>()
                 .With.InnerException.InstanceOf<InvalidDataException>()
-                // TODO: Invalid GoAway frames report an IceRpcError.IceRpcError code, should we use the same code here?
                 .And.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
@@ -1645,7 +1647,14 @@ public sealed class IceRpcProtocolConnectionTests
         Task shutdownTask = sut.Server.ShutdownAsync(default);
 
         // Act
-        await clientControlStream.Output.WriteAsync(invalidGoAwayFrame);
+        if (invalidGoAwayFrame.Length == 0)
+        {
+            clientControlStream.Output.Complete();
+        }
+        else
+        {
+            await clientControlStream.Output.WriteAsync(invalidGoAwayFrame);
+        }
 
         // Assert
         Assert.That(

@@ -1387,23 +1387,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         if (readResult.Buffer.IsEmpty)
         {
-            throw new InvalidDataException("Received an invalid empty control frame.");
+            throw new InvalidDataException(
+                "Failed to read the frame type because no more data is available from the control stream.");
         }
 
-        IceRpcControlFrameType frameType = DecodeFrameType(readResult.Buffer);
+        var frameType = (IceRpcControlFrameType)readResult.Buffer.FirstSpan[0];
         if (frameType != expectedFrameType)
         {
             throw new InvalidDataException($"Received frame type {frameType} but expected {expectedFrameType}.");
         }
-
-        IceRpcControlFrameType DecodeFrameType(ReadOnlySequence<byte> buffer)
-        {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            byte value = decoder.DecodeUInt8();
-            IceRpcControlFrameType frameType = value.AsIceRpcControlFrameType();
-            _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.GetPosition(decoder.Consumed));
-            return frameType;
-        }
+        _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.GetPosition(1));
     }
 
     private async ValueTask ReceiveSettingsFrameBody(CancellationToken cancellationToken)
