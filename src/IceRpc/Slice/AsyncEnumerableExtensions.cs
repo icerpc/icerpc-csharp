@@ -6,7 +6,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for <see cref="IAsyncEnumerable{T}" />.</summary>
+/// <summary>Provides an extension method for encoding an <see cref="IAsyncEnumerable{T}" /> into a
+/// <see cref="PipeReader"/>.</summary>
 public static class AsyncEnumerableExtensions
 {
     /// <summary>Encodes an async enumerable into a stream of bytes represented by a <see cref="PipeReader"/>.</summary>
@@ -18,6 +19,8 @@ public static class AsyncEnumerableExtensions
     /// <param name="encoding">The Slice encoding to use.</param>
     /// <param name="encodeOptions">The Slice encode options.</param>
     /// <returns>A pipe reader that represents the encoded stream of bytes.</returns>
+    /// <remarks>This extension method is used to encode streaming parameters and streaming return values with the Slice 2
+    /// encoding.</remarks>
     public static PipeReader ToPipeReader<T>(
         this IAsyncEnumerable<T> asyncEnumerable,
         EncodeAction<T> encodeAction,

@@ -2,7 +2,8 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method for decoding a WellKnownTypes::Duration.</summary>
+/// <summary>Provides an extension method for decoding a <c>WellKnownTypes::Duration</c> into a
+/// <see cref="TimeSpan"/>.</summary>
 public static class DurationSliceDecoderExtensions
 {
     /// <summary>Decodes a duration.</summary>

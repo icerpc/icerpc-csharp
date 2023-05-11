@@ -6,6 +6,7 @@ using System.Buffers;
 namespace IceRpc.Slice;
 
 /// <summary>Provides a method for reading a bit sequence.</summary>
+/// <seealso href="https://docs.testing.zeroc.com/docs/slice/encoding/encoding-only-constructs#bit-sequence"/>
 public ref struct BitSequenceReader
 {
     private byte _currentByte;
@@ -43,6 +44,7 @@ public ref struct BitSequenceReader
 }
 
 /// <summary>Provides a method for writing a bit sequence.</summary>
+/// <seealso href="https://docs.testing.zeroc.com/docs/slice/encoding/encoding-only-constructs#bit-sequence"/>
 public ref struct BitSequenceWriter
 {
     private int _index; // the bit index in _spanEnumerator.Current
