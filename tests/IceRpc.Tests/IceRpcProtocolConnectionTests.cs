@@ -15,6 +15,81 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceRpcProtocolConnectionTests
 {
+    private static IEnumerable<TestCaseData> InvalidGoAwayFrames
+    {
+        get
+        {
+            // empty control frame to complete the stream
+            yield return new TestCaseData(Array.Empty<byte>());
+
+            // bogus control frame type
+            yield return new TestCaseData(new byte[] { 0xff });
+
+            // GoAway frame (0x01) followed by segment size > MaxGoAwayFrameBodySize (32768)
+            yield return new TestCaseData(new byte[] { 0x01, 0x02, 0x00, 0x02, 0x00 });
+
+            // Truncated frame
+            yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.GoAway,
+                (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue));
+
+            // Frame with extra data
+            yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.GoAway,
+                (ref SliceEncoder encoder) =>
+                {
+                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
+                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
+                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
+                });
+        }
+    }
+
+    private static IEnumerable<TestCaseData> InvalidSettingsFrames
+    {
+        get
+        {
+            // bogus control frame type
+            yield return new TestCaseData(new byte[] { 0xff });
+
+            // Settings frame (0x00) followed by segment size > MaxSettingsFrameBodySize (32768)
+            yield return new TestCaseData(new byte[] { 0x00, 0x02, 0x00, 0x02, 0x00 });
+
+            // Bogus dictionary size
+            yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue));
+
+            // Truncated frame (dictionary with 3 elements but no encoded elements)
+            yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(3));
+
+            // Frame with extra data
+            yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) =>
+                {
+                    encoder.EncodeVarUInt62(0);
+                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
+                });
+
+            // Invalid MaxHeaderSize
+            yield return CreateFrameTestCaseData(
+                IceRpcControlFrameType.Settings,
+                (ref SliceEncoder encoder) =>
+                {
+                    var settings = new IceRpcSettings(
+                        new Dictionary<IceRpcSettingKey, ulong>
+                        {
+                            // Bogus MaxHeaderSize
+                            [IceRpcSettingKey.MaxHeaderSize] = SliceEncoder.VarUInt62MaxValue
+                        });
+                    settings.Encode(ref encoder);
+                });
+        }
+    }
+
     private static IEnumerable<TestCaseData> DispatchExceptionSource
     {
         get
@@ -193,6 +268,35 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await shutdownTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.OperationAborted));
+    }
+
+    [TestCaseSource(nameof(InvalidSettingsFrames))]
+    public async Task Connect_exception_handling_on_invalid_settings_frame_from_peer(byte[] invalidSettingsFrame)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        Task acceptTask = sut.AcceptAsync();
+
+        // Get a hold of the client protocol connection control stream.
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+        _ = await clientTransport.LastCreatedConnection.ConnectAsync(default);
+        var clientControlStream =
+            await clientTransport.LastCreatedConnection.CreateStreamAsync(false, default).ConfigureAwait(false);
+
+        // Act
+        await clientControlStream.Output.WriteAsync(invalidSettingsFrame);
+
+        // Assert
+        Assert.That(
+            () => acceptTask,
+            Throws.InstanceOf<IceRpcException>()
+                .With.InnerException.InstanceOf<InvalidDataException>()
+                .And.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
     [TestCase(false, false, MultiplexedTransportOperations.Connect)]
@@ -1523,6 +1627,43 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
     }
 
+    [TestCaseSource(nameof(InvalidGoAwayFrames))]
+    public async Task Shutdown_exception_handling_on_invalid_go_away_frame_from_peer(byte[] invalidGoAwayFrame)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc)
+            .AddTestMultiplexedTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        // Get a hold of the client protocol connection control stream.
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+        var clientControlStream = clientTransport.LastCreatedConnection.LastCreatedStream;
+
+        // Shutdown the server-side of the connection. This will wait for the GoAway frame from the client.
+        Task shutdownTask = sut.Server.ShutdownAsync(default);
+
+        // Act
+        if (invalidGoAwayFrame.Length == 0)
+        {
+            clientControlStream.Output.Complete();
+        }
+        else
+        {
+            await clientControlStream.Output.WriteAsync(invalidGoAwayFrame);
+        }
+
+        // Assert
+        Assert.That(
+            () => shutdownTask,
+            Throws.InstanceOf<IceRpcException>()
+                .With.InnerException.InstanceOf<InvalidDataException>()
+                .And.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+    }
+
     /// <summary>Verifies that a shutdown can be canceled when the server transport ShutdownAsync is hung.</summary>
     [Test]
     public async Task Shutdown_cancellation_with_hung_server_transport()
@@ -1539,7 +1680,7 @@ public sealed class IceRpcProtocolConnectionTests
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (_, Task serverShutdownRequested) = await sut.ConnectAsync();
         // Hold the remote control stream reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.LastStream.Operations.Hold = MultiplexedTransportOperations.StreamRead;
+        serverTransport.LastAcceptedConnection.LastAcceptedStream.Operations.Hold = MultiplexedTransportOperations.StreamRead;
         _ = sut.Server.ShutdownWhenRequestedAsync(serverShutdownRequested);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
@@ -1677,4 +1818,15 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
+    private static TestCaseData CreateFrameTestCaseData(IceRpcControlFrameType frameType, EncodeAction encode)
+    {
+        var writer = new MemoryBufferWriter(new byte[1024]);
+        var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+        encoder.EncodeUInt8((byte)frameType);
+        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+        int startPos = encoder.EncodedByteCount;
+        encode(ref encoder);
+        SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        return new TestCaseData(writer.WrittenMemory.ToArray());
+    }
 }

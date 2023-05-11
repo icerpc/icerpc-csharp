@@ -1380,52 +1380,23 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         IceRpcControlFrameType expectedFrameType,
         CancellationToken cancellationToken)
     {
-        PipeReader input = _remoteControlStream!.Input;
+        ReadResult readResult = await _remoteControlStream!.Input.ReadAsync(cancellationToken).ConfigureAwait(false);
 
-        while (true)
+        // We don't call CancelPendingRead on _remoteControlStream.Input.
+        Debug.Assert(!readResult.IsCanceled);
+
+        if (readResult.Buffer.IsEmpty)
         {
-            ReadResult readResult = await input.ReadAsync(cancellationToken).ConfigureAwait(false);
-
-            // We don't call CancelPendingRead on _remoteControlStream.Input.
-            Debug.Assert(!readResult.IsCanceled);
-
-            if (readResult.Buffer.IsEmpty)
-            {
-                throw new InvalidDataException("Received an invalid empty control frame.");
-            }
-
-            if (TryDecodeFrameType(readResult.Buffer, out IceRpcControlFrameType frameType, out long consumed))
-            {
-                input.AdvanceTo(readResult.Buffer.GetPosition(consumed));
-                break; // while
-            }
-            else
-            {
-                input.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-            }
+            throw new InvalidDataException(
+                "Failed to read the frame type because no more data is available from the control stream.");
         }
 
-        bool TryDecodeFrameType(ReadOnlySequence<byte> buffer, out IceRpcControlFrameType frameType, out long consumed)
+        var frameType = (IceRpcControlFrameType)readResult.Buffer.FirstSpan[0];
+        if (frameType != expectedFrameType)
         {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            if (decoder.TryDecodeUInt8(out byte value))
-            {
-                frameType = value.AsIceRpcControlFrameType();
-                if (frameType != expectedFrameType)
-                {
-                    throw new InvalidDataException(
-                       $"Received frame type {frameType} but expected {expectedFrameType}.");
-                }
-                consumed = decoder.Consumed;
-                return true;
-            }
-            else
-            {
-                frameType = IceRpcControlFrameType.GoAway;
-                consumed = 0;
-                return false;
-            }
+            throw new InvalidDataException($"Received frame type {frameType} but expected {expectedFrameType}.");
         }
+        _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.GetPosition(1));
     }
 
     private async ValueTask ReceiveSettingsFrameBody(CancellationToken cancellationToken)
@@ -1450,7 +1421,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
             {
                 // a varuint62 always fits in a long
-                _peerMaxHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
+                try
+                {
+                    _peerMaxHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
+                }
+                catch (ArgumentOutOfRangeException exception)
+                {
+                    throw new InvalidDataException($"Received invalid maximum header size setting.", exception);
+                }
                 _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
             }
             // all other settings are unknown and ignored
