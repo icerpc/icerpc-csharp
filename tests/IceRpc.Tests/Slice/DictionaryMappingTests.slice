@@ -3,17 +3,23 @@
 module IceRpc::Tests::Slice
 
 interface DictionaryMappingOperations {
+    returnDictionaryTuple() -> (r1: dictionary<int32, int32> r2: dictionary<int32, int32>)
+
+    returnDictionary() -> dictionary<int32, int32>
+
+    sendDictionary(p: dictionary<int32, int32>)
+
     // We don't need to add tests for other cs::generic arguments because the code path is always the same. The argument
     // must be a non-abstract generic type that implements IDictionary<TKey, TValue> and provides a constructor with an
     // initial capacity parameter.
-    opReturnTuple() -> (
+    returnCustomDictionaryTuple() -> (
         r1: [cs::generic("CustomDictionary")] dictionary<int32, int32>
         r2: [cs::generic("CustomDictionary")] dictionary<int32, int32>
     )
 
-    opReturnSingleType() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>
+    returnCustomDictionary() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>
 
-    opSingleParameter(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>)
+    sendCustomDictionary(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>)
 }
 
 [cs::readonly] compact struct LargeStruct {
