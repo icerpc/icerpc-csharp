@@ -759,11 +759,16 @@ internal class SlicConnection : IMultiplexedConnection
                     stream.SentLastStreamFrame();
                 }
 
-                // Write the stream frame.
-                await _duplexConnectionWriter.WriteAsync(
-                    sendSource1,
-                    sendSource2,
-                    writeCts.Token).ConfigureAwait(false);
+                // Write and flush the stream frame.
+                if (!sendSource1.IsEmpty)
+                {
+                    _duplexConnectionWriter.Write(sendSource1);
+                }
+                if (!sendSource2.IsEmpty)
+                {
+                    _duplexConnectionWriter.Write(sendSource2);
+                }
+                await _duplexConnectionWriter.FlushAsync(writeCts.Token).ConfigureAwait(false);
             }
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
         }
