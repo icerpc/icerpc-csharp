@@ -11,32 +11,22 @@ public static class PipelineExamples
     public static async Task CreatingAndUsingThePipeline()
     {
         #region CreatingAndUsingThePipeline
-        // Create a connection cache.
-        await using var connectionCache = new ConnectionCache();
-
         // Create a simple console logger factory and configure the log level for category IceRpc.
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
             builder
                 .AddSimpleConsole()
                 .AddFilter("IceRpc", LogLevel.Information));
 
+        // Create a client connection.
+        await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+
         // Create an invocation pipeline with the retry and logger interceptors.
         Pipeline pipeline = new Pipeline()
-            .UseRetry()
             .UseLogger(loggerFactory)
-            .Into(connectionCache);
+            .Into(connection);
 
         // Create a proxy that uses the pipeline as its invoker.
-        var greeterProxy = new GreeterProxy(
-            pipeline,
-            new ServiceAddress(new Uri("icerpc://host1/greeter"))
-            {
-                AltServerAddresses = new[]
-                {
-                    new ServerAddress(new Uri("icerpc://host2/greeter")),
-                    new ServerAddress(new Uri("icerpc://host3/greeter")),
-                }.ToImmutableList()
-            });
+        var greeterProxy = new GreeterProxy(pipeline);
         #endregion
     }
 
