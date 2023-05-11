@@ -44,7 +44,7 @@ internal sealed class SequenceCoupler
                 tail.Reset(memory, runningIndex);
                 runningIndex += memory.Length;
 
-                // We already get (and possibly create) one extra segment. It's not used if we've reached the last
+                // We always get (and possibly create) one extra segment. It's not used if we've reached the last
                 // segment of second.
                 next = tail.GetNext();
             }
