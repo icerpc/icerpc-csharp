@@ -2,19 +2,26 @@
 
 namespace IceRpc;
 
-/// <summary>A router allows you to compose a dispatch pipeline from zero or more dispatchers installed by calling
-/// <see cref="Map(string, IDispatcher)"/>, <see cref="Mount(string, IDispatcher)"/>, and
-/// <see cref="Use(Func{IDispatcher, IDispatcher})"/>.</summary>
+/// <summary>Provides methods for defining how incoming requests are routed to target services.</summary>
 /// <example>
 /// A server application would typically create a dispatch pipeline using the <see cref="Router"/> class, which map
 /// the services provided by the server to different paths.
 /// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouter" lang="csharp" />
-/// The next examples shows a more realistic scenario, where you install some middleware handling cross cutting
-/// concerns like logging, and compression, and then map some services that take care of the business logic.
+/// The next examples shows how you would install some middleware, and map a service.
 /// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouterWithMiddleware" lang="csharp" />
-/// The above examples showed how the IceRPC logger and compressor middleware can be installed in the dispatch pipeline,
-/// but you can aswell install any <see cref="IDispatcher"/> using <see cref="Use(Func{IDispatcher, IDispatcher})"/>
+/// You can easily create your own middleware and add it to the router. The next example shows how you can create a
+/// middleware using an <see cref="InlineDispatcher"/> and add it to the pipeline with
+/// <see cref="Use(Func{IDispatcher, IDispatcher})"/>.
+/// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouterWithAnInlineDispatcher" lang="csharp" />
 /// </example>
+/// <remarks><para>The <see cref="Router"/> class is an <see cref="IDispatcher"/> implementation that allows you to
+/// define dispatch pipelines to customize how incoming requests are processed. By utilizing the <see cref="Router"/>
+/// class, you can create routes with various middleware, and sub-routers through which incoming requests flow into a
+/// target service.</para>
+/// <para>Incoming requests flow throw the router's configured middleware, and then are routed to one of the configured
+/// dispatchers based on the request's path, if the router finds a route with an exact match for request's path, the
+/// request will be passed to the given dispatcher, if there isn't any route with matches the request's path, it will
+/// look for any prefix routes that match the request's path.</para></remarks>
 public sealed class Router : IDispatcher
 {
     /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this
