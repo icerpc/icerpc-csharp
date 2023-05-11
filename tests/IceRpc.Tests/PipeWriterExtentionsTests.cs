@@ -81,7 +81,7 @@ public class PipeWriterExtensionsTests
     {
         // Arrange
         var destinationPipe = new Pipe();
-        var sourcePipeReader = PipeReader.Create(ReadOnlySequence<byte>.Empty);
+        var sourcePipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[1]));
         var writesClosedTcs = new TaskCompletionSource();
 
         // Act
