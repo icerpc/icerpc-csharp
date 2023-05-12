@@ -5,9 +5,9 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal;
 
-/// <summary>Represents a coupler that connects two <see cref="ReadOnlySequence{T} "/> of byte to form a single
+/// <summary>Represents a coupler that concatenates two <see cref="ReadOnlySequence{T} "/> of byte to form a single
 /// sequence.</summary>
-/// <remarks>This class does not copy the memory of the sequences it connects. It does however create a
+/// <remarks>This class does not copy the memory of the sequences it concatenates. It does however create a
 /// ReadOnlySequenceSegment instance for each segment of the input sequences, so it's not ultra cheap. If performance is
 /// a concern, you should reuse the same sequence coupler over and over as it reuses the ReadOnlySequenceSegment
 /// instances it creates.</remarks>
@@ -15,7 +15,7 @@ internal sealed class SequenceCoupler
 {
     private readonly Segment _head = new();
 
-    internal ReadOnlySequence<byte> Connect(ReadOnlySequence<byte> first, ReadOnlySequence<byte> second)
+    internal ReadOnlySequence<byte> Concat(ReadOnlySequence<byte> first, ReadOnlySequence<byte> second)
     {
         if (first.IsEmpty)
         {

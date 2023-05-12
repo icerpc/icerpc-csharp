@@ -12,7 +12,7 @@ namespace IceRpc.Tests;
 [FixtureLifeCycle(LifeCycle.SingleInstance)]
 public class SequenceCouplerTests
 {
-    private static IEnumerable<TestCaseData> ConnectSequencesSources
+    private static IEnumerable<TestCaseData> ConcatSequencesSources
     {
         get
         {
@@ -44,15 +44,15 @@ public class SequenceCouplerTests
     // We use the same SequenceCoupler instance over and over as it's the typical way to use this class.
     private readonly SequenceCoupler _sut = new();
 
-    /// <summary>Verifies that <see cref="SequenceCoupler.Connect" /> correctly connects two sequences.</summary>
-    [Test, TestCaseSource(nameof(ConnectSequencesSources))]
-    public void Connect_sequences(ReadOnlySequence<byte> first, ReadOnlySequence<byte> second)
+    /// <summary>Verifies that <see cref="SequenceCoupler.Concat" /> correctly concatenates two sequences.</summary>
+    [Test, TestCaseSource(nameof(ConcatSequencesSources))]
+    public void Concat_sequences(ReadOnlySequence<byte> first, ReadOnlySequence<byte> second)
     {
-        ReadOnlySequence<byte> connected = _sut.Connect(first, second);
+        ReadOnlySequence<byte> result = _sut.Concat(first, second);
 
-        Assert.That(connected.Length, Is.EqualTo(first.Length + second.Length));
+        Assert.That(result.Length, Is.EqualTo(first.Length + second.Length));
 
-        ReadOnlySequence<byte>.Enumerator enumerator = connected.GetEnumerator();
+        ReadOnlySequence<byte>.Enumerator enumerator = result.GetEnumerator();
 
         if (!first.IsEmpty)
         {
