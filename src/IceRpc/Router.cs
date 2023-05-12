@@ -2,26 +2,24 @@
 
 namespace IceRpc;
 
-/// <summary>Provides methods for defining how incoming requests are routed to target services.</summary>
+/// <summary>Provides methods for routing incoming requests to dispatchers.</summary>
 /// <example>
-/// A server application would typically create a dispatch pipeline using the <see cref="Router"/> class, which map
-/// the services provided by the server to different paths.
-/// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouter" lang="csharp" />
-/// The next examples shows how you would install some middleware, and map a service.
+/// The following example shows how you would install some middleware, and map a service.
 /// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouterWithMiddleware" lang="csharp" />
 /// You can easily create your own middleware and add it to the router. The next example shows how you can create a
-/// middleware using an <see cref="InlineDispatcher"/> and add it to the pipeline with
+/// middleware using an <see cref="InlineDispatcher"/> and add it to the router with
 /// <see cref="Use(Func{IDispatcher, IDispatcher})"/>.
 /// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouterWithAnInlineDispatcher" lang="csharp" />
 /// </example>
-/// <remarks><para>The <see cref="Router"/> class is an <see cref="IDispatcher"/> implementation that allows you to
-/// define dispatch pipelines to customize how incoming requests are processed. By utilizing the <see cref="Router"/>
-/// class, you can create routes with various middleware, and sub-routers through which incoming requests flow into a
-/// target service.</para>
-/// <para>Incoming requests flow throw the router's configured middleware, and then are routed to one of the configured
-/// dispatchers based on the request's path, if the router finds a route with an exact match for request's path, the
-/// request will be passed to the given dispatcher, if there isn't any route with matches the request's path, it will
-/// look for any prefix routes that match the request's path.</para></remarks>
+/// <remarks><para>The <see cref="Router"/> class allows you to define a dispatch pipeline for customizing how incoming
+/// requests are processed. You utilize the Router class, for creating routes with various middleware, sub-routers,
+/// and dispatchers.</para>
+/// <para>Incoming requests flow throw the dispatch pipeline in their way in. They are first processed by the router's
+/// configured middleware, and then routed to a target dispatcher based on their path. The target dispatcher returns
+/// and outgoing response that walks the dispatch pipeline in the opposite direction.</para>
+/// <para>The routing process first try to find a route with an exact match for the requests path. If no exact match is
+/// found it will try the prefix rules against the request path. Finally if the router cannot find any route it throws
+/// a <see cref="DispatchException"/> with a <see cref="StatusCode.ServiceNotFound"/> status code.</para></remarks>
 public sealed class Router : IDispatcher
 {
     /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this

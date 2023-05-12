@@ -20,12 +20,12 @@ public static class PipelineExamples
         // Create a client connection.
         await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-        // Create an invocation pipeline with the retry and logger interceptors.
+        // Create an invocation pipeline and install the logger interceptor.
         Pipeline pipeline = new Pipeline()
             .UseLogger(loggerFactory)
             .Into(connection);
 
-        // Create a proxy that uses the pipeline as its invoker.
+        // Create a proxy that uses pipeline as its invocation pipeline.
         var greeterProxy = new GreeterProxy(pipeline);
         #endregion
     }
@@ -37,10 +37,10 @@ public static class PipelineExamples
             .Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 // Add some logic before processing the request
-                Console.WriteLine("before _next.InvokeAsync");
-                // Class the next invoker on the invocation pipeline.
+                Console.WriteLine("before next.InvokeAsync");
+                // Call the next invoker on the invocation pipeline.
                 IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
-                Console.WriteLine($"after _next.InvokerAsync; the response status code is {response.StatusCode}");
+                Console.WriteLine($"after next.InvokerAsync; the response status code is {response.StatusCode}");
                 // Add some logic after receiving the response.
                 return response;
             }));
