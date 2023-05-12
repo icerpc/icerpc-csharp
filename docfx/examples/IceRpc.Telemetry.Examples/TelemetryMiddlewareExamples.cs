@@ -13,9 +13,6 @@ public static class TelemetryMiddlewareExamples
         // The activity source used by the telemetry middleware.
         using var activitySource = new ActivitySource("IceRpc");
 
-        // Create a connection.
-        await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
-
         // Add the telemetry middleware to the dispatch pipeline.
         Router router = new Router()
             .UseTelemetry(activitySource);

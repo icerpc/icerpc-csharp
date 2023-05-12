@@ -2,7 +2,29 @@
 
 namespace IceRpc;
 
-/// <summary>A router routes incoming requests to dispatchers.</summary>
+/// <summary>Provides methods for routing incoming requests to dispatchers.</summary>
+/// <example>
+/// The following example shows how you would install a middleware, and map a service.
+/// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouterWithMiddleware" lang="csharp" />
+/// You can easily create your own middleware and add it to the router. The next example shows how you can create a
+/// middleware using an <see cref="InlineDispatcher"/> and add it to the router with
+/// <see cref="Use(Func{IDispatcher, IDispatcher})"/>.
+/// <code source="../../docfx/examples/IceRpc.Examples/RouterExamples.cs" region="CreatingAndUsingTheRouterWithAnInlineDispatcher" lang="csharp" />
+/// </example>
+/// <remarks><para>The <see cref="Router"/> class allows you to define a dispatch pipeline for customizing how incoming
+/// requests are processed. You utilize the Router class for creating routes with various middleware, sub-routers,
+/// and dispatchers.</para>
+/// <para>Incoming requests flow through the dispatch pipeline. An incoming request is first processed by the router's
+/// middleware and then routed to a target dispatcher based on its path. The target dispatcher returns an outgoing
+/// response that goes through the dispatch pipeline in the opposite direction.</para>
+/// <para>The routing algorithm determines how incoming requests are routed to dispatchers. The router first checks if
+/// a dispatcher is registered with the request's path, which corresponds to dispatchers registered using
+/// <see cref="Map(string, IDispatcher)"/>. If there isn't a dispatcher registered for the request's path, the router
+/// looks for dispatchers registered with a matching prefix, which corresponds to dispatchers installed using
+/// <see cref="Mount(string, IDispatcher)"/>. When searching for a matching prefix, the router starts with the request
+/// path and successively tries chopping segments from the end of the path until either the path is exhausted or a
+/// dispatcher matching the prefix is found. Finally, if the router cannot find any dispatcher, it throws a
+/// <see cref="DispatchException"/> with a <see cref="StatusCode.ServiceNotFound"/> status code.</para></remarks>
 public sealed class Router : IDispatcher
 {
     /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this
