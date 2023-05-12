@@ -132,16 +132,11 @@ public class PipeWriterExtensionsTests
     }
 
     [Test]
-    public async Task PipeWriter_copy_from_with_end_stream_completes_the_writer(
-        [Values] bool withReadOnlySequencePipeWriter)
+    public async Task ReadOnlySequencePipeWriter_copy_from_with_end_stream_completes_the_writer()
     {
         // Arrange
         var destinationPipe = new Pipe();
-        PipeWriter destinationWriter = destinationPipe.Writer;
-        if (withReadOnlySequencePipeWriter)
-        {
-            destinationWriter = new ReadOnlySequencePipeWriterDecorator(destinationWriter);
-        }
+        PipeWriter destinationWriter = new ReadOnlySequencePipeWriterDecorator(destinationPipe.Writer);
         var sourceReader = PipeReader.Create(ReadOnlySequence<byte>.Empty);
         var writesClosedTcs = new TaskCompletionSource();
 

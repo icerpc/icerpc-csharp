@@ -153,10 +153,6 @@ internal static class PipeWriterExtensions
                     }
                 }
             }
-            if (endStream)
-            {
-                writer.Complete();
-            }
             return flushResult;
         }
     }
