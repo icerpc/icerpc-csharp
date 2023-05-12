@@ -53,54 +53,28 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     /// <summary>Writes a sequence of bytes.</summary>
     internal async ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken)
     {
-        if (_pipe.Writer.UnflushedBytes == 0 && source.IsEmpty)
-        {
-            return;
-        }
-
         _sendBuffers.Clear();
 
         // First add the data from the internal pipe.
-        SequencePosition? consumed = null;
-        if (_pipe.Writer.UnflushedBytes > 0)
-        {
-            _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-            _pipe.Reader.TryRead(out ReadResult readResult);
 
-            Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
+        // Ice only calls WriteAsync or FlushAsync with unflushed bytes.
+        Debug.Assert(_pipe.Writer.UnflushedBytes > 0);
 
-            consumed = readResult.Buffer.GetPosition(readResult.Buffer.Length);
-            AddToSendBuffers(readResult.Buffer);
-        }
+        _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+        _pipe.Reader.TryRead(out ReadResult readResult);
 
-        // Next add the data from source
+        Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
+
+        AddToSendBuffers(readResult.Buffer);
         AddToSendBuffers(source);
 
         try
         {
-            ValueTask task = _connection.WriteAsync(_sendBuffers, cancellationToken);
-            if (cancellationToken.CanBeCanceled && !task.IsCompleted)
-            {
-                await task.AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await task.ConfigureAwait(false);
-            }
-        }
-        catch (ObjectDisposedException exception)
-        {
-            throw new IceRpcException(
-                IceRpcError.OperationAborted,
-                "The write operation was aborted by the disposal of the duplex connection.",
-                exception);
+            await _connection.WriteAsync(_sendBuffers, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            if (consumed is not null)
-            {
-                _pipe.Reader.AdvanceTo(consumed.Value);
-            }
+            _pipe.Reader.AdvanceTo(readResult.Buffer.End);
         }
 
         void AddToSendBuffers(ReadOnlySequence<byte> source)

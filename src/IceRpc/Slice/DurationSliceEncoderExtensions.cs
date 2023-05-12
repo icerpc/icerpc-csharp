@@ -2,7 +2,8 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method for encoding a TimeSpan as a WellKnownTypes::Duration.</summary>
+/// <summary>Provides an extension method for encoding a <see cref="TimeSpan"/> as a <c>WellKnownTypes::Duration</c>.
+/// </summary>
 public static class DurationSliceEncoderExtensions
 {
     /// <summary>Encodes a time span as a duration.</summary>

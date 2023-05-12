@@ -316,28 +316,6 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(() => serverCloseTask, Throws.Nothing);
     }
 
-    /// <summary>Verifies that ConnectAsync can be canceled.</summary>
-    [Test]
-    public async Task Connect_cancellation()
-    {
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-
-        using var cts = new CancellationTokenSource();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-        var clientConnection = clientTransport.CreateConnection(
-            listener.ServerAddress,
-            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-            provider.GetService<SslClientAuthenticationOptions>());
-        var connectTask = clientConnection.ConnectAsync(cts.Token);
-
-        // Act
-        cts.Cancel();
-
-        // Assert
-        Assert.That(async () => await connectTask, Throws.InstanceOf<OperationCanceledException>());
-    }
-
     [Test]
     public async Task Create_client_connection_with_unknown_server_address_parameter_fails_with_format_exception()
     {

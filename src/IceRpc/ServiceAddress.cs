@@ -197,8 +197,6 @@ public sealed record class ServiceAddress
 
     /// <summary>Constructs a service address from a protocol.</summary>
     /// <param name="protocol">The protocol, or <see langword="null" /> for a relative service address.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="protocol" /> is not <see langword="null" /> or a
-    /// supported protocol.</exception>
     public ServiceAddress(Protocol? protocol = null) => Protocol = protocol;
 
     /// <summary>Constructs a service address from a URI.</summary>

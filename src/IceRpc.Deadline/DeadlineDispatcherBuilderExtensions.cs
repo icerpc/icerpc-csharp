@@ -4,7 +4,7 @@ using IceRpc.Deadline;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method to add the Deadline middleware to a <see cref="IDispatcherBuilder" />.
+/// <summary>Provides an extension method to add the deadline middleware to a <see cref="IDispatcherBuilder" />.
 /// </summary>
 public static class DeadlineDispatcherBuilderExtensions
 {
