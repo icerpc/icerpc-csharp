@@ -128,12 +128,15 @@ internal abstract class TcpConnection : IDuplexConnection
         }
     }
 
-    public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
+    public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
+        }
 
-        return buffers.Count > 0 ? PerformWriteAsync() :
-            throw new ArgumentException($"The {nameof(buffers)} list cannot be empty.", nameof(buffers));
+        return PerformWriteAsync();
 
         async ValueTask PerformWriteAsync()
         {
@@ -141,71 +144,73 @@ internal abstract class TcpConnection : IDuplexConnection
             {
                 if (SslStream is SslStream sslStream)
                 {
-                    if (buffers.Count == 1)
+                    if (buffer.IsSingleSegment)
                     {
-                        await sslStream.WriteAsync(buffers[0], cancellationToken).ConfigureAwait(false);
+                        await sslStream.WriteAsync(buffer.First, cancellationToken).ConfigureAwait(false);
                     }
                     else
                     {
-                        // Coalesce leading small buffers up to _maxSslBufferSize. We don't coalesce trailing buffers
-                        // as we assume they are large enough.
-                        int index = 0;
-                        int writeBufferSize = 0;
-                        do
+                        // Coalesce leading segments up to _maxSslBufferSize. We don't coalesce trailing segments as we
+                        // assume these segments are large enough.
+                        int leadingSize = 0;
+                        int leadingSegmentCount = 0;
+                        foreach (ReadOnlyMemory<byte> memory in buffer)
                         {
-                            ReadOnlyMemory<byte> buffer = buffers[index];
-                            if (writeBufferSize + buffer.Length <= _maxSslBufferSize)
+                            if (leadingSize + memory.Length <= _maxSslBufferSize)
                             {
-                                index++;
-                                writeBufferSize += buffer.Length;
+                                leadingSize += memory.Length;
+                                leadingSegmentCount++;
                             }
                             else
                             {
-                                break; // while
+                                break;
                             }
                         }
-                        while (index < buffers.Count);
 
-                        if (index == 1)
+                        if (leadingSegmentCount > 1)
                         {
-                            // There is no point copying only the first buffer into another buffer.
-                            index = 0;
-                        }
-                        else if (writeBufferSize > 0)
-                        {
-                            Debug.Assert(writeBufferSize <= _poolSegmentSize);
+                            ReadOnlySequence<byte> leading = buffer.Slice(0, leadingSize);
+                            buffer = buffer.Slice(leadingSize); // buffer can become empty
+
+                            Debug.Assert(leadingSize <= _poolSegmentSize);
                             using IMemoryOwner<byte> writeBufferOwner = _pool.Rent(_poolSegmentSize);
-                            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
-                            int offset = 0;
-                            for (int i = 0; i < index; ++i)
-                            {
-                                ReadOnlyMemory<byte> buffer = buffers[i];
-                                buffer.CopyTo(writeBuffer[offset..]);
-                                offset += buffer.Length;
-                            }
+                            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..leadingSize];
+                            leading.CopyTo(writeBuffer.Span);
 
-                            // Send the "coalesced" initial buffers
+                            // Send the "coalesced" leading segments
                             await sslStream.WriteAsync(writeBuffer, cancellationToken).ConfigureAwait(false);
                         }
+                        // else no need to coalesce (copy) a single segment
 
-                        // Send the remaining buffers one by one
-                        for (int i = index; i < buffers.Count; ++i)
+                        // Send the remaining segments one by one
+                        if (buffer.IsEmpty)
                         {
-                            await sslStream.WriteAsync(buffers[i], cancellationToken).ConfigureAwait(false);
+                            // done
+                        }
+                        else if (buffer.IsSingleSegment)
+                        {
+                            await sslStream.WriteAsync(buffer.First, cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            foreach (ReadOnlyMemory<byte> memory in buffer)
+                            {
+                                await sslStream.WriteAsync(memory, cancellationToken).ConfigureAwait(false);
+                            }
                         }
                     }
                 }
                 else
                 {
-                    if (buffers.Count == 1)
+                    if (buffer.IsSingleSegment)
                     {
-                        _ = await Socket.SendAsync(buffers[0], SocketFlags.None, cancellationToken)
+                        _ = await Socket.SendAsync(buffer.First, SocketFlags.None, cancellationToken)
                             .ConfigureAwait(false);
                     }
                     else
                     {
                         _segments.Clear();
-                        foreach (ReadOnlyMemory<byte> memory in buffers)
+                        foreach (ReadOnlyMemory<byte> memory in buffer)
                         {
                             if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
                             {
@@ -214,8 +219,8 @@ internal abstract class TcpConnection : IDuplexConnection
                             else
                             {
                                 throw new ArgumentException(
-                                    $"The {nameof(buffers)} must be backed by arrays.",
-                                    nameof(buffers));
+                                    $"The {nameof(buffer)} must be backed by arrays.",
+                                    nameof(buffer));
                             }
                         }
 

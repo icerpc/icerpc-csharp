@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Buffers;
 using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal;
@@ -61,15 +62,15 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
     public Task ShutdownWriteAsync(CancellationToken cancellationToken) =>
         _decoratee.ShutdownWriteAsync(cancellationToken);
 
-    public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
+    public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
         return _writeIdleTimeout == Timeout.InfiniteTimeSpan ?
-            _decoratee.WriteAsync(buffers, cancellationToken) :
+            _decoratee.WriteAsync(buffer, cancellationToken) :
             PerformWriteAsync();
 
         async ValueTask PerformWriteAsync()
         {
-            await _decoratee.WriteAsync(buffers, cancellationToken).ConfigureAwait(false);
+            await _decoratee.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 
             // After each successful write, we schedule one ping (keep alive or heartbeat) at _writeIdleTimeout / 2 in
             // the future.  Since each ping is itself a write, if there is no application activity at all, we'll send

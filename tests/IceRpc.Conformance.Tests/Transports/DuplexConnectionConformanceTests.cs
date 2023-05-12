@@ -5,6 +5,8 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
+using System.Buffers;
+using System.IO.Pipelines;
 using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
@@ -145,7 +147,7 @@ public abstract class DuplexConnectionConformanceTests
     [Test]
     public async Task Flow_control()
     {
-        var payload = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
+        var payload = new ReadOnlySequence<byte>(new byte[1024 * 1024]);
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
         await sut.AcceptAndConnectAsync();
@@ -154,7 +156,7 @@ public abstract class DuplexConnectionConformanceTests
         Task writeTask;
         while (true)
         {
-            writtenSize += payload[0].Length;
+            writtenSize += (int)payload.Length;
             writeTask = sut.Client.WriteAsync(payload, default).AsTask();
             await Task.Delay(TimeSpan.FromMilliseconds(100));
             if (writeTask.IsCompleted)
@@ -296,16 +298,58 @@ public abstract class DuplexConnectionConformanceTests
     }
 
     /// <summary>Verifies that we can write and read using the duplex connection.</summary>
+    [TestCase(3)]
+    [TestCase(11)]
+    [TestCase(1024)]
+    public async Task Write_and_read_buffers(int size)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        using var customPool = new TestMemoryPool(7);
+        var pipeOptions = new PipeOptions(customPool, minimumSegmentSize: 5);
+        var pipe = new Pipe(pipeOptions);
+
+        Memory<byte> buffer = new byte[size];
+        for (int i = 0; i < size; ++i)
+        {
+            buffer.Span[i] = (byte)(i % 256);
+        }
+        pipe.Writer.Write(buffer.Span);
+        pipe.Writer.Complete();
+        _ = pipe.Reader.TryRead(out ReadResult readResult);
+
+        // Act
+        ValueTask writeTask = sut.Client.WriteAsync(readResult.Buffer, default);
+        Memory<byte> readBuffer = new byte[size];
+        int offset = 0;
+        while (offset < size)
+        {
+            offset += await sut.Server.ReadAsync(readBuffer[offset..], default);
+        }
+        await writeTask;
+
+        // Assert
+        Assert.That(offset, Is.EqualTo(size));
+        Assert.That(readBuffer.Span.SequenceEqual(buffer.Span), Is.True);
+
+        // Cleanup
+        pipe.Reader.Complete();
+    }
+
+    /// <summary>Verifies that we can write and read using the duplex connection.</summary>
     [Test]
-    public async Task Write_and_read_buffers(
+    public async Task Write_and_read_buffers_orig(
         [Values(
             new int[] { 1 },
             new int[] { 1024 },
             new int[] { 32 * 1024 },
             new int[] { 1024 * 1024 },
             new int[] { 16, 32, 64, 128 },
-            new int[] { 3, 9, 15, 512 * 1024},
-            new int[] { 3, 512 * 1024})] int[] sizes)
+            new int[] { 3, 9, 15, 512 * 1024 },
+            new int[] { 3, 512 * 1024 })] int[] sizes)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -318,8 +362,16 @@ public abstract class DuplexConnectionConformanceTests
                 n => (ReadOnlyMemory<byte>)Enumerable.Range(0, n).Select(i => (byte)(i % 255)).ToArray())
             .ToArray();
 
+        var pipe = new Pipe();
+        foreach (ReadOnlyMemory<byte> memory in buffers)
+        {
+            pipe.Writer.Write(memory.Span);
+        }
+        pipe.Writer.Complete();
+        _ = pipe.Reader.TryRead(out ReadResult readResult);
+
         // Act
-        ValueTask writeTask = sut.Client.WriteAsync(buffers, default);
+        ValueTask writeTask = sut.Client.WriteAsync(readResult.Buffer, default);
         Memory<byte> readBuffer = new byte[size];
         int offset = 0;
         while (offset < size)
@@ -337,6 +389,9 @@ public abstract class DuplexConnectionConformanceTests
             Assert.That(readBuffer.Span.Slice(offset, size).SequenceEqual(buffers[i].Span), Is.True);
             offset += size;
         }
+
+        // Cleanup
+        pipe.Reader.Complete();
     }
 
     [Test]
@@ -345,7 +400,7 @@ public abstract class DuplexConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
         await sut.AcceptAndConnectAsync();
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
+        var buffer = new ReadOnlySequence<byte>(new byte[1]);
 
         Assert.That(
             async () => await sut.Client.WriteAsync(buffer, new CancellationToken(canceled: true)),
@@ -361,7 +416,7 @@ public abstract class DuplexConnectionConformanceTests
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
         await sut.AcceptAndConnectAsync();
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
+        var buffer = new ReadOnlySequence<byte>(new byte[1024 * 1024]);
         using var cts = new CancellationTokenSource();
 
         // Write data until flow control blocks the sending. Canceling the blocked write, should throw
@@ -398,7 +453,7 @@ public abstract class DuplexConnectionConformanceTests
 
         // Act/Assert
         Assert.That(
-            async () => await sut.Server.WriteAsync(new List<ReadOnlyMemory<byte>> { new byte[1] },
+            async () => await sut.Server.WriteAsync(new ReadOnlySequence<byte>(new byte[1]),
                 CancellationToken.None),
                 Throws.Exception);
     }
@@ -417,7 +472,7 @@ public abstract class DuplexConnectionConformanceTests
         sut.Server.Dispose();
 
         // Assert
-        var buffer = new List<ReadOnlyMemory<byte>>() { new byte[1] };
+        var buffer = new ReadOnlySequence<byte>(new byte[1]);
         IceRpcException exception;
         try
         {

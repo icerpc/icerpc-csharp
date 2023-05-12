@@ -17,7 +17,6 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     private readonly CancellationTokenSource _disposeCts = new();
     private Task? _disposeTask;
     private readonly Pipe _pipe;
-    private readonly List<ReadOnlyMemory<byte>> _segments = new(16);
 
     /// <inheritdoc/>
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
@@ -74,14 +73,9 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
                     {
                         ReadResult readResult = await _pipe.Reader.ReadAsync(_disposeCts.Token).ConfigureAwait(false);
 
-                        if (readResult.Buffer.Length > 0)
+                        if (!readResult.Buffer.IsEmpty)
                         {
-                            _segments.Clear();
-                            foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
-                            {
-                                _segments.Add(segment);
-                            }
-                            await _connection.WriteAsync(_segments, _disposeCts.Token).ConfigureAwait(false);
+                            await _connection.WriteAsync(readResult.Buffer, _disposeCts.Token).ConfigureAwait(false);
                             _pipe.Reader.AdvanceTo(readResult.Buffer.End);
                         }
 

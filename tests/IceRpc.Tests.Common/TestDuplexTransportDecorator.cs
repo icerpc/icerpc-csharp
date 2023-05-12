@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
 using System.Net;
 using System.Net.Security;
 
@@ -240,10 +241,10 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
             cancellationToken);
 
     /// <inheritdoc/>
-    public ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken) =>
+    public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken) =>
         Operations.CallAsync(
             DuplexTransportOperations.Write,
-            () => _decoratee.WriteAsync(buffers, cancellationToken),
+            () => _decoratee.WriteAsync(buffer, cancellationToken),
             cancellationToken);
 
     internal TestDuplexConnectionDecorator(

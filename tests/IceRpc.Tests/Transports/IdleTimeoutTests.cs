@@ -4,6 +4,7 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 
 namespace IceRpc.Tests.Transports;
 
@@ -26,7 +27,7 @@ public class IdleTimeoutTests
         clientConnection.Enable(TimeSpan.FromMilliseconds(500), keepAliveAction: null);
 
         // Write and read data to the connection
-        await sut.Server.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+        await sut.Server.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
         Memory<byte> buffer = new byte[1];
         await clientConnection.ReadAsync(buffer, default);
 
@@ -62,7 +63,7 @@ public class IdleTimeoutTests
             keepAliveAction: () => semaphore.Release());
 
         // Write and read data.
-        await clientConnection.WriteAsync(new List<ReadOnlyMemory<byte>>() { new byte[1] }, default);
+        await clientConnection.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
         await sut.Server.ReadAsync(new byte[10], default);
 
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);

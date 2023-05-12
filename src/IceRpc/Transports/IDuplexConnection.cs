@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Buffers;
 using System.Security.Authentication;
 
 namespace IceRpc.Transports;
@@ -78,7 +79,7 @@ public interface IDuplexConnection : IDisposable
     Task ShutdownWriteAsync(CancellationToken cancellationToken);
 
     /// <summary>Writes data over the connection.</summary>
-    /// <param name="buffers">The buffers containing the data to write.</param>
+    /// <param name="buffer">The buffer containing the data to write.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that completes successfully when the data is written successfully. This value task can
     /// also complete with one of the following exceptions:
@@ -88,9 +89,9 @@ public interface IDuplexConnection : IDisposable
     /// cancellation token.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="buffers" /> is empty.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="buffer" /> is empty.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the connection is not connected, already shut down or
     /// shutting down, or a write operation is already in progress.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
-    ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken);
+    ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken);
 }

@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -117,7 +119,7 @@ internal abstract class ColocConnection : IDuplexConnection
         return Task.CompletedTask;
     }
 
-    public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancellationToken)
+    public async ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_state.HasFlag(State.Disposed), this);
 
@@ -136,14 +138,12 @@ internal abstract class ColocConnection : IDuplexConnection
 
         try
         {
-            foreach (ReadOnlyMemory<byte> buffer in buffers)
+            _writer.Write(buffer);
+            FlushResult flushResult = await _writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            if (flushResult.IsCanceled)
             {
-                FlushResult flushResult = await _writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-                if (flushResult.IsCanceled)
-                {
-                    // Dispose canceled ReadAsync.
-                    throw new IceRpcException(IceRpcError.OperationAborted);
-                }
+                // Dispose canceled ReadAsync.
+                throw new IceRpcException(IceRpcError.OperationAborted);
             }
         }
         finally
