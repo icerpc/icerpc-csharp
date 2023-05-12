@@ -22,7 +22,7 @@ namespace IceRpc;
 /// <see cref="Map(string, IDispatcher)"/>. If there isn't a dispatcher registered for the request's path, the router
 /// looks for dispatchers registered with a matching prefix, which corresponds to dispatchers installed using
 /// <see cref="Mount(string, IDispatcher)"/>. When searching for a matching prefix, the router starts with the request
-/// path and progressively tries chopping segments from the end of the path until either the path is exhausted or a
+/// path and successively tries chopping segments from the end of the path until either the path is exhausted or a
 /// dispatcher matching the prefix is found. Finally, if the router cannot find any dispatcher, it throws a
 /// <see cref="DispatchException"/> with a <see cref="StatusCode.ServiceNotFound"/> status code.</para></remarks>
 public sealed class Router : IDispatcher
