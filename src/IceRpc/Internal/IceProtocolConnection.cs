@@ -46,11 +46,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private string? _invocationRefusedMessage;
     private int _lastRequestId;
     private readonly int _maxFrameSize;
-    private readonly MemoryPool<byte> _memoryPool;
-    private readonly int _minSegmentSize;
     private readonly object _mutex = new();
     private bool _pingEnabled = true;
     private Task _pingTask = Task.CompletedTask;
+    private readonly PipeOptions _pipeOptions;
     private Task? _readFramesTask;
 
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
@@ -608,8 +607,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         _inactivityTimeout = options.InactivityTimeout;
-        _memoryPool = options.Pool;
-        _minSegmentSize = options.MinSegmentSize;
+        _pipeOptions = new PipeOptions(
+            pool: options.Pool,
+            minimumSegmentSize: options.MinSegmentSize,
+            pauseWriterThreshold: 0,
+            writerScheduler: PipeScheduler.Inline);
 
         if (options.IceIdleTimeout != Timeout.InfiniteTimeSpan)
         {
@@ -623,8 +625,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         _duplexConnection = duplexConnection;
-        _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, _memoryPool, _minSegmentSize);
-        _duplexConnectionWriter = new IceDuplexConnectionWriter(_duplexConnection, _memoryPool, _minSegmentSize);
+        _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
+        _duplexConnectionWriter =
+            new IceDuplexConnectionWriter(_duplexConnection, options.Pool, options.MinSegmentSize);
 
         _inactivityTimeoutTimer = new Timer(_ =>
         {
@@ -689,41 +692,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
             }
         }
-    }
-
-    /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully
-    /// and buffered into an internal pipe.</summary>
-    private static async ValueTask<PipeReader> CreateFrameReaderAsync(
-        int size,
-        DuplexConnectionReader transportConnectionReader,
-        MemoryPool<byte> pool,
-        int minimumSegmentSize,
-        CancellationToken cancellationToken)
-    {
-        var pipe = new Pipe(new PipeOptions(
-            pool: pool,
-            minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline));
-
-        try
-        {
-            await transportConnectionReader.FillBufferWriterAsync(
-                pipe.Writer,
-                size,
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            pipe.Reader.Complete();
-            throw;
-        }
-        finally
-        {
-            pipe.Writer.Complete();
-        }
-
-        return pipe.Reader;
     }
 
     private static (int RequestId, IceRequestHeader Header, PipeReader? ContextReader, int Consumed) DecodeRequestIdAndHeader(
@@ -994,6 +962,32 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
     private void CancelInactivityCheck() =>
         _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+
+    /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully
+    /// and buffered into an internal pipe.</summary>
+    private async ValueTask<PipeReader> CreateFrameReaderAsync(int size, CancellationToken cancellationToken)
+    {
+        var pipe = new Pipe(_pipeOptions);
+
+        try
+        {
+            await _duplexConnectionReader.FillBufferWriterAsync(
+                pipe.Writer,
+                size,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            pipe.Reader.Complete();
+            throw;
+        }
+        finally
+        {
+            pipe.Writer.Complete();
+        }
+
+        return pipe.Reader;
+    }
 
     /// <summary>Dispatches an incoming request. This method executes in a task spawn from the read frames loop.
     /// </summary>
@@ -1339,9 +1333,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // Read the remainder of the frame immediately into frameReader.
         PipeReader replyFrameReader = await CreateFrameReaderAsync(
             replyFrameSize - IceDefinitions.PrologueSize,
-            _duplexConnectionReader,
-            _memoryPool,
-            _minSegmentSize,
             cancellationToken).ConfigureAwait(false);
 
         bool completeFrameReader = true;
@@ -1394,9 +1385,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // Read the request frame.
         PipeReader requestFrameReader = await CreateFrameReaderAsync(
             requestFrameSize - IceDefinitions.PrologueSize,
-            _duplexConnectionReader,
-            _memoryPool,
-            _minSegmentSize,
             cancellationToken).ConfigureAwait(false);
 
         // Decode its header.
