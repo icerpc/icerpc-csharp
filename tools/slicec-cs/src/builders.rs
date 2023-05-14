@@ -16,36 +16,30 @@ pub trait Builder {
 }
 
 pub trait AttributeBuilder {
-    fn add_attribute(&mut self, attributes: &str) -> &mut Self;
+    fn add_attribute(&mut self, attributes: impl Into<String>) -> &mut Self;
 
     fn add_type_id_attribute(&mut self, entity: &dyn Entity) -> &mut Self {
-        self.add_attribute(&entity.type_id_attribute());
+        self.add_attribute(entity.type_id_attribute());
         self
     }
 
     fn add_compact_type_id_attribute(&mut self, class_def: &Class) -> &mut Self {
         if let Some(compact_id) = &class_def.compact_id {
-            self.add_attribute(&format!("CompactSliceTypeId({})", compact_id.value));
+            self.add_attribute(format!("CompactSliceTypeId({})", compact_id.value));
         }
         self
     }
 
-    /// Adds multiple "container" attributes.
+    /// Adds any "container" attributes.
     /// - The obsolete attribute
-    /// - Any custom attributes
+    /// - Any `cs::attribute` attributes
     fn add_container_attributes(&mut self, container: &dyn Entity) -> &mut Self {
         if let Some(attribute) = container.obsolete_attribute(false) {
-            self.add_attribute(&attribute);
+            self.add_attribute(attribute);
         }
 
-        let custom_attributes = container
-            .attributes(false)
-            .into_iter()
-            .filter_map(match_cs_attribute)
-            .collect::<Vec<_>>();
-
-        for attribute in custom_attributes {
-            self.add_attribute(&attribute);
+        for attribute in container.attributes(false).into_iter().filter_map(match_cs_attribute) {
+            self.add_attribute(attribute);
         }
 
         self
@@ -173,8 +167,8 @@ impl Builder for ContainerBuilder {
 }
 
 impl AttributeBuilder for ContainerBuilder {
-    fn add_attribute(&mut self, attribute: &str) -> &mut Self {
-        self.attributes.push(attribute.to_owned());
+    fn add_attribute(&mut self, attribute: impl Into<String>) -> &mut Self {
+        self.attributes.push(attribute.into());
         self
     }
 }
@@ -510,9 +504,9 @@ pub struct FunctionCallBuilder {
 }
 
 impl FunctionCallBuilder {
-    pub fn new(callable: &str) -> FunctionCallBuilder {
+    pub fn new(callable: impl Into<String>) -> FunctionCallBuilder {
         FunctionCallBuilder {
-            callable: callable.to_owned(),
+            callable: callable.into(),
             arguments: vec![],
             arguments_on_newline: false,
             use_semi_colon: true,
@@ -566,8 +560,8 @@ impl Builder for FunctionCallBuilder {
 }
 
 impl AttributeBuilder for FunctionBuilder {
-    fn add_attribute(&mut self, attribute: &str) -> &mut Self {
-        self.attributes.push(attribute.to_owned());
+    fn add_attribute(&mut self, attribute: impl Into<String>) -> &mut Self {
+        self.attributes.push(attribute.into());
         self
     }
 }
