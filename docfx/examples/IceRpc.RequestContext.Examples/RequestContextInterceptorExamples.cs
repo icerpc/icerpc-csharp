@@ -19,7 +19,7 @@ public static class RequestContextInterceptorExamples
             .UseRequestContext()
             .Into(connection);
 
-        var greeter = new GreeterProxy(pipeline);
+        var greeterProxy = new GreeterProxy(pipeline);
 
         // Create a feature collection holding an IRequestContextFeature.
         IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
@@ -30,7 +30,7 @@ public static class RequestContextInterceptorExamples
             });
 
         // The request context interceptor encodes the request context feature into the request context field.
-        string greeting = await greeter.GreetAsync(Environment.UserName, features);
+        string greeting = await greeterProxy.GreetAsync(Environment.UserName, features);
         #endregion
     }
 }

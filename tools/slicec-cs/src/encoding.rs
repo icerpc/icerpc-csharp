@@ -161,7 +161,7 @@ fn encode_tagged_type(
     let data_type = member.data_type();
 
     assert!(data_type.is_optional);
-    assert!(member.tag().is_some());
+    assert!(member.is_tagged());
 
     let tag = member.tag().unwrap();
 
@@ -243,7 +243,7 @@ fn encode_tagged_type(
         format!("{param} is {unwrapped_type} {unwrapped_name}")
     };
 
-    let encode_tagged_call = FunctionCallBuilder::new(&format!("{encoder_param}.EncodeTagged"))
+    let encode_tagged_call = FunctionCallBuilder::new(format!("{encoder_param}.EncodeTagged"))
         .add_argument(tag)
         .add_argument_if_present(
             (encoding == Encoding::Slice1 && data_type.tag_format() != Some(TagFormat::VSize))
