@@ -142,6 +142,10 @@ internal static class PipeWriterExtensions
             {
                 flushResult = await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
+            else if (source.IsSingleSegment)
+            {
+                flushResult = await writer.WriteAsync(source.First, cancellationToken).ConfigureAwait(false);
+            }
             else
             {
                 foreach (ReadOnlyMemory<byte> buffer in source)

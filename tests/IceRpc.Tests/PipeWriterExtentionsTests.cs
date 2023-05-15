@@ -132,7 +132,7 @@ public class PipeWriterExtensionsTests
     }
 
     [Test]
-    public async Task ReadOnlySequencePipeWriter_copy_from_with_end_stream_completes_the_writer()
+    public async Task ReadOnlySequencePipeWriter_copy_from_with_end_stream_read_as_completed_read_result()
     {
         // Arrange
         var destinationPipe = new Pipe();
@@ -175,7 +175,6 @@ public class PipeWriterExtensionsTests
         sourcePipe.Writer.Write(new byte[10]);
         sourcePipe.Writer.Write(new byte[10]);
         sourcePipe.Writer.Complete();
-        _ = await sourcePipe.Writer.FlushAsync();
 
         var writesClosedTcs = new TaskCompletionSource();
 
