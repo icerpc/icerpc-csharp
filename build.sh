@@ -96,8 +96,6 @@ pack()
 
 publish()
 {
-    build_compiler
-    pack
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
     run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
@@ -204,7 +202,7 @@ config=""
 coverage="no"
 version_property=""
 passedInActions=()
-actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish" "--examples" "--docfx-examples" "--install-templates")
+actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish" "--examples" "--docfxExamples" "--installTemplates")
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -276,7 +274,7 @@ for action in "${passedInActions[@]}"; do
         "--examples")
             build_examples
             ;;
-        "--docfx-examples")
+        "--docfxExamples")
             build_docfx_examples
             ;;
         "--pack")
@@ -285,7 +283,7 @@ for action in "${passedInActions[@]}"; do
         "--publish")
             publish
             ;;
-        "--install-templates")
+        "--installTemplates")
             install_templates
             ;;
         "--clean")
