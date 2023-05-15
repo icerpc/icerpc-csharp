@@ -31,7 +31,7 @@ pub fn main() {
     let mut compilation_state = slice::compile_from_options(slice_options);
     cs_compile(&mut compilation_state);
 
-    if !slice_options.dry_run {
+    if !compilation_state.diagnostic_reporter.has_errors() && !slice_options.dry_run {
         for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
             let code_string = generate_code(slice_file);
 
