@@ -113,8 +113,6 @@ function Build($config, $examples, $docfxExamples, $srcdist) {
 
 function Publish($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    BuildCompiler $config
-    Pack $config
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
     Remove-Item $global_packages"\IceRpc.Slice.Tools\$version" -Recurse -Force -ErrorAction Ignore
@@ -156,15 +154,8 @@ function Clean($config, $examples) {
     CleanCompiler($config)
     CleanIceRpc($config)
     CleanIceRpcProjectTemplates($config)
-    if ($examples)
-    {
-        CleanIceRpcExamples($config)
-    }
-
-    if ($docfxExamples)
-    {
-        CleanDocfxExamples($config)
-    }
+    CleanIceRpcExamples($config)
+    CleanDocfxExamples($config)
 }
 
 function Test($config, $coverage) {
