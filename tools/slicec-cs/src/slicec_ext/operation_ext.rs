@@ -13,8 +13,8 @@ pub trait OperationExt {
     /// The name of the generated encoded result type.
     fn encoded_result_struct(&self) -> String;
 
-    /// The Slice format type of the operation
-    fn slice_classes(&self, is_dispatch: bool) -> bool;
+    /// Returns the format that classes should be encoded with.
+    fn get_class_format(&self, is_dispatch: bool) -> &str;
 
     /// The operation return task.
     fn return_task(&self, is_dispatch: bool) -> String;
@@ -33,10 +33,14 @@ impl OperationExt for Operation {
         )
     }
 
-    fn slice_classes(&self, is_dispatch: bool) -> bool {
-        match is_dispatch {
+    fn get_class_format(&self, is_dispatch: bool) -> &str {
+        let use_sliced_format = match is_dispatch {
             true => self.slice_classes_in_return(),
             false => self.slice_classes_in_arguments(),
+        };
+        match use_sliced_format {
+            true => "ClassFormat.Sliced",
+            false => "default", // `ClassFormat.Compact` is the default value
         }
     }
 
