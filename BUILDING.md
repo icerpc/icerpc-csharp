@@ -7,7 +7,7 @@
 - [Examples](#examples)
 - [Project Templates](#project-templates)
 - [Packaging](#packaging)
-- [Pushing Packages](#pushing-packages)
+- [Publishing Packages](#publishing-packages)
 - [Generating API Documentation](#generating-api-documentation)
 
 This document describes how to build and use the source code in this repository.
@@ -57,45 +57,47 @@ You can create the code coverage report using the following command:
 Linux or macOS
 
 ```shell.
-./build.sh test --coverage
+./build.sh --test --coverage
 ```
 
 Windows
 
 ```shell
-build.cmd test -coverage
+build.cmd -test -coverage
 ```
 
 ## Examples
 
-To use the IceRPC distribution from this repository instead of the one from the published NuGet packages, you'll need to build and install the NuGet packages from this repository before building the examples. To do so, run the following command:
+To use the IceRPC distribution from this repository instead of the one from the published NuGet packages, you'll need to
+build and install the NuGet packages from this repository before building the examples. To do so, run the following
+command:
 
 For Linux and macOS
 
 ```shell
-./build.sh --examples --srcdist
+./build.sh --build --pack --publish --examples
 ```
 
 For Windows
 
 ```shell
-build.cmd -examples -srcdist
+build.cmd -build -pack -publish -examples
 ```
 
 ## Packaging
 
-After building IceRPC, you can create the corresponding NuGet packages using the following command:
+You can create the IceRPC NuGet packages using the following command:
 
 Linux or macOS
 
 ```shell
-./build.sh pack
+./build.sh --build --pack
 ```
 
 Windows
 
 ```shell
-build.cmd pack
+build.cmd -build -pack
 ```
 
 ### Slice Tools
@@ -116,18 +118,18 @@ The supported `<os-name>-<os-arch>` combinations are:
 
 ## Push Packages
 
-You can then push the packages to the `global-packages` source using:
+You can then publish the packages to the `global-packages` source using:
 
 Linux or macOS
 
 ```shell
-./build.sh push
+./build.sh --publish
 ```
 
 Windows
 
 ```shell
-build.cmd push
+build.cmd -publish
 ```
 
 This allows you to use the NuGet packages from the local `global-packages` source.
@@ -140,13 +142,13 @@ published NuGet packages using the following command:
 Linux or macOS
 
 ```shell
-./build.sh install-templates
+./build.sh --installTemplates
 ```
 
 Windows
 
 ```shell
-build.cmd install-templates
+build.cmd -installTemplates
 ```
 
 ## Generating API Documentation
@@ -159,17 +161,13 @@ To generate the documentation, use the following command:
 Linux or macOS
 
 ```shell
-./build.sh doc
+./build.sh --doc
 ```
 
 Windows
 
 ```shell
-build.cmd doc
+build.cmd -doc
 ```
 
 The resulting documentation will be located in the `docfx\_site` directory.
-
-
-
-
