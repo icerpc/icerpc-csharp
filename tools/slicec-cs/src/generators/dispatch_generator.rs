@@ -225,7 +225,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment("returns", "A new response payload.");
 
-        builder.set_body(encode_operation(operation, true, "return"));
+        builder.set_body(encode_operation(operation, true));
 
         class_builder.add_block(builder.build());
     }

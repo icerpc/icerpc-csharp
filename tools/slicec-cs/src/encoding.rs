@@ -502,7 +502,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
     code
 }
 
-pub fn encode_operation(operation: &Operation, return_type: bool, assign_pipe_reader: &str) -> CodeBlock {
+pub fn encode_operation(operation: &Operation, is_dispatch: bool) -> CodeBlock {
     format!(
         "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(
@@ -516,7 +516,7 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 {rewrite_size}
 
 pipe_.Writer.Complete();
-{assign_pipe_reader} pipe_.Reader;",
+return pipe_.Reader;",
         size_placeholder_and_start_position = match operation.encoding {
             Encoding::Slice1 => "",
             _ =>
@@ -529,11 +529,8 @@ int startPos_ = encoder_.EncodedByteCount;",
             _ => "SliceEncoder.EncodeVarUInt62((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
         },
         encoding = operation.encoding.to_cs_encoding(),
-        class_format = match operation.slice_classes(return_type) {
-            true => "ClassFormat.Sliced",
-            false => "default", // compact is the default value
-        },
-        encode_returns = encode_operation_parameters(operation, return_type, "encoder_"),
+        class_format = operation.get_class_format(is_dispatch),
+        encode_returns = encode_operation_parameters(operation, is_dispatch, "encoder_"),
     )
     .into()
 }

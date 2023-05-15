@@ -397,7 +397,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             ),
         );
 
-        builder.set_body(encode_operation(operation, false, "return"));
+        builder.set_body(encode_operation(operation, false));
 
         class_builder.add_block(builder.build());
     }
