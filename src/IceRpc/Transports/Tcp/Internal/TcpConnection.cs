@@ -131,11 +131,6 @@ internal abstract class TcpConnection : IDuplexConnection
     public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
-        if (buffer.IsEmpty)
-        {
-            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
-        }
-
         return PerformWriteAsync();
 
         async ValueTask PerformWriteAsync()

@@ -339,61 +339,6 @@ public abstract class DuplexConnectionConformanceTests
         pipe.Reader.Complete();
     }
 
-    /// <summary>Verifies that we can write and read using the duplex connection.</summary>
-    [Test]
-    public async Task Write_and_read_buffers_orig(
-        [Values(
-            new int[] { 1 },
-            new int[] { 1024 },
-            new int[] { 32 * 1024 },
-            new int[] { 1024 * 1024 },
-            new int[] { 16, 32, 64, 128 },
-            new int[] { 3, 9, 15, 512 * 1024 },
-            new int[] { 3, 512 * 1024 })] int[] sizes)
-    {
-        // Arrange
-        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
-        await sut.AcceptAndConnectAsync();
-
-        int size = sizes.Sum();
-        ReadOnlyMemory<byte>[] buffers =
-            sizes.Select(
-                n => (ReadOnlyMemory<byte>)Enumerable.Range(0, n).Select(i => (byte)(i % 255)).ToArray())
-            .ToArray();
-
-        var pipe = new Pipe();
-        foreach (ReadOnlyMemory<byte> memory in buffers)
-        {
-            pipe.Writer.Write(memory.Span);
-        }
-        pipe.Writer.Complete();
-        _ = pipe.Reader.TryRead(out ReadResult readResult);
-
-        // Act
-        ValueTask writeTask = sut.Client.WriteAsync(readResult.Buffer, default);
-        Memory<byte> readBuffer = new byte[size];
-        int offset = 0;
-        while (offset < size)
-        {
-            offset += await sut.Server.ReadAsync(readBuffer[offset..], default);
-        }
-        await writeTask;
-
-        // Assert
-        Assert.That(offset, Is.EqualTo(size));
-        offset = 0;
-        for (int i = 0; i < sizes.Length; ++i)
-        {
-            size = sizes[i];
-            Assert.That(readBuffer.Span.Slice(offset, size).SequenceEqual(buffers[i].Span), Is.True);
-            offset += size;
-        }
-
-        // Cleanup
-        pipe.Reader.Complete();
-    }
-
     [Test]
     public async Task Write_canceled()
     {
