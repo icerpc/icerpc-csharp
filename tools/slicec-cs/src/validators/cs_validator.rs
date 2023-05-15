@@ -115,13 +115,13 @@ fn validate_repeated_attributes(entity: &dyn Entity, diagnostic_reporter: &mut D
 }
 
 impl Visitor for CsValidator<'_> {
-    fn visit_file_start(&mut self, slice_file: &SliceFile) {
+    fn visit_file(&mut self, slice_file: &SliceFile) {
         for (attribute, span) in get_cs_attributes(slice_file) {
             report_unexpected_attribute(attribute, span, self.diagnostic_reporter);
         }
     }
 
-    fn visit_module_start(&mut self, module_def: &Module) {
+    fn visit_module(&mut self, module_def: &Module) {
         validate_repeated_attributes(module_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(module_def) {
             match attribute {
@@ -141,7 +141,7 @@ impl Visitor for CsValidator<'_> {
         }
     }
 
-    fn visit_struct_start(&mut self, struct_def: &Struct) {
+    fn visit_struct(&mut self, struct_def: &Struct) {
         validate_repeated_attributes(struct_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(struct_def) {
             match attribute {
@@ -151,28 +151,28 @@ impl Visitor for CsValidator<'_> {
         }
     }
 
-    fn visit_class_start(&mut self, class_def: &Class) {
+    fn visit_class(&mut self, class_def: &Class) {
         validate_repeated_attributes(class_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(class_def) {
             validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
-    fn visit_exception_start(&mut self, exception_def: &Exception) {
+    fn visit_exception(&mut self, exception_def: &Exception) {
         validate_repeated_attributes(exception_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(exception_def) {
             validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
-    fn visit_interface_start(&mut self, interface_def: &Interface) {
+    fn visit_interface(&mut self, interface_def: &Interface) {
         validate_repeated_attributes(interface_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(interface_def) {
             validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
-    fn visit_enum_start(&mut self, enum_def: &Enum) {
+    fn visit_enum(&mut self, enum_def: &Enum) {
         validate_repeated_attributes(enum_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(enum_def) {
             match attribute {
@@ -182,7 +182,7 @@ impl Visitor for CsValidator<'_> {
         }
     }
 
-    fn visit_operation_start(&mut self, operation: &Operation) {
+    fn visit_operation(&mut self, operation: &Operation) {
         validate_repeated_attributes(operation, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(operation) {
             match attribute {

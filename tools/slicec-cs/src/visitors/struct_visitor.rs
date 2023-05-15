@@ -21,7 +21,7 @@ pub struct StructVisitor<'a> {
 }
 
 impl<'a> Visitor for StructVisitor<'a> {
-    fn visit_struct_start(&mut self, struct_def: &Struct) {
+    fn visit_struct(&mut self, struct_def: &Struct) {
         let escaped_identifier = struct_def.escape_identifier();
         let fields = struct_def.fields();
         let namespace = struct_def.namespace();

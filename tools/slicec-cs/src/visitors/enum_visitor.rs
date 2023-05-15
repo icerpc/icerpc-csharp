@@ -14,7 +14,7 @@ pub struct EnumVisitor<'a> {
 }
 
 impl<'a> Visitor for EnumVisitor<'a> {
-    fn visit_enum_start(&mut self, enum_def: &Enum) {
+    fn visit_enum(&mut self, enum_def: &Enum) {
         let mut code = CodeBlock::default();
         code.add_block(&enum_declaration(enum_def));
         code.add_block(&enum_underlying_extensions(enum_def));

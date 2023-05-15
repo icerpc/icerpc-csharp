@@ -3,7 +3,7 @@
 use super::{EntityExt, InterfaceExt, MemberExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes::match_cs_encoded_result;
 use crate::cs_util::FieldType;
-use slice::grammar::{Attributable, ClassFormat, Contained, Operation};
+use slice::grammar::{Attributable, Contained, Operation};
 use slice::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
@@ -14,7 +14,7 @@ pub trait OperationExt {
     fn encoded_result_struct(&self) -> String;
 
     /// The Slice format type of the operation
-    fn format_type(&self) -> &str;
+    fn slice_classes(&self, is_dispatch: bool) -> bool;
 
     /// The operation return task.
     fn return_task(&self, is_dispatch: bool) -> String;
@@ -33,10 +33,10 @@ impl OperationExt for Operation {
         )
     }
 
-    fn format_type(&self) -> &str {
-        match self.class_format() {
-            ClassFormat::Sliced => "ClassFormat.Sliced",
-            ClassFormat::Compact => "default", // compact is the default value
+    fn slice_classes(&self, is_dispatch: bool) -> bool {
+        match is_dispatch {
+            true => self.slice_classes_in_return(),
+            false => self.slice_classes_in_arguments(),
         }
     }
 

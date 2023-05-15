@@ -19,7 +19,7 @@ pub struct ClassVisitor<'a> {
 }
 
 impl Visitor for ClassVisitor<'_> {
-    fn visit_class_start(&mut self, class_def: &Class) {
+    fn visit_class(&mut self, class_def: &Class) {
         let class_name = class_def.escape_identifier();
         let namespace = class_def.namespace();
         let has_base_class = class_def.base_class().is_some();

@@ -529,7 +529,10 @@ int startPos_ = encoder_.EncodedByteCount;",
             _ => "SliceEncoder.EncodeVarUInt62((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
         },
         encoding = operation.encoding.to_cs_encoding(),
-        class_format = operation.format_type(),
+        class_format = match operation.slice_classes(return_type) {
+            true => "ClassFormat.Sliced",
+            false => "default", // compact is the default value
+        },
         encode_returns = encode_operation_parameters(operation, return_type, "encoder_"),
     )
     .into()

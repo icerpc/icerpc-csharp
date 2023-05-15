@@ -18,7 +18,7 @@ pub struct DispatchVisitor<'a> {
 }
 
 impl Visitor for DispatchVisitor<'_> {
-    fn visit_interface_start(&mut self, interface_def: &Interface) {
+    fn visit_interface(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
         let bases = interface_def.base_interfaces();
         let service_name = interface_def.service_name();
