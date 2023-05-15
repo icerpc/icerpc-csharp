@@ -1,0 +1,13 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Tests::Slice
+
+interface Service1 {
+    op1()
+    op3()
+}
+
+interface Service2 {
+    op2()
+    op3()
+}

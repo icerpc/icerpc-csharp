@@ -50,7 +50,7 @@ public class Service : IDispatcher, IIceObjectService
                         object[] attributes = method.GetCustomAttributes(typeof(SliceOperationAttribute), false);
                         if (attributes.Length > 0 && attributes[0] is SliceOperationAttribute attribute)
                         {
-                            methods.Add(
+                            if (!methods.TryAdd(
                                 attribute.Value,
                                 Expression.Lambda<DispatchMethod>(
                                     Expression.Call(
@@ -60,7 +60,11 @@ public class Service : IDispatcher, IIceObjectService
                                         cancelParam),
                                     targetParam,
                                     requestParam,
-                                    cancelParam).Compile());
+                                    cancelParam).Compile()))
+                            {
+                                throw new InvalidOperationException(
+                                    $"Duplicate operation name {attribute.Value}: {type.FullName} cannot implement multiple Slice operations with the same name.");
+                            }
                         }
                     }
                 }
@@ -78,11 +82,16 @@ public class Service : IDispatcher, IIceObjectService
     }
 
     /// <inheritdoc/>
-    public virtual ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
+    public virtual ValueTask<IEnumerable<string>> IceIdsAsync(
+        IFeatureCollection features,
+        CancellationToken cancellationToken) =>
         new(_typeIds);
 
     /// <inheritdoc/>
-    public virtual ValueTask<bool> IceIsAAsync(string id, IFeatureCollection features, CancellationToken cancellationToken) =>
+    public virtual ValueTask<bool> IceIsAAsync(
+        string id,
+        IFeatureCollection features,
+        CancellationToken cancellationToken) =>
         new(_typeIds.Contains(id));
 
     /// <inheritdoc/>
