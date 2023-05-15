@@ -41,8 +41,8 @@ interface ClassOperations {
     opMyClassCompact(p1: MyClassA) -> MyClassA
 
     // Sliced format
-    [format(Sliced)] opAnyClassSliced(p1: AnyClass) -> AnyClass
-    [format(Sliced)] opMyClassSliced(p1: MyClassA) -> MyClassA
+    [slicedFormat(Args, Return)] opAnyClassSliced(p1: AnyClass) -> AnyClass
+    [slicedFormat(Args, Return)] opMyClassSliced(p1: MyClassA) -> MyClassA
 }
 
 [cs::internal]

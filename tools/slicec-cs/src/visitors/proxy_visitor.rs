@@ -19,7 +19,7 @@ pub struct ProxyVisitor<'a> {
 }
 
 impl Visitor for ProxyVisitor<'_> {
-    fn visit_interface_start(&mut self, interface_def: &Interface) {
+    fn visit_interface(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
         let interface = interface_def.interface_name(); // IFoo
         let slice_interface = interface_def.module_scoped_identifier();

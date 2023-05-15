@@ -14,7 +14,7 @@ pub struct ModuleVisitor<'a> {
 }
 
 impl Visitor for ModuleVisitor<'_> {
-    fn visit_file_end(&mut self, slice_file: &SliceFile) {
+    fn visit_file(&mut self, slice_file: &SliceFile) {
         let top_level_modules = slice_file
             .contents
             .iter()
