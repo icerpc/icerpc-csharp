@@ -12,28 +12,26 @@ version=$(cat build/IceRpc.Version.props | grep "<Version" | sed -E "s/<Version 
 
 usage()
 {
-    echo "Usage: build [command] [arguments]"
-    echo "Commands (defaults to build):"
-    echo "  build                     Build the IceRPC assemblies and the slicec-cs compiler."
-    echo "  pack                      Create the IceRPC NuGet packages."
-    echo "  push                      Push the IceRPC NuGet packages to the global-packages source."
-    echo "  install-templates         Install the IceRPC project templates."
-    echo "  clean                     Clean build artifacts."
-    echo "  rebuild                   Rebuild."
-    echo "  test                      Runs tests."
-    echo "  doc                       Generate the C# API documentation."
-    echo "                            Requires docfx from https:/github.com/dotnet/docfx."
+    echo "Usage: build [actions] [arguments]"
+    echo "Actions (defaults to -build):"
+    echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
+    echo "  --pack                 Create the IceRPC NuGet packages."
+    echo "  --examples             Build the example project (uses installed NuGet packages)."
+    echo "  --docfxExamples        Build the examples used in docfx generated documentation (uses installed NuGet packages)."
+    echo "  --publish              Publish the IceRPC NuGet packages to the global-packages source."
+    echo "  --installTemplates     Install the IceRPC dotnet new project templates."
+    echo "  --clean                Clean all build artifacts."
+    echo "  --test                 Runs tests."
+    echo "  --doc                  Generate the C# API documentation"
+    echo "                         Requires docfx from https://github.com/dotnet/docfx"
+    echo ""
     echo "Arguments:"
-    echo "  --config | -c             Build configuration: debug or release, the default is debug."
-    echo "  --examples                Build examples solutions instead of the source solutions."
-    echo "  --docfxExamples           Build docfx examples solutions instead of the source solutions."
-    echo "  --srcdist                 Use IceRPC NuGet packages from this source distribution when building the examples."
-    echo "                            The NuGet packages are pushed to the local global-packages source."
-    echo "  --coverage                Collect code coverage from test runs."
-    echo "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator."
-    echo "  --version                 The version override for the IceRPC NuGet packages. The default version is the version"
-    echo "                            specified in the build/IceRpc.Version.props file."
-    echo "  --help   | -h             Print help and exit."
+    echo "  --config               Build configuration: debug or release, the default is debug."
+    echo "  --version              The version override for the IceRPC NuGet packages. The default version is the version"
+    echo "                         specified in the build/IceRpc.Version.props file."
+    echo "  --coverage             Collect code coverage from test runs."
+    echo "                         Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
+    echo "  --help                 Print help and exit."
 }
 
 build_compiler()
@@ -96,10 +94,8 @@ pack()
     popd
 }
 
-push()
+publish()
 {
-    build_compiler
-    pack
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
     run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
@@ -125,32 +121,22 @@ build()
     build_compiler
     build_icerpc_slice_tools
     build_icerpc
-
-    if [ "$examples" == "yes" ] || [ "$docfxExamples" == "yes" ]; then
-        if [ "$srcdist" == "yes" ]; then
-            push
-        fi
-    fi
-
-    if [ "$examples" == "yes" ]; then
-        for solution in examples/*/*.sln examples/*/*/*.sln
-        do
-            run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
-        done
-    fi
-
-    if [ "$docfxExamples" == "yes" ]; then
-        for project in docfx/examples/*/*.csproj
-        do
-            run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
-        done
-    fi
 }
 
-rebuild()
+build_examples()
 {
-    clean
-    build
+    for solution in examples/*/*.sln examples/*/*/*.sln
+    do
+        run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
+    done
+}
+
+build_docfx_examples()
+{
+    for project in docfx/examples/*/*.csproj
+    do
+        run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
+    done
 }
 
 clean()
@@ -158,19 +144,17 @@ clean()
     clean_compiler
     clean_icerpc_slice_tools
     clean_icerpc
-    if [ "$examples" == "yes" ]; then
-        for solution in examples/*/*.sln examples/*/*/*.sln
-        do
-            run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
-        done
-    fi
 
-    if [ "$docfxExamples" == "yes" ]; then
-        for project in docfx/examples/*/*.csproj
-        do
-            run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
-        done
-    fi
+    for solution in examples/*/*.sln examples/*/*/*.sln
+    do
+        run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
+    done
+
+    for project in docfx/examples/*/*.csproj
+    do
+        run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
+    done
+
     clean_icerpc_project_templates
 }
 
@@ -214,13 +198,11 @@ run_command()
     fi
 }
 
-action=""
 config=""
 coverage="no"
-docfxExamples="no"
-examples="no"
-srcdist="no"
 version_property=""
+passedInActions=()
+actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish" "--examples" "--docfxExamples" "--installTemplates")
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -239,27 +221,21 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
-        --examples)
-            examples="yes"
-            shift
-            ;;
-        --docfxExamples)
-            docfxExamples="yes"
-            shift
-            ;;
-        --srcdist)
-            srcdist="yes"
-            shift
-            ;;
         --coverage)
             coverage="yes"
             shift
             ;;
         *)
-            if [ -z "$action" ]
-            then
-                action=$1
-            else
+            found=0
+            for action in "${actions[@]}"; do
+                if [ "$action" == "$1" ]; then
+                    passedInActions+=("$action")
+                    found=1
+                    break
+                fi
+            done
+
+            if [ $found -eq 0 ]; then
                 echo "too many arguments " "$1"
                 usage
                 exit 1
@@ -269,21 +245,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [ -z "$action" ]
-then
-    action="build"
-fi
-
-if [ -z "$config" ]
-then
+if [ -z "$config" ]; then
     config="debug"
-fi
-
-actions=("build" "clean" "pack" "push" "install-templates" "rebuild" "test" "doc")
-if [[ ! " ${actions[*]} " == *" ${action} "* ]]; then
-    echo "invalid action: " $action
-    usage
-    exit 1
 fi
 
 configs=("debug" "release")
@@ -299,29 +262,38 @@ else
     dotnet_config="Debug"
 fi
 
-case $action in
-    "build")
-        build
-        ;;
-    "rebuild")
-        rebuild
-        ;;
-    "pack")
-        pack
-        ;;
-    "push")
-        push
-        ;;
-    "install-templates")
-        install_templates
-        ;;
-    "clean")
-        clean
-        ;;
-    "test")
-        run_test
-        ;;
-    "doc")
-        doc
-        ;;
-esac
+if [ "${#passedInActions[@]}" -eq 0 ]; then
+    passedInActions=("--build")
+fi
+
+for action in "${passedInActions[@]}"; do
+    case $action in
+        "--build")
+            build
+            ;;
+        "--examples")
+            build_examples
+            ;;
+        "--docfxExamples")
+            build_docfx_examples
+            ;;
+        "--pack")
+            pack
+            ;;
+        "--publish")
+            publish
+            ;;
+        "--installTemplates")
+            install_templates
+            ;;
+        "--clean")
+            clean
+            ;;
+        "--test")
+            run_test
+            ;;
+        "--doc")
+            doc
+            ;;
+    esac
+done
