@@ -4,6 +4,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Coloc;
 using IceRpc.Transports.Coloc.Internal;
 using NUnit.Framework;
+using System.Buffers;
 
 namespace IceRpc.Tests.Transports.Coloc;
 
@@ -168,7 +169,7 @@ public class ColocTransportTests
         using IDuplexConnection serverConnection = (await serverConnectionTask).Connection;
 
         byte[] buffer = new byte[1];
-        var writeBuffer = new List<ReadOnlyMemory<byte>> { new byte[1] };
+        var writeBuffer = new ReadOnlySequence<byte>(new byte[1]);
 
         // Act
         ValueTask<int> readTask = clientConnection.ReadAsync(buffer, default);
@@ -220,7 +221,7 @@ public class ColocTransportTests
         var serverConnectionTask = listener.AcceptAsync(default);
         await clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await serverConnectionTask).Connection;
-        var buffer = new List<ReadOnlyMemory<byte>> { new byte[4096] };
+        var buffer = new ReadOnlySequence<byte>(new byte[4096]);
 
         // Act
         ValueTask writeTask = clientConnection.WriteAsync(buffer, default);
@@ -253,7 +254,7 @@ public class ColocTransportTests
         var serverConnectionTask = listener.AcceptAsync(default);
         await clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await serverConnectionTask).Connection;
-        var buffer = new List<ReadOnlyMemory<byte>> { new byte[4096] };
+        var buffer = new ReadOnlySequence<byte>(new byte[4096]);
 
         // Act
         ValueTask writeTask = clientConnection.WriteAsync(buffer, default);
@@ -286,7 +287,7 @@ public class ColocTransportTests
         var serverConnectionTask = listener.AcceptAsync(default);
         await clientConnection.ConnectAsync(default);
         using IDuplexConnection serverConnection = (await serverConnectionTask).Connection;
-        var buffer = new List<ReadOnlyMemory<byte>> { new byte[1] };
+        var buffer = new ReadOnlySequence<byte>(new byte[1]);
 
         // Act
         await clientConnection.ShutdownWriteAsync(default);
@@ -312,7 +313,7 @@ public class ColocTransportTests
 
         // Assert
         Assert.That(
-            async () => await clientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default),
+            async () => await clientConnection.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default),
             Throws.InvalidOperationException);
     }
 
@@ -337,7 +338,7 @@ public class ColocTransportTests
 
         // Act/Assert
         Assert.That(
-            async () => await clientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default),
+            async () => await clientConnection.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default),
             Throws.TypeOf<ObjectDisposedException>());
     }
 }

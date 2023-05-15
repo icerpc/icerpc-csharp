@@ -13,7 +13,7 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
     private readonly IDuplexConnection _connection;
     private readonly Pipe _pipe;
-    private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
+    private readonly SequenceCoupler _sequenceCoupler = new();
 
     /// <inheritdoc/>
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
@@ -53,47 +53,22 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
     /// <summary>Writes a sequence of bytes.</summary>
     internal async ValueTask WriteAsync(ReadOnlySequence<byte> source, CancellationToken cancellationToken)
     {
-        _sendBuffers.Clear();
-
-        // First add the data from the internal pipe.
-
         // Ice only calls WriteAsync or FlushAsync with unflushed bytes.
         Debug.Assert(_pipe.Writer.UnflushedBytes > 0);
 
         _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
         _pipe.Reader.TryRead(out ReadResult readResult);
-
         Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
-
-        AddToSendBuffers(readResult.Buffer);
-        AddToSendBuffers(source);
 
         try
         {
-            await _connection.WriteAsync(_sendBuffers, cancellationToken).ConfigureAwait(false);
+            await _connection.WriteAsync(
+                _sequenceCoupler.Concat(readResult.Buffer, source),
+                cancellationToken).ConfigureAwait(false);
         }
         finally
         {
             _pipe.Reader.AdvanceTo(readResult.Buffer.End);
-        }
-
-        void AddToSendBuffers(ReadOnlySequence<byte> source)
-        {
-            if (source.IsEmpty)
-            {
-                // Nothing to add.
-            }
-            else if (source.IsSingleSegment)
-            {
-                _sendBuffers.Add(source.First);
-            }
-            else
-            {
-                foreach (ReadOnlyMemory<byte> memory in source)
-                {
-                    _sendBuffers.Add(memory);
-                }
-            }
         }
     }
 }
