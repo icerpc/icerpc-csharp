@@ -61,7 +61,7 @@ public class Protocol
     /// <summary>Tries to parse a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
     /// <param name="protocol">The protocol parsed from the name.</param>
-    /// <returns><see langword="true" /> when <paramref name="name" /> was successfully parsed into a protocol;<see
+    /// <returns><see langword="true" /> when <paramref name="name" /> was successfully parsed into a protocol; <see
     /// langword="false" /> otherwise.</returns>
     public static bool TryParse(string name, [NotNullWhen(true)] out Protocol? protocol)
     {

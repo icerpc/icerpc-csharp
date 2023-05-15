@@ -123,6 +123,11 @@ internal abstract class ColocConnection : IDuplexConnection
     {
         ObjectDisposedException.ThrowIf(_state.HasFlag(State.Disposed), this);
 
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException($"The {nameof(buffer)} cannot be empty.", nameof(buffer));
+        }
+
         if (_reader is null)
         {
             throw new InvalidOperationException("Writing is not allowed before the connection is connected.");
