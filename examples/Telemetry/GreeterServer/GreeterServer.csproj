@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <SliceFile Include="../Greeter.slice;../CRM.slice" />
+    <SliceFile Include="../slice/Greeter.slice;../slice/CRM.slice" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
