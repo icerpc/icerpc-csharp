@@ -63,7 +63,7 @@ public class Service : IDispatcher, IIceObjectService
                                     cancelParam).Compile()))
                             {
                                 throw new InvalidOperationException(
-                                    $"Duplicate operation name {attribute.Value}, {nameof(Service)} cannot contain multiple operations with the same name.");
+                                    $"Duplicate operation name {attribute.Value}: {type.FullName} cannot implement multiple Slice operations with the same name.");
                             }
                         }
                     }
