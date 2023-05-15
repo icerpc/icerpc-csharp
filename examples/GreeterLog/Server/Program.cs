@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterLogExample;
+using GreeterLogServer;
 using IceRpc;
 using Microsoft.Extensions.Logging;
+using VisitorCenter;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>

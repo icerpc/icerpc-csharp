@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using MultipleInterfacesExample;
+using MultipleInterfacesServer;
 using IceRpc;
 
 // Create a server that will dispatch all requests to the same service, an instance of Chatbot.

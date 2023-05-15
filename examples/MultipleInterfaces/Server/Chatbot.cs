@@ -1,9 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
+using Metrics;
 using IceRpc.Features;
 using IceRpc.Slice;
+using VisitorCenter;
 
-namespace MultipleInterfacesExample;
+namespace MultipleInterfacesServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements the 'Greeter' and 'RequestCounter' Slice interfaces.
 /// </summary>

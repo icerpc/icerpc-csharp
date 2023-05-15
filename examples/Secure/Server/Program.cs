@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterSecureExample;
+using GreeterSecureServer;
 using IceRpc;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;

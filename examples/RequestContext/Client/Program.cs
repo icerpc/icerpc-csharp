@@ -2,7 +2,7 @@
 
 using IceRpc;
 using IceRpc.Features;
-using RequestContextExample;
+using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 

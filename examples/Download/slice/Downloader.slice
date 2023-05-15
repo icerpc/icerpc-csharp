@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module DownloadExample
+module Repository
 
 /// Represents an image server that serves image(s) to its clients.
 interface Downloader {

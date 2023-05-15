@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using GenericHostExample;
+using GenericHostClient;
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using VisitorCenter;
 
 // Configure the host.
 IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)

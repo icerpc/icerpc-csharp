@@ -2,8 +2,9 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using VisitorCenter;
 
-namespace GreeterDeadlineExample;
+namespace DeadlineServer;
 
 /// <summary>A SlowChatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
 /// <remarks>The slow chatbot always delays its responses by 1 second.</remarks>

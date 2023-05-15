@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using DownloadExample;
 using IceRpc;
+using Repository;
 using System.IO.Pipelines;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));

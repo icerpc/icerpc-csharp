@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterQuicExample;
 using IceRpc;
 using IceRpc.Transports.Quic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using VisitorCenter;
 
 using var rootCA = new X509Certificate2("../../certs/cacert.der");
 var clientAuthenticationOptions = new SslClientAuthenticationOptions

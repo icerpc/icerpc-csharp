@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using UploadExample;
+using UploadServer;
 
 await using var server = new Server(new EarthImageStore());
 server.Listen();

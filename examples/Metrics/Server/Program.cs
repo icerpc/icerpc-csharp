@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using MetricsExample;
+using MetricsServer;
 using IceRpc;
+using VisitorCenter;
 
 // Add the metrics middleware to the dispatch pipeline.
 Router router = new Router().UseMetrics();

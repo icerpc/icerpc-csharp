@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using MetricsExample;
 using IceRpc;
+using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 Pipeline pipeline = new Pipeline().UseMetrics().Into(connection);
