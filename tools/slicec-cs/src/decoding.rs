@@ -138,7 +138,7 @@ pub fn decode_tagged(
     let data_type = member.data_type();
 
     assert!(data_type.is_optional);
-    assert!(member.tag().is_some());
+    assert!(member.is_tagged());
 
     let decode = FunctionCallBuilder::new("decoder.DecodeTagged")
         .add_argument(member.tag().unwrap())
@@ -517,7 +517,7 @@ pub fn decode_operation_stream(
         Types::Primitive(Primitive::UInt8) if !param_type.is_optional => {
             panic!("Must not be called for non-optional UInt8 parameters as there is no decoding");
         }
-        _ => FunctionCallBuilder::new(&format!("payloadContinuation.ToAsyncEnumerable<{param_type_str}>"))
+        _ => FunctionCallBuilder::new(format!("payloadContinuation.ToAsyncEnumerable<{param_type_str}>"))
             .arguments_on_newline(true)
             .add_argument(cs_encoding)
             .add_argument(decode_stream_parameter(param_type, namespace, encoding).indent())

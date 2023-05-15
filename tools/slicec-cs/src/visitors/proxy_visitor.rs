@@ -244,7 +244,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
             }
             _ => {
                 invocation_builder.add_argument(
-                    FunctionCallBuilder::new(&format!(
+                    FunctionCallBuilder::new(format!(
                         "{stream_parameter_name}.ToPipeReader<{}>",
                         stream_type.cs_type_string(namespace, TypeContext::Encode, false),
                     ))
