@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using MetricsServer;
 using IceRpc;
+using MetricsServer;
 using VisitorCenter;
 
 // Add the metrics middleware to the dispatch pipeline.

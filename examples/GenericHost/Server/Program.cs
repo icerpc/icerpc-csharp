@@ -12,7 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
 // Configure the host.
-var hostBuilder = Host.CreateDefaultBuilder(args)
+IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
     // Set the content root path to the build directory of the server (e.g.: Server/bin/Debug/net7.0)
     .UseContentRoot(AppContext.BaseDirectory)
 
