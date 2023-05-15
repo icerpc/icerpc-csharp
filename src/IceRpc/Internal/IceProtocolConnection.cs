@@ -971,10 +971,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         try
         {
-            await _duplexConnectionReader.FillBufferWriterAsync(
-                pipe.Writer,
-                size,
-                cancellationToken).ConfigureAwait(false);
+            await _duplexConnectionReader.FillBufferWriterAsync(pipe.Writer, size, cancellationToken)
+                .ConfigureAwait(false);
         }
         catch
         {
