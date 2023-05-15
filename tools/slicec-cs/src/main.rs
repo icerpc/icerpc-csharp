@@ -2,23 +2,23 @@
 
 mod attribute_patcher;
 mod builders;
-mod code_gen;
 mod comments;
 mod cs_attributes;
+mod cs_compile;
 mod cs_options;
 mod cs_util;
 mod decoding;
 mod encoded_result;
 mod encoding;
-mod generated_code;
+mod generators;
 mod member_util;
 mod slicec_ext;
 mod validators;
-mod visitors;
 
-use crate::code_gen::{cs_compile, generate_code};
+use crate::cs_compile::cs_compile;
 use crate::cs_options::CsOptions;
 use clap::Parser;
+use generators::generate_from_slice_file;
 use slice::diagnostics::{Diagnostic, Error};
 use std::fs::File;
 use std::io;
@@ -33,7 +33,7 @@ pub fn main() {
 
     if !slice_options.dry_run {
         for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
-            let code_string = generate_code(slice_file);
+            let code = generate_from_slice_file(slice_file);
 
             let path = match &slice_options.output_dir {
                 Some(output_dir) => Path::new(output_dir),
@@ -43,11 +43,11 @@ pub fn main() {
             .to_owned();
 
             // If the file already exists and its contents match the generated code, we don't re-write it.
-            if matches!(std::fs::read(&path), Ok(file_bytes) if file_bytes == code_string.as_bytes()) {
+            if matches!(std::fs::read(&path), Ok(file_bytes) if file_bytes == code.as_bytes()) {
                 continue;
             }
 
-            match write_file(&path, &code_string) {
+            match write_file(&path, &code) {
                 Ok(_) => (),
                 Err(error) => {
                     Diagnostic::new(Error::IO {

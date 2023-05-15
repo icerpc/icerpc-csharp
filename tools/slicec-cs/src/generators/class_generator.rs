@@ -1,141 +1,134 @@
 // Copyright (c) ZeroC, Inc.
 
+use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
 use crate::cs_util::*;
 use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
-use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 use slice::grammar::{Class, Encoding, Field};
 use slice::utils::code_gen_util::TypeContext;
-use slice::visitor::Visitor;
 
-pub struct ClassVisitor<'a> {
-    pub generated_code: &'a mut GeneratedCode,
-}
+pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
+    let class_name = class_def.escape_identifier();
+    let namespace = class_def.namespace();
+    let has_base_class = class_def.base_class().is_some();
 
-impl Visitor for ClassVisitor<'_> {
-    fn visit_class(&mut self, class_def: &Class) {
-        let class_name = class_def.escape_identifier();
-        let namespace = class_def.namespace();
-        let has_base_class = class_def.base_class().is_some();
+    let fields = class_def.fields();
+    let base_fields = if let Some(base) = class_def.base_class() {
+        base.all_fields()
+    } else {
+        vec![]
+    };
+    let access = class_def.access_modifier();
 
-        let fields = class_def.fields();
-        let base_fields = if let Some(base) = class_def.base_class() {
-            base.all_fields()
-        } else {
-            vec![]
-        };
-        let access = class_def.access_modifier();
+    let non_default_fields = fields
+        .iter()
+        .cloned()
+        .filter(|m| !m.is_default_initialized())
+        .collect::<Vec<_>>();
 
-        let non_default_fields = fields
+    let non_default_base_fields = base_fields
+        .iter()
+        .cloned()
+        .filter(|m| !m.is_default_initialized())
+        .collect::<Vec<_>>();
+
+    let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
+
+    class_builder
+        .add_comments(class_def.formatted_doc_comment())
+        .add_generated_remark("class", class_def)
+        .add_type_id_attribute(class_def)
+        .add_compact_type_id_attribute(class_def)
+        .add_container_attributes(class_def);
+
+    if let Some(base) = class_def.base_class() {
+        class_builder.add_base(base.escape_scoped_identifier(&namespace));
+    } else {
+        class_builder.add_base("SliceClass".to_owned());
+    }
+
+    // Add class fields
+    class_builder.add_block(
+        fields
             .iter()
-            .cloned()
-            .filter(|m| !m.is_default_initialized())
-            .collect::<Vec<_>>();
+            .map(|m| field_declaration(m, FieldType::Class))
+            .collect::<Vec<_>>()
+            .join("\n\n")
+            .into(),
+    );
 
-        let non_default_base_fields = base_fields
-            .iter()
-            .cloned()
-            .filter(|m| !m.is_default_initialized())
-            .collect::<Vec<_>>();
+    // Class static type ID string
+    class_builder.add_block(
+        format!("private static readonly string SliceTypeId = typeof({class_name}).GetSliceTypeId()!;").into(),
+    );
 
-        let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
-
-        class_builder
-            .add_comments(class_def.formatted_doc_comment())
-            .add_generated_remark("class", class_def)
-            .add_type_id_attribute(class_def)
-            .add_compact_type_id_attribute(class_def)
-            .add_container_attributes(class_def);
-
-        if let Some(base) = class_def.base_class() {
-            class_builder.add_base(base.escape_scoped_identifier(&namespace));
-        } else {
-            class_builder.add_base("SliceClass".to_owned());
-        }
-
-        // Add class fields
+    if class_def.compact_id.is_some() {
         class_builder.add_block(
-            fields
-                .iter()
-                .map(|m| field_declaration(m, FieldType::Class))
-                .collect::<Vec<_>>()
-                .join("\n\n")
-                .into(),
-        );
-
-        // Class static type ID string
-        class_builder.add_block(
-            format!("private static readonly string SliceTypeId = typeof({class_name}).GetSliceTypeId()!;").into(),
-        );
-
-        if class_def.compact_id.is_some() {
-            class_builder.add_block(
                 format!(
                     "private static readonly int _compactSliceTypeId = typeof({class_name}).GetCompactSliceTypeId()!.Value;"
                 )
                 .into(),
             );
-        }
+    }
 
-        let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
+    let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
 
-        // One-shot ctor (may be parameterless)
+    // One-shot ctor (may be parameterless)
+    class_builder.add_block(constructor(
+        &class_name,
+        &access,
+        constructor_summary.clone(),
+        &namespace,
+        &fields,
+        &base_fields,
+    ));
+
+    // Second public constructor for all fields minus those with a default initializer
+    // This constructor is only generated if necessary
+    if non_default_fields.len() + non_default_base_fields.len() < fields.len() + base_fields.len() {
         class_builder.add_block(constructor(
             &class_name,
             &access,
-            constructor_summary.clone(),
+            constructor_summary,
             &namespace,
-            &fields,
-            &base_fields,
+            &non_default_fields,
+            &non_default_base_fields,
         ));
+    }
 
-        // Second public constructor for all fields minus those with a default initializer
-        // This constructor is only generated if necessary
-        if non_default_fields.len() + non_default_base_fields.len() < fields.len() + base_fields.len() {
-            class_builder.add_block(constructor(
-                &class_name,
-                &access,
-                constructor_summary,
-                &namespace,
-                &non_default_fields,
-                &non_default_base_fields,
-            ));
-        }
+    // public constructor used for decoding
+    // the decoder parameter is used to distinguish this ctor from the parameterless ctor that
+    // users may want to add to the partial class. It's not used otherwise.
+    let mut decode_constructor = FunctionBuilder::new(&access, "", &class_name, FunctionType::BlockBody);
 
-        // public constructor used for decoding
-        // the decoder parameter is used to distinguish this ctor from the parameterless ctor that
-        // users may want to add to the partial class. It's not used otherwise.
-        let mut decode_constructor = FunctionBuilder::new(&access, "", &class_name, FunctionType::BlockBody);
-
-        if !has_base_class {
-            decode_constructor.add_attribute(
-                r#"global::System.Diagnostics.CodeAnalysis.SuppressMessage(
+    if !has_base_class {
+        decode_constructor.add_attribute(
+            r#"global::System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Microsoft.Performance",
     "CA1801: Review unused parameters",
     Justification="Special constructor used for Slice decoding")"#,
-            );
-        }
-
-        decode_constructor.add_parameter("ref SliceDecoder", "decoder", None, None);
-        if has_base_class {
-            decode_constructor.add_base_parameter("ref decoder");
-        }
-        decode_constructor
-            .set_body(initialize_non_nullable_fields(&fields, FieldType::Class))
-            .add_never_editor_browsable_attribute();
-
-        class_builder.add_block(decode_constructor.build());
-
-        class_builder.add_block(encode_and_decode(class_def));
-
-        self.generated_code.insert_scoped(class_def, class_builder.build());
+        );
     }
+
+    decode_constructor.add_parameter("ref SliceDecoder", "decoder", None, None);
+    if has_base_class {
+        decode_constructor.add_base_parameter("ref decoder");
+    }
+    decode_constructor
+        .set_body(initialize_non_nullable_fields(&fields, FieldType::Class))
+        .add_never_editor_browsable_attribute();
+
+    class_builder.add_block(decode_constructor.build());
+
+    class_builder.add_block(encode_and_decode(class_def));
+
+    generated_code.insert_scoped(class_def, class_builder.build());
 }
 
 fn constructor(

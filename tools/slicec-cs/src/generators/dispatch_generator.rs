@@ -1,76 +1,68 @@
 // Copyright (c) ZeroC, Inc.
 
+use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_util::*;
 use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
-use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
-use slice::visitor::Visitor;
 
-pub struct DispatchVisitor<'a> {
-    pub generated_code: &'a mut GeneratedCode,
-}
+pub fn generate_dispatch(interface_def: &Interface, generated_code: &mut GeneratedCode) {
+    let namespace = interface_def.namespace();
+    let bases = interface_def.base_interfaces();
+    let service_name = interface_def.service_name();
+    let access = interface_def.access_modifier();
+    let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &service_name);
 
-impl Visitor for DispatchVisitor<'_> {
-    fn visit_interface(&mut self, interface_def: &Interface) {
-        let namespace = interface_def.namespace();
-        let bases = interface_def.base_interfaces();
-        let service_name = interface_def.service_name();
-        let access = interface_def.access_modifier();
-        let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &service_name);
+    interface_builder
+        .add_comments(interface_def.formatted_doc_comment())
+        .add_generated_remark_with_note(
+            "server-side interface",
+            r#"Your service implementation must implement this interface and derive from <see cref="Service" />."#,
+            interface_def,
+        )
+        .add_type_id_attribute(interface_def)
+        .add_container_attributes(interface_def);
 
-        interface_builder
-            .add_comments(interface_def.formatted_doc_comment())
-            .add_generated_remark_with_note(
-                "server-side interface",
-                r#"Your service implementation must implement this interface and derive from <see cref="Service" />."#,
-                interface_def,
-            )
-            .add_type_id_attribute(interface_def)
-            .add_container_attributes(interface_def);
+    interface_builder.add_bases(
+        &bases
+            .iter()
+            .map(|b| b.scoped_service_name(&namespace))
+            .collect::<Vec<_>>(),
+    );
 
-        interface_builder.add_bases(
-            &bases
-                .iter()
-                .map(|b| b.scoped_service_name(&namespace))
-                .collect::<Vec<_>>(),
-        );
+    interface_builder
+        .add_block(request_class(interface_def))
+        .add_block(response_class(interface_def));
 
-        interface_builder
-            .add_block(request_class(interface_def))
-            .add_block(response_class(interface_def));
-
-        if interface_def.supported_encodings().supports(&Encoding::Slice1) {
-            interface_builder.add_block(
-                format!(
-                    "\
+    if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+        interface_builder.add_block(
+            format!(
+                "\
 private static readonly IActivator _defaultActivator =
     IActivator.FromAssembly(typeof({service_name}).Assembly);"
-                )
-                .into(),
-            );
-        }
-
-        for operation in interface_def.operations() {
-            if operation.has_encoded_result() {
-                interface_builder.add_block(encoded_result_struct(operation));
-            }
-            interface_builder.add_block(operation_declaration(operation));
-        }
-
-        for operation in interface_def.operations() {
-            interface_builder.add_block(operation_dispatch(operation));
-        }
-
-        self.generated_code
-            .insert_scoped(interface_def, interface_builder.build());
+            )
+            .into(),
+        );
     }
+
+    for operation in interface_def.operations() {
+        if operation.has_encoded_result() {
+            interface_builder.add_block(encoded_result_struct(operation));
+        }
+        interface_builder.add_block(operation_declaration(operation));
+    }
+
+    for operation in interface_def.operations() {
+        interface_builder.add_block(operation_dispatch(operation));
+    }
+
+    generated_code.insert_scoped(interface_def, interface_builder.build());
 }
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
