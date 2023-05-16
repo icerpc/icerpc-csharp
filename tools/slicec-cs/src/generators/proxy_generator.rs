@@ -257,7 +257,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    // For Slice2 operations without return type, and without an exception specification; reuse the
+    // For Slice2 operations without return type, and without an exception specification, reuse the
     // IncomingResponseExtensions.DecodeVoidReturnValueAsync method, otherwise call the generated decode
     // method in the Response class.
     if operation.return_members().is_empty()
