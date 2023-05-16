@@ -4,8 +4,9 @@ using IceRpc;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using TelemetryExample;
 using System.Diagnostics;
+using TelemetryServer;
+using VisitorCenter;
 
 // The activity source used by the telemetry interceptor and middleware.
 using var activitySource = new ActivitySource("IceRpc");
@@ -16,19 +17,15 @@ Pipeline pipeline = new Pipeline().UseTelemetry(activitySource);
 // Add the telemetry middleware to the dispatch pipeline.
 Router router = new Router().UseTelemetry(activitySource);
 
-// Configure OpenTelemetry trace provider to subscribe to the activity source used by the IceRPC telemetry interceptor
-// and middleware, and to export the traces to the Zipkin service.
-using TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
+// Configure OpenTelemetry trace provider to subscribe to the activity source used by the IceRPC telemetry middleware,
+// and to export the traces to the Zipkin service.
+using TracerProvider? tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddSource(activitySource.Name)
    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Greeter Server"))
    .AddZipkinExporter()
    .Build();
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost:20001"));
-pipeline.Into(connection);
-
-var proxy = new CrmProxy(pipeline);
-router.Map<IGreeterService>(new Chatbot(proxy));
+router.Map<IGreeterService>(new Chatbot());
 
 await using var server = new Server(router);
 server.Listen();

@@ -5,6 +5,6 @@
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
-    <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="1.3.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="1.4.0" />
   </ItemGroup>
 </Project>
