@@ -131,9 +131,9 @@ internal static class PipeWriterExtensions
         bool endStream,
         CancellationToken cancellationToken)
     {
-        if (writer is ReadOnlySequencePipeWriter readonlySequenceWriter)
+        if (writer is ReadOnlySequencePipeWriter readOnlySequenceWriter)
         {
-            return await readonlySequenceWriter.WriteAsync(source, endStream, cancellationToken).ConfigureAwait(false);
+            return await readOnlySequenceWriter.WriteAsync(source, endStream, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -148,9 +148,6 @@ internal static class PipeWriterExtensions
             }
             else
             {
-                // TODO: If readResult.Buffer.Length is small, it might be better to call a single
-                // writer.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
-                // that will end up in multiple transport calls?
                 foreach (ReadOnlyMemory<byte> buffer in source)
                 {
                     flushResult = await writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
