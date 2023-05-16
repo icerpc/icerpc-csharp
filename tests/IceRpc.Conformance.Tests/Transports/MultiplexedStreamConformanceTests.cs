@@ -13,6 +13,27 @@ namespace IceRpc.Conformance.Tests;
 /// <summary>Conformance tests for the multiplexed transports streams.</summary>
 public abstract class MultiplexedStreamConformanceTests
 {
+    private static IEnumerable<TestCaseData> WriteData
+    {
+        get
+        {
+            // These tests assume that the default segment size of the stream output is 4096.
+
+            byte[] bytes1K = new byte[1024];
+            byte[] bytes2K = new byte[2048];
+            byte[] bytes3K = new byte[3072];
+            byte[] bytes8K = new byte[8192];
+
+            yield return new TestCaseData(Array.Empty<byte>(), Array.Empty<byte[]>());
+            yield return new TestCaseData(Array.Empty<byte>(), new byte[][] { bytes1K });
+            yield return new TestCaseData(Array.Empty<byte>(), new byte[][] { bytes2K, bytes3K });
+
+            yield return new TestCaseData(bytes1K, new byte[][] { bytes1K });
+            yield return new TestCaseData(bytes2K, new byte[][] { bytes3K });
+            yield return new TestCaseData(bytes8K, new byte[][] { bytes1K });
+        }
+    }
+
     private static readonly ReadOnlyMemory<byte> _oneBytePayload = new(new byte[] { 0xFF });
 
     /// <summary>Ensures that completing the stream output after writing data doesn't discard the data. A successful
@@ -647,6 +668,55 @@ public abstract class MultiplexedStreamConformanceTests
         // Assert
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.Length, Is.EqualTo(1));
+    }
+
+    [TestCaseSource(nameof(WriteData))]
+    public async Task Stream_write(byte[] bufferedData, byte[][] writeData)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
+        PipeWriter output = sut.Local.Output;
+        PipeReader input = sut.Remote.Input;
+        if (bufferedData.Length > 0)
+        {
+            output.Write(bufferedData);
+        }
+
+        var pipe = new Pipe(new PipeOptions(minimumSegmentSize: 4096));
+        foreach (ReadOnlyMemory<byte> buffer in writeData)
+        {
+            pipe.Writer.Write(buffer.Span);
+        }
+        pipe.Writer.Complete();
+        _ = pipe.Reader.TryRead(out ReadResult dataReadResult);
+
+        // Act
+        if (output is ReadOnlySequencePipeWriter writer)
+        {
+            _ = await writer.WriteAsync(dataReadResult.Buffer, endStream: false, CancellationToken.None);
+        }
+        else
+        {
+            _ = await output.WriteAsync(dataReadResult.Buffer.ToArray());
+        }
+        output.Complete();
+
+        // Assert
+        ReadResult readResult;
+        long length = 0;
+        do
+        {
+            readResult = await input.ReadAsync();
+            length += readResult.Buffer.Length;
+            input.AdvanceTo(readResult.Buffer.End);
+        }
+        while (!readResult.IsCompleted);
+        Assert.That(length, Is.EqualTo(bufferedData.Length + dataReadResult.Buffer.Length));
+
+        pipe.Reader.Complete();
     }
 
     /// <summary>Verifies that calling write with a canceled cancellation token fails with
