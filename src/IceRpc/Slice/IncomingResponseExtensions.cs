@@ -68,6 +68,27 @@ public static class IncomingResponseExtensions
                 cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Verifies that a Slice2 response payload carries no return value or only tagged return values.
+    /// </summary>
+    /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A value task representing the asynchronous completion of the operation.</returns>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater or equal than <see
+    /// cref="StatusCode.ApplicationError" />.</exception>
+    public static ValueTask DecodeVoidReturnValueAsync(
+        IncomingResponse response,
+        OutgoingRequest request,
+        GenericProxy sender,
+        CancellationToken cancellationToken) =>
+        DecodeVoidReturnValueAsync(
+            response,
+            request,
+            SliceEncoding.Slice2,
+            sender,
+            cancellationToken: cancellationToken);
+
     /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>

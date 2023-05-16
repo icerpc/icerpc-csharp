@@ -130,9 +130,8 @@ public static class ProxyExtensions
     /// <param name="payload">The payload of the request. <see langword="null" /> is equivalent to an empty
     /// payload.</param>
     /// <param name="payloadContinuation">The payload continuation of the request.</param>
-    /// <param name="responseDecodeFunc">The optional decode function for the response payload. It decodes and throws
-    /// an exception when the status code of the response is <see cref="StatusCode.ApplicationError" />. Use null
-    /// for Slice2 operations with an empty exception specification.</param>
+    /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
+    /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="oneway">When <see langword="true" />, the request is sent one-way and an empty response is returned
@@ -145,7 +144,7 @@ public static class ProxyExtensions
         string operation,
         PipeReader? payload,
         PipeReader? payloadContinuation,
-        ResponseDecodeFunc? responseDecodeFunc = null,
+        ResponseDecodeFunc responseDecodeFunc,
         IFeatureCollection? features = null,
         bool idempotent = false,
         bool oneway = false,
@@ -192,23 +191,11 @@ public static class ProxyExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-                if (responseDecodeFunc is not null)
-                {
-                    await responseDecodeFunc(
-                        response,
-                        request,
-                        GenericProxy.FromProxy(proxy),
-                        cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    await response.DecodeVoidReturnValueAsync(
-                        request,
-                        SliceEncoding.Slice2,
-                        GenericProxy.FromProxy(proxy),
-                        defaultActivator: null,
-                        cancellationToken: cancellationToken).ConfigureAwait(false);
-                }
+                await responseDecodeFunc(
+                    response,
+                    request,
+                    GenericProxy.FromProxy(proxy),
+                    cancellationToken).ConfigureAwait(false);
             }
             finally
             {

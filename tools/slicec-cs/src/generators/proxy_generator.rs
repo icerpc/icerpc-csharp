@@ -257,17 +257,20 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    if operation.streamed_return_member().is_some()
-        || match &operation.throws {
-            Throws::Specific(_) => true,
+    // For Slice2 encoding or greater, if the operation doesn't return data and it doesn't contain an exception
+    // specification. Reuse the IncomingResponseExtensions.DecodeVoidReturnValueAsync, otherwise call the decode
+    // the generated decode method in the Response class.
+    if operation.return_members().is_empty()
+        && (match &operation.throws {
+            Throws::None => true,
             _ => false,
-        }
-        || operation.has_non_streamed_return_members()
-        || operation.encoding == Encoding::Slice1
+        } && operation.encoding != Encoding::Slice1)
     {
-        invocation_builder.add_argument(format!("Response.{async_operation_name}"));
+        invocation_builder.add_argument(format!(
+            "IceRpc.Slice.IncomingResponseExtensions.DecodeVoidReturnValueAsync"
+        ));
     } else {
-        invocation_builder.add_argument(format!("responseDecodeFunc: null"));
+        invocation_builder.add_argument(format!("Response.{async_operation_name}"));
     }
 
     invocation_builder.add_argument(features_parameter);
@@ -422,9 +425,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         .operations()
         .iter()
         .filter(|o| {
-            o.streamed_return_member().is_some()
+            // We need to generate an method to decode the responses of any operations with return members, Slice2
+            // operations with an exception specification, or any Slice1 operations to correctly setup the activator
+            // used for decoding Slice1 exceptions.
+            !o.return_members().is_empty()
                 || o.encoding == Encoding::Slice1
-                || o.has_non_streamed_return_members()
                 || match &o.throws {
                     Throws::Specific(_) => true,
                     _ => false,
