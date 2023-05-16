@@ -145,7 +145,7 @@ public static class ProxyExtensions
         PipeReader? payload,
         PipeReader? payloadContinuation,
         ResponseDecodeFunc responseDecodeFunc,
-        IFeatureCollection? features = null,
+        IFeatureCollection? features,
         bool idempotent = false,
         bool oneway = false,
         CancellationToken cancellationToken = default) where TProxy : struct, IProxy

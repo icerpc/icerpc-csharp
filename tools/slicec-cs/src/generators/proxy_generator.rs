@@ -257,9 +257,9 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    // For Slice2 encoding or greater, if the operation doesn't return data and it doesn't contain an exception
-    // specification. Reuse the IncomingResponseExtensions.DecodeVoidReturnValueAsync, otherwise call the decode
-    // the generated decode method in the Response class.
+    // For Slice2 operations without return type, and without an exception specification; reuse the
+    // IncomingResponseExtensions.DecodeVoidReturnValueAsync method, otherwise call the generated decode
+    // method in the Response class.
     if operation.return_members().is_empty()
         && (match &operation.throws {
             Throws::None => true,
@@ -425,9 +425,9 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         .operations()
         .iter()
         .filter(|o| {
-            // We need to generate an method to decode the responses of any operations with return members, Slice2
-            // operations with an exception specification, or any Slice1 operations to correctly setup the activator
-            // used for decoding Slice1 exceptions.
+            // We need to generate a method to decode the responses of any operations with return members, Slice2
+            // operations with an exception specification, or any Slice1 operations (to correctly setup the activator
+            // used for decoding Slice1 exceptions).
             !o.return_members().is_empty()
                 || o.encoding == Encoding::Slice1
                 || match &o.throws {
