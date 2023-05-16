@@ -11,9 +11,7 @@ mod struct_generator;
 
 use generated_code::GeneratedCode;
 use slice::code_block::CodeBlock;
-use slice::grammar::{
-    Class, CustomType, Enum, Enumerator, Exception, Field, Interface, Module, Operation, Parameter, Struct, TypeAlias,
-};
+use slice::grammar::*;
 use slice::slice_file::SliceFile;
 use slice::visitor::Visitor;
 
@@ -58,6 +56,8 @@ impl Visitor for Generator<'_> {
     fn visit_parameter(&mut self, _: &Parameter) {}
 
     fn visit_enumerator(&mut self, _: &Enumerator) {}
+
+    fn visit_type_ref(&mut self, _: &TypeRef) {}
 }
 
 pub fn generate_from_slice_file(slice_file: &SliceFile) -> String {
