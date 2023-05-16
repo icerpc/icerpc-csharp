@@ -264,7 +264,18 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    invocation_builder.add_argument(format!("Response.{async_operation_name}"));
+    if operation.streamed_return_member().is_some()
+        || match &operation.throws {
+            Throws::Specific(_) => true,
+            _ => false,
+        }
+        || operation.has_non_streamed_return_members()
+        || operation.encoding == Encoding::Slice1
+    {
+        invocation_builder.add_argument(format!("Response.{async_operation_name}"));
+    } else {
+        invocation_builder.add_argument(format!("responseDecodeFunc: null"));
+    }
 
     invocation_builder.add_argument(features_parameter);
 
@@ -414,7 +425,20 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
-    let operations = interface_def.operations();
+    let operations = interface_def
+        .operations()
+        .iter()
+        .filter(|o| {
+            o.streamed_return_member().is_some()
+                || o.encoding == Encoding::Slice1
+                || o.has_non_streamed_return_members()
+                || match &o.throws {
+                    Throws::Specific(_) => true,
+                    _ => false,
+                }
+        })
+        .cloned()
+        .collect::<Vec<_>>();
 
     if operations.is_empty() {
         return "".into();
