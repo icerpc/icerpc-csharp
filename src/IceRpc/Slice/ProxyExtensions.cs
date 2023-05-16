@@ -191,6 +191,7 @@ public static class ProxyExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                 await responseDecodeFunc(
                     response,
                     request,
