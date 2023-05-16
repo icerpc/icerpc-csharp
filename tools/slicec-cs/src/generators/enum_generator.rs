@@ -16,7 +16,7 @@ pub fn generate_enum(enum_def: &Enum, generated_code: &mut GeneratedCode) {
     generated_code.insert_scoped(enum_def, code);
 }
 
-pub fn enum_declaration(enum_def: &Enum) -> CodeBlock {
+fn enum_declaration(enum_def: &Enum) -> CodeBlock {
     ContainerBuilder::new(
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
