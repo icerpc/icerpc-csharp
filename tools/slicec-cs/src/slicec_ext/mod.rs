@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+mod comment_ext;
 mod entity_ext;
 mod enum_ext;
 mod interface_ext;
@@ -9,6 +10,7 @@ mod primitive_ext;
 mod slice_encoding_ext;
 mod type_ref_ext;
 
+pub use comment_ext::CommentExt;
 pub use entity_ext::EntityExt;
 pub use enum_ext::EnumExt;
 pub use interface_ext::InterfaceExt;
