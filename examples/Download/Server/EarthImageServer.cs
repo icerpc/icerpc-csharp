@@ -2,9 +2,10 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using Repository;
 using System.IO.Pipelines;
 
-namespace DownloadExample;
+namespace DownloadServer;
 
 internal class EarthImageServer : Service, IDownloaderService
 {

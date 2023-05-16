@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterSecureExample;
 using IceRpc;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using VisitorCenter;
 
 // Create the authentication options with a custom certificate validation callback that uses our Root CA certificate.
 

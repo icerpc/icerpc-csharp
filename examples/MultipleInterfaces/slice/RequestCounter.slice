@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module MultipleInterfacesExample
+module Metrics
 
 /// Represents a simple request counter.
 interface RequestCounter {

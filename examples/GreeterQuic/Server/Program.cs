@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterQuicExample;
+using GreeterQuicServer;
 using IceRpc;
 using IceRpc.Transports.Quic;
 using System.Net.Security;

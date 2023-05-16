@@ -2,8 +2,9 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using VisitorCenter;
 
-namespace CompressExample;
+namespace CompressServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
 internal class Chatbot : Service, IGreeterService

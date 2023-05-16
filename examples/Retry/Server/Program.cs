@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using RetryExample;
+using RetryServer;
 
 if (args.Length < 1)
 {

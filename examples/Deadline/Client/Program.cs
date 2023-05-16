@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterDeadlineExample;
 using IceRpc;
-using IceRpc.Deadline;
 using IceRpc.Features;
+using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 

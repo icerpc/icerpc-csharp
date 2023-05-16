@@ -3,8 +3,9 @@
 using IceRpc.Features;
 using IceRpc.Slice;
 using System.IO.Pipelines;
+using Repository;
 
-namespace UploadExample;
+namespace UploadServer;
 
 internal class EarthImageStore : Service, IUploaderService
 {

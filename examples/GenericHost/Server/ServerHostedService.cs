@@ -3,7 +3,7 @@
 using IceRpc;
 using Microsoft.Extensions.Hosting;
 
-namespace GenericHostExample;
+namespace GenericHostServer;
 
 /// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
 public class ServerHostedService : IHostedService, IAsyncDisposable

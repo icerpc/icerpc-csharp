@@ -2,8 +2,9 @@
 
 using IceRpc;
 using Microsoft.Extensions.Hosting;
+using VisitorCenter;
 
-namespace GenericHostExample;
+namespace GenericHostClient;
 
 /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
 public class ClientHostedService : BackgroundService

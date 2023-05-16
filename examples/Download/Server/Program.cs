@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using DownloadExample;
+using DownloadServer;
 using IceRpc;
 
 await using var server = new Server(new EarthImageServer());

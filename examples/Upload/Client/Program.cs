@@ -2,7 +2,7 @@
 
 using IceRpc;
 using System.IO.Pipelines;
-using UploadExample;
+using Repository;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 var uploader = new UploaderProxy(connection);

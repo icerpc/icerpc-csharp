@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module UploadExample
+module Repository
 
 /// Represents an image repository that allows clients to upload their images.
 interface Uploader {

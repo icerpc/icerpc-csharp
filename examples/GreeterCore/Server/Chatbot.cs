@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
+using GreeterCore;
 
-namespace GreeterCoreExample;
+namespace GreeterCoreServer;
 
 /// <summary>Implements a dispatcher for the greet operation.</summary>
 internal class Chatbot : IDispatcher

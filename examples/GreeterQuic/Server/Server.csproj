@@ -8,7 +8,7 @@
     <TargetFramework>net7.0-windows</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <SliceFile Include="../Greeter.slice" />
+    <SliceFile Include="../slice/Greeter.slice" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(Version)" />

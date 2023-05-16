@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using CompressExample;
+using CompressServer;
 using IceRpc;
+using VisitorCenter;
 
 // Add the Compressor middleware to the dispatch pipeline.
 Router router = new Router().UseCompressor(CompressionFormat.Brotli);

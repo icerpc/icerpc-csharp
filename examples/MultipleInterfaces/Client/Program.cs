@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using MultipleInterfacesExample;
 using IceRpc;
+using Metrics;
+using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
