@@ -8,7 +8,7 @@ use crate::cs_util::FieldType;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
-use crate::slicec_ext::{EntityExt, MemberExt, TypeRefExt};
+use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
 use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
