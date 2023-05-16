@@ -1,27 +1,19 @@
 // Copyright (c) ZeroC, Inc.
 
+use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
-use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 use convert_case::{Case, Casing};
 use slice::code_block::CodeBlock;
 use slice::grammar::*;
-use slice::visitor::Visitor;
 
-#[derive(Debug)]
-pub struct EnumVisitor<'a> {
-    pub generated_code: &'a mut GeneratedCode,
-}
-
-impl<'a> Visitor for EnumVisitor<'a> {
-    fn visit_enum(&mut self, enum_def: &Enum) {
-        let mut code = CodeBlock::default();
-        code.add_block(&enum_declaration(enum_def));
-        code.add_block(&enum_underlying_extensions(enum_def));
-        code.add_block(&enum_encoder_extensions(enum_def));
-        code.add_block(&enum_decoder_extensions(enum_def));
-        self.generated_code.insert_scoped(enum_def, code);
-    }
+pub fn generate_enum(enum_def: &Enum, generated_code: &mut GeneratedCode) {
+    let mut code = CodeBlock::default();
+    code.add_block(&enum_declaration(enum_def));
+    code.add_block(&enum_underlying_extensions(enum_def));
+    code.add_block(&enum_encoder_extensions(enum_def));
+    code.add_block(&enum_decoder_extensions(enum_def));
+    generated_code.insert_scoped(enum_def, code);
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {

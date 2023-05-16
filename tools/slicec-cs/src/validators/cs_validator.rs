@@ -255,4 +255,7 @@ impl Visitor for CsValidator<'_> {
             validate_common_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
+
+    // TODO: this should do some validation.
+    fn visit_type_ref(&mut self, _: &TypeRef) {}
 }

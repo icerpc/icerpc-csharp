@@ -1,77 +1,71 @@
 // Copyright (c) ZeroC, Inc.
 
+use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
 use crate::decoding::*;
 use crate::encoding::*;
-use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_block::CodeBlock;
 
 use slice::grammar::*;
 use slice::utils::code_gen_util::*;
-use slice::visitor::Visitor;
 
-pub struct ProxyVisitor<'a> {
-    pub generated_code: &'a mut GeneratedCode,
-}
+pub fn generate_proxy(interface_def: &Interface, generated_code: &mut GeneratedCode) {
+    let namespace = interface_def.namespace();
+    let interface = interface_def.interface_name(); // IFoo
+    let slice_interface = interface_def.module_scoped_identifier();
+    let proxy_impl: String = interface_def.proxy_name(); // FooProxy
+    let access = interface_def.access_modifier();
+    let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
+    let bases: Vec<&Interface> = interface_def.base_interfaces();
 
-impl Visitor for ProxyVisitor<'_> {
-    fn visit_interface(&mut self, interface_def: &Interface) {
-        let namespace = interface_def.namespace();
-        let interface = interface_def.interface_name(); // IFoo
-        let slice_interface = interface_def.module_scoped_identifier();
-        let proxy_impl: String = interface_def.proxy_name(); // FooProxy
-        let access = interface_def.access_modifier();
-        let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
-        let bases: Vec<&Interface> = interface_def.base_interfaces();
+    let proxy_impl_bases: Vec<String> = vec![interface.clone(), "IProxy".to_owned()];
 
-        let proxy_impl_bases: Vec<String> = vec![interface.clone(), "IProxy".to_owned()];
+    let all_base_impl: Vec<String> = all_bases.iter().map(|b| b.scoped_proxy_name(&namespace)).collect();
 
-        let all_base_impl: Vec<String> = all_bases.iter().map(|b| b.scoped_proxy_name(&namespace)).collect();
+    // proxy bases
+    let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
 
-        // proxy bases
-        let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
-
-        let mut code = CodeBlock::default();
-        code.add_block(
-            &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
-                .add_comments(interface_def.formatted_doc_comment())
-                .add_generated_remark_with_note(
-                    "client-side interface",
-                    format!("It's implemented by <see cref=\"{proxy_impl}\" />."),
-                    interface_def,
-                )
-                .add_type_id_attribute(interface_def)
-                .add_container_attributes(interface_def)
-                .add_bases(&interface_bases)
-                .add_block(proxy_interface_operations(interface_def))
-                .build(),
-        );
-
-        let mut proxy_impl_builder =
-            ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
-
-        proxy_impl_builder
-            .add_bases(&proxy_impl_bases)
-            .add_comment(
-                "summary",
-                format!(
-                    r#"
-Implements <see cref="{interface}" /> by making invocations on a remote IceRPC service.
-This remote service must implement Slice interface {slice_interface}."#
-                ),
+    let mut code = CodeBlock::default();
+    code.add_block(
+        &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
+            .add_comments(interface_def.formatted_doc_comment())
+            .add_generated_remark_with_note(
+                "client-side interface",
+                format!("It's implemented by <see cref=\"{proxy_impl}\" />."),
+                interface_def,
             )
-            .add_generated_remark("record struct", interface_def)
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
-            .add_block(request_class(interface_def))
-            .add_block(response_class(interface_def))
-            .add_block(
-                format!(
-                    r#"
+            .add_bases(&interface_bases)
+            .add_block(proxy_interface_operations(interface_def))
+            .build(),
+    );
+
+    let mut proxy_impl_builder =
+        ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
+
+    proxy_impl_builder
+        .add_bases(&proxy_impl_bases)
+        .add_comment(
+            "summary",
+            format!(
+                r#"
+Implements <see cref="{interface}" /> by making invocations on a remote IceRPC service.
+This remote service must implement Slice interface {slice_interface}."#
+            ),
+        )
+        .add_generated_remark("record struct", interface_def)
+        .add_type_id_attribute(interface_def)
+        .add_container_attributes(interface_def)
+        .add_block(request_class(interface_def))
+        .add_block(response_class(interface_def))
+        .add_block(
+            format!(
+                r#"
 /// <summary>Gets the default service address for services that implement Slice interface {slice_interface}.
 /// Its protocol is <see cref="IceRpc.Protocol.IceRpc" /> and its path is computed from the name of the Slice interface.
 /// </summary>
@@ -86,47 +80,46 @@ public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 
 /// <inheritdoc/>
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#
-                )
-                .into(),
-            );
+            )
+            .into(),
+        );
 
-        if interface_def.supported_encodings().supports(&Encoding::Slice1) {
-            proxy_impl_builder.add_block(
-                format!(
-                    "\
+    if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+        proxy_impl_builder.add_block(
+            format!(
+                "\
 private static readonly IActivator _defaultActivator =
     IActivator.FromAssembly(typeof({proxy_impl}).Assembly);"
-                )
-                .into(),
-            );
-        }
+            )
+            .into(),
+        );
+    }
 
-        for base_impl in all_base_impl {
-            proxy_impl_builder.add_block(
-                format!(
-                    r#"
+    for base_impl in all_base_impl {
+        proxy_impl_builder.add_block(
+            format!(
+                r#"
 /// <summary>Provides an implicit conversion to <see cref="{base_impl}" />.</summary>
 public static implicit operator {base_impl}({proxy_impl} proxy) =>
     new() {{ EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress }};"#
-                )
-                .into(),
-            );
-        }
-
-        proxy_impl_builder.add_block(proxy_impl_static_methods(interface_def));
-
-        for operation in interface_def.all_inherited_operations() {
-            proxy_impl_builder.add_block(proxy_base_operation_impl(operation));
-        }
-
-        for operation in interface_def.operations() {
-            proxy_impl_builder.add_block(proxy_operation_impl(operation));
-        }
-
-        code.add_block(&proxy_impl_builder.build());
-
-        self.generated_code.insert_scoped(interface_def, code)
+            )
+            .into(),
+        );
     }
+
+    proxy_impl_builder.add_block(proxy_impl_static_methods(interface_def));
+
+    for operation in interface_def.all_inherited_operations() {
+        proxy_impl_builder.add_block(proxy_base_operation_impl(operation));
+    }
+
+    for operation in interface_def.operations() {
+        proxy_impl_builder.add_block(proxy_operation_impl(operation));
+    }
+
+    code.add_block(&proxy_impl_builder.build());
+
+    generated_code.insert_scoped(interface_def, code)
 }
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {

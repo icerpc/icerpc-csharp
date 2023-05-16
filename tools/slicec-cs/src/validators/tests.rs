@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::code_gen::cs_compile;
 use crate::cs_attributes;
+use crate::cs_compile::cs_compile;
 use slice::diagnostics::{Diagnostic, Error};
 use slice::test_helpers::diagnostics_from_compilation_state;
 
