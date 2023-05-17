@@ -415,11 +415,11 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
 
         // Act
-        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemory(readOnlyMemory);
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpReadOnlyMemory(readOnlyMemory);
 
         // Assert
         Assert.That(
-            async () => await IMyOperationsAService.Request.OpReadOnlyMemoryAsync(
+            async () => await IMyOperationsAService.Request.DecodeOpReadOnlyMemoryAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
@@ -437,7 +437,7 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
 
         // Act
-        PipeReader payload = IMyOperationsAService.Response.OpReadOnlyMemory(readOnlyMemory);
+        PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemory(readOnlyMemory);
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -446,7 +446,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
+            async () => await MyOperationsAProxy.Response.DecodeOpReadOnlyMemoryAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -460,11 +460,11 @@ public class OperationTests
     public void Slice2_operation_encode_with_readonly_memory_optional_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
-        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
 
         // Act/Assert
         Assert.That(
-            async () => await IMyOperationsAService.Request.OpReadOnlyMemoryOptionalAsync(
+            async () => await IMyOperationsAService.Request.DecodeOpReadOnlyMemoryOptionalAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
@@ -483,7 +483,7 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(p);
 
         // Act
-        PipeReader payload = IMyOperationsAService.Response.OpReadOnlyMemoryOptional(readOnlyMemory);
+        PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemoryOptional(readOnlyMemory);
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -492,7 +492,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
+            async () => await MyOperationsAProxy.Response.DecodeOpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -507,11 +507,11 @@ public class OperationTests
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
         // Arrange
-        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
 
         // Act/Assert
         Assert.That(
-            async () => await IMyOperationsAService.Request.OpReadOnlyMemoryTaggedAsync(
+            async () => await IMyOperationsAService.Request.DecodeOpReadOnlyMemoryTaggedAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
@@ -530,7 +530,7 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(p);
 
         // Act
-        PipeReader payload = IMyOperationsAService.Response.OpReadOnlyMemoryTagged(readOnlyMemory);
+        PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemoryTagged(readOnlyMemory);
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -539,7 +539,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
+            async () => await MyOperationsAProxy.Response.DecodeOpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
                 InvalidProxy.Instance,

@@ -217,7 +217,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument(format!("{encoding}.CreateSizeZeroPayload()"));
     } else {
         invocation_builder.add_argument(format!(
-            "Request.{operation_name}({}, encodeOptions: EncodeOptions)",
+            "Request.Encode{operation_name}({}, encodeOptions: EncodeOptions)",
             parameters
                 .iter()
                 .map(|p| p.parameter_name())
@@ -266,7 +266,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
     {
         invocation_builder.add_argument("IceRpc.Slice.IncomingResponseExtensions.DecodeVoidReturnValueAsync");
     } else {
-        invocation_builder.add_argument(format!("Response.{async_operation_name}"));
+        invocation_builder.add_argument(format!("Response.Decode{async_operation_name}"));
     }
 
     invocation_builder.add_argument(features_parameter);
@@ -370,7 +370,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         let mut builder = FunctionBuilder::new(
             "public static",
             "global::System.IO.Pipelines.PipeReader",
-            &operation.escape_identifier(),
+            &operation.escape_identifier_with_prefix("Encode"),
             FunctionType::BlockBody,
         );
 
@@ -469,7 +469,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                 "public static async"
             },
             &return_type,
-            &operation.escape_identifier_with_suffix("Async"),
+            &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
         );
 

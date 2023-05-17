@@ -112,7 +112,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
                 "global::System.Threading.Tasks.ValueTask<{}>",
                 &parameters.to_tuple_type(namespace, TypeContext::Decode, false),
             ),
-            &operation.escape_identifier_with_suffix("Async"),
+            &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
         );
 
@@ -183,7 +183,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let mut builder = FunctionBuilder::new(
             "public static",
             "global::System.IO.Pipelines.PipeReader",
-            operation_name,
+            format!("Encode{operation_name}").as_str(),
             FunctionType::BlockBody,
         );
 
@@ -412,7 +412,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
         [parameter] => {
             writeln!(
                 check_and_decode,
-                "var {var_name} = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
+                "var {var_name} = await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
                 var_name = parameter.parameter_name_with_prefix("sliceP_"),
             )
         }
@@ -420,7 +420,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
             // > 1 parameter
             writeln!(
                 check_and_decode,
-                "var args = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
+                "var args = await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
             )
         }
     };
@@ -553,7 +553,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     match non_streamed_return_values.len() {
         0 => format!("{encoding}.CreateSizeZeroPayload()"),
         _ => format!(
-            "Response.{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
+            "Response.Encode{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
             operation_name = operation.escape_identifier(),
             args = returns.join(", "),
         ),
