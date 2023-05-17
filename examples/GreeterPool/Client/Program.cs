@@ -16,7 +16,7 @@ var proxies = new List<GreeterProxy>
 };
 
 // First the easy way to send all the requests in parallel.
-string[] greetings = await Task.WhenAll(proxies.Select(proxy => proxy.GreetAsync(Environment.UserName)));
+string[] greetings = await Task.WhenAll(from proxy in proxies select proxy.GreetAsync(Environment.UserName));
 Array.ForEach(greetings, Console.WriteLine);
 Console.WriteLine("---");
 
@@ -28,12 +28,13 @@ PipeReader payload = GreeterProxy.Request.Greet(Environment.UserName);
 _ = payload.TryRead(out ReadResult readResult);
 ReadOnlySequence<byte> buffer = readResult.Buffer;
 
-greetings = await Task.WhenAll(proxies.Select(proxy =>
-    proxy.InvokeAsync(
-        operation: "greet",
-        payload: PipeReader.Create(buffer), // each request needs its own payload
-        payloadContinuation: null,
-        responseDecodeFunc: GreeterProxy.Response.GreetAsync)));
+greetings = await Task.WhenAll(
+    from proxy in proxies
+    select proxy.InvokeAsync(
+            operation: "greet",
+            payload: PipeReader.Create(buffer), // each request needs its own payload
+            payloadContinuation: null,
+            responseDecodeFunc: GreeterProxy.Response.GreetAsync));
 
 Array.ForEach(greetings, Console.WriteLine);
 
