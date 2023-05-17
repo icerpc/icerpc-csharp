@@ -63,15 +63,6 @@ fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_rep
     }
 }
 
-fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_reporter: &mut DiagnosticReporter) {
-    for (attribute, span) in get_cs_attributes(attributable) {
-        match attribute {
-            CsAttributeKind::Generic { .. } => {}
-            _ => report_unexpected_attribute(attribute, span, diagnostic_reporter),
-        }
-    }
-}
-
 fn validate_common_attributes(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute {
         CsAttributeKind::Identifier { .. } => {}
@@ -88,17 +79,6 @@ fn validate_non_custom_type_attributes(
     match attribute {
         CsAttributeKind::Internal { .. } => {}
         _ => validate_common_attributes(attribute, span, diagnostic_reporter),
-    }
-}
-
-fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut DiagnosticReporter) {
-    match data_type.concrete_type() {
-        Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type, diagnostic_reporter),
-        _ => {
-            for (attribute, span) in get_cs_attributes(data_type) {
-                report_unexpected_attribute(attribute, span, diagnostic_reporter);
-            }
-        }
     }
 }
 
@@ -196,31 +176,33 @@ impl Visitor for CsValidator<'_> {
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for (attribute, span) in get_cs_attributes(type_alias) {
             match attribute {
-                CsAttributeKind::Identifier { .. } => Diagnostic::new(Error::UnexpectedAttribute {
-                    attribute: cs_attributes::IDENTIFIER.to_owned(),
-                })
-                .set_span(span)
-                .set_scope(type_alias.parser_scope())
-                .report(self.diagnostic_reporter),
-                _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
+                CsAttributeKind::Identifier { .. } => {
+                    Diagnostic::new(Error::UnexpectedAttribute {
+                        attribute: cs_attributes::IDENTIFIER.to_owned(),
+                    })
+                    .set_span(span)
+                    .set_scope(type_alias.parser_scope())
+                    .report(self.diagnostic_reporter);
+                }
+                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }
 
     fn visit_field(&mut self, field: &Field) {
-        for (attribute, _) in get_cs_attributes(field) {
+        for (attribute, span) in get_cs_attributes(field) {
             match attribute {
                 CsAttributeKind::Identifier { .. } | CsAttributeKind::Attribute { .. } => {}
-                _ => validate_data_type_attributes(&field.data_type, self.diagnostic_reporter),
+                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
-        for (attribute, _) in get_cs_attributes(parameter) {
+        for (attribute, span) in get_cs_attributes(parameter) {
             match attribute {
                 CsAttributeKind::Identifier { .. } => {}
-                _ => validate_data_type_attributes(&parameter.data_type, self.diagnostic_reporter),
+                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }
@@ -231,6 +213,13 @@ impl Visitor for CsValidator<'_> {
         }
     }
 
-    // TODO: this should do some validation.
-    fn visit_type_ref(&mut self, _: &TypeRef) {}
+    fn visit_type_ref(&mut self, type_ref: &TypeRef) {
+        for (attribute, span) in get_cs_attributes(type_ref) {
+            match attribute {
+                CsAttributeKind::Generic { .. }
+                    if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) => {}
+                _ => report_unexpected_attribute(attribute, span, self.diagnostic_reporter),
+            }
+        }
+    }
 }
