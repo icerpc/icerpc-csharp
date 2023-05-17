@@ -1,5 +1,6 @@
 # Copyright (c) ZeroC, Inc.
 
+[CmdletBinding(PositionalBinding=$false)]
 param (
     [string]$config="debug",
     $version="",
