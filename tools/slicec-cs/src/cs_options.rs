@@ -8,7 +8,7 @@ use slice::slice_options::SliceOptions;
 
 /// This struct is responsible for parsing the command line options specific to 'slicec-cs'.
 /// The option parsing capabilities are generated on the struct by the `clap` macro.
-#[derive(Parser)]
+#[derive(Debug, Default, Parser)]
 #[command(author, version, about, long_about=DESCRIPTION, rename_all = "kebab-case")]
 pub struct CsOptions {
     // Import the options common to all slice compilers.
