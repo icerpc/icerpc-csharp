@@ -538,6 +538,51 @@ public abstract class MultiplexedConnectionConformanceTests
         }
     }
 
+    [Test]
+    public async Task Bidirectional_stream_flow_control_when_peer_does_not_consume_data()
+    {
+        // Arrange
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+                options => options.MaxBidirectionalStreams = 1);
+
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var payload = new ReadOnlyMemory<byte>(new byte[16 * 1024]);
+
+        IMultiplexedStream localStream = await sut.Client.CreateStreamAsync(true, default);
+        await ((ReadOnlySequencePipeWriter)localStream.Output).WriteAsync(
+            new ReadOnlySequence<byte>(payload),
+            endStream: true,
+            default); // Ensures the stream is started.
+
+        IMultiplexedStream remoteStream = await sut.Server.AcceptStreamAsync(default);
+        remoteStream.Output.Complete();
+
+        ReadResult readResult = await localStream.Input.ReadAsync();
+        Assert.That(readResult.IsCompleted);
+        localStream.Input.Complete();
+
+        using var cts = new CancellationTokenSource(100);
+
+        // At this point only the remote stream input is not completed. The stream holds 16KB of buffered data.
+        // CreateStreamAsync should block because the data isn't consumed.
+
+        // Act/Assert
+        Assert.That(
+            async () => await sut.Client.CreateStreamAsync(true, cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+
+        // Complete the input and check that the next stream creation works.
+        remoteStream.Input.Complete();
+
+        localStream = await sut.Client.CreateStreamAsync(true, default);
+        localStream.Input.Complete();
+        localStream.Output.Complete();
+    }
+
     /// <summary>Verifies that connection cannot exceed the bidirectional stream max count.</summary>
     [Test]
     public async Task Max_bidirectional_stream_stress_test()
