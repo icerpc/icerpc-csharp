@@ -19,11 +19,8 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
     let has_base_class = class_def.base_class().is_some();
 
     let fields = class_def.fields();
-    let base_fields = if let Some(base) = class_def.base_class() {
-        base.all_fields()
-    } else {
-        vec![]
-    };
+    let base_fields = class_def.base_class().map_or(vec![], Class::all_fields);
+
     let access = class_def.access_modifier();
 
     let mut non_default_fields = fields.clone();
