@@ -538,6 +538,17 @@ public abstract class MultiplexedConnectionConformanceTests
         }
     }
 
+    /// <summary>This test verifies that stream flow control prevents a new stream from being created under the
+    /// following conditions:
+    /// - the max stream count is reached
+    /// - writes are closed on both the local and remote streams
+    /// - data on the remote stream is not consumed
+    ///
+    /// CreateStreamAsync should unblock only once the application consumed all the buffered data from the remote
+    /// stream.
+    ///
+    /// With Slic, once all the buffered data is consumed, a StreamReadsCompleted frame is sent to notify the client
+    /// that it can create a new stream.</summary>
     [Test]
     public async Task Bidirectional_stream_flow_control_when_peer_does_not_consume_data()
     {
@@ -565,8 +576,6 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(readResult.IsCompleted);
         localStream.Input.Complete();
 
-        using var cts = new CancellationTokenSource(100);
-
         // At this point only the remote stream input is not completed. The stream holds 16KB of buffered data.
         // CreateStreamAsync should block because the data isn't consumed.
 
@@ -574,9 +583,11 @@ public abstract class MultiplexedConnectionConformanceTests
         Assert.That(
             async () =>
             {
+                using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
                 // This should throw OperationCanceledException because reads from the remote stream accepted above are
                 // not closed (the remote stream still has non-consumed buffered data).
-                IMultiplexedStream localStream = await sut.Client.CreateStreamAsync(true, cts.Token);
+                IMultiplexedStream localStream = await sut.Client.CreateStreamAsync(bidirectional: true, cts.Token);
                 try
                 {
                     await localStream.Output.WriteAsync(payload, cts.Token);
