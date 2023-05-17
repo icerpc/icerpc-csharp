@@ -102,18 +102,6 @@ fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut 
     }
 }
 
-// Validates C# language specific attribute duplicates.
-fn validate_repeated_attributes(entity: &dyn Entity, diagnostic_reporter: &mut DiagnosticReporter) {
-    let cs_attributes = entity
-        .attributes(false)
-        .into_iter()
-        // `LanguageKind`s are created by slicec-cs (not slicec), so any `LanguageKind`s MUST be `CsLanguageKind`s.
-        .filter(|attribute| matches!(attribute.kind, AttributeKind::LanguageKind { .. }))
-        .collect::<Vec<_>>();
-
-    slice::validators::validate_repeated_attributes(&cs_attributes, diagnostic_reporter);
-}
-
 impl Visitor for CsValidator<'_> {
     fn visit_file(&mut self, slice_file: &SliceFile) {
         for (attribute, span) in get_cs_attributes(slice_file) {
@@ -122,7 +110,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_module(&mut self, module_def: &Module) {
-        validate_repeated_attributes(module_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(module_def) {
             match attribute {
                 CsAttributeKind::Namespace { .. } => {}
@@ -142,7 +129,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_struct(&mut self, struct_def: &Struct) {
-        validate_repeated_attributes(struct_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(struct_def) {
             match attribute {
                 CsAttributeKind::Readonly { .. } => {}
@@ -152,28 +138,24 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_class(&mut self, class_def: &Class) {
-        validate_repeated_attributes(class_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(class_def) {
             validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
     fn visit_exception(&mut self, exception_def: &Exception) {
-        validate_repeated_attributes(exception_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(exception_def) {
             validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
     fn visit_interface(&mut self, interface_def: &Interface) {
-        validate_repeated_attributes(interface_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(interface_def) {
             validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
         }
     }
 
     fn visit_enum(&mut self, enum_def: &Enum) {
-        validate_repeated_attributes(enum_def, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(enum_def) {
             match attribute {
                 CsAttributeKind::Attribute { .. } => {}
@@ -183,7 +165,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_operation(&mut self, operation: &Operation) {
-        validate_repeated_attributes(operation, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(operation) {
             match attribute {
                 CsAttributeKind::EncodedResult {} => {
@@ -195,8 +176,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_custom_type(&mut self, custom_type: &CustomType) {
-        validate_repeated_attributes(custom_type, self.diagnostic_reporter);
-
         // We require 'cs::custom' on custom types to know how to encode/decode it.
         if !custom_type.has_attribute(false, match_cs_custom) {
             Diagnostic::new(Error::MissingRequiredAttribute {
@@ -215,7 +194,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
-        validate_repeated_attributes(type_alias, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(type_alias) {
             match attribute {
                 CsAttributeKind::Identifier { .. } => Diagnostic::new(Error::UnexpectedAttribute {
@@ -230,7 +208,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_field(&mut self, field: &Field) {
-        validate_repeated_attributes(field, self.diagnostic_reporter);
         for (attribute, _) in get_cs_attributes(field) {
             match attribute {
                 CsAttributeKind::Identifier { .. } | CsAttributeKind::Attribute { .. } => {}
@@ -240,7 +217,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
-        validate_repeated_attributes(parameter, self.diagnostic_reporter);
         for (attribute, _) in get_cs_attributes(parameter) {
             match attribute {
                 CsAttributeKind::Identifier { .. } => {}
@@ -250,7 +226,6 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_enumerator(&mut self, enumerator: &Enumerator) {
-        validate_repeated_attributes(enumerator, self.diagnostic_reporter);
         for (attribute, span) in get_cs_attributes(enumerator) {
             validate_common_attributes(attribute, span, self.diagnostic_reporter)
         }

@@ -6,8 +6,11 @@ use slice::compilation_state::CompilationState;
 use slice::diagnostics::{Diagnostic, Error};
 use std::io;
 
-pub fn cs_compile(compilation_state: &mut CompilationState) {
+pub fn cs_patcher(compilation_state: &mut CompilationState) {
     unsafe { compilation_state.apply_unsafe(patch_attributes) };
+}
+
+pub fn cs_validator(compilation_state: &mut CompilationState) {
     compilation_state.apply(validate_cs_attributes);
     compilation_state.apply(check_for_unique_names);
 }
@@ -34,10 +37,10 @@ fn check_for_unique_names(compilation_state: &mut CompilationState) {
 
 #[cfg(test)]
 mod test {
-    use super::cs_compile;
+    use super::{cs_patcher, cs_validator};
     use crate::generators::generate_from_slice_file;
-    use slice::command_line::SliceOptions;
     use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
+    use slice::slice_options::SliceOptions;
     use slice::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
     use slice::utils::file_util::resolve_files_from;
     use std::io;
@@ -67,8 +70,7 @@ mod test {
             options.references.push(slice_dir.clone());
             options.references.push(tests_dir.clone());
 
-            let mut compilation_state = slice::compile_from_options(&options);
-            cs_compile(&mut compilation_state);
+            let compilation_state = slice::compile_from_options(&options, cs_patcher, cs_validator);
             if compilation_state.diagnostic_reporter.has_errors() {
                 compilation_state.into_exit_code(); // This prints the diagnostics
                 panic!("Failed to compile IceRpc.Tests Slice files");
@@ -88,10 +90,9 @@ mod test {
         let mut options = SliceOptions::default();
         options.sources.push(slice1.display().to_string());
         options.sources.push(slice2.display().to_string());
-        let mut compilation_state = slice::compile_from_options(&options);
 
         // Act
-        cs_compile(&mut compilation_state);
+        let compilation_state = slice::compile_from_options(&options, cs_patcher, cs_validator);
 
         // Assert
         let expected = Diagnostic::new(Error::IO {
