@@ -26,17 +26,11 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
     };
     let access = class_def.access_modifier();
 
-    let non_default_fields = fields
-        .iter()
-        .cloned()
-        .filter(|m| !m.is_default_initialized())
-        .collect::<Vec<_>>();
+    let mut non_default_fields = fields.clone();
+    non_default_fields.retain(|m| !m.is_default_initialized());
 
-    let non_default_base_fields = base_fields
-        .iter()
-        .cloned()
-        .filter(|m| !m.is_default_initialized())
-        .collect::<Vec<_>>();
+    let mut non_default_base_fields = base_fields.clone();
+    non_default_base_fields.retain(|m| !m.is_default_initialized());
 
     let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 

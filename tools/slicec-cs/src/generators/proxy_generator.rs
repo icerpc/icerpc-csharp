@@ -342,12 +342,9 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| o.has_non_streamed_parameters())
-        .cloned()
-        .collect::<Vec<_>>();
+
+    let mut operations = interface_def.operations();
+    operations.retain(|o| o.has_non_streamed_parameters());
 
     if operations.is_empty() {
         return "".into();
@@ -417,18 +414,14 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| {
-            // We need to generate a method to decode the responses of any operations with return members, Slice2
-            // operations with an exception specification, or any Slice1 operations (to correctly setup the activator
-            // used for decoding Slice1 exceptions). We don't have to check Throws::AnyException because it is only
-            // valid in Slice1.
-            !o.return_members().is_empty() || o.encoding == Encoding::Slice1 || matches!(&o.throws, Throws::Specific(_))
-        })
-        .cloned()
-        .collect::<Vec<_>>();
+
+    let mut operations = interface_def.operations();
+    operations.retain(|o| {
+        // We need to generate a method to decode the responses of any operations with return members, Slice2
+        // operations with an exception specification, or any Slice1 operations (to correctly setup the activator used
+        // for decoding Slice1 exceptions). We don't check Throws::AnyException because it is only valid in Slice1.
+        !o.return_members().is_empty() || o.encoding == Encoding::Slice1 || matches!(&o.throws, Throws::Specific(_))
+    });
 
     if operations.is_empty() {
         return "".into();
