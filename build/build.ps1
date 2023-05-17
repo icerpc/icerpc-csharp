@@ -1,5 +1,6 @@
 # Copyright (c) ZeroC, Inc.
 
+[CmdletBinding(PositionalBinding=$false)]
 param (
     [string]$config="debug",
     $version="",
@@ -13,7 +14,8 @@ param (
     [switch]$docfxExamples,
     [switch]$installTemplates,
     [switch]$help,
-    [switch]$coverage
+    [switch]$coverage,
+    [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
@@ -203,6 +205,7 @@ function DotnetConfiguration($config) {
 
 function Get-Help() {
     Write-Host "Usage: build [actions] [arguments]"
+    Write-Host ""
     Write-Host "Actions (defaults to -build):"
     Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
     Write-Host "  -pack                     Create the IceRPC NuGet packages."
@@ -226,8 +229,10 @@ function Get-Help() {
 
 $configs = "debug","release"
 if ( $configs -notcontains $config ) {
+    Write-Host "Invalid config: '$config', config must 'debug' or 'release'"
+    Write-Host ""
     Get-Help
-    throw new-object system.ArgumentException "config must debug or release"
+    exit 1
 }
 
 $actions = @("build", "clean", "doc", "test", "pack", "publish", "examples", "docfxExamples", "installTemplates")
@@ -243,16 +248,16 @@ if ($passedInActions.Length -eq 0) {
     $passedInActions = @("build")
 }
 
+if ($properties) {
+   Write-Host "Unknown argument:" $properties[0]
+   Write-Host ""
+   Get-Help
+   exit 1
+}
+
 if ( $help ) {
     Get-Help
     exit 0
-}
-
-if ($args) {
-    Write-Host "too many arguments: $args"
-    Write-Host ""
-    Get-Help
-    exit 1
 }
 
 foreach ($action in $passedInActions) {
@@ -286,11 +291,6 @@ foreach ($action in $passedInActions) {
         }
         "help" {
             Get-Help
-        }
-        default {
-            Write-Error "Invalid action value" $action
-            Get-Help
-            exit 1
         }
     }
 }
