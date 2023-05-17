@@ -238,6 +238,7 @@ while [[ $# -gt 0 ]]; do
 
             if [ $found -eq 0 ]; then
                 echo "Unknown argument: " "$1"
+                echo ""
                 usage
                 exit 1
             fi
@@ -252,7 +253,8 @@ fi
 
 configs=("debug" "release")
 if [[ ! " ${configs[*]} " == *" ${config} "* ]]; then
-    echo "invalid config: " $config
+    echo "Invalid config: '" $config "', config must 'debug' or 'release'"
+    echo ""
     usage
     exit 1
 fi

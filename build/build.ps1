@@ -229,8 +229,10 @@ function Get-Help() {
 
 $configs = "debug","release"
 if ( $configs -notcontains $config ) {
+    Write-Host "Invalid config: '$config', config must 'debug' or 'release'"
+    Write-Host ""
     Get-Help
-    throw new-object system.ArgumentException "config must debug or release"
+    exit 1
 }
 
 $actions = @("build", "clean", "doc", "test", "pack", "publish", "examples", "docfxExamples", "installTemplates")
@@ -289,11 +291,6 @@ foreach ($action in $passedInActions) {
         }
         "help" {
             Get-Help
-        }
-        default {
-            Write-Error "Invalid action value" $action
-            Get-Help
-            exit 1
         }
     }
 }
