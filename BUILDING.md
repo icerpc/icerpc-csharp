@@ -40,6 +40,13 @@ the default debug configuration.
 
 Visual Studio Code users can use `Tasks: Run Build Task...` from the command palette.
 
+> The build system for the slicec-cs compiler fetches the slicec library from the slicec repository. If the build fails
+> to fetch slicec with a permission denied error, set the following environment variable:
+
+``` shell.
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
+```
+
 ## Testing
 
 You can run the test suite from the command line using the `dotnet test` command in the repository's top-level directory.
