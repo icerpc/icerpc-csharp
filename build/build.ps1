@@ -14,7 +14,8 @@ param (
     [switch]$docfxExamples,
     [switch]$installTemplates,
     [switch]$help,
-    [switch]$coverage
+    [switch]$coverage,
+    [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
 
 $exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
@@ -249,11 +250,15 @@ if ( $help ) {
     exit 0
 }
 
-if ($args) {
-    Write-Host "too many arguments: $args"
-    Write-Host ""
-    Get-Help
-    exit 1
+if ($properties) {
+   if ($properties.Length -gt 1) {
+       Write-Host "Unknown arguments: $properties"
+   } else {
+        Write-Host "Unknown argument: $properties"
+   }
+   Write-Host ""
+   Get-Help
+   exit 1
 }
 
 foreach ($action in $passedInActions) {
