@@ -1,29 +1,16 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterServer;
+using GreeterPoolServer;
 using IceRpc;
 
-// Create 3 servers, each with its own service.
-var serverList = new List<Server>
-{
-    new Server(new EnglishChatbot(), new Uri("icerpc://[::0]:10000")),
-    new Server(new FrenchChatbot(), new Uri("icerpc://[::0]:10001")),
-    new Server(new SpanishChatbot(), new Uri("icerpc://[::0]:10002"))
-};
+Router router = new Router()
+    .Map("/greeter/english", new EnglishChatbot())
+    .Map("/greeter/french", new FrenchChatbot())
+    .Map("/greeter/spanish", new SpanishChatbot());
 
-try
-{
-    foreach (var server in serverList)
-    {
-        server.Listen();
-    }
+await using var server = new Server(router);
+server.Listen();
 
-    // Wait until the console receives a Ctrl+C.
-    await CancelKeyPressed;
-
-    await Task.WhenAll(serverList.Select(server => server.ShutdownAsync()));
-}
-finally
-{
-    await Task.WhenAll(serverList.Select(server => server.DisposeAsync().AsTask()));
-}
+// Wait until the console receives a Ctrl+C.
+await CancelKeyPressed;
+await server.ShutdownAsync();
