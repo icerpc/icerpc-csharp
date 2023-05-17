@@ -32,11 +32,23 @@ fn get_cs_attributes(attributable: &impl Attributable) -> impl Iterator<Item = (
 }
 
 fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    Diagnostic::new(Error::UnexpectedAttribute {
+    let note = match attribute {
+        CsAttributeKind::Generic { .. } => {
+            Some("the cs::generic attribute can only be applied to sequences and dictionaries")
+        }
+        _ => None,
+    };
+
+    let mut diagnostic = Diagnostic::new(Error::UnexpectedAttribute {
         attribute: attribute.directive().to_owned(),
     })
-    .set_span(span)
-    .report(diagnostic_reporter);
+    .set_span(span);
+
+    if let Some(note) = note {
+        diagnostic = diagnostic.add_note(note, None);
+    }
+
+    diagnostic.report(diagnostic_reporter);
 }
 
 fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
@@ -63,15 +75,6 @@ fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_rep
     }
 }
 
-fn validate_collection_attributes<T: Attributable>(attributable: &T, diagnostic_reporter: &mut DiagnosticReporter) {
-    for (attribute, span) in get_cs_attributes(attributable) {
-        match attribute {
-            CsAttributeKind::Generic { .. } => {}
-            _ => report_unexpected_attribute(attribute, span, diagnostic_reporter),
-        }
-    }
-}
-
 fn validate_common_attributes(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     match attribute {
         CsAttributeKind::Identifier { .. } => {}
@@ -88,17 +91,6 @@ fn validate_non_custom_type_attributes(
     match attribute {
         CsAttributeKind::Internal { .. } => {}
         _ => validate_common_attributes(attribute, span, diagnostic_reporter),
-    }
-}
-
-fn validate_data_type_attributes(data_type: &TypeRef, diagnostic_reporter: &mut DiagnosticReporter) {
-    match data_type.concrete_type() {
-        Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type, diagnostic_reporter),
-        _ => {
-            for (attribute, span) in get_cs_attributes(data_type) {
-                report_unexpected_attribute(attribute, span, diagnostic_reporter);
-            }
-        }
     }
 }
 
@@ -121,7 +113,7 @@ impl Visitor for CsValidator<'_> {
                             format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
                             None,
                         )
-                        .report(self.diagnostic_reporter)
+                        .report(self.diagnostic_reporter);
                 }
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
@@ -139,19 +131,19 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_class(&mut self, class_def: &Class) {
         for (attribute, span) in get_cs_attributes(class_def) {
-            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
     fn visit_exception(&mut self, exception_def: &Exception) {
         for (attribute, span) in get_cs_attributes(exception_def) {
-            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
     fn visit_interface(&mut self, interface_def: &Interface) {
         for (attribute, span) in get_cs_attributes(interface_def) {
-            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
@@ -168,7 +160,7 @@ impl Visitor for CsValidator<'_> {
         for (attribute, span) in get_cs_attributes(operation) {
             match attribute {
                 CsAttributeKind::EncodedResult {} => {
-                    validate_cs_encoded_result(operation, span, self.diagnostic_reporter)
+                    validate_cs_encoded_result(operation, span, self.diagnostic_reporter);
                 }
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
@@ -195,42 +187,38 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for (attribute, span) in get_cs_attributes(type_alias) {
-            match attribute {
-                CsAttributeKind::Identifier { .. } => Diagnostic::new(Error::UnexpectedAttribute {
-                    attribute: cs_attributes::IDENTIFIER.to_owned(),
-                })
-                .set_span(span)
-                .set_scope(type_alias.parser_scope())
-                .report(self.diagnostic_reporter),
-                _ => validate_data_type_attributes(&type_alias.underlying, self.diagnostic_reporter),
-            }
+            report_unexpected_attribute(attribute, span, self.diagnostic_reporter);
         }
     }
 
     fn visit_field(&mut self, field: &Field) {
-        for (attribute, _) in get_cs_attributes(field) {
+        for (attribute, span) in get_cs_attributes(field) {
             match attribute {
-                CsAttributeKind::Identifier { .. } | CsAttributeKind::Attribute { .. } => {}
-                _ => validate_data_type_attributes(&field.data_type, self.diagnostic_reporter),
+                CsAttributeKind::Attribute { .. } => {}
+                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
     }
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
-        for (attribute, _) in get_cs_attributes(parameter) {
-            match attribute {
-                CsAttributeKind::Identifier { .. } => {}
-                _ => validate_data_type_attributes(&parameter.data_type, self.diagnostic_reporter),
-            }
+        for (attribute, span) in get_cs_attributes(parameter) {
+            validate_common_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
     fn visit_enumerator(&mut self, enumerator: &Enumerator) {
         for (attribute, span) in get_cs_attributes(enumerator) {
-            validate_common_attributes(attribute, span, self.diagnostic_reporter)
+            validate_common_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
-    // TODO: this should do some validation.
-    fn visit_type_ref(&mut self, _: &TypeRef) {}
+    fn visit_type_ref(&mut self, type_ref: &TypeRef) {
+        for (attribute, span) in get_cs_attributes(type_ref) {
+            match attribute {
+                CsAttributeKind::Generic { .. }
+                    if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) => {}
+                _ => report_unexpected_attribute(attribute, span, self.diagnostic_reporter),
+            }
+        }
+    }
 }
