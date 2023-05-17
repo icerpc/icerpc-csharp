@@ -67,12 +67,9 @@ private static readonly IActivator _defaultActivator =
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
     let bases = interface_def.base_interfaces();
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| !o.parameters.is_empty())
-        .cloned()
-        .collect::<Vec<_>>();
+
+    let mut operations = interface_def.operations();
+    operations.retain(|o| !o.parameters.is_empty());
 
     if operations.is_empty() {
         return "".into();
@@ -147,12 +144,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 fn response_class(interface_def: &Interface) -> CodeBlock {
     let bases = interface_def.base_interfaces();
 
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| o.has_non_streamed_return_members())
-        .cloned()
-        .collect::<Vec<_>>();
+    let mut operations = interface_def.operations();
+    operations.retain(|o| o.has_non_streamed_return_members());
 
     if operations.is_empty() {
         return "".into();
