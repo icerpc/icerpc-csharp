@@ -13,6 +13,7 @@ version=$(cat build/IceRpc.Version.props | grep "<Version" | sed -E "s/<Version 
 usage()
 {
     echo "Usage: build [actions] [arguments]"
+    echo ""
     echo "Actions (defaults to -build):"
     echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
     echo "  --pack                 Create the IceRPC NuGet packages."
@@ -236,7 +237,7 @@ while [[ $# -gt 0 ]]; do
             done
 
             if [ $found -eq 0 ]; then
-                echo "too many arguments " "$1"
+                echo "Unknown argument: " "$1"
                 usage
                 exit 1
             fi

@@ -205,6 +205,7 @@ function DotnetConfiguration($config) {
 
 function Get-Help() {
     Write-Host "Usage: build [actions] [arguments]"
+    Write-Host ""
     Write-Host "Actions (defaults to -build):"
     Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
     Write-Host "  -pack                     Create the IceRPC NuGet packages."
@@ -245,20 +246,16 @@ if ($passedInActions.Length -eq 0) {
     $passedInActions = @("build")
 }
 
-if ( $help ) {
-    Get-Help
-    exit 0
-}
-
 if ($properties) {
-   if ($properties.Length -gt 1) {
-       Write-Host "Unknown arguments: $properties"
-   } else {
-        Write-Host "Unknown argument: $properties"
-   }
+   Write-Host "Unknown argument:" $properties[0]
    Write-Host ""
    Get-Help
    exit 1
+}
+
+if ( $help ) {
+    Get-Help
+    exit 0
 }
 
 foreach ($action in $passedInActions) {
