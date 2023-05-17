@@ -572,7 +572,22 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Act/Assert
         Assert.That(
-            async () => await sut.Client.CreateStreamAsync(true, cts.Token),
+            async () =>
+            {
+                // This should throw OperationCanceledException because reads from the remote stream accepted above are
+                // not closed (the remote stream still has non-consumed buffered data).
+                IMultiplexedStream localStream = await sut.Client.CreateStreamAsync(true, cts.Token);
+                try
+                {
+                    await localStream.Output.WriteAsync(payload, cts.Token);
+                    _ = await sut.Server.AcceptStreamAsync(cts.Token);
+                }
+                finally
+                {
+                    localStream.Input.Complete();
+                    localStream.Output.Complete();
+                }
+            },
             Throws.InstanceOf<OperationCanceledException>());
 
         // Complete the input and check that the next stream creation works.
