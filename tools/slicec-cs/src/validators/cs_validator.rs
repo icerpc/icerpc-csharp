@@ -192,7 +192,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_field(&mut self, field: &Field) {
         for (attribute, span) in get_cs_attributes(field) {
             match attribute {
-                CsAttributeKind::Identifier { .. } | CsAttributeKind::Attribute { .. } => {}
+                CsAttributeKind::Attribute { .. } => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -200,16 +200,13 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
         for (attribute, span) in get_cs_attributes(parameter) {
-            match attribute {
-                CsAttributeKind::Identifier { .. } => {}
-                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
-            }
+            validate_common_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
     fn visit_enumerator(&mut self, enumerator: &Enumerator) {
         for (attribute, span) in get_cs_attributes(enumerator) {
-            validate_common_attributes(attribute, span, self.diagnostic_reporter)
+            validate_common_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
