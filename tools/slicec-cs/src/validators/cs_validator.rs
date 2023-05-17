@@ -101,7 +101,7 @@ impl Visitor for CsValidator<'_> {
                             format!("To rename a module use {} instead", cs_attributes::NAMESPACE),
                             None,
                         )
-                        .report(self.diagnostic_reporter)
+                        .report(self.diagnostic_reporter);
                 }
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
@@ -119,19 +119,19 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_class(&mut self, class_def: &Class) {
         for (attribute, span) in get_cs_attributes(class_def) {
-            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
     fn visit_exception(&mut self, exception_def: &Exception) {
         for (attribute, span) in get_cs_attributes(exception_def) {
-            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
     fn visit_interface(&mut self, interface_def: &Interface) {
         for (attribute, span) in get_cs_attributes(interface_def) {
-            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter)
+            validate_non_custom_type_attributes(attribute, span, self.diagnostic_reporter);
         }
     }
 
@@ -148,7 +148,7 @@ impl Visitor for CsValidator<'_> {
         for (attribute, span) in get_cs_attributes(operation) {
             match attribute {
                 CsAttributeKind::EncodedResult {} => {
-                    validate_cs_encoded_result(operation, span, self.diagnostic_reporter)
+                    validate_cs_encoded_result(operation, span, self.diagnostic_reporter);
                 }
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
