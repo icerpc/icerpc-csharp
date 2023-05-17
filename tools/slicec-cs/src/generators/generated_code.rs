@@ -2,9 +2,9 @@
 
 use std::collections::HashMap;
 
-use slice::code_block::CodeBlock;
+use slicec::code_block::CodeBlock;
 
-use slice::grammar::{Module, NamedSymbol, ScopedSymbol};
+use slicec::grammar::{Module, NamedSymbol, ScopedSymbol};
 
 #[derive(Debug)]
 pub struct GeneratedCode {

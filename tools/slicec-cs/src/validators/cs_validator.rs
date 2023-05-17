@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::cs_attributes::{self, match_cs_custom, CsAttributeKind};
-use slice::compilation_state::CompilationState;
-use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
-use slice::grammar::*;
-use slice::slice_file::{SliceFile, Span};
-use slice::visitor::Visitor;
+use slicec::compilation_state::CompilationState;
+use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
+use slicec::grammar::*;
+use slicec::slice_file::{SliceFile, Span};
+use slicec::visitor::Visitor;
 
 pub(crate) fn validate_cs_attributes(compilation_state: &mut CompilationState) {
     let diagnostic_reporter = &mut compilation_state.diagnostic_reporter;

@@ -10,10 +10,10 @@ mod proxy_generator;
 mod struct_generator;
 
 use generated_code::GeneratedCode;
-use slice::code_block::CodeBlock;
-use slice::grammar::*;
-use slice::slice_file::SliceFile;
-use slice::visitor::Visitor;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::slice_file::SliceFile;
+use slicec::visitor::Visitor;
 
 struct Generator<'a> {
     pub generated_code: &'a mut GeneratedCode,

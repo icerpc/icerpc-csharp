@@ -3,8 +3,8 @@
 use super::{EntityExt, InterfaceExt, MemberExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes::match_cs_encoded_result;
 use crate::cs_util::FieldType;
-use slice::grammar::{Attributable, Contained, Operation};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::grammar::{Attributable, Contained, Operation};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
     /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.

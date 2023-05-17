@@ -9,10 +9,9 @@ use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
 use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
-use slice::code_block::CodeBlock;
-
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
 pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) {
     let escaped_identifier = struct_def.escape_identifier();

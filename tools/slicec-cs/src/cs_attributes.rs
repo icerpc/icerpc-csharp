@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use slice::grammar::{Attribute, AttributeKind, LanguageKind};
+use slicec::grammar::{Attribute, AttributeKind, LanguageKind};
 
 pub const ATTRIBUTE: &str = "cs::attribute";
 pub const ENCODED_RESULT: &str = "cs::encodedResult";

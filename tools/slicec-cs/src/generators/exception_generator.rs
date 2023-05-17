@@ -9,9 +9,9 @@ use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Encoding, Exception, Member, Type};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Encoding, Exception, Member, Type};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub fn generate_exception(exception_def: &Exception, generated_code: &mut GeneratedCode) {
     let exception_name = exception_def.escape_identifier();

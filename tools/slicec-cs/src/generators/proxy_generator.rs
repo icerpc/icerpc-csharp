@@ -8,10 +8,9 @@ use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
 pub fn generate_proxy(interface_def: &Interface, generated_code: &mut GeneratedCode) {
     let namespace = interface_def.namespace();

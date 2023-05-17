@@ -4,8 +4,8 @@ use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::slicec_ext::*;
 use convert_case::{Case, Casing};
-use slice::code_block::CodeBlock;
-use slice::grammar::*;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
 
 pub fn generate_enum(enum_def: &Enum, generated_code: &mut GeneratedCode) {
     let mut code = CodeBlock::default();

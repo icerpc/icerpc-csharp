@@ -4,7 +4,7 @@ use super::{scoped_identifier, InterfaceExt, MemberExt};
 use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_namespace, match_cs_readonly};
 use crate::cs_util::escape_keyword;
 use convert_case::{Case, Casing};
-use slice::grammar::*;
+use slicec::grammar::*;
 
 pub trait EntityExt: Entity {
     // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier

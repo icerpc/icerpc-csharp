@@ -3,9 +3,9 @@
 use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Attributable, Field, Member};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Attributable, Field, Member};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
     if parameters.iter().any(|p| p.parameter_name() == name) {

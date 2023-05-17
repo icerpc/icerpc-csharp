@@ -3,10 +3,9 @@
 use super::generated_code::GeneratedCode;
 use crate::builders::{Builder, ContainerBuilder};
 use crate::cs_attributes::match_cs_namespace;
-use slice::code_block::CodeBlock;
-
-use slice::grammar::*;
-use slice::slice_file::SliceFile;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::slice_file::SliceFile;
 
 pub fn generate_namespaces(slice_file: &SliceFile, generated_code: &mut GeneratedCode) {
     let top_level_modules = slice_file

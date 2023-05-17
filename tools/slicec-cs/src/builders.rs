@@ -6,10 +6,10 @@ use crate::comments::CommentTag;
 use crate::cs_attributes::{match_cs_attribute, match_cs_generic};
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
-use slice::supported_encodings::SupportedEncodings;
-use slice::utils::code_gen_util::{format_message, TypeContext};
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
+use slicec::supported_encodings::SupportedEncodings;
+use slicec::utils::code_gen_util::{format_message, TypeContext};
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
@@ -32,7 +32,7 @@ pub trait AttributeBuilder {
 
     /// Adds any "container" attributes.
     /// - The obsolete attribute
-    /// - Any `cs::attribute` attributes
+    /// - Any `cs::attribute` attributes    TODOAUSTIN
     fn add_container_attributes(&mut self, container: &dyn Entity) -> &mut Self {
         if let Some(attribute) = container.obsolete_attribute(false) {
             self.add_attribute(attribute);

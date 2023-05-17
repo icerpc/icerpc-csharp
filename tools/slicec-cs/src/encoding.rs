@@ -5,9 +5,9 @@ use crate::cs_attributes::match_cs_generic;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use convert_case::Case;
-use slice::code_block::CodeBlock;
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
 pub fn encode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();

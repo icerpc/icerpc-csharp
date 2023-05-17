@@ -7,10 +7,10 @@ use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
+use slicec::code_block::CodeBlock;
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
 pub fn generate_dispatch(interface_def: &Interface, generated_code: &mut GeneratedCode) {
     let namespace = interface_def.namespace();

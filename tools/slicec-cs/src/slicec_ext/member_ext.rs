@@ -3,8 +3,8 @@
 use super::{EntityExt, TypeRefExt};
 use crate::cs_util::{escape_keyword, mangle_name, FieldType};
 use convert_case::Case;
-use slice::grammar::*;
-use slice::utils::code_gen_util::{format_message, TypeContext};
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::{format_message, TypeContext};
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;

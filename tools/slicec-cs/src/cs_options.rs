@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use clap::Parser;
-use slice::slice_options::SliceOptions;
+use slicec::slice_options::SliceOptions;
 
 // Note: Clap uses the doc-comments of fields to populate the '--help' output of slicec-cs.
 //       boolean flags automatically default to false, and strings automatically default to empty.
@@ -18,5 +18,5 @@ pub struct CsOptions {
 
 /// Short description of slicec-cs that is displayed in its help dialogue.
 const DESCRIPTION: &str = "\
-The slice compiler for C#.
+The Slice compiler for C#.
 Generates C# code from Slice files for use with IceRpc.";

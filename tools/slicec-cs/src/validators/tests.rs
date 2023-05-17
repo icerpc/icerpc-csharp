@@ -2,13 +2,22 @@
 
 use crate::cs_attributes;
 use crate::cs_compile::{cs_patcher, cs_validator};
-use slice::diagnostics::{Diagnostic, Error};
-use slice::test_helpers::{assert_parses, check_diagnostics, diagnostics_from_compilation_state};
+use slicec::diagnostics::{Diagnostic, Error};
+use slicec::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
 use test_case::test_case;
 
-fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
-    let state = slice::compile_from_strings(&[slice], None, cs_patcher, cs_validator);
+/// This function parses the provided Slice file and returns any Diagnostics that were emitted during parsing.
+#[must_use]
+pub fn parse_for_diagnostics(slice: impl Into<String>) -> Vec<Diagnostic> {
+    let state = slicec::compile_from_strings(&[&slice.into()], None, cs_patcher, cs_validator);
     diagnostics_from_compilation_state(state)
+}
+
+/// Asserts that the provided slice parses okay, producing no errors.
+pub fn assert_parses(slice: impl Into<String>) {
+    let diagnostics = parse_for_diagnostics(slice);
+    let expected: [Diagnostic; 0] = []; // Compiler needs the type hint.
+    check_diagnostics(diagnostics, expected);
 }
 
 #[test]

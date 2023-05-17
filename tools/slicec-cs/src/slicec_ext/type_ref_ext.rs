@@ -2,8 +2,8 @@
 
 use super::{EntityExt, InterfaceExt, PrimitiveExt};
 use crate::cs_attributes::{match_cs_custom, match_cs_generic};
-use slice::grammar::*;
-use slice::utils::code_gen_util::TypeContext;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::TypeContext;
 
 pub trait TypeRefExt {
     /// Is the type a value type (eg. Struct)

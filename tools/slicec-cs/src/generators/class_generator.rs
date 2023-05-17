@@ -9,9 +9,9 @@ use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Class, Encoding, Field};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Class, Encoding, Field};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
     let class_name = class_def.escape_identifier();

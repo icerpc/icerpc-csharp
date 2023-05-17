@@ -98,7 +98,7 @@ pub enum FieldType {
 }
 
 /// Checks if the provided identifier would shadow a base method in an object or exception, and
-/// escapes it if necessary by appending a Slice prefix to the identifier.
+/// escapes it if necessary by appending a "Slice" prefix to the identifier.
 pub fn mangle_name(identifier: &str, field_type: FieldType) -> String {
     // The names of all the methods defined on the Object base class.
     const OBJECT_BASE_NAMES: [&str; 7] = [

@@ -3,11 +3,11 @@
 use crate::cs_attributes;
 use crate::cs_attributes::CsAttributeKind;
 
-use slice::ast::node::Node;
-use slice::compilation_state::CompilationState;
-use slice::diagnostics::{Diagnostic, DiagnosticReporter, Error};
-use slice::grammar::{Attribute, AttributeKind};
-use slice::slice_file::Span;
+use slicec::ast::node::Node;
+use slicec::compilation_state::CompilationState;
+use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
+use slicec::grammar::{Attribute, AttributeKind};
+use slicec::slice_file::Span;
 
 pub unsafe fn patch_attributes(compilation_state: &mut CompilationState) {
     let diagnostic_reporter = &mut compilation_state.diagnostic_reporter;

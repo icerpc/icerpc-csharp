@@ -2,10 +2,10 @@
 
 use crate::builders::{Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
+use slicec::code_block::CodeBlock;
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::TypeContext;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::TypeContext;
 
 pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     assert!(operation.has_encoded_result());

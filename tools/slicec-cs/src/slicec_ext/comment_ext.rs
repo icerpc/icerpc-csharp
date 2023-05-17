@@ -2,8 +2,8 @@
 
 use super::EntityExt;
 use crate::comments::CommentTag;
-use slice::grammar::*;
-use slice::utils::code_gen_util::format_message;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::format_message;
 
 pub trait CommentExt: Commentable {
     /// If this entity has a doc comment with an overview on it, this returns the overview formatted as a C# summary,
