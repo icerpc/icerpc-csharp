@@ -46,7 +46,7 @@ runs:
   - name: 🔗 Start SSH Agent
     uses: webfactory/ssh-agent@v0.5.4
     with:
-      ssh-private-key: ${{ env.ICERPC_DEPLOY_KEY }}
+      ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
   - name: 🔨 Build Slice Compiler
     uses: actions-rs/cargo@v1
     with:
