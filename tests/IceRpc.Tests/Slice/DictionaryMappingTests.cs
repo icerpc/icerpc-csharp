@@ -12,7 +12,7 @@ public class DictionaryMappingTests
     [Test]
     public async Task Operation_returning_a_tuple_with_dictionary_elements()
     {
-        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionaryTuple(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.EncodeReturnCustomDictionaryTuple(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -22,7 +22,7 @@ public class DictionaryMappingTests
         };
 
         (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
-            await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryTupleAsync(
+            await DictionaryMappingOperationsProxy.Response.DecodeReturnCustomDictionaryTupleAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -35,7 +35,7 @@ public class DictionaryMappingTests
     [Test]
     public async Task Operation_returning_a_tuple_with_custom_dictionary_elements()
     {
-        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionaryTuple(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.EncodeReturnCustomDictionaryTuple(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 },
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -45,7 +45,7 @@ public class DictionaryMappingTests
         };
 
         (CustomDictionary<int, int> r1, CustomDictionary<int, int> r2) =
-            await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryTupleAsync(
+            await DictionaryMappingOperationsProxy.Response.DecodeReturnCustomDictionaryTupleAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -58,7 +58,7 @@ public class DictionaryMappingTests
     [Test]
     public async Task Operation_returning_a_dictionary()
     {
-        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionary(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.EncodeReturnCustomDictionary(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -66,7 +66,7 @@ public class DictionaryMappingTests
             Payload = responsePayload
         };
 
-        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryAsync(
+        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.DecodeReturnCustomDictionaryAsync(
             response,
             request,
             InvalidProxy.Instance,
@@ -78,7 +78,7 @@ public class DictionaryMappingTests
     [Test]
     public async Task Operation_returning_a_custom_dictionary()
     {
-        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.ReturnCustomDictionary(
+        PipeReader responsePayload = IDictionaryMappingOperationsService.Response.EncodeReturnCustomDictionary(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(request, FakeConnectionContext.Instance)
@@ -86,7 +86,7 @@ public class DictionaryMappingTests
             Payload = responsePayload
         };
 
-        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.ReturnCustomDictionaryAsync(
+        CustomDictionary<int, int> r = await DictionaryMappingOperationsProxy.Response.DecodeReturnCustomDictionaryAsync(
             response,
             request,
             InvalidProxy.Instance,
@@ -99,12 +99,12 @@ public class DictionaryMappingTests
     public void Operation_sending_a_dictionary()
     {
         // Arrange
-        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.SendCustomDictionary(
+        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendCustomDictionary(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
 
         // Act/Assert
         Assert.That(
-            async () => await IDictionaryMappingOperationsService.Request.SendCustomDictionaryAsync(
+            async () => await IDictionaryMappingOperationsService.Request.DecodeSendCustomDictionaryAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = requestPayload
@@ -117,12 +117,12 @@ public class DictionaryMappingTests
     public void Operation_sending_a_custom_dictionary()
     {
         // Arrange
-        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.SendCustomDictionary(
+        PipeReader requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendCustomDictionary(
             new Dictionary<int, int> { [1] = 1, [2] = 2, [3] = 3 });
 
         // Act/Assert
         Assert.That(
-            async () => await IDictionaryMappingOperationsService.Request.SendCustomDictionaryAsync(
+            async () => await IDictionaryMappingOperationsService.Request.DecodeSendCustomDictionaryAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = requestPayload

@@ -15,7 +15,7 @@ public class OperationEncodingTests
     public void Slice2_operation_encode_with_single_parameter()
     {
         // Act
-        PipeReader payload = MyOperationsBProxy.Request.OpInt32(10);
+        PipeReader payload = MyOperationsBProxy.Request.EncodeOpInt32(10);
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
@@ -36,7 +36,7 @@ public class OperationEncodingTests
         };
 
         // Act
-        int decoded = await IMyOperationsBService.Request.OpInt32Async(request, default);
+        int decoded = await IMyOperationsBService.Request.DecodeOpInt32Async(request, default);
 
         // Assert
         Assert.That(decoded, Is.EqualTo(10));
@@ -55,7 +55,7 @@ public class OperationEncodingTests
     public void Slice2_operation_encode_with_single_return()
     {
         // Act
-        PipeReader payload = IMyOperationsBService.Response.OpInt32(10);
+        PipeReader payload = IMyOperationsBService.Response.EncodeOpInt32(10);
 
         // Assert
         Assert.That(payload.TryRead(out var readResult));
@@ -76,7 +76,7 @@ public class OperationEncodingTests
         };
 
         int value =
-            await MyOperationsBProxy.Response.OpInt32Async(response, request, InvalidProxy.Instance, default);
+            await MyOperationsBProxy.Response.DecodeOpInt32Async(response, request, InvalidProxy.Instance, default);
 
         Assert.That(value, Is.EqualTo(10));
 
@@ -93,7 +93,7 @@ public class OperationEncodingTests
     [Test]
     public void Slice2_operation_encode_with_multiple_parameters()
     {
-        var payload = MyOperationsBProxy.Request.OpInt32AndString(10, "hello world!");
+        var payload = MyOperationsBProxy.Request.EncodeOpInt32AndString(10, "hello world!");
 
         // Assert
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents)
@@ -114,7 +114,7 @@ public class OperationEncodingTests
             Payload = Encode(10, "hello world!")
         };
 
-        (int p1, string p2) = await IMyOperationsBService.Request.OpInt32AndStringAsync(request, default);
+        (int p1, string p2) = await IMyOperationsBService.Request.DecodeOpInt32AndStringAsync(request, default);
 
         Assert.That(p1, Is.EqualTo(10));
         Assert.That(p2, Is.EqualTo("hello world!"));
@@ -134,7 +134,7 @@ public class OperationEncodingTests
     [Test]
     public void Slice2_operation_encode_with_multiple_return()
     {
-        var payload = IMyOperationsBService.Response.OpInt32AndString(10, "hello world!");
+        var payload = IMyOperationsBService.Response.EncodeOpInt32AndString(10, "hello world!");
 
         // Assert
         // readResult: 17 bytes payload + 4 bytes payload size
@@ -157,7 +157,7 @@ public class OperationEncodingTests
             Payload = Encode(10, "hello world!")
         };
 
-        (int r1, string r2) = await MyOperationsBProxy.Response.OpInt32AndStringAsync(
+        (int r1, string r2) = await MyOperationsBProxy.Response.DecodeOpInt32AndStringAsync(
             response,
             request,
             InvalidProxy.Instance,
@@ -186,7 +186,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = MyOperationsBProxy.Request.OpOptional(p1, p2, p3, p4);
+        PipeReader payload = MyOperationsBProxy.Request.EncodeOpOptional(p1, p2, p3, p4);
 
         // Assert
         // readResult: size + 4 bytes payload size
@@ -234,7 +234,7 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        (int r1, string r2, int? r3, string? r4) = await IMyOperationsBService.Request.OpOptionalAsync(request, default);
+        (int r1, string r2, int? r3, string? r4) = await IMyOperationsBService.Request.DecodeOpOptionalAsync(request, default);
 
         Assert.That(r1, Is.EqualTo(p1));
         Assert.That(r2, Is.EqualTo(p2));
@@ -275,7 +275,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = IMyOperationsBService.Response.OpOptional(p1, p2, p3, p4);
+        PipeReader payload = IMyOperationsBService.Response.EncodeOpOptional(p1, p2, p3, p4);
 
         // Assert
         // payload: (bit sequence 1 byte) (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
@@ -324,7 +324,7 @@ public class OperationEncodingTests
         };
 
         (int r1, string r2, int? r3, string? r4) =
-            await MyOperationsBProxy.Response.OpOptionalAsync(response, request, InvalidProxy.Instance, default);
+            await MyOperationsBProxy.Response.DecodeOpOptionalAsync(response, request, InvalidProxy.Instance, default);
 
         Assert.That(r1, Is.EqualTo(p1));
         Assert.That(r2, Is.EqualTo(p2));
@@ -364,7 +364,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = MyOperationsBProxy.Request.OpTagged(p1, p2, p3, p4);
+        PipeReader payload = MyOperationsBProxy.Request.EncodeOpTagged(p1, p2, p3, p4);
 
         // Assert
         // readResult: size + 4 bytes payload size
@@ -406,7 +406,7 @@ public class OperationEncodingTests
             Payload = Encode(p1, p2, p3, p4)
         };
 
-        (int r1, string r2, int? r3, string? r4) = await IMyOperationsBService.Request.OpTaggedAsync(request, default);
+        (int r1, string r2, int? r3, string? r4) = await IMyOperationsBService.Request.DecodeOpTaggedAsync(request, default);
 
         Assert.That(r1, Is.EqualTo(p1));
         Assert.That(r2, Is.EqualTo(p2));
@@ -452,7 +452,7 @@ public class OperationEncodingTests
         const int p1 = 10;
         const string p2 = "hello world!";
 
-        PipeReader payload = IMyOperationsBService.Response.OpTagged(p1, p2, p3, p4);
+        PipeReader payload = IMyOperationsBService.Response.EncodeOpTagged(p1, p2, p3, p4);
 
         // Assert
         // readResult: size + 4 bytes payload size
@@ -495,7 +495,7 @@ public class OperationEncodingTests
         };
 
         (int r1, string? r2, int? r3, string? r4) =
-            await MyOperationsBProxy.Response.OpTaggedAsync(response, request, InvalidProxy.Instance, default);
+            await MyOperationsBProxy.Response.DecodeOpTaggedAsync(response, request, InvalidProxy.Instance, default);
 
         Assert.That(r1, Is.EqualTo(p1));
         Assert.That(r2, Is.EqualTo(p2));
