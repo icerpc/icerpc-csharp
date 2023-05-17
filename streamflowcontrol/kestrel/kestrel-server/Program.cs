@@ -1,7 +1,7 @@
 using System.IO.Pipelines;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel((context, options) =>
 {
     options.ListenAnyIP(5001, listenOptions =>
@@ -10,7 +10,7 @@ builder.WebHost.ConfigureKestrel((context, options) =>
         listenOptions.UseHttps();
     });
 });
-
+builder.WebHost.UseQuic(options => options.MaxBidirectionalStreamCount = 1);
 WebApplication app = builder.Build();
 
 int i = 0;
