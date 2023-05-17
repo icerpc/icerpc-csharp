@@ -187,17 +187,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         for (attribute, span) in get_cs_attributes(type_alias) {
-            match attribute {
-                CsAttributeKind::Identifier { .. } => {
-                    Diagnostic::new(Error::UnexpectedAttribute {
-                        attribute: cs_attributes::IDENTIFIER.to_owned(),
-                    })
-                    .set_span(span)
-                    .set_scope(type_alias.parser_scope())
-                    .report(self.diagnostic_reporter);
-                }
-                _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
-            }
+            report_unexpected_attribute(attribute, span, self.diagnostic_reporter);
         }
     }
 
