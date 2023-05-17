@@ -15,9 +15,9 @@ mod member_util;
 mod slicec_ext;
 mod validators;
 
-use crate::cs_compile::cs_compile;
 use crate::cs_options::CsOptions;
 use clap::Parser;
+use cs_compile::{cs_patcher, cs_validator};
 use generators::generate_from_slice_file;
 use slice::diagnostics::{Diagnostic, Error};
 use std::fs::File;
@@ -28,8 +28,8 @@ use std::path::Path;
 pub fn main() {
     let options = CsOptions::parse();
     let slice_options = &options.slice_options;
-    let mut compilation_state = slice::compile_from_options(slice_options);
-    cs_compile(&mut compilation_state);
+
+    let mut compilation_state = slice::compile_from_options(slice_options, cs_patcher, cs_validator);
 
     if !compilation_state.diagnostic_reporter.has_errors() && !slice_options.dry_run {
         for slice_file in compilation_state.files.values().filter(|file| file.is_source) {

@@ -1,13 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::cs_attributes;
-use crate::cs_compile::cs_compile;
+use crate::cs_compile::{cs_patcher, cs_validator};
 use slice::diagnostics::{Diagnostic, Error};
+use slice::slice_options::SliceOptions;
 use slice::test_helpers::diagnostics_from_compilation_state;
 
 fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
-    let mut state = slice::compile_from_strings(&[slice], None);
-    cs_compile(&mut state);
+    let slice_options = SliceOptions::default();
+    let state = slice::compile_from_strings(&[slice], Some(slice_options), cs_patcher, cs_validator);
     diagnostics_from_compilation_state(state)
 }
 
