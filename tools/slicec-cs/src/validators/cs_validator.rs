@@ -32,11 +32,23 @@ fn get_cs_attributes(attributable: &impl Attributable) -> impl Iterator<Item = (
 }
 
 fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
-    Diagnostic::new(Error::UnexpectedAttribute {
+    let note = match attribute {
+        CsAttributeKind::Generic { .. } => {
+            Some("the cs::generic attribute can only be applied to sequences and dictionaries")
+        }
+        _ => None,
+    };
+
+    let mut diagnostic = Diagnostic::new(Error::UnexpectedAttribute {
         attribute: attribute.directive().to_owned(),
     })
-    .set_span(span)
-    .report(diagnostic_reporter);
+    .set_span(span);
+
+    if let Some(note) = note {
+        diagnostic = diagnostic.add_note(note, None);
+    }
+
+    diagnostic.report(diagnostic_reporter);
 }
 
 fn validate_cs_encoded_result(operation: &Operation, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {

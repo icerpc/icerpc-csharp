@@ -15,11 +15,11 @@ fn parse_for_diagnostics(slice: &str) -> Vec<Diagnostic> {
 fn identifier_attribute_no_args() {
     // Arrange
     let slice = "
-            module Test
+        module Test
 
-            [cs::identifier()]
-            struct S {}
-        ";
+        [cs::identifier()]
+        struct S {}
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
@@ -35,11 +35,11 @@ fn identifier_attribute_no_args() {
 fn identifier_attribute_multiple_args() {
     // Arrange
     let slice = "
-            module Test
+        module Test
 
-            [cs::identifier(\"Foo\", \"Bar\")]
-            struct S {}
-        ";
+        [cs::identifier(\"Foo\", \"Bar\")]
+        struct S {}
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
@@ -56,11 +56,11 @@ fn identifier_attribute_multiple_args() {
 fn identifier_attribute_single_arg() {
     // Arrange
     let slice = "
-            module Test
+        module Test
 
-            [cs::identifier(\"Foo\")]
-            struct S {}
-        ";
+        [cs::identifier(\"Foo\")]
+        struct S {}
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
@@ -73,9 +73,9 @@ fn identifier_attribute_single_arg() {
 fn identifier_attribute_invalid_on_modules() {
     // Arrange
     let slice = "
-            [cs::identifier(\"Foo\")]
-            module Test
-        ";
+        [cs::identifier(\"Foo\")]
+        module Test
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
@@ -91,12 +91,12 @@ fn identifier_attribute_invalid_on_modules() {
 fn identifier_attribute_on_parameter() {
     // Arrange
     let slice = "
-            module Test
+        module Test
 
-            interface I {
-                op([cs::identifier(\"newParam\")] myParam: int32)
-            }
-        ";
+        interface I {
+            op([cs::identifier(\"newParam\")] myParam: int32)
+        }
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
@@ -109,11 +109,11 @@ fn identifier_attribute_on_parameter() {
 fn identifier_attribute_on_type_alias_fails() {
     // Arrange
     let slice = "
-            module Test
+        module Test
 
-            [cs::identifier(\"Foo\")]
-            typealias S = int32
-        ";
+        [cs::identifier(\"Foo\")]
+        typealias S = int32
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
@@ -130,8 +130,9 @@ fn identifier_attribute_on_type_alias_fails() {
 fn bad_attribute_on_type_ref_fails() {
     // Arrange
     let slice = "
-            module Test
-            typealias S = [cs::identifier(\"int23\")] int32";
+        module Test
+        typealias S = [cs::identifier(\"int23\")] int32
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
@@ -180,7 +181,7 @@ fn cs_generic_on_invalid_type_ref_fail() {
     let slice = "
         module Test
         typealias S = [cs::generic(\"SomeGeneric\")] string
-        ";
+    ";
 
     // Act
     let diagnostics = parse_for_diagnostics(slice);
