@@ -32,7 +32,7 @@ pub trait AttributeBuilder {
 
     /// Adds the C# Obsolete attribute if the container has the Slice deprecated attribute.
     fn add_obsolete_attribute(&mut self, container: &dyn Entity) -> &mut Self {
-        if let Some(attribute) = container.obsolete_attribute(false) {
+        if let Some(attribute) = container.obsolete_attribute() {
             self.add_attribute(attribute);
         }
         self
