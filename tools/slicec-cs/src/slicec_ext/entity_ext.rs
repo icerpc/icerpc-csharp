@@ -96,8 +96,8 @@ pub trait EntityExt: Entity {
         )
     }
 
-    fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
-        self.get_deprecation(check_parent).map(|attribute| {
+    fn obsolete_attribute(&self) -> Option<String> {
+        self.get_deprecation(false).map(|attribute| {
             let reason = if let Some(argument) = attribute {
                 argument
             } else {

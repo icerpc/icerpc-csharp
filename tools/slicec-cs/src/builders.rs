@@ -30,14 +30,16 @@ pub trait AttributeBuilder {
         self
     }
 
-    /// Adds any "container" attributes.
-    /// - The obsolete attribute
-    /// - Any `cs::attribute` attributes
-    fn add_container_attributes(&mut self, container: &dyn Entity) -> &mut Self {
-        if let Some(attribute) = container.obsolete_attribute(false) {
+    /// Adds the C# Obsolete attribute if the container has the Slice deprecated attribute.
+    fn add_obsolete_attribute(&mut self, container: &dyn Entity) -> &mut Self {
+        if let Some(attribute) = container.obsolete_attribute() {
             self.add_attribute(attribute);
         }
+        self
+    }
 
+    /// Adds any `cs::attribute` attributes
+    fn add_container_attributes(&mut self, container: &dyn Entity) -> &mut Self {
         for attribute in container.attributes(false).into_iter().filter_map(match_cs_attribute) {
             self.add_attribute(attribute);
         }
