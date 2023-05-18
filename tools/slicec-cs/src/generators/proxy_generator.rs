@@ -184,6 +184,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 
     let mut builder = FunctionBuilder::new("public", &return_task, &async_operation_name, body_type);
     builder.set_inherit_doc(true);
+    builder.add_obsolete_attribute(operation);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
     let mut body = CodeBlock::default();
@@ -303,6 +304,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
 
     let mut builder = FunctionBuilder::new("public", &return_task, &async_name, FunctionType::ExpressionBody);
     builder.set_inherit_doc(true);
+    builder.add_obsolete_attribute(operation);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
     builder.set_body(
@@ -329,6 +331,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
                 &operation.escape_identifier_with_suffix("Async"),
                 FunctionType::Declaration,
             )
+            .add_obsolete_attribute(operation)
             .add_container_attributes(operation)
             .add_comments(operation.formatted_doc_comment())
             .add_operation_parameters(operation, TypeContext::Encode)

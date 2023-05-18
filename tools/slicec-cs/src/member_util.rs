@@ -27,7 +27,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
         prelude.writeln(&comment_tag)
     }
     prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
-    if let Some(obsolete) = field.obsolete_attribute(true) {
+    if let Some(obsolete) = field.obsolete_attribute(false) {
         prelude.writeln(&format!("[{obsolete}]"));
     }
     let modifiers = field.modifiers();

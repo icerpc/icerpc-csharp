@@ -23,6 +23,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
     )
     .add_comments(enum_def.formatted_doc_comment())
     .add_generated_remark("enum", enum_def)
+    .add_obsolete_attribute(enum_def)
     .add_container_attributes(enum_def)
     .add_base(enum_def.get_underlying_cs_type())
     .add_block(enum_values(enum_def))

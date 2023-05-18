@@ -36,6 +36,7 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
         .add_generated_remark("class", class_def)
         .add_type_id_attribute(class_def)
         .add_compact_type_id_attribute(class_def)
+        .add_obsolete_attribute(class_def)
         .add_container_attributes(class_def);
 
     if let Some(base) = class_def.base_class() {

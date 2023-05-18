@@ -28,6 +28,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
     exception_class_builder
         .add_comments(exception_def.formatted_doc_comment())
         .add_generated_remark("class", exception_def)
+        .add_obsolete_attribute(exception_def)
         .add_container_attributes(exception_def);
 
     if exception_def.supported_encodings().supports(&Encoding::Slice1) {
