@@ -25,8 +25,7 @@ pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) 
     builder
         .add_comments(struct_def.formatted_doc_comment())
         .add_generated_remark("record struct", struct_def)
-        .add_obsolete_attribute(struct_def)
-        .add_container_attributes(struct_def);
+        .add_obsolete_attribute(struct_def);
 
     builder.add_block(
         fields

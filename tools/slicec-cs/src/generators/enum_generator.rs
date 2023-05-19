@@ -2,6 +2,7 @@
 
 use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::cs_attributes::match_cs_attribute;
 use crate::slicec_ext::*;
 use convert_case::{Case, Casing};
 use slicec::code_block::CodeBlock;
@@ -17,17 +18,22 @@ pub fn generate_enum(enum_def: &Enum, generated_code: &mut GeneratedCode) {
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
-    ContainerBuilder::new(
+    let mut builder = ContainerBuilder::new(
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
-    )
-    .add_comments(enum_def.formatted_doc_comment())
-    .add_generated_remark("enum", enum_def)
-    .add_obsolete_attribute(enum_def)
-    .add_container_attributes(enum_def)
-    .add_base(enum_def.get_underlying_cs_type())
-    .add_block(enum_values(enum_def))
-    .build()
+    );
+    builder
+        .add_comments(enum_def.formatted_doc_comment())
+        .add_generated_remark("enum", enum_def)
+        .add_obsolete_attribute(enum_def)
+        .add_base(enum_def.get_underlying_cs_type())
+        .add_block(enum_values(enum_def));
+
+    // Add cs::attribute
+    for attribute in enum_def.attributes(false).into_iter().filter_map(match_cs_attribute) {
+        builder.add_attribute(attribute);
+    }
+    builder.build()
 }
 
 fn enum_values(enum_def: &Enum) -> CodeBlock {

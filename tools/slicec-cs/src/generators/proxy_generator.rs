@@ -38,7 +38,6 @@ pub fn generate_proxy(interface_def: &Interface, generated_code: &mut GeneratedC
                 interface_def,
             )
             .add_type_id_attribute(interface_def)
-            .add_container_attributes(interface_def)
             .add_bases(&interface_bases)
             .add_block(proxy_interface_operations(interface_def))
             .build(),
@@ -59,7 +58,6 @@ This remote service must implement Slice interface {slice_interface}."#
         )
         .add_generated_remark("record struct", interface_def)
         .add_type_id_attribute(interface_def)
-        .add_container_attributes(interface_def)
         .add_block(request_class(interface_def))
         .add_block(response_class(interface_def))
         .add_block(
@@ -332,7 +330,6 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
                 FunctionType::Declaration,
             )
             .add_obsolete_attribute(operation)
-            .add_container_attributes(operation)
             .add_comments(operation.formatted_doc_comment())
             .add_operation_parameters(operation, TypeContext::Encode)
             .build(),

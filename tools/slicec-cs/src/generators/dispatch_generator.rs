@@ -26,8 +26,7 @@ pub fn generate_dispatch(interface_def: &Interface, generated_code: &mut Generat
             r#"Your service implementation must implement this interface and derive from <see cref="Service" />."#,
             interface_def,
         )
-        .add_type_id_attribute(interface_def)
-        .add_container_attributes(interface_def);
+        .add_type_id_attribute(interface_def);
 
     interface_builder.add_bases(
         &bases
@@ -342,7 +341,6 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
     )
     .add_comments(operation.formatted_doc_comment())
     .add_operation_parameters(operation, TypeContext::Decode)
-    .add_container_attributes(operation)
     .build()
 }
 
