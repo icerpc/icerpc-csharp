@@ -616,7 +616,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <param name="cancellationToken">The cancellation token of the invocation calling this method.</param>
     /// <returns>A connected connection.</returns>
     /// <remarks>This method is called exclusively by <see cref="InvokeAsync" />.</remarks>
-    private Task<IProtocolConnection> GetActiveConnectionAsync(CancellationToken cancellationToken)
+    private ValueTask<IProtocolConnection> GetActiveConnectionAsync(CancellationToken cancellationToken)
     {
         (IProtocolConnection Connection, Task<TransportConnectionInformation> ConnectTask) pendingConnectionValue;
 
@@ -633,7 +633,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
             if (_activeConnection is not null)
             {
-                return Task.FromResult(_activeConnection.Value.Connection);
+                return new(_activeConnection.Value.Connection);
             }
 
             if (_pendingConnection is null)
@@ -652,7 +652,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         return PerformGetActiveConnectionAsync();
 
-        async Task<IProtocolConnection> PerformGetActiveConnectionAsync()
+        async ValueTask<IProtocolConnection> PerformGetActiveConnectionAsync()
         {
             // ConnectTask itself takes care of scheduling its exception observation when it fails.
             try
