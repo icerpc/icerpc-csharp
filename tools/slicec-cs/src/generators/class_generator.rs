@@ -23,11 +23,11 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
 
     let access = class_def.access_modifier();
 
-    let mut non_default_fields = fields.clone();
-    non_default_fields.retain(|m| !m.is_default_initialized());
+    let mut non_nullable_fields = fields.clone();
+    non_nullable_fields.retain(|f| !f.data_type.is_optional);
 
-    let mut non_default_base_fields = base_fields.clone();
-    non_default_base_fields.retain(|m| !m.is_default_initialized());
+    let mut non_nullable_base_fields = base_fields.clone();
+    non_nullable_base_fields.retain(|f| !f.data_type.is_optional);
 
     let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
@@ -70,7 +70,7 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
 
     let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
 
-    // One-shot ctor (may be parameterless)
+    // The primary constructor (may be parameterless)
     class_builder.add_block(constructor(
         &class_name,
         &access,
@@ -80,16 +80,16 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
         &base_fields,
     ));
 
-    // Second public constructor for all fields minus those with a default initializer
+    // Secondary constructor for all fields minus those with optional types.
     // This constructor is only generated if necessary
-    if non_default_fields.len() + non_default_base_fields.len() < fields.len() + base_fields.len() {
+    if non_nullable_fields.len() + non_nullable_base_fields.len() < fields.len() + base_fields.len() {
         class_builder.add_block(constructor(
             &class_name,
             &access,
             constructor_summary,
             &namespace,
-            &non_default_fields,
-            &non_default_base_fields,
+            &non_nullable_fields,
+            &non_nullable_base_fields,
         ));
     }
 
@@ -112,7 +112,7 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
         decode_constructor.add_base_parameter("ref decoder");
     }
     decode_constructor
-        .set_body(initialize_non_nullable_fields(&fields, FieldType::Class))
+        .set_body(initialize_required_fields(&fields, FieldType::Class))
         .add_never_editor_browsable_attribute();
 
     class_builder.add_block(decode_constructor.build());

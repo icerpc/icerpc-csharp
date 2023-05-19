@@ -39,7 +39,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
     )
 }
 
-pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
+pub fn initialize_required_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
     // This helper should only be used for classes and exceptions
     debug_assert!(matches!(field_type, FieldType::Class | FieldType::Exception));
 
