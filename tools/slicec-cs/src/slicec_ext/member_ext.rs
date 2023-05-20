@@ -10,7 +10,6 @@ pub trait MemberExt {
     fn parameter_name(&self) -> String;
     fn parameter_name_with_prefix(&self, prefix: &str) -> String;
     fn field_name(&self, field_type: FieldType) -> String;
-    fn is_default_initialized(&self) -> bool;
 }
 
 impl<T: Member> MemberExt for T {
@@ -25,19 +24,6 @@ impl<T: Member> MemberExt for T {
 
     fn field_name(&self, field_type: FieldType) -> String {
         mangle_name(&self.escape_identifier(), field_type)
-    }
-
-    fn is_default_initialized(&self) -> bool {
-        let data_type = self.data_type();
-
-        if data_type.is_optional {
-            return true;
-        }
-
-        match data_type.concrete_type() {
-            Types::Struct(struct_def) => struct_def.fields().iter().all(|m| m.is_default_initialized()),
-            _ => data_type.is_value_type(),
-        }
     }
 }
 

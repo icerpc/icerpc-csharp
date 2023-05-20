@@ -64,7 +64,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
                     .add_parameter("string?", "message", Some("null"), None)
                     .add_base_parameter("ref decoder")
                     .add_base_parameter("message")
-                    .set_body(initialize_non_nullable_fields(&fields, FieldType::Exception))
+                    .set_body(initialize_required_fields(&fields, FieldType::Exception))
                     // This is Slice1 only, there is no exception inheritance with Slice2. We hide this method because
                     // this must be only called by the Activator.
                     .add_never_editor_browsable_attribute()
@@ -101,7 +101,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
                         "\
 {}
 ConvertToUnhandled = true;",
-                        initialize_non_nullable_fields(&fields, FieldType::Exception),
+                        initialize_required_fields(&fields, FieldType::Exception),
                     )
                     .into()
                 })
