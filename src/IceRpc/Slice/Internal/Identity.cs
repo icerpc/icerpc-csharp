@@ -9,9 +9,9 @@ internal readonly partial record struct Identity
 
     public override string ToString() => ToPath();
 
-    /// <summary>Parses a path into an identity.</summary>
+    /// <summary>Parses a path into an identity, including the null/empty identity.</summary>
     /// <param name="path">The path (percent escaped).</param>
-    /// <returns>The corresponding identity. Its name can be empty.</returns>
+    /// <returns>The corresponding identity.</returns>
     internal static Identity Parse(string path)
     {
         if (path.Length == 0 || path[0] != '/')
