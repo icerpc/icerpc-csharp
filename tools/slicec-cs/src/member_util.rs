@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
+use std::borrow::Borrow;
+
 use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
-use slicec::grammar::{Attributable, Entity, Field, Member};
+use slicec::grammar::{Attributable, Contained, Field, Member};
 use slicec::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
@@ -15,7 +17,7 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
     }
 }
 
-pub fn field_declaration(field: &Field, parent: &impl Entity, field_type: FieldType) -> String {
+pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
     let type_string = field
         .data_type()
         .cs_type_string(&field.namespace(), TypeContext::Field, false);
@@ -32,7 +34,8 @@ pub fn field_declaration(field: &Field, parent: &impl Entity, field_type: FieldT
     }
 
     // All field modifiers are based on the parent's modifiers.
-    let modifiers = parent.modifiers();
+    // It's safe to unwrap here since all fields have a parent.
+    let modifiers = field.parent().borrow().unwrap().modifiers();
     let name = field.field_name(field_type);
     format!(
         "\

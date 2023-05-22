@@ -48,7 +48,7 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
     class_builder.add_block(
         fields
             .iter()
-            .map(|m| field_declaration(m, class_def, FieldType::Class))
+            .map(|m| field_declaration(m, FieldType::Class))
             .collect::<Vec<_>>()
             .join("\n\n")
             .into(),
