@@ -75,6 +75,25 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
         // or generated code. With Slice2, it's a regular decoding constructor that can be called directly by the
         // generated code or the application.
         let mut builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
+
+        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
+            builder.add_comment(
+                "summary",
+                format!(
+                    r#"Constructs a new instance of <see cref="{}" /> and decodes its fields from a Slice decoder."#,
+                    &exception_name
+                ),
+            );
+            if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+                builder.add_comment(
+                        "remarks",
+                        r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
+                    );
+            }
+        } else {
+            builder.add_never_editor_browsable_attribute();
+        }
+
         builder
             .add_parameter(
                 "ref SliceDecoder",
@@ -117,24 +136,6 @@ ConvertToUnhandled = true;",
                 })
                 .build(),
             );
-
-        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
-            builder.add_comment(
-                "summary",
-                format!(
-                    r#"Constructs a new instance of <see cref="{}" /> and decodes its fields from a Slice decoder."#,
-                    &exception_name
-                ),
-            );
-            if exception_def.supported_encodings().supports(&Encoding::Slice1) {
-                builder.add_comment(
-                        "remarks",
-                        r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
-                    );
-            }
-        } else {
-            builder.add_never_editor_browsable_attribute();
-        }
 
         exception_class_builder.add_block(builder.build());
     }
