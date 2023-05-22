@@ -22,7 +22,7 @@ pub trait OperationExt {
 
 impl OperationExt for Operation {
     fn has_encoded_result(&self) -> bool {
-        self.has_attribute(false, match_cs_encoded_result)
+        self.has_attribute(match_cs_encoded_result)
     }
 
     fn encoded_result_struct(&self) -> String {

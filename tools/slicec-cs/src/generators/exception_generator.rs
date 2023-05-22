@@ -43,7 +43,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
     exception_class_builder.add_block(
         fields
             .iter()
-            .map(|m| field_declaration(m, FieldType::Exception))
+            .map(|m| field_declaration(m, exception_def, FieldType::Exception))
             .collect::<Vec<_>>()
             .join("\n\n")
             .into(),

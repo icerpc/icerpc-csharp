@@ -23,7 +23,7 @@ pub fn generate_namespaces(slice_file: &SliceFile, generated_code: &mut Generate
 fn module_code_block(module: &Module, module_prefix: Option<String>, generated_code: &mut GeneratedCode) -> CodeBlock {
     let code_blocks = generated_code.remove_scoped(module);
 
-    let identifier = match module.find_attribute(false, match_cs_namespace) {
+    let identifier = match module.find_attribute(match_cs_namespace) {
         Some(namespace) => namespace,
         _ => module.identifier().to_owned(),
     };
