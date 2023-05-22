@@ -682,6 +682,7 @@ internal class SlicConnection : IMultiplexedConnection
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
+        bool readsCompleted,
         CancellationToken cancellationToken)
     {
         Debug.Assert(!source1.IsEmpty || endStream);
@@ -785,7 +786,9 @@ internal class SlicConnection : IMultiplexedConnection
         void EncodeStreamFrameHeader(ulong streamId, long size, bool lastStreamFrame)
         {
             var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
-            encoder.EncodeFrameType(lastStreamFrame ? FrameType.StreamLast : FrameType.Stream);
+            encoder.EncodeFrameType(
+                !lastStreamFrame ? FrameType.Stream :
+                readsCompleted ? FrameType.StreamLastAndReadsCompleted : FrameType.StreamLast);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeVarUInt62(streamId);
@@ -1036,6 +1039,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             case FrameType.Stream:
             case FrameType.StreamLast:
+            case FrameType.StreamLastAndReadsCompleted:
             {
                 return ReadStreamDataFrameAsync(type, size, streamId, cancellationToken);
             }
@@ -1340,7 +1344,7 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidDataException("Received stream frame without stream ID.");
         }
 
-        bool endStream = type == FrameType.StreamLast;
+        bool endStream = type == FrameType.StreamLast || type == FrameType.StreamLastAndReadsCompleted;
         bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
         bool isBidirectional = streamId % 4 < 2;
 
@@ -1354,6 +1358,11 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidDataException(
                 "Received invalid Slic stream frame, received 0 bytes without end of stream.");
         }
+        else if (type == FrameType.StreamLastAndReadsCompleted && isRemote)
+        {
+            throw new InvalidDataException(
+                "Received invalid Slic stream last and reads completed frame on remote stream.");
+        }
 
         int readSize = 0;
         if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
@@ -1363,6 +1372,11 @@ internal class SlicConnection : IMultiplexedConnection
                 size,
                 endStream,
                 cancellationToken).ConfigureAwait(false);
+
+            if (type == FrameType.StreamLastAndReadsCompleted)
+            {
+                stream.ReceivedReadsCompletedFrame();
+            }
         }
         else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
         {

@@ -6,14 +6,13 @@ module IceRpc::Transports::Slic::Internal
 /// The Slic frame types.
 [cs::internal]
 enum FrameType : uint8 {
-    /// The initialization frame is sent by the client-side Slic connection on connection establishment.
+    /// The initialize frame is sent by the client-side connection on connection establishment.
     Initialize = 1
 
-    /// The initialize acknowledgment is sent by the server-side Slic connection after receiving an initialize
-    /// frame.
+    /// The initialize acknowledgment is sent by the server-side connection after receiving an initialize frame.
     InitializeAck
 
-    /// The Slic versions supported by the server if the version from the Initialize frame is not supported.
+    /// The versions supported by the server if the version from the initialize frame is not supported.
     Version
 
     /// The close frame is sent by the peer when it closes the connection.
@@ -25,22 +24,26 @@ enum FrameType : uint8 {
     /// The pong frame is sent back after receiving a ping frame.
     Pong
 
-    /// The stream frame is sent send data over a Slic stream.
+    /// The stream frame is sent to send data over the stream.
     Stream
 
-    /// The last stream frame is the last frame used to send data over a Slic stream.
+    /// The stream last frame is sent to send data and notify the peer that no more data will be sent over the stream.
     StreamLast
 
-    /// The stream reset frame terminates the stream.
+    /// The stream last and reads completed frame is sent to send data and notify the peer that no more data will be
+    /// sent and that it's done with reading data from the stream.
+    StreamLastAndReadsCompleted
+
+    /// The stream reset frame is sent to abruptly terminate the sending part of the stream.
     StreamReset
 
-    /// The stream consumed frame is sent to increase the peer's send credit.
+    /// The stream consumed frame is sent to increase the peer's send credit of the stream.
     StreamConsumed
 
-    /// The stream stop sending frame is sent to notify the peer it should stop sending data.
+    /// The stream stop sending frame is sent to notify the peer it should stop sending data over the stream.
     StreamStopSending
 
-    /// The stream reads completed frame is sent to notify the peer that reads are completed.
+    /// The stream reads completed frame is sent to notify the peer that it's done with reading data from the stream.
     StreamReadsCompleted
 }
 

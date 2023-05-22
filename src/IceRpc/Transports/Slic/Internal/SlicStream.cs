@@ -57,12 +57,14 @@ internal class SlicStream : IMultiplexedStream
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
+    private readonly object _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _readsCompletionPending;
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _writesCompletionPending;
+    private bool _completeReadsOnWriteCompletion;
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -115,17 +117,31 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteReads(ulong? errorCode = null)
     {
-        if (!ReadsCompleted || _readsCompletionPending)
+        bool performCompleteReads = false;
+        lock (_mutex)
         {
-            if (IsStarted && (errorCode is not null || IsRemote))
+            if (IsStarted && !ReadsCompleted && !_readsCompletionPending)
             {
-                _readsCompletionPending = true;
-                _ = PerformCompleteReadsAsync(errorCode);
+                if (IsBidirectional && !WritesCompleted && IsRemote && errorCode is null)
+                {
+                    // As an optimization, we don't send the StreamReadsCompleted frame if writes are not completed yet.
+                    _completeReadsOnWriteCompletion = true;
+                }
+                else if (errorCode is not null || IsRemote)
+                {
+                    _readsCompletionPending = true;
+                    performCompleteReads = true;
+                }
             }
-            else
-            {
-                TrySetReadsCompleted();
-            }
+        }
+
+        if (performCompleteReads)
+        {
+            _ = PerformCompleteReadsAsync(errorCode);
+        }
+        else
+        {
+            TrySetReadsCompleted();
         }
 
         async Task PerformCompleteReadsAsync(ulong? errorCode)
@@ -178,17 +194,25 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteWrites(ulong? errorCode = null)
     {
-        if (!WritesCompleted && !_writesCompletionPending)
+        bool performCompleteWrites = false;
+        bool readsCompleted = false;
+        lock (_mutex)
         {
-            if (IsStarted)
+            if (IsStarted && !WritesCompleted && !_writesCompletionPending)
             {
+                readsCompleted = _completeReadsOnWriteCompletion;
                 _writesCompletionPending = true;
-                _ = PerformCompleteWritesAsync(errorCode);
+                performCompleteWrites = true;
             }
-            else
-            {
-                TrySetWritesCompleted();
-            }
+        }
+
+        if (performCompleteWrites)
+        {
+            _ = PerformCompleteWritesAsync(errorCode);
+        }
+        else
+        {
+            TrySetWritesCompleted();
         }
 
         async Task PerformCompleteWritesAsync(ulong? errorCode)
@@ -209,6 +233,7 @@ internal class SlicStream : IMultiplexedStream
                         ReadOnlySequence<byte>.Empty,
                         ReadOnlySequence<byte>.Empty,
                         endStream: true,
+                        readsCompleted: readsCompleted,
                         default).ConfigureAwait(false);
 
                     // If the stream is a local stream, writes are not completed until the stream reads completed frame
@@ -353,11 +378,16 @@ internal class SlicStream : IMultiplexedStream
         bool endStream,
         CancellationToken cancellationToken)
     {
+        bool readsCompleted = false;
         if (endStream)
         {
-            _writesCompletionPending = true;
+            lock (_mutex)
+            {
+                readsCompleted = _completeReadsOnWriteCompletion;
+                _writesCompletionPending = true;
+            }
         }
-        return _connection.SendStreamFrameAsync(this, source1, source2, endStream, cancellationToken);
+        return _connection.SendStreamFrameAsync(this, source1, source2, endStream, readsCompleted, cancellationToken);
     }
 
     internal void SentLastStreamFrame()
