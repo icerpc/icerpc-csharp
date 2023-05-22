@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Tests::Slice
+
+enum StateAbbreviation : uint8 { AL, AK, AZ, AR, AS, CA, CO, CT }
+
+enum NetworkProtocol : uint8 { TCP, UDP, HTTP, IP }
+
+struct POBox {
+    value: string
+}
