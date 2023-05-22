@@ -316,7 +316,7 @@ impl FunctionBuilder {
                     // can use 'null' as the default value, which makes it clear what the default is.
                     TypeRefs::Sequence(sequence_ref)
                         if sequence_ref.has_fixed_size_numeric_elements()
-                            && sequence_ref.find_attribute(false, match_cs_generic).is_none() =>
+                            && sequence_ref.find_attribute(match_cs_generic).is_none() =>
                     {
                         Some("default")
                     }

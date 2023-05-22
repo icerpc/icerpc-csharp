@@ -26,7 +26,7 @@ struct CsValidator<'a> {
 
 /// Returns an iterator of C# specific attributes with any non-C# attributes filtered out.
 fn get_cs_attributes(attributable: &impl Attributable) -> impl Iterator<Item = (&CsAttributeKind, &Span)> {
-    attributable.attributes(false).into_iter().filter_map(|attribute| {
+    attributable.attributes().into_iter().filter_map(|attribute| {
         cs_attributes::as_cs_attribute(attribute).map(|cs_attribute| (cs_attribute, &attribute.span))
     })
 }
@@ -169,7 +169,7 @@ impl Visitor for CsValidator<'_> {
 
     fn visit_custom_type(&mut self, custom_type: &CustomType) {
         // We require 'cs::custom' on custom types to know how to encode/decode it.
-        if !custom_type.has_attribute(false, match_cs_custom) {
+        if !custom_type.has_attribute(match_cs_custom) {
             Diagnostic::new(Error::MissingRequiredAttribute {
                 attribute: cs_attributes::CUSTOM.to_owned(),
             })

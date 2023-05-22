@@ -30,7 +30,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         .add_block(enum_values(enum_def));
 
     // Add cs::attribute
-    for attribute in enum_def.attributes(false).into_iter().filter_map(match_cs_attribute) {
+    for attribute in enum_def.attributes().into_iter().filter_map(match_cs_attribute) {
         builder.add_attribute(attribute);
     }
     builder.build()

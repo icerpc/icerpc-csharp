@@ -30,7 +30,7 @@ pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) 
     builder.add_block(
         fields
             .iter()
-            .map(|m| field_declaration(m, FieldType::NonMangled))
+            .map(|m| field_declaration(m, struct_def, FieldType::NonMangled))
             .collect::<Vec<_>>()
             .join("\n\n")
             .into(),
