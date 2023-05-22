@@ -169,7 +169,7 @@ fn encode_tagged_type(
         data_type.concrete_type(),
         Types::Sequence(sequence_def) if sequence_def.has_fixed_size_numeric_elements()
             && type_context == TypeContext::Encode
-            && !data_type.has_attribute( match_cs_generic)
+            && !data_type.has_attribute(match_cs_generic)
     );
 
     let value = if data_type.is_value_type() {
