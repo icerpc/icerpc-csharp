@@ -115,7 +115,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void CompleteReads(ulong? errorCode = null)
     {
-        if (!ReadsCompleted || _readsCompletionPending)
+        if (!ReadsCompleted && !_readsCompletionPending)
         {
             if (IsStarted && (errorCode is not null || IsRemote))
             {
