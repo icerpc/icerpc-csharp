@@ -10,7 +10,7 @@ pub trait EntityExt: Entity {
     // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier
     /// attribute as-is or the Slice identifier formatted with the specified casing.
     fn cs_identifier(&self, case: Case) -> String {
-        let identifier_attribute = self.attributes(false).into_iter().find_map(match_cs_identifier);
+        let identifier_attribute = self.attributes().into_iter().find_map(match_cs_identifier);
 
         match identifier_attribute {
             Some(identifier) => identifier,
@@ -97,7 +97,7 @@ pub trait EntityExt: Entity {
     }
 
     fn obsolete_attribute(&self) -> Option<String> {
-        self.get_deprecation(false).map(|attribute| {
+        self.get_deprecation().map(|attribute| {
             let reason = if let Some(argument) = attribute {
                 argument
             } else {
@@ -141,7 +141,7 @@ pub trait EntityExt: Entity {
     /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
     /// attribute otherwise returns "public".
     fn access_modifier(&self) -> String {
-        if self.attributes(true).into_iter().find_map(match_cs_internal).is_some() {
+        if self.attributes().into_iter().find_map(match_cs_internal).is_some() {
             "internal".to_owned()
         } else {
             "public".to_owned()
@@ -152,7 +152,7 @@ pub trait EntityExt: Entity {
     /// returns None.
     fn readonly_modifier(&self) -> Option<String> {
         // Readonly is only valid for structs
-        if self.attributes(true).into_iter().find_map(match_cs_readonly).is_some() {
+        if self.attributes().into_iter().find_map(match_cs_readonly).is_some() {
             Some("readonly".to_owned())
         } else {
             None

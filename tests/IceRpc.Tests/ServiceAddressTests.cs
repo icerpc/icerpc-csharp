@@ -201,9 +201,6 @@ public class ServiceAddressTests
             "icerpc:/path#fragment",        // bad fragment
             "icerpc://user@host/path",      // bad user info
             "ice://host/s1/s2/s3",          // too many slashes in path
-            "ice://host/cat/",              // empty identity name
-            "ice://host/",                  // empty identity name
-            "ice://host//",                 // empty identity name
             "ice:/path?alt-server=foo",     // alt-server service address parameter
             "ice:/path?adapter-id",         // empty adapter-id
             "ice:/path?adapter-id=foo&foo", // extra parameter
@@ -223,6 +220,9 @@ public class ServiceAddressTests
             ("ice://host.zeroc.com/identity#%24%23f", "/identity", "%24%23f"),
             ("ice://host.zeroc.com/identity?xyz=false", "/identity", ""),
             ("ice://host.zeroc.com/identity?xyz=true", "/identity", ""),
+            ("ice://host/cat/", "/cat/", ""),
+            ("ice://host/", "/", ""),
+            ("ice://host//", "//", ""),
             ("ice:/path?adapter-id=foo", "/path", ""),
             ("icerpc:?foo=bar", "/", ""),
             ("icerpc://host.zeroc.com", "/", ""),
