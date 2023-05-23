@@ -30,12 +30,16 @@ enum FrameType : uint8 {
     /// The stream last frame is sent to send data and notify the peer that no more data will be sent over the stream.
     StreamLast
 
-    /// The stream last and reads completed frame is sent to send data and notify the peer that no more data will be
+    /// The stream last and reads completed frame is sent to send data and to notify the peer that no more data will be
     /// sent and that it's done with reading data from the stream.
     StreamLastAndReadsCompleted
 
     /// The stream reset frame is sent to abruptly terminate the sending part of the stream.
     StreamReset
+
+    /// The stream reset frame is sent to abruptly terminate the sending part of the stream and to notify the peer that
+    /// no more data will be sent and that it's done with reading data from the stream.
+    StreamResetAndReadsCompleted
 
     /// The stream consumed frame is sent to increase the peer's send credit of the stream.
     StreamConsumed
@@ -47,8 +51,7 @@ enum FrameType : uint8 {
     StreamReadsCompleted
 }
 
-/// The keys for supported Slic connection parameters exchanged with the Initialize and
-/// InitializeAck frames.
+/// The keys for supported Slic connection parameters exchanged with the Initialize and InitializeAck frames.
 [cs::internal]
 unchecked enum ParameterKey : varuint62 {
     /// The maximum number of bidirectional streams. The peer shouldn't open more streams than the maximum defined
@@ -59,7 +62,8 @@ unchecked enum ParameterKey : varuint62 {
     /// by this parameter.
     MaxUnidirectionalStreams = 1
 
-    /// The idle timeout in milliseconds. If the connection is inactive for longer than the idle timeout it will be closed.
+    /// The idle timeout in milliseconds. If the connection is inactive for longer than the idle timeout it will be
+    /// closed.
     IdleTimeout = 2
 
     /// The maximum Slic packet size in bytes.
@@ -109,8 +113,7 @@ compact struct CloseBody {
     applicationErrorCode: varuint62
 }
 
-/// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in
-/// the stream.
+/// The body of a Slic stream reset frame. This frame is sent to abruptly terminate the sending part of the stream.
 [cs::internal]
 [cs::readonly]
 compact struct StreamResetBody {
@@ -118,7 +121,7 @@ compact struct StreamResetBody {
     applicationErrorCode: varuint62
 }
 
-/// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
+/// The body of a Slic stream consumed frame. This frame is sent to increase the peer's send credit.
 [cs::internal]
 [cs::readonly]
 compact struct StreamConsumedBody {
@@ -126,7 +129,7 @@ compact struct StreamConsumedBody {
     size: varuint62
 }
 
-/// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver is no longer
+/// The body of a Slic stream stop sending frame. This frame is sent to notify the peer that the receiver is no longer
 /// interested in receiving data.
 [cs::internal]
 [cs::readonly]

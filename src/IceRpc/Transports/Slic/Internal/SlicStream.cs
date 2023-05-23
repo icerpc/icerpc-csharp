@@ -122,9 +122,12 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsStarted && !ReadsCompleted && !_readsCompletionPending)
             {
-                if (IsBidirectional && !WritesCompleted && IsRemote && errorCode is null)
+                if (errorCode is null && IsBidirectional && !WritesCompleted && !_writesCompletionPending && IsRemote)
                 {
                     // As an optimization, we don't send the StreamReadsCompleted frame if writes are not completed yet.
+                    // If writes are completed by a write with endStream=true, the StreamLastAndReadsCompleted frame
+                    // will be sent instead of the StreamLast frame. If writes are completed with an error, the
+                    // StreamReset frame
                     _completeReadsOnWriteCompletion = true;
                 }
                 else if (errorCode is not null || IsRemote)
@@ -243,7 +246,7 @@ internal class SlicStream : IMultiplexedStream
                 {
                     await _connection.SendStreamFrameAsync(
                         stream: this,
-                        FrameType.StreamReset,
+                        readsCompleted ? FrameType.StreamResetAndReadsCompleted : FrameType.StreamReset,
                         new StreamResetBody(applicationErrorCode: 0).Encode).ConfigureAwait(false);
 
                     if (!IsRemote)

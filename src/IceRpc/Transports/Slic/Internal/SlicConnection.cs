@@ -1053,12 +1053,20 @@ internal class SlicConnection : IMultiplexedConnection
                     cancellationToken);
             }
             case FrameType.StreamReset:
+            case FrameType.StreamResetAndReadsCompleted:
             {
                 return ReadStreamFrameAsync(
                     size,
                     streamId,
                     (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
-                    (stream, frame) => stream.ReceivedResetFrame(frame),
+                    (stream, frame) =>
+                    {
+                        if (type == FrameType.StreamResetAndReadsCompleted)
+                        {
+                            stream.ReceivedReadsCompletedFrame();
+                        }
+                        stream.ReceivedResetFrame(frame);
+                    },
                     cancellationToken);
             }
             case FrameType.StreamStopSending:
