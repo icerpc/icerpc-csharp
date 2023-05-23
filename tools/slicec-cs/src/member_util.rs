@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use std::borrow::Borrow;
-
 use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
@@ -35,7 +33,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
 
     // All field modifiers are based on the parent's modifiers.
     // It's safe to unwrap here since all fields have a parent.
-    let modifiers = field.parent().borrow().unwrap().modifiers();
+    let modifiers = field.parent().unwrap().modifiers();
     let name = field.field_name(field_type);
     format!(
         "\
