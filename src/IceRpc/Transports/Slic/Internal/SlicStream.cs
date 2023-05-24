@@ -124,10 +124,10 @@ internal class SlicStream : IMultiplexedStream
             {
                 if (errorCode is null && IsBidirectional && !WritesCompleted && !_writesCompletionPending && IsRemote)
                 {
-                    // As an optimization, we don't send the StreamReadsCompleted frame if writes are not completed yet.
-                    // If writes are completed by a write with endStream=true, the StreamLastAndReadsCompleted frame
-                    // will be sent instead of the StreamLast frame. If writes are completed with an error, the
-                    // StreamReset frame
+                    // As an optimization, if reads are completed once the buffered data is consumed but before writes
+                    // are closed, we don't send the StreamReadsCompleted frame. Instead, when writes are completed,
+                    // either the StreamLastAndReadsCompleted or StreamResetAndReadsCompleted frames will be sent to
+                    // both notify the peer that writes are reads completed.
                     _completeReadsOnWriteCompletion = true;
                 }
                 else if (errorCode is not null || IsRemote)
