@@ -11,3 +11,7 @@ runs:
   - name: 🧪 Test
     run: dotnet test --no-build --verbosity normal
     shell: bash
+  - name: Slice Tools Test
+    working-directory: tools/IceRpc.Slice.Tools
+    run: dotnet test --no-build --verbosity normal
+    shell: bash
