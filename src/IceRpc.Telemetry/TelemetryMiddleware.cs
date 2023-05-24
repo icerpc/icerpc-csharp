@@ -59,18 +59,27 @@ public class TelemetryMiddleware : IDispatcher
 
         byte traceIdVersion = decoder.DecodeUInt8();
 
-        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-        Span<byte> traceIdSpan = memoryOwner.Memory.Span[0..16];
-        decoder.CopyTo(traceIdSpan);
-        var traceId = ActivityTraceId.CreateFromBytes(traceIdSpan);
+        // Unfortunately we can't use stackalloc, here we prefer ArrayPool over MemoryPool, to
+        // avoid allocating an IMemoryOwner object per request.
+        byte[] activityContextBuffer = ArrayPool<byte>.Shared.Rent(16);
+        try
+        {
+            Span<byte> traceIdSpan = new ArraySegment<byte>(activityContextBuffer, 0, 16);
+            decoder.CopyTo(traceIdSpan);
+            var traceId = ActivityTraceId.CreateFromBytes(traceIdSpan);
 
-        Span<byte> spanIdSpan = memoryOwner.Memory.Span[0..8];
-        decoder.CopyTo(spanIdSpan);
-        var spanId = ActivitySpanId.CreateFromBytes(spanIdSpan);
+            Span<byte> spanIdSpan = new ArraySegment<byte>(activityContextBuffer, 0, 8);
+            decoder.CopyTo(spanIdSpan);
+            var spanId = ActivitySpanId.CreateFromBytes(spanIdSpan);
 
-        var traceFlags = (ActivityTraceFlags)decoder.DecodeUInt8();
+            var traceFlags = (ActivityTraceFlags)decoder.DecodeUInt8();
 
-        activity.SetParentId(traceId, spanId, traceFlags);
+            activity.SetParentId(traceId, spanId, traceFlags);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(activityContextBuffer);
+        }
 
         // Read TraceState encoded as a string
         activity.TraceStateString = decoder.DecodeString();

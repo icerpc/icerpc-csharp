@@ -90,13 +90,22 @@ public class TelemetryInterceptor : IInvoker
         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
         encoder.EncodeUInt8(0);
 
-        // Unfortunately we can't use stackalloc.
-        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
-        Span<byte> buffer = memoryOwner.Memory.Span[0..16];
-        activity.TraceId.CopyTo(buffer);
-        encoder.WriteByteSpan(buffer);
-        activity.SpanId.CopyTo(buffer[0..8]);
-        encoder.WriteByteSpan(buffer[0..8]);
+        // Unfortunately we can't use stackalloc, here we prefer ArrayPool over MemoryPool, to
+        // avoid allocating an IMemoryOwner object per request.
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(16);
+        try
+        {
+            var bufferSegment = new ArraySegment<byte>(buffer, 0, 16);
+            activity.TraceId.CopyTo(bufferSegment);
+            encoder.WriteByteSpan(bufferSegment);
+            activity.SpanId.CopyTo(bufferSegment[0..8]);
+            encoder.WriteByteSpan(bufferSegment[0..8]);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
         encoder.EncodeUInt8((byte)activity.ActivityTraceFlags);
 
         // TraceState encoded as an string

@@ -30,10 +30,12 @@ internal abstract class TcpConnection : IDuplexConnection
     private readonly MemoryPool<byte> _pool;
     private readonly int _poolSegmentSize;
     private readonly List<ArraySegment<byte>> _segments = new();
+    private IMemoryOwner<byte>? _writeBufferOwner;
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
+        _writeBufferOwner = _pool.Rent(_poolSegmentSize);
         return ConnectAsyncCore(cancellationToken);
     }
 
@@ -56,6 +58,7 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             Socket.Close(0);
         }
+        _writeBufferOwner?.Dispose();
     }
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
