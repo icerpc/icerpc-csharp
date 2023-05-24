@@ -98,17 +98,14 @@ public class SliceCCSharpTask : ToolTask
         {
             diagnostic.SourceSpan ??= new SourceSpan();
 
-            string message = diagnostic.Message;
-
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
-                message,
+                diagnostic.Message,
                 diagnostic.ErrorCode,
                 diagnostic.SourceSpan.File,
                 diagnostic.SourceSpan.Start,
                 diagnostic.SourceSpan.End);
 
-            // Log notes as additional error/warnings.
             foreach (Note note in diagnostic.Notes)
             {
                 note.SourceSpan ??= diagnostic.SourceSpan;
