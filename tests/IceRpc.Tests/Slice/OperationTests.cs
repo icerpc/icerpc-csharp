@@ -630,6 +630,41 @@ public class OperationTests
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
     }
 
+    [Test]
+    public void Operation_with_trailing_optionals_uses_default_values()
+    {
+        // Arrange
+        var service = new MyOperationsAService();
+        var invoker = new ColocInvoker(service);
+        var proxy = new MyOperationsAProxy(invoker);
+
+        // Act/Assert
+        Assert.That(() => proxy.OpWithTrailingOptionalValuesAsync(0, null, 1), Throws.Nothing);
+    }
+
+    [Test]
+    public void Operation_with_trailing_optionals_and_stream_requires_all_parameters()
+    {
+        // Arrange
+        var service = new MyOperationsAService();
+        var invoker = new ColocInvoker(service);
+        var proxy = new MyOperationsAProxy(invoker);
+
+        // Act/Assert
+        Assert.That(() => proxy.OpWithTrailingOptionalValuesAndStreamAsync(0, null, 1, null, null, GetDataAsync()), Throws.Nothing);
+
+        static async IAsyncEnumerable<byte?> GetDataAsync()
+        {
+            await Task.Yield();
+            yield return 1;
+            yield return null;
+            yield return 2;
+            yield return null;
+            yield return 3;
+            yield return null;
+        }
+    }
+
     private class MyOperationsAService : Service, IMyOperationsAService
     {
         public PingableProxy? ReceivedProxy;
@@ -755,6 +790,8 @@ public class OperationTests
         public ValueTask<PingableProxy> OpWithProxyReturnValueAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
+        public ValueTask OpWithTrailingOptionalValuesAsync(int p1, int? p2, int p3, int? p4, int? p5, IFeatureCollection features, CancellationToken cancellationToken) => default;
+        public ValueTask OpWithTrailingOptionalValuesAndStreamAsync(int p1, int? p2, int p3, int? p4, int? p5, IAsyncEnumerable<byte?> p6, IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
     private sealed class MyDerivedOperationsAService : MyOperationsAService, IMyDerivedOperationsAService
