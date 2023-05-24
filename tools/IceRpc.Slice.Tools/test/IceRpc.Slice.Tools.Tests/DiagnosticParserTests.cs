@@ -85,7 +85,7 @@ public class DiagnosticParserTests
                     {
                         new Note
                         {
-                            Message = "'op' was previously defined here",
+                            Message = "'MyFixedLengthEnum' was previously defined here",
                             SourceSpan = new SourceSpan
                             {
                                 Start = new Location
