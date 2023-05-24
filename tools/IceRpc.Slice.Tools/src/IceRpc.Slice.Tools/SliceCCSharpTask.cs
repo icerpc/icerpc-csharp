@@ -7,8 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace IceRpc.Slice.Tools;
 
@@ -96,14 +94,15 @@ public class SliceCCSharpTask : ToolTask
             return;
         }
 
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        if (JsonSerializer.Deserialize<Diagnostic>(singleLine, options) is Diagnostic diagnostic)
+        if (DiagnosticParser.Parse(singleLine) is Diagnostic diagnostic)
         {
             diagnostic.SourceSpan ??= new SourceSpan();
 
+            string message = diagnostic.Message;
+
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
-                diagnostic.Message,
+                message,
                 diagnostic.ErrorCode,
                 diagnostic.SourceSpan.File,
                 diagnostic.SourceSpan.Start,
@@ -112,15 +111,18 @@ public class SliceCCSharpTask : ToolTask
             // Log notes as additional error/warnings.
             foreach (Note note in diagnostic.Notes)
             {
-                note.SourceSpan ??= new SourceSpan();
-
-                LogSliceCompilerDiagnostic(
-                    diagnostic.Severity,
-                    note.Message,
-                    diagnostic.ErrorCode,
+                note.SourceSpan ??= diagnostic.SourceSpan;
+                Log.LogMessage(
+                    "",
+                    "",
+                    "",
                     note.SourceSpan.File,
-                    note.SourceSpan.Start,
-                    note.SourceSpan.End);
+                    note.SourceSpan.Start.Row,
+                    note.SourceSpan.Start.Column,
+                    note.SourceSpan.End.Row,
+                    note.SourceSpan.End.Column,
+                    MessageImportance.High,
+                    note.Message);
             }
         }
 
@@ -146,38 +148,4 @@ public class SliceCCSharpTask : ToolTask
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
-}
-
-public class Diagnostic
-{
-    public string Message { get; set; } = "";
-    public string Severity { get; set; } = "";
-
-    [JsonPropertyName("span")]
-    public SourceSpan? SourceSpan { get; set; } = null;
-    public Note[] Notes { get; set; } = Array.Empty<Note>();
-
-    [JsonPropertyName("error_code")]
-    public string ErrorCode { get; set; } = "";
-}
-
-public class Note
-{
-    public string Message { get; set; } = "";
-    [JsonPropertyName("span")]
-    public SourceSpan? SourceSpan { get; set; } = null;
-}
-
-public class SourceSpan
-{
-    public Location Start { get; set; }
-    public Location End { get; set; }
-    public string File { get; set; } = "";
-}
-
-public struct Location
-{
-    public int Row { get; set; }
-    [JsonPropertyName("col")]
-    public int Column { get; set; }
 }

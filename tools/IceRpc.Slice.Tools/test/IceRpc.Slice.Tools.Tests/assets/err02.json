@@ -1,0 +1,32 @@
+{
+   "message":"redefinition of 'MyFixedLengthEnum'",
+   "severity":"error",
+   "span":{
+      "start":{
+         "row":17,
+         "col":11
+      },
+      "end":{
+         "row":17,
+         "col":28
+      },
+      "file":"tests\\IceRpc.Tests\\Slice\\EnumTests.slice"
+   },
+   "notes":[
+      {
+         "message":"'MyFixedLengthEnum' was previously defined here",
+         "span":{
+            "start":{
+               "row":11,
+               "col":6
+            },
+            "end":{
+               "row":11,
+               "col":23
+            },
+            "file":"tests\\IceRpc.Tests\\Slice\\EnumTests.slice"
+         }
+      }
+   ],
+   "error_code":"E012"
+}

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31717.71
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Slice.Tools", "src\IceRpc.Slice.Tools\IceRpc.Slice.Tools.csproj", "{8B86EBA6-68BC-4565-835E-CDDD564A9B7C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Slice.Tools.Tests", "test\IceRpc.Slice.Tools.Tests\IceRpc.Slice.Tools.Tests.csproj", "{E794149B-130E-4536-8C63-78A393035A14}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{8B86EBA6-68BC-4565-835E-CDDD564A9B7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B86EBA6-68BC-4565-835E-CDDD564A9B7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B86EBA6-68BC-4565-835E-CDDD564A9B7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E794149B-130E-4536-8C63-78A393035A14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E794149B-130E-4536-8C63-78A393035A14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E794149B-130E-4536-8C63-78A393035A14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E794149B-130E-4536-8C63-78A393035A14}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
