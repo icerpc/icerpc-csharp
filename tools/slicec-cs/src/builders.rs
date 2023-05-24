@@ -317,7 +317,7 @@ impl FunctionBuilder {
             let default_value = if context == TypeContext::Encode && (index >= trailing_optional_parameters_index) {
                 match parameter.data_type.concrete_typeref() {
                     // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
-                    // 'default' as their default value. Other tagged types are mapped to nullable types and
+                    // 'default' as their default value. Other optional types are mapped to nullable types and
                     // can use 'null' as the default value, which makes it clear what the default is.
                     TypeRefs::Sequence(sequence_ref)
                         if sequence_ref.has_fixed_size_numeric_elements()
