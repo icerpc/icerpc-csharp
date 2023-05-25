@@ -27,9 +27,8 @@ internal abstract class TcpConnection : IDuplexConnection
 
     private bool _isShutdown;
     private readonly int _maxSslBufferSize;
-    private readonly MemoryPool<byte> _pool;
-    private readonly int _poolSegmentSize;
     private readonly List<ArraySegment<byte>> _segments = new();
+    private readonly IMemoryOwner<byte>? _writeBufferOwner;
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
@@ -56,6 +55,7 @@ internal abstract class TcpConnection : IDuplexConnection
         {
             Socket.Close(0);
         }
+        _writeBufferOwner?.Dispose();
     }
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
@@ -167,9 +167,8 @@ internal abstract class TcpConnection : IDuplexConnection
                             ReadOnlySequence<byte> leading = buffer.Slice(0, leadingSize);
                             buffer = buffer.Slice(leadingSize); // buffer can become empty
 
-                            Debug.Assert(leadingSize <= _poolSegmentSize);
-                            using IMemoryOwner<byte> writeBufferOwner = _pool.Rent(_poolSegmentSize);
-                            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..leadingSize];
+                            Debug.Assert(_writeBufferOwner is not null);
+                            Memory<byte> writeBuffer = _writeBufferOwner.Memory[0..leadingSize];
                             leading.CopyTo(writeBuffer.Span);
 
                             // Send the "coalesced" leading segments
@@ -197,7 +196,11 @@ internal abstract class TcpConnection : IDuplexConnection
                 }
                 else
                 {
-                    if (buffer.IsSingleSegment)
+                    if (buffer.IsEmpty)
+                    {
+                        // done
+                    }
+                    else if (buffer.IsSingleSegment)
                     {
                         _ = await Socket.SendAsync(buffer.First, SocketFlags.None, cancellationToken)
                             .ConfigureAwait(false);
@@ -244,14 +247,12 @@ internal abstract class TcpConnection : IDuplexConnection
         }
     }
 
-    private protected TcpConnection(MemoryPool<byte> pool, int minimumSegmentSize)
+    private protected TcpConnection(IMemoryOwner<byte>? memoryOwner)
     {
-        _pool = pool;
-        _poolSegmentSize = minimumSegmentSize;
-
+        _writeBufferOwner = memoryOwner;
         // When coalescing leading buffers in WriteAsync, we don't want to copy into a buffer greater than the standard
         // segment size in the memory pool (by default 4K) or greater than MaxSslDataSize (16K).
-        _maxSslBufferSize = Math.Min(_poolSegmentSize, MaxSslDataSize);
+        _maxSslBufferSize = Math.Min(memoryOwner?.Memory.Length ?? 0, MaxSslDataSize);
     }
 
     private protected abstract Task<TransportConnectionInformation> ConnectAsyncCore(
@@ -289,7 +290,7 @@ internal class TcpClientConnection : TcpConnection
         MemoryPool<byte> pool,
         int minimumSegmentSize,
         TcpClientTransportOptions options)
-        : base(pool, minimumSegmentSize)
+        : base(authenticationOptions is not null ? pool.Rent(minimumSegmentSize) : null)
     {
         _addr = IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, serverAddress.Port) :
@@ -386,7 +387,7 @@ internal class TcpServerConnection : TcpConnection
         SslServerAuthenticationOptions? authenticationOptions,
         MemoryPool<byte> pool,
         int minimumSegmentSize)
-        : base(pool, minimumSegmentSize)
+        : base(authenticationOptions is not null ? pool.Rent(minimumSegmentSize) : null)
     {
         Socket = socket;
         _authenticationOptions = authenticationOptions;
