@@ -15,12 +15,12 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     private readonly IDuplexConnection _connection;
     private readonly CancellationTokenSource _disposeCts = new();
     private Task? _disposeTask;
-    private int _pendingWriterCount;
     private readonly long _flushThreshold;
+    private int _pendingWriterCount;
     private readonly Pipe _pipe;
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
-    public void Advance(int count) => _pipe.Writer.Advance(count);
+    public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync()
@@ -43,10 +43,10 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
     }
 
     /// <inheritdoc/>
-    public Memory<byte> GetMemory(int sizeHint) => _pipe.Writer.GetMemory(sizeHint);
+    public Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
 
     /// <inheritdoc/>
-    public Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
+    public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
 
     /// <summary>Constructs a duplex connection writer.</summary>
     /// <param name="connection">The duplex connection to write to.</param>
