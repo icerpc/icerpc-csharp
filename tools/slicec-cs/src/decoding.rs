@@ -4,7 +4,7 @@ use crate::builders::{Builder, FunctionCallBuilder};
 use crate::cs_attributes::match_cs_generic;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
-use convert_case::{Case, Casing};
+use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
@@ -245,7 +245,10 @@ decoder.DecodeSequence(
     ({enum_type_name} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
                         enum_type_name = element_type.cs_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                            &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
+                            &format!(
+                                "{}Extensions",
+                                enum_def.get_underlying_cs_type().to_cs_case(Case::Pascal)
+                            ),
                             namespace,
                         ),
                         name = enum_def.cs_identifier(Case::Pascal),
@@ -321,7 +324,10 @@ decoder.DecodeSequence(
     ({enum_type} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
                         enum_type = element_type.cs_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                            &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
+                            &format!(
+                                "{}Extensions",
+                                enum_def.get_underlying_cs_type().to_cs_case(Case::Pascal)
+                            ),
                             namespace,
                         ),
                         name = enum_def.cs_identifier(Case::Pascal),
