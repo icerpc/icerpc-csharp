@@ -8,7 +8,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Slic.Internal;
 
 /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
-/// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
+/// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enabled
 /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
 internal class SlicStream : IMultiplexedStream
 {
@@ -57,6 +57,8 @@ internal class SlicStream : IMultiplexedStream
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
+    // This mutex is required to ensure _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
+    // atomically.
     private readonly object _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -115,9 +117,18 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    /// <summary>This method completes the read-side of the stream. It's only called by SlicPipeReader methods and never
+    /// called called concurrently.</summary>
+    /// <param name="errorCode">The error code. It's null if reads were completed after all the data and the end of
+    /// stream flag where consumed. It's non-null if the reader was completed with an exception or before the buffer
+    /// data was consumed.</param>
     internal void CompleteReads(ulong? errorCode = null)
     {
         bool performCompleteReads = false;
+
+        // Lock the mutex to ensure that _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
+        // atomically. _completeReadsOnWriteCompletion is assigned to true only if !_writesCompletionPending (among
+        // other conditions).
         lock (_mutex)
         {
             if (IsStarted && !ReadsCompleted && !_readsCompletionPending)
@@ -126,8 +137,8 @@ internal class SlicStream : IMultiplexedStream
                 {
                     // As an optimization, if reads are completed once the buffered data is consumed but before writes
                     // are closed, we don't send the StreamReadsCompleted frame. Instead, when writes are completed,
-                    // either the StreamLastAndReadsCompleted or StreamResetAndReadsCompleted frames will be sent to
-                    // both notify the peer that writes are reads completed.
+                    // CompleteWriters with send the StreamLastAndReadsCompleted or StreamResetAndReadsCompleted frame
+                    // to notify the peer that both writes AND reads completed.
                     _completeReadsOnWriteCompletion = true;
                 }
                 else if (errorCode is not null || IsRemote)
@@ -149,12 +160,16 @@ internal class SlicStream : IMultiplexedStream
 
         async Task PerformCompleteReadsAsync(ulong? errorCode)
         {
+            Debug.Assert(IsRemote || errorCode is not null);
             try
             {
                 if (IsRemote)
                 {
-                    // If it's a remote stream, we complete reads before sending the reads completed or stop sending
-                    // frame. This ensures that the stream max count is decreased before the peer receives the frame.
+                    // If it's a remote stream, we complete writes before sending the StreamReadsCompleted or
+                    // StreamStopSending frame to ensure _connection._bidirectionalStreamCount or
+                    // _connection._unidirectionalStreamCount is decreased before the peer receives the frame. This is
+                    // necessary to prevent a race condition where the peer could release its connection's stream
+                    // semaphore before this connection's stream count is actually decreased.
                     TrySetReadsCompleted();
                 }
 
@@ -167,19 +182,21 @@ internal class SlicStream : IMultiplexedStream
                 }
                 else if (IsRemote)
                 {
-                    // The stream reads completed frame is only sent for remote streams.
+                    // The stream reads completed frame is only sent for remote streams to notify the local stream that
+                    // the buffered data on the SlicPipeReader was consumed. Once the peer receives this notification,
+                    // it can release the stream semaphore (if writes are also completed).
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamReadsCompleted,
                         encode: null).ConfigureAwait(false);
                 }
                 // When completing reads for a local stream, there's no need to notify the peer. The peer already
-                // completed writes after sending the last stream frame.
+                // completed writes after sending the StreamLast or StreamReset frame.
 
                 if (!IsRemote)
                 {
-                    // We can now complete reads to permit a new stream to be started. The peer will receive the stop
-                    // sending or reads completed frame before the new stream sends a stream frame.
+                    // We can now complete reads to permit a new stream to be started. The peer will receive the
+                    // StreamStopSending or StreamReadsCompleted frame before the new stream sends a Stream frame.
                     TrySetReadsCompleted();
                 }
             }
@@ -195,10 +212,18 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    /// <summary>This method completes the write-side of the stream. It's only called by SlicPipeWriter methods and
+    /// never called called concurrently.</summary>
+    /// <param name="errorCode">The error code. It's null if the writer was completed without an exception, non-null
+    /// otherwise.</param>
     internal void CompleteWrites(ulong? errorCode = null)
     {
         bool performCompleteWrites = false;
         bool readsCompleted = false;
+
+        // Lock the mutex to ensure that _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
+        // atomically. This is required by the CompleteReads() implementation which assigns
+        // _completeReadsOnWriteCompletion to true only if _writesCompletionPending is false.
         lock (_mutex)
         {
             if (IsStarted && !WritesCompleted && !_writesCompletionPending)
@@ -224,8 +249,11 @@ internal class SlicStream : IMultiplexedStream
             {
                 if (IsRemote)
                 {
-                    // If it's a remote stream, we complete writes before sending the stream last frame or reset frame
-                    // to ensure the stream max count is decreased before the peer receives the frame.
+                    // If it's a remote stream, we complete writes before sending the StreamLast or StreamReset frame to
+                    // ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount is
+                    // decreased before the peer receives the frame. This is necessary to prevent a race condition where
+                    // the peer could release its connection's stream semaphore before this connection's stream count is
+                    // actually decreased.
                     TrySetWritesCompleted();
                 }
 
@@ -239,8 +267,9 @@ internal class SlicStream : IMultiplexedStream
                         readsCompleted: readsCompleted,
                         default).ConfigureAwait(false);
 
-                    // If the stream is a local stream, writes are not completed until the stream reads completed frame
-                    // or stop sending frame is received from the peer.
+                    // If the stream is a local stream, writes are not completed until the stream StreamReadsCompleted
+                    // StreamStopSending frame is received from the peer. This ensures that the connection's stream
+                    // semaphore is released only once the peer consumed the buffered data.
                 }
                 else
                 {
@@ -251,8 +280,9 @@ internal class SlicStream : IMultiplexedStream
 
                     if (!IsRemote)
                     {
-                        // We can now complete writes to permit a new stream to be started. The peer will receive the
-                        // reset frame before the new stream sends a stream frame.
+                        // We can now complete writes to permit a new stream to be started. Since the sending of frames
+                        // is serialized over the connection, the peer will receive this StreamReset frame before the
+                        // new stream sends StreamFrame frame.
                         TrySetWritesCompleted();
                     }
                 }
@@ -399,7 +429,8 @@ internal class SlicStream : IMultiplexedStream
         {
             TrySetWritesCompleted();
         }
-        // Writes will be completed when the peer's sends the stop sending or reads completed frame.
+        // For local local streams, writes will be completed only once the peer's sends the StreamStopSending or
+        // StreamReadsCompleted frame (indicating that its buffered data was consumed).
 
         _writesClosedTcs.TrySetResult();
     }
@@ -441,7 +472,8 @@ internal class SlicStream : IMultiplexedStream
             if ((state.HasFlag(State.ReadsCompleted) || state.HasFlag(State.WritesCompleted)) &&
                 newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
             {
-                // The stream reads and writes are completed, it's time to release the stream.
+                // The stream reads and writes are completed, it's time to release the stream to either allow creating
+                // or accepting a new stream.
                 if (IsStarted)
                 {
                     _connection.ReleaseStream(this);
