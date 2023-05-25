@@ -538,6 +538,54 @@ public abstract class MultiplexedConnectionConformanceTests
         }
     }
 
+    [Test]
+    public async Task Max_bidirectional_streams([Values] bool closeRemoteOutputWithError)
+    {
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+            options => options.MaxBidirectionalStreams = 1);
+
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        using var streams = await sut.CreateAndAcceptStreamAsync(bidirectional: true);
+        var newStreamsTask = sut.CreateAndAcceptStreamAsync(bidirectional: true);
+
+        // Act/Assert
+
+        // Ensure that a new stream can't be created yet.
+        Assert.That(
+            async () => await newStreamsTask.WaitAsync(TimeSpan.FromMilliseconds(100)),
+            Throws.InstanceOf<TimeoutException>());
+
+        // Close the local output and consume the data on the remote input.
+        streams.Local.Output.Complete();
+        ReadResult readResult = await streams.Remote.Input.ReadAsync();
+        streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+
+        Assert.That(
+            async () => await newStreamsTask.WaitAsync(TimeSpan.FromMilliseconds(100)),
+            Throws.InstanceOf<TimeoutException>());
+
+        if (closeRemoteOutputWithError)
+        {
+            // Close the remote stream output with an error.
+            streams.Remote.Output.Complete(new Exception());
+        }
+        else
+        {
+            // Close the remote output and consume the data on the local input.
+            streams.Remote.Output.Complete();
+
+            readResult = await streams.Local.Input.ReadAsync();
+            streams.Local.Input.AdvanceTo(readResult.Buffer.End);
+        }
+
+        // At this point, the new stream should be accepted even if the local stream input is not completed yet.
+        using var _ = await newStreamsTask;
+    }
+
     /// <summary>Verifies that connection cannot exceed the bidirectional stream max count.</summary>
     [Test]
     public async Task Max_bidirectional_stream_stress_test()
@@ -548,7 +596,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         var serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = streamMaxCount);
+            options => options.MaxBidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -637,7 +685,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         var serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxUnidirectionalStreams = streamMaxCount);
+            options => options.MaxUnidirectionalStreams = streamMaxCount);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
