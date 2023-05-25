@@ -156,21 +156,24 @@ where
     }
 }
 
-// Converts a string to PascalCase using and preserves the original case of any two letter
-// acronyms.
+/// Converts a string to PascalCase using and preserves the original case of any two letter uppercase
+/// acronyms.
+///
 /// The behavior of `convert_case::Casing::to_case` is to convert all letter acronyms to the form
 /// where the first letter is uppercase and the rest are lowercase.
 ///
 /// Two letter acronym examples:
-///   "IP" -> "IP"
-///   "POBox" -> "POBox"
+///   "IP" -> "IP"       // changed
+///   "POBox" -> "POBox" // changed
+///   "Ip" -> "Ip"       // unchanged
+///   "PoBox" -> "PoBox" // unchanged
 fn cs_pascal_case(original: &str) -> String {
     // First convert the string to PascalCase and collect the characters.
     let converted = convert_case::Casing::to_case(&original, Case::Pascal);
     let mut characters = converted.chars().collect::<Vec<_>>();
 
     // Replace underscores with nothing and collect the chars.
-    // This size of this string should be the same as the converted string as
+    // The size of this string should be the same as the converted string as
     // PascalCase strings do not have underscores.
     let original_chars = original.chars().filter(|c| *c != '_').collect::<Vec<_>>();
     assert_eq!(original_chars.len(), converted.len());
