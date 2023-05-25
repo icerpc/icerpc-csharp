@@ -381,11 +381,8 @@ internal class SlicConnection : IMultiplexedConnection
 
             // The semaphore can't be disposed until the close task completes.
             using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
-            await WriteFrameAsync(
-                FrameType.Close,
-                streamId: null,
-                new CloseBody((ulong)closeError).Encode,
-                cancellationToken).ConfigureAwait(false);
+            WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
+            await _duplexConnectionWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             if (!IsServer)
             {
@@ -635,11 +632,8 @@ internal class SlicConnection : IMultiplexedConnection
         try
         {
             using SemaphoreLock _ = await AcquireWriteLockAsync(writeCts.Token).ConfigureAwait(false);
-            await WriteFrameAsync(
-                frameType,
-                streamId: null,
-                encode,
-                writeCts.Token).ConfigureAwait(false);
+            WriteFrame(frameType, streamId: null, encode);
+            await _duplexConnectionWriter.FlushAsync(writeCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -653,7 +647,8 @@ internal class SlicConnection : IMultiplexedConnection
     internal async ValueTask SendStreamFrameAsync(
         SlicStream stream,
         FrameType frameType,
-        EncodeAction? encode)
+        EncodeAction? encode,
+        bool sendReadsCompletedFrame)
     {
         Debug.Assert(frameType >= FrameType.StreamReset);
         try
@@ -664,11 +659,14 @@ internal class SlicConnection : IMultiplexedConnection
                 StartStream(stream);
             }
 
-            await WriteFrameAsync(
-                frameType,
-                stream.Id,
-                encode,
-                _closedCancellationToken).ConfigureAwait(false);
+            WriteFrame(frameType, stream.Id, encode);
+
+            if (sendReadsCompletedFrame)
+            {
+                WriteFrame(FrameType.StreamReadsCompleted, stream.Id, encode: null);
+            }
+
+            await _duplexConnectionWriter.FlushAsync(_closedCancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -682,7 +680,7 @@ internal class SlicConnection : IMultiplexedConnection
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
-        bool readsCompleted,
+        bool sendReadsCompletedFrame,
         CancellationToken cancellationToken)
     {
         Debug.Assert(!source1.IsEmpty || endStream);
@@ -769,6 +767,12 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     _duplexConnectionWriter.Write(sendSource2);
                 }
+
+                if (sendReadsCompletedFrame)
+                {
+                    WriteFrame(FrameType.StreamReadsCompleted, stream.Id, encode: null);
+                }
+
                 await _duplexConnectionWriter.FlushAsync(writeCts.Token).ConfigureAwait(false);
             }
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
@@ -788,7 +792,7 @@ internal class SlicConnection : IMultiplexedConnection
             var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
             encoder.EncodeFrameType(
                 !lastStreamFrame ? FrameType.Stream :
-                readsCompleted ? FrameType.StreamLastAndReadsCompleted : FrameType.StreamLast);
+                FrameType.StreamLast);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeVarUInt62(streamId);
@@ -1039,7 +1043,6 @@ internal class SlicConnection : IMultiplexedConnection
             }
             case FrameType.Stream:
             case FrameType.StreamLast:
-            case FrameType.StreamLastAndReadsCompleted:
             {
                 return ReadStreamDataFrameAsync(type, size, streamId, cancellationToken);
             }
@@ -1053,7 +1056,6 @@ internal class SlicConnection : IMultiplexedConnection
                     cancellationToken);
             }
             case FrameType.StreamReset:
-            case FrameType.StreamResetAndReadsCompleted:
             {
                 return ReadStreamFrameAsync(
                     size,
@@ -1061,10 +1063,6 @@ internal class SlicConnection : IMultiplexedConnection
                     (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
                     (stream, frame) =>
                     {
-                        if (type == FrameType.StreamResetAndReadsCompleted)
-                        {
-                            stream.ReceivedReadsCompletedFrame();
-                        }
                         stream.ReceivedResetFrame(frame);
                     },
                     cancellationToken);
@@ -1352,7 +1350,7 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidDataException("Received stream frame without stream ID.");
         }
 
-        bool endStream = type == FrameType.StreamLast || type == FrameType.StreamLastAndReadsCompleted;
+        bool endStream = type == FrameType.StreamLast;
         bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
         bool isBidirectional = streamId % 4 < 2;
 
@@ -1366,11 +1364,6 @@ internal class SlicConnection : IMultiplexedConnection
             throw new InvalidDataException(
                 "Received invalid Slic stream frame, received 0 bytes without end of stream.");
         }
-        else if (type == FrameType.StreamLastAndReadsCompleted && isRemote)
-        {
-            throw new InvalidDataException(
-                "Received invalid Slic stream last and reads completed frame on remote stream.");
-        }
 
         int readSize = 0;
         if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
@@ -1380,11 +1373,6 @@ internal class SlicConnection : IMultiplexedConnection
                 size,
                 endStream,
                 cancellationToken).ConfigureAwait(false);
-
-            if (type == FrameType.StreamLastAndReadsCompleted)
-            {
-                stream.ReceivedReadsCompletedFrame();
-            }
         }
         else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
         {
@@ -1416,9 +1404,8 @@ internal class SlicConnection : IMultiplexedConnection
                 Interlocked.Increment(ref _unidirectionalStreamCount);
             }
 
-            // Accept the new remote stream. The stream is queued on the channel reader. The caller of
-            // AcceptStreamAsync is responsible for disposing the stream
-            // TODO: Cache SlicStream
+            // Accept the new remote stream. The stream is queued on the channel reader. The caller of AcceptStreamAsync
+            // is responsible for disposing the stream TODO: Cache SlicStream
             stream = new SlicStream(this, isBidirectional, remote: true);
 
             try
@@ -1521,11 +1508,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private ValueTask WriteFrameAsync(
-        FrameType frameType,
-        ulong? streamId,
-        EncodeAction? encode,
-        CancellationToken cancellationToken)
+    private void WriteFrame(FrameType frameType, ulong? streamId, EncodeAction? encode)
     {
         var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
         encoder.EncodeFrameType(frameType);
@@ -1538,7 +1521,5 @@ internal class SlicConnection : IMultiplexedConnection
         }
         encode?.Invoke(ref encoder);
         SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-
-        return _duplexConnectionWriter.FlushAsync(cancellationToken);
     }
 }

@@ -136,9 +136,9 @@ internal class SlicStream : IMultiplexedStream
                 if (errorCode is null && IsBidirectional && !WritesCompleted && !_writesCompletionPending && IsRemote)
                 {
                     // As an optimization, if reads are completed once the buffered data is consumed but before writes
-                    // are closed, we don't send the StreamReadsCompleted frame. Instead, when writes are completed,
-                    // CompleteWriters with send the StreamLastAndReadsCompleted or StreamResetAndReadsCompleted frame
-                    // to notify the peer that both writes AND reads completed.
+                    // are closed, we don't send the StreamReadsCompleted frame just yet. Instead, when writes are
+                    // completed, CompleteWrites will bundle the sending of the StreamReadsCompleted with the sending of
+                    // the StreamLast or StreamReset frame.
                     _completeReadsOnWriteCompletion = true;
                 }
                 else if (errorCode is not null || IsRemote)
@@ -178,7 +178,8 @@ internal class SlicStream : IMultiplexedStream
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamStopSending,
-                        new StreamStopSendingBody(errorCode.Value).Encode).ConfigureAwait(false);
+                        new StreamStopSendingBody(errorCode.Value).Encode,
+                        sendReadsCompletedFrame: false).ConfigureAwait(false);
                 }
                 else if (IsRemote)
                 {
@@ -188,7 +189,8 @@ internal class SlicStream : IMultiplexedStream
                     await _connection.SendStreamFrameAsync(
                         stream: this,
                         FrameType.StreamReadsCompleted,
-                        encode: null).ConfigureAwait(false);
+                        encode: null,
+                        sendReadsCompletedFrame: false).ConfigureAwait(false);
                 }
                 // When completing reads for a local stream, there's no need to notify the peer. The peer already
                 // completed writes after sending the StreamLast or StreamReset frame.
@@ -219,7 +221,7 @@ internal class SlicStream : IMultiplexedStream
     internal void CompleteWrites(ulong? errorCode = null)
     {
         bool performCompleteWrites = false;
-        bool readsCompleted = false;
+        bool sendReadsCompletedFrame = false;
 
         // Lock the mutex to ensure that _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
         // atomically. This is required by the CompleteReads() implementation which assigns
@@ -228,7 +230,7 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsStarted && !WritesCompleted && !_writesCompletionPending)
             {
-                readsCompleted = _completeReadsOnWriteCompletion;
+                sendReadsCompletedFrame = _completeReadsOnWriteCompletion;
                 _writesCompletionPending = true;
                 performCompleteWrites = true;
             }
@@ -264,7 +266,7 @@ internal class SlicStream : IMultiplexedStream
                         ReadOnlySequence<byte>.Empty,
                         ReadOnlySequence<byte>.Empty,
                         endStream: true,
-                        readsCompleted: readsCompleted,
+                        sendReadsCompletedFrame,
                         default).ConfigureAwait(false);
 
                     // If the stream is a local stream, writes are not completed until the stream StreamReadsCompleted
@@ -275,8 +277,9 @@ internal class SlicStream : IMultiplexedStream
                 {
                     await _connection.SendStreamFrameAsync(
                         stream: this,
-                        readsCompleted ? FrameType.StreamResetAndReadsCompleted : FrameType.StreamReset,
-                        new StreamResetBody(applicationErrorCode: 0).Encode).ConfigureAwait(false);
+                        FrameType.StreamReset,
+                        new StreamResetBody(applicationErrorCode: 0).Encode,
+                        sendReadsCompletedFrame).ConfigureAwait(false);
 
                     if (!IsRemote)
                     {
@@ -391,7 +394,8 @@ internal class SlicStream : IMultiplexedStream
                 await _connection.SendStreamFrameAsync(
                     stream: this,
                     FrameType.StreamConsumed,
-                    new StreamConsumedBody((ulong)size).Encode).ConfigureAwait(false);
+                    new StreamConsumedBody((ulong)size).Encode,
+                    sendReadsCompletedFrame: false).ConfigureAwait(false);
             }
             catch (IceRpcException)
             {
@@ -411,16 +415,22 @@ internal class SlicStream : IMultiplexedStream
         bool endStream,
         CancellationToken cancellationToken)
     {
-        bool readsCompleted = false;
+        bool sendReadsCompletedFrame = false;
         if (endStream)
         {
             lock (_mutex)
             {
-                readsCompleted = _completeReadsOnWriteCompletion;
+                sendReadsCompletedFrame = _completeReadsOnWriteCompletion;
                 _writesCompletionPending = true;
             }
         }
-        return _connection.SendStreamFrameAsync(this, source1, source2, endStream, readsCompleted, cancellationToken);
+        return _connection.SendStreamFrameAsync(
+            this,
+            source1,
+            source2,
+            endStream,
+            sendReadsCompletedFrame,
+            cancellationToken);
     }
 
     internal void SentLastStreamFrame()
