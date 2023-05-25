@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <!-- Missing XML comment for publicly visible type or member. -->
-    <NoWarn>CS1591</NoWarn>
+    <!-- CS1591: Missing XML comment for publicly visible type or member.
+         CA2252: Opt in to preview features before using them. -->
+    <NoWarn>CS1591;CA2252</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

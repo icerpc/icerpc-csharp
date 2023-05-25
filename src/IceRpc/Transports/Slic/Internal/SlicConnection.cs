@@ -1056,10 +1056,7 @@ internal class SlicConnection : IMultiplexedConnection
                     size,
                     streamId,
                     (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
-                    (stream, frame) =>
-                    {
-                        stream.ReceivedResetFrame(frame);
-                    },
+                    (stream, frame) => stream.ReceivedResetFrame(frame),
                     cancellationToken);
             }
             case FrameType.StreamStopSending:

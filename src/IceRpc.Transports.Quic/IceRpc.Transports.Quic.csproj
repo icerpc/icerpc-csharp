@@ -6,6 +6,8 @@
         <PackageTags>IceRPC;RPC</PackageTags>
         <!-- Properties for .NET QUIC -->
         <EnablePreviewFeatures>True</EnablePreviewFeatures>
+        <!-- CA2252: Opt in to preview features before using them. -->
+        <NoWarn>CA2252</NoWarn>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
