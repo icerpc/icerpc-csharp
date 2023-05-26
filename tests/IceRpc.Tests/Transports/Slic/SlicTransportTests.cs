@@ -460,7 +460,7 @@ public class SlicTransportTests
         await writer.FlushAsync(default);
 
         // Assert
-        Assert.That(frameType, Is.EqualTo(FrameType.Version));
+        Assert.That(frameType, Is.EqualTo(FrameType.Versions));
         Assert.That(versionBody.Versions, Is.EqualTo(new ulong[] { 1 }));
         Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>()); // The initialize frame is incomplete.
 

@@ -145,7 +145,7 @@ internal class SlicConnection : IMultiplexedConnection
                         // Unsupported version, try to negotiate another version by sending a Version frame with the
                         // Slic versions supported by this server.
                         await SendFrameAsync(
-                            FrameType.Version,
+                            FrameType.Versions,
                             new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
                             cancellationToken).ConfigureAwait(false);
 
@@ -274,7 +274,7 @@ internal class SlicConnection : IMultiplexedConnection
                         buffer,
                         (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder));
 
-                case FrameType.Version:
+                case FrameType.Versions:
                     // We currently only support V1
                     VersionBody versionBody = SliceEncoding.Slice2.DecodeBuffer(
                         buffer,
