@@ -7,6 +7,16 @@ internal static class SemaphoreSlimExtensions
     /// <summary>Acquires a semaphore lock. The acquisition waits to enter the semaphore and returns a lock that will
     /// release the semaphore when disposed.</summary>
     /// <param name="semaphore">The semaphore.</param>
+    /// <returns>The semaphore lock.</returns>
+    internal static SemaphoreLock Acquire(this SemaphoreSlim semaphore)
+    {
+        semaphore.Wait();
+        return new SemaphoreLock(semaphore);
+    }
+
+    /// <summary>Acquires a semaphore lock. The acquisition waits to enter the semaphore and returns a lock that will
+    /// release the semaphore when disposed.</summary>
+    /// <param name="semaphore">The semaphore.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The semaphore lock.</returns>
     internal static async ValueTask<SemaphoreLock> AcquireAsync(
