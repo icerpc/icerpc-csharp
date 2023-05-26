@@ -13,7 +13,7 @@ public interface IDispatchInformationFeature
     string Fragment { get; }
 
     /// <summary>Gets a value indicating whether this request is one-way or two-way.</summary>
-    /// <value><see langword="true" /> for one-way requests, <see langword="false" /> otherwise.</value>
+    /// <value><see langword="true" /> for one-way requests; otherwise, <see langword="false" />.</value>
     bool IsOneway { get; }
 
     /// <summary>Gets the name of the operation to call on the target service.</summary>

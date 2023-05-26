@@ -150,7 +150,7 @@ public class LocatorInterceptorTests
     // A mock location resolver that return cached and non cached server addresses depending on the refreshCache parameter
     private sealed class MockCachedLocationResolver : ILocationResolver
     {
-        /// <summary><see langword="true" /> if the last call asked to refresh the cache otherwise,
+        /// <summary><see langword="true" /> if the last call asked to refresh the cache; otherwise,
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
         private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));
@@ -168,7 +168,7 @@ public class LocatorInterceptorTests
     // A mock location resolver that always return non cached server addresses
     private sealed class MockNonCachedLocationResolver : ILocationResolver
     {
-        /// <summary><see langword="true" /> if the last call asked to refresh the cache otherwise,
+        /// <summary><see langword="true" /> if the last call asked to refresh the cache; otherwise,
         /// <see langword="false" />.</summary>
         public bool RefreshCache { get; set; }
         private readonly ServiceAddress _serviceAddress = new(new Uri("ice://localhost:10000/foo"));

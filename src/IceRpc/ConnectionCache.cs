@@ -562,10 +562,10 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <summary>Tries to get an existing connection matching one of the addresses of the server address feature.
     /// </summary>
     /// <param name="serverAddressFeature">The server address feature.</param>
-    /// <param name="connection">When this method returns <see langword="true" /> it contains an active connection,
-    /// otherwise, it is <see langword="null" />.</param>
-    /// <returns><see langword="true" /> when an active connection matching any of the addresses of the server
-    /// address feature is found, <see langword="false"/> otherwise.</returns>
+    /// <param name="connection">When this method returns <see langword="true" />, this argument contains an active
+    /// connection; otherwise, it is set to <see langword="null" />.</param>
+    /// <returns><see langword="true" /> when an active connection matching any of the addresses of the server address
+    /// feature is found; otherwise, <see langword="false"/>.</returns>
     private bool TryGetActiveConnection(
         IServerAddressFeature serverAddressFeature,
         [NotNullWhen(true)] out IProtocolConnection? connection)
