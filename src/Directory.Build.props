@@ -9,6 +9,10 @@
     <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Src.props" Condition="'$(IsSrcProject)' == 'true'" />
     <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Version.props" Condition="'$(IsTemplateProject)' == 'true'" />
     <Import Project="$(MSBuildThisFileDirectory)../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" Condition="'$(IsSrcProject)' == 'true'"/>
+    <PropertyGroup>
+        <!-- Include PDB in the built .nupkg -->
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    </PropertyGroup>
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.globalconfig" />
