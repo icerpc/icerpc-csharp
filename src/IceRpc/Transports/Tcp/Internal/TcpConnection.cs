@@ -196,11 +196,7 @@ internal abstract class TcpConnection : IDuplexConnection
                 }
                 else
                 {
-                    if (buffer.IsEmpty)
-                    {
-                        // done
-                    }
-                    else if (buffer.IsSingleSegment)
+                    if (buffer.IsSingleSegment)
                     {
                         _ = await Socket.SendAsync(buffer.First, SocketFlags.None, cancellationToken)
                             .ConfigureAwait(false);
@@ -250,8 +246,8 @@ internal abstract class TcpConnection : IDuplexConnection
     private protected TcpConnection(IMemoryOwner<byte>? memoryOwner)
     {
         _writeBufferOwner = memoryOwner;
-        // When coalescing leading buffers in WriteAsync, we don't want to copy into a buffer greater than the standard
-        // segment size in the memory pool (by default 4K) or greater than MaxSslDataSize (16K).
+        // When coalescing leading buffers in WriteAsync (SSL only), the upper size limit is the lesser of the size of
+        // the buffer we rented from the memory pool (typically 4K) and MaxSslDataSize (16K).
         _maxSslBufferSize = Math.Min(memoryOwner?.Memory.Length ?? 0, MaxSslDataSize);
     }
 
