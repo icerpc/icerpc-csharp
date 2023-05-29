@@ -416,7 +416,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         pendingInvocationNode = _pendingInvocations.AddLast((stream, invocationCts));
                     }
 
-                    // We want to queue this cleanup task and keep running in this thread.
+                    // We want to queue this cleanup task and keep running in this thread to improve latency.
                     _ = Task.Run(() => ReleaseStreamCountOnReadsAndWritesClosedAsync(stream), CancellationToken.None);
 
                     EncodeHeader(stream.Output);
@@ -945,7 +945,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                 }
 
-                // We want to queue this cleanup task and keep running in this thread.
+                // We want to queue this cleanup task and keep running in this thread to improve latency.
                 _ = Task.Run(() => ReleaseStreamCountOnReadsAndWritesClosedAsync(stream), CancellationToken.None);
 
                 // Start a task to read the stream and dispatch the request. We pass CancellationToken.None to Task.Run
