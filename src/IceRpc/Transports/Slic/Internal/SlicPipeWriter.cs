@@ -39,7 +39,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             _isCompleted = true;
 
-            if (!_stream.WritesCompleted && exception is null && _pipe.Writer.UnflushedBytes > 0)
+            if (exception is null && _pipe.Writer.UnflushedBytes > 0)
             {
                 throw new InvalidOperationException(
                     $"Completing a {nameof(SlicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");

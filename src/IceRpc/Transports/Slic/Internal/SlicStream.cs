@@ -56,7 +56,7 @@ internal class SlicStream : IMultiplexedStream
         {
             lock (_mutex)
             {
-                return _state.HasFlag(State.ReadsCompleted) || _readsCompletionPending;
+                return _state.HasFlag(State.ReadsCompleted);
             }
         }
     }
@@ -67,7 +67,7 @@ internal class SlicStream : IMultiplexedStream
         {
             lock (_mutex)
             {
-                return _state.HasFlag(State.WritesCompleted) || _writesCompletionPending;
+                return _state.HasFlag(State.WritesCompleted);
             }
         }
     }
@@ -430,14 +430,9 @@ internal class SlicStream : IMultiplexedStream
         CancellationToken cancellationToken)
     {
         bool sendReadsCompletedFrame = false;
-        lock (_mutex)
+        if (endStream)
         {
-            if (_state.HasFlag(State.WritesCompleted) || _writesCompletionPending)
-            {
-                return new(new FlushResult(isCompleted: true, isCanceled: false));
-            }
-
-            if (endStream)
+            lock (_mutex)
             {
                 sendReadsCompletedFrame = _completeReadsOnWriteCompletion;
                 _writesCompletionPending = true;
@@ -469,34 +464,30 @@ internal class SlicStream : IMultiplexedStream
 
     internal bool TrySetReadsCompleted()
     {
+        bool completed;
         lock (_mutex)
         {
-            if (TrySetState(State.ReadsCompleted))
-            {
-                _readsClosedTcs.TrySetResult();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            completed = TrySetState(State.ReadsCompleted);
         }
+        if (completed)
+        {
+            _readsClosedTcs.TrySetResult();
+        }
+        return completed;
     }
 
     private bool TrySetWritesCompleted()
     {
+        bool completed;
         lock (_mutex)
         {
-            if (TrySetState(State.WritesCompleted))
-            {
-                _writesClosedTcs.TrySetResult();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            completed = TrySetState(State.WritesCompleted);
         }
+        if (completed)
+        {
+            _writesClosedTcs.TrySetResult();
+        }
+        return completed;
     }
 
     private bool TrySetState(State state)

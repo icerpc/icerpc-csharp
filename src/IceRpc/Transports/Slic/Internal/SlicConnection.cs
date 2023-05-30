@@ -1485,6 +1485,11 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void StartStream(SlicStream stream)
     {
+        if (stream.WritesCompleted)
+        {
+            throw new InvalidOperationException("Cannot start a stream whose writes are already completed");
+        }
+
         // The _nextBidirectionalId and _nextUnidirectionalId field can be safely updated below, they are protected by
         // the write semaphore.
 
