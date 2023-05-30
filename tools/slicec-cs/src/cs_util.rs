@@ -153,12 +153,9 @@ where
     }
 }
 
-/// Converts a string to pascal case preserving the original case of any two letter uppercase
-/// acronyms.
-///
-/// We convert the string to camel case using `convert_case::Casing::to_case`, then we compare the
-/// new string with the original string and fix any two letter acronyms that were converted to
-/// lowercase.
+/// Convert the string using `convert_case::Casing::to_case`, then compare the
+/// new string with the original string and update any two letter acronyms to be uppercase where
+/// appropriate for the selected case.
 ///
 /// Two letter acronym examples:
 ///   "IP" -> "IP"       // changed
