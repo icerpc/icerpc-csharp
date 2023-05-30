@@ -169,9 +169,8 @@ fn cs_case(original: &str, case: Case) -> String {
     // First convert the string to PascalCase and collect the characters.
     let converted = convert_case::Casing::to_case(&original, case);
 
-    match case {
-        Case::Pascal | Case::Camel => {}
-        _ => return converted,
+    if !matches!(case, Case::Pascal | Case::Camel) {
+        return converted;
     }
 
     let mut characters = converted.chars().collect::<Vec<_>>();
