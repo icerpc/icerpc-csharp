@@ -149,27 +149,31 @@ where
     String: PartialEq<T>,
 {
     fn to_cs_case(&self, case: Case) -> String {
-        match case {
-            Case::Pascal => cs_pascal_case(self.as_ref()),
-            _ => convert_case::Casing::to_case(self, case),
-        }
+        cs_case(self.as_ref(), case)
     }
 }
 
-/// Converts a string to PascalCase using and preserves the original case of any two letter uppercase
+/// Converts a string to pascal case preserving the original case of any two letter uppercase
 /// acronyms.
 ///
-/// The behavior of `convert_case::Casing::to_case` is to convert all letter acronyms to the form
-/// where the first letter is uppercase and the rest are lowercase.
+/// We convert the string to camel case using `convert_case::Casing::to_case`, then we compare the
+/// new string with the original string and fix any two letter acronyms that were converted to
+/// lowercase.
 ///
 /// Two letter acronym examples:
 ///   "IP" -> "IP"       // changed
 ///   "POBox" -> "POBox" // changed
 ///   "Ip" -> "Ip"       // unchanged
 ///   "PoBox" -> "PoBox" // unchanged
-fn cs_pascal_case(original: &str) -> String {
+fn cs_case(original: &str, case: Case) -> String {
     // First convert the string to PascalCase and collect the characters.
-    let converted = convert_case::Casing::to_case(&original, Case::Pascal);
+    let converted = convert_case::Casing::to_case(&original, case);
+
+    match case {
+        Case::Pascal | Case::Camel => {}
+        _ => return converted,
+    }
+
     let mut characters = converted.chars().collect::<Vec<_>>();
 
     // Replace underscores with nothing and collect the chars.
@@ -190,6 +194,20 @@ fn cs_pascal_case(original: &str) -> String {
         } else {
             // We have a lowercase letter, reset the uppercase word length.
             uppercase_word_len = 0;
+        }
+
+        // If we're converting the string to camel case then we need to skip the first
+        // two letter acronym (if it exists).
+        //
+        // If the strings starts with a two letter acronym then the index will always be less
+        // than the uppercase word length.
+        //
+        // AB - B at index=1, uppercase_word_len=2
+        // ABCd - C at index 2, uppercase_word_len=3
+        // aBC - C at index 2, uppercase_word_len=2
+        // abCD - D at index 3, uppercase_word_len=1
+        if case == Case::Camel && index < uppercase_word_len {
+            continue;
         }
 
         let next_char = iter.peek();
@@ -234,5 +252,17 @@ mod test {
     #[test_case("AbCD", "AbCD"; "two_letter_acronym_at_end")]
     fn cs_pascal_case(input: &str, expected: &str) {
         assert_eq!(input.to_cs_case(Case::Pascal), expected);
+    }
+
+    #[test_case("IP", "ip")]
+    #[test_case("aIP", "aIP")]
+    #[test_case("ABCDEf", "abcdEf")]
+    #[test_case("POBox", "poBox")]
+    #[test_case("aPOBox", "aPOBox")]
+    #[test_case("abPOBox", "abPOBox")]
+    #[test_case("TCPPacket", "tcpPacket")]
+
+    fn cs_camel_case(input: &str, expected: &str) {
+        assert_eq!(input.to_cs_case(Case::Camel), expected);
     }
 }
