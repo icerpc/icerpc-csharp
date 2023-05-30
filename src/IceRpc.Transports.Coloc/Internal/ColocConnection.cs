@@ -13,6 +13,8 @@ namespace IceRpc.Transports.Coloc.Internal;
 internal abstract class ColocConnection : IDuplexConnection
 {
     private protected PipeReader? _reader;
+    // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
+    // locking.
     private protected int _state;
 
     private readonly ServerAddress _serverAddress;
