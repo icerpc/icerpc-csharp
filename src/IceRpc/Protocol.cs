@@ -24,8 +24,8 @@ public class Protocol
 
     /// <summary>Gets a value indicating whether or not this protocol supports arbitrary application-defined fields in
     /// request and response headers.</summary>
-    /// <value><see langword="true" /> if the protocol supports arbitrary fields; <see langword="false" />
-    /// otherwise.</value>
+    /// <value><see langword="true" /> if the protocol supports arbitrary fields; otherwise, <see langword="false" />.
+    /// </value>
     public bool HasFields { get; }
 
     /// <summary>Gets the name of this protocol.</summary>
@@ -48,7 +48,7 @@ public class Protocol
     /// <summary>Gets a value indicating whether or not the implementation of the protocol connection supports payload
     /// writer interceptors.</summary>
     /// <value><see langword="true" /> if the implementation of the protocol connection supports payload writer
-    /// interceptors; <see langword="false" /> otherwise.</value>
+    /// interceptors; otherwise, <see langword="false" />.</value>
     internal bool SupportsPayloadWriterInterceptors { get; }
 
     /// <summary>Parses a string into a protocol.</summary>

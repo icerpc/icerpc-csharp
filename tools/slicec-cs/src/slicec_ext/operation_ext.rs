@@ -7,7 +7,7 @@ use slicec::grammar::{Attributable, Contained, Operation};
 use slicec::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
-    /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.
+    /// Returns true if the operation has the `cs::encodedResult` attribute; otherwise, false.
     fn has_encoded_result(&self) -> bool;
 
     /// The name of the generated encoded result type.

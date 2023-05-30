@@ -217,8 +217,8 @@ internal class SlicStream : IMultiplexedStream
 
     /// <summary>This method completes the write-side of the stream. It's only called by SlicPipeWriter methods and
     /// never called concurrently.</summary>
-    /// <param name="errorCode">The error code. It's null if the writer was completed without an exception, non-null
-    /// otherwise.</param>
+    /// <param name="errorCode">The error code. It's null if the writer was completed without an exception; otherwise,
+    /// it's non-null.</param>
     internal void CompleteWrites(ulong? errorCode = null)
     {
         bool performCompleteWrites = false;
