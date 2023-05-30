@@ -88,8 +88,8 @@ public readonly record struct ServerAddress
     }
 
     /// <summary>Gets the URI used to create this server address.</summary>
-    /// <value>The <see cref="Uri" /> of this server address if it was constructed from an URI; <see langword="null"/>
-    /// otherwise.</value>
+    /// <value>The <see cref="Uri" /> of this server address if it was constructed from an URI; otherwise,
+    /// <see langword="null"/>.</value>
     public Uri? OriginalUri { get; private init; }
 
     private readonly string _host = "::0";
@@ -173,7 +173,7 @@ public readonly record struct ServerAddress
     /// <summary>Checks if this server address is equal to another server address.</summary>
     /// <param name="other">The other server address.</param>
     /// <returns><see langword="true" /> when the two server addresses have the same properties, including the same
-    /// parameters; <see langword="false" /> otherwise.</returns>
+    /// parameters; otherwise, <see langword="false" />.</returns>
     public bool Equals(ServerAddress other) =>
         Protocol == other.Protocol &&
         Host == other.Host &&

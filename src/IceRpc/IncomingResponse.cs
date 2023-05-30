@@ -11,7 +11,7 @@ public sealed class IncomingResponse : IncomingFrame
 {
     /// <summary>Gets the error message of this response.</summary>
     /// <value>The error message of this response if <see cref="StatusCode" /> is different from <see
-    /// cref="StatusCode.Success" />; <see langword="null"/> otherwise.</value>
+    /// cref="StatusCode.Success" />; otherwise, <see langword="null"/>.</value>
     public string? ErrorMessage { get; }
 
     /// <summary>Gets the fields of this incoming response.</summary>

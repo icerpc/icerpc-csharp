@@ -37,12 +37,12 @@ public class Protocol
     internal byte ByteValue { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports fragments in service addresses.</summary>
-    /// <value><see langword="true" /> if the protocol supports fragments; <see langword="false" /> otherwise.</value>
+    /// <value><see langword="true" /> if the protocol supports fragments; otherwise, <see langword="false" />.</value>
     internal bool HasFragment { get; }
 
     /// <summary>Gets a value indicating whether or not this protocol supports payload continuations.</summary>
-    /// <value><see langword="true" /> if the protocol supports payload continuations; <see langword="false" />
-    /// otherwise.</value>
+    /// <value><see langword="true" /> if the protocol supports payload continuations; otherwise,
+    /// <see langword="false" />.</value>
     internal bool HasPayloadContinuation { get; }
 
     /// <summary>Gets a value indicating whether or not the implementation of the protocol connection supports payload
@@ -61,8 +61,8 @@ public class Protocol
     /// <summary>Tries to parse a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>
     /// <param name="protocol">The protocol parsed from the name.</param>
-    /// <returns><see langword="true" /> when <paramref name="name" /> was successfully parsed into a protocol; <see
-    /// langword="false" /> otherwise.</returns>
+    /// <returns><see langword="true" /> when <paramref name="name" /> was successfully parsed into a protocol;
+    /// otherwise, <see langword="false" />.</returns>
     public static bool TryParse(string name, [NotNullWhen(true)] out Protocol? protocol)
     {
         name = name.ToLowerInvariant();

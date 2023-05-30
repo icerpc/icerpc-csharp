@@ -19,7 +19,7 @@ public sealed class OutgoingRequest : OutgoingFrame, IDisposable
         ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty;
 
     /// <summary>Gets a value indicating whether this request is one-way or two-way.</summary>
-    /// <value><see langword="true" /> for one-way requests, <see langword="false" /> otherwise. The default is
+    /// <value><see langword="true" /> for one-way requests; otherwise, <see langword="false" />. The default is
     /// <see langword="false" />.</value>
     public bool IsOneway { get; init; }
 
