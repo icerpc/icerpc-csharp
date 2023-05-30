@@ -50,15 +50,33 @@ internal class SlicStream : IMultiplexedStream
 
     public Task WritesClosed => _writesClosedTcs.Task;
 
-    internal bool ReadsCompleted => _state.HasFlag(State.ReadsCompleted);
+    internal bool ReadsCompleted
+    {
+        get
+        {
+            lock (_mutex)
+            {
+                return _state.HasFlag(State.ReadsCompleted) || _readsCompletionPending;
+            }
+        }
+    }
 
-    internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
+    internal bool WritesCompleted
+    {
+        get
+        {
+            lock (_mutex)
+            {
+                return _state.HasFlag(State.WritesCompleted) || _writesCompletionPending;
+            }
+        }
+    }
 
+    private bool _completeReadsOnWriteCompletion;
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
-    // This mutex is required to ensure _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
-    // atomically.
+    // This mutex protects _state, _readsCompletionPending, _writesCompletionPending, _completeReadsOnWriteCompletion.
     private readonly object _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -66,7 +84,6 @@ internal class SlicStream : IMultiplexedStream
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _writesCompletionPending;
-    private bool _completeReadsOnWriteCompletion;
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -126,14 +143,12 @@ internal class SlicStream : IMultiplexedStream
     {
         bool performCompleteReads = false;
 
-        // Lock the mutex to ensure that _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
-        // atomically. _completeReadsOnWriteCompletion is assigned to true only if !_writesCompletionPending (among
-        // other conditions).
         lock (_mutex)
         {
-            if (IsStarted && !ReadsCompleted && !_readsCompletionPending)
+            if (IsStarted && !_state.HasFlag(State.ReadsCompleted) && !_readsCompletionPending)
             {
-                if (errorCode is null && IsBidirectional && !WritesCompleted && !_writesCompletionPending && IsRemote)
+                bool writesCompleted = _state.HasFlag(State.WritesCompleted) || _writesCompletionPending;
+                if (errorCode is null && IsBidirectional && !writesCompleted && IsRemote)
                 {
                     // As an optimization, if reads are completed once the buffered data is consumed but before writes
                     // are closed, we don't send the StreamReadsCompleted frame just yet. Instead, when writes are
@@ -224,12 +239,9 @@ internal class SlicStream : IMultiplexedStream
         bool performCompleteWrites = false;
         bool sendReadsCompletedFrame = false;
 
-        // Lock the mutex to ensure that _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
-        // atomically. This is required by the CompleteReads() implementation which assigns
-        // _completeReadsOnWriteCompletion to true only if _writesCompletionPending is false.
         lock (_mutex)
         {
-            if (IsStarted && !WritesCompleted && !_writesCompletionPending)
+            if (IsStarted && !_state.HasFlag(State.WritesCompleted) && !_writesCompletionPending)
             {
                 sendReadsCompletedFrame = _completeReadsOnWriteCompletion;
                 _writesCompletionPending = true;
@@ -418,14 +430,20 @@ internal class SlicStream : IMultiplexedStream
         CancellationToken cancellationToken)
     {
         bool sendReadsCompletedFrame = false;
-        if (endStream)
+        lock (_mutex)
         {
-            lock (_mutex)
+            if (_state.HasFlag(State.WritesCompleted) || _writesCompletionPending)
+            {
+                return new(new FlushResult(isCompleted: true, isCanceled: false));
+            }
+
+            if (endStream)
             {
                 sendReadsCompletedFrame = _completeReadsOnWriteCompletion;
                 _writesCompletionPending = true;
             }
         }
+
         return _connection.SendStreamFrameAsync(
             this,
             source1,
@@ -451,29 +469,33 @@ internal class SlicStream : IMultiplexedStream
 
     internal bool TrySetReadsCompleted()
     {
-        if (TrySetState(State.ReadsCompleted))
+        lock (_mutex)
         {
-            _readsClosedTcs.TrySetResult();
-            _readsCompletionPending = false;
-            return true;
-        }
-        else
-        {
-            return false;
+            if (TrySetState(State.ReadsCompleted))
+            {
+                _readsClosedTcs.TrySetResult();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 
     private bool TrySetWritesCompleted()
     {
-        if (TrySetState(State.WritesCompleted))
+        lock (_mutex)
         {
-            _writesClosedTcs.TrySetResult();
-            _writesCompletionPending = false;
-            return true;
-        }
-        else
-        {
-            return false;
+            if (TrySetState(State.WritesCompleted))
+            {
+                _writesClosedTcs.TrySetResult();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 
@@ -481,8 +503,7 @@ internal class SlicStream : IMultiplexedStream
     {
         if (_state.TrySetFlag(state, out int newState))
         {
-            if ((state.HasFlag(State.ReadsCompleted) || state.HasFlag(State.WritesCompleted)) &&
-                newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
+            if (newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
             {
                 // The stream reads and writes are completed, it's time to release the stream to either allow creating
                 // or accepting a new stream.

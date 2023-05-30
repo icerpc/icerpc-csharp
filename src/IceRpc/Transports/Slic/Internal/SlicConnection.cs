@@ -651,6 +651,12 @@ internal class SlicConnection : IMultiplexedConnection
         bool sendReadsCompletedFrame)
     {
         Debug.Assert(frameType >= FrameType.StreamReset);
+
+        if (!stream.IsStarted)
+        {
+            throw new InvalidOperationException("Only Stream and StreamLast frames can start the stream.");
+        }
+
         try
         {
             using SemaphoreLock _ = await AcquireWriteLockAsync(_closedCancellationToken).ConfigureAwait(false);
@@ -1061,10 +1067,7 @@ internal class SlicConnection : IMultiplexedConnection
                     size,
                     streamId,
                     (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
-                    (stream, frame) =>
-                    {
-                        stream.ReceivedResetFrame(frame);
-                    },
+                    (stream, frame) => stream.ReceivedResetFrame(frame),
                     cancellationToken);
             }
             case FrameType.StreamStopSending:
@@ -1482,11 +1485,6 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void StartStream(SlicStream stream)
     {
-        if (stream.WritesCompleted)
-        {
-            throw new InvalidOperationException("Cannot start a stream whose writes are already completed");
-        }
-
         // The _nextBidirectionalId and _nextUnidirectionalId field can be safely updated below, they are protected by
         // the write semaphore.
 
