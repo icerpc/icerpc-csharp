@@ -3,8 +3,9 @@
 use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_attributes::match_cs_attribute;
+use crate::cs_util::CsCase;
 use crate::slicec_ext::*;
-use convert_case::{Case, Casing};
+use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 
@@ -71,7 +72,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         &format!(
             "{}{}Extensions",
             enum_def.cs_identifier(Case::Pascal),
-            cs_type.to_case(Case::Pascal),
+            cs_type.to_cs_case(Case::Pascal),
         ),
     );
 
@@ -225,7 +226,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let underlying_extensions_class = format!(
         "{}{}Extensions",
         enum_def.cs_identifier(Case::Pascal),
-        cs_type.to_case(Case::Pascal),
+        cs_type.to_cs_case(Case::Pascal),
     );
 
     // Enum decoding

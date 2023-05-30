@@ -27,6 +27,7 @@
     "Oneway",
     "parallelizable",
     "parameterless",
+    "peekable",
     "pingable",
     "QUIC",
     "reportgenerator",
