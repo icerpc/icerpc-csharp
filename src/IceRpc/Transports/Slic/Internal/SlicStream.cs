@@ -331,7 +331,7 @@ internal class SlicStream : IMultiplexedStream
 
         TrySetWritesCompleted();
 
-        // Write operations will return a completed flush result regardless of wether or not the peer aborted reads with
+        // Write operations will return a completed flush result regardless of whether or not the peer aborted reads with
         // the 0ul error code or completed reads.
         _outputPipeWriter?.CompleteWrites(exception: null);
     }
@@ -360,7 +360,7 @@ internal class SlicStream : IMultiplexedStream
 
         if (frame.ApplicationErrorCode == 0ul)
         {
-            // Write operations will return a completed flush result regardless of wether or not the peer aborted
+            // Write operations will return a completed flush result regardless of whether or not the peer aborted
             // reads with the 0ul error code or completed reads.
             _outputPipeWriter?.CompleteWrites(exception: null);
         }
@@ -437,7 +437,7 @@ internal class SlicStream : IMultiplexedStream
         {
             TrySetWritesCompleted();
         }
-        // For local local streams, writes will be completed only once the peer's sends the StreamStopSending or
+        // For local streams, writes will be completed only once the peer's sends the StreamStopSending or
         // StreamReadsCompleted frame (indicating that its buffered data was consumed).
 
         _writesClosedTcs.TrySetResult();
