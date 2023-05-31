@@ -18,7 +18,7 @@ public record class ConnectionOptions
     /// fails when this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. When the Ice idle check
     /// is disabled, the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport
     /// connection can wait forever to receive a byte.</summary>
-    /// <value><see langword="true"/> if Ice idle check is enabled; <see langword="false"/> otherwise. Defaults to <see
+    /// <value><see langword="true"/> if Ice idle check is enabled; otherwise, <see langword="false"/>. Defaults to <see
     /// langword="false"/> for compatibility with the default ACM configuration of Ice 3.7. The recommended setting is
     /// <see langword="true"/> when the peer is an Ice application with the HeartbeatAlways ACM configuration or when
     /// the peer is an IceRPC application.</value>

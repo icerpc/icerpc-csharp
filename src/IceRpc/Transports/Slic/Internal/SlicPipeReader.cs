@@ -20,6 +20,8 @@ internal class SlicPipeReader : PipeReader
     private ReadResult _readResult;
     private int _receiveCredit;
     private readonly int _resumeThreshold;
+    // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
+    // locking.
     private int _state;
     private readonly SlicStream _stream;
 

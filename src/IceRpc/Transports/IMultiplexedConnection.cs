@@ -74,8 +74,8 @@ public interface IMultiplexedConnection : IAsyncDisposable
 
     /// <summary>Creates a local stream. The creation will block if the maximum number of unidirectional or
     /// bidirectional streams prevents creating the new stream.</summary>
-    /// <param name="bidirectional"><see langword="true"/> to create a bidirectional stream, <see langword="false"/>
-    /// otherwise.</param>
+    /// <param name="bidirectional"><see langword="true"/> to create a bidirectional stream, otherwise,
+    /// <see langword="false"/>.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The task that completes on the local stream is created.</returns>
     /// <returns>A task that completes successfully with the local stream. This task can also complete with one of the

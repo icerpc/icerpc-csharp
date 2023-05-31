@@ -38,8 +38,8 @@ public sealed class ClientServerMultiplexedConnection : IAsyncDisposable
         Task.WhenAll(AcceptAsync(cancellationToken), Client.ConnectAsync(cancellationToken));
 
     /// <summary>Creates and accepts a stream with the client and server connections.</summary>
-    /// <param name="bidirectional"><see langword="true"/> to create a bidirectional stream, <see langword="false"/>
-    /// otherwise.</param>
+    /// <param name="bidirectional"><see langword="true"/> to create a bidirectional stream; otherwise,
+    /// <see langword="false"/>.</param>
     /// <param name="createWithServerConnection">Creates the stream with the server connection instead of the client
     /// connection.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

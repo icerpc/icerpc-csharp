@@ -54,19 +54,20 @@ internal class SlicStream : IMultiplexedStream
 
     internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
 
+    private bool _completeReadsOnWriteCompletion;
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
-    // This mutex is required to ensure _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
-    // atomically.
+    // This mutex protects _readsCompletionPending, _writesCompletionPending, _completeReadsOnWriteCompletion.
     private readonly object _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
     private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _readsCompletionPending;
+    // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
+    // locking.
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _writesCompletionPending;
-    private bool _completeReadsOnWriteCompletion;
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -126,9 +127,6 @@ internal class SlicStream : IMultiplexedStream
     {
         bool performCompleteReads = false;
 
-        // Lock the mutex to ensure that _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
-        // atomically. _completeReadsOnWriteCompletion is assigned to true only if !_writesCompletionPending (among
-        // other conditions).
         lock (_mutex)
         {
             if (IsStarted && !ReadsCompleted && !_readsCompletionPending)
@@ -211,16 +209,13 @@ internal class SlicStream : IMultiplexedStream
 
     /// <summary>This method completes the write-side of the stream. It's only called by SlicPipeWriter methods and
     /// never called concurrently.</summary>
-    /// <param name="errorCode">The error code. It's null if the writer was completed without an exception, non-null
-    /// otherwise.</param>
+    /// <param name="errorCode">The error code. It's null if the writer was completed without an exception; otherwise,
+    /// it's non-null.</param>
     internal void CompleteWrites(ulong? errorCode = null)
     {
         bool performCompleteWrites = false;
         bool sendReadsCompletedFrame = false;
 
-        // Lock the mutex to ensure that _writesCompletionPending and _completeReadsOnWriteCompletion are accessed
-        // atomically. This is required by the CompleteReads() implementation which assigns
-        // _completeReadsOnWriteCompletion to true only if _writesCompletionPending is false.
         lock (_mutex)
         {
             if (IsStarted && !WritesCompleted && !_writesCompletionPending)
@@ -433,7 +428,6 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetState(State.ReadsCompleted))
         {
             _readsClosedTcs.TrySetResult();
-            _readsCompletionPending = false;
             return true;
         }
         else
@@ -447,7 +441,6 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetState(State.WritesCompleted))
         {
             _writesClosedTcs.TrySetResult();
-            _writesCompletionPending = false;
             return true;
         }
         else
@@ -460,8 +453,7 @@ internal class SlicStream : IMultiplexedStream
     {
         if (_state.TrySetFlag(state, out int newState))
         {
-            if ((state.HasFlag(State.ReadsCompleted) || state.HasFlag(State.WritesCompleted)) &&
-                newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
+            if (newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
             {
                 // The stream reads and writes are completed, it's time to release the stream to either allow creating
                 // or accepting a new stream.

@@ -2,8 +2,8 @@
 
 use super::{scoped_identifier, InterfaceExt, MemberExt};
 use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_namespace, match_cs_readonly};
-use crate::cs_util::escape_keyword;
-use convert_case::{Case, Casing};
+use crate::cs_util::{escape_keyword, CsCase};
+use convert_case::Case;
 use slicec::grammar::*;
 
 pub trait EntityExt: Entity {
@@ -14,7 +14,7 @@ pub trait EntityExt: Entity {
 
         match identifier_attribute {
             Some(identifier) => identifier,
-            None => self.identifier().to_case(case),
+            None => self.identifier().to_cs_case(case),
         }
     }
 
@@ -127,7 +127,7 @@ pub trait EntityExt: Entity {
             .enumerate()
             .map(|(i, s)| match &attribute_list[i] {
                 Some(namespace) => namespace.to_owned(),
-                None => escape_keyword(&s.to_case(Case::Pascal)),
+                None => escape_keyword(&s.to_cs_case(Case::Pascal)),
             })
             .collect::<Vec<_>>()
             .join(".")

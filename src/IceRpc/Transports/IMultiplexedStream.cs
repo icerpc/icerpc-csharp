@@ -14,19 +14,18 @@ public interface IMultiplexedStream : IDuplexPipe
     ulong Id { get; }
 
     /// <summary>Gets a value indicating whether the stream is bidirectional.</summary>
-    /// <value><see langword="true" /> if the stream is a bidirectional stream; <see langword="false" />
-    /// otherwise.</value>
+    /// <value><see langword="true" /> if the stream is a bidirectional stream; otherwise, <see langword="false" />.
+    /// </value>
     bool IsBidirectional { get; }
 
     /// <summary>Gets a value indicating whether the stream is remote. A remote stream is a stream initiated by the peer
     /// and it's returned by <see
     /// cref="IMultiplexedConnection.AcceptStreamAsync(CancellationToken)" />.</summary>
-    /// <value><see langword="true" /> if the stream is a remote stream; <see langword="false" />
-    /// otherwise.</value>
+    /// <value><see langword="true" /> if the stream is a remote stream; otherwise, <see langword="false" />.</value>
     bool IsRemote { get; }
 
     /// <summary>Gets a value indicating whether the stream is started.</summary>
-    /// <value><see langword="true" /> if the stream is started; <see langword="false" /> otherwise.</value>
+    /// <value><see langword="true" /> if the stream is started; otherwise, <see langword="false" />.</value>
     /// <remarks>Remote streams are always started after construction. A local stream is started after the sending of
     /// the first STREAM frame.</remarks>
     bool IsStarted { get; }
