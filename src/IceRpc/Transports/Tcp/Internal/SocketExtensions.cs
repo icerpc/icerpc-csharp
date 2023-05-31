@@ -9,6 +9,8 @@ internal static class SocketExtensions
     /// <summary>Configures a socket.</summary>
     internal static void Configure(this Socket socket, TcpTransportOptions options)
     {
+        socket.NoDelay = options.NoDelay;
+
         if (options.ReceiveBufferSize is int receiveSize)
         {
             socket.ReceiveBufferSize = receiveSize;

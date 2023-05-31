@@ -308,7 +308,6 @@ internal class TcpClientConnection : TcpConnection
             }
 
             Socket.Configure(options);
-            Socket.NoDelay = true;
         }
         catch (SocketException exception)
         {
