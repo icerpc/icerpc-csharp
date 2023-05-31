@@ -62,8 +62,7 @@ internal static class PipeWriterExtensions
         var readCts = new CancellationTokenSource();
 #pragma warning restore CA2000
 
-        // See https://github.com/dotnet/runtime/issues/23346#issuecomment-325975594
-        writesClosed.GetAwaiter().UnsafeOnCompleted(readCts.Cancel);
+        _ = CancelReadOnWriteClosedAsync();
 
         using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
             cts => ((CancellationTokenSource)cts!).Cancel(),
@@ -92,6 +91,12 @@ internal static class PipeWriterExtensions
         while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
 
         return flushResult;
+
+        async Task CancelReadOnWriteClosedAsync()
+        {
+            await writesClosed.ConfigureAwait(false);
+            readCts.Cancel();
+        }
 
         async ValueTask<FlushResult> WriteReadResultAsync()
         {

@@ -1004,8 +1004,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
 
-            // See https://github.com/dotnet/runtime/issues/23346#issuecomment-325975594
-            stream.WritesClosed.GetAwaiter().UnsafeOnCompleted(dispatchCts.Cancel);
+            _ = CancelDispatchOnWritesClosedAsync();
+
+            async Task CancelDispatchOnWritesClosedAsync()
+            {
+                await stream.WritesClosed.ConfigureAwait(false);
+                dispatchCts.Cancel();
+            }
         }
 
         using CancellationTokenRegistration tokenRegistration = _disposedCts.Token.UnsafeRegister(
