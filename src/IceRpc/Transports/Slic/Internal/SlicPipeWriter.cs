@@ -11,7 +11,6 @@ namespace IceRpc.Transports.Slic.Internal;
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
-    private readonly TaskCompletionSource _writesCompleted = new();
     private Exception? _exception;
     private bool _isCompleted;
     private readonly Pipe _pipe;
@@ -19,6 +18,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private readonly SlicStream _stream;
+    private readonly TaskCompletionSource _writesCompleted = new();
 
     public override void Advance(int bytes)
     {
@@ -58,6 +58,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
             _sendCreditSemaphore.Dispose();
+            _writesCompleted.TrySetResult();
         }
     }
 
@@ -128,8 +129,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            Debug.Assert(writesCompletedToken.IsCancellationRequested);
             return _exception is null ?
                 new FlushResult(isCanceled: false, isCompleted: true) :
                 throw ExceptionUtil.Throw(_exception);
@@ -177,7 +176,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     internal void CompleteWrites(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
-        _writesCompleted.SetResult();
+        _writesCompleted.TrySetResult();
     }
 
     internal void ConsumedSendCredit(int consumed)
