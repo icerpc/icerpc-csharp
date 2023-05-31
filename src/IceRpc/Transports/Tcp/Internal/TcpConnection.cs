@@ -307,15 +307,7 @@ internal class TcpClientConnection : TcpConnection
                 Socket.Bind(localNetworkAddress);
             }
 
-            if (options.ReceiveBufferSize is int receiveSize)
-            {
-                Socket.ReceiveBufferSize = receiveSize;
-            }
-            if (options.SendBufferSize is int sendSize)
-            {
-                Socket.SendBufferSize = sendSize;
-            }
-
+            Socket.Configure(options);
             Socket.NoDelay = true;
         }
         catch (SocketException exception)
