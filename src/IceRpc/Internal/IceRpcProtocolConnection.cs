@@ -1003,7 +1003,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             cancellationToken = dispatchCts.Token;
 
             // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
-
             _ = CancelDispatchOnWritesClosedAsync();
 
             async Task CancelDispatchOnWritesClosedAsync()

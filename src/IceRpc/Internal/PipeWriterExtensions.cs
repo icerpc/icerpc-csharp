@@ -62,6 +62,7 @@ internal static class PipeWriterExtensions
         var readCts = new CancellationTokenSource();
 #pragma warning restore CA2000
 
+        // If the peer is not longer reading, we cancel the reading of the payload.
         _ = CancelReadOnWriteClosedAsync();
 
         using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
