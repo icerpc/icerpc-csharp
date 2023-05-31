@@ -1379,12 +1379,11 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void ReleaseWriterLock()
     {
-        // if (Interlocked.Decrement(ref _pendingWriterCount) == 0 ||
-        //     _duplexConnectionWriter.UnflushedBytes > _packetMaxSize)
-        // {
-        // _duplexConnectionWriter.Flush();
-        // }
-        _duplexConnectionWriter.Flush();
+        if (Interlocked.Decrement(ref _pendingWriterCount) == 0 ||
+            _duplexConnectionWriter.UnflushedBytes > _packetMaxSize)
+        {
+            _duplexConnectionWriter.Flush();
+        }
         _writeSemaphore.Release();
     }
 
