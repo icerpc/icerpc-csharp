@@ -988,33 +988,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
         // _disposedCts is not disposed since we own a dispatch count.
-        CancellationToken cancellationToken = _disposedCts.Token;
-
-        CancellationTokenSource? dispatchCts = null;
-
-        if (stream.IsBidirectional)
-        {
-            // We don't dispose dispatchCts because it's not necessary here. This cts can be canceled by
-            // stream.WritesClosed and _disposedCts, and we don't want to catch/handle ObjectDisposedException.
-#pragma warning disable CA2000
-            dispatchCts = new CancellationTokenSource();
-#pragma warning restore CA2000
-
-            cancellationToken = dispatchCts.Token;
-
-            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
-            _ = CancelDispatchOnWritesClosedAsync();
-
-            async Task CancelDispatchOnWritesClosedAsync()
-            {
-                await stream.WritesClosed.ConfigureAwait(false);
-                dispatchCts.Cancel();
-            }
-        }
-
-        using CancellationTokenRegistration tokenRegistration = _disposedCts.Token.UnsafeRegister(
-            cts => ((CancellationTokenSource?)cts)?.Cancel(),
-            dispatchCts);
+        CancellationToken cancellationToken = stream.IsBidirectional ?
+            stream.WritesClosed.AsCancellationToken(_disposedCts.Token) :
+            _disposedCts.Token;
 
         PipeReader? fieldsPipeReader = null;
         IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;

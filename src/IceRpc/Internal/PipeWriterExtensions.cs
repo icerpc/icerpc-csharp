@@ -56,26 +56,16 @@ internal static class PipeWriterExtensions
             }
         }
 
-        // We don't dispose readCts because it's not necessary here. This cts can be canceled by writesClosed
-        // and cancellationToken and we don't want to catch/handle ObjectDisposedException.
-#pragma warning disable CA2000
-        var readCts = new CancellationTokenSource();
-#pragma warning restore CA2000
-
-        // If the peer is not longer reading, we cancel the reading of the payload.
-        _ = CancelReadOnWriteClosedAsync();
-
-        using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
-            cts => ((CancellationTokenSource)cts!).Cancel(),
-            readCts);
+        // If the peer is no longer reading, we want to cancel the reading of the payload.
+        CancellationToken readToken = writesClosed.AsCancellationToken(cancellationToken);
 
         do
         {
             try
             {
-                readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
+                readResult = await reader.ReadAsync(readToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException exception) when (exception.CancellationToken == readCts.Token)
+            catch (OperationCanceledException exception) when (exception.CancellationToken == readToken)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 Debug.Assert(writesClosed.IsCompleted);
@@ -92,12 +82,6 @@ internal static class PipeWriterExtensions
         while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
 
         return flushResult;
-
-        async Task CancelReadOnWriteClosedAsync()
-        {
-            await writesClosed.ConfigureAwait(false);
-            readCts.Cancel();
-        }
 
         async ValueTask<FlushResult> WriteReadResultAsync()
         {
