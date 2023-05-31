@@ -4,21 +4,24 @@ namespace IceRpc.Internal;
 
 internal static class TaskExtensions
 {
-    /// <summary>Converts this task into a cancellation token that is canceled when the task completes successfully or
-    /// the cancellation token argument is canceled prior to the task's completion. If the task is canceled or fails,
-    /// the returned token is not canceled.</summary>
-    internal static CancellationToken AsCancellationToken(this Task task, CancellationToken cancellationToken)
+    /// <summary>Converts this task into a cancellation token.</summary>
+    /// <param name="task">The task to "convert" into a cancellation token.</param>
+    /// <param name="token">The token to observe while the task is running.</param>
+    /// <returns>A cancellation token that is canceled when <paramref name="task" /> completes successfully or
+    /// <paramref name="token" /> is canceled prior to the task's completion. If the task is canceled or fails, the
+    /// returned token is not canceled.</returns>
+    internal static CancellationToken AsCancellationToken(this Task task, CancellationToken token)
     {
         var cts = new CancellationTokenSource();
-        CancellationToken token = cts.Token;
+        CancellationToken linkedToken = cts.Token;
         _ = CancelOnSuccessAsync();
-        return token;
+        return linkedToken;
 
         async Task CancelOnSuccessAsync()
         {
             try
             {
-                using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
+                using CancellationTokenRegistration tokenRegistration = token.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),
                     cts);
 
