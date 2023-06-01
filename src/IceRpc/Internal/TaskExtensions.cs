@@ -17,7 +17,9 @@ internal static class TaskExtensions
 #pragma warning restore CA2000
 
         CancellationToken linkedToken = linkedCts.Token;
-        _ = Task.Run(CancelOnSuccessAsync, token);
+
+        // CancellationToken.None because we need to run CancelOnSuccessAsync to dispose linkedCts.
+        _ = Task.Run(CancelOnSuccessAsync, CancellationToken.None);
         return linkedToken;
 
         async Task CancelOnSuccessAsync()
