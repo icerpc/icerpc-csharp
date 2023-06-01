@@ -980,9 +980,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void CancelInactivityCheck() =>
-        _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-
     /// <summary>Decrements the stream input/output count.</summary>
     private void DecrementStreamInputOutputCount()
     {
@@ -1301,7 +1298,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         if (wasInactive)
         {
-            CancelInactivityCheck();
+            // Cancel inactivity check.
+            _ = _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
     }
 
