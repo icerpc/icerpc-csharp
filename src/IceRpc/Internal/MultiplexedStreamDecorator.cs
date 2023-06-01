@@ -6,8 +6,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides a multiplexed stream decorator that allows <see cref="IceRpcProtocolConnection" /> to keep track
-/// of the completion of the stream Input and Output.</summary>
+/// <summary>Provides a multiplexed stream decorator that allows <see cref="IceRpcProtocolConnection" /> to intercept
+/// the completion of the stream input and output.</summary>
 internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
 {
     public ulong Id => _decoratee.Id;
@@ -30,25 +30,29 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
     private readonly PipeReader? _input;
     private readonly PipeWriter? _output;
 
-    internal MultiplexedStreamDecorator(IMultiplexedStream decoratee, IceRpcProtocolConnection connection)
+    /// <summary>Constructs a multiplexed stream decorator.</summary>
+    /// <param name="decoratee">The decoratee.</param>
+    /// <param name="onCompleted">An action that is executed when stream input or output is completed; it's executed
+    /// up to 2 times for a bidirectional stream, and up to 1 time for a unidirectional stream.</param>
+    internal MultiplexedStreamDecorator(IMultiplexedStream decoratee, Action onCompleted)
     {
         _decoratee = decoratee;
 
         if (decoratee.IsBidirectional || decoratee.IsRemote)
         {
-            _input = new InputDecorator(decoratee.Input, connection);
+            _input = new InputDecorator(decoratee.Input, onCompleted);
         }
         if (decoratee.IsBidirectional || !decoratee.IsRemote)
         {
-            _output = new OutputDecorator((ReadOnlySequencePipeWriter)decoratee.Output, connection);
+            _output = new OutputDecorator((ReadOnlySequencePipeWriter)decoratee.Output, onCompleted);
         }
     }
 
     private class InputDecorator : PipeReader
     {
-        private readonly IceRpcProtocolConnection _connection;
         private readonly PipeReader _decoratee;
         private bool _isCompleted;
+        private readonly Action _onCompleted;
 
         public override void AdvanceTo(SequencePosition consumed) =>
             _decoratee.AdvanceTo(consumed);
@@ -69,7 +73,7 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
             {
                 _isCompleted = true;
                 _decoratee.Complete(exception);
-                _connection.DecrementStreamInputOutputCount();
+                _onCompleted();
             }
         }
 
@@ -88,19 +92,18 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
             int minimumSize,
             CancellationToken cancellationToken) => _decoratee.ReadAtLeastAsync(minimumSize, cancellationToken);
 
-        internal InputDecorator(PipeReader decoratee, IceRpcProtocolConnection connection)
+        internal InputDecorator(PipeReader decoratee, Action onCompleted)
         {
             _decoratee = decoratee;
-            _connection = connection;
-            _connection.IncrementStreamInputOutputCount();
+            _onCompleted = onCompleted;
         }
     }
 
     private class OutputDecorator : ReadOnlySequencePipeWriter
     {
-        private readonly IceRpcProtocolConnection _connection;
         private readonly ReadOnlySequencePipeWriter _decoratee;
         private bool _isCompleted;
+        private readonly Action _onCompleted;
 
         public override void Advance(int bytes) => _decoratee.Advance(bytes);
 
@@ -117,7 +120,7 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
             {
                 _isCompleted = true;
                 _decoratee.Complete(exception);
-                _connection.DecrementStreamInputOutputCount();
+                _onCompleted();
             }
         }
 
@@ -138,11 +141,10 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
             CancellationToken cancellationToken = default) =>
             _decoratee.WriteAsync(source, endStream, cancellationToken);
 
-        internal OutputDecorator(ReadOnlySequencePipeWriter decoratee, IceRpcProtocolConnection connection)
+        internal OutputDecorator(ReadOnlySequencePipeWriter decoratee, Action onCompleted)
         {
             _decoratee = decoratee;
-            _connection = connection;
-            _connection.IncrementStreamInputOutputCount();
+            _onCompleted = onCompleted;
         }
     }
 }

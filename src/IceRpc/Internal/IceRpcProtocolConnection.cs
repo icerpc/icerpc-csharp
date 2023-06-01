@@ -410,9 +410,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                         }
 
-                        // Decorate the stream to increment/decrement _streamInputOutputCount. Must be done with _mutex
-                        // locked.
-                        stream = new MultiplexedStreamDecorator(stream, this);
+                        IncrementStreamInputOutputCount(stream.IsBidirectional);
+
+                        // Decorate the stream to decrement the input/output count on Complete.
+                        stream = new MultiplexedStreamDecorator(stream, DecrementStreamInputOutputCount);
                         streamInput = stream.IsBidirectional ? stream.Input : null;
 
                         // When we receive a GoAway frame, we iterate over _pendingInvocations and cancel invocations that
@@ -844,6 +845,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         });
     }
 
+    /// <summary>Decrements the stream input/output count.</summary>
     internal void DecrementStreamInputOutputCount()
     {
         lock (_mutex)
@@ -862,20 +864,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // situations.
                     ScheduleInactivityCheck();
                 }
-            }
-        }
-    }
-
-    internal void IncrementStreamInputOutputCount()
-    {
-        lock (_mutex)
-        {
-            // IncrementStreamInputOutputCount itself is called with _mutex locked.
-            Debug.Assert(_shutdownTask is null);
-
-            if (++_streamInputOutputCount == 1)
-            {
-                CancelInactivityCheck();
             }
         }
     }
@@ -961,9 +949,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         throw new OperationCanceledException();
                     }
 
-                    // Decorate the stream to increment/decrement _streamInputOutputCount. Must be called with _mutex
-                    // locked.
-                    stream = new MultiplexedStreamDecorator(stream, this);
+                    IncrementStreamInputOutputCount(stream.IsBidirectional);
+
+                    // Decorate the stream to decrement the stream input/output count on Complete.
+                    stream = new MultiplexedStreamDecorator(stream, DecrementStreamInputOutputCount);
 
                     // The multiplexed connection guarantees that the IDs of accepted streams of a given type have ever
                     // increasing values.
@@ -1298,6 +1287,21 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     _pendingInvocations.Remove(node);
                 }
             }
+        }
+    }
+
+    /// <summary>Increments the stream input/output count.</summary>
+    /// <remarks>This method must be called with _mutex locked.</remarks>
+    private void IncrementStreamInputOutputCount(bool bidirectional)
+    {
+        Debug.Assert(_shutdownTask is null);
+
+        bool wasInactive = _streamInputOutputCount == 0;
+        _streamInputOutputCount += bidirectional ? 2 : 1;
+
+        if (wasInactive)
+        {
+            CancelInactivityCheck();
         }
     }
 
