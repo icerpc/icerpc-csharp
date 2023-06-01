@@ -11,6 +11,9 @@ namespace IceRpc.Transports.Slic.Internal;
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
+    // We can avoid disposing _completeWritesCts because it was not created using CreateLinkedTokenSource, and it
+    // doesn't use a timer. It is not easy to dispose it because CompleteWrites can be called by another thread after
+    // Complete has been called.
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
