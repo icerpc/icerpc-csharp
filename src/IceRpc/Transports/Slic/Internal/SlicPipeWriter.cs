@@ -11,7 +11,10 @@ namespace IceRpc.Transports.Slic.Internal;
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
-    private readonly CancellationTokenSource _completeWritesCts = new(); // Disposed by Complete
+    // We can avoid disposing _completeWritesCts because it was not created using CreateLinkedTokenSource, and it
+    // doesn't use a timer. It is not easy to dispose it because CompleteWrites can be called by another thread after
+    // Complete has been called.
+    private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
     private readonly Pipe _pipe;
@@ -58,7 +61,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
             _sendCreditSemaphore.Dispose();
-            _completeWritesCts.Dispose();
         }
     }
 
@@ -96,8 +98,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                _completeWritesCts);
+            cts => ((CancellationTokenSource)cts!).Cancel(),
+            _completeWritesCts);
 
         ReadOnlySequence<byte> source1;
         ReadOnlySequence<byte> source2;
@@ -131,8 +133,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            Debug.Assert(_completeWritesCts.IsCancellationRequested);
             return _exception is null ?
                 new FlushResult(isCanceled: false, isCompleted: true) :
                 throw ExceptionUtil.Throw(_exception);
@@ -180,13 +180,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     internal void CompleteWrites(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
-        try
-        {
-            _completeWritesCts.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-        }
+        _completeWritesCts.Cancel();
     }
 
     internal void ConsumedSendCredit(int consumed)
