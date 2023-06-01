@@ -476,6 +476,7 @@ public sealed class ProtocolConnectionTests
         await Task.Delay(TimeSpan.FromMilliseconds(550));
         pipe.Writer.Complete();
         await invokeTask;
+        request.Dispose();
 
         // Act
         await clientShutdownRequested;
@@ -1044,11 +1045,13 @@ public sealed class ProtocolConnectionTests
         dispatcher.ReleaseDispatch();
 
         Assert.That(async () => await invokeTask, Throws.Nothing);
-        Assert.That(async () => await shutdownTask, Throws.Nothing);
 
         IncomingResponse response = await invokeTask;
         ReadResult readResult = await response.Payload.ReadAsync();
         Assert.That(readResult.Buffer.Length, Is.EqualTo(10));
+
+        request.Dispose(); // completes response.Payload
+        Assert.That(async () => await shutdownTask, Throws.Nothing);
     }
 
     /// <summary>Verifies that a client connection shutdown cancels left-over dispatches in the server.</summary>
