@@ -416,8 +416,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         stream = new MultiplexedStreamDecorator(stream, DecrementStreamInputOutputCount);
                         streamInput = stream.IsBidirectional ? stream.Input : null;
 
-                        // When we receive a GoAway frame, we iterate over _pendingInvocations and cancel invocations that
-                        // won't be dispatched.
+                        // When we receive a GoAway frame, we iterate over _pendingInvocations and cancel invocations
+                        // that won't be dispatched.
                         pendingInvocationNode = _pendingInvocations.AddLast((stream, invocationCts));
                     }
 
