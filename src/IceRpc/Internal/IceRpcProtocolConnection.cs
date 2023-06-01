@@ -845,29 +845,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         });
     }
 
-    /// <summary>Decrements the stream input/output count.</summary>
-    internal void DecrementStreamInputOutputCount()
-    {
-        lock (_mutex)
-        {
-            if (--_streamInputOutputCount == 0)
-            {
-                if (_shutdownTask is not null)
-                {
-                    _streamsCompleted.TrySetResult();
-                }
-                else if (!_refuseInvocations)
-                {
-                    // We enable the inactivity check in order to complete _shutdownRequestedTcs when inactive for too
-                    // long. _refuseInvocations is true when the connection is either about to be "shutdown requested",
-                    // or shut down / disposed. We don't need to complete _shutdownRequestedTcs in any of these
-                    // situations.
-                    ScheduleInactivityCheck();
-                }
-            }
-        }
-    }
-
     private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
         ref SliceDecoder decoder,
         DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
@@ -1005,6 +982,29 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private void CancelInactivityCheck() =>
         _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+
+    /// <summary>Decrements the stream input/output count.</summary>
+    private void DecrementStreamInputOutputCount()
+    {
+        lock (_mutex)
+        {
+            if (--_streamInputOutputCount == 0)
+            {
+                if (_shutdownTask is not null)
+                {
+                    _streamsCompleted.TrySetResult();
+                }
+                else if (!_refuseInvocations)
+                {
+                    // We enable the inactivity check in order to complete _shutdownRequestedTcs when inactive for too
+                    // long. _refuseInvocations is true when the connection is either about to be "shutdown requested",
+                    // or shut down / disposed. We don't need to complete _shutdownRequestedTcs in any of these
+                    // situations.
+                    ScheduleInactivityCheck();
+                }
+            }
+        }
+    }
 
     private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
