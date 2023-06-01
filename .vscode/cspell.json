@@ -21,6 +21,7 @@
     "icerpc",
     "localizable",
     "Memberwise",
+    "Nagle",
     "netstandard",
     "Nonmutating",
     "Omnisharp",
