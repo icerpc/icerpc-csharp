@@ -39,12 +39,15 @@ public static class AsyncEnumerableExtensions
     // doesn't use these methods.
     private class AsyncEnumerablePipeReader<T> : PipeReader, IDisposable
     {
-#pragma warning disable CA2213 // Disposed by Complete
         private readonly IAsyncEnumerator<T> _asyncEnumerator;
+#pragma warning disable CA2213
+        // We don't dispose _cts because it's not necessary and we can't easily dispose it when no one is using it since
+        // CancelPendingRead can be called by another thread after Complete is called.
         private readonly CancellationTokenSource _cts = new();
 #pragma warning restore CA2213
         private readonly EncodeAction<T> _encodeAction;
         private readonly SliceEncoding _encoding;
+        private bool _isDisposed;
         private readonly bool _useSegments;
         private readonly int _streamFlushThreshold;
         private Task<bool>? _moveNext;
@@ -58,34 +61,25 @@ public static class AsyncEnumerableExtensions
         public override void CancelPendingRead()
         {
             _pipe.Reader.CancelPendingRead();
-
-            try
-            {
-                _cts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // ok, ignored
-            }
+            _cts.Cancel();
         }
 
-        public override void Complete(Exception? exception = null)
+        public override void Complete(Exception? exception = null) => Dispose();
+
+        public void Dispose()
         {
-            try
+            if (!_isDisposed)
             {
+                _isDisposed = true;
+
                 // Cancel MoveNextAsync if it's still running.
                 _cts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                return; // Complete already called.
-            }
 
-            _pipe.Reader.Complete();
-            _pipe.Writer.Complete();
-            _cts.Dispose();
+                _pipe.Reader.Complete();
+                _pipe.Writer.Complete();
 
-            _ = DisposeEnumeratorAsync();
+                _ = DisposeEnumeratorAsync();
+            }
 
             async Task DisposeEnumeratorAsync()
             {
@@ -95,7 +89,7 @@ public static class AsyncEnumerableExtensions
                 {
                     try
                     {
-                        await _moveNext.ConfigureAwait(false);
+                        _ = await _moveNext.ConfigureAwait(false);
                     }
                     catch
                     {
@@ -104,8 +98,6 @@ public static class AsyncEnumerableExtensions
                 await _asyncEnumerator.DisposeAsync().ConfigureAwait(false);
             }
         }
-
-        public void Dispose() => Complete();
 
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
