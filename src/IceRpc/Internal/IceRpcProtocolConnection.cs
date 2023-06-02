@@ -73,8 +73,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private Task? _shutdownTask;
 
-    private int _streamCount;
-    private readonly TaskCompletionSource _streamsClosed = new();
+    // The streams are completed when _shutdownTask is not null and _streamInputOutputCount is 0.
+    private readonly TaskCompletionSource _streamsCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // Keeps track of the number of stream Input and Output that are not completed yet.
+    private int _streamInputOutputCount;
 
     private readonly ITaskExceptionObserver? _taskExceptionObserver;
 
@@ -228,9 +231,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 RefuseNewInvocations("The connection was disposed.");
 
-                if (_streamCount == 0)
+                if (_streamInputOutputCount == 0)
                 {
-                    _streamsClosed.TrySetResult();
+                    _streamsCompleted.TrySetResult();
                 }
                 if (_dispatchCount == 0)
                 {
@@ -367,6 +370,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     stream = await _transportConnection.CreateStreamAsync(
                         bidirectional: !request.IsOneway,
                         invocationCancellationToken).ConfigureAwait(false);
+
+                    streamInput = stream.IsBidirectional ? stream.Input : null;
                 }
                 catch (OperationCanceledException)
                 {
@@ -393,7 +398,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage, exception);
                 }
 
-                streamInput = stream.IsBidirectional ? stream.Input : null;
                 PipeWriter payloadWriter;
 
                 try
@@ -406,18 +410,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
                         }
 
-                        if (++_streamCount == 1)
-                        {
-                            CancelInactivityCheck();
-                        }
+                        IncrementStreamInputOutputCount(stream.IsBidirectional);
 
-                        // When we receive a GoAway frame, we iterate over _pendingInvocations and cancel invocations that
-                        // won't be dispatched.
+                        // Decorate the stream to decrement the input/output count on Complete.
+                        stream = new MultiplexedStreamDecorator(stream, DecrementStreamInputOutputCount);
+                        streamInput = stream.IsBidirectional ? stream.Input : null;
+
+                        // When we receive a GoAway frame, we iterate over _pendingInvocations and cancel invocations
+                        // that won't be dispatched.
                         pendingInvocationNode = _pendingInvocations.AddLast((stream, invocationCts));
                     }
-
-                    // We want to queue this cleanup task and keep running in this thread to improve latency.
-                    _ = Task.Run(() => ReleaseStreamCountOnReadsAndWritesClosedAsync(stream), CancellationToken.None);
 
                     EncodeHeader(stream.Output);
                     payloadWriter = request.GetPayloadWriter(stream.Output);
@@ -675,9 +677,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             RefuseNewInvocations("The connection was shut down.");
 
-            if (_streamCount == 0)
+            if (_streamInputOutputCount == 0)
             {
-                _streamsClosed.TrySetResult();
+                _streamsCompleted.TrySetResult();
             }
             if (_dispatchCount == 0)
             {
@@ -725,8 +727,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // shutdown was initiated by the peer.
                     await _readGoAwayTask.WaitAsync(cts.Token).ConfigureAwait(false);
 
-                    // Wait for network activity on streams (other than control streams) to cease.
-                    await _streamsClosed.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+                    // Wait for all streams (other than the control streams) to have their Input and Output completed.
+                    await _streamsCompleted.Task.WaitAsync(cts.Token).ConfigureAwait(false);
 
                     // Close the control stream to notify the peer that on our side, all the streams completed and that
                     // it can close the transport connection whenever it likes.
@@ -827,7 +829,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _streamCount == 0 && _shutdownTask is null)
+                if (_dispatchCount == 0 && _streamInputOutputCount == 0 && _shutdownTask is null)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
@@ -916,16 +918,21 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 lock (_mutex)
                 {
-                    // We don't want to increment _dispatchCount or _streamCount when the connection is
-                    // shutting down or being disposed.
+                    // We don't want to increment _dispatchCount/_streamInputOutputCount when the connection is shutting
+                    // down or being disposed.
                     if (_shutdownTask is not null)
                     {
                         // Note that cancellationToken may not be canceled yet at this point.
                         throw new OperationCanceledException();
                     }
 
-                    // The multiplexed connection guarantees that the IDs of accepted streams of a given
-                    // type have ever increasing values.
+                    IncrementStreamInputOutputCount(stream.IsBidirectional);
+
+                    // Decorate the stream to decrement the stream input/output count on Complete.
+                    stream = new MultiplexedStreamDecorator(stream, DecrementStreamInputOutputCount);
+
+                    // The multiplexed connection guarantees that the IDs of accepted streams of a given type have ever
+                    // increasing values.
 
                     if (stream.IsBidirectional)
                     {
@@ -937,16 +944,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
 
                     ++_dispatchCount;
-
-                    if (++_streamCount == 1)
-                    {
-                        // We were inactive, we no longer are.
-                        CancelInactivityCheck();
-                    }
                 }
-
-                // We want to queue this cleanup task and keep running in this thread to improve latency.
-                _ = Task.Run(() => ReleaseStreamCountOnReadsAndWritesClosedAsync(stream), CancellationToken.None);
 
                 // Start a task to read the stream and dispatch the request. We pass CancellationToken.None to Task.Run
                 // because DispatchRequestAsync must clean-up the stream.
@@ -982,8 +980,28 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void CancelInactivityCheck() =>
-        _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    /// <summary>Decrements the stream input/output count.</summary>
+    private void DecrementStreamInputOutputCount()
+    {
+        lock (_mutex)
+        {
+            if (--_streamInputOutputCount == 0)
+            {
+                if (_shutdownTask is not null)
+                {
+                    _streamsCompleted.TrySetResult();
+                }
+                else if (!_refuseInvocations)
+                {
+                    // We enable the inactivity check in order to complete _shutdownRequestedTcs when inactive for too
+                    // long. _refuseInvocations is true when the connection is either about to be "shutdown requested",
+                    // or shut down / disposed. We don't need to complete _shutdownRequestedTcs in any of these
+                    // situations.
+                    ScheduleInactivityCheck();
+                }
+            }
+        }
+    }
 
     private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
@@ -1269,6 +1287,22 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
+    /// <summary>Increments the stream input/output count.</summary>
+    /// <remarks>This method must be called with _mutex locked.</remarks>
+    private void IncrementStreamInputOutputCount(bool bidirectional)
+    {
+        Debug.Assert(_shutdownTask is null);
+
+        bool wasInactive = _streamInputOutputCount == 0;
+        _streamInputOutputCount += bidirectional ? 2 : 1;
+
+        if (wasInactive)
+        {
+            // Cancel inactivity check.
+            _ = _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        }
+    }
+
     private async Task ReadGoAwayAsync(CancellationToken cancellationToken)
     {
         await Task.Yield(); // exit mutex lock
@@ -1422,31 +1456,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             _refuseInvocations = true;
             _invocationRefusedMessage ??= message;
-        }
-    }
-
-    private async Task ReleaseStreamCountOnReadsAndWritesClosedAsync(IMultiplexedStream stream)
-    {
-        // Wait for the stream's reading and writing side to be closed to decrement the stream count.
-        await Task.WhenAll(stream.ReadsClosed, stream.WritesClosed).ConfigureAwait(false);
-
-        lock (_mutex)
-        {
-            if (--_streamCount == 0)
-            {
-                if (_shutdownTask is not null)
-                {
-                    _streamsClosed.TrySetResult();
-                }
-                else if (!_refuseInvocations)
-                {
-                    // We enable the inactivity check in order to complete ShutdownRequested when inactive for too long.
-                    // _refuseInvocations is true when the connection is either about to be "shutdown requested", or
-                    // shut down / disposed, or aborted (with Closed completed). We don't need to complete
-                    // ShutdownRequested in any of these situations.
-                    ScheduleInactivityCheck();
-                }
-            }
         }
     }
 
