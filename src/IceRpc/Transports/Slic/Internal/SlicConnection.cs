@@ -510,7 +510,6 @@ internal class SlicConnection : IMultiplexedConnection
         ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
         _localIdleTimeout = slicOptions.IdleTimeout;
         _packetMaxSize = slicOptions.PacketMaxSize;
-
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
         {
             SingleReader = true,
@@ -682,7 +681,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // If there's no data left to send and endStream is true, it's the last stream frame.
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
-                using SlicDuplexConnectionWriterLock _ = AcquireWriterLock();
+                using SlicDuplexConnectionWriterLock _ = await AcquireWriterLockAsync().ConfigureAwait(false);
                 if (!stream.IsStarted)
                 {
                     StartStream(stream);
@@ -732,6 +731,11 @@ internal class SlicConnection : IMultiplexedConnection
 
         return new FlushResult(isCanceled: false, isCompleted: false);
 
+        ValueTask WriteAsync()
+        {
+
+        }
+
         void EncodeStreamFrameHeader(ulong streamId, long size, bool lastStreamFrame)
         {
             var encoder = new SliceEncoder(_duplexConnectionWriter, SliceEncoding.Slice2);
@@ -755,6 +759,21 @@ internal class SlicConnection : IMultiplexedConnection
             Interlocked.Increment(ref _pendingWriterCount);
         }
         _writeSemaphore.Wait();
+        return new SlicDuplexConnectionWriterLock(this);
+    }
+
+    private async Task<SlicDuplexConnectionWriterLock> AcquireWriterLockAsync()
+    {
+        lock (_mutex)
+        {
+            // Make sure the connection is not being closed or closed when we acquire the semaphore.
+            if (_isClosed)
+            {
+                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
+            }
+            Interlocked.Increment(ref _pendingWriterCount);
+        }
+        await _writeSemaphore.WaitAsync().ConfigureAwait(false);
         return new SlicDuplexConnectionWriterLock(this);
     }
 
