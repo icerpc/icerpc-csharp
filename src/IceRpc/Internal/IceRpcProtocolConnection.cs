@@ -988,27 +988,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private async Task DispatchRequestAsync(IMultiplexedStream stream)
     {
         // _disposedCts is not disposed since we own a dispatch count.
-        using var dispatchCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
-        Task? cancelDispatchOnWritesClosedTask = null;
-
-        if (stream.IsBidirectional)
-        {
-            // If the peer is no longer interested in the response of the dispatch, we cancel the dispatch.
-            cancelDispatchOnWritesClosedTask = CancelDispatchOnWritesClosedAsync();
-
-            async Task CancelDispatchOnWritesClosedAsync()
-            {
-                try
-                {
-                    await stream.WritesClosed.WaitAsync(dispatchCts.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignored.
-                }
-                dispatchCts.Cancel();
-            }
-        }
+        CancellationToken cancellationToken = stream.IsBidirectional ?
+            stream.WritesClosed.AsCancellationToken(_disposedCts.Token) :
+            _disposedCts.Token;
 
         PipeReader? fieldsPipeReader = null;
         IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
@@ -1025,7 +1007,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 ReadResult readResult = await streamInput.ReadSegmentAsync(
                     SliceEncoding.Slice2,
                     _maxLocalHeaderSize,
-                    dispatchCts.Token).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
 
                 if (readResult.Buffer.IsEmpty)
                 {
@@ -1073,7 +1055,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                OutgoingResponse response = await PerformDispatchRequestAsync(request, dispatchCts.Token)
+                OutgoingResponse response = await PerformDispatchRequestAsync(request, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (!request.IsOneway)
@@ -1088,12 +1070,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     try
                     {
-                        // We don't use dispatchCts.Token here because it's canceled shortly afterwards. This works
+                        // We don't use cancellationToken here because it's canceled shortly afterwards. This works
                         // around https://github.com/dotnet/runtime/issues/82704 where the stream would otherwise be
                         // aborted after the successful write. It's also fine to just use _disposedCts.Token: if writes
                         // are closed because the peer is not longer interested in the response, the write operations
                         // will raise an IceRpcException(StreamAborted) which is ignored.
-
                         bool hasContinuation = response.PayloadContinuation is not null;
 
                         flushResult = await payloadWriter.CopyFromAsync(
@@ -1137,7 +1118,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             //  - IceRpcError.TruncatedData when the request header is truncated
         }
         catch (OperationCanceledException exception) when (
-            exception.CancellationToken == dispatchCts.Token ||
+            exception.CancellationToken == cancellationToken ||
             exception.CancellationToken == _disposedCts.Token)
         {
             // Expected if the dispatch is canceled by the peer or the connection is disposed.
@@ -1155,12 +1136,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         finally
         {
-            if (cancelDispatchOnWritesClosedTask is not null)
-            {
-                dispatchCts.Cancel();
-                await cancelDispatchOnWritesClosedTask.ConfigureAwait(false);
-            }
-
             if (!success)
             {
                 // We always need to complete streamOutput when an exception is thrown. For example, we received an

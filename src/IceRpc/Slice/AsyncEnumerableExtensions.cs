@@ -37,14 +37,20 @@ public static class AsyncEnumerableExtensions
     // Overriding ReadAtLeastAsyncCore or CopyToAsync methods for this reader is not critical since this reader is
     // mostly used by the IceRpc core to copy the encoded data for the enumerable to the network stream. This copy
     // doesn't use these methods.
-    private class AsyncEnumerablePipeReader<T> : PipeReader, IDisposable
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable.
+    private class AsyncEnumerablePipeReader<T> : PipeReader
+#pragma warning restore CA1001
     {
-#pragma warning disable CA2213 // Disposed by Complete
+        // Disposed in Complete.
         private readonly IAsyncEnumerator<T> _asyncEnumerator;
+
+        // We don't dispose _cts because it's not necessary
+        // (see https://github.com/dotnet/runtime/issues/29970#issuecomment-717840778) and we can't easily dispose it
+        // when no one is using it since CancelPendingRead can be called by another thread after Complete is called.
         private readonly CancellationTokenSource _cts = new();
-#pragma warning restore CA2213
         private readonly EncodeAction<T> _encodeAction;
         private readonly SliceEncoding _encoding;
+        private bool _isCompleted;
         private readonly bool _useSegments;
         private readonly int _streamFlushThreshold;
         private Task<bool>? _moveNext;
@@ -58,34 +64,23 @@ public static class AsyncEnumerableExtensions
         public override void CancelPendingRead()
         {
             _pipe.Reader.CancelPendingRead();
-
-            try
-            {
-                _cts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // ok, ignored
-            }
+            _cts.Cancel();
         }
 
         public override void Complete(Exception? exception = null)
         {
-            try
+            if (!_isCompleted)
             {
+                _isCompleted = true;
+
                 // Cancel MoveNextAsync if it's still running.
                 _cts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                return; // Complete already called.
-            }
 
-            _pipe.Reader.Complete();
-            _pipe.Writer.Complete();
-            _cts.Dispose();
+                _pipe.Reader.Complete();
+                _pipe.Writer.Complete();
 
-            _ = DisposeEnumeratorAsync();
+                _ = DisposeEnumeratorAsync();
+            }
 
             async Task DisposeEnumeratorAsync()
             {
@@ -95,7 +90,7 @@ public static class AsyncEnumerableExtensions
                 {
                     try
                     {
-                        await _moveNext.ConfigureAwait(false);
+                        _ = await _moveNext.ConfigureAwait(false);
                     }
                     catch
                     {
@@ -104,8 +99,6 @@ public static class AsyncEnumerableExtensions
                 await _asyncEnumerator.DisposeAsync().ConfigureAwait(false);
             }
         }
-
-        public void Dispose() => Complete();
 
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
