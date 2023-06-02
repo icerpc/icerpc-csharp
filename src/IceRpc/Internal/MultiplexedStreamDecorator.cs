@@ -18,8 +18,6 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
 
     public bool IsStarted => _decoratee.IsStarted;
 
-    public Task ReadsClosed => _decoratee.ReadsClosed;
-
     public Task WritesClosed => _decoratee.WritesClosed;
 
     public PipeReader Input => _input ?? _decoratee.Input;

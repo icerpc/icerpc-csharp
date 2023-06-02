@@ -9,10 +9,7 @@ namespace IceRpc.Transports.Quic.Internal;
 /// <summary>Implements a PipeReader over a QuicStream.</summary>
 internal class QuicPipeReader : PipeReader
 {
-    internal Task Closed { get; }
-
-    // Complete is not thread-safe; it's volatile because we check _isCompleted in the implementation of Closed.
-    private volatile bool _isCompleted;
+    private bool _isCompleted;
     private readonly Action _completeCallback;
     private readonly Action _throwIfConnectionClosedOrDisposed;
     private readonly PipeReader _pipeReader;
@@ -138,19 +135,5 @@ internal class QuicPipeReader : PipeReader
         // Work around bug from StreamPipeReader with the BugFixStreamPipeReaderDecorator
         _pipeReader = new BugFixStreamPipeReaderDecorator(_pipeReader);
 #endif
-
-        Closed = ClosedAsync();
-
-        async Task ClosedAsync()
-        {
-            try
-            {
-                await _stream.ReadsClosed.ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore
-            }
-        }
     }
 }
