@@ -281,7 +281,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 invocationCts.Dispose();
             }
 
-            // We didn't wait for _streams.Closed above. Invocations and the sending of payload continuation that are
+            // We didn't wait for _streamsCompleted above. Invocations and the sending of payload continuations that are
             // not canceled yet can be aborted by this disposal.
             await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
