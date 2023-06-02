@@ -46,8 +46,6 @@ internal class SlicStream : IMultiplexedStream
     public PipeWriter Output =>
         _outputPipeWriter ?? throw new InvalidOperationException("A remote unidirectional stream has no Output.");
 
-    public Task ReadsClosed => _readsClosedTcs.Task;
-
     public Task WritesClosed => _writesClosedTcs.Task;
 
     internal bool ReadsCompleted => _state.HasFlag(State.ReadsCompleted);
@@ -61,7 +59,6 @@ internal class SlicStream : IMultiplexedStream
     // This mutex protects _readsCompletionPending, _writesCompletionPending, _completeReadsOnWriteCompletion.
     private readonly object _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
-    private readonly TaskCompletionSource _readsClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _readsCompletionPending;
     // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
     // locking.
@@ -445,18 +442,7 @@ internal class SlicStream : IMultiplexedStream
 
     internal void ThrowIfConnectionClosed() => _connection.ThrowIfClosed();
 
-    internal bool TrySetReadsCompleted()
-    {
-        if (TrySetState(State.ReadsCompleted))
-        {
-            _readsClosedTcs.TrySetResult();
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+    private bool TrySetReadsCompleted() => TrySetState(State.ReadsCompleted);
 
     private bool TrySetWritesCompleted()
     {
