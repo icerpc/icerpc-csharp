@@ -23,24 +23,28 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private Task? _connectTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
+
+    // The number of outstanding dispatches and invocations.
     private int _dispatchInvocationCount;
+
+    private readonly SemaphoreSlim? _dispatchSemaphore;
+
     private readonly IDispatcher? _dispatcher;
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly SemaphoreSlim? _dispatchSemaphore;
+    private Task? _disposeTask;
 
     // This cancellation token source is canceled when the connection is disposed.
     private readonly CancellationTokenSource _disposedCts = new();
 
-    private Task? _disposeTask;
-
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
 
+    // Canceled when we receive the GoAway frame from the peer.
     private readonly CancellationTokenSource _goAwayCts = new();
 
-    // The GoAway frame received from the peer. Set once _goAwayCts is canceled.
+    // The GoAway frame received from the peer. Read it only after _goAwayCts is canceled.
     private IceRpcGoAway _goAwayFrame;
 
     private readonly TimeSpan _inactivityTimeout;
@@ -73,11 +77,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private Task? _shutdownTask;
 
-    // The streams are completed when _shutdownTask is not null and _streamInputOutputCount is 0.
-    private readonly TaskCompletionSource _streamsCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
     // Keeps track of the number of stream Input and Output that are not completed yet.
     private int _streamInputOutputCount;
+
+    // The streams are completed when _shutdownTask is not null and _streamInputOutputCount is 0.
+    private readonly TaskCompletionSource _streamsCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly ITaskExceptionObserver? _taskExceptionObserver;
 
@@ -381,10 +385,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage, exception);
                 }
 
-                Action<object?> onGoAway = OnGoAway;
-
                 using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
-                    onGoAway,
+                    OnGoAway,
                     invocationCts);
 
                 PipeWriter payloadWriter;
@@ -453,7 +455,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         request,
                         payloadWriter,
                         stream.WritesClosed,
-                        onGoAway,
+                        OnGoAway,
                         invocationCts.Token);
                 }
 
