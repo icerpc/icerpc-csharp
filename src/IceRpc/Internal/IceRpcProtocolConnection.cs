@@ -822,16 +822,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         try
         {
-            // We check the cancellation token for each iteration because we want to exit the accept requests
-            // loop as soon as ShutdownAsync requests this cancellation, even when more streams can be accepted
-            // without waiting.
+            // We check the cancellation token for each iteration because we want to exit the accept requests loop as
+            // soon as ShutdownAsync/GoAway requests this cancellation, even when more streams can be accepted without
+            // waiting.
             while (!cancellationToken.IsCancellationRequested)
             {
                 // When _dispatcher is null, the multiplexed connection MaxUnidirectionalStreams and
-                // MaxBidirectionalStreams options are configured to not accept any request-stream from the
-                // peer. As a result, when _dispatcher is null, this call will block indefinitely until the
-                // transport connection is closed or disposed, or until the cancellation token is canceled
-                // by ShutdownAsync.
+                // MaxBidirectionalStreams options are configured to not accept any request-stream from the peer. As a
+                // result, when _dispatcher is null, this call will block indefinitely until the cancellation token is
+                // canceled by ShutdownAsync, GoAway or DisposeAsync.
                 IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(cancellationToken)
                     .ConfigureAwait(false);
 
