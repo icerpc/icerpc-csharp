@@ -23,7 +23,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private Task? _connectTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
-    private int _dispatchCount;
+    private int _dispatchInvocationCount;
     private readonly IDispatcher? _dispatcher;
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -45,7 +45,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
-    private int _invocationCount;
     private string? _invocationRefusedMessage;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
@@ -236,7 +235,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     _streamsCompleted.TrySetResult();
                 }
-                if (_dispatchCount == 0 && _invocationCount == 0)
+                if (_dispatchInvocationCount == 0)
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
                 }
@@ -327,14 +326,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new NotSupportedException("The icerpc protocol does not support fragments.");
             }
 
-            IncrementInvocationCount();
+            IncrementDispatchInvocationCount();
         }
 
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            // Since _invocationCount > 0, _disposedCts is not disposed.
+            // Since _dispatchInvocationCount > 0, _disposedCts is not disposed.
             using var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 _disposedCts.Token);
@@ -521,7 +520,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             finally
             {
                 streamInput?.Complete();
-                DecrementInvocationCount();
+                DecrementDispatchInvocationCount();
             }
 
             static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
@@ -597,7 +596,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 _streamsCompleted.TrySetResult();
             }
-            if (_dispatchCount == 0 && _invocationCount == 0)
+            if (_dispatchInvocationCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
@@ -745,9 +744,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_shutdownTask is null &&
-                    _dispatchCount == 0 && _invocationCount == 0 &&
-                    _streamInputOutputCount == 0)
+                if (_shutdownTask is null && _dispatchInvocationCount == 0 && _streamInputOutputCount == 0)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
@@ -836,16 +833,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 lock (_mutex)
                 {
-                    // We don't want to increment _dispatchCount/_streamInputOutputCount when the connection is shutting
-                    // down or being disposed.
+                    // We don't want to increment _dispatchInvocationCount/_streamInputOutputCount when the connection
+                    // is shutting down or being disposed.
                     if (_shutdownTask is not null)
                     {
                         // Note that cancellationToken may not be canceled yet at this point.
                         throw new OperationCanceledException();
                     }
 
+                    IncrementDispatchInvocationCount(); // must be incremented first
                     IncrementStreamInputOutputCount(stream.IsBidirectional);
-                    IncrementDispatchCount();
 
                     // Decorate the stream to decrement the stream input/output count on Complete.
                     stream = new MultiplexedStreamDecorator(stream, DecrementStreamInputOutputCount);
@@ -900,29 +897,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void DecrementDispatchCount()
+    private void DecrementDispatchInvocationCount()
     {
         lock (_mutex)
         {
-            if (--_dispatchCount == 0 && _invocationCount == 0)
-            {
-                if (_shutdownTask is not null)
-                {
-                    _dispatchesAndInvocationsCompleted.TrySetResult();
-                }
-                else if (!_refuseInvocations && _streamInputOutputCount == 0)
-                {
-                    ScheduleInactivityCheck();
-                }
-            }
-        }
-    }
-
-    private void DecrementInvocationCount()
-    {
-        lock (_mutex)
-        {
-            if (--_invocationCount == 0 && _dispatchCount == 0)
+            if (--_dispatchInvocationCount == 0)
             {
                 if (_shutdownTask is not null)
                 {
@@ -947,7 +926,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     _streamsCompleted.TrySetResult();
                 }
-                else if (!_refuseInvocations && _invocationCount == 0 && _dispatchCount == 0)
+                else if (!_refuseInvocations && _dispatchInvocationCount == 0)
                 {
                     // We enable the inactivity check in order to complete _shutdownRequestedTcs when inactive for too
                     // long. _refuseInvocations is true when the connection is either about to be "shutdown requested",
@@ -1119,7 +1098,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             fieldsPipeReader?.Complete();
 
-            DecrementDispatchCount();
+            DecrementDispatchInvocationCount();
         }
 
         async Task<OutgoingResponse> PerformDispatchRequestAsync(
@@ -1218,32 +1197,24 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    /// <summary>Increments the dispatch count.</summary>
+    /// <summary>Increments the dispatch-invocation count.</summary>
     /// <remarks>This method must be called with _mutex locked.</remarks>
-    private void IncrementDispatchCount()
+    private void IncrementDispatchInvocationCount()
     {
-        if (_dispatchCount == 0 && _invocationCount == 0)
+        if (_dispatchInvocationCount == 0 && _streamInputOutputCount == 0)
         {
             CancelInactivityCheck();
         }
-        ++_dispatchCount;
-    }
-
-    /// <summary>Increments the invocation count.</summary>
-    /// <remarks>This method must be called with _mutex locked.</remarks>
-    private void IncrementInvocationCount()
-    {
-        if (_dispatchCount == 0 && _invocationCount == 0)
-        {
-            CancelInactivityCheck();
-        }
-        ++_invocationCount;
+        ++_dispatchInvocationCount;
     }
 
     /// <summary>Increments the stream input/output count.</summary>
     /// <remarks>This method must be called with _mutex locked.</remarks>
-    private void IncrementStreamInputOutputCount(bool bidirectional) =>
+    private void IncrementStreamInputOutputCount(bool bidirectional)
+    {
+        Debug.Assert(_dispatchInvocationCount > 0);
         _streamInputOutputCount += bidirectional ? 2 : 1;
+    }
 
     private async Task ReadGoAwayAsync(CancellationToken cancellationToken)
     {
@@ -1442,12 +1413,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     return; // no need to do anything
                 }
 
-                IncrementInvocationCount();
+                IncrementDispatchInvocationCount();
             }
 
             try
             {
-                // Since _invocationCount > 0, _disposedCts is not disposed.
+                // Since _dispatchInvocationCount > 0, _disposedCts is not disposed.
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken,
                     _disposedCts.Token);
@@ -1499,7 +1470,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             finally
             {
-                DecrementInvocationCount();
+                DecrementDispatchInvocationCount();
                 Cleanup(success);
             }
 
