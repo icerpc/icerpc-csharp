@@ -257,6 +257,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (_connectTask is not null)
             {
+                // We wait for _dispatchesAndInvocationsCompleted (since dispatches and invocations are somewhat under
+                // our control), but not from _streamsCompleted, since we can't make the application complete the
+                // incoming payload pipe readers.
                 try
                 {
                     await Task.WhenAll(
@@ -273,8 +276,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
             }
 
-            // We didn't wait for _streamsCompleted above (and won't below either). If the application is still reading
-            // some payload, the disposal of the transport connection can abort this reading.
+            // If the application is still reading some incoming payload, the disposal of the transport connection can
+            // abort this reading.
             await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
             // It's safe to complete the output since write operations have been completed by the transport connection
@@ -684,7 +687,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // Expected if the peer closed the connection first.
                 }
 
-                // We wait for the completion of the dispatches that we created.
+                // We wait for the completion of the dispatches that we created (and, secondarily, invocations).
                 await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -1023,11 +1026,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     try
                     {
-                        // We don't use cancellationToken here because it's canceled shortly afterwards. This works
-                        // around https://github.com/dotnet/runtime/issues/82704 where the stream would otherwise be
-                        // aborted after the successful write. It's also fine to just use _disposedCts.Token: if writes
-                        // are closed because the peer is not longer interested in the response, the write operations
-                        // will raise an IceRpcException(StreamAborted) which is ignored.
+                        // We don't use cancellationToken here because it's canceled shortly afterwards by the
+                        // completion of writesClosed. This works around https://github.com/dotnet/runtime/issues/82704
+                        // where the stream would otherwise be aborted after the successful write. It's also fine to
+                        // just use _disposedCts.Token: if writes are closed because the peer is not longer interested
+                        // in the response, the write operations will raise an IceRpcException(StreamAborted) which is
+                        // ignored.
                         bool hasContinuation = response.PayloadContinuation is not null;
 
                         flushResult = await payloadWriter.CopyFromAsync(
