@@ -341,12 +341,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 cancellationToken,
                 _disposedCts.Token);
 
-            IMultiplexedStream? stream = null;
             PipeReader? streamInput = null;
 
+            // This try/catch blocks cleans up streamInput (when not null) and the dispatch-invocation count.
             try
             {
                 // Create the stream.
+                IMultiplexedStream stream;
                 try
                 {
                     // We want to cancel CreateStreamAsync as soon as the connection is being shutdown or received a
@@ -505,6 +506,18 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         "Received an icerpc response with an invalid header.",
                         exception);
                 }
+
+                void OnGoAway(object? cts)
+                {
+                    if (!stream.IsStarted ||
+                           stream.Id >= (stream.IsBidirectional ?
+                               _goAwayFrame.BidirectionalStreamId :
+                               _goAwayFrame.UnidirectionalStreamId))
+                    {
+                        // The request wasn't received by the peer so it's safe to cancel the invocation.
+                        ((CancellationTokenSource)cts!).Cancel();
+                    }
+                }
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == invocationCts.Token)
             {
@@ -562,18 +575,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 int headerSize = encoder.EncodedByteCount - headerStartPos;
                 CheckPeerHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
-            }
-
-            void OnGoAway(object? cts)
-            {
-                if (!stream.IsStarted ||
-                       stream.Id >= (stream.IsBidirectional ?
-                           _goAwayFrame.BidirectionalStreamId :
-                           _goAwayFrame.UnidirectionalStreamId))
-                {
-                    // The request wasn't received by the peer so it's safe to cancel the invocation.
-                    ((CancellationTokenSource)cts!).Cancel();
-                }
             }
         }
     }
@@ -886,9 +887,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             throw;
         }
     }
-
-    private void CancelInactivityCheck() =>
-        _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
     private void CheckPeerHeaderSize(int headerSize)
     {
@@ -1207,7 +1205,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         if (_dispatchInvocationCount == 0 && _streamInputOutputCount == 0)
         {
-            CancelInactivityCheck();
+            // Cancel inactivity check.
+            _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
         ++_dispatchInvocationCount;
     }
@@ -1357,7 +1356,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     }
 
     // The inactivity check executes once in _inactivityTimeout. By then either:
-    // - the connection is no longer inactive (and CancelInactivityCheck was called or is being called)
+    // - the connection is no longer inactive (and the inactivity check is canceled or being canceled)
     // - the connection is still inactive and we request shutdown
     private void ScheduleInactivityCheck() =>
         _inactivityTimeoutTimer.Change(_inactivityTimeout, Timeout.InfiniteTimeSpan);
