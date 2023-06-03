@@ -12,9 +12,9 @@ version=$(cat build/IceRpc.Version.props | grep "<Version" | sed -E "s/<Version 
 
 usage()
 {
-    echo "Usage: build [actions] [arguments]"
+    echo "Usage: ./build.sh [actions] [arguments]"
     echo ""
-    echo "Actions (defaults to -build):"
+    echo "Actions (defaults to --build):"
     echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
     echo "  --pack                 Create the IceRPC NuGet packages."
     echo "  --examples             Build the example project (uses installed NuGet packages)."
