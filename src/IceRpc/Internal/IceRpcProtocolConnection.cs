@@ -66,7 +66,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private IMultiplexedStream? _remoteControlStream;
 
-    private readonly CancellationTokenSource _shutdownCts;
+    private readonly CancellationTokenSource _shutdownOrGoAwayCts;
 
     // The thread that completes this TCS can run the continuations, and as a result its result must be set without
     // holding a lock on _mutex.
@@ -213,7 +213,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _readGoAwayTask = ReadGoAwayAsync(_disposedCts.Token);
 
                 // Start a task that accepts requests (the "accept requests loop")
-                _acceptRequestsTask = AcceptRequestsAsync(_shutdownCts.Token);
+                _acceptRequestsTask = AcceptRequestsAsync(_shutdownOrGoAwayCts.Token);
             }
 
             // The _acceptRequestsTask waits for this PerformConnectAsync completion before reading anything. As soon as
@@ -289,7 +289,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             _dispatchSemaphore?.Dispose();
             _disposedCts.Dispose();
             _goAwayCts.Dispose();
-            _shutdownCts.Dispose();
+            _shutdownOrGoAwayCts.Dispose();
 
             await _inactivityTimeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
@@ -347,14 +347,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // Create the stream.
                 try
                 {
-                    // We want to cancel CreateStreamAsync as soon as the connection is being shutdown instead of
-                    // waiting for its disposal.
-                    using CancellationTokenRegistration tokenRegistration1 = _shutdownCts.Token.UnsafeRegister(
-                        cts => ((CancellationTokenSource)cts!).Cancel(),
-                        invocationCts);
-
-                    // Same for GoAway (temporary: need combined token for _shutdownCts and _goAwayCts)
-                    using CancellationTokenRegistration tokenRegistration2 = _goAwayCts.Token.UnsafeRegister(
+                    // We want to cancel CreateStreamAsync as soon as the connection is being shutdown or received a
+                    // GoAway frame.
+                    using CancellationTokenRegistration _ = _shutdownOrGoAwayCts.Token.UnsafeRegister(
                         cts => ((CancellationTokenSource)cts!).Cancel(),
                         invocationCts);
 
@@ -383,8 +378,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage, exception);
                 }
 
-                using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
-                cts =>
+                Action<object?> onGoAway = cts =>
                 {
                     if (!stream.IsStarted ||
                         stream.Id >= (stream.IsBidirectional ?
@@ -394,8 +388,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // The invocations wasn't dispatch by the peer, it's safe to cancel it.
                         ((CancellationTokenSource)cts!).Cancel();
                     }
-                },
-                invocationCts);
+                };
+
+                using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
+                    onGoAway,
+                    invocationCts);
 
                 PipeWriter payloadWriter;
 
@@ -474,6 +471,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             payloadContinuation,
                             payloadWriter,
                             writesClosed,
+                            onGoAway,
                             invocationToken),
                         CancellationToken.None); // must run no matter what to complete the payload continuation
                 }
@@ -577,6 +575,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 PipeReader payloadContinuation,
                 PipeWriter payloadWriter,
                 Task writesClosed,
+                Action<object?> onGoAway,
                 CancellationToken invocationToken)
             {
                 var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
@@ -598,18 +597,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         _disposedCts.Token);
 
                     using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
-                    cts =>
-                    {
-                        if (!stream.IsStarted ||
-                            stream.Id >= (stream.IsBidirectional ?
-                                _goAwayFrame.BidirectionalStreamId :
-                                _goAwayFrame.UnidirectionalStreamId))
-                        {
-                            // The invocations wasn't dispatched by the peer, it's safe to cancel it.
-                            ((CancellationTokenSource)cts!).Cancel();
-                        }
-                    },
-                    cts);
+                        onGoAway,
+                        cts);
 
                     // For a two-way request, the cancellation of cancellationToken cancels invocationToken/cts only
                     // until PerformInvokeAsync completes. Afterwards, the cancellation of cancellationToken has no
@@ -705,7 +694,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             await Task.Yield(); // exit mutex lock
 
-            _shutdownCts.Cancel();
+            _shutdownOrGoAwayCts.Cancel();
 
             try
             {
@@ -817,7 +806,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         ConnectionOptions options,
         ITaskExceptionObserver? taskExceptionObserver)
     {
-        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
+        _shutdownOrGoAwayCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, _goAwayCts.Token);
 
         _taskExceptionObserver = taskExceptionObserver;
 
