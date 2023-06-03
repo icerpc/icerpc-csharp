@@ -425,14 +425,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // From now on, we only use payloadWriter to write and we make sure to complete it.
 
                 bool hasContinuation = request.PayloadContinuation is not null;
-                Task writesClosed = stream.WritesClosed;
                 FlushResult flushResult;
 
                 try
                 {
                     flushResult = await payloadWriter.CopyFromAsync(
                         request.Payload,
-                        writesClosed,
+                        stream.WritesClosed,
                         endStream: !hasContinuation,
                         invocationCts.Token).ConfigureAwait(false);
                 }
@@ -456,24 +455,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 else
                 {
-                    // Send the continuation in a background task after "detaching" this continuation. This task
-                    // owns payloadContinuation and payloadWriter.
-                    PipeReader payloadContinuation = request.PayloadContinuation!;
-                    request.PayloadContinuation = null;
-                    CancellationToken invocationToken = invocationCts.Token;
-
-                    // Send the payload continuation on a separate thread instead of starting the task synchronously
-                    // with _ = SendPayloadContinuationAsync(...). This ensures that the synchronous activity that could
-                    // result from reading or writing the payload continuation doesn't delay in any way the caller.
-                    _ = Task.Run(
-                        () => SendPayloadContinuationAsync(
-                            request,
-                            payloadContinuation,
-                            payloadWriter,
-                            writesClosed,
-                            onGoAway,
-                            invocationToken),
-                        CancellationToken.None); // must run no matter what to complete the payload continuation
+                    SendRequestPayloadContinuation(
+                        request,
+                        payloadWriter,
+                        stream.WritesClosed,
+                        onGoAway,
+                        invocationCts.Token);
                 }
 
                 if (request.IsOneway)
@@ -568,80 +555,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 int headerSize = encoder.EncodedByteCount - headerStartPos;
                 CheckPeerHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
-            }
-
-            async Task SendPayloadContinuationAsync(
-                OutgoingRequest request,
-                PipeReader payloadContinuation,
-                PipeWriter payloadWriter,
-                Task writesClosed,
-                Action<object?> onGoAway,
-                CancellationToken invocationToken)
-            {
-                var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
-                try
-                {
-                    lock (_mutex)
-                    {
-                        if (_disposeTask is not null || _refuseInvocations)
-                        {
-                            return; // no need to do anything, just cleanup.
-                        }
-
-                        IncrementInvocationCount();
-                    }
-
-                    // Since _invocationCount > 0, _disposedCts is not disposed.
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                        invocationToken,
-                        _disposedCts.Token);
-
-                    using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
-                        onGoAway,
-                        cts);
-
-                    // For a two-way request, the cancellation of cancellationToken cancels invocationToken/cts only
-                    // until PerformInvokeAsync completes. Afterwards, the cancellation of cancellationToken has no
-                    // effect on cts, so it doesn't cancel the copying of payloadContinuation.
-                    flushResult = await payloadWriter.CopyFromAsync(
-                        payloadContinuation,
-                        writesClosed,
-                        endStream: true,
-                        cts.Token).ConfigureAwait(false);
-                }
-                catch (Exception exception) when (_taskExceptionObserver is not null)
-                {
-                    _taskExceptionObserver.RequestPayloadContinuationFailed(
-                        request,
-                        _connectionContext!.TransportConnectionInformation,
-                        exception);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected when the connection is shut down.
-                }
-                catch (IceRpcException)
-                {
-                    // Expected, with for example:
-                    // - IceRpcError.ConnectionAborted when the peer aborts the connection
-                }
-                catch (Exception exception)
-                {
-                    // This exception is unexpected when running the IceRPC test suite. A test that expects such an
-                    // exception must install a task exception observer.
-                    Debug.Fail($"Failed to send payload continuation of request {request}: {exception}");
-
-                    // If Debug is not enabled and there is no task exception observer, we rethrow to generate an
-                    // Unobserved Task Exception.
-                    throw;
-                }
-                finally
-                {
-                    payloadWriter.CompleteOutput(!flushResult.IsCanceled);
-                    payloadContinuation.Complete();
-
-                    DecrementInvocationCount();
-                }
             }
 
             static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
@@ -1487,6 +1400,95 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             encodeAction.Invoke(ref encoder);
             int frameSize = encoder.EncodedByteCount - startPos;
             SliceEncoder.EncodeVarUInt62((uint)frameSize, sizePlaceholder);
+        }
+    }
+
+    /// <summary>Sends the payload continuation of an outgoing request "in the background".</summary>
+    /// <remarks>We send the payload continuation on a separate thread with Task.Run: this ensures that the synchronous
+    /// activity that could result from reading or writing the payload continuation doesn't delay in any way the
+    /// caller. </remarks>
+    private void SendRequestPayloadContinuation(
+        OutgoingRequest request,
+        PipeWriter payloadWriter,
+        Task writesClosed,
+        Action<object?> onGoAway,
+        CancellationToken cancellationToken)
+    {
+        Debug.Assert(request.PayloadContinuation is not null);
+
+        // First "detach" the continuation.
+        PipeReader payloadContinuation = request.PayloadContinuation;
+        request.PayloadContinuation = null;
+
+        // This task owns payloadContinuation and payloadWriter and must clean them up. Hence CancellationToken.None.
+        _ = Task.Run(PerformSendRequestPayloadContinuationAsync, CancellationToken.None);
+
+        async Task PerformSendRequestPayloadContinuationAsync()
+        {
+            var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
+            try
+            {
+                lock (_mutex)
+                {
+                    if (_disposeTask is not null || _refuseInvocations)
+                    {
+                        return; // no need to do anything, just cleanup.
+                    }
+
+                    IncrementInvocationCount();
+                }
+
+                // Since _invocationCount > 0, _disposedCts is not disposed.
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    _disposedCts.Token);
+
+                using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
+                    onGoAway,
+                    cts);
+
+                // For a two-way request, the cancellation of cancellationToken cancels invocationToken/cts only
+                // until PerformInvokeAsync completes. Afterwards, the cancellation of cancellationToken has no
+                // effect on cts, so it doesn't cancel the copying of payloadContinuation.
+                flushResult = await payloadWriter.CopyFromAsync(
+                    payloadContinuation,
+                    writesClosed,
+                    endStream: true,
+                    cts.Token).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (_taskExceptionObserver is not null)
+            {
+                _taskExceptionObserver.RequestPayloadContinuationFailed(
+                    request,
+                    _connectionContext!.TransportConnectionInformation,
+                    exception);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the connection is shut down.
+            }
+            catch (IceRpcException)
+            {
+                // Expected, with for example:
+                // - IceRpcError.ConnectionAborted when the peer aborts the connection
+            }
+            catch (Exception exception)
+            {
+                // This exception is unexpected when running the IceRPC test suite. A test that expects such an
+                // exception must install a task exception observer.
+                Debug.Fail($"Failed to send payload continuation of request {request}: {exception}");
+
+                // If Debug is not enabled and there is no task exception observer, we rethrow to generate an
+                // Unobserved Task Exception.
+                throw;
+            }
+            finally
+            {
+                payloadWriter.CompleteOutput(!flushResult.IsCanceled);
+                payloadContinuation.Complete();
+
+                DecrementInvocationCount();
+            }
         }
     }
 }
