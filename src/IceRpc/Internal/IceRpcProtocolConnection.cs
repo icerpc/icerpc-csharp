@@ -1384,10 +1384,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    /// <summary>Sends the payload continuation of an outgoing request "in the background".</summary>
+    /// <summary>Sends the payload continuation of an outgoing request in the background.</summary>
     /// <remarks>We send the payload continuation on a separate thread with Task.Run: this ensures that the synchronous
     /// activity that could result from reading or writing the payload continuation doesn't delay in any way the
     /// caller. </remarks>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="payloadWriter">The payload writer.</param>
+    /// <param name="writesClosed">A task that completes when we can no longer write to payloadWriter.</param>
+    /// <param name="onGoAway">An action to execute with a CTS when we receive the GoAway frame from the peer.</param>
+    /// <param name="cancellationToken">The cancellation token of the invocation; the associated CTS is disposed when
+    /// the invocation completes.</param>
     private void SendRequestPayloadContinuation(
         OutgoingRequest request,
         PipeWriter payloadWriter,
