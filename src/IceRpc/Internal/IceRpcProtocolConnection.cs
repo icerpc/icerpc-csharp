@@ -1453,7 +1453,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 catch (OperationCanceledException exception) when (exception.CancellationToken == cts.Token)
                 {
-                    // Process/translate this exception for the benefit of _taskExceptionObserver.
+                    // Process/translate this exception primarily for the benefit of _taskExceptionObserver.
 
                     // Can be because cancellationToken was canceled by DisposeAsync or GoAway; that's fine.
                     cancellationToken.ThrowIfCancellationRequested();
@@ -1477,9 +1477,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     _connectionContext!.TransportConnectionInformation,
                     exception);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
-                // Expected if cancellationToken was canceled.
+                // Expected.
             }
             catch (IceRpcException)
             {

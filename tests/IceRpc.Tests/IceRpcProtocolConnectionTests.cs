@@ -1068,6 +1068,69 @@ public sealed class IceRpcProtocolConnectionTests
         await shutdownTask;
     }
 
+    /// <summary>Verifies that the server shutdown cancels a one-way request sending its payload continuation.</summary>
+    // Corresponds roughly to the previous test with isOneway = true,
+    // holdOperation = MultiplexedTransportOperations.AcceptStream and error = IceRpcError.InvocationCanceled, except
+    // it requires to hold the request PayloadContinuation + a task exception observer.
+    [Test]
+    public async Task Oneway_invocation_with_continuation_canceled_by_server_shutdown()
+    {
+        using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
+        var taskExceptionObserver = new TestTaskExceptionObserver();
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.IceRpc, dispatcher)
+            .AddSingleton<ITaskExceptionObserver>(taskExceptionObserver)
+            .AddTestMultiplexedTransportDecorator()
+            .BuildServiceProvider(validateScopes: true);
+
+        var serverTransport = provider.GetRequiredService<TestMultiplexedServerTransportDecorator>();
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (Task clientShutdownRequested, _) = await sut.ConnectAsync();
+        _ = sut.Client.ShutdownWhenRequestedAsync(clientShutdownRequested);
+
+        using var twowayRequest = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var invokeTask = sut.Client.InvokeAsync(twowayRequest);
+        await dispatcher.DispatchStart; // Wait for the dispatch to start
+
+        var clientConnection = clientTransport.LastCreatedConnection;
+        var serverConnection = serverTransport.LastAcceptedConnection;
+
+        serverConnection.Operations.Hold = MultiplexedTransportOperations.AcceptStream;
+
+        var pipe = new Pipe();
+        pipe.Writer.Write(new byte[10]);
+        pipe.Writer.Complete();
+        var payloadContinuationDecorator = new PayloadPipeReaderDecorator(pipe.Reader);
+        payloadContinuationDecorator.HoldRead = true;
+        using var onewayRequest = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+        {
+            IsOneway = true,
+            PayloadContinuation = payloadContinuationDecorator
+        };
+
+        await sut.Client.InvokeAsync(onewayRequest);
+
+        // Wait for accept stream be called before calling shutdown.
+        await serverConnection.Operations.GetCalledTask(MultiplexedTransportOperations.AcceptStream);
+
+        // Act
+        Task shutdownTask = sut.Server.ShutdownAsync();
+
+        // Assert
+        Assert.That(invokeTask.IsCompleted, Is.False);
+        Assert.That(
+            async () => await taskExceptionObserver.RequestPayloadContinuationFailedException,
+            Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled));
+
+        dispatcher.ReleaseDispatch();
+        Assert.That(() => invokeTask, Throws.Nothing); // first invocation completes successfully.
+        twowayRequest.Dispose(); // to complete the response payload
+        await shutdownTask;
+    }
+
     /// <summary>Ensures that the response payload is completed on an invalid response payload.</summary>
     [Test]
     public async Task Payload_completed_on_invalid_response_payload()
