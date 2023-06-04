@@ -532,6 +532,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 else
                 {
+                    Debug.Assert(_goAwayCts.IsCancellationRequested);
                     throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
                 }
             }
@@ -1408,23 +1409,20 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         PipeReader payloadContinuation = request.PayloadContinuation;
         request.PayloadContinuation = null;
 
-        // This task owns payloadContinuation and payloadWriter and must clean them up. Hence CancellationToken.None.
+        lock (_mutex)
+        {
+            Debug.Assert(_dispatchInvocationCount > 0); // as a result, can't be disposed.
+            // Give the task its own dispatch-invocation count.
+            IncrementDispatchInvocationCount();
+        }
+
+        // This background task owns payloadContinuation, payloadWriter and 1 dispatch-invocation count, and must clean
+        // them up. Hence CancellationToken.None.
         _ = Task.Run(PerformSendRequestPayloadContinuationAsync, CancellationToken.None);
 
         async Task PerformSendRequestPayloadContinuationAsync()
         {
             bool success = false;
-
-            lock (_mutex)
-            {
-                if (_disposeTask is not null || _refuseInvocations)
-                {
-                    Cleanup(success);
-                    return; // no need to do anything
-                }
-
-                IncrementDispatchInvocationCount();
-            }
 
             try
             {
@@ -1435,21 +1433,42 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 // This token registration is needed for one-way requests and is redundant for two-way requests.
                 // We want GoAway to cancel the sending of one-way requests that have not been received by the peer,
-                // especially when these requests are sending payload continuations.
+                // especially when these requests have payload continuations.
                 using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
                     onGoAway,
                     cts);
 
-                // For a two-way request, the cancellation of the InvokeAsync's cancellationToken cancels cts only
-                // until InvokeAsync's PerformInvokeAsync completes. Afterwards, the cancellation of InvokeAsync's
-                // cancellationToken has no effect on cts, so it doesn't cancel the copying of payloadContinuation.
-                FlushResult flushResult = await payloadWriter.CopyFromAsync(
-                    payloadContinuation,
-                    writesClosed,
-                    endStream: true,
-                    cts.Token).ConfigureAwait(false);
+                try
+                {
+                    // For a two-way request, the cancellation of the InvokeAsync's cancellationToken cancels cts only
+                    // until InvokeAsync's PerformInvokeAsync completes. Afterwards, the cancellation of InvokeAsync's
+                    // cancellationToken has no effect on cts, so it doesn't cancel the copying of payloadContinuation.
+                    FlushResult flushResult = await payloadWriter.CopyFromAsync(
+                        payloadContinuation,
+                        writesClosed,
+                        endStream: true,
+                        cts.Token).ConfigureAwait(false);
 
-                success = !flushResult.IsCanceled;
+                    success = !flushResult.IsCanceled;
+                }
+                catch (OperationCanceledException exception) when (exception.CancellationToken == cts.Token)
+                {
+                    // Process/translate this exception for the benefit of _taskExceptionObserver.
+
+                    // Can be because cancellationToken was canceled by DisposeAsync or GoAway; that's fine.
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (_disposedCts.IsCancellationRequested)
+                    {
+                        // DisposeAsync aborted the request.
+                        throw new IceRpcException(IceRpcError.OperationAborted);
+                    }
+                    else
+                    {
+                        Debug.Assert(_goAwayCts.IsCancellationRequested);
+                        throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
+                    }
+                }
             }
             catch (Exception exception) when (_taskExceptionObserver is not null)
             {
@@ -1460,9 +1479,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (OperationCanceledException)
             {
-                // Expected when the connection is shut down or the invocation is canceled by GoAway.
-                // Ideally we'd throw a specific exception when the invocation is canceled by GoAway, but it's not
-                // clear how to transmit this exception to the caller.
+                // Expected if cancellationToken was canceled.
             }
             catch (IceRpcException)
             {
@@ -1480,14 +1497,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             finally
             {
-                DecrementDispatchInvocationCount();
-                Cleanup(success);
-            }
-
-            void Cleanup(bool success)
-            {
                 payloadWriter.CompleteOutput(success);
                 payloadContinuation.Complete();
+                DecrementDispatchInvocationCount();
             }
         }
     }

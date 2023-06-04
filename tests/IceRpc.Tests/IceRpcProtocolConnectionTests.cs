@@ -815,7 +815,7 @@ public sealed class IceRpcProtocolConnectionTests
         // We test these two exceptions to ensure the InvokeAsync implementation let them flow and doesn't catch them to
         // wrap then.
         Exception exception =
-            operationCanceledException ? new InvalidOperationException() : new OperationCanceledException();
+            operationCanceledException ? new OperationCanceledException() : new InvalidOperationException();
 
         // Act
         payload.SetReadException(exception);
