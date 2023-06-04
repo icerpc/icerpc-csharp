@@ -237,6 +237,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 if (_streamInputOutputCount == 0)
                 {
+                    // That's only for consistency. _streamsCompleted.Task matters only to ShutdownAsync.
                     _streamsCompleted.TrySetResult();
                 }
                 if (_dispatchInvocationCount == 0)
@@ -1205,12 +1206,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     /// <remarks>This method must be called with _mutex locked.</remarks>
     private void IncrementDispatchInvocationCount()
     {
-        if (_dispatchInvocationCount == 0 && _streamInputOutputCount == 0)
+        if (_dispatchInvocationCount++ == 0 && _streamInputOutputCount == 0)
         {
             // Cancel inactivity check.
             _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
-        ++_dispatchInvocationCount;
     }
 
     /// <summary>Increments the stream input/output count.</summary>
@@ -1465,6 +1465,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     }
                     else
                     {
+                        // That's typically or only for one-way requests.
                         Debug.Assert(_goAwayCts.IsCancellationRequested);
                         throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
                     }
