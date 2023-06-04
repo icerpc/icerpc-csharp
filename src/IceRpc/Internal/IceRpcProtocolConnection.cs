@@ -38,14 +38,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // This cancellation token source is canceled when the connection is disposed.
     private readonly CancellationTokenSource _disposedCts = new();
 
-    // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
-    private int _headerSizeLength = 2;
-
     // Canceled when we receive the GoAway frame from the peer.
     private readonly CancellationTokenSource _goAwayCts = new();
 
     // The GoAway frame received from the peer. Read it only after _goAwayCts is canceled.
     private IceRpcGoAway _goAwayFrame;
+
+    // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
+    private int _headerSizeLength = 2;
 
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
