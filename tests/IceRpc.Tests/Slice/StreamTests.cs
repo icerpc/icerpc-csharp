@@ -333,7 +333,7 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that canceling the iteration completes the pipe reader from which the stream elements are being
+    /// <summary>Test that abandoning the iteration completes the pipe reader from which the stream elements are being
     /// decoded.</summary>
     [Test]
     public async Task Decoding_completes_when_iteration_is_canceled()
