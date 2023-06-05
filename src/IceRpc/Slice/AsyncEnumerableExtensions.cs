@@ -221,10 +221,6 @@ public static class AsyncEnumerableExtensions
             }
 
             encodeOptions ??= SliceEncodeOptions.Default;
-
-            // Ensure that the pipe writer flush is configured to not block.
-            Debug.Assert(encodeOptions.PipeOptions.PauseWriterThreshold == 0);
-
             _pipe = new Pipe(encodeOptions.PipeOptions);
             _streamFlushThreshold = encodeOptions.StreamFlushThreshold;
             _encodeAction = encodeAction;
