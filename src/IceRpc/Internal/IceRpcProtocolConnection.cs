@@ -85,6 +85,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // Keeps track of the number of stream Input and Output that are not completed yet.
     // It's not the same as the _dispatchInvocationCount: a dispatch or invocation can be completed while the
     // application is still reading an incoming frame payload that corresponds to a stream input.
+    // ShutdownAsync waits for both _streamInputOutputCount and _dispatchInvocationCount to reach 0, while DisposeAsync
+    // only waits for _dispatchInvocationCount to reach 0.
     private int _streamInputOutputCount;
 
     // The streams are completed when _shutdownTask is not null and _streamInputOutputCount is 0.
