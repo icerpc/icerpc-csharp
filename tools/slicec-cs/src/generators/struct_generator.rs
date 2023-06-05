@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
@@ -13,7 +12,7 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
 
-pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) {
+pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     let escaped_identifier = struct_def.escape_identifier();
     let fields = struct_def.fields();
     let namespace = struct_def.namespace();
@@ -144,5 +143,5 @@ pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) 
         .build(),
     );
 
-    generated_code.insert_scoped(struct_def, builder.build());
+    builder.build()
 }

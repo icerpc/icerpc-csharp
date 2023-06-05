@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
@@ -13,7 +12,7 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Encoding, Field};
 use slicec::utils::code_gen_util::TypeContext;
 
-pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
+pub fn generate_class(class_def: &Class) -> CodeBlock {
     let class_name = class_def.escape_identifier();
     let namespace = class_def.namespace();
     let has_base_class = class_def.base_class().is_some();
@@ -119,7 +118,7 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
 
     class_builder.add_block(encode_and_decode(class_def));
 
-    generated_code.insert_scoped(class_def, class_builder.build());
+    class_builder.build()
 }
 
 fn constructor(

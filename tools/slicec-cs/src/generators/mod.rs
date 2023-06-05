@@ -4,19 +4,17 @@ mod class_generator;
 mod dispatch_generator;
 mod enum_generator;
 mod exception_generator;
-mod generated_code;
-mod namespace_generator;
 mod proxy_generator;
 mod struct_generator;
 
-use generated_code::GeneratedCode;
+use crate::cs_attributes::match_cs_namespace;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::slice_file::SliceFile;
 use slicec::visitor::Visitor;
 
 struct Generator<'a> {
-    pub generated_code: &'a mut GeneratedCode,
+    code: &'a mut CodeBlock,
 }
 
 impl Visitor for Generator<'_> {
@@ -25,24 +23,24 @@ impl Visitor for Generator<'_> {
     fn visit_module(&mut self, _: &Module) {}
 
     fn visit_struct(&mut self, struct_def: &Struct) {
-        struct_generator::generate_struct(struct_def, self.generated_code);
+        self.code.add_block(&struct_generator::generate_struct(struct_def));
     }
 
     fn visit_class(&mut self, class_def: &Class) {
-        class_generator::generate_class(class_def, self.generated_code);
+        self.code.add_block(&class_generator::generate_class(class_def));
     }
 
     fn visit_exception(&mut self, exception_def: &Exception) {
-        exception_generator::generate_exception(exception_def, self.generated_code);
+        self.code.add_block(&exception_generator::generate_exception(exception_def));
     }
 
     fn visit_interface(&mut self, interface_def: &Interface) {
-        proxy_generator::generate_proxy(interface_def, self.generated_code);
-        dispatch_generator::generate_dispatch(interface_def, self.generated_code);
+        self.code.add_block(&proxy_generator::generate_proxy(interface_def));
+        self.code.add_block(&dispatch_generator::generate_dispatch(interface_def));
     }
 
     fn visit_enum(&mut self, enum_def: &Enum) {
-        enum_generator::generate_enum(enum_def, self.generated_code);
+        self.code.add_block(&enum_generator::generate_enum(enum_def));
     }
 
     fn visit_operation(&mut self, _: &Operation) {}
@@ -61,26 +59,29 @@ impl Visitor for Generator<'_> {
 }
 
 pub fn generate_from_slice_file(slice_file: &SliceFile) -> String {
-    let mut generated_code = GeneratedCode::new();
+    // Write the preamble at the top of the generated file.
+    let mut generated_code = preamble(slice_file);
 
-    generated_code.preamble.push(preamble(slice_file));
+    // If the slice file wasn't empty, generate code for its contents.
+    if let Some(module_ptr) = &slice_file.module {
+        // First generate the file's namespace declaration.
+        let module_def = module_ptr.borrow();
+        let identifier = match module_def.find_attribute(match_cs_namespace) {
+            Some(namespace) => namespace,
+            // TODO this should probably be escaped and pascal cased. See #3259.
+            None => module_def.identifier().replace("::", "."),
+        };
+        generated_code.add_block(&format!("namespace {identifier};"));
 
-    let mut generator = Generator {
-        generated_code: &mut generated_code,
-    };
-    slice_file.visit_with(&mut generator);
+        // Then generate code for the user's slice definitions.
+        let mut generator = Generator {
+            code: &mut generated_code,
+        };
+        slice_file.visit_with(&mut generator);
+    }
 
-    namespace_generator::generate_namespaces(slice_file, &mut generated_code);
-
-    // Move the generated code out of the generated_code struct and consolidate into a
-    // single string.
-    generated_code
-        .preamble
-        .into_iter()
-        .chain(generated_code.code_blocks.into_iter())
-        .collect::<CodeBlock>()
-        .to_string()
-        + "\n" // End the file with a trailing newline.
+    // End the file with a trailing newline.
+    generated_code.to_string() + "\n"
 }
 
 fn preamble(slice_file: &SliceFile) -> CodeBlock {
@@ -97,7 +98,8 @@ fn preamble(slice_file: &SliceFile) -> CodeBlock {
 
 using IceRpc.Slice;
 
-[assembly:Slice("{file}.slice")]"#,
+[assembly:Slice("{file}.slice")]
+"#,
         version = env!("CARGO_PKG_VERSION"),
         file = slice_file.filename,
     )

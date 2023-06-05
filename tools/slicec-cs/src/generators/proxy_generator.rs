@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
@@ -12,7 +11,7 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
 
-pub fn generate_proxy(interface_def: &Interface, generated_code: &mut GeneratedCode) {
+pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();
     let interface = interface_def.interface_name(); // IFoo
     let slice_interface = interface_def.module_scoped_identifier();
@@ -116,7 +115,7 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
 
     code.add_block(&proxy_impl_builder.build());
 
-    generated_code.insert_scoped(interface_def, code)
+    code
 }
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
@@ -308,7 +307,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
     builder.set_body(
         format!(
             "(({base_proxy_impl})this).{async_name}({operation_params})",
-            base_proxy_impl = operation.parent().unwrap().proxy_name(),
+            base_proxy_impl = operation.parent().proxy_name(),
             operation_params = operation_params.join(", "),
         )
         .into(),

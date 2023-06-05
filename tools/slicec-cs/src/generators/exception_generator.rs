@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
@@ -13,7 +12,7 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::{Encoding, Exception, Member, Type};
 use slicec::utils::code_gen_util::TypeContext;
 
-pub fn generate_exception(exception_def: &Exception, generated_code: &mut GeneratedCode) {
+pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
     let exception_name = exception_def.escape_identifier();
     let has_base = exception_def.base.is_some();
 
@@ -170,7 +169,7 @@ ConvertToUnhandled = true;",
 
     exception_class_builder.add_block(encode_core_method(exception_def));
 
-    generated_code.insert_scoped(exception_def, exception_class_builder.build());
+    exception_class_builder.build()
 }
 
 fn encode_core_method(exception_def: &Exception) -> CodeBlock {
