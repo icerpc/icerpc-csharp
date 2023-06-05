@@ -23,24 +23,37 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private Task? _connectTask;
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private IMultiplexedStream? _controlStream;
-    private int _dispatchCount;
-    private readonly IDispatcher? _dispatcher;
-    private readonly TaskCompletionSource _dispatchesCompleted =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // The number of outstanding dispatches and invocations.
+    // DisposeAsync waits until this count reaches 0 (using _dispatchesAndInvocationsCompleted) before disposing the
+    // underlying transport connection. So when this count is greater than 0, we know _transportConnection and other
+    // fields are not disposed.
+    // _dispatchInvocationCount is also used for the inactivity check: the connection remains active while
+    // _dispatchInvocationCount > 0 or _streamInputOutputCount > 0.
+    private int _dispatchInvocationCount;
 
     private readonly SemaphoreSlim? _dispatchSemaphore;
+
+    private readonly IDispatcher? _dispatcher;
+    private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private Task? _disposeTask;
 
     // This cancellation token source is canceled when the connection is disposed.
     private readonly CancellationTokenSource _disposedCts = new();
 
-    private Task? _disposeTask;
+    // Canceled when we receive the GoAway frame from the peer.
+    private readonly CancellationTokenSource _goAwayCts = new();
+
+    // The GoAway frame received from the peer. Read it only after _goAwayCts is canceled.
+    private IceRpcGoAway _goAwayFrame;
 
     // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
     private int _headerSizeLength = 2;
 
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
-
     private string? _invocationRefusedMessage;
 
     // The ID of the last bidirectional stream accepted by this connection. It's null as long as no bidirectional stream
@@ -54,10 +67,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly object _mutex = new();
     private int _peerMaxHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
-    // An invocation is pending once its stream is created and it remains pending until the request is fully sent
-    // (oneway) or a response is received (twoway). _pendingInvocations owns the invocation CTS.
-    private readonly LinkedList<(IMultiplexedStream, CancellationTokenSource)> _pendingInvocations = new();
-
     private Task? _readGoAwayTask;
 
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
@@ -65,7 +74,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private IMultiplexedStream? _remoteControlStream;
 
-    private readonly CancellationTokenSource _shutdownCts;
+    private readonly CancellationTokenSource _shutdownOrGoAwayCts;
 
     // The thread that completes this TCS can run the continuations, and as a result its result must be set without
     // holding a lock on _mutex.
@@ -73,11 +82,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private Task? _shutdownTask;
 
+    // Keeps track of the number of stream Input and Output that are not completed yet.
+    // It's not the same as the _dispatchInvocationCount: a dispatch or invocation can be completed while the
+    // application is still reading an incoming frame payload that corresponds to a stream input.
+    // ShutdownAsync waits for both _streamInputOutputCount and _dispatchInvocationCount to reach 0, while DisposeAsync
+    // only waits for _dispatchInvocationCount to reach 0.
+    private int _streamInputOutputCount;
+
     // The streams are completed when _shutdownTask is not null and _streamInputOutputCount is 0.
     private readonly TaskCompletionSource _streamsCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    // Keeps track of the number of stream Input and Output that are not completed yet.
-    private int _streamInputOutputCount;
 
     private readonly ITaskExceptionObserver? _taskExceptionObserver;
 
@@ -212,7 +225,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _readGoAwayTask = ReadGoAwayAsync(_disposedCts.Token);
 
                 // Start a task that accepts requests (the "accept requests loop")
-                _acceptRequestsTask = AcceptRequestsAsync(_shutdownCts.Token);
+                _acceptRequestsTask = AcceptRequestsAsync(_shutdownOrGoAwayCts.Token);
             }
 
             // The _acceptRequestsTask waits for this PerformConnectAsync completion before reading anything. As soon as
@@ -233,11 +246,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 if (_streamInputOutputCount == 0)
                 {
+                    // That's only for consistency. _streamsCompleted.Task matters only to ShutdownAsync.
                     _streamsCompleted.TrySetResult();
                 }
-                if (_dispatchCount == 0)
+                if (_dispatchInvocationCount == 0)
                 {
-                    _dispatchesCompleted.TrySetResult();
+                    _dispatchesAndInvocationsCompleted.TrySetResult();
                 }
 
                 _shutdownTask ??= Task.CompletedTask;
@@ -257,8 +271,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             if (_connectTask is not null)
             {
-                // Since we await _dispatchesCompleted.Task before disposing the transport connection (or disposing
-                // anything else), a dispatch can't get an IceRpcException(OperationAborted) when sending a response.
+                // We wait for _dispatchesAndInvocationsCompleted (since dispatches and invocations are somewhat under
+                // our control), but not for _streamsCompleted, since we can't make the application complete the
+                // incoming payload pipe readers.
                 try
                 {
                     await Task.WhenAll(
@@ -266,7 +281,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         _acceptRequestsTask ?? Task.CompletedTask,
                         _readGoAwayTask ?? Task.CompletedTask,
                         _shutdownTask,
-                        _dispatchesCompleted.Task).ConfigureAwait(false);
+                        _dispatchesAndInvocationsCompleted.Task).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -275,14 +290,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
             }
 
-            // Now that _readGoAwayTask is completed, we can safely dispose all remaining invocationCts.
-            foreach ((IMultiplexedStream _, CancellationTokenSource invocationCts) in _pendingInvocations)
-            {
-                invocationCts.Dispose();
-            }
-
-            // We didn't wait for _streamsCompleted above. Invocations and the sending of payload continuations that are
-            // not canceled yet can be aborted by this disposal.
+            // If the application is still reading some incoming payload, the disposal of the transport connection can
+            // abort this reading.
             await _transportConnection.DisposeAsync().ConfigureAwait(false);
 
             // It's safe to complete the output since write operations have been completed by the transport connection
@@ -295,7 +304,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             _dispatchSemaphore?.Dispose();
             _disposedCts.Dispose();
-            _shutdownCts.Dispose();
+            _goAwayCts.Dispose();
+            _shutdownOrGoAwayCts.Dispose();
 
             await _inactivityTimeoutTimer.DisposeAsync().ConfigureAwait(false);
         }
@@ -308,9 +318,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             throw new InvalidOperationException(
                 $"Cannot send {request.Protocol} request on {Protocol.IceRpc} connection.");
         }
-
-        CancellationToken disposedCancellationToken;
-        CancellationToken shutdownCancellationToken;
 
         lock (_mutex)
         {
@@ -336,49 +343,36 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 throw new NotSupportedException("The icerpc protocol does not support fragments.");
             }
 
-            disposedCancellationToken = _disposedCts.Token;
-            shutdownCancellationToken = _shutdownCts.Token;
+            IncrementDispatchInvocationCount();
         }
 
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-#pragma warning disable CA2000
-            // _pendingInvocations will own this invocationCts.
-            var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(disposedCancellationToken);
-#pragma warning restore CA2000
+            // Since _dispatchInvocationCount > 0, _disposedCts is not disposed.
+            using var invocationCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                _disposedCts.Token);
 
-            CancellationToken invocationCancellationToken = invocationCts.Token;
-
-            // When not null, _pendingInvocations owns the invocationCts.
-            LinkedListNode<(IMultiplexedStream, CancellationTokenSource)>? pendingInvocationNode = null;
-
-            // True when we send the payload continuation of a one-way request.
-            bool onewayContinuation = false;
-
-            IMultiplexedStream? stream = null;
             PipeReader? streamInput = null;
 
+            // This try/catch block cleans up streamInput (when not null) and decrements the dispatch-invocation count.
             try
             {
-                // We occasionally dispose this tokenRegistration explicitly.
-                using CancellationTokenRegistration tokenRegistration = cancellationToken.UnsafeRegister(
-                    cts => ((CancellationTokenSource)cts!).Cancel(),
-                    invocationCts);
-
                 // Create the stream.
+                IMultiplexedStream stream;
                 try
                 {
-                    // We want to cancel CreateStreamAsync as soon as the connection is being shutdown instead of
-                    // waiting for its disposal.
-                    using CancellationTokenRegistration _ = shutdownCancellationToken.UnsafeRegister(
+                    // We want to cancel CreateStreamAsync as soon as the connection is being shutdown or received a
+                    // GoAway frame.
+                    using CancellationTokenRegistration _ = _shutdownOrGoAwayCts.Token.UnsafeRegister(
                         cts => ((CancellationTokenSource)cts!).Cancel(),
                         invocationCts);
 
                     stream = await _transportConnection.CreateStreamAsync(
                         bidirectional: !request.IsOneway,
-                        invocationCancellationToken).ConfigureAwait(false);
+                        invocationCts.Token).ConfigureAwait(false);
 
                     streamInput = stream.IsBidirectional ? stream.Input : null;
                 }
@@ -394,18 +388,16 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     RefuseNewInvocations("The connection was lost.");
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage, exception);
                 }
-                catch (ObjectDisposedException)
-                {
-                    // The transport connection was disposed concurrently by DisposeAsync.
-                    Debug.Assert(_disposeTask is not null);
-                    throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
-                }
                 catch (Exception exception)
                 {
                     Debug.Fail($"CreateStreamAsync failed with an unexpected exception: {exception}");
                     RefuseNewInvocations("The connection was lost.");
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage, exception);
                 }
+
+                using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
+                    OnGoAway,
+                    invocationCts);
 
                 PipeWriter payloadWriter;
 
@@ -424,10 +416,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // Decorate the stream to decrement the input/output count on Complete.
                         stream = new MultiplexedStreamDecorator(stream, DecrementStreamInputOutputCount);
                         streamInput = stream.IsBidirectional ? stream.Input : null;
-
-                        // When we receive a GoAway frame, we iterate over _pendingInvocations and cancel invocations
-                        // that won't be dispatched.
-                        pendingInvocationNode = _pendingInvocations.AddLast((stream, invocationCts));
                     }
 
                     EncodeHeader(stream.Output);
@@ -442,16 +430,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // From now on, we only use payloadWriter to write and we make sure to complete it.
 
                 bool hasContinuation = request.PayloadContinuation is not null;
-                Task writesClosed = stream.WritesClosed;
                 FlushResult flushResult;
 
                 try
                 {
                     flushResult = await payloadWriter.CopyFromAsync(
                         request.Payload,
-                        writesClosed,
+                        stream.WritesClosed,
                         endStream: !hasContinuation,
-                        invocationCancellationToken).ConfigureAwait(false);
+                        invocationCts.Token).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -473,26 +460,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 else
                 {
-                    // Send the continuation in a background task after "detaching" this continuation. This task
-                    // owns payloadContinuation and payloadWriter.
-                    PipeReader payloadContinuation = request.PayloadContinuation!;
-                    request.PayloadContinuation = null;
-
-                    // For one-way requests, the send task disposes the invocationCts upon completion.
-                    if (request.IsOneway)
-                    {
-                        onewayContinuation = true;
-
-                        // Avoid concurrency issue with the send task when it disposes invocationCts.
-                        tokenRegistration.Dispose();
-                    }
-
-                    // Send the payload continuation on a separate thread instead of starting the task synchronously
-                    // with _ = SendPayloadContinuationAsync(...). This ensures that the synchronous activity that could
-                    // result from reading or writing the payload continuation doesn't delay in any way the caller.
-                    _ = Task.Run(
-                        () => SendPayloadContinuationAsync(payloadContinuation, payloadWriter, writesClosed),
-                        CancellationToken.None); // must run no matter what to complete the payload continuation
+                    // Sends the payload continuation in a background thread.
+                    SendRequestPayloadContinuation(
+                        request,
+                        payloadWriter,
+                        stream.WritesClosed,
+                        OnGoAway,
+                        invocationCts.Token);
                 }
 
                 if (request.IsOneway)
@@ -507,7 +481,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     ReadResult readResult = await streamInput.ReadSegmentAsync(
                         SliceEncoding.Slice2,
                         _maxLocalHeaderSize,
-                        invocationCancellationToken).ConfigureAwait(false);
+                        invocationCts.Token).ConfigureAwait(false);
 
                     // Nothing cancels the stream input pipe reader.
                     Debug.Assert(!readResult.IsCanceled);
@@ -544,35 +518,53 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         "Received an icerpc response with an invalid header.",
                         exception);
                 }
+
+                void OnGoAway(object? cts)
+                {
+                    if (!stream.IsStarted ||
+                        stream.Id >=
+                            (stream.IsBidirectional ?
+                                _goAwayFrame.BidirectionalStreamId :
+                                _goAwayFrame.UnidirectionalStreamId))
+                    {
+                        // The request wasn't received by the peer so it's safe to cancel the invocation.
+                        ((CancellationTokenSource)cts!).Cancel();
+                    }
+                }
             }
-            catch (OperationCanceledException exception) when (
-                exception.CancellationToken == invocationCancellationToken)
+            catch (OperationCanceledException exception) when (exception.CancellationToken == invocationCts.Token)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (disposedCancellationToken.IsCancellationRequested)
+                if (_disposedCts.IsCancellationRequested)
                 {
                     // DisposeAsync aborted the request.
                     throw new IceRpcException(IceRpcError.OperationAborted);
                 }
                 else
                 {
+                    Debug.Assert(_goAwayCts.IsCancellationRequested);
                     throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
                 }
             }
             finally
             {
                 streamInput?.Complete();
+                DecrementDispatchInvocationCount();
+            }
 
-                if (pendingInvocationNode is null)
-                {
-                    invocationCts.Dispose();
-                }
-                else if (!onewayContinuation)
-                {
-                    RemovePendingInvocation(pendingInvocationNode);
-                }
-                // else it's removed by the sending of the payload continuation (one-way).
+            static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
+                ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+
+                StatusCode statusCode = decoder.DecodeStatusCode();
+                string? errorMessage = statusCode == StatusCode.Success ? null : decoder.DecodeString();
+
+                (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
+                    DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
+
+                return (statusCode, errorMessage, fields, pipeReader);
             }
 
             void EncodeHeader(PipeWriter writer)
@@ -598,79 +590,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 CheckPeerHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
-
-            async Task SendPayloadContinuationAsync(
-                PipeReader payloadContinuation,
-                PipeWriter payloadWriter,
-                Task writesClosed)
-            {
-                var flushResult = new FlushResult(isCanceled: true, isCompleted: false);
-                try
-                {
-                    // For a two-way request, the cancellation of cancellationToken cancels invocationCts only until
-                    // PerformInvokeAsync completes (see tokenRegistration above). Afterwards, the cancellation of
-                    // cancellationToken has no effect on invocationCts, so it doesn't cancel the copying of
-                    // payloadContinuation.
-                    flushResult = await payloadWriter.CopyFromAsync(
-                        payloadContinuation,
-                        writesClosed,
-                        endStream: true,
-                        invocationCancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception exception) when (_taskExceptionObserver is not null)
-                {
-                    _taskExceptionObserver.RequestPayloadContinuationFailed(
-                        request,
-                        _connectionContext!.TransportConnectionInformation,
-                        exception);
-                }
-                catch (OperationCanceledException exception) when (
-                    exception.CancellationToken == invocationCancellationToken)
-                {
-                    // Expected when the connection is shut down.
-                }
-                catch (IceRpcException)
-                {
-                    // Expected, with for example:
-                    //  - IceRpcError.ConnectionAborted when the peer aborts the connection
-                    //  - IceRpcError.OperationAborted when the application disposes the connection.
-                }
-                catch (Exception exception)
-                {
-                    // This exception is unexpected when running the IceRPC test suite. A test that
-                    // expects such an exception must install a task exception observer.
-                    Debug.Fail(
-                        $"Failed to send payload continuation of request {request}: {exception}");
-
-                    // If Debug is not enabled and there is no task exception observer, we rethrow to
-                    // generate an Unobserved Task Exception.
-                    throw;
-                }
-                finally
-                {
-                    payloadWriter.CompleteOutput(!flushResult.IsCanceled);
-                    payloadContinuation.Complete();
-
-                    if (onewayContinuation)
-                    {
-                        RemovePendingInvocation(pendingInvocationNode);
-                    }
-                }
-            }
-
-            static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
-                ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-
-                StatusCode statusCode = decoder.DecodeStatusCode();
-                string? errorMessage = statusCode == StatusCode.Success ? null : decoder.DecodeString();
-
-                (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
-                    DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
-
-                return (statusCode, errorMessage, fields, pipeReader);
-            }
         }
     }
 
@@ -695,9 +614,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             {
                 _streamsCompleted.TrySetResult();
             }
-            if (_dispatchCount == 0)
+            if (_dispatchInvocationCount == 0)
             {
-                _dispatchesCompleted.TrySetResult();
+                _dispatchesAndInvocationsCompleted.TrySetResult();
             }
 
             _shutdownTask = PerformShutdownAsync();
@@ -708,7 +627,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             await Task.Yield(); // exit mutex lock
 
-            _shutdownCts.Cancel();
+            _shutdownOrGoAwayCts.Cancel();
 
             try
             {
@@ -783,8 +702,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // Expected if the peer closed the connection first.
                 }
 
-                // We wait for the completion of the dispatches that we created.
-                await _dispatchesCompleted.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+                // We wait for the completion of the dispatches that we created (and, secondarily, invocations).
+                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -820,7 +739,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         ConnectionOptions options,
         ITaskExceptionObserver? taskExceptionObserver)
     {
-        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token);
+        _shutdownOrGoAwayCts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, _goAwayCts.Token);
 
         _taskExceptionObserver = taskExceptionObserver;
 
@@ -843,7 +762,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _streamInputOutputCount == 0 && _shutdownTask is null)
+                if (_shutdownTask is null && _dispatchInvocationCount == 0 && _streamInputOutputCount == 0)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
@@ -917,29 +836,31 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         try
         {
-            // We check the cancellation token for each iteration because we want to exit the accept requests
-            // loop as soon as ShutdownAsync requests this cancellation, even when more streams can be accepted
-            // without waiting.
+            // We check the cancellation token for each iteration because we want to exit the accept requests loop as
+            // soon as ShutdownAsync/GoAway requests this cancellation, even when more streams can be accepted without
+            // waiting.
             while (!cancellationToken.IsCancellationRequested)
             {
                 // When _dispatcher is null, the multiplexed connection MaxUnidirectionalStreams and
-                // MaxBidirectionalStreams options are configured to not accept any request-stream from the
-                // peer. As a result, when _dispatcher is null, this call will block indefinitely until the
-                // transport connection is closed or disposed, or until the cancellation token is canceled
-                // by ShutdownAsync.
+                // MaxBidirectionalStreams options are configured to not accept any request-stream from the peer. As a
+                // result, when _dispatcher is null, this call will block indefinitely until the cancellation token is
+                // canceled by ShutdownAsync, GoAway or DisposeAsync.
                 IMultiplexedStream stream = await _transportConnection.AcceptStreamAsync(cancellationToken)
                     .ConfigureAwait(false);
 
                 lock (_mutex)
                 {
-                    // We don't want to increment _dispatchCount/_streamInputOutputCount when the connection is shutting
-                    // down or being disposed.
+                    // We don't want to increment _dispatchInvocationCount/_streamInputOutputCount when the connection
+                    // is shutting down or being disposed.
                     if (_shutdownTask is not null)
                     {
                         // Note that cancellationToken may not be canceled yet at this point.
                         throw new OperationCanceledException();
                     }
 
+                    // The logic in IncrementStreamInputOutputCount requires that we increment the dispatch-invocation
+                    // count first.
+                    IncrementDispatchInvocationCount();
                     IncrementStreamInputOutputCount(stream.IsBidirectional);
 
                     // Decorate the stream to decrement the stream input/output count on Complete.
@@ -956,12 +877,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     {
                         _lastRemoteUnidirectionalStreamId = stream.Id;
                     }
-
-                    ++_dispatchCount;
                 }
 
                 // Start a task to read the stream and dispatch the request. We pass CancellationToken.None to Task.Run
-                // because DispatchRequestAsync must clean-up the stream.
+                // because DispatchRequestAsync must clean-up the stream and the dispatch-invocation count.
                 _ = Task.Run(() => DispatchRequestAsync(stream), CancellationToken.None);
             }
         }
@@ -994,6 +913,24 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
+    private void DecrementDispatchInvocationCount()
+    {
+        lock (_mutex)
+        {
+            if (--_dispatchInvocationCount == 0)
+            {
+                if (_shutdownTask is not null)
+                {
+                    _dispatchesAndInvocationsCompleted.TrySetResult();
+                }
+                else if (!_refuseInvocations && _streamInputOutputCount == 0)
+                {
+                    ScheduleInactivityCheck();
+                }
+            }
+        }
+    }
+
     /// <summary>Decrements the stream input/output count.</summary>
     private void DecrementStreamInputOutputCount()
     {
@@ -1005,7 +942,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 {
                     _streamsCompleted.TrySetResult();
                 }
-                else if (!_refuseInvocations)
+                else if (!_refuseInvocations && _dispatchInvocationCount == 0)
                 {
                     // We enable the inactivity check in order to complete _shutdownRequestedTcs when inactive for too
                     // long. _refuseInvocations is true when the connection is either about to be "shutdown requested",
@@ -1102,11 +1039,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     try
                     {
-                        // We don't use cancellationToken here because it's canceled shortly afterwards. This works
-                        // around https://github.com/dotnet/runtime/issues/82704 where the stream would otherwise be
-                        // aborted after the successful write. It's also fine to just use _disposedCts.Token: if writes
-                        // are closed because the peer is not longer interested in the response, the write operations
-                        // will raise an IceRpcException(StreamAborted) which is ignored.
+                        // We don't use cancellationToken here because it's canceled shortly afterwards by the
+                        // completion of writesClosed. This works around https://github.com/dotnet/runtime/issues/82704
+                        // where the stream would otherwise be aborted after the successful write. It's also fine to
+                        // just use _disposedCts.Token: if writes are closed because the peer is not longer interested
+                        // in the response, the write operations will raise an IceRpcException(StreamAborted) which is
+                        // ignored.
                         bool hasContinuation = response.PayloadContinuation is not null;
 
                         flushResult = await payloadWriter.CopyFromAsync(
@@ -1177,13 +1115,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             fieldsPipeReader?.Complete();
 
-            lock (_mutex)
-            {
-                if (--_dispatchCount == 0 && _shutdownTask is not null)
-                {
-                    _ = _dispatchesCompleted.TrySetResult();
-                }
-            }
+            DecrementDispatchInvocationCount();
         }
 
         async Task<OutgoingResponse> PerformDispatchRequestAsync(
@@ -1282,22 +1214,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void DisposeInvocationCts(
-        CancellationTokenSource invocationCts,
-        LinkedListNode<(IMultiplexedStream, CancellationTokenSource)>? node)
+    /// <summary>Increments the dispatch-invocation count.</summary>
+    /// <remarks>This method must be called with _mutex locked.</remarks>
+    private void IncrementDispatchInvocationCount()
     {
-        invocationCts.Dispose();
-
-        // We only remove the pending connection when we own the invocationCts.
-        if (node is not null)
+        if (_dispatchInvocationCount++ == 0 && _streamInputOutputCount == 0)
         {
-            lock (_mutex)
-            {
-                if (!_refuseInvocations)
-                {
-                    _pendingInvocations.Remove(node);
-                }
-            }
+            // Cancel inactivity check.
+            _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -1305,16 +1229,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     /// <remarks>This method must be called with _mutex locked.</remarks>
     private void IncrementStreamInputOutputCount(bool bidirectional)
     {
-        Debug.Assert(_shutdownTask is null);
-
-        bool wasInactive = _streamInputOutputCount == 0;
+        Debug.Assert(_dispatchInvocationCount > 0);
         _streamInputOutputCount += bidirectional ? 2 : 1;
-
-        if (wasInactive)
-        {
-            // Cancel inactivity check.
-            _ = _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-        }
     }
 
     private async Task ReadGoAwayAsync(CancellationToken cancellationToken)
@@ -1341,10 +1257,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             // We don't call CancelPendingRead on remoteInput
             Debug.Assert(!readResult.IsCanceled);
 
-            IceRpcGoAway goAwayFrame;
             try
             {
-                goAwayFrame = SliceEncoding.Slice2.DecodeBuffer(
+                _goAwayFrame = SliceEncoding.Slice2.DecodeBuffer(
                     readResult.Buffer,
                     (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
             }
@@ -1354,21 +1269,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
 
             RefuseNewInvocations("The connection was shut down because it received a GoAway frame from the peer.");
-
-            // Abort streams for outgoing requests that were not dispatched by the peer. The invocations will throw
-            // IceRpcException(InvocationCanceled) which can be retried. Since _refuseInvocations is true,
-            // _pendingInvocations is immutable at this point.
-            foreach ((IMultiplexedStream stream, CancellationTokenSource invocationCts) in _pendingInvocations)
-            {
-                if (!stream.IsStarted ||
-                    stream.Id >= (stream.IsBidirectional ?
-                        goAwayFrame.BidirectionalStreamId :
-                        goAwayFrame.UnidirectionalStreamId))
-                {
-                    invocationCts.Cancel();
-                }
-            }
-
+            _goAwayCts.Cancel();
             _ = _shutdownRequestedTcs.TrySetResult();
         }
         catch (OperationCanceledException)
@@ -1378,10 +1279,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         catch (IceRpcException)
         {
+            // We let the task complete with this expected exception.
             throw;
         }
         catch (InvalidDataException exception)
         {
+            // "expected" in the sense it should not trigger a Debug.Fail.
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
                 "The ReadGoAway task was aborted by an icerpc protocol error.",
@@ -1466,22 +1369,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
     }
 
-    private void RemovePendingInvocation(LinkedListNode<(IMultiplexedStream, CancellationTokenSource)> node)
-    {
-        lock (_mutex)
-        {
-            // When _refuseInvocations is true, _pendingInvocations is read-only.
-            if (!_refuseInvocations)
-            {
-                CancellationTokenSource invocationCts = node.Value.Item2;
-                invocationCts.Dispose();
-                _pendingInvocations.Remove(node);
-            }
-        }
-    }
-
     // The inactivity check executes once in _inactivityTimeout. By then either:
-    // - the connection is no longer inactive (and CancelInactivityCheck was called or is being called)
+    // - the connection is no longer inactive (and the inactivity check is canceled or being canceled)
     // - the connection is still inactive and we request shutdown
     private void ScheduleInactivityCheck() =>
         _inactivityTimeoutTimer.Change(_inactivityTimeout, Timeout.InfiniteTimeSpan);
@@ -1506,6 +1395,126 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             encodeAction.Invoke(ref encoder);
             int frameSize = encoder.EncodedByteCount - startPos;
             SliceEncoder.EncodeVarUInt62((uint)frameSize, sizePlaceholder);
+        }
+    }
+
+    /// <summary>Sends the payload continuation of an outgoing request in the background.</summary>
+    /// <remarks>We send the payload continuation on a separate thread with Task.Run: this ensures that the synchronous
+    /// activity that could result from reading or writing the payload continuation doesn't delay in any way the
+    /// caller. </remarks>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="payloadWriter">The payload writer.</param>
+    /// <param name="writesClosed">A task that completes when we can no longer write to payloadWriter.</param>
+    /// <param name="onGoAway">An action to execute with a CTS when we receive the GoAway frame from the peer.</param>
+    /// <param name="cancellationToken">The cancellation token of the invocation; the associated CTS is disposed when
+    /// the invocation completes.</param>
+    private void SendRequestPayloadContinuation(
+        OutgoingRequest request,
+        PipeWriter payloadWriter,
+        Task writesClosed,
+        Action<object?> onGoAway,
+        CancellationToken cancellationToken)
+    {
+        Debug.Assert(request.PayloadContinuation is not null);
+
+        // First "detach" the continuation.
+        PipeReader payloadContinuation = request.PayloadContinuation;
+        request.PayloadContinuation = null;
+
+        lock (_mutex)
+        {
+            Debug.Assert(_dispatchInvocationCount > 0); // as a result, can't be disposed.
+
+            // Give the task its own dispatch-invocation count. This ensures the transport connection won't be disposed
+            // while the continuation is being sent.
+            IncrementDispatchInvocationCount();
+        }
+
+        // This background task owns payloadContinuation, payloadWriter and 1 dispatch-invocation count, and must clean
+        // them up. Hence CancellationToken.None.
+        _ = Task.Run(PerformSendRequestPayloadContinuationAsync, CancellationToken.None);
+
+        async Task PerformSendRequestPayloadContinuationAsync()
+        {
+            bool success = false;
+
+            try
+            {
+                // Since _dispatchInvocationCount > 0, _disposedCts is not disposed.
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
+
+                // This token registration is needed for one-way requests and is redundant for two-way requests.
+                // We want GoAway to cancel the sending of one-way requests that have not been received by the peer,
+                // especially when these requests have payload continuations.
+                using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(onGoAway, cts);
+
+                try
+                {
+                    // The cancellation of the InvokeAsync's cancellationToken cancels cts only until InvokeAsync's
+                    // PerformInvokeAsync completes. Afterwards, the cancellation of InvokeAsync's cancellationToken has
+                    // no effect on cts, so it doesn't cancel the copying of payloadContinuation.
+                    FlushResult flushResult = await payloadWriter.CopyFromAsync(
+                        payloadContinuation,
+                        writesClosed,
+                        endStream: true,
+                        cts.Token).ConfigureAwait(false);
+
+                    success = !flushResult.IsCanceled;
+                }
+                catch (OperationCanceledException exception) when (exception.CancellationToken == cts.Token)
+                {
+                    // Process/translate this exception primarily for the benefit of _taskExceptionObserver.
+
+                    // Can be because cancellationToken was canceled by DisposeAsync or GoAway; that's fine.
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (_disposedCts.IsCancellationRequested)
+                    {
+                        // DisposeAsync aborted the request.
+                        throw new IceRpcException(IceRpcError.OperationAborted);
+                    }
+                    else
+                    {
+                        // When _goAwayCts is canceled and onGoAway cancels its argument:
+                        // - if PerformInvokeAsync is no longer running (typical for a one-way request), we get here
+                        // - if PerformInvokeAsync is still running, we may get here or cancellationToken gets canceled
+                        // first.
+                        Debug.Assert(_goAwayCts.IsCancellationRequested);
+                        throw new IceRpcException(IceRpcError.InvocationCanceled, "The connection is shutting down.");
+                    }
+                }
+            }
+            catch (Exception exception) when (_taskExceptionObserver is not null)
+            {
+                _taskExceptionObserver.RequestPayloadContinuationFailed(
+                    request,
+                    _connectionContext!.TransportConnectionInformation,
+                    exception);
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
+            {
+                // Expected.
+            }
+            catch (IceRpcException)
+            {
+                // Expected, with for example IceRpcError.ConnectionAborted when the peer aborts the connection.
+            }
+            catch (Exception exception)
+            {
+                // This exception is unexpected when running the IceRPC test suite. A test that expects such an
+                // exception must install a task exception observer.
+                Debug.Fail($"Failed to send payload continuation of request {request}: {exception}");
+
+                // If Debug is not enabled and there is no task exception observer, we rethrow to generate an
+                // Unobserved Task Exception.
+                throw;
+            }
+            finally
+            {
+                payloadWriter.CompleteOutput(success);
+                payloadContinuation.Complete();
+                DecrementDispatchInvocationCount();
+            }
         }
     }
 }
