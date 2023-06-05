@@ -1425,7 +1425,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             Debug.Assert(_dispatchInvocationCount > 0); // as a result, can't be disposed.
 
-            // Give the task its own dispatch-invocation count.
+            // Give the task its own dispatch-invocation count. This ensures the transport connection won't be disposed
+            // while the continuation is being sent.
             IncrementDispatchInvocationCount();
         }
 
