@@ -69,6 +69,7 @@ internal class SlicConnection : IMultiplexedConnection
     private int _unidirectionalStreamCount;
     private SemaphoreSlim? _unidirectionalStreamSemaphore;
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
+    private bool _writeShutdown;
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
@@ -337,23 +338,21 @@ internal class SlicConnection : IMultiplexedConnection
         if (TryClose(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed."))
         {
             using SemaphoreLock _ = _writeSemaphore.Acquire();
-            try
+
+            // A server connection might have shutdown already if the client sent the Close frame and shutdown the
+            // duplex connection. We have to make sure here that it's not already the case otherwise the Write on
+            // the SlicDuplexConnectionWriter would fail when writing on a completed pipe writer.
+            if (!IsServer || !_writeShutdown)
             {
                 WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
                 _duplexConnectionWriter.Flush();
-            }
-            catch (InvalidOperationException)
-            {
-                // TODO: Hack alert. This needs to be fixed somehow. The problem here is that
-                // _duplexConnectionWriter.Shutdown() can be called just before acquiring the writer lock.
-            }
-
-            if (!IsServer)
-            {
-                // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
-                // For TCP, it's important to always shutdown the connection on the client-side first to avoid
-                // TIME_WAIT states on the server-side.
-                _duplexConnectionWriter.Shutdown();
+                if (!IsServer)
+                {
+                    // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
+                    // For TCP, it's important to always shutdown the connection on the client-side first to avoid
+                    // TIME_WAIT states on the server-side.
+                    _duplexConnectionWriter.Shutdown();
+                }
             }
         }
 
@@ -730,11 +729,6 @@ internal class SlicConnection : IMultiplexedConnection
         }
 
         return new FlushResult(isCanceled: false, isCompleted: false);
-
-        ValueTask WriteAsync()
-        {
-
-        }
 
         void EncodeStreamFrameHeader(ulong streamId, long size, bool lastStreamFrame)
         {
@@ -1226,6 +1220,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // server-side.
                 Debug.Assert(_isClosed);
                 using SemaphoreLock _ = _writeSemaphore.Acquire();
+                _writeShutdown = true;
                 _duplexConnectionWriter.Shutdown();
             }
         }
