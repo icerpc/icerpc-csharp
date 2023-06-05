@@ -1438,16 +1438,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             try
             {
                 // Since _dispatchInvocationCount > 0, _disposedCts is not disposed.
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    _disposedCts.Token);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposedCts.Token);
 
                 // This token registration is needed for one-way requests and is redundant for two-way requests.
                 // We want GoAway to cancel the sending of one-way requests that have not been received by the peer,
                 // especially when these requests have payload continuations.
-                using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(
-                    onGoAway,
-                    cts);
+                using CancellationTokenRegistration tokenRegistration = _goAwayCts.Token.UnsafeRegister(onGoAway, cts);
 
                 try
                 {
