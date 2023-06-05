@@ -63,6 +63,8 @@ public static class AsyncEnumerableExtensions
 
         public override void CancelPendingRead()
         {
+            // This CancelPendingRead on _pipe.Reader ensures the next ReadAsync returns a canceled read result in the
+            // event we have buffered element in _pipe.Reader.
             _pipe.Reader.CancelPendingRead();
             _cts.Cancel();
         }
@@ -103,11 +105,7 @@ public static class AsyncEnumerableExtensions
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
             // If no more buffered data to read, fill the pipe with new data.
-            if (_pipe.Reader.TryRead(out ReadResult readResult))
-            {
-                return readResult;
-            }
-            else
+            if (!_pipe.Reader.TryRead(out ReadResult readResult))
             {
                 // If ReadAsync is canceled, cancel the enumerator iteration to ensure MoveNextAsync below completes.
                 using CancellationTokenRegistration registration = cancellationToken.UnsafeRegister(
@@ -129,7 +127,7 @@ public static class AsyncEnumerableExtensions
 
                     if (hasNext && EncodeElements() is Task<bool> moveNext)
                     {
-                        // Flush shouldn't block because the pipe is configured to not pause flush.
+                        // Flush doesn't block because the pipe is configured to not pause flush.
                         _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
                         _moveNext = moveNext;
@@ -140,6 +138,10 @@ public static class AsyncEnumerableExtensions
                         // No need to flush the writer, complete takes care of it.
                         _pipe.Writer.Complete();
                     }
+
+                    // There is data in the reader or it's completed since we've just flushed to the writer.
+                    bool ok = _pipe.Reader.TryRead(out readResult);
+                    Debug.Assert(ok);
                 }
                 catch (OperationCanceledException exception)
                 {
@@ -151,7 +153,7 @@ public static class AsyncEnumerableExtensions
                 }
             }
 
-            return await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            return readResult;
 
             Task<bool>? EncodeElements()
             {
