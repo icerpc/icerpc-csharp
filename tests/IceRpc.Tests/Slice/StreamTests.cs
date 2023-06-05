@@ -344,9 +344,6 @@ public class StreamTests
         _ = await pipe.Writer.FlushAsync();
 
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
-
-        using var cts = new CancellationTokenSource();
-        CancellationToken cancel = cts.Token;
         int count = 0;
 
         IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
@@ -356,12 +353,12 @@ public class StreamTests
             sliceFeature: null);
 
         // Act
-        await foreach (int value in values.WithCancellation(cancel))
+        await foreach (int value in values)
         {
             count++;
             if (value == 20)
             {
-                cts.Cancel();
+                break;
             }
         }
 
