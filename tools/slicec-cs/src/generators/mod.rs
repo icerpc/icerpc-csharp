@@ -7,14 +7,11 @@ mod exception_generator;
 mod proxy_generator;
 mod struct_generator;
 
-use crate::cs_attributes::match_cs_namespace;
-use crate::cs_util::{escape_keyword, CsCase};
+use crate::slicec_ext::ModuleExt;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::slice_file::SliceFile;
 use slicec::visitor::Visitor;
-
-use convert_case::Case;
 
 struct Generator<'a> {
     code: &'a mut CodeBlock,
@@ -68,15 +65,8 @@ pub fn generate_from_slice_file(slice_file: &SliceFile) -> String {
     // If the slice file wasn't empty, generate code for its contents.
     if let Some(module_ptr) = &slice_file.module {
         // First generate the file's namespace declaration.
-        let module_def = module_ptr.borrow();
-        let identifier = module_def.find_attribute(match_cs_namespace).unwrap_or_else(|| {
-            // If the module didn't have `cs::namespace` applied to it, compute its C# namespace
-            // by replacing any "::" with "." and pascal casing each segment.
-            let segments = module_def.nested_module_identifier().split("::");
-            let cased_segments = segments.map(|s| escape_keyword(&s.to_cs_case(Case::Pascal)));
-            cased_segments.collect::<Vec<_>>().join(".")
-        });
-        generated_code.add_block(&format!("namespace {identifier};"));
+        let namespace = module_ptr.borrow().as_namespace();
+        generated_code.add_block(&format!("namespace {namespace};"));
 
         // Then generate code for the user's slice definitions.
         let mut generator = Generator {
