@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::{scoped_identifier, InterfaceExt, MemberExt};
-use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_namespace, match_cs_readonly};
+use super::{scoped_identifier, InterfaceExt, MemberExt, ModuleExt};
+use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_readonly};
 use crate::cs_util::{escape_keyword, CsCase};
 use convert_case::Case;
 use slicec::grammar::*;
@@ -107,30 +107,9 @@ pub trait EntityExt: Entity {
         })
     }
 
-    /// The C# namespace of this entity.
+    /// The C# namespace that this entity is contained within.
     fn namespace(&self) -> String {
-        let module_scope = &self.raw_scope().module_scope;
-
-        // List of all recursive (it and its parents) cs::namespace attributes for this entity.
-        let mut attribute_list = self
-            .all_attributes()
-            .into_iter()
-            .map(|l| l.into_iter().find_map(match_cs_namespace))
-            .collect::<Vec<_>>();
-        // Reverse the list so that the top level module name is first.
-        attribute_list.reverse();
-
-        assert!(attribute_list.len() >= module_scope.len());
-
-        module_scope
-            .iter()
-            .enumerate()
-            .map(|(i, s)| match &attribute_list[i] {
-                Some(namespace) => namespace.to_owned(),
-                None => escape_keyword(&s.to_cs_case(Case::Pascal)),
-            })
-            .collect::<Vec<_>>()
-            .join(".")
+        self.get_module().as_namespace()
     }
 
     /// The C# Type ID attribute.
@@ -181,7 +160,7 @@ pub trait EntityExt: Entity {
             }
             Entities::Operation(operation) => {
                 // For operations, we link to the abstract method on the client side interface (ex: `IMyInterface`).
-                let interface_name = operation.parent().unwrap().scoped_interface_name(namespace);
+                let interface_name = operation.parent().scoped_interface_name(namespace);
                 let operation_name = operation.escape_identifier_with_suffix("Async");
                 format!(r#"<see cref="{interface_name}.{operation_name}" />"#)
             }
