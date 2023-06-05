@@ -335,7 +335,7 @@ public class StreamTests
 
     /// <summary>Test that canceling the iteration using an injected cancellation token completes the pipe reader from
     /// which the stream elements are being decoded.</summary>
-    /// <remarks>This test is similar to <see cref="Enumerable_pipe_reader_completion_disposes_the_enumerator" /> but
+    /// <remarks>This test is similar to <see cref="Decoding_completes_when_enumerator_read_is_canceled" /> but
     /// uses a higher level API.</remarks>
     [Test]
     public async Task Decoding_completes_when_iteration_is_canceled()
