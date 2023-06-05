@@ -741,6 +741,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    // V2 uses synchronous Wait() on the semaphore when writing sending stream frames with WriteStreamFrameAsync
     private SlicDuplexConnectionWriterLock AcquireWriterLock()
     {
         lock (_mutex)
@@ -756,6 +757,7 @@ internal class SlicConnection : IMultiplexedConnection
         return new SlicDuplexConnectionWriterLock(this);
     }
 
+    // V1 and V3 uses asynchronous WaitAsync() on the semaphore when writing sending stream frames with WriteStreamFrameAsync
     private async Task<SlicDuplexConnectionWriterLock> AcquireWriterLockAsync()
     {
         lock (_mutex)
@@ -1393,11 +1395,16 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void ReleaseWriterLock()
     {
-        if (Interlocked.Decrement(ref _pendingWriterCount) == 0 ||
-            _duplexConnectionWriter.UnflushedBytes > _packetMaxSize)
-        {
-            _duplexConnectionWriter.Flush();
-        }
+        // V1 does coalescing by flushing only once there are no more pending writers.
+        // if (Interlocked.Decrement(ref _pendingWriterCount) == 0 ||
+        //     _duplexConnectionWriter.UnflushedBytes > _packetMaxSize)
+        // {
+        //     _duplexConnectionWriter.Flush();
+        // }
+
+        // V2 and V3 don't do any coalescing, they just flush each time the semaphore is released.
+        _duplexConnectionWriter.Flush();
+
         _writeSemaphore.Release();
     }
 
