@@ -30,19 +30,6 @@ public interface IMultiplexedStream : IDuplexPipe
     /// the first STREAM frame.</remarks>
     bool IsStarted { get; }
 
-    /// <summary>Gets a task that completes when all read network activity ceases for this stream. This occurs when:
-    /// <list type="bullet">
-    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on this stream's <see
-    /// cref="IDuplexPipe.Input" />.</description></item>
-    /// <item><description>the implementation detects that the peer wrote an "end stream" to mark a successful
-    /// write completion.</description></item>
-    /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete(Exception?)" /> with a
-    /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
-    /// <item><description>the implementation detects a network failure that prevents further reads on the underlying
-    /// network stream.</description></item></list>The task is never faulted or canceled.</summary>
-    /// <value>The reads closed task.</value>
-    Task ReadsClosed { get; }
-
     /// <summary>Gets a task that completes when all write network activity ceases for this stream. This occurs when:
     /// <list type="bullet">
     /// <item><description><see cref="PipeWriter.Complete(Exception?)" /> is called on this stream's <see

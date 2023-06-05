@@ -483,9 +483,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Assert
         Assert.That(async () => await streams.Remote.WritesClosed, Throws.Nothing);
-        Assert.That(async () => await streams.Remote.ReadsClosed, Throws.Nothing);
         Assert.That(async () => await streams.Local.WritesClosed, Throws.Nothing);
-        Assert.That(async () => await streams.Local.ReadsClosed, Throws.Nothing);
     }
 
     /// <summary>Write data until the transport flow control start blocking, at this point we start a read task and

@@ -4,34 +4,31 @@ namespace IceRpc.Internal;
 
 internal static class TaskExtensions
 {
-    /// <summary>Converts this task into a cancellation token.</summary>
-    /// <param name="task">The task to "convert" into a cancellation token.</param>
-    /// <param name="token">The token to observe while the task is running.</param>
-    /// <returns>A cancellation token that is canceled when <paramref name="task" /> completes successfully or
-    /// <paramref name="token" /> is canceled prior to the task's completion. If the task is canceled or fails, the
-    /// returned token is not canceled.</returns>
+    /// <summary>Converts this task into a linked cancellation token.</summary>
+    /// <param name="task">The task that upon completion cancels the linked token.</param>
+    /// <param name="token">The source token.</param>
+    /// <returns>A cancellation token that is canceled when <paramref name="task" /> completes or
+    /// <paramref name="token" /> is canceled.</returns>
     internal static CancellationToken AsCancellationToken(this Task task, CancellationToken token)
     {
-        var cts = new CancellationTokenSource();
-        CancellationToken linkedToken = cts.Token;
-        _ = CancelOnSuccessAsync();
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+
+        CancellationToken linkedToken = linkedCts.Token;
+        _ = CancelOnCompleteAsync();
         return linkedToken;
 
-        async Task CancelOnSuccessAsync()
+        async Task CancelOnCompleteAsync()
         {
+            using CancellationTokenSource cts = linkedCts; // takes ownership of linkedCts
             try
             {
-                using CancellationTokenRegistration tokenRegistration = token.UnsafeRegister(
-                    cts => ((CancellationTokenSource)cts!).Cancel(),
-                    cts);
-
                 await task.ConfigureAwait(false);
-                cts.Cancel();
             }
-            finally
+            catch
             {
-                cts.Dispose();
+                // It's ok for task to complete with an exception.
             }
+            cts.Cancel();
         }
     }
 }

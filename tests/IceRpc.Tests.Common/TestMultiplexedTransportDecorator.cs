@@ -361,9 +361,6 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
     public PipeWriter Output => _output ?? throw new InvalidOperationException("No output for unidirectional stream.");
 
     /// <inheritdoc/>
-    public Task ReadsClosed => _decoratee.ReadsClosed;
-
-    /// <inheritdoc/>
     public Task WritesClosed => _decoratee.WritesClosed;
 
     private readonly IMultiplexedStream _decoratee;
