@@ -64,7 +64,7 @@ public static class AsyncEnumerableExtensions
         public override void CancelPendingRead()
         {
             // This CancelPendingRead on _pipe.Reader ensures the next ReadAsync returns a canceled read result in the
-            // event we have buffered element in _pipe.Reader.
+            // event we have buffered bytes in _pipe.Reader.
             _pipe.Reader.CancelPendingRead();
             _cts.Cancel();
         }
@@ -139,7 +139,7 @@ public static class AsyncEnumerableExtensions
                         _pipe.Writer.Complete();
                     }
 
-                    // There is data in the reader or it's completed since we've just flushed to the writer.
+                    // There are bytes in the reader or it's completed since we've just flushed or completed the writer.
                     bool ok = _pipe.Reader.TryRead(out readResult);
                     Debug.Assert(ok);
                 }
