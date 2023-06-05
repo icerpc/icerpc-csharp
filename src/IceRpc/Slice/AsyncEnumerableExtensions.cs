@@ -129,7 +129,7 @@ public static class AsyncEnumerableExtensions
 
                     if (hasNext && EncodeElements() is Task<bool> moveNext)
                     {
-                        // Flush shouldn't block because the pipe is configured to not pause flush.
+                        // Flush does not block because the pipe is configured to not pause flush.
                         _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
                         _moveNext = moveNext;

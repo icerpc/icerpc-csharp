@@ -135,11 +135,14 @@ internal class SlicPipeReader : PipeReader
         _stream = stream;
         _resumeThreshold = connection.ResumeWriterThreshold;
         _receiveCredit = connection.PauseWriterThreshold;
+
+        // We keep the default readerScheduler (ThreadPool) because the _pipe.Writer.FlushAsync executes in the
+        // "read loop task" and we don't want this task to continue into application code. The writerScheduler
+        // doesn't matter since _pipe.Writer.FlushAsync never blocks.
         _pipe = new(new PipeOptions(
             pool: connection.Pool,
             pauseWriterThreshold: 0,
-            minimumSegmentSize: connection.MinSegmentSize,
-            writerScheduler: PipeScheduler.Inline));
+            minimumSegmentSize: connection.MinSegmentSize));
     }
 
     /// <summary>Complete reads.</summary>
