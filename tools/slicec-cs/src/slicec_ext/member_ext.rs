@@ -51,7 +51,7 @@ impl ParameterExt for Parameter {
 
     fn formatted_parameter_doc_comment(&self) -> Option<String> {
         // Check if this parameter's parent operation had a doc comment on it.
-        self.parent().unwrap().comment().and_then(|comment| {
+        self.parent().comment().and_then(|comment| {
             // If it did, search the comment for a '@param' tag with this parameter's identifier and return it.
             comment
                 .params

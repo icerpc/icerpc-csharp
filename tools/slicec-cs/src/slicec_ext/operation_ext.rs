@@ -28,7 +28,7 @@ impl OperationExt for Operation {
     fn encoded_result_struct(&self) -> String {
         format!(
             "{}.{}EncodedResult",
-            self.parent().unwrap().service_name(),
+            self.parent().service_name(),
             self.escape_identifier(),
         )
     }
@@ -72,7 +72,7 @@ impl OperationExt for Operation {
 }
 
 fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
-    let ns = operation.parent().unwrap().namespace();
+    let ns = operation.parent().namespace();
     if is_dispatch && operation.has_encoded_result() {
         if let Some(stream_member) = operation.streamed_return_member() {
             format!(

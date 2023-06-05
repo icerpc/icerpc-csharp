@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_util::*;
 use crate::decoding::*;
@@ -12,7 +11,7 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
 
-pub fn generate_dispatch(interface_def: &Interface, generated_code: &mut GeneratedCode) {
+pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();
     let bases = interface_def.base_interfaces();
     let service_name = interface_def.service_name();
@@ -61,7 +60,7 @@ private static readonly IActivator _defaultActivator =
         interface_builder.add_block(operation_dispatch(operation));
     }
 
-    generated_code.insert_scoped(interface_def, interface_builder.build());
+    interface_builder.build()
 }
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
@@ -361,7 +360,7 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
 }}
 "#,
         name = operation.identifier(),
-        service_name = operation.parent().unwrap().service_name(),
+        service_name = operation.parent().service_name(),
         dispatch_body = operation_dispatch_body(operation).indent(),
     )
     .into()

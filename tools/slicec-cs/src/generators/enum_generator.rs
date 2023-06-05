@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::CsCase;
@@ -9,13 +8,13 @@ use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 
-pub fn generate_enum(enum_def: &Enum, generated_code: &mut GeneratedCode) {
+pub fn generate_enum(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
     code.add_block(&enum_declaration(enum_def));
     code.add_block(&enum_underlying_extensions(enum_def));
     code.add_block(&enum_encoder_extensions(enum_def));
     code.add_block(&enum_decoder_extensions(enum_def));
-    generated_code.insert_scoped(enum_def, code);
+    code
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
