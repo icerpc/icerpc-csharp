@@ -435,7 +435,6 @@ internal class SlicConnection : IMultiplexedConnection
                 await streamCountSemaphore.WaitAsync(createStreamCts.Token).ConfigureAwait(false);
             }
 
-            // TODO: Cache SlicStream
             return new SlicStream(this, bidirectional, remote: false);
         }
         catch (OperationCanceledException)
@@ -512,6 +511,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             try
             {
+                // Prevents unobserved task exceptions.
                 await _acceptStreamChannel.Reader.Completion.ConfigureAwait(false);
             }
             catch
@@ -1368,18 +1368,11 @@ internal class SlicConnection : IMultiplexedConnection
                 "Received invalid Slic stream frame, received 0 bytes without end of stream.");
         }
 
-        int readSize = 0;
-        if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
+        if (!_streams.TryGetValue(streamId.Value, out SlicStream? stream) &&
+            isRemote &&
+            !IsKnownRemoteStream(streamId.Value, isBidirectional))
         {
-            // Let the stream receive the data.
-            readSize = await stream.ReceivedStreamFrameAsync(
-                size,
-                endStream,
-                cancellationToken).ConfigureAwait(false);
-        }
-        else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
-        {
-            // Create a new stream if the remote stream is unknown.
+            // Create a new remote stream.
 
             if (size == 0)
             {
@@ -1407,41 +1400,35 @@ internal class SlicConnection : IMultiplexedConnection
                 Interlocked.Increment(ref _unidirectionalStreamCount);
             }
 
-            // Accept the new remote stream. The stream is queued on the channel reader. The caller of AcceptStreamAsync
-            // is responsible for disposing the stream TODO: Cache SlicStream
+            // The stream is registered with the connection and queued on the channel. The caller of AcceptStreamAsync
+            // is responsible for cleaning up the stream.
             stream = new SlicStream(this, isBidirectional, remote: true);
 
             try
             {
                 AddStream(streamId.Value, stream);
 
-                // Let the stream receive the data.
-                readSize = await stream.ReceivedStreamFrameAsync(
-                    size,
-                    endStream,
-                    cancellationToken).ConfigureAwait(false);
-
-                // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
-                if (readSize == size)
+                try
                 {
-                    try
-                    {
-                        await _acceptStreamChannel.Writer.WriteAsync(
-                            stream,
-                            cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (ChannelClosedException exception)
-                    {
-                        Debug.Assert(exception.InnerException is not null);
+                    await _acceptStreamChannel.Writer.WriteAsync(
+                        stream,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch (ChannelClosedException exception)
+                {
+                    Debug.Assert(exception.InnerException is not null);
 
-                        // The exception given to ChannelWriter.Complete(Exception? exception) is the
-                        // InnerException.
-                        throw ExceptionUtil.Throw(exception.InnerException);
-                    }
+                    // The exception given to ChannelWriter.Complete(Exception? exception) is the InnerException.
+                    throw ExceptionUtil.Throw(exception.InnerException);
                 }
             }
-            catch
+            catch (IceRpcException)
             {
+                // The two methods above throw IceRpcException if the connection has been closed (either by CloseAsync
+                // or because the close frame was received). We cleanup up the stream but don't throw to not abort the
+                // reading. The connection graceful closure still needs to read on the connection to figure out the peer
+                // shutdown of the duplex connection.
+                Debug.Assert(_isClosed);
                 stream.Input.Complete();
                 if (isBidirectional)
                 {
@@ -1451,9 +1438,20 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        if (readSize < size)
+        bool isDataConsumed = false;
+
+        if (stream is not null)
         {
-            // The stream has been shutdown. Read and ignore the data using a helper pipe.
+            // Let the stream consume the stream frame data.
+            isDataConsumed = await stream.ReceivedStreamFrameAsync(
+                size,
+                endStream,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!isDataConsumed)
+        {
+            // The stream didn't consume the data. Read and ignore the data using a helper pipe.
             var pipe = new Pipe(
                 new PipeOptions(
                     pool: Pool,
@@ -1462,7 +1460,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             await _duplexConnectionReader.FillBufferWriterAsync(
                     pipe.Writer,
-                    size - readSize,
+                    size,
                     cancellationToken).ConfigureAwait(false);
 
             pipe.Writer.Complete();
