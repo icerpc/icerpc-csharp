@@ -63,8 +63,6 @@ public static class AsyncEnumerableExtensions
 
         public override void CancelPendingRead()
         {
-            // This CancelPendingRead on _pipe.Reader ensures the next ReadAsync returns a canceled read result in the
-            // event we have buffered bytes in _pipe.Reader.
             _pipe.Reader.CancelPendingRead();
             _cts.Cancel();
         }
@@ -104,9 +102,10 @@ public static class AsyncEnumerableExtensions
 
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
-            // If no more buffered data to read, fill the pipe with new data.
             if (!_pipe.Reader.TryRead(out ReadResult readResult))
             {
+                // If no more buffered data to read, fill the pipe with new data.
+
                 // If ReadAsync is canceled, cancel the enumerator iteration to ensure MoveNextAsync below completes.
                 using CancellationTokenRegistration registration = cancellationToken.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),
@@ -148,8 +147,17 @@ public static class AsyncEnumerableExtensions
                     Debug.Assert(exception.CancellationToken == _cts.Token);
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // CancelPendingRead was called, return a canceled read result.
-                    return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: true, isCompleted: false);
+                    if (_pipe.Reader.TryRead(out readResult) && readResult.IsCanceled)
+                    {
+                        // Ok: return canceled readResult once after calling CancelPendingRead.
+                        // Note that we can't return a canceled read result with a bogus buffer since the caller must
+                        // be able to call reader.AdvanceTo with this buffer.
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            "Cannot resume reading an AsyncEnumerablePipeReader after canceling a ReadAsync or calling CancelPendingRead.");
+                    }
                 }
             }
 
