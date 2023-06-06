@@ -166,7 +166,7 @@ internal class SlicPipeReader : PipeReader
 
     /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
     /// internal pipe writer and returns the number of bytes that were consumed.</summary>
-    /// <returns><c>true</c> if the data was consumed, <c>false otherwise</c>.</returns>
+    /// <returns><see langword="true" /> if the data was consumed; otherwise, <see langword="false"/>.</returns>
     internal async ValueTask<bool> ReceivedStreamFrameAsync(
         int dataSize,
         bool endStream,
