@@ -100,7 +100,7 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
         ValueTask<FlushResult> flushResult = _pipe.Writer.FlushAsync(CancellationToken.None);
 
         // PauseWriterThreshold is 0 so FlushAsync should always complete synchronously.
-        Debug.Assert(flushResult.IsCompleted);
+        Debug.Assert(flushResult.IsCompletedSuccessfully);
     }
 
     /// <summary>Requests the shut down of the duplex connection after the buffered data is written on the duplex

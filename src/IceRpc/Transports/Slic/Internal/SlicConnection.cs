@@ -607,6 +607,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     internal void WriteConnectionFrame(FrameType frameType, EncodeAction? encode)
     {
+        Debug.Assert(frameType < FrameType.Stream);
         using SlicDuplexConnectionWriterLock _ = AcquireWriterLock();
         WriteFrame(frameType, streamId: null, encode);
     }
@@ -617,6 +618,7 @@ internal class SlicConnection : IMultiplexedConnection
         EncodeAction? encode,
         bool sendReadsCompletedFrame)
     {
+        // Ensure that this method is called for any FrameType.StreamXxx frame type except FrameType.Stream.
         Debug.Assert(frameType >= FrameType.StreamLast && stream.IsStarted);
 
         using SlicDuplexConnectionWriterLock _ = AcquireWriterLock();
@@ -633,7 +635,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    internal async ValueTask<FlushResult> WriteStreamFrameAsync(
+    internal async ValueTask<FlushResult> WriteStreamDataFrameAsync(
         SlicStream stream,
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
@@ -770,8 +772,8 @@ internal class SlicConnection : IMultiplexedConnection
 
     private async Task<SlicDuplexConnectionWriterLock> AcquireWriterLockAsync()
     {
-        // An async version of AcquireWriterLock is also provided for use by WriteStreamFrameAsync. Benchmarking shows
-        // that using the synchronous version leads to slower request/s benchmarks.
+        // An async version of AcquireWriterLock is also provided for use by WriteStreamDataFrameAsync. Benchmarking
+        // shows that using the synchronous version leads to slower request/s benchmarks.
 
         lock (_mutex)
         {

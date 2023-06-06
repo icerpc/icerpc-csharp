@@ -397,7 +397,7 @@ internal class SlicStream : IMultiplexedStream
             }
         }
 
-        return _connection.WriteStreamFrameAsync(
+        return _connection.WriteStreamDataFrameAsync(
             this,
             source1,
             source2,
