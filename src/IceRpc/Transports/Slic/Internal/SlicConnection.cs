@@ -1416,9 +1416,8 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 catch (ChannelClosedException exception)
                 {
-                    Debug.Assert(exception.InnerException is not null);
-
                     // The exception given to ChannelWriter.Complete(Exception? exception) is the InnerException.
+                    Debug.Assert(exception.InnerException is not null);
                     throw ExceptionUtil.Throw(exception.InnerException);
                 }
             }
@@ -1426,8 +1425,8 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 // The two methods above throw IceRpcException if the connection has been closed (either by CloseAsync
                 // or because the close frame was received). We cleanup up the stream but don't throw to not abort the
-                // reading. The connection graceful closure still needs to read on the connection to figure out the peer
-                // shutdown of the duplex connection.
+                // reading. The connection graceful closure still needs to read on the connection to figure out when the
+                // peer shuts down the duplex connection.
                 Debug.Assert(_isClosed);
                 stream.Input.Complete();
                 if (isBidirectional)
@@ -1451,7 +1450,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         if (!isDataConsumed)
         {
-            // The stream didn't consume the data. Read and ignore the data using a helper pipe.
+            // The stream (if any) didn't consume the data. Read and ignore the data using a helper pipe.
             var pipe = new Pipe(
                 new PipeOptions(
                     pool: Pool,
