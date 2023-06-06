@@ -333,8 +333,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Test that canceling the iteration completes the pipe reader from which the stream elements are being
-    /// decoded.</summary>
+    /// <summary>Test that canceling the iteration using an injected cancellation token completes the pipe reader from
+    /// which the stream elements are being decoded.</summary>
+    /// <remarks>This test is similar to <see cref="Decoding_completes_when_enumerator_read_is_canceled" /> but
+    /// uses a higher level API.</remarks>
     [Test]
     public async Task Decoding_completes_when_iteration_is_canceled()
     {
@@ -346,7 +348,6 @@ public class StreamTests
         var payload = new PayloadPipeReaderDecorator(pipe.Reader);
 
         using var cts = new CancellationTokenSource();
-        CancellationToken cancel = cts.Token;
         int count = 0;
 
         IAsyncEnumerable<int> values = payload.ToAsyncEnumerable(
@@ -356,11 +357,12 @@ public class StreamTests
             sliceFeature: null);
 
         // Act
-        await foreach (int value in values.WithCancellation(cancel))
+        await foreach (int value in values.WithCancellation(cts.Token))
         {
             count++;
             if (value == 20)
             {
+                // It's also ok to just abandon the iteration (tested in another test).
                 cts.Cancel();
             }
         }

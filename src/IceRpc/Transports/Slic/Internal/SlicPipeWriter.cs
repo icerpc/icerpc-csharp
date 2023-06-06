@@ -155,13 +155,13 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         _sendCredit = connection.PeerPauseWriterThreshold;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
-        // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
-        // avoid thread context switches when FlushAsync is called on the internal pipe writer.
+        // the Slic flow control doesn't permit sending more data.
+        // The readerScheduler doesn't matter (we don't call _pipe.Reader.ReadAsync) and the writerScheduler doesn't
+        // matter (_pipe.Writer.FlushAsync never blocks).
         _pipe = new(new PipeOptions(
             pool: connection.Pool,
             minimumSegmentSize: connection.MinSegmentSize,
-            pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline));
+            pauseWriterThreshold: 0));
     }
 
     internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)

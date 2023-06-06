@@ -34,10 +34,12 @@ public sealed class SliceEncodeOptions
         int minimumSegmentSize = -1,
         int streamFlushThreshold = -1)
     {
+        // We keep the default readerScheduler (ThreadPool) because pipes created from these PipeOptions are never
+        // ReadAsync concurrently with a FlushAsync/Complete on the pipe writer. The writerScheduler does not matter
+        // since FlushAsync never blocks.
         PipeOptions = new(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
-            readerScheduler: PipeScheduler.Inline,
             pauseWriterThreshold: 0,
             useSynchronizationContext: false);
 

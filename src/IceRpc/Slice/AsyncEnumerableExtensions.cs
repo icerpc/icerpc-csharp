@@ -126,8 +126,9 @@ public static class AsyncEnumerableExtensions
 
                     if (hasNext && EncodeElements() is Task<bool> moveNext)
                     {
-                        // Flush doesn't block because the pipe is configured to not pause flush.
-                        _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                        // Flush does not block because the pipe is configured to not pause flush.
+                        ValueTask<FlushResult> valueTask = _pipe.Writer.FlushAsync(CancellationToken.None);
+                        Debug.Assert(valueTask.IsCompletedSuccessfully);
 
                         _moveNext = moveNext;
                         // And the next ReadAsync will await _moveNext.
@@ -231,10 +232,6 @@ public static class AsyncEnumerableExtensions
             }
 
             encodeOptions ??= SliceEncodeOptions.Default;
-
-            // Ensure that the pipe writer flush is configured to not block.
-            Debug.Assert(encodeOptions.PipeOptions.PauseWriterThreshold == 0);
-
             _pipe = new Pipe(encodeOptions.PipeOptions);
             _streamFlushThreshold = encodeOptions.StreamFlushThreshold;
             _encodeAction = encodeAction;
