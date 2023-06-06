@@ -124,7 +124,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         try
         {
-            return await _stream.SendStreamFrameAsync(
+            return await _stream.WriteStreamFrameAsync(
                 source1,
                 source2,
                 endStream,

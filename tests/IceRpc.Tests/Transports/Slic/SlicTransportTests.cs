@@ -444,20 +444,18 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
 
-        await using var writer = new SlicDuplexConnectionWriter(
-            duplexClientConnection,
-            MemoryPool<byte>.Shared,
-            minimumSegmentSize: 4096);
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+        var writer = new MemoryBufferWriter(new byte[1024]);
 
         // Act
         EncodeInitializeFrame(writer, version: 2);
-        await writer.FlushAsync(default);
+        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
         (var multiplexedServerConnection, _) = await acceptTask;
         var connectTask = multiplexedServerConnection.ConnectAsync(default);
         (FrameType frameType, int frameSize, VersionBody versionBody) = await ReadFrameHeaderAsync(reader);
+        writer.Clear();
         EncodeInitializeFrame(writer, version: 1);
-        await writer.FlushAsync(default);
+        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
 
         // Assert
         Assert.That(frameType, Is.EqualTo(FrameType.Versions));

@@ -146,16 +146,6 @@ internal class SlicStream : IMultiplexedStream
 
         if (performCompleteReads)
         {
-            _ = PerformCompleteReadsAsync(errorCode);
-        }
-        else
-        {
-            TrySetReadsCompleted();
-        }
-
-        async Task PerformCompleteReadsAsync(ulong? errorCode)
-        {
-            Debug.Assert(IsRemote || errorCode is not null);
             try
             {
                 if (IsRemote)
@@ -170,11 +160,11 @@ internal class SlicStream : IMultiplexedStream
 
                 if (errorCode is not null)
                 {
-                    await _connection.SendStreamFrameAsync(
+                    _connection.WriteStreamFrame(
                         stream: this,
                         FrameType.StreamStopSending,
                         new StreamStopSendingBody(errorCode.Value).Encode,
-                        sendReadsCompletedFrame: false).ConfigureAwait(false);
+                        sendReadsCompletedFrame: false);
                 }
                 else if (IsRemote)
                 {
@@ -182,11 +172,11 @@ internal class SlicStream : IMultiplexedStream
                     // the buffered data on the SlicPipeReader was consumed. Once the peer receives this notification,
                     // it can release the connection's bidirectional or unidirectional stream semaphore (if writes are
                     // also completed).
-                    await _connection.SendStreamFrameAsync(
+                    _connection.WriteStreamFrame(
                         stream: this,
                         FrameType.StreamReadsCompleted,
                         encode: null,
-                        sendReadsCompletedFrame: false).ConfigureAwait(false);
+                        sendReadsCompletedFrame: false);
                 }
                 // When completing reads for a local stream, there's no need to notify the peer. The peer already
                 // completed writes after sending the StreamLast or StreamReset frame.
@@ -207,6 +197,10 @@ internal class SlicStream : IMultiplexedStream
                 Debug.Fail($"Failed to send frame from CompleteReads due to an unhandled exception: {exception}");
                 throw;
             }
+        }
+        else
+        {
+            TrySetReadsCompleted();
         }
     }
 
@@ -231,15 +225,6 @@ internal class SlicStream : IMultiplexedStream
 
         if (performCompleteWrites)
         {
-            _ = PerformCompleteWritesAsync(errorCode);
-        }
-        else
-        {
-            TrySetWritesCompleted();
-        }
-
-        async Task PerformCompleteWritesAsync(ulong? errorCode)
-        {
             try
             {
                 if (IsRemote)
@@ -254,13 +239,7 @@ internal class SlicStream : IMultiplexedStream
 
                 if (errorCode is null)
                 {
-                    await _connection.SendStreamFrameAsync(
-                        this,
-                        ReadOnlySequence<byte>.Empty,
-                        ReadOnlySequence<byte>.Empty,
-                        endStream: true,
-                        sendReadsCompletedFrame,
-                        default).ConfigureAwait(false);
+                    _connection.WriteStreamFrame(this, FrameType.StreamLast, encode: null, sendReadsCompletedFrame);
 
                     // If the stream is a local stream, writes are not completed until the StreamReadsCompleted or
                     // StreamStopSending frame is received from the peer. This ensures that the connection's
@@ -269,11 +248,11 @@ internal class SlicStream : IMultiplexedStream
                 }
                 else
                 {
-                    await _connection.SendStreamFrameAsync(
+                    _connection.WriteStreamFrame(
                         stream: this,
                         FrameType.StreamReset,
                         new StreamResetBody(applicationErrorCode: 0).Encode,
-                        sendReadsCompletedFrame).ConfigureAwait(false);
+                        sendReadsCompletedFrame);
 
                     if (!IsRemote)
                     {
@@ -293,6 +272,10 @@ internal class SlicStream : IMultiplexedStream
                 Debug.Fail($"Failed to send frame from CompleteWrites due to an unhandled exception: {exception}");
                 throw;
             }
+        }
+        else
+        {
+            TrySetWritesCompleted();
         }
     }
 
@@ -378,32 +361,27 @@ internal class SlicStream : IMultiplexedStream
 
     internal void SendStreamConsumed(int size)
     {
-        _ = SendStreamConsumedFrameAsync();
-
-        async Task SendStreamConsumedFrameAsync()
+        try
         {
-            try
-            {
-                // Send the stream consumed frame.
-                await _connection.SendStreamFrameAsync(
-                    stream: this,
-                    FrameType.StreamConsumed,
-                    new StreamConsumedBody((ulong)size).Encode,
-                    sendReadsCompletedFrame: false).ConfigureAwait(false);
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"Sending of Slic stream consumed frame failed due to an unhandled exception: {exception}");
-                throw;
-            }
+            // Send the stream consumed frame.
+            _connection.WriteStreamFrame(
+                stream: this,
+                FrameType.StreamConsumed,
+                new StreamConsumedBody((ulong)size).Encode,
+                sendReadsCompletedFrame: false);
+        }
+        catch (IceRpcException)
+        {
+            // Ignore connection failures.
+        }
+        catch (Exception exception)
+        {
+            Debug.Fail($"Sending of Slic stream consumed frame failed due to an unhandled exception: {exception}");
+            throw;
         }
     }
 
-    internal ValueTask<FlushResult> SendStreamFrameAsync(
+    internal ValueTask<FlushResult> WriteStreamFrameAsync(
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
@@ -419,7 +397,7 @@ internal class SlicStream : IMultiplexedStream
             }
         }
 
-        return _connection.SendStreamFrameAsync(
+        return _connection.WriteStreamDataFrameAsync(
             this,
             source1,
             source2,
