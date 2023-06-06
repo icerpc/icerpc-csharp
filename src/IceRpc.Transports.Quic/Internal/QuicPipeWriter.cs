@@ -204,7 +204,8 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         _pipe = new(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minSegmentSize,
-            pauseWriterThreshold: 0));
+            pauseWriterThreshold: 0,
+            useSynchronizationContext: false));
 
         Closed = ClosedAsync();
 

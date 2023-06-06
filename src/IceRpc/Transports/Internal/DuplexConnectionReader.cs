@@ -34,7 +34,8 @@ internal class DuplexConnectionReader : IDisposable
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0));
+            pauseWriterThreshold: 0,
+            useSynchronizationContext: false));
     }
 
     internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);

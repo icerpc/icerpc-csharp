@@ -45,7 +45,8 @@ internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0));
+            pauseWriterThreshold: 0,
+            useSynchronizationContext: false));
     }
 
     /// <summary>Flush the buffered data.</summary>
