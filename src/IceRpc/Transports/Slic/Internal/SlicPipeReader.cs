@@ -142,7 +142,8 @@ internal class SlicPipeReader : PipeReader
         _pipe = new(new PipeOptions(
             pool: connection.Pool,
             pauseWriterThreshold: 0,
-            minimumSegmentSize: connection.MinSegmentSize));
+            minimumSegmentSize: connection.MinSegmentSize,
+            useSynchronizationContext: false));
     }
 
     /// <summary>Complete reads.</summary>

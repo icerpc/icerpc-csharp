@@ -61,7 +61,8 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0));
+            pauseWriterThreshold: 0,
+            useSynchronizationContext: false));
 
         _backgroundWriteTask = Task.Run(
             async () =>

@@ -1458,7 +1458,8 @@ internal class SlicConnection : IMultiplexedConnection
                 new PipeOptions(
                     pool: Pool,
                     pauseWriterThreshold: 0,
-                    minimumSegmentSize: MinSegmentSize));
+                    minimumSegmentSize: MinSegmentSize,
+                    useSynchronizationContext: false));
 
             await _duplexConnectionReader.FillBufferWriterAsync(
                     pipe.Writer,

@@ -40,7 +40,8 @@ internal class ColocClientTransport : IDuplexClientTransport
             pool: duplexConnectionOptions.Pool,
             minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,
             pauseWriterThreshold: _options.PauseWriterThreshold,
-            resumeWriterThreshold: _options.ResumeWriterThreshold));
+            resumeWriterThreshold: _options.ResumeWriterThreshold,
+            useSynchronizationContext: false));
         return new ClientColocConnection(serverAddress, localPipe, ConnectAsync);
 
         // The client connection connect operation calls this method to queue a connection establishment request with

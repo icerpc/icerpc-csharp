@@ -596,7 +596,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         _pipeOptions = new PipeOptions(
             pool: options.Pool,
             minimumSegmentSize: options.MinSegmentSize,
-            pauseWriterThreshold: 0);
+            pauseWriterThreshold: 0,
+            useSynchronizationContext: false);
 
         if (options.IceIdleTimeout != Timeout.InfiniteTimeSpan)
         {
