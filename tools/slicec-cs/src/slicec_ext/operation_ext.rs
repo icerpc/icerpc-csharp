@@ -3,7 +3,7 @@
 use super::{EntityExt, InterfaceExt, MemberExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes::match_cs_encoded_result;
 use crate::cs_util::FieldType;
-use slicec::grammar::{Attributable, Contained, Operation};
+use slicec::grammar::{AttributeFunctions, Contained, Operation};
 use slicec::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {

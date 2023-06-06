@@ -230,13 +230,13 @@ impl FunctionBuilder {
     ) -> FunctionBuilder {
         FunctionBuilder {
             parameters: Vec::new(),
-            access: String::from(access),
-            name: String::from(name),
-            return_type: String::from(return_type),
+            access: access.to_owned(),
+            name: name.to_owned(),
+            return_type: return_type.to_owned(),
             body: CodeBlock::default(),
             comments: Vec::new(),
             attributes: Vec::new(),
-            base_constructor: String::from(base_constructor),
+            base_constructor: base_constructor.to_owned(),
             base_arguments: Vec::new(),
             function_type,
             inherit_doc: false,
@@ -321,7 +321,7 @@ impl FunctionBuilder {
                     // can use 'null' as the default value, which makes it clear what the default is.
                     TypeRefs::Sequence(sequence_ref)
                         if sequence_ref.has_fixed_size_numeric_elements()
-                            && sequence_ref.find_attribute(match_cs_generic).is_none() =>
+                            && !sequence_ref.has_attribute(match_cs_generic) =>
                     {
                         Some("default")
                     }
