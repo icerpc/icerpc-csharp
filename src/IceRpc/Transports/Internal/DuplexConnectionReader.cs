@@ -28,11 +28,13 @@ internal class DuplexConnectionReader : IDisposable
     internal DuplexConnectionReader(IDuplexConnection connection, MemoryPool<byte> pool, int minimumSegmentSize)
     {
         _connection = connection;
+
+        // The readerScheduler doesn't matter (we don't call _pipe.Reader.ReadAsync) and the writerScheduler doesn't
+        // matter (_pipe.Writer.FlushAsync never blocks).
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline));
+            pauseWriterThreshold: 0));
     }
 
     internal void AdvanceTo(SequencePosition consumed) => _pipe.Reader.AdvanceTo(consumed);

@@ -590,11 +590,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         _inactivityTimeout = options.InactivityTimeout;
+
+        // The readerScheduler doesn't matter (we don't call pipe.Reader.ReadAsync on the resulting pipe), and the
+        // writerScheduler doesn't matter (pipe.Writer.FlushAsync never blocks).
         _pipeOptions = new PipeOptions(
             pool: options.Pool,
             minimumSegmentSize: options.MinSegmentSize,
-            pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline);
+            pauseWriterThreshold: 0);
 
         if (options.IceIdleTimeout != Timeout.InfiniteTimeSpan)
         {
