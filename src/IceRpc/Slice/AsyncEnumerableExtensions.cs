@@ -155,7 +155,7 @@ public static class AsyncEnumerableExtensions
                     }
                     else
                     {
-                        throw new InvalidOperationException(
+                        throw new NotSupportedException(
                             "Cannot resume reading an AsyncEnumerablePipeReader after canceling a ReadAsync or calling CancelPendingRead.");
                     }
                 }
