@@ -353,10 +353,12 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
+    internal ValueTask<bool> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
         Debug.Assert(_inputPipeReader is not null);
-        return ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
+        return ReadsCompleted ?
+            new(false) :
+            _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
     }
 
     internal void SendStreamConsumed(int size)

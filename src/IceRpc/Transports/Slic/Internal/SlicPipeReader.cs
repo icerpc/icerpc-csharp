@@ -166,7 +166,8 @@ internal class SlicPipeReader : PipeReader
 
     /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
     /// internal pipe writer and returns the number of bytes that were consumed.</summary>
-    internal async ValueTask<int> ReceivedStreamFrameAsync(
+    /// <returns><see langword="true" /> if the data was consumed; otherwise, <see langword="false"/>.</returns>
+    internal async ValueTask<bool> ReceivedStreamFrameAsync(
         int dataSize,
         bool endStream,
         CancellationToken cancellationToken)
@@ -188,7 +189,7 @@ internal class SlicPipeReader : PipeReader
         {
             if (_state.HasFlag(State.PipeWriterCompleted))
             {
-                return 0; // No bytes consumed.
+                return false; // No bytes consumed because the application completed the stream input.
             }
 
             int newCredit = Interlocked.Add(ref _receiveCredit, -dataSize);
@@ -201,9 +202,9 @@ internal class SlicPipeReader : PipeReader
 
             // Fill the pipe writer with dataSize bytes.
             await _stream.FillBufferWriterAsync(
-                    _pipe.Writer,
-                    dataSize,
-                    cancellationToken).ConfigureAwait(false);
+                _pipe.Writer,
+                dataSize,
+                cancellationToken).ConfigureAwait(false);
 
             if (endStream)
             {
@@ -214,7 +215,7 @@ internal class SlicPipeReader : PipeReader
                 _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
-            return dataSize;
+            return true;
         }
         finally
         {
