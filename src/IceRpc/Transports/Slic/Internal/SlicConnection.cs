@@ -58,7 +58,6 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly int _packetMaxSize;
     private IceRpcError? _peerCloseError;
     private TimeSpan _peerIdleTimeout = Timeout.InfiniteTimeSpan;
-    private int _pendingWriterCount;
     private Task? _readFramesTask;
 
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
@@ -69,7 +68,12 @@ internal class SlicConnection : IMultiplexedConnection
     private int _unidirectionalStreamCount;
     private SemaphoreSlim? _unidirectionalStreamSemaphore;
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
-    private bool _writeShutdown;
+
+    // This is only set for server connections to ensure that _duplexConnectionWriter.Write is not called after
+    // _duplexConnectionWriter.Shutdown. This can occur if the client-side of the connection sends the close frame
+    // followed by the shutdown of the duplex connection and if CloseAsync is called at the same time on the server
+    // connection.
+    private bool _writerIsShutdown;
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
     {
@@ -342,11 +346,14 @@ internal class SlicConnection : IMultiplexedConnection
             // A server connection might have shutdown already if the client sent the Close frame and shutdown the
             // duplex connection. We have to make sure here that it's not already the case otherwise the Write on
             // the SlicDuplexConnectionWriter would fail when writing on a completed pipe writer.
-            if (!IsServer || !_writeShutdown)
+            if (!IsServer || !_writerIsShutdown)
             {
                 WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
-                _duplexConnectionWriter.Flush();
-                if (!IsServer)
+                if (IsServer)
+                {
+                    _duplexConnectionWriter.Flush();
+                }
+                else
                 {
                     // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
                     // For TCP, it's important to always shutdown the connection on the client-side first to avoid
@@ -741,7 +748,6 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    // V2 uses synchronous Wait() on the semaphore when writing sending stream frames with WriteStreamFrameAsync
     private SlicDuplexConnectionWriterLock AcquireWriterLock()
     {
         lock (_mutex)
@@ -751,13 +757,11 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
             }
-            Interlocked.Increment(ref _pendingWriterCount);
         }
         _writeSemaphore.Wait();
         return new SlicDuplexConnectionWriterLock(this);
     }
 
-    // V1 and V3 uses asynchronous WaitAsync() on the semaphore when writing sending stream frames with WriteStreamFrameAsync
     private async Task<SlicDuplexConnectionWriterLock> AcquireWriterLockAsync()
     {
         lock (_mutex)
@@ -767,7 +771,6 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
             }
-            Interlocked.Increment(ref _pendingWriterCount);
         }
         await _writeSemaphore.WaitAsync().ConfigureAwait(false);
         return new SlicDuplexConnectionWriterLock(this);
@@ -1217,13 +1220,17 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (IsServer)
             {
+                Debug.Assert(_isClosed);
+
                 // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
-                Debug.Assert(_isClosed);
                 using SemaphoreLock _ = _writeSemaphore.Acquire();
-                _writeShutdown = true;
                 _duplexConnectionWriter.Shutdown();
+
+                // Make sure that CloseAsync doesn't call Write on the writer if it's called shortly after the peer
+                // shutdown its side of the connection (which triggers ReadFrameHeaderAsync to return null).
+                _writerIsShutdown = true;
             }
         }
         catch (OperationCanceledException)
@@ -1395,16 +1402,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void ReleaseWriterLock()
     {
-        // V1 does coalescing by flushing only once there are no more pending writers.
-        // if (Interlocked.Decrement(ref _pendingWriterCount) == 0 ||
-        //     _duplexConnectionWriter.UnflushedBytes > _packetMaxSize)
-        // {
-        //     _duplexConnectionWriter.Flush();
-        // }
-
-        // V2 and V3 don't do any coalescing, they just flush each time the semaphore is released.
         _duplexConnectionWriter.Flush();
-
         _writeSemaphore.Release();
     }
 
