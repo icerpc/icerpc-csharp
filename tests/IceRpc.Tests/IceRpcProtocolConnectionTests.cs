@@ -1099,6 +1099,7 @@ public sealed class IceRpcProtocolConnectionTests
         var serverConnection = serverTransport.LastAcceptedConnection;
 
         serverConnection.Operations.Hold = MultiplexedTransportOperations.AcceptStream;
+        Task waitTask = serverConnection.Operations.GetCalledTask(MultiplexedTransportOperations.AcceptStream);
 
         var pipe = new Pipe();
         pipe.Writer.Write(new byte[10]);
@@ -1112,15 +1113,17 @@ public sealed class IceRpcProtocolConnectionTests
         };
 
         await sut.Client.InvokeAsync(onewayRequest);
+        await payloadContinuationDecorator.ReadCalled;
 
         // Wait for accept stream be called before calling shutdown.
-        await serverConnection.Operations.GetCalledTask(MultiplexedTransportOperations.AcceptStream);
+        await waitTask;
 
         // Act
         Task shutdownTask = sut.Server.ShutdownAsync();
 
         // Assert
         Assert.That(invokeTask.IsCompleted, Is.False);
+
         Assert.That(
             async () => await taskExceptionObserver.RequestPayloadContinuationFailedException,
             Is.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.InvocationCanceled));
