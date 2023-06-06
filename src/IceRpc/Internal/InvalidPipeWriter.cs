@@ -9,19 +9,18 @@ internal sealed class InvalidPipeWriter : PipeWriter
 {
     public override bool CanGetUnflushedBytes => false;
 
-    public override long UnflushedBytes => throw _invalidOperationException;
+    public override long UnflushedBytes => throw new InvalidOperationException(ExceptionMessage);
 
     /// <summary>Gets the InvalidPipeWriter singleton instance.</summary>
     internal static PipeWriter Instance { get; } = new InvalidPipeWriter();
 
-    private static readonly Exception _invalidOperationException =
-        new InvalidOperationException("Writing an invalid pipe writer is not allowed.");
+    private const string ExceptionMessage = "Writing an invalid pipe writer is not allowed.";
 
-    public override void Advance(int bytes) => throw _invalidOperationException;
+    public override void Advance(int bytes) => throw new InvalidOperationException(ExceptionMessage);
 
-    public override Stream AsStream(bool leaveOpen = false) => throw _invalidOperationException;
+    public override Stream AsStream(bool leaveOpen = false) => throw new InvalidOperationException(ExceptionMessage);
 
-    public override void CancelPendingFlush() => throw _invalidOperationException;
+    public override void CancelPendingFlush() => throw new InvalidOperationException(ExceptionMessage);
 
     public override void Complete(Exception? exception)
     {
@@ -29,18 +28,18 @@ internal sealed class InvalidPipeWriter : PipeWriter
     }
 
     public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
-       throw _invalidOperationException;
+       throw new InvalidOperationException(ExceptionMessage);
 
-    public override Memory<byte> GetMemory(int sizeHint) => throw _invalidOperationException;
+    public override Memory<byte> GetMemory(int sizeHint) => throw new InvalidOperationException(ExceptionMessage);
 
-    public override Span<byte> GetSpan(int sizeHint) => throw _invalidOperationException;
+    public override Span<byte> GetSpan(int sizeHint) => throw new InvalidOperationException(ExceptionMessage);
 
     public override ValueTask<FlushResult> WriteAsync(
         ReadOnlyMemory<byte> source,
-        CancellationToken cancellationToken) => throw _invalidOperationException;
+        CancellationToken cancellationToken) => throw new InvalidOperationException(ExceptionMessage);
 
     protected override Task CopyFromAsync(Stream source, CancellationToken cancellationToken) =>
-        throw _invalidOperationException;
+        throw new InvalidOperationException(ExceptionMessage);
 
     private InvalidPipeWriter()
     {
