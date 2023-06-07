@@ -28,5 +28,4 @@ class ClassWithTaggedFields {
     tag(10) j: string?             // Uses OptimizedVSize tag format
 }
 
-class ClassWithoutTaggedFields {
-}
+class ClassWithoutTaggedFields {}
