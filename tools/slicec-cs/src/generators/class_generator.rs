@@ -72,7 +72,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
     // The primary constructor (may be parameterless)
     class_builder.add_block(constructor(
         &class_name,
-        &access,
+        access,
         constructor_summary.clone(),
         &namespace,
         &fields,
@@ -84,7 +84,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
     if non_nullable_fields.len() + non_nullable_base_fields.len() < fields.len() + base_fields.len() {
         class_builder.add_block(constructor(
             &class_name,
-            &access,
+            access,
             constructor_summary,
             &namespace,
             &non_nullable_fields,
@@ -95,7 +95,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
     // public constructor used for decoding
     // the decoder parameter is used to distinguish this ctor from the parameterless ctor that
     // users may want to add to the partial class. It's not used otherwise.
-    let mut decode_constructor = FunctionBuilder::new(&access, "", &class_name, FunctionType::BlockBody);
+    let mut decode_constructor = FunctionBuilder::new(access, "", &class_name, FunctionType::BlockBody);
 
     if !has_base_class {
         decode_constructor.add_attribute(

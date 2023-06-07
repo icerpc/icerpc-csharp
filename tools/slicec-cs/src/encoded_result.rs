@@ -30,7 +30,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
         .into(),
     );
 
-    let mut constructor_builder = FunctionBuilder::new(&access, "", &struct_name, FunctionType::ExpressionBody);
+    let mut constructor_builder = FunctionBuilder::new(access, "", &struct_name, FunctionType::ExpressionBody);
 
     constructor_builder.add_comment(
         "summary",
