@@ -8,8 +8,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports.Slic.Internal;
 
 /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
-/// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enabled
-/// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
+/// isn't buffered indefinitely if the application doesn't consume it.</summary>
 internal class SlicStream : IMultiplexedStream
 {
     public ulong Id
@@ -48,23 +47,18 @@ internal class SlicStream : IMultiplexedStream
 
     public Task WritesClosed => _writesClosedTcs.Task;
 
-    internal bool ReadsCompleted => _state.HasFlag(State.ReadsCompleted);
-
-    internal bool WritesCompleted => _state.HasFlag(State.WritesCompleted);
-
-    private bool _completeReadsOnWriteCompletion;
+    private bool _closeReadsOnWritesClosure;
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
-    // This mutex protects _readsCompletionPending, _writesCompletionPending, _completeReadsOnWriteCompletion.
+    // This mutex protects _writesClosePending, _closeReadsOnWritesClosure.
     private readonly object _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
-    private bool _readsCompletionPending;
     // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
     // locking.
     private int _state;
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private bool _writesCompletionPending;
+    private bool _writesClosePending;
 
     internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
     {
@@ -77,13 +71,13 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsRemote)
             {
-                // Write-side of remote unidirectional stream is marked as completed.
-                TrySetWritesCompleted();
+                // Write-side of remote unidirectional stream is marked as closed.
+                TrySetWritesClosed();
             }
             else
             {
-                // Read-side of local unidirectional stream is marked as completed.
-                TrySetReadsCompleted();
+                // Read-side of local unidirectional stream is marked as closed.
+                TrySetReadsClosed();
             }
         }
 
@@ -101,91 +95,85 @@ internal class SlicStream : IMultiplexedStream
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
         _outputPipeWriter!.AcquireSendCreditAsync(cancellationToken);
 
-    internal void Close(Exception completeException)
+    internal void Close(Exception closeException)
     {
-        if (TrySetReadsCompleted())
+        if (TrySetReadsClosed())
         {
             Debug.Assert(_inputPipeReader is not null);
-            _inputPipeReader.CompleteReads(completeException);
+            _inputPipeReader.CompleteReads(closeException);
         }
-        if (TrySetWritesCompleted())
+        if (TrySetWritesClosed())
         {
             Debug.Assert(_outputPipeWriter is not null);
-            _outputPipeWriter.CompleteWrites(completeException);
+            _outputPipeWriter.CompleteWrites(closeException);
         }
     }
 
-    /// <summary>This method completes the read-side of the stream. It's only called by SlicPipeReader methods and never
-    /// called concurrently.</summary>
-    /// <param name="errorCode">The error code. It's null if reads were completed after the StreamLast frame was
-    /// consumed. It's non-null if the reader was completed with an exception or before the buffer data was
-    /// consumed.</param>
-    internal void CompleteReads(ulong? errorCode = null)
+    /// <summary>Closes the read-side of the stream. It's only called by SlicPipeReader methods and never called
+    /// concurrently.</summary>
+    /// <param name="errorCode">The error code. It's null if reads were closed after the StreamLast frame was consumed.
+    /// It's non-null if the input was completed with an exception or before the buffer data was consumed.</param>
+    internal void CloseReads(ulong? errorCode = null)
     {
-        bool performCompleteReads = false;
+        bool writeReadsClosedFrame = false;
 
         lock (_mutex)
         {
-            if (IsStarted && !ReadsCompleted && !_readsCompletionPending)
+            if (IsStarted && !_state.HasFlag(State.ReadsClosed))
             {
-                if (errorCode is null && IsBidirectional && !WritesCompleted && !_writesCompletionPending && IsRemote)
+                if (errorCode is null &&
+                    IsBidirectional &&
+                    IsRemote &&
+                    !_state.HasFlag(State.WritesClosed) &&
+                    !_writesClosePending)
                 {
-                    // As an optimization, if reads are completed once the buffered data is consumed but before writes
-                    // are closed, we don't send the StreamReadsCompleted frame just yet. Instead, when writes are
-                    // completed, CompleteWrites will bundle the sending of the StreamReadsCompleted with the sending of
-                    // the StreamLast or StreamReset frame.
-                    _completeReadsOnWriteCompletion = true;
+                    // As an optimization, if reads are closed once the buffered data is consumed but before writes are
+                    // closed, we don't send the StreamReadsClosed frame just yet. Instead, when writes are closed,
+                    // CloseWrites will bundle the sending of the StreamReadsClosed with the sending of the StreamLast
+                    // or StreamWritesClosed frame.
+                    _closeReadsOnWritesClosure = true;
                 }
                 else if (errorCode is not null || IsRemote)
                 {
-                    _readsCompletionPending = true;
-                    performCompleteReads = true;
+                    writeReadsClosedFrame = true;
                 }
             }
         }
 
-        if (performCompleteReads)
+        if (writeReadsClosedFrame)
         {
             try
             {
                 if (IsRemote)
                 {
-                    // If it's a remote stream, we complete writes before sending the StreamReadsCompleted or
-                    // StreamStopSending frame to ensure _connection._bidirectionalStreamCount or
-                    // _connection._unidirectionalStreamCount is decreased before the peer receives the frame. This is
-                    // necessary to prevent a race condition where the peer could release the connection's bidirectional
-                    // or unidirectional stream semaphore before this connection's stream count is actually decreased.
-                    TrySetReadsCompleted();
+                    // If it's a remote stream, we close writes before sending the StreamReadsClosed frame to ensure
+                    // _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount is decreased
+                    // before the peer receives the frame. This is necessary to prevent a race condition where the peer
+                    // could release the connection's bidirectional or unidirectional stream semaphore before this
+                    // connection's stream count is actually decreased.
+                    TrySetReadsClosed();
                 }
 
-                if (errorCode is not null)
+                // The stream reads closed frame is only sent for remote streams to notify the local stream that the
+                // buffered data on the SlicPipeReader was consumed. Once the peer receives this notification, it can
+                // release the connection's bidirectional or unidirectional stream semaphore (if writes are also
+                // closed).
+                if (errorCode is not null || IsRemote)
                 {
                     _connection.WriteStreamFrame(
                         stream: this,
-                        FrameType.StreamStopSending,
-                        new StreamStopSendingBody(errorCode.Value).Encode,
-                        sendReadsCompletedFrame: false);
+                        FrameType.StreamReadsClosed,
+                        new StreamReadsClosedBody(errorCode).Encode,
+                        writeReadsClosedFrame: false);
                 }
-                else if (IsRemote)
-                {
-                    // The stream reads completed frame is only sent for remote streams to notify the local stream that
-                    // the buffered data on the SlicPipeReader was consumed. Once the peer receives this notification,
-                    // it can release the connection's bidirectional or unidirectional stream semaphore (if writes are
-                    // also completed).
-                    _connection.WriteStreamFrame(
-                        stream: this,
-                        FrameType.StreamReadsCompleted,
-                        encode: null,
-                        sendReadsCompletedFrame: false);
-                }
-                // When completing reads for a local stream, there's no need to notify the peer. The peer already
-                // completed writes after sending the StreamLast or StreamReset frame.
+                // When closing reads for a local stream, there's no need to notify the peer. The peer already closed
+                // writes after sending the StreamLast or StreamWritesClosed frame.
 
                 if (!IsRemote)
                 {
-                    // We can now complete reads to permit a new stream to be started. The peer will receive the
-                    // StreamStopSending or StreamReadsCompleted frame before the new stream sends a Stream frame.
-                    TrySetReadsCompleted();
+                    // We can now close reads to permit a new stream to be started. The peer will receive the
+                    // StreamReadsClosed frame before the new stream sends a Stream frame.
+                    TrySetReadsClosed();
                 }
             }
             catch (IceRpcException)
@@ -194,72 +182,71 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (Exception exception)
             {
-                Debug.Fail($"Failed to send frame from CompleteReads due to an unhandled exception: {exception}");
+                Debug.Fail($"Writing of reads closed frame from due to an unhandled exception: {exception}");
                 throw;
             }
         }
         else
         {
-            TrySetReadsCompleted();
+            TrySetReadsClosed();
         }
     }
 
-    /// <summary>This method completes the write-side of the stream. It's only called by SlicPipeWriter methods and
-    /// never called concurrently.</summary>
-    /// <param name="errorCode">The error code. It's null if the writer was completed without an exception; otherwise,
+    /// <summary>Closes the write-side of the stream. It's only called by SlicPipeWriter methods and never called
+    /// concurrently.</summary>
+    /// <param name="errorCode">The error code. It's null if the output was completed without an exception; otherwise,
     /// it's non-null.</param>
-    internal void CompleteWrites(ulong? errorCode = null)
+    internal void CloseWrites(ulong? errorCode = null)
     {
-        bool performCompleteWrites = false;
-        bool sendReadsCompletedFrame = false;
+        bool writeWritesClosedFrame = false;
+        bool writeReadsClosedFrame = false;
 
         lock (_mutex)
         {
-            if (IsStarted && !WritesCompleted && !_writesCompletionPending)
+            if (IsStarted && !_state.HasFlag(State.WritesClosed) && !_writesClosePending)
             {
-                sendReadsCompletedFrame = _completeReadsOnWriteCompletion;
-                _writesCompletionPending = true;
-                performCompleteWrites = true;
+                writeReadsClosedFrame = _closeReadsOnWritesClosure;
+                _writesClosePending = true;
+                writeWritesClosedFrame = true;
             }
         }
 
-        if (performCompleteWrites)
+        if (writeWritesClosedFrame)
         {
             try
             {
                 if (IsRemote)
                 {
-                    // If it's a remote stream, we complete writes before sending the StreamLast or StreamReset frame to
-                    // ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount is
-                    // decreased before the peer receives the frame. This is necessary to prevent a race condition where
-                    // the peer could release the connection's bidirectional or unidirectional stream semaphore before
-                    // this connection's stream count is actually decreased.
-                    TrySetWritesCompleted();
+                    // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
+                    // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
+                    // is decreased before the peer receives the frame. This is necessary to prevent a race condition
+                    // where the peer could release the connection's bidirectional or unidirectional stream semaphore
+                    // before this connection's stream count is actually decreased.
+                    TrySetWritesClosed();
                 }
 
                 if (errorCode is null)
                 {
-                    _connection.WriteStreamFrame(this, FrameType.StreamLast, encode: null, sendReadsCompletedFrame);
+                    _connection.WriteStreamFrame(this, FrameType.StreamLast, encode: null, writeReadsClosedFrame);
 
-                    // If the stream is a local stream, writes are not completed until the StreamReadsCompleted or
-                    // StreamStopSending frame is received from the peer. This ensures that the connection's
-                    // bidirectional or unidirectional stream semaphore is released only once the peer consumed the
-                    // buffered data.
+                    // If the stream is a local stream, writes are not close until the StreamReadsClosed frame is
+                    // received from the peer. This ensures that the connection's bidirectional or unidirectional stream
+                    // semaphore is released only once the peer consumed the buffered data.
                 }
                 else
                 {
                     _connection.WriteStreamFrame(
                         stream: this,
-                        FrameType.StreamReset,
-                        new StreamResetBody(applicationErrorCode: 0).Encode,
-                        sendReadsCompletedFrame);
+                        FrameType.StreamWritesClosed,
+                        new StreamWritesClosedBody(applicationErrorCode: errorCode.Value).Encode,
+                        writeReadsClosedFrame);
 
                     if (!IsRemote)
                     {
-                        // We can now complete writes to allow starting a new stream. Since the sending of frames is
-                        // serialized over the connection, the peer will receive this StreamReset frame before the new
-                        // stream sends StreamFrame frame.
-                        TrySetWritesCompleted();
+                        // We can now close writes to allow starting a new stream. Since the sending of frames is
+                        // serialized over the connection, the peer will receive this StreamWritesClosed frame before
+                        // the new stream sends StreamFrame frame.
+                        TrySetWritesClosed();
                     }
                 }
             }
@@ -269,13 +256,13 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (Exception exception)
             {
-                Debug.Fail($"Failed to send frame from CompleteWrites due to an unhandled exception: {exception}");
+                Debug.Fail($"Writing of the writes closed frame failed due to an unhandled exception: {exception}");
                 throw;
             }
         }
         else
         {
-            TrySetWritesCompleted();
+            TrySetWritesClosed();
         }
     }
 
@@ -286,6 +273,17 @@ internal class SlicStream : IMultiplexedStream
         int byteCount,
         CancellationToken cancellationToken) =>
         _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
+
+    internal void LastStreamFrameWritten()
+    {
+        if (IsRemote)
+        {
+            TrySetWritesClosed();
+        }
+        // For local streams, writes will be closed only once the peer's sends the StreamReadsClosed frame.
+
+        _writesClosedTcs.TrySetResult();
+    }
 
     internal void ReceivedConsumedFrame(StreamConsumedBody frame)
     {
@@ -300,43 +298,9 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void ReceivedReadsCompletedFrame()
+    internal void ReceivedReadsClosedFrame(StreamReadsClosedBody frame)
     {
-        if (IsRemote)
-        {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                "Received invalid Slic stream reads completed frame, the stream is a remote stream.");
-        }
-
-        TrySetWritesCompleted();
-
-        // Write operations will return a completed flush result regardless of whether or not the peer aborted reads with
-        // the 0ul error code or completed reads.
-        _outputPipeWriter?.CompleteWrites(exception: null);
-    }
-
-    internal void ReceivedResetFrame(StreamResetBody frame)
-    {
-        TrySetReadsCompleted();
-
-        if (frame.ApplicationErrorCode == 0ul)
-        {
-            // Read operations will return a TruncatedData if the peer aborted writes.
-            _inputPipeReader?.CompleteReads(new IceRpcException(IceRpcError.TruncatedData));
-        }
-        else
-        {
-            // The peer aborted writes with unknown application error code.
-            _inputPipeReader?.CompleteReads(new IceRpcException(
-                IceRpcError.TruncatedData,
-                $"The peer aborted stream writes with an unknown application error code: '{frame.ApplicationErrorCode}'"));
-        }
-    }
-
-    internal void ReceivedStopSendingFrame(StreamStopSendingBody frame)
-    {
-        TrySetWritesCompleted();
+        TrySetWritesClosed();
 
         if (frame.ApplicationErrorCode == 0ul)
         {
@@ -349,19 +313,37 @@ internal class SlicStream : IMultiplexedStream
             // The peer aborted reads with unknown application error code.
             _outputPipeWriter?.CompleteWrites(new IceRpcException(
                 IceRpcError.TruncatedData,
-                $"The peer aborted stream reads with an unknown application error code: '{frame.ApplicationErrorCode}'"));
+                $"The peer closed stream reads with an unknown application error code: '{frame.ApplicationErrorCode}'"));
         }
     }
 
     internal ValueTask<bool> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
         Debug.Assert(_inputPipeReader is not null);
-        return ReadsCompleted ?
+        return _state.HasFlag(State.ReadsClosed) ?
             new(false) :
             _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
     }
 
-    internal void SendStreamConsumed(int size)
+    internal void ReceivedWritesClosedFrame(StreamWritesClosedBody frame)
+    {
+        TrySetReadsClosed();
+
+        if (frame.ApplicationErrorCode == 0ul)
+        {
+            // Read operations will return a TruncatedData if the peer aborted writes.
+            _inputPipeReader?.CompleteReads(new IceRpcException(IceRpcError.TruncatedData));
+        }
+        else
+        {
+            // The peer aborted writes with unknown application error code.
+            _inputPipeReader?.CompleteReads(new IceRpcException(
+                IceRpcError.TruncatedData,
+                $"The peer closed stream writes with an unknown application error code: '{frame.ApplicationErrorCode}'"));
+        }
+    }
+
+    internal void WriteStreamConsumedFrame(int size)
     {
         try
         {
@@ -370,7 +352,7 @@ internal class SlicStream : IMultiplexedStream
                 stream: this,
                 FrameType.StreamConsumed,
                 new StreamConsumedBody((ulong)size).Encode,
-                sendReadsCompletedFrame: false);
+                writeReadsClosedFrame: false);
         }
         catch (IceRpcException)
         {
@@ -378,7 +360,7 @@ internal class SlicStream : IMultiplexedStream
         }
         catch (Exception exception)
         {
-            Debug.Fail($"Sending of Slic stream consumed frame failed due to an unhandled exception: {exception}");
+            Debug.Fail($"Writing of the stream consumed frame failed due to an unhandled exception: {exception}");
             throw;
         }
     }
@@ -389,13 +371,13 @@ internal class SlicStream : IMultiplexedStream
         bool endStream,
         CancellationToken cancellationToken)
     {
-        bool sendReadsCompletedFrame = false;
+        bool writeReadsClosedFrame = false;
         if (endStream)
         {
             lock (_mutex)
             {
-                sendReadsCompletedFrame = _completeReadsOnWriteCompletion;
-                _writesCompletionPending = true;
+                writeReadsClosedFrame = _closeReadsOnWritesClosure;
+                _writesClosePending = true;
             }
         }
 
@@ -404,29 +386,17 @@ internal class SlicStream : IMultiplexedStream
             source1,
             source2,
             endStream,
-            sendReadsCompletedFrame,
+            writeReadsClosedFrame,
             cancellationToken);
-    }
-
-    internal void SentLastStreamFrame()
-    {
-        if (IsRemote)
-        {
-            TrySetWritesCompleted();
-        }
-        // For local streams, writes will be completed only once the peer's sends the StreamStopSending or
-        // StreamReadsCompleted frame (indicating that its buffered data was consumed).
-
-        _writesClosedTcs.TrySetResult();
     }
 
     internal void ThrowIfConnectionClosed() => _connection.ThrowIfClosed();
 
-    private bool TrySetReadsCompleted() => TrySetState(State.ReadsCompleted);
+    private bool TrySetReadsClosed() => TrySetState(State.ReadsClosed);
 
-    private bool TrySetWritesCompleted()
+    private bool TrySetWritesClosed()
     {
-        if (TrySetState(State.WritesCompleted))
+        if (TrySetState(State.WritesClosed))
         {
             _writesClosedTcs.TrySetResult();
             return true;
@@ -441,10 +411,10 @@ internal class SlicStream : IMultiplexedStream
     {
         if (_state.TrySetFlag(state, out int newState))
         {
-            if (newState.HasFlag(State.ReadsCompleted | State.WritesCompleted))
+            if (newState.HasFlag(State.ReadsClosed | State.WritesClosed))
             {
-                // The stream reads and writes are completed, it's time to release the stream to either allow creating
-                // or accepting a new stream.
+                // The stream reads and writes are closed, it's time to release the stream to either allow creating or
+                // accepting a new stream.
                 if (IsStarted)
                 {
                     _connection.ReleaseStream(this);
@@ -461,7 +431,7 @@ internal class SlicStream : IMultiplexedStream
     [Flags]
     private enum State : int
     {
-        ReadsCompleted = 1,
-        WritesCompleted = 2,
+        ReadsClosed = 1,
+        WritesClosed = 2,
     }
 }

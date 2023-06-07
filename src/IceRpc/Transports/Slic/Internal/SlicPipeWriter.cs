@@ -50,12 +50,12 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
             if (exception is null)
             {
-                _stream.CompleteWrites();
+                _stream.CloseWrites();
             }
             else
             {
                 // We don't use the application error code, it's irrelevant.
-                _stream.CompleteWrites(errorCode: 0ul);
+                _stream.CloseWrites(errorCode: 0ul);
             }
 
             _pipe.Writer.Complete();

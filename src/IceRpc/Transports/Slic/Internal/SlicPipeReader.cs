@@ -44,7 +44,7 @@ internal class SlicPipeReader : PipeReader
         if (_examined >= _resumeThreshold)
         {
             Interlocked.Add(ref _receiveCredit, _examined);
-            _stream.SendStreamConsumed(_examined);
+            _stream.WriteStreamConsumedFrame(_examined);
             _examined = 0;
         }
 
@@ -58,7 +58,7 @@ internal class SlicPipeReader : PipeReader
         if (_state.TrySetFlag(State.Completed))
         {
             // We don't use the application error code, it's irrelevant.
-            _stream.CompleteReads(errorCode: 0ul);
+            _stream.CloseReads(errorCode: 0ul);
 
             CompleteReads(exception: null);
 
@@ -86,10 +86,10 @@ internal class SlicPipeReader : PipeReader
         _readResult = result;
 
         // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
-        // will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
+        // will send the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
         if (result.IsCompleted)
         {
-            _stream.CompleteReads();
+            _stream.CloseReads();
         }
 
         return result;
@@ -117,10 +117,10 @@ internal class SlicPipeReader : PipeReader
             _readResult = result;
 
             // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
-            // This will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
+            // This will send the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
             if (result.IsCompleted)
             {
-                _stream.CompleteReads();
+                _stream.CloseReads();
             }
             return true;
         }

@@ -14,7 +14,7 @@ enum FrameType : uint8 {
 
     /// Indicates the versions supported by the server. The server sends this frame if the version from the initialize
     /// frame is not supported.
-    Versions
+    Version
 
     /// Initiates the closure of the connection.
     Close
@@ -31,17 +31,14 @@ enum FrameType : uint8 {
     /// Carries the last stream data.
     StreamLast
 
-    /// Requests the peer to stop receiving data because the write-side of the stream was closed.
-    StreamReset
-
     /// Carries the amount of consumed data.
     StreamConsumed
 
-    /// Requests the peer to stop sending data because the read-side of the stream was closed.
-    StreamStopSending
+    /// Indicates that reads are closed and that no more data will be read.
+    StreamReadsClosed
 
-    /// Notifies a client-initiated stream that the peer's buffered data has been consumed.
-    StreamReadsCompleted
+    /// Indicates that writes are closed and that no more data will be written.
+    StreamWritesClosed
 }
 
 /// The keys for supported connection parameters exchanged with the initialize and initialize acknowledgment frames.
@@ -106,14 +103,6 @@ compact struct CloseBody {
     applicationErrorCode: varuint62
 }
 
-/// The body of a stream reset frame.
-[cs::internal]
-[cs::readonly]
-compact struct StreamResetBody {
-    /// The application error code indicating the reason why the peer is no longer sending data.
-    applicationErrorCode: varuint62
-}
-
 /// The body of a stream consumed frame.
 [cs::internal]
 [cs::readonly]
@@ -122,10 +111,19 @@ compact struct StreamConsumedBody {
     size: varuint62
 }
 
-/// The body of a stream stop sending frame.
+/// The body of a stream reads closed frame.
 [cs::internal]
 [cs::readonly]
-compact struct StreamStopSendingBody {
-    /// The application error code indicating the reason why the peer is no longer receiving data.
+compact struct StreamReadsClosedBody {
+    /// If not null, the application error code indicates the reason the application is not longer reading data. If
+    /// null, it indicates that the application read all the data written on the stream.
+    applicationErrorCode: varuint62?
+}
+
+/// The body of a stream writes closed frame.
+[cs::internal]
+[cs::readonly]
+compact struct StreamWritesClosedBody {
+    /// The application error code indicating the reason why the peer is no longer writting data.
     applicationErrorCode: varuint62
 }
