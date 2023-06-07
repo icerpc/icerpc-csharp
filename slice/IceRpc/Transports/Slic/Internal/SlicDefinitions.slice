@@ -6,46 +6,45 @@ module IceRpc::Transports::Slic::Internal
 /// The Slic frame types.
 [cs::internal]
 enum FrameType : uint8 {
-    /// The initialization frame is sent by the client-side Slic connection on connection establishment.
+    // Initiates the connection establishment.
     Initialize = 1
 
-    /// The initialize acknowledgment is sent by the server-side Slic connection after receiving an initialize
-    /// frame.
+    /// Acknowledges the receipt of the initialize frame.
     InitializeAck
 
-    /// The Slic versions supported by the server if the version from the Initialize frame is not supported.
-    Version
+    /// Indicates the versions supported by the server. The server sends this frame if the version from the initialize
+    /// frame is not supported.
+    Versions
 
-    /// The close frame is sent by the peer when it closes the connection.
+    /// Initiates the closure of the connection.
     Close
 
-    /// The ping frame is sent to check the liveliness of the connection.
+    /// Checks the liveliness of the connection.
     Ping
 
-    /// The pong frame is sent back after receiving a ping frame.
+    /// Acknowledges the receipt of a Ping frame.
     Pong
 
-    /// The stream frame is sent send data over a Slic stream.
+    /// Carries stream data.
     Stream
 
-    /// The last stream frame is the last frame used to send data over a Slic stream.
+    /// Carries the last stream data.
     StreamLast
 
-    /// The stream reset frame terminates the stream.
+    /// Requests the peer to stop receiving data because the write-side of the stream was closed.
     StreamReset
 
-    /// The stream consumed frame is sent to increase the peer's send credit.
+    /// Carries the amount of consumed data.
     StreamConsumed
 
-    /// The stream stop sending frame is sent to notify the peer it should stop sending data.
+    /// Requests the peer to stop sending data because the read-side of the stream was closed.
     StreamStopSending
 
-    /// The stream reads completed frame is sent to notify the peer that reads are completed.
+    /// Notifies a client-initiated stream that the peer's buffered data has been consumed.
     StreamReadsCompleted
 }
 
-/// The keys for supported Slic connection parameters exchanged with the Initialize and
-/// InitializeAck frames.
+/// The keys for supported connection parameters exchanged with the initialize and initialize acknowledgment frames.
 [cs::internal]
 unchecked enum ParameterKey : varuint62 {
     /// The maximum number of bidirectional streams. The peer shouldn't open more streams than the maximum defined
@@ -56,19 +55,21 @@ unchecked enum ParameterKey : varuint62 {
     /// by this parameter.
     MaxUnidirectionalStreams = 1
 
-    /// The idle timeout in milliseconds. If the connection is inactive for longer than the idle timeout it will be closed.
+    /// The idle timeout in milliseconds. If the connection is inactive for longer than the idle timeout it will be
+    /// closed.
     IdleTimeout = 2
 
-    /// The maximum Slic packet size in bytes.
+    /// The maximum packet size in bytes.
     PacketMaxSize = 3
 
-    /// The pause writer threshold in bytes. The peer should stop sending data when this limit is reached.
+    /// The pause writer threshold in bytes. The peer should hold on sending data when this limit is reached and should
+    /// only resume sending after receiving the stream consumed frame.
     PauseWriterThreshold = 4
 }
 
 typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
 
-/// The Slic initialize frame body.
+/// The initialize frame body.
 [cs::internal]
 [cs::readonly]
 compact struct InitializeBody {
@@ -79,7 +80,7 @@ compact struct InitializeBody {
     parameters: ParameterFields
 }
 
-/// The Slic initialize acknowledgment frame body.
+/// The initialize acknowledgment frame body.
 [cs::internal]
 [cs::readonly]
 compact struct InitializeAckBody {
@@ -87,18 +88,17 @@ compact struct InitializeAckBody {
     parameters: ParameterFields
 }
 
-/// The body of a Slic version frame. This frame is sent in response to an initialize frame if the Slic version
-/// from the initialize frame is not supported by the receiver. Upon receiving the Version frame the receiver
-/// should send back a new Initialize frame with a version matching one of the versions provided by the Version
-/// frame body.
+/// The body of a version frame. This frame is sent in response to an initialize frame if the version from the
+/// initialize frame is not supported by the receiver. Upon receiving the version frame the receiver should send back
+/// a new initialize frame with a version matching one of the versions provided by the version frame body.
 [cs::internal]
 [cs::readonly]
 compact struct VersionBody {
-    /// The supported Slic versions.
+    /// The supported versions.
     versions: sequence<varuint62>
 }
 
-/// The body of a Slic close frame. This frame is sent when the connection is explicitly closed.
+/// The body of a close frame.
 [cs::internal]
 [cs::readonly]
 compact struct CloseBody {
@@ -106,16 +106,15 @@ compact struct CloseBody {
     applicationErrorCode: varuint62
 }
 
-/// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in
-/// the stream.
+/// The body of a stream reset frame.
 [cs::internal]
 [cs::readonly]
 compact struct StreamResetBody {
-    /// The application error code indicating the reason of the reset.
+    /// The application error code indicating the reason why the peer is no longer sending data.
     applicationErrorCode: varuint62
 }
 
-/// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
+/// The body of a stream consumed frame.
 [cs::internal]
 [cs::readonly]
 compact struct StreamConsumedBody {
@@ -123,11 +122,10 @@ compact struct StreamConsumedBody {
     size: varuint62
 }
 
-/// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver is no longer
-/// interested in receiving data.
+/// The body of a stream stop sending frame.
 [cs::internal]
 [cs::readonly]
 compact struct StreamStopSendingBody {
-    /// The application error code indicating the reason why the peer no longer needs to receive data.
+    /// The application error code indicating the reason why the peer is no longer receiving data.
     applicationErrorCode: varuint62
 }

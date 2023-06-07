@@ -3,14 +3,13 @@
 use super::{EntityExt, TypeRefExt};
 use crate::cs_util::{escape_keyword, mangle_name, FieldType};
 use convert_case::Case;
-use slice::grammar::*;
-use slice::utils::code_gen_util::{format_message, TypeContext};
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::{format_message, TypeContext};
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;
     fn parameter_name_with_prefix(&self, prefix: &str) -> String;
     fn field_name(&self, field_type: FieldType) -> String;
-    fn is_default_initialized(&self) -> bool;
 }
 
 impl<T: Member> MemberExt for T {
@@ -25,19 +24,6 @@ impl<T: Member> MemberExt for T {
 
     fn field_name(&self, field_type: FieldType) -> String {
         mangle_name(&self.escape_identifier(), field_type)
-    }
-
-    fn is_default_initialized(&self) -> bool {
-        let data_type = self.data_type();
-
-        if data_type.is_optional {
-            return true;
-        }
-
-        match data_type.concrete_type() {
-            Types::Struct(struct_def) => struct_def.fields().iter().all(|m| m.is_default_initialized()),
-            _ => data_type.is_value_type(),
-        }
     }
 }
 
@@ -65,7 +51,7 @@ impl ParameterExt for Parameter {
 
     fn formatted_parameter_doc_comment(&self) -> Option<String> {
         // Check if this parameter's parent operation had a doc comment on it.
-        self.parent().unwrap().comment().and_then(|comment| {
+        self.parent().comment().and_then(|comment| {
             // If it did, search the comment for a '@param' tag with this parameter's identifier and return it.
             comment
                 .params

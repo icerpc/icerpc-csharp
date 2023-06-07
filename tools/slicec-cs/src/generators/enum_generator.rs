@@ -1,32 +1,39 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::cs_attributes::match_cs_attribute;
+use crate::cs_util::CsCase;
 use crate::slicec_ext::*;
-use convert_case::{Case, Casing};
-use slice::code_block::CodeBlock;
-use slice::grammar::*;
+use convert_case::Case;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
 
-pub fn generate_enum(enum_def: &Enum, generated_code: &mut GeneratedCode) {
+pub fn generate_enum(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
     code.add_block(&enum_declaration(enum_def));
     code.add_block(&enum_underlying_extensions(enum_def));
     code.add_block(&enum_encoder_extensions(enum_def));
     code.add_block(&enum_decoder_extensions(enum_def));
-    generated_code.insert_scoped(enum_def, code);
+    code
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
-    ContainerBuilder::new(
+    let mut builder = ContainerBuilder::new(
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
-    )
-    .add_comments(enum_def.formatted_doc_comment())
-    .add_generated_remark("enum", enum_def)
-    .add_container_attributes(enum_def)
-    .add_base(enum_def.get_underlying_cs_type())
-    .add_block(enum_values(enum_def))
-    .build()
+    );
+    builder
+        .add_comments(enum_def.formatted_doc_comment())
+        .add_generated_remark("enum", enum_def)
+        .add_obsolete_attribute(enum_def)
+        .add_base(enum_def.get_underlying_cs_type())
+        .add_block(enum_values(enum_def));
+
+    // Add cs::attribute
+    for attribute in enum_def.attributes().into_iter().filter_map(match_cs_attribute) {
+        builder.add_attribute(attribute);
+    }
+    builder.build()
 }
 
 fn enum_values(enum_def: &Enum) -> CodeBlock {
@@ -36,6 +43,10 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
 
         for comment_tag in enumerator.formatted_doc_comment() {
             declaration.writeln(&comment_tag);
+        }
+
+        if let Some(attribute) = enumerator.obsolete_attribute() {
+            writeln!(declaration, "[{attribute}]");
         }
 
         writeln!(
@@ -60,7 +71,7 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         &format!(
             "{}{}Extensions",
             enum_def.cs_identifier(Case::Pascal),
-            cs_type.to_case(Case::Pascal),
+            cs_type.to_cs_case(Case::Pascal),
         ),
     );
 
@@ -214,7 +225,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let underlying_extensions_class = format!(
         "{}{}Extensions",
         enum_def.cs_identifier(Case::Pascal),
-        cs_type.to_case(Case::Pascal),
+        cs_type.to_cs_case(Case::Pascal),
     );
 
     // Enum decoding

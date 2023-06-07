@@ -19,8 +19,8 @@ public static class AsyncEnumerableExtensions
     /// <param name="encoding">The Slice encoding to use.</param>
     /// <param name="encodeOptions">The Slice encode options.</param>
     /// <returns>A pipe reader that represents the encoded stream of bytes.</returns>
-    /// <remarks>This extension method is used to encode streaming parameters and streaming return values with the Slice 2
-    /// encoding.</remarks>
+    /// <remarks>This extension method is used to encode streaming parameters and streaming return values with the
+    /// Slice2 encoding.</remarks>
     public static PipeReader ToPipeReader<T>(
         this IAsyncEnumerable<T> asyncEnumerable,
         EncodeAction<T> encodeAction,
@@ -37,14 +37,20 @@ public static class AsyncEnumerableExtensions
     // Overriding ReadAtLeastAsyncCore or CopyToAsync methods for this reader is not critical since this reader is
     // mostly used by the IceRpc core to copy the encoded data for the enumerable to the network stream. This copy
     // doesn't use these methods.
-    private class AsyncEnumerablePipeReader<T> : PipeReader, IDisposable
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable.
+    private class AsyncEnumerablePipeReader<T> : PipeReader
+#pragma warning restore CA1001
     {
-#pragma warning disable CA2213 // Disposed by Complete
+        // Disposed in Complete.
         private readonly IAsyncEnumerator<T> _asyncEnumerator;
+
+        // We don't dispose _cts because it's not necessary
+        // (see https://github.com/dotnet/runtime/issues/29970#issuecomment-717840778) and we can't easily dispose it
+        // when no one is using it since CancelPendingRead can be called by another thread after Complete is called.
         private readonly CancellationTokenSource _cts = new();
-#pragma warning restore CA2213
         private readonly EncodeAction<T> _encodeAction;
         private readonly SliceEncoding _encoding;
+        private bool _isCompleted;
         private readonly bool _useSegments;
         private readonly int _streamFlushThreshold;
         private Task<bool>? _moveNext;
@@ -58,34 +64,23 @@ public static class AsyncEnumerableExtensions
         public override void CancelPendingRead()
         {
             _pipe.Reader.CancelPendingRead();
-
-            try
-            {
-                _cts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // ok, ignored
-            }
+            _cts.Cancel();
         }
 
         public override void Complete(Exception? exception = null)
         {
-            try
+            if (!_isCompleted)
             {
+                _isCompleted = true;
+
                 // Cancel MoveNextAsync if it's still running.
                 _cts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                return; // Complete already called.
-            }
 
-            _pipe.Reader.Complete();
-            _pipe.Writer.Complete();
-            _cts.Dispose();
+                _pipe.Reader.Complete();
+                _pipe.Writer.Complete();
 
-            _ = DisposeEnumeratorAsync();
+                _ = DisposeEnumeratorAsync();
+            }
 
             async Task DisposeEnumeratorAsync()
             {
@@ -95,7 +90,7 @@ public static class AsyncEnumerableExtensions
                 {
                     try
                     {
-                        await _moveNext.ConfigureAwait(false);
+                        _ = await _moveNext.ConfigureAwait(false);
                     }
                     catch
                     {
@@ -105,17 +100,12 @@ public static class AsyncEnumerableExtensions
             }
         }
 
-        public void Dispose() => Complete();
-
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
-            // If no more buffered data to read, fill the pipe with new data.
-            if (_pipe.Reader.TryRead(out ReadResult readResult))
+            if (!_pipe.Reader.TryRead(out ReadResult readResult))
             {
-                return readResult;
-            }
-            else
-            {
+                // If no more buffered data to read, fill the pipe with new data.
+
                 // If ReadAsync is canceled, cancel the enumerator iteration to ensure MoveNextAsync below completes.
                 using CancellationTokenRegistration registration = cancellationToken.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),
@@ -136,8 +126,9 @@ public static class AsyncEnumerableExtensions
 
                     if (hasNext && EncodeElements() is Task<bool> moveNext)
                     {
-                        // Flush shouldn't block because the pipe is configured to not pause flush.
-                        _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                        // Flush does not block because the pipe is configured to not pause flush.
+                        ValueTask<FlushResult> valueTask = _pipe.Writer.FlushAsync(CancellationToken.None);
+                        Debug.Assert(valueTask.IsCompletedSuccessfully);
 
                         _moveNext = moveNext;
                         // And the next ReadAsync will await _moveNext.
@@ -147,18 +138,31 @@ public static class AsyncEnumerableExtensions
                         // No need to flush the writer, complete takes care of it.
                         _pipe.Writer.Complete();
                     }
+
+                    // There are bytes in the reader or it's completed since we've just flushed or completed the writer.
+                    bool ok = _pipe.Reader.TryRead(out readResult);
+                    Debug.Assert(ok);
                 }
                 catch (OperationCanceledException exception)
                 {
                     Debug.Assert(exception.CancellationToken == _cts.Token);
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // CancelPendingRead was called, return a canceled read result.
-                    return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: true, isCompleted: false);
+                    if (_pipe.Reader.TryRead(out readResult) && readResult.IsCanceled)
+                    {
+                        // Ok: return canceled readResult once after calling CancelPendingRead.
+                        // Note that we can't return a canceled read result with a bogus buffer since the caller must
+                        // be able to call reader.AdvanceTo with this buffer.
+                    }
+                    else
+                    {
+                        throw new NotSupportedException(
+                            "Cannot resume reading an AsyncEnumerablePipeReader after canceling a ReadAsync or calling CancelPendingRead.");
+                    }
                 }
             }
 
-            return await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            return readResult;
 
             Task<bool>? EncodeElements()
             {
@@ -228,10 +232,6 @@ public static class AsyncEnumerableExtensions
             }
 
             encodeOptions ??= SliceEncodeOptions.Default;
-
-            // Ensure that the pipe writer flush is configured to not block.
-            Debug.Assert(encodeOptions.PipeOptions.PauseWriterThreshold == 0);
-
             _pipe = new Pipe(encodeOptions.PipeOptions);
             _streamFlushThreshold = encodeOptions.StreamFlushThreshold;
             _encodeAction = encodeAction;

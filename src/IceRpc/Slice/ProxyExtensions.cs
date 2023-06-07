@@ -65,7 +65,7 @@ public static class ProxyExtensions
         PipeReader? payload,
         PipeReader? payloadContinuation,
         ResponseDecodeFunc<T> responseDecodeFunc,
-        IFeatureCollection? features,
+        IFeatureCollection? features = null,
         bool idempotent = false,
         CancellationToken cancellationToken = default) where TProxy : struct, IProxy
     {
@@ -145,7 +145,7 @@ public static class ProxyExtensions
         PipeReader? payload,
         PipeReader? payloadContinuation,
         ResponseDecodeFunc responseDecodeFunc,
-        IFeatureCollection? features,
+        IFeatureCollection? features = null,
         bool idempotent = false,
         bool oneway = false,
         CancellationToken cancellationToken = default) where TProxy : struct, IProxy

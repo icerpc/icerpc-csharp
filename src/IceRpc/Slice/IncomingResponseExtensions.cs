@@ -15,7 +15,7 @@ public static class IncomingResponseExtensions
     /// <typeparam name="T">The type of the return value.</typeparam>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
+    /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="decodeReturnValue">A function that decodes the return value.</param>
     /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only when
@@ -68,10 +68,33 @@ public static class IncomingResponseExtensions
                 cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Verifies that a Slice2 response payload carries no return value or only tagged return values.
+    /// </summary>
+    /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="sender">The proxy that sent the request.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A value task representing the asynchronous completion of the operation.</returns>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater or equal than <see
+    /// cref="StatusCode.ApplicationError" />.</exception>
+    /// <remarks>Use this method only with an operation with no exception specification. This method is a
+    /// <see cref="ResponseDecodeFunc" />.</remarks>
+    public static ValueTask DecodeVoidReturnValueAsync(
+        IncomingResponse response,
+        OutgoingRequest request,
+        GenericProxy sender,
+        CancellationToken cancellationToken = default) =>
+        DecodeVoidReturnValueAsync(
+            response,
+            request,
+            SliceEncoding.Slice2,
+            sender,
+            cancellationToken: cancellationToken);
+
     /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
-    /// <param name="encoding">The encoding of the response payload. Must be Slice2 or greater.</param>
+    /// <param name="encoding">The encoding of the response payload.</param>
     /// <param name="sender">The proxy that sent the request.</param>
     /// <param name="decodeException">A function that decodes the exception thrown by the operation. Used only when
     /// <paramref name="encoding" /> is not <see cref="SliceEncoding.Slice1" />.</param>

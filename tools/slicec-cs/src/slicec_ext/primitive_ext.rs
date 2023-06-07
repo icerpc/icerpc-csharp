@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use slice::grammar::Primitive;
+use slicec::grammar::Primitive;
 
 pub trait PrimitiveExt {
     /// The primitive's type stuff used as the suffix to encoder and decoder operations.

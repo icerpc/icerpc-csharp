@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::slicec_ext::primitive_ext::PrimitiveExt;
-use slice::grammar::Enum;
+use slicec::grammar::Enum;
 
 pub trait EnumExt {
     fn get_underlying_cs_type(&self) -> String;

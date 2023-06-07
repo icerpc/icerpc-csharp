@@ -7,8 +7,8 @@ namespace IceRpc.Features;
 public interface IFeatureCollection : IEnumerable<KeyValuePair<Type, object>>
 {
     /// <summary>Gets a value indicating whether this feature collection is read-only or read-write.</summary>
-    /// <value><see langword="true" /> if the feature collection is read-only; <see langword="false" />
-    /// otherwise.</value>
+    /// <value><see langword="true" /> if the feature collection is read-only; otherwise, <see langword="false" />.
+    /// </value>
     bool IsReadOnly { get; }
 
     /// <summary>Gets or sets a feature. Setting null removes the feature.</summary>

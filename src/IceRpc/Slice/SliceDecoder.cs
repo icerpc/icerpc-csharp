@@ -642,21 +642,21 @@ public ref partial struct SliceDecoder
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
     /// Otherwise, this value is set to its default value.</param>
     /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; <see langword="false" /> otherwise.</returns>
+    /// succeeded; otherwise, <see langword="false" />.</returns>
     internal bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
 
     /// <summary>Tries to decode a Slice int32 into an int.</summary>
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded int.
     /// Otherwise, this value is set to its default value.</param>
     /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; <see langword="false" /> otherwise.</returns>
+    /// succeeded; otherwise, <see langword="false" />.</returns>
     internal bool TryDecodeInt32(out int value) => SequenceMarshal.TryRead(ref _reader, out value);
 
     /// <summary>Tries to decode a size encoded on a variable number of bytes.</summary>
     /// <param name="size">When this method returns <see langword="true" />, this value is set to the decoded size.
     /// Otherwise, this value is set to its default value.</param>
     /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; <see langword="false" /> otherwise.</returns>
+    /// succeeded; otherwise, <see langword="false" />.</returns>
     internal bool TryDecodeSize(out int size)
     {
         if (Encoding == SliceEncoding.Slice1)
@@ -706,7 +706,7 @@ public ref partial struct SliceDecoder
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded ulong.
     /// Otherwise, this value is set to its default value.</param>
     /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; <see langword="false" /> otherwise.</returns>
+    /// succeeded; otherwise, <see langword="false" />.</returns>
     internal bool TryDecodeVarUInt62(out ulong value)
     {
         if (_reader.TryPeek(out byte b))

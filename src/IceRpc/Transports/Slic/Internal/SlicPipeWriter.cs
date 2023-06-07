@@ -11,7 +11,10 @@ namespace IceRpc.Transports.Slic.Internal;
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
-    private readonly CancellationTokenSource _completeWritesCts = new(); // Disposed by Complete
+    // We can avoid disposing _completeWritesCts because it was not created using CreateLinkedTokenSource, and it
+    // doesn't use a timer. It is not easy to dispose it because CompleteWrites can be called by another thread after
+    // Complete has been called.
+    private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
     private readonly Pipe _pipe;
@@ -39,7 +42,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         {
             _isCompleted = true;
 
-            if (!_stream.WritesCompleted && exception is null && _pipe.Writer.UnflushedBytes > 0)
+            if (exception is null && _pipe.Writer.UnflushedBytes > 0)
             {
                 throw new InvalidOperationException(
                     $"Completing a {nameof(SlicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
@@ -58,7 +61,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
             _sendCreditSemaphore.Dispose();
-            _completeWritesCts.Dispose();
         }
     }
 
@@ -96,8 +98,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         // Abort the stream if the invocation is canceled.
         using CancellationTokenRegistration cancelTokenRegistration = cancellationToken.UnsafeRegister(
-                cts => ((CancellationTokenSource)cts!).Cancel(),
-                _completeWritesCts);
+            cts => ((CancellationTokenSource)cts!).Cancel(),
+            _completeWritesCts);
 
         ReadOnlySequence<byte> source1;
         ReadOnlySequence<byte> source2;
@@ -122,7 +124,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         try
         {
-            return await _stream.SendStreamFrameAsync(
+            return await _stream.WriteStreamFrameAsync(
                 source1,
                 source2,
                 endStream,
@@ -131,8 +133,6 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            Debug.Assert(_completeWritesCts.IsCancellationRequested);
             return _exception is null ?
                 new FlushResult(isCanceled: false, isCompleted: true) :
                 throw ExceptionUtil.Throw(_exception);
@@ -155,13 +155,14 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         _sendCredit = connection.PeerPauseWriterThreshold;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
-        // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
-        // avoid thread context switches when FlushAsync is called on the internal pipe writer.
+        // the Slic flow control doesn't permit sending more data.
+        // The readerScheduler doesn't matter (we don't call _pipe.Reader.ReadAsync) and the writerScheduler doesn't
+        // matter (_pipe.Writer.FlushAsync never blocks).
         _pipe = new(new PipeOptions(
             pool: connection.Pool,
             minimumSegmentSize: connection.MinSegmentSize,
             pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline));
+            useSynchronizationContext: false));
     }
 
     internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
@@ -180,13 +181,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     internal void CompleteWrites(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
-        try
-        {
-            _completeWritesCts.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-        }
+        _completeWritesCts.Cancel();
     }
 
     internal void ConsumedSendCredit(int consumed)

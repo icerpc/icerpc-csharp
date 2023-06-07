@@ -10,20 +10,19 @@ internal sealed class InvalidPipeReader : PipeReader
     /// <summary>Gets the invalid pipe reader singleton instance.</summary>
     public static PipeReader Instance { get; } = new InvalidPipeReader();
 
-    private static readonly Exception _invalidOperationException =
-        new InvalidOperationException("Reading an invalid pipe reader is not allowed.");
+    private const string ExceptionMessage = "Reading an invalid pipe reader is not allowed.";
 
-    public override bool TryRead(out ReadResult result) => throw _invalidOperationException;
+    public override bool TryRead(out ReadResult result) => throw new InvalidOperationException(ExceptionMessage);
 
     public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
-        throw _invalidOperationException;
+        throw new InvalidOperationException(ExceptionMessage);
 
-    public override void AdvanceTo(SequencePosition consumed) => throw _invalidOperationException;
+    public override void AdvanceTo(SequencePosition consumed) => throw new InvalidOperationException(ExceptionMessage);
 
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined) =>
-        throw _invalidOperationException;
+        throw new InvalidOperationException(ExceptionMessage);
 
-    public override void CancelPendingRead() => throw _invalidOperationException;
+    public override void CancelPendingRead() => throw new InvalidOperationException(ExceptionMessage);
 
     public override void Complete(Exception? exception = null)
     {

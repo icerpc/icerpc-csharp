@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
@@ -9,11 +8,11 @@ use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Encoding, Exception, Member, Type};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Encoding, Exception, Member, Type};
+use slicec::utils::code_gen_util::TypeContext;
 
-pub fn generate_exception(exception_def: &Exception, generated_code: &mut GeneratedCode) {
+pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
     let exception_name = exception_def.escape_identifier();
     let has_base = exception_def.base.is_some();
 
@@ -23,14 +22,16 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
 
     let access = exception_def.access_modifier();
 
+    let supported_encodings = exception_def.supported_encodings();
+
     let mut exception_class_builder = ContainerBuilder::new(&format!("{access} partial class"), &exception_name);
 
     exception_class_builder
         .add_comments(exception_def.formatted_doc_comment())
         .add_generated_remark("class", exception_def)
-        .add_container_attributes(exception_def);
+        .add_obsolete_attribute(exception_def);
 
-    if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+    if supported_encodings.supports(&Encoding::Slice1) {
         exception_class_builder.add_type_id_attribute(exception_def);
     }
 
@@ -49,7 +50,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
             .into(),
     );
 
-    if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+    if supported_encodings.supports(&Encoding::Slice1) {
         exception_class_builder.add_block(
             format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;").into(),
         );
@@ -64,7 +65,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
                     .add_parameter("string?", "message", Some("null"), None)
                     .add_base_parameter("ref decoder")
                     .add_base_parameter("message")
-                    .set_body(initialize_non_nullable_fields(&fields, FieldType::Exception))
+                    .set_body(initialize_required_fields(&fields, FieldType::Exception))
                     // This is Slice1 only, there is no exception inheritance with Slice2. We hide this method because
                     // this must be only called by the Activator.
                     .add_never_editor_browsable_attribute()
@@ -75,6 +76,19 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
         // or generated code. With Slice2, it's a regular decoding constructor that can be called directly by the
         // generated code or the application.
         let mut builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
+
+        if supported_encodings.supports(&Encoding::Slice2) {
+            builder.add_comment(
+                "summary",
+                format!(
+                    r#"Constructs a new instance of <see cref="{}" /> and decodes its fields from a Slice decoder."#,
+                    &exception_name
+                ),
+            );
+        } else {
+            builder.add_never_editor_browsable_attribute();
+        }
+
         builder
             .add_parameter(
                 "ref SliceDecoder",
@@ -93,7 +107,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
                 EncodingBlockBuilder::new(
                     "decoder.Encoding",
                     &exception_name,
-                    exception_def.supported_encodings(),
+                    supported_encodings.clone(),
                     false,
                 )
                 .add_encoding_block(Encoding::Slice1, || {
@@ -101,7 +115,7 @@ pub fn generate_exception(exception_def: &Exception, generated_code: &mut Genera
                         "\
 {}
 ConvertToUnhandled = true;",
-                        initialize_non_nullable_fields(&fields, FieldType::Exception),
+                        initialize_required_fields(&fields, FieldType::Exception),
                     )
                     .into()
                 })
@@ -118,28 +132,17 @@ ConvertToUnhandled = true;",
                 .build(),
             );
 
-        if exception_def.supported_encodings().supports(&Encoding::Slice2) {
+        if supported_encodings.supports(&Encoding::Slice2) && supported_encodings.supports(&Encoding::Slice1) {
             builder.add_comment(
-                "summary",
-                format!(
-                    r#"Constructs a new instance of <see cref="{}" /> and decodes its fields from a Slice decoder."#,
-                    &exception_name
-                ),
-            );
-            if exception_def.supported_encodings().supports(&Encoding::Slice1) {
-                builder.add_comment(
-                        "remarks",
-                        r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
-                    );
-            }
-        } else {
-            builder.add_never_editor_browsable_attribute();
+                    "remarks",
+                    r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
+                );
         }
 
         exception_class_builder.add_block(builder.build());
     }
 
-    if exception_def.supported_encodings().supports(&Encoding::Slice1) {
+    if supported_encodings.supports(&Encoding::Slice1) {
         exception_class_builder.add_block(
             FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
@@ -166,7 +169,7 @@ ConvertToUnhandled = true;",
 
     exception_class_builder.add_block(encode_core_method(exception_def));
 
-    generated_code.insert_scoped(exception_def, exception_class_builder.build());
+    exception_class_builder.build()
 }
 
 fn encode_core_method(exception_def: &Exception) -> CodeBlock {

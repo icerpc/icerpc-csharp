@@ -3,11 +3,11 @@
 use super::{EntityExt, InterfaceExt, MemberExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes::match_cs_encoded_result;
 use crate::cs_util::FieldType;
-use slice::grammar::{Attributable, Contained, Operation};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::grammar::{Attributable, Contained, Operation};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
-    /// Returns true if the operation has the `cs::encodedResult` attribute. False otherwise.
+    /// Returns true if the operation has the `cs::encodedResult` attribute; otherwise, false.
     fn has_encoded_result(&self) -> bool;
 
     /// The name of the generated encoded result type.
@@ -22,13 +22,13 @@ pub trait OperationExt {
 
 impl OperationExt for Operation {
     fn has_encoded_result(&self) -> bool {
-        self.has_attribute(false, match_cs_encoded_result)
+        self.has_attribute(match_cs_encoded_result)
     }
 
     fn encoded_result_struct(&self) -> String {
         format!(
             "{}.{}EncodedResult",
-            self.parent().unwrap().service_name(),
+            self.parent().service_name(),
             self.escape_identifier(),
         )
     }
@@ -72,7 +72,7 @@ impl OperationExt for Operation {
 }
 
 fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
-    let ns = operation.parent().unwrap().namespace();
+    let ns = operation.parent().namespace();
     if is_dispatch && operation.has_encoded_result() {
         if let Some(stream_member) = operation.streamed_return_member() {
             format!(

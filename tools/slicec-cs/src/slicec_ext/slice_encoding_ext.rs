@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use slice::grammar::Encoding;
+use slicec::grammar::Encoding;
 
 pub trait EncodingExt {
     fn to_cs_encoding(&self) -> &str;

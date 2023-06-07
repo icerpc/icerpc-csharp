@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
@@ -9,34 +8,25 @@ use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Class, Encoding, Field};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Class, Encoding, Field};
+use slicec::utils::code_gen_util::TypeContext;
 
-pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
+pub fn generate_class(class_def: &Class) -> CodeBlock {
     let class_name = class_def.escape_identifier();
     let namespace = class_def.namespace();
     let has_base_class = class_def.base_class().is_some();
 
     let fields = class_def.fields();
-    let base_fields = if let Some(base) = class_def.base_class() {
-        base.all_fields()
-    } else {
-        vec![]
-    };
+    let base_fields = class_def.base_class().map_or(vec![], Class::all_fields);
+
     let access = class_def.access_modifier();
 
-    let non_default_fields = fields
-        .iter()
-        .cloned()
-        .filter(|m| !m.is_default_initialized())
-        .collect::<Vec<_>>();
+    let mut non_nullable_fields = fields.clone();
+    non_nullable_fields.retain(|f| !f.data_type.is_optional);
 
-    let non_default_base_fields = base_fields
-        .iter()
-        .cloned()
-        .filter(|m| !m.is_default_initialized())
-        .collect::<Vec<_>>();
+    let mut non_nullable_base_fields = base_fields.clone();
+    non_nullable_base_fields.retain(|f| !f.data_type.is_optional);
 
     let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
@@ -45,7 +35,7 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
         .add_generated_remark("class", class_def)
         .add_type_id_attribute(class_def)
         .add_compact_type_id_attribute(class_def)
-        .add_container_attributes(class_def);
+        .add_obsolete_attribute(class_def);
 
     if let Some(base) = class_def.base_class() {
         class_builder.add_base(base.escape_scoped_identifier(&namespace));
@@ -79,7 +69,7 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
 
     let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
 
-    // One-shot ctor (may be parameterless)
+    // The primary constructor (may be parameterless)
     class_builder.add_block(constructor(
         &class_name,
         &access,
@@ -89,16 +79,16 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
         &base_fields,
     ));
 
-    // Second public constructor for all fields minus those with a default initializer
+    // Secondary constructor for all fields minus those with optional types.
     // This constructor is only generated if necessary
-    if non_default_fields.len() + non_default_base_fields.len() < fields.len() + base_fields.len() {
+    if non_nullable_fields.len() + non_nullable_base_fields.len() < fields.len() + base_fields.len() {
         class_builder.add_block(constructor(
             &class_name,
             &access,
             constructor_summary,
             &namespace,
-            &non_default_fields,
-            &non_default_base_fields,
+            &non_nullable_fields,
+            &non_nullable_base_fields,
         ));
     }
 
@@ -121,14 +111,14 @@ pub fn generate_class(class_def: &Class, generated_code: &mut GeneratedCode) {
         decode_constructor.add_base_parameter("ref decoder");
     }
     decode_constructor
-        .set_body(initialize_non_nullable_fields(&fields, FieldType::Class))
+        .set_body(initialize_required_fields(&fields, FieldType::Class))
         .add_never_editor_browsable_attribute();
 
     class_builder.add_block(decode_constructor.build());
 
     class_builder.add_block(encode_and_decode(class_def));
 
-    generated_code.insert_scoped(class_def, class_builder.build());
+    class_builder.build()
 }
 
 fn constructor(

@@ -2,8 +2,8 @@
 
 use super::{EntityExt, InterfaceExt, PrimitiveExt};
 use crate::cs_attributes::{match_cs_custom, match_cs_generic};
-use slice::grammar::*;
-use slice::utils::code_gen_util::TypeContext;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::TypeContext;
 
 pub trait TypeRefExt {
     /// Is the type a value type (eg. Struct)
@@ -24,7 +24,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 
     fn cs_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
         let type_str = match &self.concrete_typeref() {
-            TypeRefs::Struct(struct_ref) => match struct_ref.definition().find_attribute(false, match_cs_custom) {
+            TypeRefs::Struct(struct_ref) => match struct_ref.definition().find_attribute(match_cs_custom) {
                 Some(name) => name,
                 None => struct_ref.escape_scoped_identifier(namespace),
             },
@@ -32,16 +32,15 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
             TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_name(namespace),
-            TypeRefs::CustomType(custom_type_ref) => custom_type_ref
-                .definition()
-                .find_attribute(false, match_cs_custom)
-                .unwrap(),
+            TypeRefs::CustomType(custom_type_ref) => {
+                custom_type_ref.definition().find_attribute(match_cs_custom).unwrap()
+            }
             TypeRefs::Sequence(sequence_ref) => {
                 // For readonly sequences of fixed size numeric elements the mapping is the
                 // same for optional an non optional types.
                 if context == TypeContext::Encode
                     && sequence_ref.has_fixed_size_numeric_elements()
-                    && !self.has_attribute(false, match_cs_generic)
+                    && !self.has_attribute(match_cs_generic)
                 {
                     ignore_optional = true;
                 }
@@ -65,7 +64,7 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
         .element_type
         .cs_type_string(namespace, TypeContext::Nested, false);
 
-    let generic_attribute = sequence_ref.find_attribute(false, match_cs_generic);
+    let generic_attribute = sequence_ref.find_attribute(match_cs_generic);
 
     match context {
         TypeContext::Field | TypeContext::Nested => {
@@ -95,7 +94,7 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
         .value_type
         .cs_type_string(namespace, TypeContext::Nested, false);
 
-    let generic_attribute = dictionary_ref.find_attribute(false, match_cs_generic);
+    let generic_attribute = dictionary_ref.find_attribute(match_cs_generic);
 
     match context {
         TypeContext::Field | TypeContext::Nested => {

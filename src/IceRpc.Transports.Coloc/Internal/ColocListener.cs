@@ -98,7 +98,8 @@ internal class ColocListener : IListener<IDuplexConnection>
             pool: duplexConnectionOptions.Pool,
             minimumSegmentSize: duplexConnectionOptions.MinSegmentSize,
             pauseWriterThreshold: colocTransportOptions.PauseWriterThreshold,
-            resumeWriterThreshold: colocTransportOptions.ResumeWriterThreshold);
+            resumeWriterThreshold: colocTransportOptions.ResumeWriterThreshold,
+            useSynchronizationContext: false);
 
         // Create a bounded channel with a capacity that matches the listen backlog, and with
         // the default concurrency settings that allow multiple reader and writers.

@@ -4,10 +4,10 @@ use crate::builders::{Builder, FunctionCallBuilder};
 use crate::cs_attributes::match_cs_generic;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
-use convert_case::{Case, Casing};
-use slice::code_block::CodeBlock;
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
+use convert_case::Case;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
 pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
@@ -200,7 +200,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
     let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
 
-    let generic_attribute = sequence_ref.find_attribute(false, match_cs_generic);
+    let generic_attribute = sequence_ref.find_attribute(match_cs_generic);
 
     if generic_attribute.is_none() && matches!(element_type.concrete_type(), Types::Sequence(_)) {
         // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
@@ -245,7 +245,10 @@ decoder.DecodeSequence(
     ({enum_type_name} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
                         enum_type_name = element_type.cs_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                            &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
+                            &format!(
+                                "{}Extensions",
+                                enum_def.get_underlying_cs_type().to_cs_case(Case::Pascal)
+                            ),
                             namespace,
                         ),
                         name = enum_def.cs_identifier(Case::Pascal),
@@ -321,7 +324,10 @@ decoder.DecodeSequence(
     ({enum_type} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
                         enum_type = element_type.cs_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                            &format!("{}Extensions", enum_def.get_underlying_cs_type().to_case(Case::Pascal)),
+                            &format!(
+                                "{}Extensions",
+                                enum_def.get_underlying_cs_type().to_cs_case(Case::Pascal)
+                            ),
                             namespace,
                         ),
                         name = enum_def.cs_identifier(Case::Pascal),

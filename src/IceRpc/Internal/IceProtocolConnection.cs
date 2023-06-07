@@ -26,7 +26,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private IConnectionContext? _connectionContext; // non-null once the connection is established
     private Task? _connectTask;
     private readonly IDispatcher _dispatcher;
-    private int _dispatchCount;
+
+    // The number of outstanding dispatches and invocations.
+    private int _dispatchInvocationCount;
+
     // We don't want the continuation to run from the dispatch or invocation thread.
     private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -42,7 +45,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly IceDuplexConnectionWriter _duplexConnectionWriter;
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
-    private int _invocationCount;
     private string? _invocationRefusedMessage;
     private int _lastRequestId;
     private readonly int _maxFrameSize;
@@ -223,7 +225,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 RefuseNewInvocations("The connection was disposed.");
 
                 _shutdownTask ??= Task.CompletedTask;
-                if (_dispatchCount == 0 && _invocationCount == 0)
+                if (_dispatchInvocationCount == 0)
                 {
                     _dispatchesAndInvocationsCompleted.TrySetResult();
                 }
@@ -302,18 +304,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 throw new InvalidOperationException("Cannot invoke on a connection that is not fully established.");
             }
 
-            if (_dispatchCount == 0 && _invocationCount == 0)
-            {
-                CancelInactivityCheck();
-            }
-            ++_invocationCount;
+            IncrementDispatchInvocationCount();
         }
 
         return PerformInvokeAsync();
 
         async Task<IncomingResponse> PerformInvokeAsync()
         {
-            // Since _invocationCount > 0, _disposedCts is not disposed.
+            // Since _dispatchInvocationCount > 0, _disposedCts is not disposed.
             using var invocationCts =
                 CancellationTokenSource.CreateLinkedTokenSource(_disposedCts.Token, cancellationToken);
 
@@ -459,22 +457,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         _twowayInvocations.Remove(requestId);
                     }
 
-                    --_invocationCount;
-                    if (_dispatchCount == 0 && _invocationCount == 0)
-                    {
-                        if (_shutdownTask is not null)
-                        {
-                            _dispatchesAndInvocationsCompleted.TrySetResult();
-                        }
-                        else if (!_refuseInvocations)
-                        {
-                            // We enable the inactivity check in order to complete ShutdownRequested when inactive for
-                            // too long. _refuseInvocations is true when the connection is either about to be "shutdown
-                            // requested", or shut down / disposed, or aborted (with Closed completed). We don't need to
-                            // complete ShutdownRequested in any of these situations.
-                            ScheduleInactivityCheck();
-                        }
-                    }
+                    DecrementDispatchInvocationCount();
                 }
 
                 frameReader?.Complete();
@@ -499,7 +482,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             RefuseNewInvocations("The connection was shut down.");
 
-            if (_dispatchCount == 0 && _invocationCount == 0)
+            if (_dispatchInvocationCount == 0)
             {
                 _dispatchesAndInvocationsCompleted.TrySetResult();
             }
@@ -607,11 +590,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         _inactivityTimeout = options.InactivityTimeout;
+
+        // The readerScheduler doesn't matter (we don't call pipe.Reader.ReadAsync on the resulting pipe), and the
+        // writerScheduler doesn't matter (pipe.Writer.FlushAsync never blocks).
         _pipeOptions = new PipeOptions(
             pool: options.Pool,
             minimumSegmentSize: options.MinSegmentSize,
             pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline);
+            useSynchronizationContext: false);
 
         if (options.IceIdleTimeout != Timeout.InfiniteTimeSpan)
         {
@@ -635,7 +621,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             lock (_mutex)
             {
-                if (_dispatchCount == 0 && _invocationCount == 0 && _shutdownTask is null)
+                if (_dispatchInvocationCount == 0 && _shutdownTask is null)
                 {
                     requestShutdown = true;
                     RefuseNewInvocations(
@@ -960,9 +946,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         return semaphoreLock;
     }
 
-    private void CancelInactivityCheck() =>
-        _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-
     /// <summary>Creates a pipe reader to simplify the reading of a request or response frame. The frame is read fully
     /// and buffered into an internal pipe.</summary>
     private async ValueTask<PipeReader> CreateFrameReaderAsync(int size, CancellationToken cancellationToken)
@@ -985,6 +968,27 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
 
         return pipe.Reader;
+    }
+
+    private void DecrementDispatchInvocationCount()
+    {
+        lock (_mutex)
+        {
+            if (--_dispatchInvocationCount == 0)
+            {
+                if (_shutdownTask is not null)
+                {
+                    _dispatchesAndInvocationsCompleted.TrySetResult();
+                }
+                // We enable the inactivity check in order to complete ShutdownRequested when inactive for too long.
+                // _refuseInvocations is true when the connection is either about to be "shutdown requested", or shut
+                // down / disposed. We don't need to complete ShutdownRequested in any of these situations.
+                else if (!_refuseInvocations)
+                {
+                    ScheduleInactivityCheck();
+                }
+            }
+        }
     }
 
     /// <summary>Dispatches an incoming request. This method executes in a task spawn from the read frames loop.
@@ -1107,22 +1111,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         finally
         {
-            lock (_mutex)
-            {
-                // Dispatch is done.
-                --_dispatchCount;
-                if (_dispatchCount == 0 && _invocationCount == 0)
-                {
-                    if (_shutdownTask is not null)
-                    {
-                        _dispatchesAndInvocationsCompleted.TrySetResult();
-                    }
-                    else if (!_refuseInvocations)
-                    {
-                        ScheduleInactivityCheck();
-                    }
-                }
-            }
+            DecrementDispatchInvocationCount();
+        }
+    }
+
+    /// <summary>Increments the dispatch-invocation count.</summary>
+    /// <remarks>This method must be called with _mutex locked.</remarks>
+    private void IncrementDispatchInvocationCount()
+    {
+        if (_dispatchInvocationCount++ == 0)
+        {
+            // Cancel inactivity check.
+            _inactivityTimeoutTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -1457,11 +1457,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     return;
                 }
 
-                if (_dispatchCount == 0 && _invocationCount == 0)
-                {
-                    CancelInactivityCheck();
-                }
-                ++_dispatchCount;
+                IncrementDispatchInvocationCount();
             }
 
             // The scheduling of the task can't be canceled since we want to make sure DispatchRequestAsync will

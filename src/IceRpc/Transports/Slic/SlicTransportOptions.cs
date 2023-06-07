@@ -55,9 +55,7 @@ public sealed record class SlicTransportOptions
     }
 
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(30);
-    // The default packet size matches the SSL record maximum data size to avoid fragmentation of the Slic packet
-    // when using SSL.
-    private int _packetMaxSize = 16384;
+    private int _packetMaxSize = 32768;
     private int _pauseWriterThreshold = 65536;
     private int _resumeWriterThreshold = 32768;
 }

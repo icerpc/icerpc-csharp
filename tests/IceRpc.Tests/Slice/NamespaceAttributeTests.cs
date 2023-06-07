@@ -18,18 +18,18 @@ public class NamespaceAttributeTests
         var proxy = new NamespaceOperationsProxy(invoker);
 
         // Act
-        NamespaceAttribute.WithNamespace.N1.O2.S1 r =
-            await proxy.Op1Async(new NamespaceAttribute.M1.M2.M3.S1(10));
+        NamespaceAttribute.MappedNamespace.S1 r =
+            await proxy.Op1Async(new NamespaceAttribute.MappedNamespace.S1(10));
 
         // Assert
-        Assert.That(r.I, Is.EqualTo("10"));
+        Assert.That(r.I, Is.EqualTo(10));
     }
 
     private sealed class NamespaceOperationsService : Service, INamespaceOperationsService
     {
-        public ValueTask<NamespaceAttribute.WithNamespace.N1.O2.S1> Op1Async(
-            NamespaceAttribute.M1.M2.M3.S1 p,
+        public ValueTask<NamespaceAttribute.MappedNamespace.S1> Op1Async(
+            NamespaceAttribute.MappedNamespace.S1 p,
             IFeatureCollection features,
-            CancellationToken cancellationToken) => new(new NamespaceAttribute.WithNamespace.N1.O2.S1($"{p.I}"));
+            CancellationToken cancellationToken) => new(new NamespaceAttribute.MappedNamespace.S1(p.I));
     }
 }

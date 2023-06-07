@@ -1,22 +1,20 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::{scoped_identifier, InterfaceExt, MemberExt};
-use crate::comments::CommentTag;
-use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_namespace, match_cs_readonly};
-use crate::cs_util::escape_keyword;
-use convert_case::{Case, Casing};
-use slice::grammar::*;
-use slice::utils::code_gen_util::format_message;
+use super::{scoped_identifier, InterfaceExt, MemberExt, ModuleExt};
+use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_readonly};
+use crate::cs_util::{escape_keyword, CsCase};
+use convert_case::Case;
+use slicec::grammar::*;
 
 pub trait EntityExt: Entity {
     // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier
     /// attribute as-is or the Slice identifier formatted with the specified casing.
     fn cs_identifier(&self, case: Case) -> String {
-        let identifier_attribute = self.attributes(false).into_iter().find_map(match_cs_identifier);
+        let identifier_attribute = self.attributes().into_iter().find_map(match_cs_identifier);
 
         match identifier_attribute {
             Some(identifier) => identifier,
-            None => self.identifier().to_case(case),
+            None => self.identifier().to_cs_case(case),
         }
     }
 
@@ -98,8 +96,8 @@ pub trait EntityExt: Entity {
         )
     }
 
-    fn obsolete_attribute(&self, check_parent: bool) -> Option<String> {
-        self.get_deprecation(check_parent).map(|attribute| {
+    fn obsolete_attribute(&self) -> Option<String> {
+        self.get_deprecation().map(|attribute| {
             let reason = if let Some(argument) = attribute {
                 argument
             } else {
@@ -109,30 +107,9 @@ pub trait EntityExt: Entity {
         })
     }
 
-    /// The C# namespace of this entity.
+    /// The C# namespace that this entity is contained within.
     fn namespace(&self) -> String {
-        let module_scope = &self.raw_scope().module_scope;
-
-        // List of all recursive (it and its parents) cs::namespace attributes for this entity.
-        let mut attribute_list = self
-            .all_attributes()
-            .into_iter()
-            .map(|l| l.into_iter().find_map(match_cs_namespace))
-            .collect::<Vec<_>>();
-        // Reverse the list so that the top level module name is first.
-        attribute_list.reverse();
-
-        assert!(attribute_list.len() >= module_scope.len());
-
-        module_scope
-            .iter()
-            .enumerate()
-            .map(|(i, s)| match &attribute_list[i] {
-                Some(namespace) => namespace.to_owned(),
-                None => escape_keyword(&s.to_case(Case::Pascal)),
-            })
-            .collect::<Vec<_>>()
-            .join(".")
+        self.get_module().as_namespace()
     }
 
     /// The C# Type ID attribute.
@@ -143,7 +120,7 @@ pub trait EntityExt: Entity {
     /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
     /// attribute otherwise returns "public".
     fn access_modifier(&self) -> String {
-        if self.attributes(true).into_iter().find_map(match_cs_internal).is_some() {
+        if self.attributes().into_iter().find_map(match_cs_internal).is_some() {
             "internal".to_owned()
         } else {
             "public".to_owned()
@@ -154,7 +131,7 @@ pub trait EntityExt: Entity {
     /// returns None.
     fn readonly_modifier(&self) -> Option<String> {
         // Readonly is only valid for structs
-        if self.attributes(true).into_iter().find_map(match_cs_readonly).is_some() {
+        if self.attributes().into_iter().find_map(match_cs_readonly).is_some() {
             Some("readonly".to_owned())
         } else {
             None
@@ -170,50 +147,6 @@ pub trait EntityExt: Entity {
         }
     }
 
-    /// If this entity has a doc comment with an overview on it, this returns the overview formatted as a C# summary,
-    /// with any links resolved to the appropriate C# tag. Otherwise this returns `None`.
-    fn formatted_doc_comment_summary(&self) -> Option<String> {
-        self.comment().and_then(|comment| {
-            comment
-                .overview
-                .as_ref()
-                .map(|overview| format_message(&overview.message, |link| link.get_formatted_link(&self.namespace())))
-        })
-    }
-
-    /// Returns this entity's doc comment, formatted as a list of C# doc comment tag. The overview is converted to
-    /// a `summary` tag, and any `@see` sections are converted to `seealso` tags. Any links present in these are
-    /// resolved to the appropriate C# tag. If no doc comment is on this entity, this returns an empty vector.
-    fn formatted_doc_comment(&self) -> Vec<CommentTag> {
-        let mut comments = Vec::new();
-        if let Some(comment) = self.comment() {
-            // Add a summary comment tag if the comment contains an overview section.
-            if let Some(overview) = comment.overview.as_ref() {
-                let message = format_message(&overview.message, |link| link.get_formatted_link(&self.namespace()));
-                comments.push(CommentTag::new("summary", message));
-            }
-            // Add a see-also comment tag for each '@see' tag in the comment.
-            for see_tag in &comment.see {
-                match see_tag.linked_entity() {
-                    Ok(entity) => {
-                        // We re-use `get_formatted_link` to correctly generate the link, then rip out the link.
-                        let formatted_link = entity.get_formatted_link(&self.namespace());
-                        // The formatted link is always of the form `<tag attribute="link" />`. We get the link from
-                        // from this by splitting the string on '"' characters, and taking the 2nd element.
-                        let link = formatted_link.split('"').nth(1).unwrap();
-                        comments.push(CommentTag::with_tag_attribute("seealso", "cref", link, String::new()));
-                    }
-                    Err(identifier) => {
-                        // If there was an error resolving the link, print the identifier without any formatting.
-                        let name = &identifier.value;
-                        comments.push(CommentTag::with_tag_attribute("seealso", "cref", name, String::new()));
-                    }
-                }
-            }
-        }
-        comments
-    }
-
     /// Returns a C# link tag that points to this entity from the provided namespace
     /// By default this uses a `<see cref="..." />` tag, but certain types override this default implementation
     /// to emit different kinds of links (like `<paramref name="..." />` for parameters).
@@ -227,7 +160,7 @@ pub trait EntityExt: Entity {
             }
             Entities::Operation(operation) => {
                 // For operations, we link to the abstract method on the client side interface (ex: `IMyInterface`).
-                let interface_name = operation.parent().unwrap().scoped_interface_name(namespace);
+                let interface_name = operation.parent().scoped_interface_name(namespace);
                 let operation_name = operation.escape_identifier_with_suffix("Async");
                 format!(r#"<see cref="{interface_name}.{operation_name}" />"#)
             }

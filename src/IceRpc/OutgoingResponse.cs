@@ -9,7 +9,7 @@ public sealed class OutgoingResponse : OutgoingFrame
 {
     /// <summary>Gets the error message of this response.</summary>
     /// <value>The error message of this response if <see cref="StatusCode" /> is different from <see
-    /// cref="StatusCode.Success" />; <see langword="null" /> otherwise.</value>
+    /// cref="StatusCode.Success" />; otherwise, <see langword="null" />.</value>
     public string? ErrorMessage { get; }
 
     /// <summary>Gets or sets the fields of this response.</summary>

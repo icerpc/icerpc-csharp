@@ -44,78 +44,69 @@ internal static class PipeWriterExtensions
         bool endStream,
         CancellationToken cancellationToken)
     {
-        using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-        // If the peer is no longer reading the payload, call Cancel on readCts.
-        Task cancelOnWritesClosedTask = CancelOnWritesClosedAsync(readCts);
-
         FlushResult flushResult;
-
-        try
+        if (reader.TryRead(out ReadResult readResult))
         {
-            ReadResult readResult;
-            do
+            // We optimize for the very common situation where the all the reader bytes are available.
+            flushResult = await WriteReadResultAsync().ConfigureAwait(false);
+
+            if (readResult.IsCompleted || flushResult.IsCanceled || flushResult.IsCompleted)
             {
-                try
-                {
-                    readResult = await reader.ReadAsync(readCts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException exception) when (exception.CancellationToken == readCts.Token)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    Debug.Assert(writesClosed.IsCompleted);
-
-                    // This FlushAsync either throws an exception because the writer failed, or returns a completed
-                    // FlushResult.
-                    return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                // we let other exceptions thrown by ReadAsync (including possibly an OperationCanceledException
-                // thrown incorrectly) escape.
-
-                if (readResult.IsCanceled)
-                {
-                    // The application (or an interceptor/middleware) called CancelPendingRead on reader.
-                    reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
-
-                    // The copy was canceled.
-                    flushResult = new FlushResult(isCanceled: true, isCompleted: true);
-                }
-                else
-                {
-                    try
-                    {
-                        flushResult = await writer.WriteAsync(
-                            readResult.Buffer,
-                            readResult.IsCompleted && endStream,
-                            cancellationToken).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        reader.AdvanceTo(readResult.Buffer.End);
-                    }
-                }
+                return flushResult;
             }
-            while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
-        }
-        finally
-        {
-            readCts.Cancel();
-            await cancelOnWritesClosedTask.ConfigureAwait(false);
         }
 
-        return flushResult;
+        // If the peer is no longer reading, we want to cancel the reading of the payload.
+        CancellationToken readToken = writesClosed.AsCancellationToken(cancellationToken);
 
-        async Task CancelOnWritesClosedAsync(CancellationTokenSource readCts)
+        do
         {
             try
             {
-                await writesClosed.WaitAsync(readCts.Token).ConfigureAwait(false);
+                readResult = await reader.ReadAsync(readToken).ConfigureAwait(false);
             }
-            catch
+            catch (OperationCanceledException exception) when (exception.CancellationToken == readToken)
             {
-                // Ignore; should be OperationCanceledException
+                cancellationToken.ThrowIfCancellationRequested();
+                Debug.Assert(writesClosed.IsCompleted);
+
+                // This FlushAsync either throws an exception because the writer failed, or returns a completed
+                // FlushResult.
+                return await writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             }
-            readCts.Cancel();
+            // we let other exceptions thrown by ReadAsync (including possibly an OperationCanceledException
+            // thrown incorrectly) escape.
+
+            flushResult = await WriteReadResultAsync().ConfigureAwait(false);
+        }
+        while (!readResult.IsCompleted && !flushResult.IsCanceled && !flushResult.IsCompleted);
+
+        return flushResult;
+
+        async ValueTask<FlushResult> WriteReadResultAsync()
+        {
+            if (readResult.IsCanceled)
+            {
+                // The application (or an interceptor/middleware) called CancelPendingRead on reader.
+                reader.AdvanceTo(readResult.Buffer.Start); // Did not consume any byte in reader.
+
+                // The copy was canceled.
+                return new FlushResult(isCanceled: true, isCompleted: true);
+            }
+            else
+            {
+                try
+                {
+                    return await writer.WriteAsync(
+                        readResult.Buffer,
+                        readResult.IsCompleted && endStream,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    reader.AdvanceTo(readResult.Buffer.End);
+                }
+            }
         }
     }
 

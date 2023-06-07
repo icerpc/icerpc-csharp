@@ -2,10 +2,10 @@
 
 use crate::builders::{Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
+use slicec::code_block::CodeBlock;
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::TypeContext;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::TypeContext;
 
 pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     assert!(operation.has_encoded_result());
@@ -53,7 +53,7 @@ immediately encodes the return value of operation {operation_name}."#
 
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}(returnValue, features.Get<ISliceFeature>()?.EncodeOptions)"
+                    "Payload = Response.Encode{operation_name}(returnValue, features.Get<ISliceFeature>()?.EncodeOptions)"
                 )
                 .into(),
             );
@@ -70,7 +70,7 @@ immediately encodes the return value of operation {operation_name}."#
 
             constructor_builder.set_body(
                 format!(
-                    "Payload = Response.{operation_name}({args}, features.Get<ISliceFeature>()?.EncodeOptions)",
+                    "Payload = Response.Encode{operation_name}({args}, features.Get<ISliceFeature>()?.EncodeOptions)",
                     args = parameters
                         .iter()
                         .map(|p| p.parameter_name())

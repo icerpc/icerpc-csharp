@@ -80,16 +80,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         try
         {
             _socket.ExclusiveAddressUse = true;
-
-            if (tcpOptions.ReceiveBufferSize is int receiveSize)
-            {
-                _socket.ReceiveBufferSize = receiveSize;
-            }
-            if (tcpOptions.SendBufferSize is int sendSize)
-            {
-                _socket.SendBufferSize = sendSize;
-            }
-
+            _socket.Configure(tcpOptions);
             _socket.Bind(address);
             address = (IPEndPoint)_socket.LocalEndPoint!;
             _socket.Listen(tcpOptions.ListenBacklog);

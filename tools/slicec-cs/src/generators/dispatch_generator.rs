@@ -1,18 +1,17 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_util::*;
 use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
+use slicec::code_block::CodeBlock;
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
-pub fn generate_dispatch(interface_def: &Interface, generated_code: &mut GeneratedCode) {
+pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();
     let bases = interface_def.base_interfaces();
     let service_name = interface_def.service_name();
@@ -26,8 +25,7 @@ pub fn generate_dispatch(interface_def: &Interface, generated_code: &mut Generat
             r#"Your service implementation must implement this interface and derive from <see cref="Service" />."#,
             interface_def,
         )
-        .add_type_id_attribute(interface_def)
-        .add_container_attributes(interface_def);
+        .add_type_id_attribute(interface_def);
 
     interface_builder.add_bases(
         &bases
@@ -62,17 +60,14 @@ private static readonly IActivator _defaultActivator =
         interface_builder.add_block(operation_dispatch(operation));
     }
 
-    generated_code.insert_scoped(interface_def, interface_builder.build());
+    interface_builder.build()
 }
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
     let bases = interface_def.base_interfaces();
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| !o.parameters.is_empty())
-        .cloned()
-        .collect::<Vec<_>>();
+
+    let mut operations = interface_def.operations();
+    operations.retain(|o| !o.parameters.is_empty());
 
     if operations.is_empty() {
         return "".into();
@@ -112,7 +107,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
                 "global::System.Threading.Tasks.ValueTask<{}>",
                 &parameters.to_tuple_type(namespace, TypeContext::Decode, false),
             ),
-            &operation.escape_identifier_with_suffix("Async"),
+            &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
         );
 
@@ -147,12 +142,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 fn response_class(interface_def: &Interface) -> CodeBlock {
     let bases = interface_def.base_interfaces();
 
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| o.has_non_streamed_return_members())
-        .cloned()
-        .collect::<Vec<_>>();
+    let mut operations = interface_def.operations();
+    operations.retain(|o| o.has_non_streamed_return_members());
 
     if operations.is_empty() {
         return "".into();
@@ -183,7 +174,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let mut builder = FunctionBuilder::new(
             "public static",
             "global::System.IO.Pipelines.PipeReader",
-            operation_name,
+            format!("Encode{operation_name}").as_str(),
             FunctionType::BlockBody,
         );
 
@@ -349,7 +340,6 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
     )
     .add_comments(operation.formatted_doc_comment())
     .add_operation_parameters(operation, TypeContext::Decode)
-    .add_container_attributes(operation)
     .build()
 }
 
@@ -370,7 +360,7 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
 }}
 "#,
         name = operation.identifier(),
-        service_name = operation.parent().unwrap().service_name(),
+        service_name = operation.parent().service_name(),
         dispatch_body = operation_dispatch_body(operation).indent(),
     )
     .into()
@@ -412,7 +402,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
         [parameter] => {
             writeln!(
                 check_and_decode,
-                "var {var_name} = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
+                "var {var_name} = await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
                 var_name = parameter.parameter_name_with_prefix("sliceP_"),
             )
         }
@@ -420,7 +410,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
             // > 1 parameter
             writeln!(
                 check_and_decode,
-                "var args = await Request.{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
+                "var args = await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
             )
         }
     };
@@ -553,7 +543,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     match non_streamed_return_values.len() {
         0 => format!("{encoding}.CreateSizeZeroPayload()"),
         _ => format!(
-            "Response.{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
+            "Response.Encode{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
             operation_name = operation.escape_identifier(),
             args = returns.join(", "),
         ),

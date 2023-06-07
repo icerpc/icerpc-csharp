@@ -947,8 +947,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ClassOperationsProxy.Request.OpAnyClassCompact(new MyClassB()) :
-            ClassOperationsProxy.Request.OpMyClassCompact(new MyClassB());
+            ClassOperationsProxy.Request.EncodeOpAnyClassCompact(new MyClassB()) :
+            ClassOperationsProxy.Request.EncodeOpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -976,8 +976,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            ClassOperationsProxy.Request.OpAnyClassSliced(new MyClassB()) :
-            ClassOperationsProxy.Request.OpMyClassSliced(new MyClassB());
+            ClassOperationsProxy.Request.EncodeOpAnyClassSliced(new MyClassB()) :
+            ClassOperationsProxy.Request.EncodeOpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -1013,8 +1013,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            IClassOperationsService.Response.OpAnyClassCompact(new MyClassB()) :
-            IClassOperationsService.Response.OpMyClassCompact(new MyClassB());
+            IClassOperationsService.Response.EncodeOpAnyClassCompact(new MyClassB()) :
+            IClassOperationsService.Response.EncodeOpMyClassCompact(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);
@@ -1042,8 +1042,8 @@ public sealed class ClassTests
     {
         // Act
         var payload = anyClass ?
-            IClassOperationsService.Response.OpAnyClassSliced(new MyClassB()) :
-            IClassOperationsService.Response.OpMyClassSliced(new MyClassB());
+            IClassOperationsService.Response.EncodeOpAnyClassSliced(new MyClassB()) :
+            IClassOperationsService.Response.EncodeOpMyClassSliced(new MyClassB());
 
         // Assert
         Assert.That(payload.TryRead(out ReadResult readResult), Is.True);

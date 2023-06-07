@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
@@ -8,13 +7,12 @@ use crate::cs_util::FieldType;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
-use crate::slicec_ext::{EntityExt, MemberExt, TypeRefExt};
-use slice::code_block::CodeBlock;
+use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
-
-pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) {
+pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     let escaped_identifier = struct_def.escape_identifier();
     let fields = struct_def.fields();
     let namespace = struct_def.namespace();
@@ -26,7 +24,7 @@ pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) 
     builder
         .add_comments(struct_def.formatted_doc_comment())
         .add_generated_remark("record struct", struct_def)
-        .add_container_attributes(struct_def);
+        .add_obsolete_attribute(struct_def);
 
     builder.add_block(
         fields
@@ -145,5 +143,5 @@ pub fn generate_struct(struct_def: &Struct, generated_code: &mut GeneratedCode) 
         .build(),
     );
 
-    generated_code.insert_scoped(struct_def, builder.build());
+    builder.build()
 }

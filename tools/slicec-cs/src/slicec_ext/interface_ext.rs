@@ -2,7 +2,7 @@
 
 use super::{scoped_identifier, EntityExt};
 use convert_case::Case;
-use slice::grammar::Interface;
+use slicec::grammar::Interface;
 
 pub trait InterfaceExt: EntityExt {
     /// Returns the interface name corresponding to this entity's identifier, without scoping.

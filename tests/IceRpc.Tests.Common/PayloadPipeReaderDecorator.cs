@@ -81,7 +81,19 @@ public sealed class PayloadPipeReaderDecorator : PipeReader
     }
 
     /// <inheritdoc/>
-    public override bool TryRead(out ReadResult result) => _decoratee.TryRead(out result);
+    public override bool TryRead(out ReadResult result)
+    {
+        _readCalledTcs.TrySetResult();
+        if (_holdRead)
+        {
+            result = default;
+            return false;
+        }
+        else
+        {
+            return _decoratee.TryRead(out result);
+        }
+    }
 
     /// <summary>Construct a payload pipe reader decorator.</summary>
     /// <param name="decoratee">The decoratee.</param>

@@ -3,13 +3,13 @@
 use std::collections::HashMap;
 
 use crate::comments::CommentTag;
-use crate::cs_attributes::{match_cs_attribute, match_cs_generic};
+use crate::cs_attributes::match_cs_generic;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
-use slice::supported_encodings::SupportedEncodings;
-use slice::utils::code_gen_util::{format_message, TypeContext};
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
+use slicec::supported_encodings::SupportedEncodings;
+use slicec::utils::code_gen_util::{format_message, TypeContext};
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
@@ -30,18 +30,11 @@ pub trait AttributeBuilder {
         self
     }
 
-    /// Adds any "container" attributes.
-    /// - The obsolete attribute
-    /// - Any `cs::attribute` attributes
-    fn add_container_attributes(&mut self, container: &dyn Entity) -> &mut Self {
-        if let Some(attribute) = container.obsolete_attribute(false) {
+    /// Adds the C# Obsolete attribute if the entity has the Slice deprecated attribute.
+    fn add_obsolete_attribute(&mut self, entity: &dyn Entity) -> &mut Self {
+        if let Some(attribute) = entity.obsolete_attribute() {
             self.add_attribute(attribute);
         }
-
-        for attribute in container.attributes(false).into_iter().filter_map(match_cs_attribute) {
-            self.add_attribute(attribute);
-        }
-
         self
     }
 }
@@ -304,11 +297,16 @@ impl FunctionBuilder {
     pub fn add_operation_parameters(&mut self, operation: &Operation, context: TypeContext) -> &mut Self {
         let parameters = operation.parameters();
 
-        // Find an index such that all parameters after it are tagged.
-        // We compute this by finding the last required parameter, and adding 1 to its index.
-        // If we can't find one, that means all parameters were tagged, so we return 0 for this value.
-        let trailing_tagged_parameters_index = match parameters.iter().rposition(|p| !p.is_tagged()) {
-            Some(last_required_parameter_index) => last_required_parameter_index + 1,
+        // Find an index such that all parameters after it are optional (but not streamed)
+        // We compute this by finding the last parameter where all other parameters after it are
+        // optional, and adding 1 to its index.
+        // If we can't find one, that means all parameters were optional,
+        // so we return 0 for this value.
+        let trailing_optional_parameters_index = match parameters
+            .iter()
+            .rposition(|p| !p.data_type.is_optional || p.is_streamed)
+        {
+            Some(last_index) => last_index + 1,
             None => 0,
         };
 
@@ -316,14 +314,14 @@ impl FunctionBuilder {
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
 
-            let default_value = if context == TypeContext::Encode && (index >= trailing_tagged_parameters_index) {
+            let default_value = if context == TypeContext::Encode && (index >= trailing_optional_parameters_index) {
                 match parameter.data_type.concrete_typeref() {
                     // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
-                    // 'default' as their default value. Other tagged types are mapped to nullable types and
+                    // 'default' as their default value. Other optional types are mapped to nullable types and
                     // can use 'null' as the default value, which makes it clear what the default is.
                     TypeRefs::Sequence(sequence_ref)
                         if sequence_ref.has_fixed_size_numeric_elements()
-                            && sequence_ref.find_attribute(false, match_cs_generic).is_none() =>
+                            && sequence_ref.find_attribute(match_cs_generic).is_none() =>
                     {
                         Some("default")
                     }

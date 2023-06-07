@@ -197,14 +197,15 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         // starts. In this latter case, we want to report ConnectionAborted.
         _throwIfConnectionClosedOrDisposed = throwIfConnectionClosedOrDisposed;
 
-        // Create a pipe that never pauses on flush or write. The QuicPipeWriter will pause the flush or write if the
-        // Quic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to avoid
-        // thread context switches when FlushAsync is called on the internal pipe writer.
+        // Create a pipe that never pauses on flush or write. The Quic _stream.WriteAsync will block if the Quic flow
+        // control doesn't permit sending more data.
+        // The readerScheduler doesn't matter (we don't call _pipe.Reader.ReadAsync) and the writerScheduler doesn't
+        // matter (_pipe.Writer.FlushAsync never blocks).
         _pipe = new(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minSegmentSize,
             pauseWriterThreshold: 0,
-            writerScheduler: PipeScheduler.Inline));
+            useSynchronizationContext: false));
 
         Closed = ClosedAsync();
 

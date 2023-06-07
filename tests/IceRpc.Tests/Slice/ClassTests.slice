@@ -34,6 +34,15 @@ class MyDerivedClassWithTaggedFields : MyClassWithTaggedFields {
 
 class MyDerivedCompactClass(789) : MyCompactClass {}
 
+class MyClassWithValues {
+    a: int32
+    tag(5) b: int32?
+    c: AnyClass
+    d: AnyClass?
+    tag(3) e: int32?
+    f: int32
+}
+
 // Tests for operations that accept and return class instances
 interface ClassOperations {
     // Compact format

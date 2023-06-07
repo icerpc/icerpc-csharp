@@ -14,35 +14,21 @@ public interface IMultiplexedStream : IDuplexPipe
     ulong Id { get; }
 
     /// <summary>Gets a value indicating whether the stream is bidirectional.</summary>
-    /// <value><see langword="true" /> if the stream is a bidirectional stream; <see langword="false" />
-    /// otherwise.</value>
+    /// <value><see langword="true" /> if the stream is a bidirectional stream; otherwise, <see langword="false" />.
+    /// </value>
     bool IsBidirectional { get; }
 
     /// <summary>Gets a value indicating whether the stream is remote. A remote stream is a stream initiated by the peer
     /// and it's returned by <see
     /// cref="IMultiplexedConnection.AcceptStreamAsync(CancellationToken)" />.</summary>
-    /// <value><see langword="true" /> if the stream is a remote stream; <see langword="false" />
-    /// otherwise.</value>
+    /// <value><see langword="true" /> if the stream is a remote stream; otherwise, <see langword="false" />.</value>
     bool IsRemote { get; }
 
     /// <summary>Gets a value indicating whether the stream is started.</summary>
-    /// <value><see langword="true" /> if the stream is started; <see langword="false" /> otherwise.</value>
+    /// <value><see langword="true" /> if the stream is started; otherwise, <see langword="false" />.</value>
     /// <remarks>Remote streams are always started after construction. A local stream is started after the sending of
     /// the first STREAM frame.</remarks>
     bool IsStarted { get; }
-
-    /// <summary>Gets a task that completes when all read network activity ceases for this stream. This occurs when:
-    /// <list type="bullet">
-    /// <item><description><see cref="PipeReader.Complete(Exception?)" /> is called on this stream's <see
-    /// cref="IDuplexPipe.Input" />.</description></item>
-    /// <item><description>the implementation detects that the peer wrote an "end stream" to mark a successful
-    /// write completion.</description></item>
-    /// <item><description>the peer aborts writes by calling <see cref="PipeWriter.Complete(Exception?)" /> with a
-    /// non-null exception on the stream's <see cref="IDuplexPipe.Output" />.</description></item>
-    /// <item><description>the implementation detects a network failure that prevents further reads on the underlying
-    /// network stream.</description></item></list>The task is never faulted or canceled.</summary>
-    /// <value>The reads closed task.</value>
-    Task ReadsClosed { get; }
 
     /// <summary>Gets a task that completes when all write network activity ceases for this stream. This occurs when:
     /// <list type="bullet">

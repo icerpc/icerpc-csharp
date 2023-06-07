@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::generated_code::GeneratedCode;
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
@@ -8,12 +7,11 @@ use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::*;
+use slicec::utils::code_gen_util::*;
 
-use slice::grammar::*;
-use slice::utils::code_gen_util::*;
-
-pub fn generate_proxy(interface_def: &Interface, generated_code: &mut GeneratedCode) {
+pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();
     let interface = interface_def.interface_name(); // IFoo
     let slice_interface = interface_def.module_scoped_identifier();
@@ -39,7 +37,6 @@ pub fn generate_proxy(interface_def: &Interface, generated_code: &mut GeneratedC
                 interface_def,
             )
             .add_type_id_attribute(interface_def)
-            .add_container_attributes(interface_def)
             .add_bases(&interface_bases)
             .add_block(proxy_interface_operations(interface_def))
             .build(),
@@ -60,7 +57,6 @@ This remote service must implement Slice interface {slice_interface}."#
         )
         .add_generated_remark("record struct", interface_def)
         .add_type_id_attribute(interface_def)
-        .add_container_attributes(interface_def)
         .add_block(request_class(interface_def))
         .add_block(response_class(interface_def))
         .add_block(
@@ -119,7 +115,7 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
 
     code.add_block(&proxy_impl_builder.build());
 
-    generated_code.insert_scoped(interface_def, code)
+    code
 }
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
@@ -185,6 +181,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 
     let mut builder = FunctionBuilder::new("public", &return_task, &async_operation_name, body_type);
     builder.set_inherit_doc(true);
+    builder.add_obsolete_attribute(operation);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
     let mut body = CodeBlock::default();
@@ -217,7 +214,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument(format!("{encoding}.CreateSizeZeroPayload()"));
     } else {
         invocation_builder.add_argument(format!(
-            "Request.{operation_name}({}, encodeOptions: EncodeOptions)",
+            "Request.Encode{operation_name}({}, encodeOptions: EncodeOptions)",
             parameters
                 .iter()
                 .map(|p| p.parameter_name())
@@ -257,7 +254,17 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    invocation_builder.add_argument(format!("Response.{async_operation_name}"));
+    // For Slice2 operations without return type, and without an exception specification, reuse the
+    // IncomingResponseExtensions.DecodeVoidReturnValueAsync method, otherwise call the generated decode
+    // method in the Response class.
+    if operation.return_members().is_empty()
+        && operation.encoding != Encoding::Slice1
+        && matches!(operation.throws, Throws::None)
+    {
+        invocation_builder.add_argument("IceRpc.Slice.IncomingResponseExtensions.DecodeVoidReturnValueAsync");
+    } else {
+        invocation_builder.add_argument(format!("Response.Decode{async_operation_name}"));
+    }
 
     invocation_builder.add_argument(features_parameter);
 
@@ -294,12 +301,13 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
 
     let mut builder = FunctionBuilder::new("public", &return_task, &async_name, FunctionType::ExpressionBody);
     builder.set_inherit_doc(true);
+    builder.add_obsolete_attribute(operation);
     builder.add_operation_parameters(operation, TypeContext::Encode);
 
     builder.set_body(
         format!(
             "(({base_proxy_impl})this).{async_name}({operation_params})",
-            base_proxy_impl = operation.parent().unwrap().proxy_name(),
+            base_proxy_impl = operation.parent().proxy_name(),
             operation_params = operation_params.join(", "),
         )
         .into(),
@@ -320,7 +328,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
                 &operation.escape_identifier_with_suffix("Async"),
                 FunctionType::Declaration,
             )
-            .add_container_attributes(operation)
+            .add_obsolete_attribute(operation)
             .add_comments(operation.formatted_doc_comment())
             .add_operation_parameters(operation, TypeContext::Encode)
             .build(),
@@ -332,12 +340,9 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
-    let operations = interface_def
-        .operations()
-        .iter()
-        .filter(|o| o.has_non_streamed_parameters())
-        .cloned()
-        .collect::<Vec<_>>();
+
+    let mut operations = interface_def.operations();
+    operations.retain(|o| o.has_non_streamed_parameters());
 
     if operations.is_empty() {
         return "".into();
@@ -360,7 +365,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         let mut builder = FunctionBuilder::new(
             "public static",
             "global::System.IO.Pipelines.PipeReader",
-            &operation.escape_identifier(),
+            &operation.escape_identifier_with_prefix("Encode"),
             FunctionType::BlockBody,
         );
 
@@ -407,7 +412,14 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
-    let operations = interface_def.operations();
+
+    let mut operations = interface_def.operations();
+    operations.retain(|o| {
+        // We need to generate a method to decode the responses of any operations with return members, Slice2
+        // operations with an exception specification, or any Slice1 operations (to correctly setup the activator used
+        // for decoding Slice1 exceptions). We don't check Throws::AnyException because it is only valid in Slice1.
+        !o.return_members().is_empty() || o.encoding == Encoding::Slice1 || matches!(&o.throws, Throws::Specific(_))
+    });
 
     if operations.is_empty() {
         return "".into();
@@ -448,7 +460,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                 "public static async"
             },
             &return_type,
-            &operation.escape_identifier_with_suffix("Async"),
+            &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
         );
 

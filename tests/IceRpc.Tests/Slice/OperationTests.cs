@@ -415,11 +415,11 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
 
         // Act
-        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemory(readOnlyMemory);
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpReadOnlyMemory(readOnlyMemory);
 
         // Assert
         Assert.That(
-            async () => await IMyOperationsAService.Request.OpReadOnlyMemoryAsync(
+            async () => await IMyOperationsAService.Request.DecodeOpReadOnlyMemoryAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
@@ -437,7 +437,7 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(new int[] { 1, 2, 3 });
 
         // Act
-        PipeReader payload = IMyOperationsAService.Response.OpReadOnlyMemory(readOnlyMemory);
+        PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemory(readOnlyMemory);
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -446,7 +446,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryAsync(
+            async () => await MyOperationsAProxy.Response.DecodeOpReadOnlyMemoryAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -460,11 +460,11 @@ public class OperationTests
     public void Slice2_operation_encode_with_readonly_memory_optional_param(
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
-        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpReadOnlyMemoryOptional(new ReadOnlyMemory<int>(p));
 
         // Act/Assert
         Assert.That(
-            async () => await IMyOperationsAService.Request.OpReadOnlyMemoryOptionalAsync(
+            async () => await IMyOperationsAService.Request.DecodeOpReadOnlyMemoryOptionalAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
@@ -483,7 +483,7 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(p);
 
         // Act
-        PipeReader payload = IMyOperationsAService.Response.OpReadOnlyMemoryOptional(readOnlyMemory);
+        PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemoryOptional(readOnlyMemory);
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -492,7 +492,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryOptionalAsync(
+            async () => await MyOperationsAProxy.Response.DecodeOpReadOnlyMemoryOptionalAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -507,11 +507,11 @@ public class OperationTests
         [Values(new int[] { 1, 2, 3 }, null)] int[]? p)
     {
         // Arrange
-        PipeReader payload = MyOperationsAProxy.Request.OpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
+        PipeReader payload = MyOperationsAProxy.Request.EncodeOpReadOnlyMemoryTagged(new ReadOnlyMemory<int>(p));
 
         // Act/Assert
         Assert.That(
-            async () => await IMyOperationsAService.Request.OpReadOnlyMemoryTaggedAsync(
+            async () => await IMyOperationsAService.Request.DecodeOpReadOnlyMemoryTaggedAsync(
                 new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
                 {
                     Payload = payload
@@ -530,7 +530,7 @@ public class OperationTests
         var readOnlyMemory = new ReadOnlyMemory<int>(p);
 
         // Act
-        PipeReader payload = IMyOperationsAService.Response.OpReadOnlyMemoryTagged(readOnlyMemory);
+        PipeReader payload = IMyOperationsAService.Response.EncodeOpReadOnlyMemoryTagged(readOnlyMemory);
 
         // Assert
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -539,7 +539,7 @@ public class OperationTests
             Payload = payload
         };
         Assert.That(
-            async () => await MyOperationsAProxy.Response.OpReadOnlyMemoryTaggedAsync(
+            async () => await MyOperationsAProxy.Response.DecodeOpReadOnlyMemoryTaggedAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -628,6 +628,41 @@ public class OperationTests
         // Assert
         Assert.That(service.ReceivedProxy, Is.Not.Null);
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
+    }
+
+    [Test]
+    public void Operation_with_trailing_optionals_uses_default_values()
+    {
+        // Arrange
+        var service = new MyOperationsAService();
+        var invoker = new ColocInvoker(service);
+        var proxy = new MyOperationsAProxy(invoker);
+
+        // Act/Assert
+        Assert.That(() => proxy.OpWithTrailingOptionalValuesAsync(0, null, 1), Throws.Nothing);
+    }
+
+    [Test]
+    public void Operation_with_trailing_optionals_and_stream_requires_all_parameters()
+    {
+        // Arrange
+        var service = new MyOperationsAService();
+        var invoker = new ColocInvoker(service);
+        var proxy = new MyOperationsAProxy(invoker);
+
+        // Act/Assert
+        Assert.That(() => proxy.OpWithTrailingOptionalValuesAndStreamAsync(0, null, 1, null, null, GetDataAsync()), Throws.Nothing);
+
+        static async IAsyncEnumerable<byte?> GetDataAsync()
+        {
+            await Task.Yield();
+            yield return 1;
+            yield return null;
+            yield return 2;
+            yield return null;
+            yield return 3;
+            yield return null;
+        }
     }
 
     private class MyOperationsAService : Service, IMyOperationsAService
@@ -755,6 +790,8 @@ public class OperationTests
         public ValueTask<PingableProxy> OpWithProxyReturnValueAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
+        public ValueTask OpWithTrailingOptionalValuesAsync(int p1, int? p2, int p3, int? p4, int? p5, IFeatureCollection features, CancellationToken cancellationToken) => default;
+        public ValueTask OpWithTrailingOptionalValuesAndStreamAsync(int p1, int? p2, int p3, int? p4, int? p5, IAsyncEnumerable<byte?> p6, IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 
     private sealed class MyDerivedOperationsAService : MyOperationsAService, IMyDerivedOperationsAService

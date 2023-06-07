@@ -7,6 +7,12 @@ namespace IceRpc.Transports.Tcp;
 /// <summary>The base options class for TCP transports.</summary>
 public record class TcpTransportOptions
 {
+    /// <summary>Gets or sets a value indicating whether the underlying socket is using the Nagle algorithm.
+    /// </summary>
+    /// <value><see langword="false" /> if the socket uses the Nagle algorithm; otherwise, <see langword="true" />.
+    /// Defaults to <see langword="true" />.</value>
+    public bool NoDelay { get; set; } = true;
+
     /// <summary>Gets or sets the socket receive buffer size in bytes.</summary>
     /// <value>The receive buffer size in bytes. It can't be less than <c>1</c> KB. <see langword="null" /> means use
     /// the operating system default. Defaults to <see langword="null" />.</value>

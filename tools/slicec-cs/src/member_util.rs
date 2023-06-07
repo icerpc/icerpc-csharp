@@ -3,9 +3,9 @@
 use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
-use slice::code_block::CodeBlock;
-use slice::grammar::{Attributable, Field, Member};
-use slice::utils::code_gen_util::TypeContext;
+use slicec::code_block::CodeBlock;
+use slicec::grammar::{Attributable, Contained, Field, Member};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
     if parameters.iter().any(|p| p.parameter_name() == name) {
@@ -21,16 +21,18 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
         .cs_type_string(&field.namespace(), TypeContext::Field, false);
     let mut prelude = CodeBlock::default();
 
-    let attributes = field.attributes(false).into_iter().filter_map(match_cs_attribute);
+    let attributes = field.attributes().into_iter().filter_map(match_cs_attribute);
 
     for comment_tag in field.formatted_doc_comment() {
         prelude.writeln(&comment_tag)
     }
     prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
-    if let Some(obsolete) = field.obsolete_attribute(true) {
+    if let Some(obsolete) = field.obsolete_attribute() {
         prelude.writeln(&format!("[{obsolete}]"));
     }
-    let modifiers = field.modifiers();
+
+    // All field modifiers are based on the parent's modifiers.
+    let modifiers = field.parent().modifiers();
     let name = field.field_name(field_type);
     format!(
         "\
@@ -39,7 +41,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
     )
 }
 
-pub fn initialize_non_nullable_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
+pub fn initialize_required_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
     // This helper should only be used for classes and exceptions
     debug_assert!(matches!(field_type, FieldType::Class | FieldType::Exception));
 
