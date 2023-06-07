@@ -630,9 +630,9 @@ internal class SlicConnection : IMultiplexedConnection
         }
         if (frameType == FrameType.StreamLast)
         {
-            // Notify the stream that the last stream frame is considered sent at this point. This will complete
-            // writes on the stream and allow the stream to be released if reads are also completed.
-            stream.LastStreamFrameWritten();
+            // Notify the stream that the last stream frame is considered sent at this point. This will close
+            // writes on the stream and allow the stream to be released if reads are also closed.
+            stream.WroteLastStreamFrame();
         }
     }
 
@@ -726,7 +726,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     // Notify the stream that the last stream frame is considered sent at this point. This will complete
                     // writes on the stream and allow the stream to be released if reads are also completed.
-                    stream.LastStreamFrameWritten();
+                    stream.WroteLastStreamFrame();
                 }
 
                 // Write and flush the stream frame.

@@ -274,17 +274,6 @@ internal class SlicStream : IMultiplexedStream
         CancellationToken cancellationToken) =>
         _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
-    internal void LastStreamFrameWritten()
-    {
-        if (IsRemote)
-        {
-            TrySetWritesClosed();
-        }
-        // For local streams, writes will be closed only once the peer's sends the StreamReadsClosed frame.
-
-        _writesClosedTcs.TrySetResult();
-    }
-
     internal void ReceivedConsumedFrame(StreamConsumedBody frame)
     {
         int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame((int)frame.Size);
@@ -388,6 +377,17 @@ internal class SlicStream : IMultiplexedStream
             endStream,
             writeReadsClosedFrame,
             cancellationToken);
+    }
+
+    internal void WroteLastStreamFrame()
+    {
+        if (IsRemote)
+        {
+            TrySetWritesClosed();
+        }
+        // For local streams, writes will be closed only once the peer's sends the StreamReadsClosed frame.
+
+        _writesClosedTcs.TrySetResult();
     }
 
     internal void ThrowIfConnectionClosed() => _connection.ThrowIfClosed();

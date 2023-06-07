@@ -85,8 +85,8 @@ internal class SlicPipeReader : PipeReader
         // and consumed.
         _readResult = result;
 
-        // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
-        // will send the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
+        // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
+        // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
         if (result.IsCompleted)
         {
             _stream.CloseReads();
@@ -116,8 +116,8 @@ internal class SlicPipeReader : PipeReader
             // examined and consumed.
             _readResult = result;
 
-            // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
-            // This will send the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
+            // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
+            // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
             if (result.IsCompleted)
             {
                 _stream.CloseReads();
