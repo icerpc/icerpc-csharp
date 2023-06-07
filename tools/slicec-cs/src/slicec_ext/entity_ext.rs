@@ -153,6 +153,11 @@ pub trait EntityExt: Entity {
                 let identifier = parameter.parameter_name();
                 format!(r#"<paramref name="{identifier}" />"#)
             }
+            Entities::Enumerator(enumerator) => {
+                let enum_name = enumerator.parent().escape_scoped_identifier(namespace);
+                let enumerator_name = enumerator.escape_identifier();
+                format!(r#"<see cref="{enum_name}.{enumerator_name}" />"#)
+            }
             _ => {
                 let identifier = self.escape_scoped_identifier(namespace);
                 format!(r#"<see cref="{identifier}" />"#)
