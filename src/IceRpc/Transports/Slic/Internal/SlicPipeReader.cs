@@ -60,7 +60,7 @@ internal class SlicPipeReader : PipeReader
             // Forcefully close the stream reads if reads were not already gracefully closed by ReadAsync or TryRead.
             _stream.CloseReads(graceful: false);
 
-            ReadsClosed(exception: null);
+            CompleteReads(exception: null);
 
             _pipe.Reader.Complete();
         }
@@ -146,10 +146,10 @@ internal class SlicPipeReader : PipeReader
             useSynchronizationContext: false));
     }
 
-    /// <summary>Notifies the reader of the stream reads closure.</summary>
+    /// <summary>Completes reads.</summary>
     /// <param name="exception">The exception that will be raised by <see cref="ReadAsync" /> or <see cref="TryRead" />
     /// operation.</param>
-    internal void ReadsClosed(Exception? exception)
+    internal void CompleteReads(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
 
@@ -273,7 +273,7 @@ internal class SlicPipeReader : PipeReader
         /// <summary>Data is being written to the internal pipe writer.</summary>
         PipeWriterInUse = 2,
 
-        /// <summary>The internal pipe writer was completed by <see cref="ReadsClosed" />.</summary>
+        /// <summary>The internal pipe writer was completed by <see cref="CompleteReads" />.</summary>
         PipeWriterCompleted = 4,
     }
 }

@@ -169,6 +169,15 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         return _sendCredit;
     }
 
+    /// <summary>Complete writes.</summary>
+    /// <param name="exception">The exception that will be raised by <see cref="PipeWriter.WriteAsync" /> or <see
+    /// cref="FlushAsync" />.</param>
+    internal void CompleteWrites(Exception? exception)
+    {
+        Interlocked.CompareExchange(ref _exception, exception, null);
+        _completeWritesCts.Cancel();
+    }
+
     /// <summary>Notifies the writer of the amount of send credit consumed by the sending of a stream frame.</summary>
     /// <param name="size">The size of the stream frame.</param>
     internal void ConsumedSendCredit(int size)
@@ -203,14 +212,5 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             }
         }
         return newValue;
-    }
-
-    /// <summary>Notifies this writer of the stream writes closure.</summary>
-    /// <param name="exception">The exception that will be raised by <see cref="PipeWriter.WriteAsync" /> or <see
-    /// cref="FlushAsync" />.</param>
-    internal void WritesClosed(Exception? exception)
-    {
-        Interlocked.CompareExchange(ref _exception, exception, null);
-        _completeWritesCts.Cancel();
     }
 }

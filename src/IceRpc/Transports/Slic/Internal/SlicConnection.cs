@@ -622,7 +622,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     /// <summary>Writes a connection frame.</summary>
     /// <param name="frameType">The frame type.</param>
-    /// <param name="encode">The encode action to write to encode the frame.</param>
+    /// <param name="encode">The action to encode the frame.</param>
     internal void WriteConnectionFrame(FrameType frameType, EncodeAction? encode)
     {
         Debug.Assert(frameType < FrameType.Stream);

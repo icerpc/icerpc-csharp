@@ -107,12 +107,12 @@ internal class SlicStream : IMultiplexedStream
         if (TrySetReadsClosed())
         {
             Debug.Assert(_inputPipeReader is not null);
-            _inputPipeReader.ReadsClosed(closeException);
+            _inputPipeReader.CompleteReads(closeException);
         }
         if (TrySetWritesClosed())
         {
             Debug.Assert(_outputPipeWriter is not null);
-            _outputPipeWriter.WritesClosed(closeException);
+            _outputPipeWriter.CompleteWrites(closeException);
         }
     }
 
@@ -145,8 +145,8 @@ internal class SlicStream : IMultiplexedStream
                 else if (!graceful || IsRemote)
                 {
                     // If forcefully closed because the input was completed before the data was fully read or if writes
-                    // are already closed and the stream is a remote stream, we send the ReadsClosed frame to notify
-                    // the peer that reads are closed.
+                    // are already closed and the stream is a remote stream, we send the StreamReadsClosed frame to
+                    // notify the peer that reads are closed.
                     writeReadsClosedFrame = true;
                 }
             }
@@ -185,7 +185,7 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (Exception exception)
             {
-                Debug.Fail($"Writing of reads closed frame from due to an unhandled exception: {exception}");
+                Debug.Fail($"Writing of StreamReadsClosed frame failed due to an unhandled exception: {exception}");
                 throw;
             }
         }
@@ -249,7 +249,7 @@ internal class SlicStream : IMultiplexedStream
                     {
                         // We can now close writes to allow starting a new stream. Since the sending of frames is
                         // serialized over the connection, the peer will receive this StreamWritesClosed frame before
-                        // the new stream sends StreamFrame frame.
+                        // a new stream sends a StreamFrame frame.
                         TrySetWritesClosed();
                     }
                 }
@@ -260,7 +260,7 @@ internal class SlicStream : IMultiplexedStream
             }
             catch (Exception exception)
             {
-                Debug.Fail($"Writing of the writes closed frame failed due to an unhandled exception: {exception}");
+                Debug.Fail($"Writing of StreamWritesClosed frame failed due to an unhandled exception: {exception}");
                 throw;
             }
         }
@@ -284,8 +284,8 @@ internal class SlicStream : IMultiplexedStream
         CancellationToken cancellationToken) =>
         _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
-    /// <summary>Notifies the stream of the reception of a <see cref="StreamConsumedBody" /> frame.</summary>
-    /// <param name="frame">The <see cref="FrameType.StreamConsumed" /> frame body.</param>
+    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamConsumed" /> frame.</summary>
+    /// <param name="frame">The body of the <see cref="FrameType.StreamConsumed" /> frame.</param>
     internal void ReceivedConsumedFrame(StreamConsumedBody frame)
     {
         int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame((int)frame.Size);
@@ -303,7 +303,7 @@ internal class SlicStream : IMultiplexedStream
     internal void ReceivedReadsClosedFrame()
     {
         TrySetWritesClosed();
-        _outputPipeWriter?.WritesClosed(exception: null);
+        _outputPipeWriter?.CompleteWrites(exception: null);
     }
 
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.Stream" /> or <see
@@ -325,8 +325,8 @@ internal class SlicStream : IMultiplexedStream
     {
         TrySetReadsClosed();
 
-        // Read operations will return a TruncatedData error if the peer aborted writes.
-        _inputPipeReader?.ReadsClosed(new IceRpcException(IceRpcError.TruncatedData));
+        // Read operations will return a TruncatedData error if the peer closed writes.
+        _inputPipeReader?.CompleteReads(new IceRpcException(IceRpcError.TruncatedData));
     }
 
     /// <summary>Writes a <see cref="FrameType.StreamConsumed" /> frame on the connection.</summary>
@@ -348,7 +348,7 @@ internal class SlicStream : IMultiplexedStream
         }
         catch (Exception exception)
         {
-            Debug.Fail($"Writing of the stream consumed frame failed due to an unhandled exception: {exception}");
+            Debug.Fail($"Writing of the StreamConsumed frame failed due to an unhandled exception: {exception}");
             throw;
         }
     }
@@ -393,7 +393,7 @@ internal class SlicStream : IMultiplexedStream
         {
             TrySetWritesClosed();
         }
-        // For local streams, writes will be closed only once the peer's sends the StreamReadsClosed frame.
+        // For local streams, writes will be closed only once the peer sends the StreamReadsClosed frame.
 
         _writesClosedTcs.TrySetResult();
     }
