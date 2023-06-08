@@ -333,7 +333,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
+    public async Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
@@ -364,14 +364,14 @@ internal class SlicConnection : IMultiplexedConnection
                     // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
                     // For TCP, it's important to always shutdown the connection on the client-side first to avoid
                     // TIME_WAIT states on the server-side.
-                    _duplexConnectionWriter.Shutdown();
+                    await _duplexConnectionWriter.ShutdownAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
         }
 
         // Now, wait for the peer to send the close frame that will terminate the read frames task.
         Debug.Assert(_readFramesTask is not null);
-        return _readFramesTask.WaitAsync(cancellationToken);
+        await _readFramesTask.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<IMultiplexedStream> CreateStreamAsync(
@@ -1093,7 +1093,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (notAlreadyClosed && !IsServer)
             {
                 using SemaphoreLock _ = _writeSemaphore.Acquire();
-                _duplexConnectionWriter.Shutdown();
+                await _duplexConnectionWriter.ShutdownAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -1238,7 +1238,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
                 using SemaphoreLock _ = _writeSemaphore.Acquire();
-                _duplexConnectionWriter.Shutdown();
+                await _duplexConnectionWriter.ShutdownAsync(cancellationToken).ConfigureAwait(false);
 
                 // Make sure that CloseAsync doesn't call Write on the writer if it's called shortly after the peer
                 // shutdown its side of the connection (which triggers ReadFrameHeaderAsync to return null).
