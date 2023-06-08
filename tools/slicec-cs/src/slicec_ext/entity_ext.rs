@@ -139,8 +139,8 @@ pub trait EntityExt: Entity {
             Entities::Interface(interface_def) => {
                 // For interface links, we always link to the client side interface (ex: `IMyInterface`).
                 // TODO: add a way for users to link to an interface's proxy type: (ex: `MyInterfaceProxy`).
-                let identifier = interface_def.interface_name();
-                format!(r#"<see cref="{identifier}" />"#)
+                let interface_name = interface_def.scoped_interface_name(namespace);
+                format!(r#"<see cref="{interface_name}" />"#)
             }
             Entities::Operation(operation) => {
                 // For operations, we link to the abstract method on the client side interface (ex: `IMyInterface`).
@@ -150,8 +150,8 @@ pub trait EntityExt: Entity {
             }
             Entities::Parameter(parameter) => {
                 // Parameter links use a different tag (`paramref`) in C# instead of the normal `see cref` tag.
-                let identifier = parameter.parameter_name();
-                format!(r#"<paramref name="{identifier}" />"#)
+                let parameter_name = parameter.parameter_name();
+                format!(r#"<paramref name="{parameter_name}" />"#)
             }
             Entities::Enumerator(enumerator) => {
                 let enum_name = enumerator.parent().escape_scoped_identifier(namespace);
@@ -159,8 +159,8 @@ pub trait EntityExt: Entity {
                 format!(r#"<see cref="{enum_name}.{enumerator_name}" />"#)
             }
             _ => {
-                let identifier = self.escape_scoped_identifier(namespace);
-                format!(r#"<see cref="{identifier}" />"#)
+                let name = self.escape_scoped_identifier(namespace);
+                format!(r#"<see cref="{name}" />"#)
             }
         }
     }
@@ -171,8 +171,8 @@ impl<T: Entity + ?Sized> EntityExt for T {}
 #[cfg(test)]
 mod formatted_link_tests {
     use super::EntityExt;
-    use slicec::grammar::{Interface, Operation, Parameter, Enumerator, Struct};
     use slicec::compilation_state::CompilationState;
+    use slicec::grammar::{Enumerator, Interface, Operation, Parameter, Struct};
 
     // TODO we should add some actual testing infrastructure to this crate.
 
@@ -180,7 +180,6 @@ mod formatted_link_tests {
         slicec::compile_from_strings(&[slice], None, |_| {}, |_| {})
     }
 
-    #[ignore]
     #[test]
     fn interface_unscoped() {
         // Arrange
