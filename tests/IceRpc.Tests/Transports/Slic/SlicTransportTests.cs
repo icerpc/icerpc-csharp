@@ -703,4 +703,58 @@ public class SlicTransportTests
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
     }
+
+    [Test]
+    public async Task Slic_duplex_connection_writer_shutdown_write_waits_for_duplex_connection_shutdown_write_completion()
+    {
+        using var duplexConnection = new DuplexConnectionWaitForShutdown();
+        await using var writer = new SlicDuplexConnectionWriter(
+            duplexConnection,
+            MemoryPool<byte>.Shared,
+            1024);
+
+        await writer.ShutdownWriteAsync(CancellationToken.None);
+
+        Assert.That(duplexConnection.WritesShutdownCompleted.IsCompletedSuccessfully, Is.True);
+    }
+
+    [Test]
+    public async Task Slic_duplex_connection_writer_dispose_does_not_shutdown_duplex_connection_writes()
+    {
+        using var duplexConnection = new DuplexConnectionWaitForShutdown();
+        var writer = new SlicDuplexConnectionWriter(
+            duplexConnection,
+            MemoryPool<byte>.Shared,
+            1024);
+
+        await writer.DisposeAsync();
+
+        Assert.That(duplexConnection.WritesShutdownCompleted.IsCompleted, Is.False);
+    }
+
+    private class DuplexConnectionWaitForShutdown : IDuplexConnection
+    {
+        public Task WritesShutdownCompleted => _writesShutdownTcs.Task;
+
+        private readonly TaskCompletionSource _writesShutdownTcs = new();
+
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public void Dispose()
+        {
+        }
+
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
+            new(0);
+
+        public Task ShutdownWriteAsync(CancellationToken cancellationToken)
+        {
+            _writesShutdownTcs.SetResult();
+            return _writesShutdownTcs.Task;
+        }
+
+        public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken) =>
+            default;
+    }
 }
