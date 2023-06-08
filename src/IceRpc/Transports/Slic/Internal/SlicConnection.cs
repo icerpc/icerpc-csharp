@@ -369,7 +369,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        // Now, wait for the peer to send the close frame that will terminate the read frames task.
+        // Now, wait for the peer to close the write side of the connection, which will terminate the read frames task.
         Debug.Assert(_readFramesTask is not null);
         await _readFramesTask.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
