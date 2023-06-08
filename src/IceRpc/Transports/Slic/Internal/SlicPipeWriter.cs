@@ -48,15 +48,9 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
                     $"Completing a {nameof(SlicPipeWriter)} without an exception is not allowed when this pipe writer has unflushed bytes.");
             }
 
-            if (exception is null)
-            {
-                _stream.CloseWrites();
-            }
-            else
-            {
-                // We don't use the application error code, it's irrelevant.
-                _stream.CloseWrites(errorCode: 0ul);
-            }
+            // If the exception is set, forcefully close the stream writes if writes were not already gracefully closed
+            // by WriteAsync called with endStream=true. Otherwise, if exception is null, writes are gracefully closed.
+            _stream.CloseWrites(graceful: exception is null);
 
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
@@ -175,21 +169,14 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         return _sendCredit;
     }
 
-    /// <summary>Complete writes.</summary>
-    /// <param name="exception">The exception raised by <see cref="PipeWriter.WriteAsync" /> or <see cref="FlushAsync"
-    /// />.</param>
-    internal void CompleteWrites(Exception? exception)
-    {
-        Interlocked.CompareExchange(ref _exception, exception, null);
-        _completeWritesCts.Cancel();
-    }
-
-    internal void ConsumedSendCredit(int consumed)
+    /// <summary>Notifies the writer of the amount of send credit consumed by the sending of a stream frame.</summary>
+    /// <param name="size">The size of the stream frame.</param>
+    internal void ConsumedSendCredit(int size)
     {
         // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed, _sendCredit
         // will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be released once
         // the stream receives a StreamConsumed frame.
-        int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
+        int sendCredit = Interlocked.Add(ref _sendCredit, -size);
         if (sendCredit > 0)
         {
             _sendCreditSemaphore.Release();
@@ -197,6 +184,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         Debug.Assert(sendCredit >= 0);
     }
 
+    /// <summary>Notifies the writer of the amount of data consumed by peer.</summary>
+    /// <param name="size">The amount of data consumed by the peer.</param>
     internal int ReceivedConsumedFrame(int size)
     {
         int newValue = Interlocked.Add(ref _sendCredit, size);
@@ -214,5 +203,14 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             }
         }
         return newValue;
+    }
+
+    /// <summary>Notifies this writer of the stream writes closure.</summary>
+    /// <param name="exception">The exception that will be raised by <see cref="PipeWriter.WriteAsync" /> or <see
+    /// cref="FlushAsync" />.</param>
+    internal void WritesClosed(Exception? exception)
+    {
+        Interlocked.CompareExchange(ref _exception, exception, null);
+        _completeWritesCts.Cancel();
     }
 }

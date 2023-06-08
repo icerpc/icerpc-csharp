@@ -92,28 +92,35 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    /// <summary>Acquires send credit. This method should be called to ensure credit is available to send a stream
+    /// frame. If no send credit is available, it will block until send credit available.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The available send credit.</returns>
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
         _outputPipeWriter!.AcquireSendCreditAsync(cancellationToken);
 
+    /// <summary>Closes the read and write sides of the stream and notifies the stream <see cref="Input" /> and <see
+    /// cref="Output" /> of the reads and writes closure.</summary>
     internal void Close(Exception closeException)
     {
         if (TrySetReadsClosed())
         {
             Debug.Assert(_inputPipeReader is not null);
-            _inputPipeReader.CompleteReads(closeException);
+            _inputPipeReader.ReadsClosed(closeException);
         }
         if (TrySetWritesClosed())
         {
             Debug.Assert(_outputPipeWriter is not null);
-            _outputPipeWriter.CompleteWrites(closeException);
+            _outputPipeWriter.WritesClosed(closeException);
         }
     }
 
-    /// <summary>Closes the read-side of the stream. It's only called by SlicPipeReader methods and never called
-    /// concurrently.</summary>
-    /// <param name="errorCode">The error code. It's null if reads were closed after the StreamLast frame was consumed.
-    /// It's non-null if the input was completed with an exception or before the buffer data was consumed.</param>
-    internal void CloseReads(ulong? errorCode = null)
+    /// <summary>Closes the read-side of the stream. It's only called by <see cref="SlicPipeReader.Complete" />, <see
+    /// cref="SlicPipeReader.TryRead" /> or <see cref="SlicPipeReader.ReadAsync" /> and never called concurrently.
+    /// </summary>
+    /// <param name="graceful"><see langword="true" /> if the application consumed all the stream data from the stream
+    /// <see cref="Input" />; otherwise, <see langword="false" />.</param>
+    internal void CloseReads(bool graceful)
     {
         bool writeReadsClosedFrame = false;
 
@@ -121,20 +128,24 @@ internal class SlicStream : IMultiplexedStream
         {
             if (IsStarted && !_state.HasFlag(State.ReadsClosed))
             {
-                if (errorCode is null &&
+                // As an optimization, if reads are gracefully closed once the buffered data is consumed but before
+                // writes are closed, we don't send the StreamReadsClosed frame just yet. Instead, when writes are
+                // closed, CloseWrites will bundle the sending of the StreamReadsClosed with the sending of the
+                // StreamLast or StreamWritesClosed frame. This allows to send both frames with a single write on the
+                // duplex connection.
+                if (graceful &&
                     IsBidirectional &&
                     IsRemote &&
                     !_state.HasFlag(State.WritesClosed) &&
                     !_writesClosePending)
                 {
-                    // As an optimization, if reads are closed once the buffered data is consumed but before writes are
-                    // closed, we don't send the StreamReadsClosed frame just yet. Instead, when writes are closed,
-                    // CloseWrites will bundle the sending of the StreamReadsClosed with the sending of the StreamLast
-                    // or StreamWritesClosed frame.
                     _closeReadsOnWritesClosure = true;
                 }
-                else if (errorCode is not null || IsRemote)
+                else if (!graceful || IsRemote)
                 {
+                    // If forcefully closed because the input was completed before the data was fully read or if writes
+                    // are already closed and the stream is a remote stream, we send the ReadsClosed frame to notify
+                    // the peer that reads are closed.
                     writeReadsClosedFrame = true;
                 }
             }
@@ -154,20 +165,11 @@ internal class SlicStream : IMultiplexedStream
                     TrySetReadsClosed();
                 }
 
-                // The stream reads closed frame is only sent for remote streams to notify the local stream that the
-                // buffered data on the SlicPipeReader was consumed. Once the peer receives this notification, it can
-                // release the connection's bidirectional or unidirectional stream semaphore (if writes are also
-                // closed).
-                if (errorCode is not null || IsRemote)
-                {
-                    _connection.WriteStreamFrame(
-                        stream: this,
-                        FrameType.StreamReadsClosed,
-                        new StreamReadsClosedBody(errorCode).Encode,
-                        writeReadsClosedFrame: false);
-                }
-                // When closing reads for a local stream, there's no need to notify the peer. The peer already closed
-                // writes after sending the StreamLast or StreamWritesClosed frame.
+                _connection.WriteStreamFrame(
+                    stream: this,
+                    FrameType.StreamReadsClosed,
+                    new StreamReadsClosedBody(applicationErrorCode: 0ul).Encode,
+                    writeReadsClosedFrame: false);
 
                 if (!IsRemote)
                 {
@@ -192,11 +194,11 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    /// <summary>Closes the write-side of the stream. It's only called by SlicPipeWriter methods and never called
-    /// concurrently.</summary>
-    /// <param name="errorCode">The error code. It's null if the output was completed without an exception; otherwise,
-    /// it's non-null.</param>
-    internal void CloseWrites(ulong? errorCode = null)
+    /// <summary>Closes the write-side of the stream. It's only called by <see cref="SlicPipeWriter.Complete" /> and
+    /// never called concurrently.</summary>
+    /// <param name="graceful"><see langword="true" /> if the application wrote all the stream data on the stream <see
+    /// cref="Output" />; otherwise, <see langword="false" />.</param>
+    internal void CloseWrites(bool graceful)
     {
         bool writeWritesClosedFrame = false;
         bool writeReadsClosedFrame = false;
@@ -225,20 +227,21 @@ internal class SlicStream : IMultiplexedStream
                     TrySetWritesClosed();
                 }
 
-                if (errorCode is null)
+                if (graceful)
                 {
                     _connection.WriteStreamFrame(this, FrameType.StreamLast, encode: null, writeReadsClosedFrame);
 
-                    // If the stream is a local stream, writes are not close until the StreamReadsClosed frame is
-                    // received from the peer. This ensures that the connection's bidirectional or unidirectional stream
-                    // semaphore is released only once the peer consumed the buffered data.
+                    // If the stream is a local stream, writes are not closed until the StreamReadsClosed frame is
+                    // received from the peer (see ReceivedReadsClosedFrame). This ensures that the connection's
+                    // bidirectional or unidirectional stream semaphore is released only once the peer consumed the
+                    // buffered data.
                 }
                 else
                 {
                     _connection.WriteStreamFrame(
                         stream: this,
                         FrameType.StreamWritesClosed,
-                        new StreamWritesClosedBody(applicationErrorCode: errorCode.Value).Encode,
+                        new StreamWritesClosedBody(applicationErrorCode: 0ul).Encode,
                         writeReadsClosedFrame);
 
                     if (!IsRemote)
@@ -266,14 +269,22 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    internal void ConsumedSendCredit(int consumed) => _outputPipeWriter!.ConsumedSendCredit(consumed);
+    /// <summary>Notifies the stream of the amount of data consumed by the connection to send a stream frame.</summary>
+    /// <param name="size">The size of the stream frame.</param>
+    internal void ConsumedSendCredit(int size) => _outputPipeWriter!.ConsumedSendCredit(size);
 
+    /// <summary>Fills the given writer with stream data received on the connection.</summary>
+    /// <param name="bufferWriter">The destination buffer writer.</param>
+    /// <param name="byteCount">The amount of stream data to read.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,
         CancellationToken cancellationToken) =>
         _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
+    /// <summary>Notifies the stream of the reception of a <see cref="StreamConsumedBody" /> frame.</summary>
+    /// <param name="frame">The <see cref="FrameType.StreamConsumed" /> frame body.</param>
     internal void ReceivedConsumedFrame(StreamConsumedBody frame)
     {
         int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame((int)frame.Size);
@@ -287,6 +298,8 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    /// <summary>Notifies the stream of the reception of a <see cref="StreamReadsClosedBody" /> frame.</summary>
+    /// <param name="frame">The <see cref="FrameType.StreamReadsClosed" /> frame body.</param>
     internal void ReceivedReadsClosedFrame(StreamReadsClosedBody frame)
     {
         TrySetWritesClosed();
@@ -295,17 +308,23 @@ internal class SlicStream : IMultiplexedStream
         {
             // Write operations will return a completed flush result regardless of whether or not the peer aborted
             // reads with the 0ul error code or completed reads.
-            _outputPipeWriter?.CompleteWrites(exception: null);
+            _outputPipeWriter?.WritesClosed(exception: null);
         }
         else
         {
             // The peer aborted reads with unknown application error code.
-            _outputPipeWriter?.CompleteWrites(new IceRpcException(
+            _outputPipeWriter?.WritesClosed(new IceRpcException(
                 IceRpcError.TruncatedData,
                 $"The peer closed stream reads with an unknown application error code: '{frame.ApplicationErrorCode}'"));
         }
     }
 
+    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.Stream" /> or <see
+    /// cref="FrameType.StreamLast" /> frame.</summary>
+    /// <param name="size">The size of the data carried by the stream frame.</param>
+    /// <param name="endStream"><see langword="true" /> if the received stream frame is the <see
+    /// cref="FrameType.StreamLast" /> frame; otherwise, <see langword="false" />.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     internal ValueTask<bool> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
         Debug.Assert(_inputPipeReader is not null);
@@ -314,6 +333,8 @@ internal class SlicStream : IMultiplexedStream
             _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
     }
 
+    /// <summary>Notifies the stream of the reception of a <see cref="StreamWritesClosedBody" /> frame.</summary>
+    /// <param name="frame">The <see cref="FrameType.StreamWritesClosed" /> frame body.</param>
     internal void ReceivedWritesClosedFrame(StreamWritesClosedBody frame)
     {
         TrySetReadsClosed();
@@ -321,17 +342,19 @@ internal class SlicStream : IMultiplexedStream
         if (frame.ApplicationErrorCode == 0ul)
         {
             // Read operations will return a TruncatedData if the peer aborted writes.
-            _inputPipeReader?.CompleteReads(new IceRpcException(IceRpcError.TruncatedData));
+            _inputPipeReader?.ReadsClosed(new IceRpcException(IceRpcError.TruncatedData));
         }
         else
         {
             // The peer aborted writes with unknown application error code.
-            _inputPipeReader?.CompleteReads(new IceRpcException(
+            _inputPipeReader?.ReadsClosed(new IceRpcException(
                 IceRpcError.TruncatedData,
                 $"The peer closed stream writes with an unknown application error code: '{frame.ApplicationErrorCode}'"));
         }
     }
 
+    /// <summary>Writes a <see cref="FrameType.StreamConsumed" /> frame on the connection.</summary>
+    /// <param name="size">The amount of data consumed by the application on the stream <see cref="Input" />.</param>
     internal void WriteStreamConsumedFrame(int size)
     {
         try
@@ -354,6 +377,13 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
+    /// <summary>Writes a <see cref="FrameType.Stream" /> or <see cref="FrameType.StreamLast" /> frame on the
+    /// connection.</summary>
+    /// <param name="source1">The first stream frame data source.</param>
+    /// <param name="source2">The second stream frame data source.</param>
+    /// <param name="endStream"><see langword="true" /> to write a <see cref="FrameType.StreamLast" /> frame; otherwise,
+    /// <see langword="false" />.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     internal ValueTask<FlushResult> WriteStreamFrameAsync(
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
@@ -379,6 +409,8 @@ internal class SlicStream : IMultiplexedStream
             cancellationToken);
     }
 
+    /// <summary>Notifies the stream that the <see cref="FrameType.StreamLast" /> was written by the
+    /// connection.</summary>
     internal void WroteLastStreamFrame()
     {
         if (IsRemote)
@@ -390,6 +422,7 @@ internal class SlicStream : IMultiplexedStream
         _writesClosedTcs.TrySetResult();
     }
 
+    /// <summary>Throws the connection closure exception if the connection is closed.</summary>
     internal void ThrowIfConnectionClosed() => _connection.ThrowIfClosed();
 
     private bool TrySetReadsClosed() => TrySetState(State.ReadsClosed);

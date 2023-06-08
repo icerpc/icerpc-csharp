@@ -9,11 +9,11 @@ enum FrameType : uint8 {
     // Initiates the connection establishment.
     Initialize = 1
 
-    /// Acknowledges the receipt of the initialize frame.
+    /// Acknowledges the receipt of the {@link Initialize} frame.
     InitializeAck
 
-    /// Indicates the versions supported by the server. The server sends this frame if the version from the initialize
-    /// frame is not supported.
+    /// Indicates the versions supported by the server. The server sends this frame if the version from the
+    /// {@link Initialize} frame is not supported.
     Version
 
     /// Initiates the closure of the connection.
@@ -22,7 +22,7 @@ enum FrameType : uint8 {
     /// Checks the liveliness of the connection.
     Ping
 
-    /// Acknowledges the receipt of a Ping frame.
+    /// Acknowledges the receipt of a {@link Ping} frame.
     Pong
 
     /// Carries stream data.
@@ -41,7 +41,6 @@ enum FrameType : uint8 {
     StreamWritesClosed
 }
 
-/// The keys for supported connection parameters exchanged with the initialize and initialize acknowledgment frames.
 [cs::internal]
 unchecked enum ParameterKey : varuint62 {
     /// The maximum number of bidirectional streams. The peer shouldn't open more streams than the maximum defined
@@ -66,7 +65,6 @@ unchecked enum ParameterKey : varuint62 {
 
 typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
 
-/// The initialize frame body.
 [cs::internal]
 [cs::readonly]
 compact struct InitializeBody {
@@ -77,7 +75,6 @@ compact struct InitializeBody {
     parameters: ParameterFields
 }
 
-/// The initialize acknowledgment frame body.
 [cs::internal]
 [cs::readonly]
 compact struct InitializeAckBody {
@@ -85,9 +82,6 @@ compact struct InitializeAckBody {
     parameters: ParameterFields
 }
 
-/// The body of a version frame. This frame is sent in response to an initialize frame if the version from the
-/// initialize frame is not supported by the receiver. Upon receiving the version frame the receiver should send back
-/// a new initialize frame with a version matching one of the versions provided by the version frame body.
 [cs::internal]
 [cs::readonly]
 compact struct VersionBody {
@@ -95,7 +89,6 @@ compact struct VersionBody {
     versions: sequence<varuint62>
 }
 
-/// The body of a close frame.
 [cs::internal]
 [cs::readonly]
 compact struct CloseBody {
@@ -103,7 +96,7 @@ compact struct CloseBody {
     applicationErrorCode: varuint62
 }
 
-/// The body of a stream consumed frame.
+/// The body of a StreamConsumed frame. This frame indicates the remote-side of the stream that it
 [cs::internal]
 [cs::readonly]
 compact struct StreamConsumedBody {
@@ -111,19 +104,18 @@ compact struct StreamConsumedBody {
     size: varuint62
 }
 
-/// The body of a stream reads closed frame.
 [cs::internal]
 [cs::readonly]
 compact struct StreamReadsClosedBody {
-    /// If not null, the application error code indicates the reason the application is not longer reading data. If
-    /// null, it indicates that the application read all the data written on the stream.
-    applicationErrorCode: varuint62?
+    /// The application error code indicating the reason of the stream reads closure. For now, the Slic implementation
+    /// always set this field to 0.
+    applicationErrorCode: varuint62
 }
 
-/// The body of a stream writes closed frame.
 [cs::internal]
 [cs::readonly]
 compact struct StreamWritesClosedBody {
-    /// The application error code indicating the reason why the peer is no longer writting data.
+    /// The application error code indicating the reason of the stream writes closure. For now, the Slic implementation
+    /// always set this field to 0.
     applicationErrorCode: varuint62
 }
