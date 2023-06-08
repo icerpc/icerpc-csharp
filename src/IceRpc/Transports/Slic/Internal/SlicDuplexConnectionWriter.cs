@@ -106,9 +106,13 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
 
     /// <summary>Requests the shut down of the duplex connection after the buffered data is written on the duplex
     /// connection.</summary>
+    /// <returns>A tasks that completes after the background writer shutdown the write end of the duplex connection.
+    /// </returns>
     internal Task ShutdownAsync(CancellationToken cancellationToken)
     {
         _pipe.Writer.Complete();
+        // Waiting for the background write task to complete before returning, which prevents the caller from disposing
+        // the duplex connection before the duplex connection writes are closed.
         return _backgroundWriteTask.WaitAsync(cancellationToken);
     }
 }
