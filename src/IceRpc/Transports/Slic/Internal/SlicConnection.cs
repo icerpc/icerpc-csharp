@@ -364,7 +364,7 @@ internal class SlicConnection : IMultiplexedConnection
                     // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
                     // For TCP, it's important to always shutdown the connection on the client-side first to avoid
                     // TIME_WAIT states on the server-side.
-                    await _duplexConnectionWriter.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                    await _duplexConnectionWriter.ShutdownWriteAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -1093,7 +1093,7 @@ internal class SlicConnection : IMultiplexedConnection
             if (notAlreadyClosed && !IsServer)
             {
                 using SemaphoreLock _ = _writeSemaphore.Acquire();
-                await _duplexConnectionWriter.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                await _duplexConnectionWriter.ShutdownWriteAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -1238,7 +1238,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
                 using SemaphoreLock _ = _writeSemaphore.Acquire();
-                await _duplexConnectionWriter.ShutdownAsync(cancellationToken).ConfigureAwait(false);
+                await _duplexConnectionWriter.ShutdownWriteAsync(cancellationToken).ConfigureAwait(false);
 
                 // Make sure that CloseAsync doesn't call Write on the writer if it's called shortly after the peer
                 // shutdown its side of the connection (which triggers ReadFrameHeaderAsync to return null).
