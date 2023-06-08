@@ -168,7 +168,7 @@ internal class SlicStream : IMultiplexedStream
                 _connection.WriteStreamFrame(
                     stream: this,
                     FrameType.StreamReadsClosed,
-                    new StreamReadsClosedBody(applicationErrorCode: 0ul).Encode,
+                    encode: null,
                     writeReadsClosedFrame: false);
 
                 if (!IsRemote)
@@ -241,7 +241,7 @@ internal class SlicStream : IMultiplexedStream
                     _connection.WriteStreamFrame(
                         stream: this,
                         FrameType.StreamWritesClosed,
-                        new StreamWritesClosedBody(applicationErrorCode: 0ul).Encode,
+                        encode: null,
                         writeReadsClosedFrame);
 
                     if (!IsRemote)
@@ -298,25 +298,11 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    /// <summary>Notifies the stream of the reception of a <see cref="StreamReadsClosedBody" /> frame.</summary>
-    /// <param name="frame">The <see cref="FrameType.StreamReadsClosed" /> frame body.</param>
-    internal void ReceivedReadsClosedFrame(StreamReadsClosedBody frame)
+    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamReadsClosed" /> frame.</summary>
+    internal void ReceivedReadsClosedFrame()
     {
         TrySetWritesClosed();
-
-        if (frame.ApplicationErrorCode == 0ul)
-        {
-            // Write operations will return a completed flush result regardless of whether or not the peer aborted
-            // reads with the 0ul error code or completed reads.
-            _outputPipeWriter?.WritesClosed(exception: null);
-        }
-        else
-        {
-            // The peer aborted reads with unknown application error code.
-            _outputPipeWriter?.WritesClosed(new IceRpcException(
-                IceRpcError.TruncatedData,
-                $"The peer closed stream reads with an unknown application error code: '{frame.ApplicationErrorCode}'"));
-        }
+        _outputPipeWriter?.WritesClosed(exception: null);
     }
 
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.Stream" /> or <see
@@ -333,24 +319,13 @@ internal class SlicStream : IMultiplexedStream
             _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
     }
 
-    /// <summary>Notifies the stream of the reception of a <see cref="StreamWritesClosedBody" /> frame.</summary>
-    /// <param name="frame">The <see cref="FrameType.StreamWritesClosed" /> frame body.</param>
-    internal void ReceivedWritesClosedFrame(StreamWritesClosedBody frame)
+    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamWritesClosed" /> frame.</summary>
+    internal void ReceivedWritesClosedFrame()
     {
         TrySetReadsClosed();
 
-        if (frame.ApplicationErrorCode == 0ul)
-        {
-            // Read operations will return a TruncatedData if the peer aborted writes.
-            _inputPipeReader?.ReadsClosed(new IceRpcException(IceRpcError.TruncatedData));
-        }
-        else
-        {
-            // The peer aborted writes with unknown application error code.
-            _inputPipeReader?.ReadsClosed(new IceRpcException(
-                IceRpcError.TruncatedData,
-                $"The peer closed stream writes with an unknown application error code: '{frame.ApplicationErrorCode}'"));
-        }
+        // Read operations will return a TruncatedData error if the peer aborted writes.
+        _inputPipeReader?.ReadsClosed(new IceRpcException(IceRpcError.TruncatedData));
     }
 
     /// <summary>Writes a <see cref="FrameType.StreamConsumed" /> frame on the connection.</summary>

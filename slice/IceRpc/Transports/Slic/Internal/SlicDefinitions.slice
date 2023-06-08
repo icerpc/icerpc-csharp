@@ -103,19 +103,3 @@ compact struct StreamConsumedBody {
     /// The size of the consumed data.
     size: varuint62
 }
-
-[cs::internal]
-[cs::readonly]
-compact struct StreamReadsClosedBody {
-    /// The application error code indicating the reason of the stream reads closure. For now, the Slic implementation
-    /// always set this field to 0.
-    applicationErrorCode: varuint62
-}
-
-[cs::internal]
-[cs::readonly]
-compact struct StreamWritesClosedBody {
-    /// The application error code indicating the reason of the stream writes closure. For now, the Slic implementation
-    /// always set this field to 0.
-    applicationErrorCode: varuint62
-}
