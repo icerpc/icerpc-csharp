@@ -450,7 +450,7 @@ public abstract class MultiplexedStreamConformanceTests
     }
 
     [Test]
-    public async Task Stream_read_returns_canceled_read_result_after_cancel_pending_read()
+    public async Task Stream_read_returns_canceled_read_result_after_cancel_pending_read([Values] bool completeRemote)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -459,6 +459,10 @@ public abstract class MultiplexedStreamConformanceTests
         using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
 
         await sut.Remote.Output.WriteAsync(_oneBytePayload);
+        if (completeRemote)
+        {
+            sut.Remote.Output.Complete();
+        }
 
         // Act
         sut.Local.Input.CancelPendingRead();
@@ -466,11 +470,18 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Assert
         ReadResult readResult1 = await sut.Local.Input.ReadAsync();
+        sut.Local.Input.AdvanceTo(readResult1.Buffer.Start);
+
         ReadResult readResult2 = await sut.Local.Input.ReadAsync();
+        sut.Local.Input.AdvanceTo(readResult2.Buffer.Start);
 
         Assert.That(readResult1.IsCanceled, Is.True);
-        Assert.That(readResult1.IsCompleted, Is.False);
         Assert.That(readResult2.IsCanceled, Is.False);
+
+        Assert.That(readResult1.IsCompleted, Is.EqualTo(completeRemote));
+        Assert.That(readResult1.IsCompleted, Is.EqualTo(completeRemote));
+
+        Assert.That(readResult1.Buffer, Has.Length.EqualTo(1));
         Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
     }
 
@@ -489,6 +500,7 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Assert
         ReadResult readResult1 = await readTask;
+        sut.Local.Input.AdvanceTo(readResult1.Buffer.Start);
 
         Assert.That(async () => await sut.Remote.Output.WriteAsync(_oneBytePayload), Throws.Nothing);
 
@@ -510,6 +522,7 @@ public abstract class MultiplexedStreamConformanceTests
         {
             Assert.That(readResult2.Value.IsCanceled, Is.False);
             Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
+            sut.Local.Input.AdvanceTo(readResult2.Value.Buffer.Start);
         }
     }
 

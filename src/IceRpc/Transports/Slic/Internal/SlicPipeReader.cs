@@ -78,7 +78,7 @@ internal class SlicPipeReader : PipeReader
         ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
-            return GetReadResult();
+            return GetReadResult(result);
         }
 
         // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got examined
@@ -108,7 +108,7 @@ internal class SlicPipeReader : PipeReader
         {
             if (result.IsCanceled)
             {
-                result = GetReadResult();
+                result = GetReadResult(result);
                 return true;
             }
 
@@ -230,13 +230,13 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    private ReadResult GetReadResult()
+    private ReadResult GetReadResult(ReadResult readResult)
     {
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
             if (_exception is null)
             {
-                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
+                return new ReadResult(readResult.Buffer, isCanceled: false, isCompleted: true);
             }
             else
             {
@@ -245,7 +245,7 @@ internal class SlicPipeReader : PipeReader
         }
         else
         {
-            return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: true, isCompleted: false);
+            return new ReadResult(readResult.Buffer, isCanceled: true, isCompleted: readResult.IsCompleted);
         }
     }
 
