@@ -705,56 +705,50 @@ public class SlicTransportTests
     }
 
     [Test]
-    public async Task Slic_duplex_connection_writer_shutdown_write_waits_for_duplex_connection_shutdown_write_completion()
+    public async Task Close_cannot_complete_before_duplex_connection_writes_are_closed()
     {
-        using var duplexConnection = new DuplexConnectionWaitForShutdown();
-        await using var writer = new SlicDuplexConnectionWriter(
-            duplexConnection,
-            MemoryPool<byte>.Shared,
-            1024);
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator(
+                clientOperationsOptions: new()
+                {
+                    Hold = DuplexTransportOperations.ShutdownWrite
+                })
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        await writer.ShutdownWriteAsync(CancellationToken.None);
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
 
-        Assert.That(duplexConnection.WritesShutdownCompleted.IsCompletedSuccessfully, Is.True);
+        // Act
+        var closeTask = sut.Client.CloseAsync(0, CancellationToken.None);
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // Give time to CloseAsync to proceed.
+
+        // Assert
+        Assert.That(closeTask.IsCompleted, Is.False);
     }
 
     [Test]
-    public async Task Slic_duplex_connection_writer_dispose_does_not_shutdown_duplex_connection_writes()
+    public async Task Dispose_connection_when_duplex_connection_shutdown_write_hangs()
     {
-        using var duplexConnection = new DuplexConnectionWaitForShutdown();
-        var writer = new SlicDuplexConnectionWriter(
-            duplexConnection,
-            MemoryPool<byte>.Shared,
-            1024);
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator(
+                clientOperationsOptions: new()
+                {
+                    Hold = DuplexTransportOperations.ShutdownWrite
+                })
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
-        await writer.DisposeAsync();
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
 
-        Assert.That(duplexConnection.WritesShutdownCompleted.IsCompleted, Is.False);
-    }
-
-    private class DuplexConnectionWaitForShutdown : IDuplexConnection
-    {
-        public Task WritesShutdownCompleted => _writesShutdownTcs.Task;
-
-        private readonly TaskCompletionSource _writesShutdownTcs = new();
-
-        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
-
-        public void Dispose()
-        {
-        }
-
-        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
-            new(0);
-
-        public Task ShutdownWriteAsync(CancellationToken cancellationToken)
-        {
-            _writesShutdownTcs.SetResult();
-            return _writesShutdownTcs.Task;
-        }
-
-        public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken) =>
-            default;
+        // Act
+        Assert.That(sut.Client.DisposeAsync, Throws.Nothing);
     }
 }
