@@ -75,24 +75,18 @@ internal class SlicPipeReader : PipeReader
             _stream.ThrowIfConnectionClosed();
         }
 
-        ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-        if (result.IsCanceled)
-        {
-            return GetReadResult();
-        }
-
         // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got examined
         // and consumed.
-        _readResult = result;
+        _readResult = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
         // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
         // will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
-        if (result.IsCompleted)
+        if (_readResult.IsCompleted)
         {
             _stream.CompleteReads();
         }
 
-        return result;
+        return _readResult;
     }
 
     public override bool TryRead(out ReadResult result)
@@ -106,12 +100,6 @@ internal class SlicPipeReader : PipeReader
 
         if (_pipe.Reader.TryRead(out result))
         {
-            if (result.IsCanceled)
-            {
-                result = GetReadResult();
-                return true;
-            }
-
             // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got
             // examined and consumed.
             _readResult = result;
@@ -227,25 +215,6 @@ internal class SlicPipeReader : PipeReader
                 _pipe.Writer.Complete(_exception);
             }
             _state.ClearFlag(State.PipeWriterInUse);
-        }
-    }
-
-    private ReadResult GetReadResult()
-    {
-        if (_state.HasFlag(State.PipeWriterCompleted))
-        {
-            if (_exception is null)
-            {
-                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
-            }
-            else
-            {
-                throw ExceptionUtil.Throw(_exception);
-            }
-        }
-        else
-        {
-            return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: true, isCompleted: false);
         }
     }
 
