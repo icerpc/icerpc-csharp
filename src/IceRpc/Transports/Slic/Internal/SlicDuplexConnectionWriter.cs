@@ -1,24 +1,23 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Slic.Internal;
 
-/// <summary>A helper class to write data to a duplex connection. It provides a PipeWriter-like API but is not a
-/// PipeWriter. Like a PipeWriter, its methods shouldn't be called concurrently. The data written to this writer is
-/// copied and buffered with an internal pipe. The data from the pipe is written on the duplex connection with a
-/// background task. This allows prompt cancellation of writes and improves write concurrency since multiple writes can
-/// be buffered and sent with a single <see cref="IDuplexConnection.WriteAsync" /> call.</summary>
+/// <summary>A helper class to write data to a duplex connection. Its methods shouldn't be called concurrently. The data
+/// written to this writer is copied and buffered with an internal pipe. The data from the pipe is written on the duplex
+/// connection with a background task.</summary>
 internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposable
 {
-    private readonly Task _backgroundWriteTask;
+    internal Task WriterTask { get; private init; }
+
     private readonly IDuplexConnection _connection;
     private readonly CancellationTokenSource _disposeCts = new();
     private Task? _disposeTask;
     private readonly Pipe _pipe;
 
-    /// <inheritdoc/>
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
     /// <inheritdoc/>
@@ -31,7 +30,7 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
         {
             _disposeCts.Cancel();
 
-            await _backgroundWriteTask.ConfigureAwait(false);
+            await WriterTask.ConfigureAwait(false);
 
             _pipe.Reader.Complete();
             _pipe.Writer.Complete();
@@ -61,9 +60,10 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
         _pipe = new Pipe(new PipeOptions(
             pool: pool,
             minimumSegmentSize: minimumSegmentSize,
-            pauseWriterThreshold: 0));
+            pauseWriterThreshold: 0,
+            useSynchronizationContext: false));
 
-        _backgroundWriteTask = Task.Run(
+        WriterTask = Task.Run(
             async () =>
             {
                 try
@@ -97,10 +97,17 @@ internal class SlicDuplexConnectionWriter : IBufferWriter<byte>, IAsyncDisposabl
             });
     }
 
-    internal async ValueTask FlushAsync(CancellationToken cancellationToken) =>
-        _ = await _pipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+    internal void Flush()
+    {
+        ValueTask<FlushResult> flushResult = _pipe.Writer.FlushAsync(CancellationToken.None);
 
-    /// <summary>Requests the shut down of the duplex connection after the buffered data is written on the duplex
-    /// connection.</summary>
-    internal void Shutdown() => _pipe.Writer.Complete();
+        // PauseWriterThreshold is 0 so FlushAsync should always complete synchronously.
+        Debug.Assert(flushResult.IsCompletedSuccessfully);
+    }
+
+    /// <summary>Requests the shut down of the duplex connection writes after the buffered data is written on the
+    /// duplex connection.</summary>
+    internal void Shutdown() =>
+        // Completing the pipe writer makes the background write task complete successfully.
+        _pipe.Writer.Complete();
 }

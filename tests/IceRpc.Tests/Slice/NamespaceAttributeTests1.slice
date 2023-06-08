@@ -2,7 +2,6 @@
 
 module IceRpc::Tests::Slice
 
-interface NamespaceOperations
-{
+interface NamespaceOperations {
     op1(p: WithNamespace::S1) -> WithNamespace::S1
 }

@@ -444,20 +444,18 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
 
-        await using var writer = new SlicDuplexConnectionWriter(
-            duplexClientConnection,
-            MemoryPool<byte>.Shared,
-            minimumSegmentSize: 4096);
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+        var writer = new MemoryBufferWriter(new byte[1024]);
 
         // Act
         EncodeInitializeFrame(writer, version: 2);
-        await writer.FlushAsync(default);
+        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
         (var multiplexedServerConnection, _) = await acceptTask;
         var connectTask = multiplexedServerConnection.ConnectAsync(default);
         (FrameType frameType, int frameSize, VersionBody versionBody) = await ReadFrameHeaderAsync(reader);
+        writer.Clear();
         EncodeInitializeFrame(writer, version: 1);
-        await writer.FlushAsync(default);
+        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
 
         // Assert
         Assert.That(frameType, Is.EqualTo(FrameType.Versions));
@@ -704,5 +702,53 @@ public class SlicTransportTests
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Close_cannot_complete_before_duplex_connection_writes_are_closed()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator(
+                clientOperationsOptions: new()
+                {
+                    Hold = DuplexTransportOperations.ShutdownWrite
+                })
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        // Act
+        var closeTask = sut.Client.CloseAsync(0, CancellationToken.None);
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // Give time to CloseAsync to proceed.
+
+        // Assert
+        Assert.That(closeTask.IsCompleted, Is.False);
+    }
+
+    [Test]
+    public async Task Dispose_connection_when_duplex_connection_shutdown_write_hangs()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator(
+                clientOperationsOptions: new()
+                {
+                    Hold = DuplexTransportOperations.ShutdownWrite
+                })
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        // Act
+        Assert.That(sut.Client.DisposeAsync, Throws.Nothing);
     }
 }

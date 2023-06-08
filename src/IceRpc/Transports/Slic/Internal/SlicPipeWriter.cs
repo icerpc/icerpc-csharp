@@ -124,7 +124,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
         try
         {
-            return await _stream.SendStreamFrameAsync(
+            return await _stream.WriteStreamFrameAsync(
                 source1,
                 source2,
                 endStream,
@@ -161,7 +161,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
         _pipe = new(new PipeOptions(
             pool: connection.Pool,
             minimumSegmentSize: connection.MinSegmentSize,
-            pauseWriterThreshold: 0));
+            pauseWriterThreshold: 0,
+            useSynchronizationContext: false));
     }
 
     internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
