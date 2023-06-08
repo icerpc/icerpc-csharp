@@ -17,15 +17,15 @@ namespace IceRpc.Transports.Slic.Internal;
 /// cref="IDuplexConnection" />.</summary>
 internal class SlicConnection : IMultiplexedConnection
 {
-    /// <summary>Gets a value indicating whether this is the server-side of the connection.</summary>
+    /// <summary>Gets a value indicating whether or not this is the server-side of the connection.</summary>
     internal bool IsServer { get; }
 
-    /// <summary>Gets the minimum of the segment requested from <see cref="Pool" />.</summary>
+    /// <summary>Gets the minimum size of the segment requested from <see cref="Pool" />.</summary>
     internal int MinSegmentSize { get; }
 
     internal int PauseWriterThreshold { get; }
 
-    /// <summary>Gets the peer packet maximum size.</summary>
+    /// <summary>Gets the maximum size of packets accepted by the peer.</summary>
     internal int PeerPacketMaxSize { get; private set; }
 
     // TODO: replace with a window size property
@@ -608,7 +608,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    /// <summary>Throws the connection closure exception if the connection is closed.</summary>
+    /// <summary>Throws the connection closure exception if the connection is already closed.</summary>
     internal void ThrowIfClosed()
     {
         lock (_mutex)
@@ -633,7 +633,7 @@ internal class SlicConnection : IMultiplexedConnection
     /// <summary>Writes a stream frame.</summary>
     /// <param name="stream">The stream to write the frame for.</param>
     /// <param name="frameType">The frame type.</param>
-    /// <param name="encode">The encode action to write to encode the frame.</param>
+    /// <param name="encode">The action to encode the frame.</param>
     /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
     /// frame should be written after the stream frame.</param>
     internal void WriteStreamFrame(
@@ -663,8 +663,8 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="stream">The stream to write the frame for.</param>
     /// <param name="source1">The first stream frame data source.</param>
     /// <param name="source2">The second stream frame data source.</param>
-    /// <param name="endStream"><see langword="true" /> to write a <see cref="FrameType.StreamLast" /> frame; otherwise,
-    /// <see langword="false" />.</param>
+    /// <param name="endStream"><see langword="true" /> to write a <see cref="FrameType.StreamLast" /> frame and
+    /// <see langword="false" /> to write a <see cref="FrameType.Stream" /> frame.</param>
     /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
     /// frame should be written after the stream frame.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -1395,8 +1395,6 @@ internal class SlicConnection : IMultiplexedConnection
 
     private bool TryClose(Exception exception, string closeMessage, IceRpcError? peerCloseError = null)
     {
-        bool releaseStreamSemaphoreWaitClosed;
-
         lock (_mutex)
         {
             if (_isClosed)
@@ -1406,12 +1404,10 @@ internal class SlicConnection : IMultiplexedConnection
             _isClosed = true;
             _closedMessage = closeMessage;
             _peerCloseError = peerCloseError;
-            releaseStreamSemaphoreWaitClosed = _streamSemaphoreWaitCount == 0;
-        }
-
-        if (releaseStreamSemaphoreWaitClosed)
-        {
-            _streamSemaphoreWaitClosed.SetResult();
+            if (_streamSemaphoreWaitCount == 0)
+            {
+                _streamSemaphoreWaitClosed.SetResult();
+            }
         }
 
         // Cancel pending CreateStreamAsync, AcceptStreamAsync and WriteStreamFrameAsync operations.

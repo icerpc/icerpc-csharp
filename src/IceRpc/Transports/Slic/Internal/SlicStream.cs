@@ -7,8 +7,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Slic.Internal;
 
-/// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
-/// isn't buffered indefinitely if the application doesn't consume it.</summary>
+/// <summary>The stream implementation for Slic.</summary>
+/// <remarks>The stream implementation implements flow control to ensure data isn't buffered indefinitely if the
+/// application doesn't consume it.</remarks>
 internal class SlicStream : IMultiplexedStream
 {
     public ulong Id
@@ -93,7 +94,7 @@ internal class SlicStream : IMultiplexedStream
     }
 
     /// <summary>Acquires send credit. This method should be called to ensure credit is available to send a stream
-    /// frame. If no send credit is available, it will block until send credit available.</summary>
+    /// frame. If no send credit is available, it will block until send credit is available.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The available send credit.</returns>
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
