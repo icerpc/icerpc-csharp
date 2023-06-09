@@ -466,7 +466,10 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Assert
         ReadResult readResult1 = await sut.Local.Input.ReadAsync();
+        sut.Local.Input.AdvanceTo(readResult1.Buffer.Start);
+
         ReadResult readResult2 = await sut.Local.Input.ReadAsync();
+        sut.Local.Input.AdvanceTo(readResult2.Buffer.Start);
 
         Assert.That(readResult1.IsCanceled, Is.True);
         Assert.That(readResult1.IsCompleted, Is.False);
@@ -489,6 +492,7 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Assert
         ReadResult readResult1 = await readTask;
+        sut.Local.Input.AdvanceTo(readResult1.Buffer.Start);
 
         Assert.That(async () => await sut.Remote.Output.WriteAsync(_oneBytePayload), Throws.Nothing);
 
@@ -510,6 +514,7 @@ public abstract class MultiplexedStreamConformanceTests
         {
             Assert.That(readResult2.Value.IsCanceled, Is.False);
             Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
+            sut.Local.Input.AdvanceTo(readResult2.Value.Buffer.Start);
         }
     }
 
