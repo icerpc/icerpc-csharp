@@ -410,7 +410,8 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    public async Task Connection_dispose_aborts_pending_operations_with_operation_aborted_error()
+    public async Task Connection_dispose_or_close_aborts_pending_operations_with_operation_aborted_error(
+        [Values] bool close)
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection();
@@ -426,7 +427,14 @@ public abstract class MultiplexedConnectionConformanceTests
         ValueTask<ReadResult> readTask = streams.Local.Input.ReadAsync();
 
         // Act
-        await sut.Client.DisposeAsync();
+        if (close)
+        {
+            await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        }
+        else
+        {
+            await sut.Client.DisposeAsync();
+        }
 
         // Assert
 
