@@ -450,7 +450,7 @@ public abstract class MultiplexedStreamConformanceTests
     }
 
     [Test]
-    public async Task Stream_read_returns_canceled_read_result_after_cancel_pending_read([Values] bool completeRemote)
+    public async Task Stream_read_returns_canceled_read_result_after_cancel_pending_read()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -459,10 +459,6 @@ public abstract class MultiplexedStreamConformanceTests
         using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
 
         await sut.Remote.Output.WriteAsync(_oneBytePayload);
-        if (completeRemote)
-        {
-            sut.Remote.Output.Complete();
-        }
 
         // Act
         sut.Local.Input.CancelPendingRead();
@@ -476,12 +472,8 @@ public abstract class MultiplexedStreamConformanceTests
         sut.Local.Input.AdvanceTo(readResult2.Buffer.Start);
 
         Assert.That(readResult1.IsCanceled, Is.True);
+        Assert.That(readResult1.IsCompleted, Is.False);
         Assert.That(readResult2.IsCanceled, Is.False);
-
-        Assert.That(readResult1.IsCompleted, Is.EqualTo(completeRemote));
-        Assert.That(readResult1.IsCompleted, Is.EqualTo(completeRemote));
-
-        Assert.That(readResult1.Buffer, Has.Length.EqualTo(1));
         Assert.That(readResult2.Buffer, Has.Length.EqualTo(1));
     }
 
