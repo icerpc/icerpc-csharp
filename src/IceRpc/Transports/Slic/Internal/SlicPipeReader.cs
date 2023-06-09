@@ -235,15 +235,15 @@ internal class SlicPipeReader : PipeReader
     {
         // This method is called by ReadAsync or TryRead when the read operation on _pipe.Reader returns a canceled read
         // result (IsCanceled=true). The _pipe.Reader ReadAsync/TryRead operations can return a canceled read result for
-        // two reasons:
+        // two different reasons:
         // - the application called CancelPendingRead
         // - the connection is closed while data is written on _pipe.Writer
         Debug.Assert(readResult.IsCanceled);
 
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
-            // The connection was closed why the pipe writer was in use. Either throw or return a non-canceled result
-            // depend on the completion exception.
+            // The connection was closed while the pipe writer was in use. Either throw or return a non-canceled result
+            // depending on the completion exception.
             if (_exception is null)
             {
                 return new ReadResult(readResult.Buffer, isCanceled: false, isCompleted: true);
@@ -255,7 +255,7 @@ internal class SlicPipeReader : PipeReader
         }
         else
         {
-            // The application called CancelPendingRead, return read result as-is.
+            // The application called CancelPendingRead, return the read result as-is.
             return readResult;
         }
     }
