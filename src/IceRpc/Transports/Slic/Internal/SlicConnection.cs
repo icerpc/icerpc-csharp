@@ -339,7 +339,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
+    public async Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken)
     {
         lock (_mutex)
         {
@@ -351,6 +351,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
+        bool waitForWriterShutdown = false;
         if (TryClose(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed."))
         {
             using SemaphoreLock _ = _writeSemaphore.Acquire();
@@ -371,13 +372,20 @@ internal class SlicConnection : IMultiplexedConnection
                     // For TCP, it's important to always shutdown the connection on the client-side first to avoid
                     // TIME_WAIT states on the server-side.
                     _duplexConnectionWriter.Shutdown();
+                    waitForWriterShutdown = true;
                 }
             }
         }
 
-        // Now, wait for the peer to send the close frame that will terminate the read frames task.
+        if (waitForWriterShutdown)
+        {
+            // Wait for the writer task completion outside the semaphore lock.
+            await _duplexConnectionWriter.WriterTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        // Now, wait for the peer to close the write side of the connection, which will terminate the read frames task.
         Debug.Assert(_readFramesTask is not null);
-        return _readFramesTask.WaitAsync(cancellationToken);
+        await _readFramesTask.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<IMultiplexedStream> CreateStreamAsync(
@@ -1083,8 +1091,12 @@ internal class SlicConnection : IMultiplexedConnection
             // server-side.
             if (notAlreadyClosed && !IsServer)
             {
-                using SemaphoreLock _ = _writeSemaphore.Acquire();
-                _duplexConnectionWriter.Shutdown();
+                {
+                    using SemaphoreLock _ = _writeSemaphore.Acquire();
+                    _duplexConnectionWriter.Shutdown();
+                }
+                // Wait for the writer task completion outside the semaphore lock.
+                await _duplexConnectionWriter.WriterTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -1221,12 +1233,17 @@ internal class SlicConnection : IMultiplexedConnection
                 // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
-                using SemaphoreLock _ = _writeSemaphore.Acquire();
-                _duplexConnectionWriter.Shutdown();
+                {
+                    using SemaphoreLock _ = _writeSemaphore.Acquire();
+                    _duplexConnectionWriter.Shutdown();
 
-                // Make sure that CloseAsync doesn't call Write on the writer if it's called shortly after the peer
-                // shutdown its side of the connection (which triggers ReadFrameHeaderAsync to return null).
-                _writerIsShutdown = true;
+                    // Make sure that CloseAsync doesn't call Write on the writer if it's called shortly after the peer
+                    // shutdown its side of the connection (which triggers ReadFrameHeaderAsync to return null).
+                    _writerIsShutdown = true;
+                }
+
+                // Wait for the writer task completion outside the semaphore lock.
+                await _duplexConnectionWriter.WriterTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)

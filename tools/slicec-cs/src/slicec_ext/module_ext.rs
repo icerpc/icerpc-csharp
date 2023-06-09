@@ -2,7 +2,7 @@
 
 use crate::cs_attributes::match_cs_namespace;
 use crate::cs_util::{escape_keyword, CsCase};
-use slicec::grammar::{Attributable, Module};
+use slicec::grammar::{AttributeFunctions, Module};
 
 use convert_case::Case;
 

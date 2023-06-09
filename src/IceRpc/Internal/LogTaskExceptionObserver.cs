@@ -43,11 +43,7 @@ internal class LogTaskExceptionObserver : ITaskExceptionObserver
             // expected during shutdown for example
             OperationCanceledException => LogLevel.Trace,
 
-            // expected and somewhat common (peer aborts connection)
-            IceRpcException rpcException when rpcException.IceRpcError is IceRpcError.ConnectionAborted =>
-                LogLevel.Debug,
-
-            // rare, for example a protocol error
+            // usually expected, e.g. peer aborts connection
             IceRpcException => LogLevel.Debug,
 
             // unexpected: from the application code (like a payload read exception) or bug in IceRpc

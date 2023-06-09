@@ -10,12 +10,8 @@ pub trait EntityExt: Entity {
     // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier
     /// attribute as-is or the Slice identifier formatted with the specified casing.
     fn cs_identifier(&self, case: Case) -> String {
-        let identifier_attribute = self.attributes().into_iter().find_map(match_cs_identifier);
-
-        match identifier_attribute {
-            Some(identifier) => identifier,
-            None => self.identifier().to_cs_case(case),
-        }
+        self.find_attribute(match_cs_identifier)
+            .unwrap_or_else(|| self.identifier().to_cs_case(case))
     }
 
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -119,32 +115,20 @@ pub trait EntityExt: Entity {
 
     /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
     /// attribute otherwise returns "public".
-    fn access_modifier(&self) -> String {
-        if self.attributes().into_iter().find_map(match_cs_internal).is_some() {
-            "internal".to_owned()
-        } else {
-            "public".to_owned()
-        }
-    }
-
-    /// Returns the C# readonly modifier if this entity has the cs::readonly attribute otherwise
-    /// returns None.
-    fn readonly_modifier(&self) -> Option<String> {
-        // Readonly is only valid for structs
-        if self.attributes().into_iter().find_map(match_cs_readonly).is_some() {
-            Some("readonly".to_owned())
-        } else {
-            None
+    fn access_modifier(&self) -> &str {
+        match self.has_attribute(match_cs_internal) {
+            true => "internal",
+            false => "public",
         }
     }
 
     /// Returns the C# modifiers for this entity.
     fn modifiers(&self) -> String {
-        if let Some(readonly) = self.readonly_modifier() {
-            self.access_modifier() + " " + &readonly
-        } else {
-            self.access_modifier()
+        let mut modifiers = self.access_modifier().to_owned();
+        if self.has_attribute(match_cs_readonly) {
+            modifiers += " readonly";
         }
+        modifiers
     }
 
     /// Returns a C# link tag that points to this entity from the provided namespace
