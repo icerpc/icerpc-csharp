@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Slic.Internal;
@@ -232,8 +233,17 @@ internal class SlicPipeReader : PipeReader
 
     private ReadResult GetReadResult(ReadResult readResult)
     {
+        // This method is called by ReadAsync or TryRead when the read operation on _pipe.Reader returns a canceled read
+        // result (IsCanceled=true). The _pipe.Reader ReadAsync/TryRead operations can return a canceled read result for
+        // two reasons:
+        // - the application called CancelPendingRead
+        // - the connection is closed while data is written on _pipe.Writer
+        Debug.Assert(readResult.IsCanceled);
+
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
+            // The connection was closed why the pipe writer was in use. Either throw or return a non-canceled result
+            // depend on the completion exception.
             if (_exception is null)
             {
                 return new ReadResult(readResult.Buffer, isCanceled: false, isCompleted: true);
@@ -245,7 +255,8 @@ internal class SlicPipeReader : PipeReader
         }
         else
         {
-            return new ReadResult(readResult.Buffer, isCanceled: true, isCompleted: readResult.IsCompleted);
+            // The application called CancelPendingRead, return read result as-is.
+            return readResult;
         }
     }
 
