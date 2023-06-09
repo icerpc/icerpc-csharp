@@ -634,7 +634,7 @@ public sealed class IceRpcProtocolConnectionTests
             PayloadContinuation = pipe.Reader
         };
         using var invocationCts = new CancellationTokenSource();
-        Task invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
+        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
         await dispatcher.PayloadReadStarted;
 
         // Act
@@ -644,7 +644,16 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await dispatcher.PayloadReadCompleted,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
+
+        // The invocation either gets canceled or returns a response with the TruncatedPayload status code.
+        try
+        {
+            var response = await invokeTask;
+            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.TruncatedPayload));
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     /// <summary>Verifies that canceling the invocation after receiving a response doesn't affect the reading of the
