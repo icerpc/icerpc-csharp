@@ -16,7 +16,6 @@ public static class RouterExtensions
     /// <returns>The router being configured.</returns>
     /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
     /// called on this router.</exception>
-    /// <seealso cref="Router.Mount(string, IDispatcher)" />
     public static Router Map<TService>(this Router router, IDispatcher service)
         where TService : class =>
         router.Map(typeof(TService).GetDefaultServicePath(), service);

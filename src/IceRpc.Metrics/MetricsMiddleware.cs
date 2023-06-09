@@ -9,8 +9,8 @@ namespace IceRpc.Metrics;
 /// <summary>A middleware that publishes dispatch metrics using a singleton meter named "IceRpc.Dispatch".
 /// </summary>
 /// <seealso cref="Meter"/>
-/// <seealso cref="MetricsRouterExtensions.UseMetrics(Router)"/>
-/// <seealso cref="MetricsDispatcherBuilderExtensions.UseMetrics(IDispatcherBuilder)"/>
+/// <seealso cref="MetricsRouterExtensions"/>
+/// <seealso cref="MetricsDispatcherBuilderExtensions"/>
 public class MetricsMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
