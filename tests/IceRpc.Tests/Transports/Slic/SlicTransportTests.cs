@@ -731,6 +731,60 @@ public class SlicTransportTests
     }
 
     [Test]
+    public async Task Close_aborts_pending_stream_read_when_close_is_called_while_data_is_read_on_the_duplex_connection()
+    {
+        // Arrange
+
+        // Allow the Slic connection to read 512 bytes on the duplex connection before it starts holding reads. This
+        // allows performing the connection establishment and to read the beginning of the Stream frame. The goal is
+        // to get the read call on the duplex connection while reading the stream frame data.
+        int allowedReadLength = 512;
+        using var readSemaphore = new SemaphoreSlim(initialCount: 0);
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .AddTestDuplexTransportDecorator(clientOperationsOptions: new DuplexTransportOperationsOptions()
+                {
+                    ReadDecorator = async (connection, memory, cancellationToken) =>
+                        {
+                            if (allowedReadLength == 0)
+                            {
+                                await readSemaphore.WaitAsync(-1, cancellationToken);
+                                allowedReadLength = int.MaxValue;
+                            }
+
+                            if (allowedReadLength < memory.Length)
+                            {
+                                memory = memory[0..allowedReadLength];
+                            }
+                            int length = await connection.ReadAsync(memory, cancellationToken);
+                            allowedReadLength -= length;
+                            return length;
+                        }
+                })
+            .BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        var duplexClientConnection =
+            provider.GetRequiredService<TestDuplexClientTransportDecorator>().LastCreatedConnection;
+
+        // Start a new stream and write 4KB to the server. The client duplex connection reads will hang while reading
+        // the stream data.
+        using var streams = await sut.CreateAndAcceptStreamAsync();
+        var readTask = streams.Local.Input.ReadAsync();
+        await streams.Remote.Output.WriteAsync(new byte[4096]);
+
+        // Act
+        Task closeTask = sut.Client.CloseAsync(0, CancellationToken.None);
+
+        // Assert
+        Assert.That(async () => await readTask, Throws.InstanceOf<IceRpcException>());
+        readSemaphore.Release();
+        Assert.That(() => closeTask, Throws.Nothing);
+    }
+
+    [Test]
     public async Task Dispose_connection_when_duplex_connection_shutdown_write_hangs()
     {
         // Arrange
