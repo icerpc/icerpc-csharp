@@ -710,6 +710,50 @@ public class SequenceMappingTests
     }
 
     [Test]
+    public async Task Operation_returning_a_hash_set_of_fixed_size_numeric()
+    {
+        // Arrange
+        var value = new HashSet<int> { 1, 2, 3 };
+        PipeReader responsePayload = ISequenceMappingOperationsService.Response.EncodeReturnHashSetOfInt32(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        HashSet<int> r =
+            await SequenceMappingOperationsProxy.Response.DecodeReturnHashSetOfInt32Async(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(value));
+    }
+
+    [Test]
+    public void Operation_sending_a_hash_set_of_fixed_size_numeric()
+    {
+        // Arrange
+        var value = new HashSet<int> { 1, 2, 3 };
+
+        // Act
+        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendHashSetOfInt32(value);
+
+        // Assert
+        Assert.That(
+            async () => await ISequenceMappingOperationsService.Request.DecodeSendHashSetOfInt32Async(
+                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+                {
+                    Payload = requestPayload
+                },
+                default),
+            Throws.Nothing);
+    }
+
+    [Test]
     public async Task Struct_nested_sequence_parameter()
     {
         var data = new IList<IList<MyStruct>>[]
