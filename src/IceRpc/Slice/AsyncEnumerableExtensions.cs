@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 

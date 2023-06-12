@@ -8,9 +8,7 @@ namespace IceRpc.Slice;
 /// <summary>Provides methods that create class and exception instances from Slice type IDs.</summary>
 /// <remarks>When decoding a Slice1-encoded buffer, a Slice decoder uses its activator to create a class or exception
 /// instance before decoding the instance's fields.</remarks>
-/// <seealso cref="SliceDecoder.DecodeClass{T}" />
-/// <seealso cref="SliceDecoder.DecodeNullableClass{T}" />
-/// <seealso cref="SliceDecoder.DecodeUserException(string?)" />
+/// <seealso cref="SliceDecoder" />
 public interface IActivator
 {
     /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced

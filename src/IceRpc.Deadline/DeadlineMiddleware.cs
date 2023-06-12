@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Slice;
 
@@ -8,6 +9,8 @@ namespace IceRpc.Deadline;
 /// <summary>Represents a middleware that decodes deadline fields into deadline features. When the decoded deadline
 /// expires, this middleware cancels the dispatch and throws a <see cref="DispatchException" /> with status code
 /// <see cref="StatusCode.DeadlineExpired" />.</summary>
+/// <seealso cref="DeadlineRouterExtensions"/>
+/// <seealso cref="DeadlineDispatcherBuilderExtensions"/>
 public class DeadlineMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;

@@ -9,8 +9,8 @@ namespace IceRpc.Metrics;
 /// <summary>An interceptor that publishes invocation metrics using a singleton meter named "IceRpc.Invocation".
 /// </summary>
 /// <seealso cref="Meter"/>
-/// <seealso cref="MetricsPipelineExtensions.UseMetrics(Pipeline)"/>
-/// <seealso cref="MetricsInvokerBuilderExtensions.UseMetrics(IInvokerBuilder)"/>
+/// <seealso cref="MetricsPipelineExtensions"/>
+/// <seealso cref="MetricsInvokerBuilderExtensions"/>
 public class MetricsInterceptor : IInvoker
 {
     private readonly IInvoker _next;
