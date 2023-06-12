@@ -17,25 +17,31 @@ namespace IceRpc.Transports.Slic.Internal;
 /// cref="IDuplexConnection" />.</summary>
 internal class SlicConnection : IMultiplexedConnection
 {
+    /// <summary>Gets a value indicating whether or not this is the server-side of the connection.</summary>
     internal bool IsServer { get; }
 
+    /// <summary>Gets the minimum size of the segment requested from <see cref="Pool" />.</summary>
     internal int MinSegmentSize { get; }
 
     internal int PauseWriterThreshold { get; }
 
+    /// <summary>Gets the maximum size of packets accepted by the peer.</summary>
     internal int PeerPacketMaxSize { get; private set; }
 
+    // TODO: replace with a window size property
     internal int PeerPauseWriterThreshold { get; private set; }
 
+    /// <summary>Gets the <see cref="MemoryPool{T}" /> used for obtaining memory buffers.</summary>
     internal MemoryPool<byte> Pool { get; }
 
+    // TODO: replace with a window size property
     internal int ResumeWriterThreshold { get; }
 
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
     private SemaphoreSlim? _bidirectionalStreamSemaphore;
-    private readonly CancellationTokenSource _closedCts = new();
     private readonly CancellationToken _closedCancellationToken;
+    private readonly CancellationTokenSource _closedCts = new();
     private string? _closedMessage;
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly CancellationTokenSource _disposedCts = new();
@@ -149,7 +155,7 @@ internal class SlicConnection : IMultiplexedConnection
                         // Unsupported version, try to negotiate another version by sending a Version frame with the
                         // Slic versions supported by this server.
                         WriteConnectionFrame(
-                            FrameType.Versions,
+                            FrameType.Version,
                             new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode);
 
                         (version, initializeBody) = await ReadFrameAsync(
@@ -275,7 +281,7 @@ internal class SlicConnection : IMultiplexedConnection
                         buffer,
                         (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder));
 
-                case FrameType.Versions:
+                case FrameType.Version:
                     // We currently only support V1
                     VersionBody versionBody = SliceEncoding.Slice2.DecodeBuffer(
                         buffer,
@@ -567,12 +573,19 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    /// <summary>Fills the given writer with stream data received on the connection.</summary>
+    /// <param name="bufferWriter">The destination buffer writer.</param>
+    /// <param name="byteCount">The amount of stream data to read.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     internal ValueTask FillBufferWriterAsync(
         IBufferWriter<byte> bufferWriter,
         int byteCount,
         CancellationToken cancellationToken) =>
         _duplexConnectionReader.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
+    /// <summary>Releases a stream from the connection. The connection stream count is decremented and if this is a
+    /// client allow a new stream to be started.</summary>
+    /// <param name="stream">The released stream.</param>
     internal void ReleaseStream(SlicStream stream)
     {
         Debug.Assert(stream.IsStarted);
@@ -603,6 +616,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    /// <summary>Throws the connection closure exception if the connection is already closed.</summary>
     internal void ThrowIfClosed()
     {
         lock (_mutex)
@@ -614,6 +628,9 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
+    /// <summary>Writes a connection frame.</summary>
+    /// <param name="frameType">The frame type.</param>
+    /// <param name="encode">The action to encode the frame.</param>
     internal void WriteConnectionFrame(FrameType frameType, EncodeAction? encode)
     {
         Debug.Assert(frameType < FrameType.Stream);
@@ -621,35 +638,50 @@ internal class SlicConnection : IMultiplexedConnection
         WriteFrame(frameType, streamId: null, encode);
     }
 
+    /// <summary>Writes a stream frame.</summary>
+    /// <param name="stream">The stream to write the frame for.</param>
+    /// <param name="frameType">The frame type.</param>
+    /// <param name="encode">The action to encode the frame.</param>
+    /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
+    /// frame should be written after the stream frame.</param>
     internal void WriteStreamFrame(
         SlicStream stream,
         FrameType frameType,
         EncodeAction? encode,
-        bool sendReadsCompletedFrame)
+        bool writeReadsClosedFrame)
     {
         // Ensure that this method is called for any FrameType.StreamXxx frame type except FrameType.Stream.
         Debug.Assert(frameType >= FrameType.StreamLast && stream.IsStarted);
 
         using SlicDuplexConnectionWriterLock _ = AcquireWriterLock();
         WriteFrame(frameType, stream.Id, encode);
-        if (sendReadsCompletedFrame)
+        if (writeReadsClosedFrame)
         {
-            WriteFrame(FrameType.StreamReadsCompleted, stream.Id, encode: null);
+            WriteFrame(FrameType.StreamReadsClosed, stream.Id, encode: null);
         }
         if (frameType == FrameType.StreamLast)
         {
-            // Notify the stream that the last stream frame is considered sent at this point. This will complete
-            // writes on the stream and allow the stream to be released if reads are also completed.
-            stream.SentLastStreamFrame();
+            // Notify the stream that the last stream frame is considered sent at this point. This will close
+            // writes on the stream and allow the stream to be released if reads are also closed.
+            stream.WroteLastStreamFrame();
         }
     }
 
+    /// <summary>Writes a stream data frame.</summary>
+    /// <param name="stream">The stream to write the frame for.</param>
+    /// <param name="source1">The first stream frame data source.</param>
+    /// <param name="source2">The second stream frame data source.</param>
+    /// <param name="endStream"><see langword="true" /> to write a <see cref="FrameType.StreamLast" /> frame and
+    /// <see langword="false" /> to write a <see cref="FrameType.Stream" /> frame.</param>
+    /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
+    /// frame should be written after the stream frame.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     internal async ValueTask<FlushResult> WriteStreamDataFrameAsync(
         SlicStream stream,
         ReadOnlySequence<byte> source1,
         ReadOnlySequence<byte> source2,
         bool endStream,
-        bool sendReadsCompletedFrame,
+        bool writeReadsClosedFrame,
         CancellationToken cancellationToken)
     {
         Debug.Assert(!source1.IsEmpty || endStream);
@@ -705,9 +737,19 @@ internal class SlicConnection : IMultiplexedConnection
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
                 using SlicDuplexConnectionWriterLock _ = await AcquireWriterLockAsync().ConfigureAwait(false);
+
                 if (!stream.IsStarted)
                 {
-                    StartStream(stream);
+                    if (stream.IsBidirectional)
+                    {
+                        AddStream(_nextBidirectionalId, stream);
+                        _nextBidirectionalId += 4;
+                    }
+                    else
+                    {
+                        AddStream(_nextUnidirectionalId, stream);
+                        _nextUnidirectionalId += 4;
+                    }
                 }
 
                 // Notify the stream that we're consuming sendSize credit. It's important to call this before sending
@@ -724,7 +766,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     // Notify the stream that the last stream frame is considered sent at this point. This will complete
                     // writes on the stream and allow the stream to be released if reads are also completed.
-                    stream.SentLastStreamFrame();
+                    stream.WroteLastStreamFrame();
                 }
 
                 // Write and flush the stream frame.
@@ -737,9 +779,9 @@ internal class SlicConnection : IMultiplexedConnection
                     _duplexConnectionWriter.Write(sendSource2);
                 }
 
-                if (sendReadsCompletedFrame)
+                if (writeReadsClosedFrame)
                 {
-                    WriteFrame(FrameType.StreamReadsCompleted, stream.Id, encode: null);
+                    WriteFrame(FrameType.StreamReadsClosed, stream.Id, encode: null);
                 }
             }
             while (!source1.IsEmpty || !source2.IsEmpty); // Loop until there's no data left to send.
@@ -824,40 +866,6 @@ internal class SlicConnection : IMultiplexedConnection
                 }
             }
         }
-    }
-
-    private bool TryClose(Exception exception, string closeMessage, IceRpcError? peerCloseError = null)
-    {
-        bool releaseStreamSemaphoreWaitClosed;
-
-        lock (_mutex)
-        {
-            if (_isClosed)
-            {
-                return false;
-            }
-            _isClosed = true;
-            _closedMessage = closeMessage;
-            _peerCloseError = peerCloseError;
-            releaseStreamSemaphoreWaitClosed = _streamSemaphoreWaitCount == 0;
-        }
-
-        if (releaseStreamSemaphoreWaitClosed)
-        {
-            _streamSemaphoreWaitClosed.SetResult();
-        }
-
-        // Cancel pending CreateStreamAsync, AcceptStreamAsync and WriteStreamFrameAsync operations.
-        _closedCts.Cancel();
-        _acceptStreamChannel.Writer.TryComplete(exception);
-
-        // Close streams.
-        foreach (SlicStream stream in _streams.Values)
-        {
-            stream.Close(exception);
-        }
-
-        return true;
     }
 
     private void DecodeParameters(IDictionary<ParameterKey, IList<byte>> parameters)
@@ -994,6 +1002,11 @@ internal class SlicConnection : IMultiplexedConnection
 
     private Task ReadFrameAsync(FrameType type, int size, ulong? streamId, CancellationToken cancellationToken)
     {
+        if (type >= FrameType.Stream && streamId is null)
+        {
+            throw new InvalidDataException("Received stream frame without stream ID.");
+        }
+
         switch (type)
         {
             case FrameType.Close:
@@ -1013,47 +1026,25 @@ internal class SlicConnection : IMultiplexedConnection
             case FrameType.Stream:
             case FrameType.StreamLast:
             {
-                return ReadStreamDataFrameAsync(type, size, streamId, cancellationToken);
+                return ReadStreamDataFrameAsync(type, size, streamId!.Value, cancellationToken);
             }
             case FrameType.StreamConsumed:
             {
-                return ReadStreamFrameAsync(
-                    size,
-                    streamId,
-                    (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
-                    (stream, frame) => stream.ReceivedConsumedFrame(frame),
-                    cancellationToken);
+                return ReadStreamConsumedFrameAsync(size, streamId!.Value, cancellationToken);
             }
-            case FrameType.StreamReset:
+            case FrameType.StreamReadsClosed:
             {
-                return ReadStreamFrameAsync(
-                    size,
-                    streamId,
-                    (ref SliceDecoder decoder) => new StreamResetBody(ref decoder),
-                    (stream, frame) => stream.ReceivedResetFrame(frame),
-                    cancellationToken);
-            }
-            case FrameType.StreamStopSending:
-            {
-                return ReadStreamFrameAsync(
-                    size,
-                    streamId,
-                    (ref SliceDecoder decoder) => new StreamStopSendingBody(ref decoder),
-                    (stream, frame) => stream.ReceivedStopSendingFrame(frame),
-                    cancellationToken);
-            }
-            case FrameType.StreamReadsCompleted:
-            {
-                Debug.Assert(streamId is not null);
-                if (size > 0)
+                if (_streams.TryGetValue(streamId!.Value, out SlicStream? stream))
                 {
-                    throw new InvalidDataException(
-                        "Received invalid Slic stream reads completed frame, frame too large.");
+                    stream.ReceivedReadsClosedFrame();
                 }
-
-                if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
+                return Task.CompletedTask;
+            }
+            case FrameType.StreamWritesClosed:
+            {
+                if (_streams.TryGetValue(streamId!.Value, out SlicStream? stream))
                 {
-                    stream.ReceivedReadsCompletedFrame();
+                    stream.ReceivedWritesClosedFrame();
                 }
                 return Task.CompletedTask;
             }
@@ -1109,6 +1100,18 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
+        async Task ReadStreamConsumedFrameAsync(int size, ulong streamId, CancellationToken cancellationToken)
+        {
+            StreamConsumedBody frame = await ReadFrameBodyAsync(
+                size,
+                (ref SliceDecoder decoder) => new StreamConsumedBody(ref decoder),
+                cancellationToken).ConfigureAwait(false);
+            if (_streams.TryGetValue(streamId, out SlicStream? stream))
+            {
+                stream.ReceivedConsumedFrame(frame);
+            }
+        }
+
         async Task<T> ReadFrameBodyAsync<T>(int size, DecodeFunc<T> decodeFunc, CancellationToken cancellationToken)
         {
             Debug.Assert(size > 0);
@@ -1124,25 +1127,6 @@ internal class SlicConnection : IMultiplexedConnection
             T decodedFrame = SliceEncoding.Slice2.DecodeBuffer(buffer, decodeFunc);
             _duplexConnectionReader.AdvanceTo(buffer.End);
             return decodedFrame;
-        }
-
-        async Task ReadStreamFrameAsync<T>(
-            int size,
-            ulong? streamId,
-            DecodeFunc<T> decodeFunc,
-            Action<SlicStream, T> streamAction,
-            CancellationToken cancellationToken)
-        {
-            if (streamId is null)
-            {
-                throw new InvalidDataException("Received stream frame without stream ID.");
-            }
-
-            T frame = await ReadFrameBodyAsync(size, decodeFunc, cancellationToken).ConfigureAwait(false);
-            if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
-            {
-                streamAction(stream, frame);
-            }
         }
     }
 
@@ -1291,14 +1275,9 @@ internal class SlicConnection : IMultiplexedConnection
     private async Task ReadStreamDataFrameAsync(
         FrameType type,
         int size,
-        ulong? streamId,
+        ulong streamId,
         CancellationToken cancellationToken)
     {
-        if (streamId is null)
-        {
-            throw new InvalidDataException("Received stream frame without stream ID.");
-        }
-
         bool endStream = type == FrameType.StreamLast;
         bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
         bool isBidirectional = streamId % 4 < 2;
@@ -1314,9 +1293,9 @@ internal class SlicConnection : IMultiplexedConnection
                 "Received invalid Slic stream frame, received 0 bytes without end of stream.");
         }
 
-        if (!_streams.TryGetValue(streamId.Value, out SlicStream? stream) &&
+        if (!_streams.TryGetValue(streamId, out SlicStream? stream) &&
             isRemote &&
-            !IsKnownRemoteStream(streamId.Value, isBidirectional))
+            !IsKnownRemoteStream(streamId, isBidirectional))
         {
             // Create a new remote stream.
 
@@ -1352,7 +1331,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             try
             {
-                AddStream(streamId.Value, stream);
+                AddStream(streamId, stream);
 
                 try
                 {
@@ -1379,7 +1358,6 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     stream.Output.Complete();
                 }
-                Debug.Assert(stream.ReadsCompleted && stream.WritesCompleted);
             }
         }
 
@@ -1432,32 +1410,34 @@ internal class SlicConnection : IMultiplexedConnection
         _writeSemaphore.Release();
     }
 
-    private void StartStream(SlicStream stream)
+    private bool TryClose(Exception exception, string closeMessage, IceRpcError? peerCloseError = null)
     {
-        if (stream.WritesCompleted)
+        lock (_mutex)
         {
-            throw new InvalidOperationException("Cannot start a stream whose writes are already completed");
-        }
-
-        // The _nextBidirectionalId and _nextUnidirectionalId field can be safely updated below, they are protected by
-        // the write semaphore.
-
-        if (stream.IsBidirectional)
-        {
-            if (stream.ReadsCompleted)
+            if (_isClosed)
             {
-                throw new InvalidOperationException(
-                    "Cannot start a bidirectional stream whose reads are already completed");
+                return false;
             }
+            _isClosed = true;
+            _closedMessage = closeMessage;
+            _peerCloseError = peerCloseError;
+            if (_streamSemaphoreWaitCount == 0)
+            {
+                _streamSemaphoreWaitClosed.SetResult();
+            }
+        }
 
-            AddStream(_nextBidirectionalId, stream);
-            _nextBidirectionalId += 4;
-        }
-        else
+        // Cancel pending CreateStreamAsync, AcceptStreamAsync and WriteStreamFrameAsync operations.
+        _closedCts.Cancel();
+        _acceptStreamChannel.Writer.TryComplete(exception);
+
+        // Close streams.
+        foreach (SlicStream stream in _streams.Values)
         {
-            AddStream(_nextUnidirectionalId, stream);
-            _nextUnidirectionalId += 4;
+            stream.Close(exception);
         }
+
+        return true;
     }
 
     private void WriteFrame(FrameType frameType, ulong? streamId, EncodeAction? encode)

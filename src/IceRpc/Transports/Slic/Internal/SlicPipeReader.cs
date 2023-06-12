@@ -45,7 +45,7 @@ internal class SlicPipeReader : PipeReader
         if (_examined >= _resumeThreshold)
         {
             Interlocked.Add(ref _receiveCredit, _examined);
-            _stream.SendStreamConsumed(_examined);
+            _stream.WriteStreamConsumedFrame(_examined);
             _examined = 0;
         }
 
@@ -58,8 +58,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // We don't use the application error code, it's irrelevant.
-            _stream.CompleteReads(errorCode: 0ul);
+            // Forcefully close the stream reads if reads were not already gracefully closed by ReadAsync or TryRead.
+            _stream.CloseReads(graceful: false);
 
             CompleteReads(exception: null);
 
@@ -86,11 +86,11 @@ internal class SlicPipeReader : PipeReader
         // and consumed.
         _readResult = result;
 
-        // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
-        // will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
+        // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
+        // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
         if (result.IsCompleted)
         {
-            _stream.CompleteReads();
+            _stream.CloseReads(graceful: true);
         }
 
         return result;
@@ -117,11 +117,11 @@ internal class SlicPipeReader : PipeReader
             // examined and consumed.
             _readResult = result;
 
-            // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
-            // This will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
+            // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
+            // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
             if (result.IsCompleted)
             {
-                _stream.CompleteReads();
+                _stream.CloseReads(graceful: true);
             }
             return true;
         }
@@ -147,8 +147,9 @@ internal class SlicPipeReader : PipeReader
             useSynchronizationContext: false));
     }
 
-    /// <summary>Complete reads.</summary>
-    /// <param name="exception">The exception raised by ReadAsync.</param>
+    /// <summary>Completes reads.</summary>
+    /// <param name="exception">The exception that will be raised by <see cref="ReadAsync" /> or <see cref="TryRead" />
+    /// operation.</param>
     internal void CompleteReads(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
@@ -166,9 +167,11 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
-    /// internal pipe writer and returns the number of bytes that were consumed.</summary>
-    /// <returns><see langword="true" /> if the data was consumed; otherwise, <see langword="false"/>.</returns>
+    /// <summary>Notifies the reader of the reception of a <see cref="FrameType.Stream" /> or <see
+    /// cref="FrameType.StreamLast" /> frame. The stream data is consumed from the connection and buffered by this
+    /// reader on its internal pipe.</summary>
+    /// <returns><see langword="true" /> if the data was consumed; otherwise, <see langword="false"/> if the reader was
+    /// completed by the application.</returns>
     internal async ValueTask<bool> ReceivedStreamFrameAsync(
         int dataSize,
         bool endStream,
