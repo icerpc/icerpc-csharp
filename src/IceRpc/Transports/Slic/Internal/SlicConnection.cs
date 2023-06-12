@@ -307,15 +307,20 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         return;
                     }
+
+                    // If the ping task is completed, the wait for pong frame task is necessarily completed as well.
+                    Debug.Assert(_waitForPongFrameTcs is null || _waitForPongFrameTcs.Task.IsCompleted);
+
+                    _waitForPongFrameTcs = new TaskCompletionSource<PongBody>();
                     _pingTask = PingAsync(_disposedCts.Token);
                 }
 
                 async Task PingAsync(CancellationToken cancellationToken)
                 {
+                    await Task.Yield(); // exit mutex lock
+
                     try
                     {
-                        _waitForPongFrameTcs = new TaskCompletionSource<PongBody>();
-
                         // For now, use an empty payload. The payload can be used in the future to use pings for
                         // measuring the minimum RTT.
                         var pingBody = new PingBody(Array.Empty<byte>());
@@ -1156,9 +1161,15 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task ReadPongFrameAsync(int size, CancellationToken cancellationToken)
         {
-            if (_waitForPongFrameTcs is null || _waitForPongFrameTcs.Task.IsCompleted)
+            lock (_mutex)
             {
-                throw new InvalidDataException($"Received an unexpected {nameof(FrameType.Pong)} frame.");
+                if (_waitForPongFrameTcs is null || _waitForPongFrameTcs.Task.IsCompleted)
+                {
+                    throw new InvalidDataException($"Received an unexpected {nameof(FrameType.Pong)} frame.");
+                }
+
+                // The ping task is necessarily waiting for the pong frame if the wait for pong TCS is not completed.
+                Debug.Assert(!_pingTask.IsCompleted);
             }
 
             PongBody pongBody = await ReadFrameBodyAsync(
