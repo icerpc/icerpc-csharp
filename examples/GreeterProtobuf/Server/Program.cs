@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterProtoServer;
+using GreeterProtobufServer;
 using IceRpc;
 
 // Create a server that dispatches all requests to the same service, an instance of Chatbot.

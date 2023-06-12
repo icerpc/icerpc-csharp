@@ -12,7 +12,7 @@ started using a specific feature or programming technique in IceRPC.
   * [GreeterCore](#greetercore)
   * [GreeterQuic](#greeterquic)
   * [GreeterLog](#greeterlog)
-  * [GreeterProto](#greeterproto)
+  * [GreeterProtobuf](#greeterprotobuf)
   * [Metrics](#metrics)
   * [RequestContext](#requestcontext)
   * [Retry](#retry)
@@ -58,9 +58,9 @@ The GreeterQuic example is the Greeter example updated to use the QUIC transport
 
 The GreeterLog example is the Greeter example updated to include logging.
 
-### [GreeterProto](./GreeterProto/)
+### [GreeterProtobuf](./GreeterProtobuf/)
 
-The GreeterProto example uses Protobuf instead of Slice to encode the payloads of requests and responses.
+The GreeterProtobuf example uses Protobuf instead of Slice to encode the payloads of requests and responses.
 
 ### [Interop](./Interop/)
 

@@ -22,7 +22,7 @@ Pipeline pipeline = new Pipeline()
     .Into(connection);
 
 // Create a greeter proxy with this invocation pipeline.
-var greeterProxy = new GreeterProxy(pipeline, new Uri("icerpc:/greeter"));
+var greeterProxy = new GreeterProxy(pipeline);
 
 string greeting = await greeterProxy.GreetAsync(Environment.UserName);
 
