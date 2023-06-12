@@ -9,12 +9,14 @@ enum FrameType : uint8 {
     // Initiates the connection establishment.
     Initialize = 1
 
-    /// Acknowledges the receipt of the initialize frame.
+    /// Acknowledges the receipt of the {@link Initialize} frame.
     InitializeAck
 
-    /// Indicates the versions supported by the server. The server sends this frame if the version from the initialize
-    /// frame is not supported.
-    Versions
+    /// Indicates the versions supported by the server. This frame is sent in response to an {@link Initialize} frame
+    /// if the version from the {@link Initialize} frame is not supported by the receiver. Upon receiving the
+    /// {@link Version} frame the receiver should send back a new {@link Initialize} frame with a version matching one
+    /// of the versions provided by the {@link Version} frame.
+    Version
 
     /// Initiates the closure of the connection.
     Close
@@ -22,7 +24,7 @@ enum FrameType : uint8 {
     /// Checks the liveliness of the connection.
     Ping
 
-    /// Acknowledges the receipt of a Ping frame.
+    /// Acknowledges the receipt of a {@link Ping} frame.
     Pong
 
     /// Carries stream data.
@@ -31,20 +33,23 @@ enum FrameType : uint8 {
     /// Carries the last stream data.
     StreamLast
 
-    /// Requests the peer to stop receiving data because the write-side of the stream was closed.
-    StreamReset
-
     /// Carries the amount of consumed data.
     StreamConsumed
 
-    /// Requests the peer to stop sending data because the read-side of the stream was closed.
-    StreamStopSending
+    /// Indicates that no more data will be read. This frame is sent when the application closes the read-side of the
+    /// stream or when it consumed all the stream data. Upon receiving this frame, the application should stop sending
+    /// data. If both reads and writes are closed, the connection can decrement its stream count and eventually allow a
+    /// new stream to be started.
+    StreamReadsClosed
 
-    /// Notifies a client-initiated stream that the peer's buffered data has been consumed.
-    StreamReadsCompleted
+    /// Indicates that no more data will be written. This frame is sent when the application closes the write-side of
+    /// the stream before sending all the stream data. If both reads and writes are closed, the connection can decrement
+    /// its stream count and eventually allow a new stream to be started.
+    StreamWritesClosed
 }
 
-/// The keys for supported connection parameters exchanged with the initialize and initialize acknowledgment frames.
+/// The keys for supported connection parameters exchanged with the {@link FrameType::Initialize} and
+/// {@link FrameType::InitializeAck} frames.
 [cs::internal]
 unchecked enum ParameterKey : varuint62 {
     /// The maximum number of bidirectional streams. The peer shouldn't open more streams than the maximum defined
@@ -69,7 +74,7 @@ unchecked enum ParameterKey : varuint62 {
 
 typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
 
-/// The initialize frame body.
+/// The {@link FrameType::Initialize} frame body.
 [cs::internal]
 [cs::readonly]
 compact struct InitializeBody {
@@ -80,7 +85,8 @@ compact struct InitializeBody {
     parameters: ParameterFields
 }
 
-/// The initialize acknowledgment frame body.
+/// The {@link FrameType::InitializeAck} frame body.
+/// frame.
 [cs::internal]
 [cs::readonly]
 compact struct InitializeAckBody {
@@ -88,9 +94,7 @@ compact struct InitializeAckBody {
     parameters: ParameterFields
 }
 
-/// The body of a version frame. This frame is sent in response to an initialize frame if the version from the
-/// initialize frame is not supported by the receiver. Upon receiving the version frame the receiver should send back
-/// a new initialize frame with a version matching one of the versions provided by the version frame body.
+/// The {@link FrameType::Version} frame body.
 [cs::internal]
 [cs::readonly]
 compact struct VersionBody {
@@ -98,7 +102,7 @@ compact struct VersionBody {
     versions: sequence<varuint62>
 }
 
-/// The body of a close frame.
+/// The {@link FrameType::Close} frame body.
 [cs::internal]
 [cs::readonly]
 compact struct CloseBody {
@@ -106,42 +110,26 @@ compact struct CloseBody {
     applicationErrorCode: varuint62
 }
 
-/// The body of the ping frame.
+/// The {@link FrameType::Ping} frame body.
 [cs::internal]
 [cs::readonly]
 compact struct PingBody {
-    /// An opaque payload that will be returned by the pong frame.
+    /// An opaque payload that will be returned by the {@link FrameType::Pong} frame.
     payload: sequence<uint8>
 }
 
-/// The body of the pong frame.
+/// The {@link FrameType::Pong} frame body.
 [cs::internal]
 [cs::readonly]
 compact struct PongBody {
-    /// The opaque payload included with the ping frame.
+    /// The opaque payload from the {@link FrameType::Ping} frame.
     payload: sequence<uint8>
 }
 
-/// The body of a stream reset frame.
-[cs::internal]
-[cs::readonly]
-compact struct StreamResetBody {
-    /// The application error code indicating the reason why the peer is no longer sending data.
-    applicationErrorCode: varuint62
-}
-
-/// The body of a stream consumed frame.
+/// The {@link FrameType::StreamConsumed} frame body.
 [cs::internal]
 [cs::readonly]
 compact struct StreamConsumedBody {
     /// The size of the consumed data.
     size: varuint62
-}
-
-/// The body of a stream stop sending frame.
-[cs::internal]
-[cs::readonly]
-compact struct StreamStopSendingBody {
-    /// The application error code indicating the reason why the peer is no longer receiving data.
-    applicationErrorCode: varuint62
 }

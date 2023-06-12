@@ -30,6 +30,8 @@
     "parameterless",
     "peekable",
     "pingable",
+    "Proto",
+    "Protobuf",
     "QUIC",
     "reportgenerator",
     "retryable",
