@@ -195,7 +195,7 @@ mod formatted_link_tests {
         let interface_link = interface_def.get_formatted_link("");
 
         // Assert
-        let expected = r#"<see cref="global::Test.IMyInterface" />"#;
+        let expected = r#"<see cref="Test.IMyInterface" />"#;
         assert_eq!(interface_link, expected);
     }
 
@@ -233,7 +233,7 @@ mod formatted_link_tests {
         let operation_link = operation.get_formatted_link("");
 
         // Assert
-        let expected = r#"<see cref="global::Test.IMyInterface.MyOperationAsync" />"#;
+        let expected = r#"<see cref="Test.IMyInterface.MyOperationAsync" />"#;
         assert_eq!(operation_link, expected);
     }
 
@@ -294,7 +294,7 @@ mod formatted_link_tests {
         let enumerator_link = enumerator.get_formatted_link("");
 
         // Assert
-        let expected = r#"<see cref="global::Test.MyEnum.Foo" />"#;
+        let expected = r#"<see cref="Test.MyEnum.Foo" />"#;
         assert_eq!(enumerator_link, expected);
     }
 
@@ -333,7 +333,7 @@ mod formatted_link_tests {
         let struct_link = struct_def.get_formatted_link("");
 
         // Assert
-        let expected = r#"<see cref="global::Test.MyStruct" />"#;
+        let expected = r#"<see cref="Test.MyStruct" />"#;
         assert_eq!(struct_link, expected);
     }
 
