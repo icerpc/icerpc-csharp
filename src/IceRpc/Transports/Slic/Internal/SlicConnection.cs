@@ -58,6 +58,7 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly int _packetMaxSize;
     private IceRpcError? _peerCloseError;
     private TimeSpan _peerIdleTimeout = Timeout.InfiniteTimeSpan;
+    private Task _pingTask = Task.CompletedTask;
     private Task? _readFramesTask;
 
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
@@ -68,12 +69,13 @@ internal class SlicConnection : IMultiplexedConnection
     private int _unidirectionalStreamCount;
     private SemaphoreSlim? _unidirectionalStreamSemaphore;
 
+    private TaskCompletionSource<PongBody>? _waitForPongFrameTcs;
+
     // This is only set for server connections to ensure that _duplexConnectionWriter.Write is not called after
     // _duplexConnectionWriter.Shutdown. This can occur if the client-side of the connection sends the close frame
     // followed by the shutdown of the duplex connection and if CloseAsync is called at the same time on the server
     // connection.
     private bool _writerIsShutdown;
-
     private readonly SemaphoreSlim _writeSemaphore = new(1, 1);
 
     public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancellationToken)
@@ -291,18 +293,58 @@ internal class SlicConnection : IMultiplexedConnection
 
         void KeepAlive()
         {
-            try
+            if (_pingTask.IsCompleted)
             {
-                WriteConnectionFrame(FrameType.Ping, encode: null);
-            }
-            catch (IceRpcException)
-            {
-                // Expected if the connection failed.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"ping failed with an unexpected exception: {exception}");
-                throw;
+                lock (_mutex)
+                {
+                    if (_isClosed)
+                    {
+                        return;
+                    }
+                    _pingTask = PingAsync(_disposedCts.Token);
+                }
+
+                async Task PingAsync(CancellationToken cancellationToken)
+                {
+                    try
+                    {
+                        _waitForPongFrameTcs = new TaskCompletionSource<PongBody>();
+
+                        // For now, use an empty payload. The payload can be used in the future to use pings for
+                        // measuring the minimum RTT.
+                        var pingBody = new PingBody(Array.Empty<byte>());
+                        WriteConnectionFrame(FrameType.Ping, pingBody.Encode);
+
+                        PongBody pongBody =
+                            await _waitForPongFrameTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        if (!pongBody.Payload.SequenceEqual(pingBody.Payload))
+                        {
+                            throw new InvalidDataException(
+                                $"Received invalid {nameof(FrameType.Pong)} frame with a payload not matching the {nameof(FrameType.Ping)} frame payload");
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected, DisposeAsync was called.
+                    }
+                    catch (IceRpcException exception)
+                    {
+                        TryClose(exception, "The connection was lost.", IceRpcError.ConnectionAborted);
+                    }
+                    catch (InvalidDataException exception)
+                    {
+                        var rpcException = new IceRpcException(
+                            IceRpcError.IceRpcError,
+                            "The connection was aborted by a Slic protocol error.",
+                            exception);
+                        TryClose(rpcException, rpcException.Message, IceRpcError.IceRpcError);
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.Fail($"The ping frame task completed due to an unhandled exception: {exception}");
+                        TryClose(exception, "The connection was lost.", IceRpcError.ConnectionAborted);
+                    }
+                }
             }
         }
 
@@ -467,7 +509,8 @@ internal class SlicConnection : IMultiplexedConnection
                 await Task.WhenAll(
                     _connectTask ?? Task.CompletedTask,
                     _readFramesTask ?? Task.CompletedTask,
-                    _streamSemaphoreWaitClosed.Task).ConfigureAwait(false);
+                    _streamSemaphoreWaitClosed.Task,
+                    _pingTask).ConfigureAwait(false);
             }
             catch
             {
@@ -1002,13 +1045,11 @@ internal class SlicConnection : IMultiplexedConnection
             }
             case FrameType.Ping:
             {
-                WriteConnectionFrame(FrameType.Pong, encode: null);
-                return Task.CompletedTask;
+                return ReadPingFrameAndWritePongFrameAsync(size, cancellationToken);
             }
             case FrameType.Pong:
             {
-                // Nothing to do, the duplex connection reader keeps track of the last activity time.
-                return Task.CompletedTask;
+                return ReadPongFrameAsync(size, cancellationToken);
             }
             case FrameType.Stream:
             case FrameType.StreamLast:
@@ -1107,6 +1148,29 @@ internal class SlicConnection : IMultiplexedConnection
                 // Wait for the writer task completion outside the semaphore lock.
                 await _duplexConnectionWriter.WriterTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        async Task ReadPingFrameAndWritePongFrameAsync(int size, CancellationToken cancellationToken)
+        {
+            PingBody pingBody = await ReadFrameBodyAsync(
+                size,
+                (ref SliceDecoder decoder) => new PingBody(ref decoder),
+                cancellationToken).ConfigureAwait(false);
+            WriteConnectionFrame(FrameType.Pong, new PongBody(pingBody.Payload).Encode);
+        }
+
+        async Task ReadPongFrameAsync(int size, CancellationToken cancellationToken)
+        {
+            if (_waitForPongFrameTcs is null || _waitForPongFrameTcs.Task.IsCompleted)
+            {
+                throw new InvalidDataException($"Received an unexpected {nameof(FrameType.Pong)} frame.");
+            }
+
+            PongBody pongBody = await ReadFrameBodyAsync(
+                size,
+                (ref SliceDecoder decoder) => new PongBody(ref decoder),
+                cancellationToken).ConfigureAwait(false);
+            _waitForPongFrameTcs.SetResult(pongBody);
         }
 
         async Task<T> ReadFrameBodyAsync<T>(int size, DecodeFunc<T> decodeFunc, CancellationToken cancellationToken)
