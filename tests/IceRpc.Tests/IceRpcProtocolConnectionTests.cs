@@ -616,7 +616,6 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Verifies that canceling the invocation while sending the request payload continuation, completes the
     /// incoming request payload with a <see cref="IceRpcError.TruncatedData"/>.</summary>
     [Test]
-    [Repeat(100_000)]
     public async Task Invocation_cancellation_while_sending_the_payload_continuation_completes_the_input_request_payload()
     {
         // Arrange
@@ -635,7 +634,7 @@ public sealed class IceRpcProtocolConnectionTests
             PayloadContinuation = pipe.Reader
         };
         using var invocationCts = new CancellationTokenSource();
-        Task<IncomingResponse> invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
+        Task invokeTask = sut.Client.InvokeAsync(request, invocationCts.Token);
         await dispatcher.PayloadReadStarted;
 
         // Act
