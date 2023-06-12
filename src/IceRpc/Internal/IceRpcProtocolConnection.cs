@@ -499,6 +499,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     if (statusCode == StatusCode.TruncatedPayload && invocationCts.Token.IsCancellationRequested)
                     {
+                        // Canceling the sending of the payload continuation triggers the completion of the stream
+                        // output. This may lead to a TruncatedPayload if the dispatch is currently reading the payload
+                        // continuation. In such cases, we prioritize throwing an OperationCanceledException.
                         fieldsPipeReader?.Complete();
                         invocationCts.Token.ThrowIfCancellationRequested();
                     }
