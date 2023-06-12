@@ -23,7 +23,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        int[] r =
+        int[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfInt32Async(
                 response,
                 request,
@@ -31,11 +31,11 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_fixed_size_numeric()
+    public async Task Operation_sending_a_sequence_of_fixed_size_numeric()
     {
         // Arrange
         var value = new int[] { 1, 2, 3 };
@@ -44,14 +44,14 @@ public class SequenceMappingTests
         PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfInt32(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfInt32Async(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfInt32Async(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -80,21 +80,23 @@ public class SequenceMappingTests
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_string()
+    public async Task Operation_sending_a_sequence_of_string()
     {
+        // Arrange
+        var value = new string[] { "one", "two", "three" };
+
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfString(
-            new string[] { "one", "two", "three" });
+        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfString(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfStringAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfStringAsync(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -116,7 +118,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        MyFixedLengthEnum[] r =
+        MyFixedLengthEnum[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfMyFixedLengthEnumAsync(
                 response,
                 request,
@@ -124,11 +126,11 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_fixed_size_enum()
+    public async Task Operation_sending_a_sequence_of_fixed_size_enum()
     {
         // Arrange
         var value = new MyFixedLengthEnum[]
@@ -143,14 +145,14 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfMyFixedLengthEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfMyFixedLengthEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfMyFixedLengthEnumAsync(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -167,7 +169,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        MyVarSizeEnum[] r =
+        MyVarSizeEnum[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfMyVarSizeEnumAsync(
                 response,
                 request,
@@ -175,11 +177,11 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_var_size_enum()
+    public async Task Operation_sending_a_sequence_of_var_size_enum()
     {
         // Arrange
         var value = new MyVarSizeEnum[]
@@ -193,14 +195,14 @@ public class SequenceMappingTests
         PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfMyVarSizeEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfMyVarSizeEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfMyVarSizeEnumAsync(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -216,7 +218,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        MyUncheckedEnum[] r =
+        MyUncheckedEnum[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfMyUncheckedEnumAsync(
                 response,
                 request,
@@ -224,11 +226,11 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_unchecked_enum()
+    public async Task Operation_sending_a_sequence_of_unchecked_enum()
     {
         // Arrange
         var value = new MyUncheckedEnum[]
@@ -243,14 +245,14 @@ public class SequenceMappingTests
             SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfMyUncheckedEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfMyUncheckedEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfMyUncheckedEnumAsync(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -267,7 +269,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        int?[] r =
+        int?[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfOptionalInt32Async(
                 response,
                 request,
@@ -275,27 +277,27 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_optional_fixed_size_numeric()
+    public async Task Operation_sending_a_sequence_of_optional_fixed_size_numeric()
     {
         // Arrange
         var value = new int?[] { 1, null, 3 };
 
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalInt32(value);
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalInt32(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalInt32Async(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalInt32Async(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -312,7 +314,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        string?[] r =
+        string?[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfOptionalStringAsync(
                 response,
                 request,
@@ -320,25 +322,27 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_optional_string()
+    public async Task Operation_sending_a_sequence_of_optional_string()
     {
+        // Arrange
+        var value = new string?[] { "one", null, "three" };
+
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalString(
-            new string?[] { "one", null, "three" });
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalString(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalStringAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalStringAsync(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -355,7 +359,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        MyFixedLengthEnum?[] r =
+        MyFixedLengthEnum?[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfOptionalMyFixedLengthEnumAsync(
                 response,
                 request,
@@ -363,26 +367,29 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_optional_fixed_size_enum()
+    public async Task Operation_sending_a_sequence_of_optional_fixed_size_enum()
     {
+        // Arrange
+        var value = new MyFixedLengthEnum?[] { MyFixedLengthEnum.SEnum1, null, MyFixedLengthEnum.SEnum3 };
+
         // Act
-        PipeReader requestPayload =
-            SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalMyFixedLengthEnum(
-                new MyFixedLengthEnum?[] { MyFixedLengthEnum.SEnum1, null, MyFixedLengthEnum.SEnum3 });
+        var requestPayload =
+            SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalMyFixedLengthEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalMyFixedLengthEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalMyFixedLengthEnumAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -399,7 +406,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        MyVarSizeEnum?[] r =
+        MyVarSizeEnum?[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfOptionalMyVarSizeEnumAsync(
                 response,
                 request,
@@ -407,26 +414,28 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_optional_var_size_enum()
+    public async Task Operation_sending_a_sequence_of_optional_var_size_enum()
     {
+        // Arrange
+        var value = new MyVarSizeEnum?[] { MyVarSizeEnum.Enum1, null, MyVarSizeEnum.Enum3 };
+
         // Act
-        PipeReader requestPayload =
-            SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalMyVarSizeEnum(
-                new MyVarSizeEnum?[] { MyVarSizeEnum.Enum1, null, MyVarSizeEnum.Enum3 });
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalMyVarSizeEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalMyVarSizeEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalMyVarSizeEnumAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -443,7 +452,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        MyUncheckedEnum?[] r =
+        MyUncheckedEnum?[] decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfOptionalMyUncheckedEnumAsync(
                 response,
                 request,
@@ -451,26 +460,30 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_sequence_of_optional_unchecked_enum()
+    public async Task Operation_sending_a_sequence_of_optional_unchecked_enum()
     {
+        // Arrange
+        var value = new MyUncheckedEnum?[] { MyUncheckedEnum.E1, null, MyUncheckedEnum.E3 };
+
         // Act
         PipeReader requestPayload =
             SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalMyUncheckedEnum(
-                new MyUncheckedEnum?[] { MyUncheckedEnum.E1, null, MyUncheckedEnum.E3 });
+                value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalMyUncheckedEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalMyUncheckedEnumAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -486,7 +499,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        CustomSequence<int> r =
+        CustomSequence<int> decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnCustomSequenceOfInt32Async(
                 response,
                 request,
@@ -494,25 +507,27 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(new CustomSequence<int>(value)));
+        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<int>(value)));
     }
 
     [Test]
-    public void Operation_sending_a_custom_sequence_of_fixed_size_numeric()
+    public async Task Operation_sending_a_custom_sequence_of_fixed_size_numeric()
     {
+        // Arrange
+        var value = new CustomSequence<int>(new int[] { 1, 2, 3 });
+
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfInt32(
-            new CustomSequence<int>(new int[] { 1, 2, 3 }));
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfInt32(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfInt32Async(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfInt32Async(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -528,7 +543,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        CustomSequence<string> r =
+        CustomSequence<string> decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnCustomSequenceOfStringAsync(
                 response,
                 request,
@@ -536,25 +551,26 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(new CustomSequence<string>(value)));
+        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<string>(value)));
     }
 
     [Test]
-    public void Operation_sending_a_custom_sequence_of_string()
+    public async Task Operation_sending_a_custom_sequence_of_string()
     {
+        // Arrange
+        var value = new CustomSequence<string>(new string[] { "one", "two", "three" });
+
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfString(
-            new CustomSequence<string>(new string[] { "one", "two", "three" }));
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfString(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfStringAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfStringAsync(request, default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -576,7 +592,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        CustomSequence<MyFixedLengthEnum> r =
+        CustomSequence<MyFixedLengthEnum> decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnCustomSequenceOfMyFixedLengthEnumAsync(
                 response,
                 request,
@@ -584,31 +600,34 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(new CustomSequence<MyFixedLengthEnum>(value)));
+        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<MyFixedLengthEnum>(value)));
     }
 
     [Test]
-    public void Operation_sending_a_custom_sequence_of_fixed_size_enum()
+    public async Task Operation_sending_a_custom_sequence_of_fixed_size_enum()
     {
+        // Arrange
+        var value = new CustomSequence<MyFixedLengthEnum>(
+            new MyFixedLengthEnum[]
+            {
+                MyFixedLengthEnum.SEnum1,
+                MyFixedLengthEnum.SEnum2,
+                MyFixedLengthEnum.SEnum3
+            });
+
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfMyFixedLengthEnum(
-            new CustomSequence<MyFixedLengthEnum>(
-                new MyFixedLengthEnum[]
-                {
-                    MyFixedLengthEnum.SEnum1,
-                    MyFixedLengthEnum.SEnum2,
-                    MyFixedLengthEnum.SEnum3
-                }));
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfMyFixedLengthEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfMyFixedLengthEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfMyFixedLengthEnumAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -625,7 +644,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        CustomSequence<MyVarSizeEnum> r =
+        CustomSequence<MyVarSizeEnum> decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnCustomSequenceOfMyVarSizeEnumAsync(
                 response,
                 request,
@@ -633,31 +652,34 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(new CustomSequence<MyVarSizeEnum>(value)));
+        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<MyVarSizeEnum>(value)));
     }
 
     [Test]
-    public void Operation_sending_a_custom_sequence_of_var_size_enum()
+    public async Task Operation_sending_a_custom_sequence_of_var_size_enum()
     {
+        // Arrange
+        var value = new CustomSequence<MyVarSizeEnum>(
+            new MyVarSizeEnum[]
+            {
+                MyVarSizeEnum.Enum1,
+                MyVarSizeEnum.Enum2,
+                MyVarSizeEnum.Enum3
+            });
+
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfMyVarSizeEnum(
-            new CustomSequence<MyVarSizeEnum>(
-                new MyVarSizeEnum[]
-                {
-                    MyVarSizeEnum.Enum1,
-                    MyVarSizeEnum.Enum2,
-                    MyVarSizeEnum.Enum3
-                }));
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfMyVarSizeEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfMyVarSizeEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfMyVarSizeEnumAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -674,7 +696,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        CustomSequence<MyUncheckedEnum> r =
+        CustomSequence<MyUncheckedEnum> decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnCustomSequenceOfMyUncheckedEnumAsync(
                 response,
                 request,
@@ -682,31 +704,34 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(new CustomSequence<MyUncheckedEnum>(value)));
+        Assert.That(decodedValue, Is.EqualTo(new CustomSequence<MyUncheckedEnum>(value)));
     }
 
     [Test]
-    public void Operation_sending_a_custom_sequence_of_unchecked_enum()
+    public async Task Operation_sending_a_custom_sequence_of_unchecked_enum()
     {
+        // Arrange
+        var value = new CustomSequence<MyUncheckedEnum>(
+            new MyUncheckedEnum[]
+            {
+                MyUncheckedEnum.E1,
+                MyUncheckedEnum.E2,
+                MyUncheckedEnum.E3
+            });
+
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfMyUncheckedEnum(
-            new CustomSequence<MyUncheckedEnum>(
-                new MyUncheckedEnum[]
-                {
-                    MyUncheckedEnum.E1,
-                    MyUncheckedEnum.E2,
-                    MyUncheckedEnum.E3
-                }));
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendCustomSequenceOfMyUncheckedEnum(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfMyUncheckedEnumAsync(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendCustomSequenceOfMyUncheckedEnumAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
@@ -722,7 +747,7 @@ public class SequenceMappingTests
         };
 
         // Act
-        HashSet<int> r =
+        HashSet<int> decodedValue =
             await SequenceMappingOperationsProxy.Response.DecodeReturnHashSetOfInt32Async(
                 response,
                 request,
@@ -730,27 +755,28 @@ public class SequenceMappingTests
                 default);
 
         // Assert
-        Assert.That(r, Is.EqualTo(value));
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
-    public void Operation_sending_a_hash_set_of_fixed_size_numeric()
+    public async Task Operation_sending_a_hash_set_of_fixed_size_numeric()
     {
         // Arrange
         var value = new HashSet<int> { 1, 2, 3 };
 
         // Act
-        PipeReader requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendHashSetOfInt32(value);
+        var requestPayload = SequenceMappingOperationsProxy.Request.EncodeSendHashSetOfInt32(value);
 
         // Assert
-        Assert.That(
-            async () => await ISequenceMappingOperationsService.Request.DecodeSendHashSetOfInt32Async(
-                new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-                {
-                    Payload = requestPayload
-                },
-                default),
-            Throws.Nothing);
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendHashSetOfInt32Async(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
     }
 
     [Test]
