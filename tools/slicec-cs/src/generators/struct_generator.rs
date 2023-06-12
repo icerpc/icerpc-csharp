@@ -36,7 +36,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     );
 
     let mut main_constructor = FunctionBuilder::new(
-        &struct_def.access_modifier(),
+        struct_def.access_modifier(),
         "",
         &escaped_identifier,
         FunctionType::BlockBody,
@@ -88,7 +88,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     }
     builder.add_block(
             FunctionBuilder::new(
-                &struct_def.access_modifier(),
+                struct_def.access_modifier(),
                 "",
                 &escaped_identifier,
                 FunctionType::BlockBody,
@@ -127,7 +127,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     }
     builder.add_block(
         FunctionBuilder::new(
-            &(struct_def.access_modifier() + " readonly"),
+            &(struct_def.access_modifier().to_owned() + " readonly"),
             "void",
             "Encode",
             FunctionType::BlockBody,

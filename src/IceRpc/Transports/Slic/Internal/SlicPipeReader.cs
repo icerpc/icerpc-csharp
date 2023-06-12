@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Slic.Internal;
@@ -44,7 +45,7 @@ internal class SlicPipeReader : PipeReader
         if (_examined >= _resumeThreshold)
         {
             Interlocked.Add(ref _receiveCredit, _examined);
-            _stream.SendStreamConsumed(_examined);
+            _stream.WriteStreamConsumedFrame(_examined);
             _examined = 0;
         }
 
@@ -57,8 +58,8 @@ internal class SlicPipeReader : PipeReader
     {
         if (_state.TrySetFlag(State.Completed))
         {
-            // We don't use the application error code, it's irrelevant.
-            _stream.CompleteReads(errorCode: 0ul);
+            // Forcefully close the stream reads if reads were not already gracefully closed by ReadAsync or TryRead.
+            _stream.CloseReads(graceful: false);
 
             CompleteReads(exception: null);
 
@@ -78,18 +79,18 @@ internal class SlicPipeReader : PipeReader
         ReadResult result = await _pipe.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         if (result.IsCanceled)
         {
-            return GetReadResult();
+            return GetReadResult(result);
         }
 
         // Cache the read result for the implementation of AdvanceTo that needs to figure out how much data got examined
         // and consumed.
         _readResult = result;
 
-        // All the data from the peer is considered read at this point. It's time to complete reads on the stream. This
-        // will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
+        // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
+        // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
         if (result.IsCompleted)
         {
-            _stream.CompleteReads();
+            _stream.CloseReads(graceful: true);
         }
 
         return result;
@@ -108,7 +109,7 @@ internal class SlicPipeReader : PipeReader
         {
             if (result.IsCanceled)
             {
-                result = GetReadResult();
+                result = GetReadResult(result);
                 return true;
             }
 
@@ -116,11 +117,11 @@ internal class SlicPipeReader : PipeReader
             // examined and consumed.
             _readResult = result;
 
-            // All the data from the peer is considered read at this point. It's time to complete reads on the stream.
-            // This will send the StreamReadsCompleted frame to the peer and allow it to release the stream semaphore.
+            // All the data from the peer is considered read at this point. It's time to close reads on the stream. This
+            // will write the StreamReadsClosed frame to the peer and allow it to release the stream semaphore.
             if (result.IsCompleted)
             {
-                _stream.CompleteReads();
+                _stream.CloseReads(graceful: true);
             }
             return true;
         }
@@ -146,8 +147,9 @@ internal class SlicPipeReader : PipeReader
             useSynchronizationContext: false));
     }
 
-    /// <summary>Complete reads.</summary>
-    /// <param name="exception">The exception raised by ReadAsync.</param>
+    /// <summary>Completes reads.</summary>
+    /// <param name="exception">The exception that will be raised by <see cref="ReadAsync" /> or <see cref="TryRead" />
+    /// operation.</param>
     internal void CompleteReads(Exception? exception)
     {
         Interlocked.CompareExchange(ref _exception, exception, null);
@@ -165,9 +167,11 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
-    /// internal pipe writer and returns the number of bytes that were consumed.</summary>
-    /// <returns><see langword="true" /> if the data was consumed; otherwise, <see langword="false"/>.</returns>
+    /// <summary>Notifies the reader of the reception of a <see cref="FrameType.Stream" /> or <see
+    /// cref="FrameType.StreamLast" /> frame. The stream data is consumed from the connection and buffered by this
+    /// reader on its internal pipe.</summary>
+    /// <returns><see langword="true" /> if the data was consumed; otherwise, <see langword="false"/> if the reader was
+    /// completed by the application.</returns>
     internal async ValueTask<bool> ReceivedStreamFrameAsync(
         int dataSize,
         bool endStream,
@@ -230,13 +234,22 @@ internal class SlicPipeReader : PipeReader
         }
     }
 
-    private ReadResult GetReadResult()
+    private ReadResult GetReadResult(ReadResult readResult)
     {
+        // This method is called by ReadAsync or TryRead when the read operation on _pipe.Reader returns a canceled read
+        // result (IsCanceled=true). The _pipe.Reader ReadAsync/TryRead operations can return a canceled read result for
+        // two different reasons:
+        // - the application called CancelPendingRead
+        // - the connection is closed while data is written on _pipe.Writer
+        Debug.Assert(readResult.IsCanceled);
+
         if (_state.HasFlag(State.PipeWriterCompleted))
         {
+            // The connection was closed while the pipe writer was in use. Either throw or return a non-canceled result
+            // depending on the completion exception.
             if (_exception is null)
             {
-                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
+                return new ReadResult(readResult.Buffer, isCanceled: false, isCompleted: true);
             }
             else
             {
@@ -245,7 +258,8 @@ internal class SlicPipeReader : PipeReader
         }
         else
         {
-            return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: true, isCompleted: false);
+            // The application called CancelPendingRead, return the read result as-is.
+            return readResult;
         }
     }
 

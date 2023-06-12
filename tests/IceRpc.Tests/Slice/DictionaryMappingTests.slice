@@ -20,6 +20,10 @@ interface DictionaryMappingOperations {
     returnCustomDictionary() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>
 
     sendCustomDictionary(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>)
+
+    returnCustomDictionary2() -> [cs::generic("CustomDictionary2")] dictionary<int32, int32>
+
+    sendCustomDictionary2(p: [cs::generic("CustomDictionary2")] dictionary<int32, int32>)
 }
 
 [cs::readonly] compact struct LargeStruct {
@@ -30,4 +34,8 @@ interface DictionaryMappingOperations {
 [cs::readonly] compact struct KeyValuePair {
     Key: int32
     Value: string?
+}
+
+compact struct StructWithCustomDictionary {
+    value: [cs::generic("CustomDictionary")] dictionary<int32, int32>
 }

@@ -11,8 +11,8 @@ namespace IceRpc.Telemetry;
 /// middleware restores the parent invocation activity from the request <see cref="RequestFieldKey.TraceContext" />
 /// field before starting the dispatch activity.</summary>
 /// <remarks>The activities are only created for requests using the icerpc protocol.</remarks>
-/// <seealso cref="TelemetryRouterExtensions.UseTelemetry(Router, ActivitySource)" />
-/// <seealso cref="TelemetryDispatcherBuilderExtensions.UseTelemetry(IDispatcherBuilder)"/>
+/// <seealso cref="TelemetryRouterExtensions" />
+/// <seealso cref="TelemetryDispatcherBuilderExtensions"/>
 public class TelemetryMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;

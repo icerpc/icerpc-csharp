@@ -181,7 +181,7 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Act
         sut.Local.Output.Complete(new OperationCanceledException()); // can be any exception
-        // Wait for the peer to receive the Reset frame.
+        // Wait for the peer to receive the StreamWritesClosed frame.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
@@ -466,7 +466,10 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Assert
         ReadResult readResult1 = await sut.Local.Input.ReadAsync();
+        sut.Local.Input.AdvanceTo(readResult1.Buffer.Start);
+
         ReadResult readResult2 = await sut.Local.Input.ReadAsync();
+        sut.Local.Input.AdvanceTo(readResult2.Buffer.Start);
 
         Assert.That(readResult1.IsCanceled, Is.True);
         Assert.That(readResult1.IsCompleted, Is.False);
@@ -489,6 +492,7 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Assert
         ReadResult readResult1 = await readTask;
+        sut.Local.Input.AdvanceTo(readResult1.Buffer.Start);
 
         Assert.That(async () => await sut.Remote.Output.WriteAsync(_oneBytePayload), Throws.Nothing);
 
@@ -510,6 +514,7 @@ public abstract class MultiplexedStreamConformanceTests
         {
             Assert.That(readResult2.Value.IsCanceled, Is.False);
             Assert.That(readResult2.Value.Buffer, Has.Length.EqualTo(1));
+            sut.Local.Input.AdvanceTo(readResult2.Value.Buffer.Start);
         }
     }
 
@@ -558,7 +563,7 @@ public abstract class MultiplexedStreamConformanceTests
         sut.Local.Input.Complete();
 
         // Assert
-        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time to StopSending frame to reach Output
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time to the StreamReadsClosed frame to reach Output
         FlushResult flushResult = await sut.Remote.Output.WriteAsync(new byte[1]);
         Assert.That(flushResult.IsCompleted, Is.True);
     }
@@ -578,7 +583,7 @@ public abstract class MultiplexedStreamConformanceTests
         sut.Local.Input.Complete();
 
         // Assert
-        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time to StopSending frame to reach Output
+        await Task.Delay(TimeSpan.FromMilliseconds(50)); // give time to the StreamReadsClosed frame to reach Output
         FlushResult flushResult = await sut.Remote.Output.FlushAsync();
         Assert.That(flushResult.IsCompleted, Is.True);
     }

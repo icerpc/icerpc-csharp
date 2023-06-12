@@ -10,12 +10,8 @@ pub trait EntityExt: Entity {
     // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier
     /// attribute as-is or the Slice identifier formatted with the specified casing.
     fn cs_identifier(&self, case: Case) -> String {
-        let identifier_attribute = self.attributes().into_iter().find_map(match_cs_identifier);
-
-        match identifier_attribute {
-            Some(identifier) => identifier,
-            None => self.identifier().to_cs_case(case),
-        }
+        self.find_attribute(match_cs_identifier)
+            .unwrap_or_else(|| self.identifier().to_cs_case(case))
     }
 
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -119,32 +115,20 @@ pub trait EntityExt: Entity {
 
     /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
     /// attribute otherwise returns "public".
-    fn access_modifier(&self) -> String {
-        if self.attributes().into_iter().find_map(match_cs_internal).is_some() {
-            "internal".to_owned()
-        } else {
-            "public".to_owned()
-        }
-    }
-
-    /// Returns the C# readonly modifier if this entity has the cs::readonly attribute otherwise
-    /// returns None.
-    fn readonly_modifier(&self) -> Option<String> {
-        // Readonly is only valid for structs
-        if self.attributes().into_iter().find_map(match_cs_readonly).is_some() {
-            Some("readonly".to_owned())
-        } else {
-            None
+    fn access_modifier(&self) -> &str {
+        match self.has_attribute(match_cs_internal) {
+            true => "internal",
+            false => "public",
         }
     }
 
     /// Returns the C# modifiers for this entity.
     fn modifiers(&self) -> String {
-        if let Some(readonly) = self.readonly_modifier() {
-            self.access_modifier() + " " + &readonly
-        } else {
-            self.access_modifier()
+        let mut modifiers = self.access_modifier().to_owned();
+        if self.has_attribute(match_cs_readonly) {
+            modifiers += " readonly";
         }
+        modifiers
     }
 
     /// Returns a C# link tag that points to this entity from the provided namespace
@@ -155,8 +139,8 @@ pub trait EntityExt: Entity {
             Entities::Interface(interface_def) => {
                 // For interface links, we always link to the client side interface (ex: `IMyInterface`).
                 // TODO: add a way for users to link to an interface's proxy type: (ex: `MyInterfaceProxy`).
-                let identifier = interface_def.interface_name();
-                format!(r#"<see cref="{identifier}" />"#)
+                let interface_name = interface_def.scoped_interface_name(namespace);
+                format!(r#"<see cref="{interface_name}" />"#)
             }
             Entities::Operation(operation) => {
                 // For operations, we link to the abstract method on the client side interface (ex: `IMyInterface`).
@@ -166,15 +150,209 @@ pub trait EntityExt: Entity {
             }
             Entities::Parameter(parameter) => {
                 // Parameter links use a different tag (`paramref`) in C# instead of the normal `see cref` tag.
-                let identifier = parameter.parameter_name();
-                format!(r#"<paramref name="{identifier}" />"#)
+                let parameter_name = parameter.parameter_name();
+                format!(r#"<paramref name="{parameter_name}" />"#)
+            }
+            Entities::Enumerator(enumerator) => {
+                let enum_name = enumerator.parent().escape_scoped_identifier(namespace);
+                let enumerator_name = enumerator.escape_identifier();
+                format!(r#"<see cref="{enum_name}.{enumerator_name}" />"#)
             }
             _ => {
-                let identifier = self.escape_scoped_identifier(namespace);
-                format!(r#"<see cref="{identifier}" />"#)
+                let name = self.escape_scoped_identifier(namespace);
+                format!(r#"<see cref="{name}" />"#)
             }
         }
     }
 }
 
 impl<T: Entity + ?Sized> EntityExt for T {}
+
+// Unit tests for the `get_formatted_link` function.
+#[cfg(test)]
+mod formatted_link_tests {
+    use super::EntityExt;
+    use slicec::compilation_state::CompilationState;
+    use slicec::grammar::{Enumerator, Interface, Operation, Parameter, Struct};
+
+    // TODO we should add some actual testing infrastructure to this crate.
+
+    fn compile_slice(slice: &str) -> CompilationState {
+        slicec::compile_from_strings(&[slice], None, |_| {}, |_| {})
+    }
+
+    #[test]
+    fn unqualified_interface() {
+        // Arrange
+        let slice = "
+            module Test
+            interface MyInterface {}
+        ";
+        let ast = compile_slice(slice).ast;
+        let interface_def = ast.find_element::<Interface>("Test::MyInterface").unwrap();
+
+        // Act
+        let interface_link = interface_def.get_formatted_link("");
+
+        // Assert
+        let expected = r#"<see cref="Test.IMyInterface" />"#;
+        assert_eq!(interface_link, expected);
+    }
+
+    #[test]
+    fn qualified_interface() {
+        // Arrange
+        let slice = "
+            module Test
+            interface MyInterface {}
+        ";
+        let ast = compile_slice(slice).ast;
+        let interface_def = ast.find_element::<Interface>("Test::MyInterface").unwrap();
+
+        // Act
+        let interface_link = interface_def.get_formatted_link("Test");
+
+        // Assert
+        let expected = r#"<see cref="IMyInterface" />"#;
+        assert_eq!(interface_link, expected);
+    }
+
+    #[test]
+    fn unqualified_operation() {
+        // Arrange
+        let slice = "
+            module Test
+            interface MyInterface {
+                myOperation()
+            }
+        ";
+        let ast = compile_slice(slice).ast;
+        let operation = ast.find_element::<Operation>("Test::MyInterface::myOperation").unwrap();
+
+        // Act
+        let operation_link = operation.get_formatted_link("");
+
+        // Assert
+        let expected = r#"<see cref="Test.IMyInterface.MyOperationAsync" />"#;
+        assert_eq!(operation_link, expected);
+    }
+
+    #[test]
+    fn qualified_operation() {
+        // Arrange
+        let slice = "
+            module Test
+            interface MyInterface {
+                myOperation()
+            }
+        ";
+        let ast = compile_slice(slice).ast;
+        let operation = ast.find_element::<Operation>("Test::MyInterface::myOperation").unwrap();
+
+        // Act
+        let operation_link = operation.get_formatted_link("Test");
+
+        // Assert
+        let expected = r#"<see cref="IMyInterface.MyOperationAsync" />"#;
+        assert_eq!(operation_link, expected);
+    }
+
+    // Parameters can only be linked to in their operation's doc comment, so there's no need to qualified links.
+    #[test]
+    fn unqualified_parameter() {
+        // Arrange
+        let slice = "
+            module Test
+            interface MyInterface {
+                myOperation(myParam: bool)
+            }
+        ";
+        let ast = compile_slice(slice).ast;
+        let parameter = ast.find_element::<Parameter>("Test::MyInterface::myOperation::myParam").unwrap();
+
+        // Act
+        let parameter_link = parameter.get_formatted_link("");
+
+        // Assert
+        let expected = r#"<paramref name="myParam" />"#;
+        assert_eq!(parameter_link, expected);
+    }
+
+    #[test]
+    fn unqualified_enumerator() {
+        // Arrange
+        let slice = "
+            module Test
+            enum MyEnum {
+                Foo
+            }
+        ";
+        let ast = compile_slice(slice).ast;
+        let enumerator = ast.find_element::<Enumerator>("Test::MyEnum::Foo").unwrap();
+
+        // Act
+        let enumerator_link = enumerator.get_formatted_link("");
+
+        // Assert
+        let expected = r#"<see cref="Test.MyEnum.Foo" />"#;
+        assert_eq!(enumerator_link, expected);
+    }
+
+    #[test]
+    fn qualified_enumerator() {
+        // Arrange
+        let slice = "
+            module Test
+            enum MyEnum {
+                Foo
+            }
+        ";
+        let ast = compile_slice(slice).ast;
+        let enumerator = ast.find_element::<Enumerator>("Test::MyEnum::Foo").unwrap();
+
+        // Act
+        let enumerator_link = enumerator.get_formatted_link("Test");
+
+        // Assert
+        let expected = r#"<see cref="MyEnum.Foo" />"#;
+        assert_eq!(enumerator_link, expected);
+    }
+
+    // All other Slice types share the same code path, so testing structs is sufficient for testing everything else.
+    #[test]
+    fn unqualified_generic() {
+        // Arrange
+        let slice = "
+            module Test
+            struct MyStruct {}
+        ";
+        let ast = compile_slice(slice).ast;
+        let struct_def = ast.find_element::<Struct>("Test::MyStruct").unwrap();
+
+        // Act
+        let struct_link = struct_def.get_formatted_link("");
+
+        // Assert
+        let expected = r#"<see cref="Test.MyStruct" />"#;
+        assert_eq!(struct_link, expected);
+    }
+
+    // All other Slice types share the same code path, so testing structs is sufficient for testing everything else.
+    #[test]
+    fn qualified_generic() {
+        // Arrange
+        let slice = "
+            module Test
+            struct MyStruct {}
+        ";
+        let ast = compile_slice(slice).ast;
+        let struct_def = ast.find_element::<Struct>("Test::MyStruct").unwrap();
+
+        // Act
+        let struct_link = struct_def.get_formatted_link("Test");
+
+        // Assert
+        let expected = r#"<see cref="MyStruct" />"#;
+        assert_eq!(struct_link, expected);
+    }
+}

@@ -588,7 +588,7 @@ public sealed class IceProtocolConnectionTests
         Task writeCalledTask = clientConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
 
         Task<IncomingResponse> invokeTask1 = sut.Client.InvokeAsync(request1, cts.Token);
-        Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request1, default);
+        Task<IncomingResponse> invokeTask2 = sut.Client.InvokeAsync(request2, default);
 
         // Wait for the connection write to start.
         await writeCalledTask;

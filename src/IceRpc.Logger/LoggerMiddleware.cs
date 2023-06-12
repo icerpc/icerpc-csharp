@@ -7,8 +7,8 @@ using System.Net;
 namespace IceRpc.Logger;
 
 /// <summary>A middleware that writes a log entry to an <see cref="ILogger" /> for each dispatch.</summary>
-/// <seealso cref="LoggerRouterExtensions.UseLogger(Router, ILoggerFactory)"/>
-/// <seealso cref="LoggerDispatcherBuilderExtensions.UseLogger(IDispatcherBuilder)"/>
+/// <seealso cref="LoggerRouterExtensions"/>
+/// <seealso cref="LoggerDispatcherBuilderExtensions"/>
 public class LoggerMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;

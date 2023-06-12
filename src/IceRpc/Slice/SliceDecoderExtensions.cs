@@ -23,7 +23,7 @@ public static class SliceDecoderExtensions
         DecodeFunc<TKey> keyDecodeFunc,
         DecodeFunc<TValue> valueDecodeFunc)
         where TKey : notnull
-        where TDictionary : IDictionary<TKey, TValue>
+        where TDictionary : ICollection<KeyValuePair<TKey, TValue>>
     {
         int count = decoder.DecodeSize();
         if (count == 0)
@@ -33,14 +33,14 @@ public static class SliceDecoderExtensions
         else
         {
             decoder.IncreaseCollectionAllocation(count * (Unsafe.SizeOf<TKey>() + Unsafe.SizeOf<TValue>()));
-            TDictionary dict = dictionaryFactory(count);
+            TDictionary dictionary = dictionaryFactory(count);
             for (int i = 0; i < count; ++i)
             {
                 TKey key = keyDecodeFunc(ref decoder);
                 TValue value = valueDecodeFunc(ref decoder);
-                dict.Add(key, value);
+                dictionary.Add(new KeyValuePair<TKey, TValue>(key, value));
             }
-            return dict;
+            return dictionary;
         }
     }
 
@@ -59,7 +59,7 @@ public static class SliceDecoderExtensions
         DecodeFunc<TKey> keyDecodeFunc,
         DecodeFunc<TValue?> valueDecodeFunc)
         where TKey : notnull
-        where TDictionary : IDictionary<TKey, TValue?>
+        where TDictionary : ICollection<KeyValuePair<TKey, TValue?>>
     {
         int count = decoder.DecodeSize();
         if (count == 0)
@@ -81,7 +81,7 @@ public static class SliceDecoderExtensions
                 bool hasValue = decoder.DecodeBool(); // simplified bit sequence
                 TKey key = keyDecodeFunc(ref decoder);
                 TValue? value = hasValue ? valueDecodeFunc(ref decoder) : default;
-                dictionary.Add(key, value);
+                dictionary.Add(new KeyValuePair<TKey, TValue?>(key, value));
             }
             return dictionary;
         }
@@ -153,7 +153,7 @@ public static class SliceDecoderExtensions
     public static TSequence DecodeSequence<TSequence, TElement>(
         this ref SliceDecoder decoder,
         Func<int, TSequence> sequenceFactory,
-        DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
+        DecodeFunc<TElement> decodeFunc) where TSequence : ICollection<TElement>
     {
         int count = decoder.DecodeSize();
         if (count == 0)
@@ -209,7 +209,7 @@ public static class SliceDecoderExtensions
     public static TSequence DecodeSequenceOfOptionals<TSequence, TElement>(
         this ref SliceDecoder decoder,
         Func<int, TSequence> sequenceFactory,
-        DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
+        DecodeFunc<TElement> decodeFunc) where TSequence : ICollection<TElement>
     {
         int count = decoder.DecodeSize();
         if (count == 0)

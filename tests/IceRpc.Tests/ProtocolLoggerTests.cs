@@ -6,6 +6,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Coloc;
 using IceRpc.Transports.Slic;
 using NUnit.Framework;
+using System.Buffers;
 using System.Net;
 using System.Net.Security;
 
@@ -14,27 +15,31 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class ProtocolLoggerTests
 {
-    [Test]
-    public async Task Log_connection_accepted_and_connection_connected()
+    private static List<Protocol> Protocols => new() { Protocol.IceRpc, Protocol.Ice };
+
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Log_connection_accepted_and_connection_connected(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"icerpc://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             dispatcher: ServiceNotFoundDispatcher.Instance,
             serverAddress,
+            duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
         serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
             serverAddress,
+            duplexClientTransport: colocTransport.ClientTransport,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
-            new ServiceAddress(Protocol.IceRpc)
+            new ServiceAddress(protocol)
             {
                 ServerAddress = serverAddress
             });
@@ -81,17 +86,19 @@ public sealed class ProtocolLoggerTests
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress));
     }
 
-    [Test]
-    public async Task Log_connection_connected_failed()
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Log_connection_connected_failed(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"icerpc://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         await using var server = new Server(
             dispatcher: ServiceNotFoundDispatcher.Instance,
             serverAddress,
+            duplexServerTransport: new ConnectFailDuplexServerTransportDecorator(
+                colocTransport.ServerTransport),
             multiplexedServerTransport: new ConnectFailMultiplexedServerTransportDecorator(
                 new SlicServerTransport(colocTransport.ServerTransport)),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
@@ -99,6 +106,7 @@ public sealed class ProtocolLoggerTests
 
         await using var clientConnection = new ClientConnection(
             serverAddress,
+            duplexClientTransport: colocTransport.ClientTransport,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
 
@@ -126,11 +134,11 @@ public sealed class ProtocolLoggerTests
         Assert.That(entry.Exception, Is.InstanceOf<IceRpcException>());
     }
 
-    [Test]
-    public async Task Log_connection_dispose_without_shutdown()
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Log_connection_dispose_without_shutdown(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"icerpc://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
@@ -138,16 +146,18 @@ public sealed class ProtocolLoggerTests
         await using var server = new Server(
             dispatcher,
             serverAddress,
+            duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
         serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
             serverAddress,
+            duplexClientTransport: colocTransport.ClientTransport,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
         using var request = new OutgoingRequest(
-            new ServiceAddress(Protocol.IceRpc)
+            new ServiceAddress(protocol)
             {
                 ServerAddress = serverAddress
             });
@@ -193,16 +203,17 @@ public sealed class ProtocolLoggerTests
             Is.EqualTo(clientConnectionInformation.RemoteNetworkAddress));
     }
 
-    [Test]
-    public async Task Log_start_stop_accept()
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Log_start_stop_accept(Protocol protocol)
     {
         // Arrange
-        var serverAddress = new ServerAddress(new Uri($"icerpc://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var loggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         var server = new Server(
             dispatcher: ServiceNotFoundDispatcher.Instance,
             serverAddress,
+            duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
             logger: loggerFactory.CreateLogger("IceRpc"));
 
@@ -222,24 +233,26 @@ public sealed class ProtocolLoggerTests
         Assert.That(entry.State["ServerAddress"], Is.EqualTo(serverAddress));
     }
 
-    [Test]
-    public async Task Log_connection_shutdown()
+    [Test, TestCaseSource(nameof(Protocols))]
+    public async Task Log_connection_shutdown(Protocol protocol)
     {
         // Arrange
         var colocTransport = new ColocTransport();
-        var serverAddress = new ServerAddress(new Uri($"icerpc://colochost-{Guid.NewGuid()}"));
+        var serverAddress = new ServerAddress(new Uri($"{protocol}://colochost-{Guid.NewGuid()}"));
         using var serverLoggerFactory = new TestLoggerFactory();
         using var clientLoggerFactory = new TestLoggerFactory();
 
         await using var server = new Server(
             dispatcher: ServiceNotFoundDispatcher.Instance,
             serverAddress,
+            duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
             logger: serverLoggerFactory.CreateLogger("IceRpc"));
         serverAddress = server.Listen();
 
         await using var clientConnection = new ClientConnection(
             serverAddress,
+            duplexClientTransport: colocTransport.ClientTransport,
             multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport),
             logger: clientLoggerFactory.CreateLogger("IceRpc"));
 
@@ -247,7 +260,7 @@ public sealed class ProtocolLoggerTests
 
         {
             using var request = new OutgoingRequest(
-                new ServiceAddress(Protocol.IceRpc)
+                new ServiceAddress(protocol)
                 {
                     ServerAddress = serverAddress
                 });
@@ -295,6 +308,72 @@ public sealed class ProtocolLoggerTests
             Is.EqualTo(clientConnectionInformation.LocalNetworkAddress));
     }
 
+    // A duplex server transport decorators that wraps the listeners it creates with a listener
+    // that creates duplex connections that will fail during connect.
+    internal sealed class ConnectFailDuplexServerTransportDecorator : IDuplexServerTransport
+    {
+        public string Name => _decoratee.Name;
+
+        private readonly IDuplexServerTransport _decoratee;
+
+        internal ConnectFailDuplexServerTransportDecorator(IDuplexServerTransport decoratee) =>
+            _decoratee = decoratee;
+
+        public IListener<IDuplexConnection> Listen(
+            ServerAddress serverAddress,
+            DuplexConnectionOptions options,
+            SslServerAuthenticationOptions? serverAuthenticationOptions)
+        {
+            IListener<IDuplexConnection> listener =
+                _decoratee.Listen(serverAddress, options, serverAuthenticationOptions);
+            return new ConnectFailDuplexConnectionListenerDecorator(listener);
+        }
+    }
+
+    // A duplex listener decorator that wraps the connections it creates with a connection decorator
+    // that will fail to connect
+    private sealed class ConnectFailDuplexConnectionListenerDecorator : IListener<IDuplexConnection>
+    {
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        private readonly IListener<IDuplexConnection> _decoratee;
+
+        public async Task<(IDuplexConnection Connection, EndPoint RemoteNetworkAddress)> AcceptAsync(
+            CancellationToken cancellationToken)
+        {
+            (IDuplexConnection connection, EndPoint remoteNetworkAddress) =
+                await _decoratee.AcceptAsync(cancellationToken);
+            return (new ConnectFailDuplexConnectionDecorator(connection), remoteNetworkAddress);
+        }
+
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
+        internal ConnectFailDuplexConnectionListenerDecorator(IListener<IDuplexConnection> decoratee) =>
+            _decoratee = decoratee;
+    }
+
+    // A duplex connection decorator that always fail to connect
+    private sealed class ConnectFailDuplexConnectionDecorator : IDuplexConnection
+    {
+        private readonly IDuplexConnection _decoratee;
+
+        public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Connect failed.");
+
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
+            _decoratee.ReadAsync(buffer, cancellationToken);
+
+        public Task ShutdownWriteAsync(CancellationToken cancellationToken) =>
+            _decoratee.ShutdownWriteAsync(cancellationToken);
+
+        public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken) =>
+            _decoratee.WriteAsync(buffer, cancellationToken);
+
+        public void Dispose() => _decoratee.Dispose();
+
+        internal ConnectFailDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
+    }
+
     // A multiplexed server transport decorators that wraps the listeners it creates with a listener
     // that creates multiplexed connections that will fail during connect.
     internal sealed class ConnectFailMultiplexedServerTransportDecorator : IMultiplexedServerTransport
@@ -303,7 +382,8 @@ public sealed class ProtocolLoggerTests
 
         private readonly IMultiplexedServerTransport _decoratee;
 
-        internal ConnectFailMultiplexedServerTransportDecorator(IMultiplexedServerTransport decoratee) => _decoratee = decoratee;
+        internal ConnectFailMultiplexedServerTransportDecorator(IMultiplexedServerTransport decoratee) =>
+            _decoratee = decoratee;
 
         public IListener<IMultiplexedConnection> Listen(
             ServerAddress serverAddress,
@@ -353,7 +433,9 @@ public sealed class ProtocolLoggerTests
         public Task CloseAsync(MultiplexedConnectionCloseError closeError, CancellationToken cancellationToken) =>
             _decoratee.CloseAsync(closeError, cancellationToken);
 
-        public ValueTask<IMultiplexedStream> CreateStreamAsync(bool bidirectional, CancellationToken cancellationToken) =>
+        public ValueTask<IMultiplexedStream> CreateStreamAsync(
+            bool bidirectional,
+            CancellationToken cancellationToken) =>
             _decoratee.CreateStreamAsync(bidirectional, cancellationToken);
 
         internal ConnectFailMultiplexedConnectionDecorator(IMultiplexedConnection decoratee) => _decoratee = decoratee;
