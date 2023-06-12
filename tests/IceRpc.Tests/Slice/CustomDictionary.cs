@@ -5,6 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Tests.Slice;
 
+// We define two custom generic dictionaries: CustomDictionary and CustomDictionary2, to test field and parameter
+// mappings. Mapping for a field requires a type that implements IDictionary<TKey, TValue>, while mapping for a
+// parameter requires ICollection<KeyValuePair<TKey, TValue>>.
+
 public class CustomDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : notnull
 {
     private readonly Dictionary<TKey, TValue> _source;
@@ -53,7 +57,7 @@ public class CustomDictionary2<TKey, TValue> : List<KeyValuePair<TKey, TValue>> 
     }
 
     public CustomDictionary2(int size)
-        :base(size)
+        : base(size)
     {
     }
 }
