@@ -497,6 +497,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         DecodeHeader(readResult.Buffer);
                     stream.Input.AdvanceTo(readResult.Buffer.End);
 
+                    if (statusCode == StatusCode.TruncatedPayload && invocationCts.Token.IsCancellationRequested)
+                    {
+                        fieldsPipeReader?.Complete();
+                        invocationCts.Token.ThrowIfCancellationRequested();
+                    }
+
                     var response = new IncomingResponse(
                         request,
                         _connectionContext!,

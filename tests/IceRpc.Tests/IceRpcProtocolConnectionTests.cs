@@ -616,6 +616,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Verifies that canceling the invocation while sending the request payload continuation, completes the
     /// incoming request payload with a <see cref="IceRpcError.TruncatedData"/>.</summary>
     [Test]
+    [Repeat(100_000)]
     public async Task Invocation_cancellation_while_sending_the_payload_continuation_completes_the_input_request_payload()
     {
         // Arrange
@@ -644,16 +645,7 @@ public sealed class IceRpcProtocolConnectionTests
         Assert.That(
             async () => await dispatcher.PayloadReadCompleted,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
-
-        // The invocation either gets canceled or returns a response with the TruncatedPayload status code.
-        try
-        {
-            var response = await invokeTask;
-            Assert.That(response.StatusCode, Is.EqualTo(StatusCode.TruncatedPayload));
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        Assert.That(async () => await invokeTask, Throws.InstanceOf<OperationCanceledException>());
     }
 
     /// <summary>Verifies that canceling the invocation after receiving a response doesn't affect the reading of the
