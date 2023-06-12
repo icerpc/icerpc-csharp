@@ -168,6 +168,7 @@ pub trait EntityExt: Entity {
 
 impl<T: Entity + ?Sized> EntityExt for T {}
 
+// Unit tests for the `get_formatted_link` function.
 #[cfg(test)]
 mod formatted_link_tests {
     use super::EntityExt;
@@ -181,7 +182,7 @@ mod formatted_link_tests {
     }
 
     #[test]
-    fn interface_unscoped() {
+    fn unqualified_interface() {
         // Arrange
         let slice = "
             module Test
@@ -199,7 +200,7 @@ mod formatted_link_tests {
     }
 
     #[test]
-    fn interface_scoped() {
+    fn qualified_interface() {
         // Arrange
         let slice = "
             module Test
@@ -217,7 +218,7 @@ mod formatted_link_tests {
     }
 
     #[test]
-    fn operation_unscoped() {
+    fn unqualified_operation() {
         // Arrange
         let slice = "
             module Test
@@ -237,7 +238,7 @@ mod formatted_link_tests {
     }
 
     #[test]
-    fn operation_scoped() {
+    fn qualified_operation() {
         // Arrange
         let slice = "
             module Test
@@ -256,8 +257,9 @@ mod formatted_link_tests {
         assert_eq!(operation_link, expected);
     }
 
+    // Parameters can only be linked to in their operation's doc comment, so there's no need to qualified links.
     #[test]
-    fn parameter_unscoped() {
+    fn unqualified_parameter() {
         // Arrange
         let slice = "
             module Test
@@ -277,7 +279,7 @@ mod formatted_link_tests {
     }
 
     #[test]
-    fn enumerator_unscoped() {
+    fn unqualified_enumerator() {
         // Arrange
         let slice = "
             module Test
@@ -297,7 +299,7 @@ mod formatted_link_tests {
     }
 
     #[test]
-    fn enumerator_scoped() {
+    fn qualified_enumerator() {
         // Arrange
         let slice = "
             module Test
@@ -318,7 +320,7 @@ mod formatted_link_tests {
 
     // All other Slice types share the same code path, so testing structs is sufficient for testing everything else.
     #[test]
-    fn generic_unscoped() {
+    fn unqualified_generic() {
         // Arrange
         let slice = "
             module Test
@@ -337,7 +339,7 @@ mod formatted_link_tests {
 
     // All other Slice types share the same code path, so testing structs is sufficient for testing everything else.
     #[test]
-    fn generic_scoped() {
+    fn qualified_generic() {
         // Arrange
         let slice = "
             module Test
