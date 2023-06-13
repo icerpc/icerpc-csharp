@@ -73,7 +73,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
             await _decoratee.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 
             // After each successful write, we schedule one ping (keep alive or heartbeat) at _writeIdleTimeout / 2 in
-            // the future.  Since each ping is itself a write, if there is no application activity at all, we'll send
+            // the future. Since each ping is itself a write, if there is no application activity at all, we'll send
             // successive pings at _writeIdleTimeout / 2 intervals.
             ScheduleKeepAlive();
         }
