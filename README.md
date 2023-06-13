@@ -52,7 +52,7 @@ string greeting = greeterProxy.Greet(name);
 ```
 
 ```csharp
-// Asynchronous code with await
+// Asynchronous code with await (modern RPC style)
 
 // We see it's a special call thanks to await and the Async suffix. GreetAsync releases the thread while waiting for 
 // the response from the peer and it's just as easy to write as the synchronous version.
