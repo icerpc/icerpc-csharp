@@ -4,5 +4,5 @@
 module WellKnownTypes
 
 /// Represents a Uniform Resource Identifier (URI), encoded as a string.
-[cs::custom("System.Uri")]
+[cs::type("System.Uri")]
 custom Uri

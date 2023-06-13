@@ -7,5 +7,5 @@ module WellKnownTypes
 
 /// Represents the address of an RPC service that can be called using ice or icerpc. This service address can be
 /// encoded with either Slice1 or Slice2.
-[cs::custom("IceRpc.ServiceAddress")]
+[cs::type("IceRpc.ServiceAddress")]
 custom ServiceAddress
