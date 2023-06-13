@@ -2,6 +2,7 @@
 
 using IceRpc;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text.Json;
 using VisitorCenter;
@@ -15,36 +16,27 @@ internal class Chatbot : IDispatcher
         IncomingRequest request,
         CancellationToken cancellationToken)
     {
-        if (request.Operation == "Greet")
+        if (request.Operation == "greet")
         {
-            ReadResult readResult;
-            while (true)
+            ReadResult readResult = await request.Payload.ReadAtLeastAsync(int.MaxValue, cancellationToken);
+            Debug.Assert(readResult.IsCompleted);
+
+            GreetRequest greetRequest = DecodeGreetRequest(readResult.Buffer);
+            request.Payload.Complete();
+            Console.WriteLine($"Dispatching Greet request {{ name = '{greetRequest.Name}' }}");
+
+            var pipe = new Pipe();
+            using var jsonWriter = new Utf8JsonWriter(pipe.Writer);
+            JsonSerializer.Serialize(
+                jsonWriter,
+                new GreetResponse { Greeting = $"Hello, {greetRequest.Name}!" });
+            pipe.Writer.Complete();
+
+            return new OutgoingResponse(request)
             {
-                readResult = await request.Payload.ReadAsync(cancellationToken);
-                if (readResult.IsCompleted)
-                {
-                    GreetRequest greetRequest = DecodeGreetRequest(readResult.Buffer);
-                    await request.Payload.CompleteAsync();
-                    Console.WriteLine($"Dispatching Greet request {{ name = '{greetRequest.Name}' }}");
-
-                    var pipe = new Pipe();
-                    using var jsonWriter = new Utf8JsonWriter(pipe.Writer);
-                    JsonSerializer.Serialize(
-                        jsonWriter,
-                        new GreetResponse { Greeting = $"Hello, {greetRequest.Name}!" });
-                    pipe.Writer.Complete();
-
-                    return new OutgoingResponse(request)
-                    {
-                        // Create a PipeReader from the Json message.
-                        Payload = pipe.Reader
-                    };
-                }
-                else
-                {
-                    request.Payload.AdvanceTo(readResult.Buffer.Start);
-                }
-            }
+                // Use the PipeReader holding the JSON message as the response payload.
+                Payload = pipe.Reader
+            };
         }
         else
         {
@@ -55,11 +47,8 @@ internal class Chatbot : IDispatcher
         static GreetRequest DecodeGreetRequest(ReadOnlySequence<byte> buffer)
         {
             var jsonReader = new Utf8JsonReader(buffer);
-            if (JsonSerializer.Deserialize(ref jsonReader, typeof(GreetRequest)) is not GreetRequest greetRequest)
-            {
-                throw new InvalidDataException("unable to decode GreetRequest");
-            }
-            return greetRequest;
+            return JsonSerializer.Deserialize(ref jsonReader, typeof(GreetRequest)) is GreetRequest greetRequest ?
+                greetRequest : throw new InvalidDataException($"Unable to decode {nameof(GreetRequest)}.");
         }
     }
 }

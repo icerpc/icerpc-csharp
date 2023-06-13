@@ -53,7 +53,7 @@ Slice definitions or generated code.
 
 ### [GreeterJson](./GreeterJson/)
 
-The GreeterJson example uses Json instead of Slice to encode the payloads of requests and responses.
+The GreeterJson example uses JSON instead of Slice to encode the payloads of requests and responses.
 
 ### [GreeterLog](./GreeterLog/)
 

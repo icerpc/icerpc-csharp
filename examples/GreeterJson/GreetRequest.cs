@@ -2,4 +2,4 @@
 
 namespace VisitorCenter;
 
-internal record struct  GreetRequest (string Name);
+public record struct GreetRequest(string Name);

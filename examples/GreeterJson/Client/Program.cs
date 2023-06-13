@@ -2,6 +2,7 @@
 
 using IceRpc;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text.Json;
 using VisitorCenter;
@@ -25,8 +26,8 @@ async Task<string> GreetAsync(string name)
     // Construct an outgoing request to the icerpc:/greeter service.
     using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/greeter")))
     {
-        Operation = "Greet",
-        // The PipeReader to read the Json message.
+        Operation = "greet",
+        // Use the PipeReader holding the JSON message as the request payload.
         Payload = pipe.Reader
     };
 
@@ -35,21 +36,11 @@ async Task<string> GreetAsync(string name)
 
     if (response.StatusCode == StatusCode.Success)
     {
-        ReadResult readResult;
-        while (true)
-        {
-            readResult = await response.Payload.ReadAsync();
-            if (readResult.IsCompleted)
-            {
-                GreetResponse greeterResponse = DecodeResponse(readResult.Buffer);
-                await response.Payload.CompleteAsync();
-                return greeterResponse.Greeting;
-            }
-            else
-            {
-                response.Payload.AdvanceTo(readResult.Buffer.Start);
-            }
-        }
+        ReadResult readResult = await response.Payload.ReadAtLeastAsync(int.MaxValue);
+        Debug.Assert(readResult.IsCompleted);
+        GreetResponse greeterResponse = DecodeResponse(readResult.Buffer);
+        response.Payload.Complete();
+        return greeterResponse.Greeting;
     }
     else
     {
@@ -60,10 +51,7 @@ async Task<string> GreetAsync(string name)
     static GreetResponse DecodeResponse(ReadOnlySequence<byte> buffer)
     {
         var jsonReader = new Utf8JsonReader(buffer);
-        if (JsonSerializer.Deserialize(ref jsonReader, typeof(GreetResponse)) is not GreetResponse greetResponse)
-        {
-            throw new InvalidDataException("unable to decode GreetResponse");
-        }
-        return greetResponse;
+        return JsonSerializer.Deserialize(ref jsonReader, typeof(GreetResponse)) is GreetResponse greetResponse ?
+            greetResponse : throw new InvalidDataException($"Unable to decode {nameof(GreetResponse)}.");
     }
 }
