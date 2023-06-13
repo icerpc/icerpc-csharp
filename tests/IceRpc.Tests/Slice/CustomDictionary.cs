@@ -49,15 +49,3 @@ public class CustomDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TK
     IEnumerator IEnumerable.GetEnumerator() => _source.GetEnumerator();
     bool IDictionary<TKey, TValue>.Remove(TKey key) => _source.Remove(key);
 }
-
-public class CustomDictionary2<TKey, TValue> : List<KeyValuePair<TKey, TValue>> where TKey : notnull
-{
-    public CustomDictionary2()
-    {
-    }
-
-    public CustomDictionary2(int size)
-        : base(size)
-    {
-    }
-}

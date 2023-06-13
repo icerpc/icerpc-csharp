@@ -3,7 +3,7 @@
 encoding = Slice1
 module IceRpc::Tests::Slice
 
-[cs::custom("MyCustomType")]
+[cs::type("MyCustomType")]
 custom CustomType
 
 compact struct StructWithCustomTypeField {

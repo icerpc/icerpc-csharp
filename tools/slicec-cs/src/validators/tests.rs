@@ -154,13 +154,14 @@ fn bad_attribute_on_type_ref_fails() {
     check_diagnostics(diagnostics, [expected]);
 }
 
+#[test]
 fn cs_type_on_custom_type() {
     // Arrange
     let slice = format!(
         "
         module Test
         [cs::type(\"MyType\")]
-        custom S;
+        custom S
         "
     );
 
@@ -188,7 +189,7 @@ fn cs_type_on_invalid_type_ref_fail() {
     // Arrange
     let slice = "
         module Test
-        typealias S = [cs::generic(\"SomeGeneric\")] string
+        typealias S = [cs::type(\"SomeGeneric\")] string
     ";
 
     // Act
@@ -196,7 +197,7 @@ fn cs_type_on_invalid_type_ref_fail() {
 
     // Assert
     let expected = Diagnostic::new(Error::UnexpectedAttribute {
-        attribute: cs_attributes::GENERIC.to_owned(),
+        attribute: cs_attributes::TYPE.to_owned(),
     });
 
     check_diagnostics(diagnostics, [expected]);
