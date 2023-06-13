@@ -110,6 +110,26 @@ compact struct CloseBody {
     applicationErrorCode: varuint62
 }
 
+/// Represents a 64-bit opaque data value.
+[cs::custom("long")]
+custom OpaqueData
+
+/// The {@link FrameType::Ping} frame body.
+[cs::internal]
+[cs::readonly]
+compact struct PingBody {
+    /// An opaque payload that will be returned by the {@link FrameType::Pong} frame.
+    payload: OpaqueData
+}
+
+/// The {@link FrameType::Pong} frame body.
+[cs::internal]
+[cs::readonly]
+compact struct PongBody {
+    /// The opaque payload from the {@link FrameType::Ping} frame.
+    payload: OpaqueData
+}
+
 /// The {@link FrameType::StreamConsumed} frame body.
 [cs::internal]
 [cs::readonly]
