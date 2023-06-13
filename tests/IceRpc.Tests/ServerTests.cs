@@ -30,7 +30,7 @@ public class ServerTests
     [Test]
     public async Task Cannot_call_listen_twice()
     {
-        await using var server = new Server(ServiceNotFoundDispatcher.Instance);
+        await using var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
 
         Assert.Throws<InvalidOperationException>(() => server.Listen());
