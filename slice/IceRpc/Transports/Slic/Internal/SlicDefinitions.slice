@@ -110,7 +110,7 @@ compact struct CloseBody {
     applicationErrorCode: varuint62
 }
 
-/// Represents a 64-bit opaque value.
+/// Represents a 64-bit opaque data value.
 [cs::custom("long")]
 custom OpaqueData
 

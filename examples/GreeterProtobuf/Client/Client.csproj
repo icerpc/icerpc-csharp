@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
+    <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
+  </PropertyGroup>
   <ItemGroup>
     <Protobuf Include="../proto/greeter.proto" GrpcServices="None" OutputDir="obj/generated" />
-
     <PackageReference Include="Google.Protobuf" Version="3.23.2" />
     <!-- We use Grpc.Tools because Google.Protobuf.Tools does not provide MSBuild support -->
     <PackageReference Include="Grpc.Tools" Version="2.54.0" PrivateAssets="All" />

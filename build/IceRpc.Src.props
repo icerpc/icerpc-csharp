@@ -6,6 +6,9 @@
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
+        <!-- Symbol Packages -->
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
     <Import Project="$(MSBuildThisFileDirectory)Common.props" />
 </Project>
