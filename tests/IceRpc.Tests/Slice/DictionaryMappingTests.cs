@@ -117,7 +117,7 @@ public class DictionaryMappingTests
     public async Task Operation_returning_a_custom_dictionary2()
     {
         // Arrange
-        var value = new CustomDictionary2<int, int>
+        var value = new List<KeyValuePair<int, int>>()
         {
             new KeyValuePair<int, int>(1, 1),
             new KeyValuePair<int, int>(2, 2),
@@ -131,7 +131,7 @@ public class DictionaryMappingTests
         };
 
         // Act
-        CustomDictionary2<int, int> r = await DictionaryMappingOperationsProxy.Response.DecodeReturnCustomDictionary2Async(
+        List<KeyValuePair<int, int>> r = await DictionaryMappingOperationsProxy.Response.DecodeReturnCustomDictionary2Async(
             response,
             request,
             InvalidProxy.Instance,
@@ -185,7 +185,7 @@ public class DictionaryMappingTests
     public async Task Operation_sending_a_custom_dictionary2()
     {
         // Arrange
-        var value = new CustomDictionary2<int, int>
+        var value = new List<KeyValuePair<int, int>>
         {
             new KeyValuePair<int, int>(1, 1),
             new KeyValuePair<int, int>(2, 2),

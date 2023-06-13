@@ -154,14 +154,14 @@ fn bad_attribute_on_type_ref_fails() {
     check_diagnostics(diagnostics, [expected]);
 }
 
-#[test_case("sequence<int32>"; "sequence")]
-#[test_case("dictionary<int32, int32>"; "dictionary")]
-fn cs_generic(slice_type: &str) {
+#[test]
+fn cs_type_on_custom_type() {
     // Arrange
     let slice = format!(
         "
         module Test
-        typealias S = [cs::generic(\"SomeGeneric\")] {slice_type}
+        [cs::type(\"MyType\")]
+        custom S
         "
     );
 
@@ -171,12 +171,12 @@ fn cs_generic(slice_type: &str) {
 
 #[test_case("sequence<int32>"; "sequence")]
 #[test_case("dictionary<int32, int32>"; "dictionary")]
-fn cs_generic_on_valid_type_ref_parses(slice_type: &str) {
+fn cs_type_on_valid_type_ref(slice_type: &str) {
     // Arrange
     let slice = format!(
         "
         module Test
-        typealias S =  [cs::generic(\"SomeGeneric\")] {slice_type}
+        typealias S = [cs::type(\"MyType\")] {slice_type}
         "
     );
 
@@ -185,11 +185,11 @@ fn cs_generic_on_valid_type_ref_parses(slice_type: &str) {
 }
 
 #[test]
-fn cs_generic_on_invalid_type_ref_fail() {
+fn cs_type_on_invalid_type_ref_fail() {
     // Arrange
     let slice = "
         module Test
-        typealias S = [cs::generic(\"SomeGeneric\")] string
+        typealias S = [cs::type(\"SomeGeneric\")] string
     ";
 
     // Act
@@ -197,7 +197,7 @@ fn cs_generic_on_invalid_type_ref_fail() {
 
     // Assert
     let expected = Diagnostic::new(Error::UnexpectedAttribute {
-        attribute: cs_attributes::GENERIC.to_owned(),
+        attribute: cs_attributes::TYPE.to_owned(),
     });
 
     check_diagnostics(diagnostics, [expected]);

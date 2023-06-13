@@ -56,9 +56,6 @@ impl AttributePatcher<'_> {
                 true => Some(CsAttributeKind::EncodedResult),
                 false => None,
             },
-            cs_attributes::GENERIC => self
-                .single_argument(attribute)
-                .map(|argument| CsAttributeKind::Generic { generic_type: argument }),
             cs_attributes::IDENTIFIER => self
                 .single_argument(attribute)
                 .map(|argument| CsAttributeKind::Identifier { identifier: argument }),
@@ -73,9 +70,9 @@ impl AttributePatcher<'_> {
                 true => Some(CsAttributeKind::Readonly),
                 false => None,
             },
-            cs_attributes::CUSTOM => self
+            cs_attributes::TYPE => self
                 .single_argument(attribute)
-                .map(|argument| CsAttributeKind::Custom { name: argument }),
+                .map(|argument| CsAttributeKind::Type { name: argument }),
             _ => {
                 Diagnostic::new(Error::UnexpectedAttribute {
                     attribute: attribute.directive.to_owned(),
