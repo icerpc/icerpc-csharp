@@ -1,27 +1,25 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{scoped_identifier, EntityExt};
-use convert_case::Case;
 use slicec::grammar::Interface;
 
 pub trait InterfaceExt: EntityExt {
     /// Returns the interface name corresponding to this entity's identifier, without scoping.
     /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
-    /// The name is always prefixed with 'I' and the first letter is always
-    /// capitalized.
+    /// The name is always prefixed with 'I' and the first letter is always capitalized.
     fn interface_name(&self) -> String {
-        format!("I{}", self.cs_identifier(Case::Pascal))
+        self.escape_identifier_with_prefix("I")
     }
 
     /// The name of the generated C# service interface for this Slice interface.
     /// eg. If the Slice interface is `Foo`, the C# service interface is `IFooService`.
     fn service_name(&self) -> String {
-        self.interface_name() + "Service"
+        self.escape_identifier_with_prefix_and_suffix("I", "Service")
     }
 
     /// Name of the generated proxy struct, e.g. if the Slice interface is `Foo`, the C# proxy is struct `FooProxy`.
     fn proxy_name(&self) -> String {
-        self.cs_identifier(Case::Pascal) + "Proxy"
+        self.escape_identifier_with_suffix("Proxy")
     }
 
     /// Returns the interface name corresponding to this entity's identifier, fully scoped.
