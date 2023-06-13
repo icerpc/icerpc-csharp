@@ -41,7 +41,7 @@ public class ServerTests
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
     {
-        await using var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        var server = new Server(ServiceNotFoundDispatcher.Instance);
         await server.DisposeAsync();
 
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
