@@ -1,17 +1,20 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{scoped_identifier, InterfaceExt, MemberExt, ModuleExt};
-use crate::cs_attributes::{match_cs_identifier, match_cs_internal, match_cs_readonly};
+use crate::cs_attributes::{CsAttribute, CsIdentifier, CsInternal, CsReadonly};
 use crate::cs_util::{escape_keyword, CsCase};
 use convert_case::Case;
+use slicec::grammar::attributes::Deprecated;
 use slicec::grammar::*;
 
 pub trait EntityExt: Entity {
     // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier
     /// attribute as-is or the Slice identifier formatted with the specified casing.
     fn cs_identifier(&self, case: Case) -> String {
-        self.find_attribute(match_cs_identifier)
-            .unwrap_or_else(|| self.identifier().to_cs_case(case))
+        self.find_attribute::<CsIdentifier>().map_or_else(
+            || self.identifier().to_cs_case(case),
+            |identifier_attribute| identifier_attribute.identifier.clone(),
+        )
     }
 
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -93,11 +96,10 @@ pub trait EntityExt: Entity {
     }
 
     fn obsolete_attribute(&self) -> Option<String> {
-        self.get_deprecation().map(|attribute| {
-            let reason = if let Some(argument) = attribute {
-                argument
-            } else {
-                format!("This {} has been deprecated", self.kind())
+        self.find_attribute::<Deprecated>().map(|attribute| {
+            let reason = match &attribute.reason {
+                Some(reason) => reason.clone(),
+                None => format!("This {} has been deprecated", self.kind()),
             };
             format!(r#"global::System.Obsolete("{reason}")"#)
         })
@@ -116,7 +118,7 @@ pub trait EntityExt: Entity {
     /// The C# access modifier to use. Returns "internal" if this entity has the cs::internal
     /// attribute otherwise returns "public".
     fn access_modifier(&self) -> &str {
-        match self.has_attribute(match_cs_internal) {
+        match self.has_attribute::<CsInternal>() {
             true => "internal",
             false => "public",
         }
@@ -125,10 +127,18 @@ pub trait EntityExt: Entity {
     /// Returns the C# modifiers for this entity.
     fn modifiers(&self) -> String {
         let mut modifiers = self.access_modifier().to_owned();
-        if self.has_attribute(match_cs_readonly) {
+        if self.has_attribute::<CsReadonly>() {
             modifiers += " readonly";
         }
         modifiers
+    }
+
+    /// Returns a vector of C# attributes applied to this entity with `cs::attribute`.
+    fn cs_attributes(&self) -> Vec<String> {
+        self.find_attributes::<CsAttribute>()
+            .into_iter()
+            .map(|a| a.attribute.clone())
+            .collect()
     }
 
     /// Returns a C# link tag that points to this entity from the provided namespace

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-mod attribute_patcher;
 mod builders;
 mod comments;
 mod cs_attributes;
@@ -13,7 +12,9 @@ mod encoding;
 mod generators;
 mod member_util;
 mod slicec_ext;
-mod validators;
+
+#[cfg(test)]
+mod attribute_tests;
 
 use crate::cs_options::CsOptions;
 use clap::Parser;

@@ -1,10 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
-use slicec::grammar::{Attributable, Contained, Field, Member};
+use slicec::grammar::{Contained, Field, Member};
 use slicec::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
@@ -21,7 +20,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
         .cs_type_string(&field.namespace(), TypeContext::Field, false);
     let mut prelude = CodeBlock::default();
 
-    let attributes = field.attributes().into_iter().filter_map(match_cs_attribute);
+    let attributes = field.cs_attributes();
 
     for comment_tag in field.formatted_doc_comment() {
         prelude.writeln(&comment_tag)

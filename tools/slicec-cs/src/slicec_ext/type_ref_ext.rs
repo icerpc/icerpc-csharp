@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{EntityExt, InterfaceExt, PrimitiveExt};
-use crate::cs_attributes::match_cs_type;
+use crate::cs_attributes::{CsCustom, CsGeneric};
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::TypeContext;
 
@@ -30,14 +30,15 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
             TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_name(namespace),
             TypeRefs::CustomType(custom_type_ref) => {
-                custom_type_ref.definition().find_attribute(match_cs_type).unwrap()
+                let attribute = custom_type_ref.definition().find_attribute::<CsCustom>();
+                attribute.unwrap().type_string.clone()
             }
             TypeRefs::Sequence(sequence_ref) => {
                 // For readonly sequences of fixed size numeric elements the mapping is the
                 // same for optional an non optional types.
                 if context == TypeContext::Encode
                     && sequence_ref.has_fixed_size_numeric_elements()
-                    && !self.has_attribute(match_cs_type)
+                    && !self.has_attribute::<CsGeneric>()
                 {
                     ignore_optional = true;
                 }
@@ -61,19 +62,19 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
         .element_type
         .cs_type_string(namespace, TypeContext::Nested, false);
 
-    let cs_type = sequence_ref.find_attribute(match_cs_type);
+    let generic_attribute = sequence_ref.find_attribute::<CsGeneric>();
 
     match context {
         TypeContext::Field | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IList<{element_type}>")
         }
-        TypeContext::Decode => match cs_type {
-            Some(arg) => arg,
+        TypeContext::Decode => match generic_attribute {
+            Some(arg) => format!("{}<{element_type}>", arg.type_string),
             None => format!("{element_type}[]"),
         },
         TypeContext::Encode => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
-            if sequence_ref.has_fixed_size_numeric_elements() && cs_type.is_none() {
+            if sequence_ref.has_fixed_size_numeric_elements() && generic_attribute.is_none() {
                 format!("global::System.ReadOnlyMemory<{element_type}>")
             } else {
                 format!("global::System.Collections.Generic.IEnumerable<{element_type}>")
@@ -91,14 +92,14 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
         .value_type
         .cs_type_string(namespace, TypeContext::Nested, false);
 
-    let cs_type = dictionary_ref.find_attribute(match_cs_type);
+    let generic_attribute = dictionary_ref.find_attribute::<CsGeneric>();
 
     match context {
         TypeContext::Field | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IDictionary<{key_type}, {value_type}>")
         }
-        TypeContext::Decode => match cs_type {
-            Some(arg) => arg,
+        TypeContext::Decode => match generic_attribute {
+            Some(arg) => format!("{}<{key_type}, {value_type}>", arg.type_string),
             None => format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>"),
         },
         TypeContext::Encode =>
