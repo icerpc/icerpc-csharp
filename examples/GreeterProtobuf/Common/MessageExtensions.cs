@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace Google.Protobuf;
@@ -17,4 +18,7 @@ public static class MessageExtensions
         stream.Seek(0, SeekOrigin.Begin);
         message.MergeFrom(stream);
     }
+
+    public static PipeReader ToPipeReader(this IMessage message) =>
+        PipeReader.Create(new ReadOnlySequence<byte>(message.ToByteArray()));
 }

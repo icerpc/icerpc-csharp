@@ -23,9 +23,7 @@ internal class Chatbot : IDispatcher
             return new OutgoingResponse(request)
                 {
                     // Create a PipeReader from the Protobuf message.
-                    Payload = PipeReader.Create(
-                            new ReadOnlySequence<byte>(
-                                new GreetResponse { Greeting = $"Hello, {greetRequest.Name}!" }.ToByteArray()))
+                    Payload = new GreetResponse { Greeting = $"Hello, {greetRequest.Name}!" }.ToPipeReader()
                 };
         }
         else

@@ -22,8 +22,7 @@ async Task<string> GreetAsync(string name)
         Operation = "Greet", // the rpc name in the proto file
 
         // Create a PipeReader from the Protobuf message.
-        Payload = PipeReader.Create(
-            new ReadOnlySequence<byte>(new GreetRequest { Name = name }.ToByteArray()))
+        Payload = new GreetRequest { Name = name }.ToPipeReader()
     };
 
     // Make the invocation: we send the request using the connection and then wait for the response.
