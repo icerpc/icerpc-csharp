@@ -9,21 +9,21 @@ interface DictionaryMappingOperations {
 
     sendDictionary(p: dictionary<int32, int32>)
 
-    // We don't need to add tests for other cs::generic arguments because the code path is always the same. The argument
-    // must be a non-abstract generic type that implements IDictionary<TKey, TValue> and provides a constructor with an
-    // initial capacity parameter.
+    // We don't need to add tests for other cs::type arguments because the code path is always the same. The argument
+    // must be a non-abstract generic type that implements ICollection<KeyValuePair<TKey, TValue>> and provides a
+    // constructor with an initial capacity parameter.
     returnCustomDictionaryTuple() -> (
-        r1: [cs::generic("CustomDictionary")] dictionary<int32, int32>
-        r2: [cs::generic("CustomDictionary")] dictionary<int32, int32>
+        r1: [cs::type("CustomDictionary<int, int>")] dictionary<int32, int32>
+        r2: [cs::type("CustomDictionary<int, int>")] dictionary<int32, int32>
     )
 
-    returnCustomDictionary() -> [cs::generic("CustomDictionary")] dictionary<int32, int32>
+    returnCustomDictionary() -> [cs::type("CustomDictionary<int, int>")] dictionary<int32, int32>
 
-    sendCustomDictionary(p: [cs::generic("CustomDictionary")] dictionary<int32, int32>)
+    sendCustomDictionary(p: [cs::type("CustomDictionary<int, int>")] dictionary<int32, int32>)
 
-    returnCustomDictionary2() -> [cs::generic("CustomDictionary2")] dictionary<int32, int32>
+    returnCustomDictionary2() -> [cs::type("List<KeyValuePair<int, int>>")] dictionary<int32, int32>
 
-    sendCustomDictionary2(p: [cs::generic("CustomDictionary2")] dictionary<int32, int32>)
+    sendCustomDictionary2(p: [cs::type("List<KeyValuePair<int, int>>")] dictionary<int32, int32>)
 }
 
 [cs::readonly] compact struct LargeStruct {
@@ -37,5 +37,5 @@ interface DictionaryMappingOperations {
 }
 
 compact struct StructWithCustomDictionary {
-    value: [cs::generic("CustomDictionary")] dictionary<int32, int32>
+    value: [cs::type("CustomDictionary<int, int>")] dictionary<int32, int32>
 }

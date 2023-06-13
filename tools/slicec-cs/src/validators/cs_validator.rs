@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::cs_attributes::{self, match_cs_custom, CsAttributeKind};
+use crate::cs_attributes::{self, match_cs_type, CsAttributeKind};
 use slicec::compilation_state::CompilationState;
 use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
 use slicec::grammar::*;
@@ -33,8 +33,8 @@ fn get_cs_attributes(attributable: &impl Attributable) -> impl Iterator<Item = (
 
 fn report_unexpected_attribute(attribute: &CsAttributeKind, span: &Span, diagnostic_reporter: &mut DiagnosticReporter) {
     let note = match attribute {
-        CsAttributeKind::Generic { .. } => {
-            Some("the cs::generic attribute can only be applied to sequences and dictionaries")
+        CsAttributeKind::Type { .. } => {
+            Some("the cs::type attribute can only be applied to sequences, dictionaries, and custom types")
         }
         _ => None,
     };
@@ -168,10 +168,10 @@ impl Visitor for CsValidator<'_> {
     }
 
     fn visit_custom_type(&mut self, custom_type: &CustomType) {
-        // We require 'cs::custom' on custom types to know how to encode/decode it.
-        if !custom_type.has_attribute(match_cs_custom) {
+        // We require 'cs::type' on custom types to know how to encode/decode it.
+        if !custom_type.has_attribute(match_cs_type) {
             Diagnostic::new(Error::MissingRequiredAttribute {
-                attribute: cs_attributes::CUSTOM.to_owned(),
+                attribute: cs_attributes::TYPE.to_owned(),
             })
             .set_span(custom_type.span())
             .report(self.diagnostic_reporter);
@@ -179,7 +179,7 @@ impl Visitor for CsValidator<'_> {
 
         for (attribute, span) in get_cs_attributes(custom_type) {
             match attribute {
-                CsAttributeKind::Custom { .. } => {}
+                CsAttributeKind::Type { .. } => {}
                 _ => validate_common_attributes(attribute, span, self.diagnostic_reporter),
             }
         }
@@ -215,7 +215,7 @@ impl Visitor for CsValidator<'_> {
     fn visit_type_ref(&mut self, type_ref: &TypeRef) {
         for (attribute, span) in get_cs_attributes(type_ref) {
             match attribute {
-                CsAttributeKind::Generic { .. }
+                CsAttributeKind::Type { .. }
                     if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) => {}
                 _ => report_unexpected_attribute(attribute, span, self.diagnostic_reporter),
             }

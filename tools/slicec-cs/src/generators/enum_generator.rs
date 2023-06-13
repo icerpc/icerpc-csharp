@@ -52,7 +52,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
         writeln!(
             declaration,
             "{} = {},",
-            enumerator.cs_identifier(Case::Pascal),
+            enumerator.escape_identifier(),
             enumerator.value()
         );
 

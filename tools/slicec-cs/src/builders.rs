@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::comments::CommentTag;
-use crate::cs_attributes::match_cs_generic;
+use crate::cs_attributes::match_cs_type;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
@@ -321,7 +321,7 @@ impl FunctionBuilder {
                     // can use 'null' as the default value, which makes it clear what the default is.
                     TypeRefs::Sequence(sequence_ref)
                         if sequence_ref.has_fixed_size_numeric_elements()
-                            && !sequence_ref.has_attribute(match_cs_generic) =>
+                            && !sequence_ref.has_attribute(match_cs_type) =>
                     {
                         Some("default")
                     }
