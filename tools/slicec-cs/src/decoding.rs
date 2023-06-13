@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{Builder, FunctionCallBuilder};
-use crate::cs_attributes::CsGeneric;
+use crate::cs_attributes::CsType;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use convert_case::Case;
@@ -200,9 +200,9 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
     let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
 
-    let has_generic_attribute = sequence_ref.has_attribute::<CsGeneric>();
+    let has_cs_type_attribute = sequence_ref.has_attribute::<CsType>();
 
-    if !has_generic_attribute && matches!(element_type.concrete_type(), Types::Sequence(_)) {
+    if !has_cs_type_attribute && matches!(element_type.concrete_type(), Types::Sequence(_)) {
         // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
         // used in the request and response decode methods.
         write!(
@@ -212,7 +212,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
         );
     };
 
-    if has_generic_attribute {
+    if has_cs_type_attribute {
         let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive)
                 if primitive.is_numeric_or_bool()

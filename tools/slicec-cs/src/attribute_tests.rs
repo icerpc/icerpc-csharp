@@ -156,16 +156,14 @@ mod attributes {
         check_diagnostics(diagnostics, [expected]);
     }
 
-    #[test_case("sequence<int32>"; "sequence")]
-    #[test_case("dictionary<int32, int32>"; "dictionary")]
-    fn cs_generic(slice_type: &str) {
+    #[test]
+    fn cs_type_on_custom_type() {
         // Arrange
-        let slice = format!(
-            "
+        let slice = "
             module Test
-            typealias S = [cs::generic(\"SomeGeneric\")] {slice_type}
-            "
-        );
+            [cs::type(\"MyType\")]
+            custom S
+        ";
 
         // Act / Assert
         assert_parses(slice);
@@ -173,12 +171,12 @@ mod attributes {
 
     #[test_case("sequence<int32>"; "sequence")]
     #[test_case("dictionary<int32, int32>"; "dictionary")]
-    fn cs_generic_on_valid_type_ref_parses(slice_type: &str) {
+    fn cs_type_on_valid_type_ref(slice_type: &str) {
         // Arrange
         let slice = format!(
             "
             module Test
-            typealias S =  [cs::generic(\"SomeGeneric\")] {slice_type}
+            typealias S = [cs::type(\"MyType\")] {slice_type}
             "
         );
 
@@ -187,11 +185,11 @@ mod attributes {
     }
 
     #[test]
-    fn cs_generic_on_invalid_type_ref_fail() {
+    fn cs_type_on_invalid_type_ref_fail() {
         // Arrange
         let slice = "
             module Test
-            typealias S = [cs::generic(\"SomeGeneric\")] string
+            typealias S = [cs::type(\"MyType\")] string
         ";
 
         // Act
@@ -199,7 +197,7 @@ mod attributes {
 
         // Assert
         let expected = Diagnostic::new(Error::UnexpectedAttribute {
-            attribute: CsGeneric::directive().to_owned(),
+            attribute: CsType::directive().to_owned(),
         });
 
         check_diagnostics(diagnostics, [expected]);

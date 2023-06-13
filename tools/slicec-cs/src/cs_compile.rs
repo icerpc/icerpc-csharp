@@ -13,18 +13,17 @@ pub unsafe fn cs_patcher(compilation_state: &mut CompilationState) {
         "cs::",
         CsAttribute,
         CsEncodedResult,
-        CsGeneric,
         CsIdentifier,
         CsInternal,
         CsNamespace,
         CsReadonly,
-        CsCustom,
+        CsType,
     );
     compilation_state.apply_unsafe(attribute_patcher);
 }
 
 pub fn cs_validator(compilation_state: &mut CompilationState) {
-    compilation_state.apply(ensure_custom_types_have_custom_attribute);
+    compilation_state.apply(ensure_custom_types_have_type_attribute);
     compilation_state.apply(check_for_unique_names);
 }
 
@@ -48,13 +47,13 @@ fn check_for_unique_names(compilation_state: &mut CompilationState) {
     }
 }
 
-fn ensure_custom_types_have_custom_attribute(compilation_state: &mut CompilationState) {
+fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationState) {
     for node in compilation_state.ast.as_slice() {
         if let Node::CustomType(custom_type_ptr) = node {
             let custom_type = custom_type_ptr.borrow();
-            if !custom_type.has_attribute::<CsCustom>() {
+            if !custom_type.has_attribute::<CsType>() {
                 Diagnostic::new(Error::MissingRequiredAttribute {
-                    attribute: CsCustom::directive().to_owned(),
+                    attribute: CsType::directive().to_owned(),
                 })
                 .set_span(custom_type.span())
                 .report(&mut compilation_state.diagnostic_reporter);
