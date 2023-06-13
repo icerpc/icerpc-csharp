@@ -7,5 +7,5 @@ module Ice
 
 /// The path of a service, encoded as an Ice identity. Use this type when converting an Ice::Identity parameter or field
 /// in an .ice file into the equivalent parameter or field in .slice syntax.
-[cs::custom("string")]
+[cs::type("string")]
 custom IdentityPath

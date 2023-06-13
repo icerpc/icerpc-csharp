@@ -111,7 +111,7 @@ compact struct CloseBody {
 }
 
 /// Represents a 64-bit opaque data value.
-[cs::custom("long")]
+[cs::type("long")]
 custom OpaqueData
 
 /// The {@link FrameType::Ping} frame body.
