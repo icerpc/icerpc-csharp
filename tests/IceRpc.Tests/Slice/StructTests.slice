@@ -18,3 +18,8 @@ compact struct MyCompactStruct {
     i: int32
     j: int32
 }
+
+struct MyStructWithFieldAttributes {
+    [cs::attribute("System.ComponentModel.Description(\"An integer\")")]
+    i: int32,
+}

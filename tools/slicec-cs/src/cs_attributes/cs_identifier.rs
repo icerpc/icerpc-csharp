@@ -26,9 +26,12 @@ impl CsIdentifier {
                 );
                 report_unexpected_attribute(self, span, Some(&note), reporter);
             }
-            Attributables::SliceFile(_) | Attributables::TypeAlias(_) | Attributables::TypeRef(_) => {
-                report_unexpected_attribute(self, span, None, reporter);
-            }
+
+            Attributables::SliceFile(_)
+            | Attributables::CustomType(_)
+            | Attributables::TypeAlias(_)
+            | Attributables::TypeRef(_) => report_unexpected_attribute(self, span, None, reporter),
+
             _ => {}
         }
     }
