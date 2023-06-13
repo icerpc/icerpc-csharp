@@ -83,11 +83,12 @@ flowchart LR
     connection --> dp[dispatch pipeline] -- request --> service -- response --> dp --> connection
 ```
 
-You decide what these pipelines do. If you want to log your requests and responses, add the Logger interceptor
-to your invocation pipeline or the Logger middleware to your dispatch pipeline. If you want to retry automatically 
-failed requests that can be retried, add the Retry interceptor to your invocation pipeline. IceRPC provides a number 
-of interceptors and middleware for compression, deadlines, logging, metrics, OpenTelemetry integration, and more. 
-You can also easily create and install your own interceptor or middleware to customize these pipelines.
+These pipelines intercept your requests and responses and you decide what they do with them. If you want to log 
+your requests and responses, add the Logger interceptor to your invocation pipeline or the Logger middleware to
+your dispatch pipeline. If you want to retry automatically  failed requests that can be retried, add the Retry 
+interceptor to your invocation pipeline. IceRPC provides a number of interceptors and middleware for compression, 
+deadlines, logging, metrics, OpenTelemetry integration, and more. You can also easily create and install your own 
+interceptor or middleware to customize these pipelines.
 
 Since all this functionality is optional and not hard-coded in the IceRPC core, you can choose exactly the behavior you
 want. For example, you don't need the Compress interceptor if you're not compressing anything: if you don't install this
