@@ -10,9 +10,10 @@ started using a specific feature or programming technique in IceRPC.
   * [GenericHost](#generichost)
   * [Greeter](#greeter)
   * [GreeterCore](#greetercore)
-  * [GreeterQuic](#greeterquic)
+  * [GreeterJson](#greeterjson)
   * [GreeterLog](#greeterlog)
   * [GreeterProtobuf](#greeterprotobuf)
+  * [GreeterQuic](#greeterquic)
   * [Metrics](#metrics)
   * [RequestContext](#requestcontext)
   * [Retry](#retry)
@@ -50,9 +51,9 @@ The Greeter example shows how to create a minimal client and server application 
 The GreeterCore example shows how to create a minimal client and server application using IceRPC's core API--without
 Slice definitions or generated code.
 
-### [GreeterQuic](./GreeterQuic/)
+### [GreeterJson](./GreeterJson/)
 
-The GreeterQuic example is the Greeter example updated to use the QUIC transport instead of the default TCP transport.
+The GreeterJson example uses Json instead of Slice to encode the payloads of requests and responses.
 
 ### [GreeterLog](./GreeterLog/)
 
@@ -61,6 +62,10 @@ The GreeterLog example is the Greeter example updated to include logging.
 ### [GreeterProtobuf](./GreeterProtobuf/)
 
 The GreeterProtobuf example uses Protobuf instead of Slice to encode the payloads of requests and responses.
+
+### [GreeterQuic](./GreeterQuic/)
+
+The GreeterQuic example is the Greeter example updated to use the QUIC transport instead of the default TCP transport.
 
 ### [Interop](./Interop/)
 
