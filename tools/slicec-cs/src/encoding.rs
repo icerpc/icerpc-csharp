@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{Builder, FunctionCallBuilder};
-use crate::cs_attributes::match_cs_generic;
+use crate::cs_attributes::match_cs_type;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use convert_case::Case;
@@ -135,7 +135,7 @@ if ({param} != null)
                     param = match concrete_typeref {
                         TypeRefs::Sequence(sequence_ref)
                             if sequence_ref.has_fixed_size_numeric_elements()
-                                && !sequence_ref.has_attribute(match_cs_generic)
+                                && !sequence_ref.has_attribute(match_cs_type)
                                 && type_context == TypeContext::Encode =>
                             format!("{param}.Span"),
                         _ => param.to_owned(),
@@ -169,7 +169,7 @@ fn encode_tagged_type(
         data_type.concrete_type(),
         Types::Sequence(sequence_def) if sequence_def.has_fixed_size_numeric_elements()
             && type_context == TypeContext::Encode
-            && !data_type.has_attribute(match_cs_generic)
+            && !data_type.has_attribute(match_cs_type)
     );
 
     let value = if data_type.is_value_type() {
@@ -283,7 +283,7 @@ fn encode_sequence(
     encoder_param: &str,
     encoding: Encoding,
 ) -> CodeBlock {
-    if sequence_ref.has_fixed_size_numeric_elements() && !sequence_ref.has_attribute(match_cs_generic) {
+    if sequence_ref.has_fixed_size_numeric_elements() && !sequence_ref.has_attribute(match_cs_type) {
         if type_context == TypeContext::Encode {
             format!("{encoder_param}.EncodeSpan({value}.Span)")
         } else {
