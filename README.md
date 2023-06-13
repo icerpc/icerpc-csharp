@@ -46,18 +46,16 @@ have `Async` APIs that are usually awaited. For example:
 ```csharp
 // Synchronous code
 
-// It's unclear if this is a remote call that takes milliseconds or a local call
-// that takes at most a few microseconds. In any case, this call is holding onto
-// its thread until it completes.
+// It's unclear if this is a remote call that takes milliseconds or a local call that takes at most a few microseconds. 
+// In any case, this call is holding onto its thread until it completes.
 string greeting = greeterProxy.Greet(name);
 ```
 
 ```csharp
 // Asynchronous code with await
 
-// We see it's a special call thanks to await and the Async suffix. GreetAsync
-// releases the thread while waiting for the response from the peer and it's just
-// as easy to write as the synchronous version.
+// We see it's a special call thanks to await and the Async suffix. GreetAsync releases the thread while waiting for 
+// the response from the peer and it's just as easy to write as the synchronous version.
 string greeting = await greeterProxy.GreetAsync(name);
 ```
 
