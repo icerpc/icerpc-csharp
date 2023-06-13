@@ -11,7 +11,7 @@ Like any RPC framework, IceRPC provides two main components:
 compiler that generates C# code from your contract definitions (the Slice language and the Slice compiler)
 
 However, unlike other RPC frameworks, IceRPC does not force you to use its IDL. IceRPC provides a convenient core API
-that you can use to send and and process requests and responses with the IDL and encoding of your choice, including
+that you can use to send and process requests and responses with the IDL and encoding of your choice, including
 [Protobuf][protobuf] and [JSON][json].
 
 ## Built for QUIC
@@ -26,25 +26,25 @@ audio/video streams or streams of sensor data, stock quotes, etc. sharing a netw
 RPCs.
 
 IceRPC uses its own application protocol to exchange connection settings, transmit requests and responses, and ensure
-an orderly shutdown: [`icerpc`][icerpc-protocol]. `icerpc` is a very thin layer over QUIC completely focused on RPCs.
+an orderly shutdown: [`icerpc`][icerpc-protocol]. This new RPC-focused protocol is a very thin layer over QUIC.
 
 ### Not only for QUIC
 
 While QUIC is the driving force for IceRPC's protocol, IceRPC is not limited to communications over QUIC. IceRPC also
 provides a multiplexing adapter that converts any traditional duplex transport into a QUIC-like multiplexed transport:
-Slic. This allows you to use `icerpc` over duplex transports such as TCP, Bluetooth and named pipes[^1].
+[Slic][slic]. This allows you to use `icerpc` over duplex transports such as TCP, Bluetooth and named pipes[^1].
 
 ## Modern C#
 
 IceRPC for C# takes full advantage of the latest C# syntax and features and offers you a truly modern C# API.
 
 Chief among these features is async/await. async/await allows you to utilize threads efficiently when making calls that
-wait for IOs, and RPCs are naturally all about network IOs. async/await also makes your code easier to read and
-maintain: you can see immediately when you make a RPC or when you make a local synchronous call, since all the RPC calls
-have `Async` APIs that are usually awaited. For example:
+wait for IOs, and RPCs are all about network IOs. async/await also makes your code easier to read and maintain: you can 
+see immediately when you make a RPC or when you make a local synchronous call since all RPC calls have `Async` APIs
+that are usually awaited. For example:
 
 ```csharp
-// Synchronous code
+// Synchronous code (old RPC style)
 
 // It's unclear if this is a remote call that takes milliseconds or a local call that takes at most a few microseconds. 
 // In any case, this call is holding onto its thread until it completes.
@@ -79,19 +79,17 @@ and a dispatch pipeline (on the server side):
 title: Invocation and dispatch pipelines
 ---
 flowchart LR
-    app([application code]) -- request --> interceptor -- request --> connection
-    connection -- response --> interceptor -- response --> app
-    connection -- request --> middleware -- request --> service
-    service -- response --> middleware -- response --> connection
+    client -- request --> ip[invocation pipeline] --> connection --> ip -- response --> client
+    connection --> dp[dispatch pipeline] -- request --> service -- response --> dp --> connection
 ```
 
 You decide what these pipelines do. If you want to log your requests and responses, add the Logger interceptor
-(client side) or the Logger middleware (server side). If you want to retry automatically failed requests that can be
-retried, add the Retry interceptor to your invocation pipeline. IceRPC provides a number of interceptors and middleware
-for compression, deadlines, OpenTelemetry integration, metrics and more. You can also easily create and install your own
-interceptor or middleware to customize these pipelines.
+to your invocation pipeline or the Logger middleware to your dispatch pipeline. If you want to retry automatically 
+failed requests that can be retried, add the Retry interceptor to your invocation pipeline. IceRPC provides a number 
+of interceptors and middleware for compression, deadlines, logging, metrics, OpenTelemetry integration, and more. 
+You can also easily create and install your own interceptor or middleware to customize these pipelines.
 
-Since all this functionality is opt-in and not hard-coded in the IceRPC core, you can choose exactly the behavior you
+Since all this functionality is optional and not hard-coded in the IceRPC core, you can choose exactly the behavior you
 want. For example, you don't need the Compress interceptor if you're not compressing anything: if you don't install this
 interceptor, there is no compress code at all. Less code means simpler logic, fewer dependencies, faster execution and
 fewer bugs.
@@ -109,9 +107,9 @@ TBD
 
 ## Ice interop
 
-IceRPC for C# provides a high-level of interoperability with [Ice][zeroc-ice]: you can use IceRPC to write a new C#
+IceRPC for C# provides a high-level of interoperability with [Ice][zeroc-ice]. You can use IceRPC to write a new C#
 client for your Ice server, and you can call services hosted by an IceRPC server from an Ice client.
-See [IceRPC for Ice users][icerpc-for-ice-users] for more information.
+[IceRPC for Ice users][icerpc-for-ice-users] provides all the details.
 
 ## License
 
