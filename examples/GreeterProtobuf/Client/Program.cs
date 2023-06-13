@@ -31,11 +31,8 @@ async Task<string> GreetAsync(string name)
 
     if (response.StatusCode == StatusCode.Success)
     {
-        // Convert the response payload into a stream for decoding with Protobuf.
-        using Stream payloadStream = response.Payload.AsStream();
-
         var greetResponse = new GreetResponse();
-        greetResponse.MergeFrom(payloadStream);
+        await greetResponse.MergeFromAsync(response.Payload);
         return greetResponse.Greeting;
     }
     else
