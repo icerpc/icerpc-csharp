@@ -745,7 +745,10 @@ public class OperationTests
         public ValueTask<PipeReader> OpWithMultipleReturnValuesAndEncodedReturnAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(IMyOperationsAService.Response.EncodeOpWithMultipleReturnValuesAndEncodedReturnAttribute(new int[] { 1, 2, 3 }, new int[] { 1, 2, 3 }, features.Get<ISliceFeature>()?.EncodeOptions));
+            new(IMyOperationsAService.Response.EncodeOpWithMultipleReturnValuesAndEncodedReturnAttribute(
+                new int[] { 1, 2, 3 },
+                new int[] { 1, 2, 3 },
+                features.Get<ISliceFeature>()?.EncodeOptions));
 
         public ValueTask<(PipeReader Payload, IAsyncEnumerable<int> R2)> OpWithStreamReturnAndEncodedReturnAttributeAsync(
             IFeatureCollection features,
