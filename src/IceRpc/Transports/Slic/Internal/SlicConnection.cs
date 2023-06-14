@@ -64,7 +64,7 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly int _packetMaxSize;
     private IceRpcError? _peerCloseError;
     private TimeSpan _peerIdleTimeout = Timeout.InfiniteTimeSpan;
-    private int _pongIsPending;
+    private int _pendingPongCount;
     private Task? _readFramesTask;
 
     private readonly ConcurrentDictionary<ulong, SlicStream> _streams = new();
@@ -297,11 +297,9 @@ internal class SlicConnection : IMultiplexedConnection
 
         void KeepAlive()
         {
-            // TODO: KeepAlive is called every IdleTimeout / 2 if it's not deferred by a write. Instead, we could
-            // consider disabling the KeepAlive timer until the pong frame is received.
-
-            // If not waiting for a pong frame (_pongIsPending=0), send a new ping frame.
-            if (Interlocked.CompareExchange(ref _pongIsPending, 1, 0) == 0)
+            // _pendingPongCount can be < 0 if an unexpected pong is received. If it's the case, the connection is being
+            // torn down and there's no point in sending a ping frame.
+            if (Interlocked.Increment(ref _pendingPongCount) > 0)
             {
                 try
                 {
@@ -1122,9 +1120,9 @@ internal class SlicConnection : IMultiplexedConnection
 
         async Task ReadPongFrameAsync(int size, CancellationToken cancellationToken)
         {
-            if (Interlocked.CompareExchange(ref _pongIsPending, 0, 1) == 1)
+            if (Interlocked.Decrement(ref _pendingPongCount) >= 0)
             {
-                // If waiting for a pong frame (_pongIsPending=1), ensure the pong frame payload value is expected.
+                // Ensure the pong frame payload value is expected.
 
                 PongBody pongBody = await ReadFrameBodyAsync(
                     size,
@@ -1139,7 +1137,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
-                // If not waiting for a pong frame (_pongIsPending=0), this pong frame is unexpected.
+                // If not waiting for a pong frame, this pong frame is unexpected.
                 throw new InvalidDataException($"Received an unexpected {nameof(FrameType.Pong)} frame.");
             }
         }
