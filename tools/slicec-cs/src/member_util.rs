@@ -20,14 +20,16 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
         .cs_type_string(&field.namespace(), TypeContext::Field, false);
     let mut prelude = CodeBlock::default();
 
-    let attributes = field.cs_attributes();
-
     for comment_tag in field.formatted_doc_comment() {
         prelude.writeln(&comment_tag)
     }
-    prelude.writeln(&attributes.into_iter().collect::<CodeBlock>());
+
+    for cs_attribute in field.cs_attributes() {
+        writeln!(prelude, "[{cs_attribute}]")
+    }
+
     if let Some(obsolete) = field.obsolete_attribute() {
-        prelude.writeln(&format!("[{obsolete}]"));
+        writeln!(prelude, "[{obsolete}]");
     }
 
     // All field modifiers are based on the parent's modifiers.

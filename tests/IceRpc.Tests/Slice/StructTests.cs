@@ -435,4 +435,16 @@ public sealed class StructTests
                 (ref SliceDecoder decoder) => decoder.DecodeProxy<PingableProxy>() as PingableProxy?),
             Is.EqualTo(expected.I));
     }
+
+    [Test]
+    public void Cs_attribute_on_field()
+    {
+        // Arrange / Act
+        var memberInfos = typeof(MyStructWithFieldAttributes).GetMember("I");
+        var attributes = memberInfos[0].GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false);
+        var description = ((System.ComponentModel.DescriptionAttribute)attributes[0]).Description;
+
+        // Assert
+        Assert.That(description, Is.EqualTo("An integer"));
+    }
 }

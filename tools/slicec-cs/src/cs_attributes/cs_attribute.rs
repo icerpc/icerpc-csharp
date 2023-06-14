@@ -18,7 +18,10 @@ impl CsAttribute {
     }
 
     pub fn validate_on(&self, applied_on: Attributables, span: &Span, reporter: &mut DiagnosticReporter) {
-        if !matches!(applied_on, Attributables::Enum(_) | Attributables::Field(_)) {
+        if !matches!(
+            applied_on,
+            Attributables::Enum(_) | Attributables::Enumerator(_) | Attributables::Field(_),
+        ) {
             // TODO Add a note explaining what this can be applied to, and how to put attributes on other things.
             report_unexpected_attribute(self, span, None, reporter);
         }

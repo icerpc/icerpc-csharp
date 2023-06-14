@@ -26,6 +26,8 @@ unchecked enum MyUncheckedEnum : uint32 {
     E1 = 2
     E2 = 4
     E3 = 8
+
+    [cs::attribute("System.ComponentModel.Description(\"Sixteen\")")]
     E4 = 16
 }
 

@@ -135,4 +135,16 @@ public class EnumTests
             return decoder.DecodeSequence<MyUncheckedEnum>();
         }
     }
+
+    [Test]
+    public void Cs_attribute_on_enumerator()
+    {
+        // Arrange / Act
+        var memberInfos = typeof(MyUncheckedEnum).GetMember("E4");
+        var attributes = memberInfos[0].GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false);
+        var description = ((System.ComponentModel.DescriptionAttribute)attributes[0]).Description;
+
+        // Assert
+        Assert.That(description, Is.EqualTo("Sixteen"));
+    }
 }

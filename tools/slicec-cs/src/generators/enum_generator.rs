@@ -44,6 +44,10 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
             declaration.writeln(&comment_tag);
         }
 
+        for cs_attribute in enumerator.cs_attributes() {
+            writeln!(declaration, "[{cs_attribute}]")
+        }
+
         if let Some(attribute) = enumerator.obsolete_attribute() {
             writeln!(declaration, "[{attribute}]");
         }
