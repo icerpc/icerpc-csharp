@@ -398,7 +398,7 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 
 internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
 {
-    private readonly PipeWriter _decoratee;
+    private readonly ReadOnlySequencePipeWriter _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 
     public override void Advance(int bytes) => _decoratee.Advance(bytes);
@@ -437,26 +437,10 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
             MultiplexedTransportOperations.StreamWrite,
             async ValueTask<FlushResult> () =>
             {
-                if (_decoratee is ReadOnlySequencePipeWriter readonlySequenceWriter)
-                {
-                    return await readonlySequenceWriter.WriteAsync(
-                        source,
-                        endStream,
-                        cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    FlushResult flushResult = default;
-                    foreach (ReadOnlyMemory<byte> buffer in source)
-                    {
-                        flushResult = await _decoratee.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
-                        if (flushResult.IsCompleted || flushResult.IsCanceled)
-                        {
-                            break;
-                        }
-                    }
-                    return flushResult;
-                }
+                return await _decoratee.WriteAsync(
+                    source,
+                    endStream,
+                    cancellationToken).ConfigureAwait(false);
             },
             cancellationToken);
 
@@ -464,7 +448,7 @@ internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
         PipeWriter decoratee,
         TransportOperations<MultiplexedTransportOperations> operations)
     {
-        _decoratee = decoratee;
+        _decoratee = (ReadOnlySequencePipeWriter)decoratee;
         _operations = operations;
     }
 }
