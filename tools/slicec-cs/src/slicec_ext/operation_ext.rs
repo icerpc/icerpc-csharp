@@ -1,18 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::{EntityExt, InterfaceExt, MemberExt, ParameterExt, ParameterSliceExt};
-use crate::cs_attributes::CsEncodedResult;
+use super::{EntityExt, MemberExt, ParameterExt, ParameterSliceExt};
+use crate::cs_attributes::CsEncodedReturn;
 use crate::cs_util::FieldType;
 use slicec::grammar::{AttributeFunctions, Contained, Operation};
 use slicec::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
-    /// Returns true if the operation has the `cs::encodedResult` attribute; otherwise, false.
-    fn has_encoded_result(&self) -> bool;
-
-    /// The name of the generated encoded result type.
-    fn encoded_result_struct(&self) -> String;
-
     /// Returns the format that classes should be encoded with.
     fn get_class_format(&self, is_dispatch: bool) -> &str;
 
@@ -21,18 +15,6 @@ pub trait OperationExt {
 }
 
 impl OperationExt for Operation {
-    fn has_encoded_result(&self) -> bool {
-        self.has_attribute::<CsEncodedResult>()
-    }
-
-    fn encoded_result_struct(&self) -> String {
-        format!(
-            "{}.{}EncodedResult",
-            self.parent().service_name(),
-            self.escape_identifier(),
-        )
-    }
-
     fn get_class_format(&self, is_dispatch: bool) -> &str {
         let use_sliced_format = match is_dispatch {
             true => self.slice_classes_in_return(),
@@ -73,16 +55,15 @@ impl OperationExt for Operation {
 
 fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
     let ns = operation.parent().namespace();
-    if is_dispatch && operation.has_encoded_result() {
+    if is_dispatch && operation.has_attribute::<CsEncodedReturn>() {
         if let Some(stream_member) = operation.streamed_return_member() {
             format!(
-                "({} EncodedResult, {} {})",
-                operation.encoded_result_struct(),
+                "(global::System.IO.Pipelines.PipeReader EncodedReturn, {} {})",
                 stream_member.cs_type_string(&ns, context, false),
                 stream_member.field_name(FieldType::NonMangled),
             )
         } else {
-            operation.encoded_result_struct()
+            "global::System.IO.Pipelines.PipeReader".to_owned()
         }
     } else {
         match operation.return_members().as_slice() {
