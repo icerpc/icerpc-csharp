@@ -1,6 +1,6 @@
 # IceRPC for C#
 
-[![Continuous Integration][ci-badge]][ci] | [Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
+![Continuous Integration][ci-badge] | [Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
 
 IceRPC is a new RPC framework that helps you build networked applications with minimal effort.
 
@@ -121,8 +121,7 @@ in-memory transport for testing). Future releases may add additional transports.
 
 [api]: https://api.testing.zeroc.com/csharp/
 [building]: BUILDING.md
-[ci]: actions/workflows/dotnet.yml
-[ci-badge]: actions/workflows/dotnet.yml/badge.svg
+[ci-badge]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg
 [docs]: https://docs.testing.zeroc.com/docs
 [getting-started]: https://docs.testing.zeroc.com/docs/getting-started
 [examples]: examples
