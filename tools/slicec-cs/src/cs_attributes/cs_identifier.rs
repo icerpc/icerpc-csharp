@@ -20,7 +20,10 @@ impl CsIdentifier {
     pub fn validate_on(&self, applied_on: Attributables, span: &Span, reporter: &mut DiagnosticReporter) {
         match applied_on {
             Attributables::Module(_) => {
-                let note = format!("To rename a module use {} instead", CsNamespace::directive());
+                let note = format!(
+                    "To map a module to a different C# namespace, use '{}' instead",
+                    CsNamespace::directive(),
+                );
                 report_unexpected_attribute(self, span, Some(&note), reporter);
             }
             Attributables::SliceFile(_) | Attributables::TypeAlias(_) | Attributables::TypeRef(_) => {
