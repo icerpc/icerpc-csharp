@@ -5,14 +5,15 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports;
 
-/// <summary>The <see cref="ReadOnlySequencePipeWriter" /> abstract class can be extended by pipe writers to provide
-/// a <see cref="PipeWriter.WriteAsync" /> method with a <see cref="ReadOnlySequence{T}" /> source. It also provides a
-/// boolean to notify the pipe writer implementation that no more data will be written. This class is useful for
-/// implementing multiplexed stream pipe writers and to optimize the writing of a <see cref="ReadOnlySequence{T}" />
+/// <summary>The <see cref="ReadOnlySequencePipeWriter" /> abstract class should be extended by the <see
+/// cref="PipeWriter" /> returned from the <see cref="IMultiplexedStream" /> implementation of <see
+/// cref="IDuplexPipe.Output" />. It provides a <see cref="PipeWriter.WriteAsync" /> method with a <see
+/// cref="ReadOnlySequence{T}" /> source and a boolean to notify the <see cref="IMultiplexedStream" /> implementation
+/// that no more data will be written. This class optimizes the writing of a <see cref="ReadOnlySequence{T}" /> source
 /// for transports that support a gather write API.</summary>
 public abstract class ReadOnlySequencePipeWriter : PipeWriter
 {
-    /// <summary>Writes a readonly sequence.</summary>
+    /// <summary>Writes a <see cref="ReadOnlySequence{T}" />.</summary>
     /// <param name="source">The source sequence.</param>
     /// <param name="endStream">If <see langword="true" />, no more data will be written to this pipe.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

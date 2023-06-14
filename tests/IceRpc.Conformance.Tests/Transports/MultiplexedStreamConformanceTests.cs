@@ -315,6 +315,19 @@ public abstract class MultiplexedStreamConformanceTests
         Assert.That(async () => await sut.Local.WritesClosed, Throws.Nothing);
     }
 
+    /// <summary>Ensures that the stream output extends ReadOnlySequencePipeWriter.</summary>
+    [Test]
+    public async Task Stream_output_is_a_readonly_sequence_pipe_writer()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync(bidirectional: false);
+
+        // Act/Assert
+        Assert.That(sut.Local.Output, Is.InstanceOf<ReadOnlySequencePipeWriter>());
+    }
+
     [Test]
     public async Task Stream_local_writes_are_closed_when_local_output_completed(
         [Values(false, true)] bool isBidirectional,
@@ -636,14 +649,10 @@ public abstract class MultiplexedStreamConformanceTests
         _ = pipe.Reader.TryRead(out ReadResult dataReadResult);
 
         // Act
-        if (output is ReadOnlySequencePipeWriter writer)
-        {
-            _ = await writer.WriteAsync(dataReadResult.Buffer, endStream: false, CancellationToken.None);
-        }
-        else
-        {
-            _ = await output.WriteAsync(dataReadResult.Buffer.ToArray());
-        }
+        _ = await ((ReadOnlySequencePipeWriter)output).WriteAsync(
+            dataReadResult.Buffer,
+            endStream: false,
+            CancellationToken.None);
         output.Complete();
 
         // Assert
