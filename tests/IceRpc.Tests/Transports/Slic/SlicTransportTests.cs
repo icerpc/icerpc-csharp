@@ -552,7 +552,7 @@ public class SlicTransportTests
         // Arrange
         IServiceCollection serviceCollection = new ServiceCollection().AddSlicTest();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = 1);
+            options => options.MaxBidirectionalStreams = 1);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
