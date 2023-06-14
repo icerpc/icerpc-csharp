@@ -297,22 +297,26 @@ internal class SlicConnection : IMultiplexedConnection
 
         void KeepAlive()
         {
-            Interlocked.Increment(ref _pendingPongCount);
-            try
+            // _pendingPongCount can be < 0 if an unexpected pong is received. If it's the case, the connection is being
+            // teardown and there's no point in sending a ping frame.
+            if (Interlocked.Increment(ref _pendingPongCount) > 0)
             {
-                // For now, the Ping frame payload is just a long which is always set to 0. In the future, it could
-                // be a ping frame type value if the ping frame is used for different purpose (e.g: a KeepAlive or
-                // RTT ping frame type).
-                var pingBody = new PingBody(0L);
-                WriteConnectionFrame(FrameType.Ping, pingBody.Encode);
-            }
-            catch (IceRpcException)
-            {
-                // Expected if the connection is closed.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"The Slic keep alive timer failed with an unexpected exception: {exception}");
+                try
+                {
+                    // For now, the Ping frame payload is just a long which is always set to 0. In the future, it could
+                    // be a ping frame type value if the ping frame is used for different purpose (e.g: a KeepAlive or
+                    // RTT ping frame type).
+                    var pingBody = new PingBody(0L);
+                    WriteConnectionFrame(FrameType.Ping, pingBody.Encode);
+                }
+                catch (IceRpcException)
+                {
+                    // Expected if the connection is closed.
+                }
+                catch (Exception exception)
+                {
+                    Debug.Fail($"The Slic keep alive timer failed with an unexpected exception: {exception}");
+                }
             }
         }
 
