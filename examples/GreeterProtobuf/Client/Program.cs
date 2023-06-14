@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using Google.Protobuf;
 using IceRpc;
-using System.Buffers;
-using System.IO.Pipelines;
+using IceRpc.Protobuf;
 using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
@@ -22,8 +20,7 @@ async Task<string> GreetAsync(string name)
         Operation = "Greet", // the rpc name in the proto file
 
         // Create a PipeReader from the Protobuf message.
-        Payload = PipeReader.Create(
-            new ReadOnlySequence<byte>(new GreetRequest { Name = name }.ToByteArray()))
+        Payload = new GreetRequest { Name = name }.ToPipeReader()
     };
 
     // Make the invocation: we send the request using the connection and then wait for the response.
@@ -31,11 +28,8 @@ async Task<string> GreetAsync(string name)
 
     if (response.StatusCode == StatusCode.Success)
     {
-        // Convert the response payload into a stream for decoding with Protobuf.
-        using Stream payloadStream = response.Payload.AsStream();
-
         var greetResponse = new GreetResponse();
-        greetResponse.MergeFrom(payloadStream);
+        await greetResponse.MergeFromAsync(response.Payload);
         return greetResponse.Greeting;
     }
     else

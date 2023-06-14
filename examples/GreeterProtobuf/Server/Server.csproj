@@ -11,5 +11,6 @@
     <PackageReference Include="Grpc.Tools" Version="2.54.0" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+    <Compile Include="../Common/MessageExtensions.cs" Link="MessageExtensions.cs" />
   </ItemGroup>
 </Project>
