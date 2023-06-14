@@ -9,5 +9,6 @@
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
     <Compile Include="../GreetRequest.cs" />
     <Compile Include="../GreetResponse.cs" />
+    <Compile Include="../Common/JsonSerializerExtensions.cs" Link="JsonSerializerExtensions.cs" />
   </ItemGroup>
 </Project>
