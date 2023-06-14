@@ -446,7 +446,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
                 "\
 return new IceRpc.OutgoingResponse(request)
 {{
-    Payload = returnValue.EncodedReturn,
+    Payload = returnValue.Payload,
     PayloadContinuation = {payload_continuation}
 }};",
                 payload_continuation = payload_continuation(operation, encoding).indent(),

@@ -58,7 +58,7 @@ fn operation_return_type(operation: &Operation, is_dispatch: bool, context: Type
     if is_dispatch && operation.has_attribute::<CsEncodedReturn>() {
         if let Some(stream_member) = operation.streamed_return_member() {
             format!(
-                "(global::System.IO.Pipelines.PipeReader EncodedReturn, {} {})",
+                "(global::System.IO.Pipelines.PipeReader Payload, {} {})",
                 stream_member.cs_type_string(&ns, context, false),
                 stream_member.field_name(FieldType::NonMangled),
             )
