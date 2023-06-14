@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{EntityExt, InterfaceExt, MemberExt, ParameterExt, ParameterSliceExt};
-use crate::cs_attributes::match_cs_encoded_result;
+use crate::cs_attributes::CsEncodedResult;
 use crate::cs_util::FieldType;
 use slicec::grammar::{AttributeFunctions, Contained, Operation};
 use slicec::utils::code_gen_util::TypeContext;
@@ -22,7 +22,7 @@ pub trait OperationExt {
 
 impl OperationExt for Operation {
     fn has_encoded_result(&self) -> bool {
-        self.has_attribute(match_cs_encoded_result)
+        self.has_attribute::<CsEncodedResult>()
     }
 
     fn encoded_result_struct(&self) -> String {

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
-use crate::cs_attributes::match_cs_attribute;
 use crate::cs_util::CsCase;
 use crate::slicec_ext::*;
 use convert_case::Case;
@@ -30,7 +29,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         .add_block(enum_values(enum_def));
 
     // Add cs::attribute
-    for attribute in enum_def.attributes().into_iter().filter_map(match_cs_attribute) {
+    for attribute in enum_def.cs_attributes() {
         builder.add_attribute(attribute);
     }
     builder.build()

@@ -8,6 +8,7 @@ use crate::encoding::*;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
+use slicec::grammar::attributes::Oneway;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
 
@@ -270,7 +271,8 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
     invocation_builder.add_argument_if(operation.is_idempotent, "idempotent: true");
 
-    invocation_builder.add_argument_if(void_return && operation.is_oneway(), "oneway: true");
+    let is_oneway = operation.has_attribute::<Oneway>();
+    invocation_builder.add_argument_if(void_return && is_oneway, "oneway: true");
 
     invocation_builder.add_argument(format!("cancellationToken: {cancellation_token_parameter}"));
 

@@ -1,17 +1,29 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::attribute_patcher::patch_attributes;
-use super::validators::cs_validator::validate_cs_attributes;
+use crate::cs_attributes::*;
+use slicec::ast::node::Node;
 use slicec::compilation_state::CompilationState;
 use slicec::diagnostics::{Diagnostic, Error};
+use slicec::grammar::attributes::Unparsed;
+use slicec::grammar::{AttributeFunctions, Symbol};
 use std::io;
 
-pub fn cs_patcher(compilation_state: &mut CompilationState) {
-    unsafe { compilation_state.apply_unsafe(patch_attributes) };
+pub unsafe fn cs_patcher(compilation_state: &mut CompilationState) {
+    let attribute_patcher = slicec::patch_attributes!(
+        "cs::",
+        CsAttribute,
+        CsEncodedResult,
+        CsIdentifier,
+        CsInternal,
+        CsNamespace,
+        CsReadonly,
+        CsType,
+    );
+    compilation_state.apply_unsafe(attribute_patcher);
 }
 
 pub fn cs_validator(compilation_state: &mut CompilationState) {
-    compilation_state.apply(validate_cs_attributes);
+    compilation_state.apply(ensure_custom_types_have_type_attribute);
     compilation_state.apply(check_for_unique_names);
 }
 
@@ -31,6 +43,21 @@ fn check_for_unique_names(compilation_state: &mut CompilationState) {
                 None,
             )
             .report(&mut compilation_state.diagnostic_reporter)
+        }
+    }
+}
+
+fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationState) {
+    for node in compilation_state.ast.as_slice() {
+        if let Node::CustomType(custom_type_ptr) = node {
+            let custom_type = custom_type_ptr.borrow();
+            if !custom_type.has_attribute::<CsType>() {
+                Diagnostic::new(Error::MissingRequiredAttribute {
+                    attribute: CsType::directive().to_owned(),
+                })
+                .set_span(custom_type.span())
+                .report(&mut compilation_state.diagnostic_reporter);
+            }
         }
     }
 }

@@ -23,7 +23,6 @@ pub use slice_encoding_ext::EncodingExt;
 pub use type_ref_ext::TypeRefExt;
 
 fn scoped_identifier(identifier: String, identifier_namespace: String, current_namespace: &str) -> String {
-
     if current_namespace == identifier_namespace {
         identifier
     } else {
