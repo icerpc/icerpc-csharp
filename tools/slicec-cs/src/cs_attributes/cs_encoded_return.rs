@@ -3,15 +3,15 @@
 use super::*;
 
 #[derive(Debug)]
-pub struct CsEncodedResult {}
+pub struct CsEncodedReturn {}
 
-impl CsEncodedResult {
+impl CsEncodedReturn {
     pub fn parse_from(Unparsed { directive, args }: &Unparsed, span: &Span, reporter: &mut DiagnosticReporter) -> Self {
         debug_assert_eq!(directive, Self::directive());
 
         check_that_no_arguments_were_provided(args, Self::directive(), span, reporter);
 
-        CsEncodedResult {}
+        CsEncodedReturn {}
     }
 
     pub fn validate_on(&self, applied_on: Attributables, span: &Span, reporter: &mut DiagnosticReporter) {
@@ -44,4 +44,4 @@ impl CsEncodedResult {
     }
 }
 
-implement_attribute_kind_for!(CsEncodedResult, "cs::encodedResult", false);
+implement_attribute_kind_for!(CsEncodedReturn, "cs::encodedReturn", false);

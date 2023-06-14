@@ -12,7 +12,7 @@ pub unsafe fn cs_patcher(compilation_state: &mut CompilationState) {
     let attribute_patcher = slicec::patch_attributes!(
         "cs::",
         CsAttribute,
-        CsEncodedResult,
+        CsEncodedReturn,
         CsIdentifier,
         CsInternal,
         CsNamespace,

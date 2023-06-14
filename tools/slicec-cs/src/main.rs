@@ -7,7 +7,6 @@ mod cs_compile;
 mod cs_options;
 mod cs_util;
 mod decoding;
-mod encoded_result;
 mod encoding;
 mod generators;
 mod member_util;

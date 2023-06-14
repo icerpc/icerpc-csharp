@@ -353,28 +353,28 @@ public class OperationTests
     }
 
     [Test]
-    public async Task Operation_with_single_return_value_and_encoded_result_attribute()
+    public async Task Operation_with_single_return_value_and_encoded_return_attribute()
     {
         // Arrange
         var invoker = new ColocInvoker(new MyOperationsAService());
         var proxy = new MyOperationsAProxy(invoker);
 
         // Act
-        var r = await proxy.OpWithSingleReturnValueAndEncodedResultAttributeAsync();
+        var r = await proxy.OpWithSingleReturnValueAndEncodedReturnAttributeAsync();
 
         // Assert
         Assert.That(r, Is.EqualTo(new int[] { 1, 2, 3 }));
     }
 
     [Test]
-    public async Task Operation_with_multiple_return_value_and_encoded_result_attribute()
+    public async Task Operation_with_multiple_return_value_and_encoded_return_attribute()
     {
         // Arrange
         var invoker = new ColocInvoker(new MyOperationsAService());
         var proxy = new MyOperationsAProxy(invoker);
 
         // Act
-        (int[] r1, int[] r2) = await proxy.OpWithMultipleReturnValuesAndEncodedResultAttributeAsync();
+        (int[] r1, int[] r2) = await proxy.OpWithMultipleReturnValuesAndEncodedReturnAttributeAsync();
 
         // Assert
         Assert.That(r1, Is.EqualTo(new int[] { 1, 2, 3 }));
@@ -382,14 +382,14 @@ public class OperationTests
     }
 
     [Test]
-    public async Task Operation_with_stream_return_value_and_encoded_result_attribute()
+    public async Task Operation_with_stream_return_value_and_encoded_return_attribute()
     {
         // Arrange
         var invoker = new ColocInvoker(new MyOperationsAService());
         var proxy = new MyOperationsAProxy(invoker);
 
         // Act
-        (int[] r1, IAsyncEnumerable<int> r2) = await proxy.OpWithStreamReturnAndEncodedResultAttributeAsync();
+        (int[] r1, IAsyncEnumerable<int> r2) = await proxy.OpWithStreamReturnAndEncodedReturnAttributeAsync();
 
         // Assert
         Assert.That(r1, Is.EqualTo(new int[] { 1, 2, 3 }));
@@ -735,24 +735,29 @@ public class OperationTests
             IFeatureCollection features_,
             CancellationToken cancellationToken) => default;
 
-        public ValueTask<IMyOperationsAService.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult> OpWithSingleReturnValueAndEncodedResultAttributeAsync(
+        public ValueTask<PipeReader> OpWithSingleReturnValueAndEncodedReturnAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new IMyOperationsAService.OpWithSingleReturnValueAndEncodedResultAttributeEncodedResult(new int[] { 1, 2, 3 }, features));
+            new(IMyOperationsAService.Response.EncodeOpWithSingleReturnValueAndEncodedReturnAttribute(
+                new int[] { 1, 2, 3 },
+                features.Get<ISliceFeature>()?.EncodeOptions));
 
-        public ValueTask<IMyOperationsAService.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult> OpWithMultipleReturnValuesAndEncodedResultAttributeAsync(
+        public ValueTask<PipeReader> OpWithMultipleReturnValuesAndEncodedReturnAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new IMyOperationsAService.OpWithMultipleReturnValuesAndEncodedResultAttributeEncodedResult(
-                    new int[] { 1, 2, 3 },
-                    new int[] { 1, 2, 3 },
-                features));
+            new(IMyOperationsAService.Response.EncodeOpWithMultipleReturnValuesAndEncodedReturnAttribute(
+                new int[] { 1, 2, 3 },
+                new int[] { 1, 2, 3 },
+                features.Get<ISliceFeature>()?.EncodeOptions));
 
-        public ValueTask<(IMyOperationsAService.OpWithStreamReturnAndEncodedResultAttributeEncodedResult EncodedResult, IAsyncEnumerable<int> R2)> OpWithStreamReturnAndEncodedResultAttributeAsync(
+        public ValueTask<(PipeReader Payload, IAsyncEnumerable<int> R2)> OpWithStreamReturnAndEncodedReturnAttributeAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
-            return new((new IMyOperationsAService.OpWithStreamReturnAndEncodedResultAttributeEncodedResult(new int[] { 1, 2, 3 }, features), GetDataAsync()));
+            var payload = IMyOperationsAService.Response.EncodeOpWithStreamReturnAndEncodedReturnAttribute(
+                new int[] { 1, 2, 3 },
+                features.Get<ISliceFeature>()?.EncodeOptions);
+            return new((payload, GetDataAsync()));
 
             static async IAsyncEnumerable<int> GetDataAsync()
             {

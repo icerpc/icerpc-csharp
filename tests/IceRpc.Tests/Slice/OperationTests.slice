@@ -34,9 +34,9 @@ interface MyOperationsA {
     opWithSpecialParameterNames(cancel: int32, features: int32)
 
     // Encoded result
-    [cs::encodedResult] opWithSingleReturnValueAndEncodedResultAttribute() -> sequence<int32>
-    [cs::encodedResult] opWithMultipleReturnValuesAndEncodedResultAttribute() -> (r1: sequence<int32>, r2: sequence<int32>)
-    [cs::encodedResult] opWithStreamReturnAndEncodedResultAttribute() -> (r1: sequence<int32>, r2: stream int32)
+    [cs::encodedReturn] opWithSingleReturnValueAndEncodedReturnAttribute() -> sequence<int32>
+    [cs::encodedReturn] opWithMultipleReturnValuesAndEncodedReturnAttribute() -> (r1: sequence<int32>, r2: sequence<int32>)
+    [cs::encodedReturn] opWithStreamReturnAndEncodedReturnAttribute() -> (r1: sequence<int32>, r2: stream int32)
 
     // C# keyword as operation name
     continue()

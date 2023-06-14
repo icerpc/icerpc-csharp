@@ -1,13 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::cs_attributes::CsEncodedReturn;
 use crate::cs_util::*;
 use crate::decoding::*;
-use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
-
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
 
@@ -50,9 +49,6 @@ private static readonly IActivator _defaultActivator =
     }
 
     for operation in interface_def.operations() {
-        if operation.has_encoded_result() {
-            interface_builder.add_block(encoded_result_struct(operation));
-        }
         interface_builder.add_block(operation_declaration(operation));
     }
 
@@ -417,67 +413,46 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
 
     let mut dispatch_and_return = CodeBlock::default();
 
-    if operation.has_encoded_result() {
-        let mut args = vec![];
+    let mut args = match parameters.as_slice() {
+        [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
+        _ => parameters
+            .into_iter()
+            .map(|parameter| "args.".to_owned() + &parameter.field_name(FieldType::NonMangled))
+            .collect(),
+    };
+    args.push("request.Features".to_owned());
+    args.push("cancellationToken".to_owned());
+    writeln!(
+        dispatch_and_return,
+        "{return_value}await target.{async_operation_name}({args}).ConfigureAwait(false);",
+        return_value = if !return_parameters.is_empty() {
+            "var returnValue = "
+        } else {
+            ""
+        },
+        args = args.join(", "),
+    );
 
-        match parameters.as_slice() {
-            [p] => {
-                args.push(p.parameter_name_with_prefix("sliceP_"));
-            }
-            _ => {
-                for p in parameters {
-                    args.push("args.".to_owned() + &p.field_name(FieldType::NonMangled));
-                }
-            }
-        }
-
-        args.push("request.Features".to_owned());
-        args.push("cancellationToken".to_owned());
-
-        writeln!(
-            dispatch_and_return,
-            "var returnValue = await target.{async_operation_name}({args}).ConfigureAwait(false);",
-            args = args.join(", "),
-        );
-        if operation.streamed_return_member().is_some() {
+    #[allow(clippy::collapsible_else_if)] // We preserve the 'if' and 'else' blocks because they're symmetric.
+    if operation.has_attribute::<CsEncodedReturn>() {
+        if operation.streamed_return_member().is_none() {
+            writeln!(
+                dispatch_and_return,
+                "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue }};",
+            );
+        } else {
             writeln!(
                 dispatch_and_return,
                 "\
 return new IceRpc.OutgoingResponse(request)
 {{
-    Payload = returnValue.EncodedResult.Payload,
+    Payload = returnValue.Payload,
     PayloadContinuation = {payload_continuation}
 }};",
                 payload_continuation = payload_continuation(operation, encoding).indent(),
             );
-        } else {
-            writeln!(
-                dispatch_and_return,
-                "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue.Payload }};",
-            );
         }
     } else {
-        let mut args = match parameters.as_slice() {
-            [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
-            _ => parameters
-                .iter()
-                .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
-                .collect(),
-        };
-        args.push("request.Features".to_owned());
-        args.push("cancellationToken".to_owned());
-
-        writeln!(
-            dispatch_and_return,
-            "{return_value}await target.{async_operation_name}({args}).ConfigureAwait(false);",
-            return_value = if !return_parameters.is_empty() {
-                "var returnValue = "
-            } else {
-                ""
-            },
-            args = args.join(", "),
-        );
-
         if operation.return_type.is_empty() {
             writeln!(dispatch_and_return, "return new IceRpc.OutgoingResponse(request);")
         } else {
