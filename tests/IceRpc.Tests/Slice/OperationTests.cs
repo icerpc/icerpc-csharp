@@ -754,7 +754,9 @@ public class OperationTests
             IFeatureCollection features,
             CancellationToken cancellationToken)
         {
-            var payload = IMyOperationsAService.Response.EncodeOpWithStreamReturnAndEncodedReturnAttribute(new int[] { 1, 2, 3 }, features.Get<ISliceFeature>()?.EncodeOptions);
+            var payload = IMyOperationsAService.Response.EncodeOpWithStreamReturnAndEncodedReturnAttribute(
+                new int[] { 1, 2, 3 },
+                features.Get<ISliceFeature>()?.EncodeOptions);
             return new((payload, GetDataAsync()));
 
             static async IAsyncEnumerable<int> GetDataAsync()
