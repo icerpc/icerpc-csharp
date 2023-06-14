@@ -15,14 +15,14 @@ internal class Chatbot : IDispatcher
     {
         if (request.Operation == "greet")
         {
-            GreetRequest greetRequest = await JsonSerializerExtensions.DeserializeAsync<GreetRequest>(
+            GreetRequest greetRequest = await PipeReaderJsonSerializer.DeserializeAsync<GreetRequest>(
                 request.Payload,
                 cancellationToken: cancellationToken);
             Console.WriteLine($"Dispatching Greet request {{ name = '{greetRequest.Name}' }}");
             return new OutgoingResponse(request)
             {
                 // Use a PipeReader holding the JSON message as the response payload.
-                Payload = JsonSerializerExtensions.Serialize(
+                Payload = PipeReaderJsonSerializer.SerializeToPipeReader(
                     new GreetResponse { Greeting = $"Hello, {greetRequest.Name}!" })
             };
         }

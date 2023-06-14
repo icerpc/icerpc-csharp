@@ -7,17 +7,17 @@ using System.Text.Json;
 
 namespace IceRpc.Json;
 
-/// <summary>A helper class for serializing and deserializing JSON objects into a from <see cref="PipeReader"/>.
+/// <summary>A helper class for serializing and deserializing JSON objects into and from <see cref="PipeReader"/>.
 /// </summary>
-public static class JsonSerializerExtensions
+public static class PipeReaderJsonSerializer
 {
-    /// <summary>Write the JSON representation of the <paramref name="value"/> and returns a <see cref="PipeReader"/>
+    /// <summary>Write the JSON representation of <paramref name="value"/> and returns a <see cref="PipeReader"/>
     /// that holds the serialized data.</summary>
     /// <typeparam name="TValue">The type of the value to serialize.</typeparam>
     /// <param name="value">The value to serialize.</param>
     /// <param name="options">The options for the <see cref="Utf8JsonWriter"/>.</param>
     /// <returns>A <see cref="PipeReader"/> holding the serialized data.</returns>
-    public static PipeReader Serialize<TValue>(TValue value, JsonWriterOptions? options = null)
+    public static PipeReader SerializeToPipeReader<TValue>(TValue value, JsonWriterOptions? options = null)
     {
         var pipe = new Pipe();
         using var jsonWriter = new Utf8JsonWriter(pipe.Writer, options ?? new JsonWriterOptions());
@@ -40,11 +40,11 @@ public static class JsonSerializerExtensions
         ReadResult readResult = await reader.ReadAtLeastAsync(int.MaxValue, cancellationToken);
         Debug.Assert(readResult.IsCompleted && !readResult.IsCanceled);
 
-        TValue value = Decode(readResult.Buffer);
+        TValue value = Decode(readResult.Buffer, options);
         reader.Complete();
         return value;
 
-        TValue Decode(ReadOnlySequence<byte> buffer)
+        static TValue Decode(ReadOnlySequence<byte> buffer, JsonReaderOptions? options)
         {
             var jsonReader = new Utf8JsonReader(buffer, options ?? new());
             return JsonSerializer.Deserialize(ref jsonReader, typeof(TValue)) is TValue value ?

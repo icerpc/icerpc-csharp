@@ -19,7 +19,7 @@ async Task<string> GreetAsync(string name)
     {
         Operation = "greet",
         // Use a PipeReader holding the JSON message as the request payload.
-        Payload = JsonSerializerExtensions.Serialize(new GreetRequest { Name = name })
+        Payload = PipeReaderJsonSerializer.SerializeToPipeReader(new GreetRequest { Name = name })
     };
 
     // Make the invocation: we send the request using the connection and then wait for the response.
@@ -27,7 +27,7 @@ async Task<string> GreetAsync(string name)
 
     if (response.StatusCode == StatusCode.Success)
     {
-        GreetResponse greeterResponse = await JsonSerializerExtensions.DeserializeAsync<GreetResponse>(
+        GreetResponse greeterResponse = await PipeReaderJsonSerializer.DeserializeAsync<GreetResponse>(
             response.Payload);
         return greeterResponse.Greeting;
     }
