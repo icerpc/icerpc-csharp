@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using Google.Protobuf;
 using IceRpc;
-using System.Buffers;
-using System.IO.Pipelines;
+using IceRpc.Protobuf;
 using VisitorCenter;
 
 namespace GreeterProtobufServer;

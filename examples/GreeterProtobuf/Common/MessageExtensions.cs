@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
+using Google.Protobuf;
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace Google.Protobuf;
+namespace IceRpc.Protobuf;
 
 /// <summary>Provides extension methods for <see cref="IMessage" />.</summary>
 public static class MessageExtensions
