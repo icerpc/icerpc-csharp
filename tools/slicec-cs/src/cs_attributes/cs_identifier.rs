@@ -20,17 +20,11 @@ impl CsIdentifier {
     pub fn validate_on(&self, applied_on: Attributables, span: &Span, reporter: &mut DiagnosticReporter) {
         match applied_on {
             Attributables::Module(_) => {
-                let attribute = Self::directive().to_owned();
-                Diagnostic::new(Error::UnexpectedAttribute { attribute })
-                    .set_span(span)
-                    .add_note(
-                        format!("To rename a module use {} instead", CsNamespace::directive()),
-                        None,
-                    )
-                    .report(reporter);
+                let note = format!("To rename a module use {} instead", CsNamespace::directive());
+                report_unexpected_attribute(self, span, Some(&note), reporter);
             }
             Attributables::SliceFile(_) | Attributables::TypeAlias(_) | Attributables::TypeRef(_) => {
-                report_unexpected_attribute(self, span, None, reporter)
+                report_unexpected_attribute(self, span, None, reporter);
             }
             _ => {}
         }
