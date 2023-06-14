@@ -1,6 +1,8 @@
 # IceRPC for C#
 
-![Continuous Integration][ci-badge] | [Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
+![Continuous Integration][ci-badge]
+
+[Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
 
 IceRPC is a new RPC framework that helps you build networked applications with minimal effort.
 
