@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports;
 
 /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
-/// <remarks>The implementation of the <see cref="IDuplexPipe" /> interface is required to return a <see
+/// <remarks>The implementation of the <see cref="IDuplexPipe" /> interface must return a <see
 /// cref="ReadOnlySequencePipeWriter" /> for the <see cref="IDuplexPipe.Output" />.</remarks>
 public interface IMultiplexedStream : IDuplexPipe
 {

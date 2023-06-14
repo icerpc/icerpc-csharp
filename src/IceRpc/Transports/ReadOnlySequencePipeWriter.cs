@@ -5,12 +5,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports;
 
-/// <summary>The <see cref="ReadOnlySequencePipeWriter" /> abstract class should be extended by the <see
-/// cref="PipeWriter" /> returned from the <see cref="IMultiplexedStream" /> implementation of <see
-/// cref="IDuplexPipe.Output" />. It provides a <see cref="PipeWriter.WriteAsync" /> method with a <see
-/// cref="ReadOnlySequence{T}" /> source and a boolean to notify the <see cref="IMultiplexedStream" /> implementation
-/// that no more data will be written. This class optimizes the writing of a <see cref="ReadOnlySequence{T}" /> source
-/// for transports that support a gather write API.</summary>
+/// <summary>Represents a <see cref="PipeWriter" /> optimized for writing a <see cref="ReadOnlySequence{T}" />.
+/// </summary>
+/// <remarks>The <see cref="IDuplexPipe.Output" /> of <see cref="IMultiplexedStream" /> implementations must be a class
+/// derived from <see cerf="ReadOnlySequencePipeWriter" />.</remarks>
 public abstract class ReadOnlySequencePipeWriter : PipeWriter
 {
     /// <summary>Writes a <see cref="ReadOnlySequence{T}" />.</summary>
