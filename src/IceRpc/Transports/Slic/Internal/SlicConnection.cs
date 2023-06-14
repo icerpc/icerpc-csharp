@@ -298,7 +298,7 @@ internal class SlicConnection : IMultiplexedConnection
         void KeepAlive()
         {
             // _pendingPongCount can be < 0 if an unexpected pong is received. If it's the case, the connection is being
-            // teardown and there's no point in sending a ping frame.
+            // torn down and there's no point in sending a ping frame.
             if (Interlocked.Increment(ref _pendingPongCount) > 0)
             {
                 try
