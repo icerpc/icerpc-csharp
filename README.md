@@ -162,8 +162,7 @@ And Slice provides a few constructed types to help you design more advanced RPCs
 dictionary and custom.
 
 The [custom type][custom-type] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of
-modularity and extensibility. You just need to provide methods to encode and decode instances of this type into/from
-bytes.
+modularity and extensibility. You just need to provide methods to encode and decode instances of this type.
 
 ## Ice interop
 
@@ -196,6 +195,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [icerpc-with-di]: https://docs.testing.zeroc.com/docs/icerpc-core/dependency-injection/di-and-icerpc-for-csharp
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
 [ice-slice]: https://doc.zeroc.com/ice/3.7/the-slice-language
+[icerpc-slice]: src/IceRpc/Slice
 [json]: examples/GreeterJson
 [license]: LICENSE
 [packages]: https://www.nuget.org/packages/IceRpc
