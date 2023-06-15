@@ -14,6 +14,12 @@ namespace IceRpc.Transports.Slic.Internal;
 // - the default implementation can't be much optimized.
 internal class SlicPipeReader : PipeReader
 {
+    // A StreamConsumed frame is sent if the sender is blocked and if the available space in the received buffer reaches
+    // the StreamReceiveWindowSize / StreamWindowUpdateRatio threshold. For now, it's a hard-coded value. We could make
+    // it configurable but the goal is to implement a dynamic window size. This configuration will no longer be needed
+    // since this ratio will be computed.
+    public const int StreamWindowUpdateRatio = 8;
+
     private int _examined;
     private volatile Exception? _exception;
     private long _lastExaminedOffset;
@@ -134,8 +140,8 @@ internal class SlicPipeReader : PipeReader
     internal SlicPipeReader(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
-        _resumeThreshold = connection.ResumeWriterThreshold;
-        _receiveCredit = connection.PauseWriterThreshold;
+        _resumeThreshold = connection.StreamReceiveWindowSize / StreamWindowUpdateRatio;
+        _receiveCredit = connection.StreamReceiveWindowSize;
 
         // We keep the default readerScheduler (ThreadPool) because the _pipe.Writer.FlushAsync executes in the
         // "read loop task" and we don't want this task to continue into application code. The writerScheduler

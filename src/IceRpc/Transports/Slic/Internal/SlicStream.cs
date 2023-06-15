@@ -291,7 +291,7 @@ internal class SlicStream : IMultiplexedStream
         int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame((int)frame.Size);
 
         // Ensure the peer is not trying to increase the credit to a value which is larger than what it is allowed to.
-        if (newSendCredit > _connection.PeerPauseWriterThreshold)
+        if (newSendCredit > _connection.PeerStreamReceiveWindowSize)
         {
             throw new IceRpcException(
                 IceRpcError.IceRpcError,

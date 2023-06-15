@@ -23,19 +23,15 @@ internal class SlicConnection : IMultiplexedConnection
     /// <summary>Gets the minimum size of the segment requested from <see cref="Pool" />.</summary>
     internal int MinSegmentSize { get; }
 
-    internal int PauseWriterThreshold { get; }
+    internal int StreamReceiveWindowSize { get; }
 
     /// <summary>Gets the maximum size of packets accepted by the peer.</summary>
     internal int PeerPacketMaxSize { get; private set; }
 
-    // TODO: replace with a window size property
-    internal int PeerPauseWriterThreshold { get; private set; }
+    internal int PeerStreamReceiveWindowSize { get; private set; }
 
     /// <summary>Gets the <see cref="MemoryPool{T}" /> used for obtaining memory buffers.</summary>
     internal MemoryPool<byte> Pool { get; }
-
-    // TODO: replace with a window size property
-    internal int ResumeWriterThreshold { get; }
 
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
@@ -541,8 +537,7 @@ internal class SlicConnection : IMultiplexedConnection
         _maxBidirectionalStreams = options.MaxBidirectionalStreams;
         _maxUnidirectionalStreams = options.MaxUnidirectionalStreams;
 
-        PauseWriterThreshold = slicOptions.PauseWriterThreshold;
-        ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
+        StreamReceiveWindowSize = slicOptions.StreamReceiveWindowSize;
         _localIdleTimeout = slicOptions.IdleTimeout;
         _packetMaxSize = slicOptions.PacketMaxSize;
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
@@ -566,7 +561,7 @@ internal class SlicConnection : IMultiplexedConnection
         // Initially set the peer packet max size to the local max size to ensure we can receive the first initialize
         // frame.
         PeerPacketMaxSize = _packetMaxSize;
-        PeerPauseWriterThreshold = PauseWriterThreshold;
+        PeerStreamReceiveWindowSize = StreamReceiveWindowSize;
 
         // We use the same stream ID numbering scheme as Quic.
         if (IsServer)
@@ -922,7 +917,7 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     break;
                 }
-                case ParameterKey.PauseWriterThreshold:
+                case ParameterKey.StreamReceiveWindowSize:
                 {
                     peerPauseWriterThreshold = DecodeParamValue(buffer);
                     if (peerPauseWriterThreshold < 1024)
@@ -953,7 +948,7 @@ internal class SlicConnection : IMultiplexedConnection
         }
         else
         {
-            PeerPauseWriterThreshold = peerPauseWriterThreshold.Value;
+            PeerStreamReceiveWindowSize = peerPauseWriterThreshold.Value;
         }
 
         // all parameter values are currently integers in the range 0..Int32Max encoded as varuint62.
@@ -980,7 +975,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             // Required parameters.
             EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
-            EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
+            EncodeParameter(ParameterKey.StreamReceiveWindowSize, (ulong)StreamReceiveWindowSize)
         };
 
         // Optional parameters.

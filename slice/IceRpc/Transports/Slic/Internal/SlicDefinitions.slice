@@ -67,9 +67,9 @@ unchecked enum ParameterKey : varuint62 {
     /// The maximum packet size in bytes.
     PacketMaxSize = 3
 
-    /// The pause writer threshold in bytes. The peer should hold on sending data when this limit is reached and should
-    /// only resume sending after receiving the stream consumed frame.
-    PauseWriterThreshold = 4
+    /// The stream receive window size. The peer should hold on sending data when the stream receive window is full. It
+    /// should resume sending after receiving the {@link FrameType::StreamConsumed} frame.
+    StreamReceiveWindowSize = 4
 }
 
 typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
