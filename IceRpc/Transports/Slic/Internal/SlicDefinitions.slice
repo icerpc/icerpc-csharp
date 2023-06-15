@@ -86,7 +86,6 @@ compact struct InitializeBody {
 }
 
 /// The {@link FrameType::InitializeAck} frame body.
-/// frame.
 [cs::internal]
 [cs::readonly]
 compact struct InitializeAckBody {
