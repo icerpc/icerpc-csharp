@@ -21,9 +21,12 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
         &format!("{} partial record struct", struct_def.modifiers()),
         &escaped_identifier,
     );
+    if let Some(summary) = struct_def.formatted_doc_comment_summary() {
+        builder.add_comment("summary", summary);
+    }
     builder
-        .add_comments(struct_def.formatted_doc_comment())
         .add_generated_remark("record struct", struct_def)
+        .add_comments(struct_def.formatted_doc_comment_seealso())
         .add_obsolete_attribute(struct_def);
 
     builder.add_block(

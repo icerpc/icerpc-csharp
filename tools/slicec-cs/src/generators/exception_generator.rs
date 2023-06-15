@@ -26,9 +26,12 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
 
     let mut exception_class_builder = ContainerBuilder::new(&format!("{access} partial class"), &exception_name);
 
+    if let Some(summary) = exception_def.formatted_doc_comment_summary() {
+        exception_class_builder.add_comment("summary", summary);
+    }
     exception_class_builder
-        .add_comments(exception_def.formatted_doc_comment())
         .add_generated_remark("class", exception_def)
+        .add_comments(exception_def.formatted_doc_comment_seealso())
         .add_obsolete_attribute(exception_def);
 
     if supported_encodings.supports(&Encoding::Slice1) {

@@ -6,8 +6,8 @@ use slicec::grammar::*;
 use slicec::utils::code_gen_util::format_message;
 
 pub trait CommentExt: Commentable {
-    /// If this entity has a doc comment with an overview on it, this returns the overview formatted as a C# summary,
-    /// with any links resolved to the appropriate C# tag. Otherwise this returns `None`.
+    /// If this entity has a doc comment with an overview on it, this returns it with any links resolved to the
+    /// appropriate C# tag. Otherwise this returns `None`.
     fn formatted_doc_comment_summary(&self) -> Option<String> {
         self.comment().and_then(|comment| {
             comment
@@ -17,17 +17,12 @@ pub trait CommentExt: Commentable {
         })
     }
 
-    /// Returns this entity's doc comment, formatted as a list of C# doc comment tag. The overview is converted to
-    /// a `summary` tag, and any `@see` sections are converted to `seealso` tags. Any links present in these are
-    /// resolved to the appropriate C# tag. If no doc comment is on this entity, this returns an empty vector.
-    fn formatted_doc_comment(&self) -> Vec<CommentTag> {
+    /// Returns this entity's see doc comments, formatted as a list of C# seealso doc comment tags. Any links present
+    /// in these are resolved to the appropriate C# tag. If no see doc comment is present on this entity, this returns
+    /// an empty vector.
+    fn formatted_doc_comment_seealso(&self) -> Vec<CommentTag> {
         let mut comments = Vec::new();
         if let Some(comment) = self.comment() {
-            // Add a summary comment tag if the comment contains an overview section.
-            if let Some(overview) = comment.overview.as_ref() {
-                let message = format_message(&overview.message, |link| link.get_formatted_link(&self.namespace()));
-                comments.push(CommentTag::new("summary", message));
-            }
             // Add a see-also comment tag for each '@see' tag in the comment.
             for see_tag in &comment.see {
                 match see_tag.linked_entity() {
