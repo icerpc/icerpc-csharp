@@ -3,4 +3,5 @@ uid: IceRpc.Transports.Slic
 summary: *content
 ---
 
-The IceRpc.Transports.Slic namespace.
+Provides the Slic multiplexing adapter. Slic implements the multiplexed transport abstractions over the duplex transport
+abstractions.

@@ -3,4 +3,4 @@ uid: IceRpc
 summary: *content
 ---
 
-The IceRpc namespace.
+The core of the IceRPC framework and various extensions for this core.

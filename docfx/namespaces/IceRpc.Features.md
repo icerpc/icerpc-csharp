@@ -3,4 +3,4 @@ uid: IceRpc.Features
 summary: *content
 ---
 
-The IceRpc.Features namespace.
+Provides the request feature framework and the core request features.
