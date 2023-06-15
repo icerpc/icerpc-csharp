@@ -326,6 +326,7 @@ internal class SlicConnection : IMultiplexedConnection
                 catch (Exception exception)
                 {
                     Debug.Fail($"The Slic keep alive timer failed with an unexpected exception: {exception}");
+                    throw;
                 }
             }
         }
@@ -855,6 +856,11 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
             }
+
+            // Acquire the semaphore within the mutex lock to make sure it's not disposed concurrently by DisposeAsync.
+            // The caller is also responsible for providing a cancellation token which is canceled either when
+            // CloseAsync or DisposeAsync is called. This ensures that the semaphore wait is canceled before the
+            // semaphore is disposed
             waitTask = _writeSemaphore.WaitAsync(cancellationToken);
         }
         await waitTask.ConfigureAwait(false);

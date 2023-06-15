@@ -147,7 +147,7 @@ internal class SlicStream : IMultiplexedStream
                     // If forcefully closed because the input was completed before the data was fully read or if writes
                     // are already closed and the stream is a remote stream, we send the StreamReadsClosed frame to
                     // notify the peer that reads are closed.
-                    _ = WriteReadsClosedFrameAsync();
+                    writeReadsClosedFrame = true;
                 }
             }
         }
