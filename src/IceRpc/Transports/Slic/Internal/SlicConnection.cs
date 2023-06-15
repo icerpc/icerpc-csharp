@@ -377,9 +377,10 @@ internal class SlicConnection : IMultiplexedConnection
         {
             using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
 
-            // The sever connection duplex connection writer might already be shutdown (_writerIsShutdown=true) if the
-            // client sent the Close frame and shutdown the duplex connection. This doesn't apply to client connection
-            // since the server doesn't shutdown the connection after sending the close frame.
+            // The duplex connection writer of a server connection might already be shutdown (_writerIsShutdown=true) if
+            // the client-side sent the Close frame and shut down the duplex connection. This doesn't apply to the
+            // client-side since the server-side doesn't shutdown the duplex connection writer after sending the Close
+            // frame.
             if (!IsServer || !_writerIsShutdown)
             {
                 WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
@@ -529,7 +530,7 @@ internal class SlicConnection : IMultiplexedConnection
             {
             }
 
-            // Wait for tasks to release the write semaphore before disposing of the duplex connection writer.
+            // Wait for tasks to release the write semaphore before disposing the duplex connection writer.
             using (await _writeSemaphore.AcquireAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
@@ -674,6 +675,8 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="encode">The action to encode the frame.</param>
     /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
     /// frame should be written after the stream frame.</param>
+    /// <remarks>This method is called by streams and might be called on a closed connection. The connection might
+    /// also be closed concurrently while it's in progress.</remarks>
     internal async Task WriteStreamFrameAsync(
         SlicStream stream,
         FrameType frameType,
@@ -707,6 +710,8 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
     /// frame should be written after the stream frame.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <remarks>This method is called by streams and might be called on a closed connection. The connection might
+    /// also be closed concurrently while it's in progress.</remarks>
     internal async ValueTask<FlushResult> WriteStreamDataFrameAsync(
         SlicStream stream,
         ReadOnlySequence<byte> source1,
