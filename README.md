@@ -1,6 +1,8 @@
 # IceRPC for C#
 
-![Continuous Integration][ci-badge] | [Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
+![Continuous Integration][ci-badge]
+
+[Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
 
 IceRPC is a new RPC framework that helps you build networked applications with minimal effort.
 
@@ -45,16 +47,18 @@ usually awaited. For example:
 ```csharp
 // Synchronous code (old RPC style)
 
-// It's unclear if this is a remote call that takes milliseconds or a local call that takes at most a few microseconds.
-// In any case, this call is holding onto its thread until it completes.
+// It's unclear if this is a remote call that takes milliseconds or a local call that takes
+// at most a few microseconds. In any case, this call is holding onto its thread until it
+// completes.
 string greeting = greeterProxy.Greet(name);
 ```
 
 ```csharp
 // Asynchronous code with await (modern RPC style)
 
-// We see it's a special call thanks to await and the Async suffix. GreetAsync releases the thread while waiting for
-// the response from the peer and it's just as easy to write as the synchronous version.
+// We see it's a special call thanks to await and the Async suffix. GreetAsync releases the
+// thread while waiting for  the response from the peer and it's just as easy to write as
+// the synchronous version.
 string greeting = await greeterProxy.GreetAsync(name);
 ```
 
@@ -101,11 +105,71 @@ And you can use IceRPC with a [DI container][icerpc-with-di]--or not. It's all o
 
 ## Slice
 
-TBD
+[Slice][slice] is a completely revised version of [Ice][zeroc-ice]'s IDL (the [original Slice][ice-slice]), with a new
+syntax, a new file extension (.slice), a new compilation model, additional keywords and more. It just keeps the same
+terminology: modules, interfaces, operations, proxies, enums, etc. They have the same meaning in the new Slice language
+as in the original language[^2].
+
+The Slice language is RPC-centric: it's all about defining RPCs in a clear and concise manner, with just the right
+feature set.
+
+> Slice as a language is not tied to IceRPC. You can use Slice and the supporting [slicec][slicec] parser library with
+> another RPC framework. However, the Slice compiler for C# ([slicec-cs][slicec-cs]) and the Slice library code
+> ([IceRpc.Slice][icerpc-slice]) provided by this repository are IceRPC-specific.
+
+Defining the customary Greeter interface in Slice is straightforward:
+
+```slice
+// Interface Greeter is implemented by a service hosted in a server.
+interface Greeter {
+    // The greet request carries the name of the person to greet and
+    // the greet response carries the greeting created by the service
+    // that implements Greeter.
+    greet(name: string) -> string
+}
+```
+
+You don't need to craft special request and reply message types: you can specify all your parameters inline.
+
+The Slice compiler for C# then generates readable and succinct C# code from this Greeter interface:
+ - a client-side `IGreeter` interface with a single `GreetAsync` method.
+ - a client-side `GreeterProxy` that implements `IGreeter` by sending requests / receiving responses with the IceRPC
+core
+ - a server-side `IGreeterService` interface that you use as a template when writing the service that implements Greeter
+
+Slice also supports streaming in both directions. For example:
+
+```slice
+interface Generator {
+    // Returns a (possibly infinite) stream of int32
+    generateNumbers() -> stream int32
+}
+
+interface Uploader {
+    // Uploads an image (can be very large)
+    uploadImage(image: stream uint8)
+}
+```
+
+A stream of `uint8` is mapped to a C# `PipeReader` while a stream of any other type is mapped to an
+`IAsyncEnumerable<T>`.
+
+Slice provides common primitives types with easy-to-understand names:
+ - string
+ - bool
+ - fixed-size integral types (int8, int16, int32, int64, uint8, uint16, uint32, uint64)
+ - variable-size integral types (varint32, varint62, varuint32, varuint62)
+ - floating point types (float32, float64)
+
+And Slice provides a few constructed types to help you design more advanced RPCs: enum, struct, exception, sequence,
+dictionary, and custom.
+
+The [custom type][custom-type] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of
+modularity and extensibility. You just need to provide methods to encode and decode instances of your custom type.
 
 ## Ice interop
 
-IceRPC for C# provides a high-level of interoperability with [Ice][zeroc-ice]. You can use IceRPC to write a new C#
+IceRPC for C# provides a high level of interoperability with [Ice][zeroc-ice]. You can use IceRPC to write a new C#
 client for your Ice server, and you can call services hosted by an IceRPC server from an Ice client.
 [IceRPC for Ice users][icerpc-for-ice-users] provides all the details.
 
@@ -119,9 +183,12 @@ to the license for the full terms and conditions.
 [^1]: IceRPC for C# currently provides two duplex transport implementations: TCP (with or without TLS), and Coloc (an
 in-memory transport for testing). Future releases may add additional transports.
 
+[^2]: You can easily and mostly mechanically convert original Slice definitions into the new syntax.
+
 [api]: https://api.testing.zeroc.com/csharp/
 [building]: BUILDING.md
 [ci-badge]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg
+[custom-type]: https://docs.testing.zeroc.com/docs/slice/language-guide/custom-types
 [docs]: https://docs.testing.zeroc.com/docs
 [getting-started]: https://docs.testing.zeroc.com/docs/getting-started
 [examples]: examples
@@ -130,6 +197,8 @@ in-memory transport for testing). Future releases may add additional transports.
 [icerpc-protocol]: https://docs.testing.zeroc.com/docs/icerpc-core/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.testing.zeroc.com/docs/icerpc-core/dependency-injection/di-and-icerpc-for-csharp
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
+[ice-slice]: https://doc.zeroc.com/ice/3.7/the-slice-language
+[icerpc-slice]: src/IceRpc/Slice
 [json]: examples/GreeterJson
 [license]: LICENSE
 [packages]: https://www.nuget.org/packages/IceRpc
@@ -137,4 +206,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [protobuf]: examples/GreeterProtobuf
 [quic]: https://en.wikipedia.org/wiki/QUIC
 [slic]: TBD
+[slice]: https://docs.testing.zeroc.com/docs/slice
+[slicec]: https://github.com/icerpc/slicec
+[slicec-cs]: tools/slicec-cs
 [zeroc-ice]: https://github.com/zeroc-ice/ice
