@@ -29,11 +29,11 @@ pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
 
     let mut code = CodeBlock::default();
-    let mut proxy_interface_def_builder = ContainerBuilder::new(&format!("{access} partial interface"), &interface);
+    let mut proxy_interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &interface);
     if let Some(summary) = interface_def.formatted_doc_comment_summary() {
-        proxy_interface_def_builder.add_comment("summary", summary);
+        proxy_interface_builder.add_comment("summary", summary);
     }
-    proxy_interface_def_builder
+    proxy_interface_builder
         .add_generated_remark_with_note(
             "client-side interface",
             format!("It's implemented by <see cref=\"{proxy_impl}\" />."),
@@ -43,7 +43,7 @@ pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
         .add_type_id_attribute(interface_def)
         .add_bases(&interface_bases)
         .add_block(proxy_interface_operations(interface_def));
-    code.add_block(&proxy_interface_def_builder.build());
+    code.add_block(&proxy_interface_builder.build());
 
     let mut proxy_impl_builder =
         ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
