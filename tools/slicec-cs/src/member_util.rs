@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+use crate::comments::CommentTag;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
@@ -20,8 +21,8 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
         .cs_type_string(&field.namespace(), TypeContext::Field, false);
     let mut prelude = CodeBlock::default();
 
-    for comment_tag in field.formatted_doc_comment() {
-        prelude.writeln(&comment_tag)
+    if let Some(summary) = field.formatted_doc_comment_summary() {
+        prelude.writeln(&CommentTag::new("summary", summary))
     }
 
     for cs_attribute in field.cs_attributes() {

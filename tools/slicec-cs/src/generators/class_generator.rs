@@ -30,9 +30,13 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
 
     let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
+    if let Some(summary) = class_def.formatted_doc_comment_summary() {
+        class_builder.add_comment("summary", summary);
+    }
+
     class_builder
-        .add_comments(class_def.formatted_doc_comment())
         .add_generated_remark("class", class_def)
+        .add_comments(class_def.formatted_doc_comment_seealso())
         .add_type_id_attribute(class_def)
         .add_compact_type_id_attribute(class_def)
         .add_obsolete_attribute(class_def);
