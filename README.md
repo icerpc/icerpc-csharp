@@ -107,8 +107,8 @@ And you can use IceRPC with a [DI container][icerpc-with-di]--or not. It's all o
 
 [Slice][slice] is a completely revised version of [Ice][zeroc-ice]'s IDL (the [original Slice][ice-slice]), with a new
 syntax, a new file extension (.slice), a new compilation model, additional keywords and more. It just keeps the same
-terminology: modules, interfaces, operations, proxies, enums etc. have the same meaning in the new Slice language as in
-the original language[^2].
+terminology: modules, interfaces, operations, proxies, enums, etc. They have the same meaning in the new Slice language
+as in the original language[^2].
 
 The Slice language is RPC-centric: it's all about defining RPCs in a clear and concise manner, with just the right
 feature set.
@@ -129,7 +129,7 @@ interface Greeter {
 }
 ```
 
-You don't need to craft special request and reply message types--you can specify all your parameters inline.
+You don't need to craft special request and reply message types: you can specify all your parameters inline.
 
 The Slice compiler for C# then generates readable and succinct C# code from this Greeter interface:
  - a client-side `IGreeter` interface with a single `GreetAsync` method.
@@ -151,20 +151,21 @@ interface Uploader {
 }
 ```
 
-A stream of uint8 is mapped to a C# `PipeReader` while a stream of any other type is mapped to an `IAsyncEnumerable<T>`.
+A stream of `uint8` is mapped to a C# `PipeReader` while a stream of any other type is mapped to an
+`IAsyncEnumerable<T>`.
 
 Slice provides common primitives types with easy-to-understand names:
  - string
  - bool
  - fixed-size integral types (int8, int16, int32, int64, uint8, uint16, uint32, uint64)
- - variable-size integral types (varint32, varint64, varuint32, varuint62)
+ - variable-size integral types (varint32, varint62, varuint32, varuint62)
  - floating point types (float32, float64)
 
 And Slice provides a few constructed types to help you design more advanced RPCs: enum, struct, exception, sequence,
-dictionary and custom.
+dictionary, and custom.
 
 The [custom type][custom-type] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of
-modularity and extensibility. You just need to provide methods to encode and decode instances of this type.
+modularity and extensibility. You just need to provide methods to encode and decode instances of your custom type.
 
 ## Ice interop
 
