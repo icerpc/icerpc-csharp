@@ -4,8 +4,8 @@ using System.Collections.Immutable;
 
 namespace IceRpc.Features;
 
-/// <summary>A feature used by the invocation pipeline to select the server address to use and share this selection.
-/// </summary>
+/// <summary>Represents a feature used by the invocation pipeline to select the server address to use and share this
+/// selection.</summary>
 public interface IServerAddressFeature
 {
     /// <summary>Gets or sets the alternatives to <see cref="ServerAddress" />.</summary>

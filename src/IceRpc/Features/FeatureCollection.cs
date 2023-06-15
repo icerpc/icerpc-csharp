@@ -4,14 +4,15 @@ using System.Collections;
 
 namespace IceRpc.Features;
 
-/// <summary>The default read-write implementation of <see cref="IFeatureCollection" />.</summary>
+/// <summary>Default implementation of <see cref="IFeatureCollection" />.</summary>
 public class FeatureCollection : IFeatureCollection
 {
     /// <summary>Gets a shared empty read-only instance.</summary>
     /// <value>An empty <see cref="FeatureCollection" />.</value>
     public static IFeatureCollection Empty { get; } = new FeatureCollection().AsReadOnly();
 
-    /// <inheritdoc/>
+    /// <summary>Gets a value indicating whether this feature collection is read-only or read-write.</summary>
+    /// <value>Always <see langword="false" /> with this class.</value>
     public bool IsReadOnly => false;
 
     private readonly IFeatureCollection? _defaults;
