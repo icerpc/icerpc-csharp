@@ -79,7 +79,7 @@ public class TcpTransportTests
     [Test]
     public void Configure_client_connection_local_network_address()
     {
-        var localNetworkAddress = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
+        var localNetworkAddress = new IPEndPoint(IPAddress.Loopback, 10000);
 
         using TcpClientConnection connection = CreateTcpClientConnection(
             new ServerAddress(Protocol.IceRpc),
