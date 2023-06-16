@@ -1,9 +1,9 @@
 # IceRPC extensions for Microsoft's DI container
 
-IceRpc.Extensions.DependencyInjection helps you build applications with [IceRPC][icerpc] and
+IceRpc.Extensions.DependencyInjection helps you build applications with [IceRPC][icerpc-csharp] and
 [Microsoft's DI container][ms_di].
 
-[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Product documentation][product]
+[Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Product documentation][product]
 
 ## Sample code
 
@@ -56,7 +56,7 @@ host.Run();
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Extensions.DependencyInjection.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GenericHost
-[icerpc]: https://www.nuget.org/packages/IceRpc
+[icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [ms_di]: https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection
 [package]: https://www.nuget.org/packages/IceRpc.Extensions.DependencyInjection
 [product]: https://docs.testing.zeroc.com/docs/icerpc-core/dependency-injection/di-and-icerpc-for-csharp

@@ -1,10 +1,10 @@
 # RequestContext interceptor and middleware for IceRPC
 
-IceRpc.RequestContext provides an [IceRPC][icerpc] interceptor that encodes request context features into request
+IceRpc.RequestContext provides an [IceRPC][icerpc-csharp] interceptor that encodes request context features into request
 context fields. It also provides the corresponding middleware that decodes request context fields into request context
 features.
 
-[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
+[Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
 
@@ -85,7 +85,7 @@ The ice protocol can send and receive request context fields. They correspond to
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.RequestContext.html
 [ice_request_contexts]: https://doc.zeroc.com/ice/3.7/client-side-features/request-contexts
-[icerpc]: https://www.nuget.org/packages/IceRpc
+[icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/RequestContext
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware

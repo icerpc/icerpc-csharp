@@ -1,8 +1,8 @@
 # Retry interceptor for IceRPC
 
-IceRpc.Retry provides an [IceRPC][icerpc] interceptor that retries failed invocations automatically.
+IceRpc.Retry provides an [IceRPC][icerpc-csharp] interceptor that retries failed invocations automatically.
 
-[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor]
+[Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor]
 
 ## Sample code
 
@@ -43,7 +43,7 @@ host.Run();
 ```
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Retry.html
-[icerpc]: https://www.nuget.org/packages/IceRpc
+[icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Retry
 [package]: https://www.nuget.org/packages/IceRpc.Retry

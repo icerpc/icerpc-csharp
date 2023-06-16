@@ -1,13 +1,13 @@
 # Metrics interceptor and middleware for IceRPC
 
-IceRpc.Metrics provides an [IceRPC][icerpc] interceptor and an IceRPC middleware.
+IceRpc.Metrics provides an [IceRPC][icerpc-csharp] interceptor and an IceRPC middleware.
 
 The metrics interceptor instruments invocations using the [Meter API][meter], while the metrics middleware instruments
 dispatches using the same API.
 
 You can display the collected measurements with [dotnet-counters][dotnet_counters] and other tools.
 
-[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
+[Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
 
@@ -76,7 +76,7 @@ host.Run();
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Metrics.html
 [dotnet_counters]: https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters
-[icerpc]: https://www.nuget.org/packages/IceRpc
+[icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Metrics
 [meter]: https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics.meter

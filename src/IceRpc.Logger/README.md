@@ -1,9 +1,9 @@
 # Logger interceptor and middleware for IceRPC
 
-IceRpc.Logger provides an [IceRPC][icerpc] interceptor that logs every invocation and an IceRPC middleware that logs
-every dispatch.
+IceRpc.Logger provides an [IceRPC][icerpc-csharp] interceptor that logs every invocation and an IceRPC middleware that
+logs every dispatch.
 
-[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
+[Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
 
@@ -92,7 +92,7 @@ host.Run();
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Logger.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterLog
-[icerpc]: https://www.nuget.org/packages/IceRpc
+[icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Logger
