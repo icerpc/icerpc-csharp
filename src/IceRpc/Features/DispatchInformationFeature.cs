@@ -2,7 +2,7 @@
 
 namespace IceRpc.Features;
 
-/// <summary>The default implementation of <see cref="IDispatchInformationFeature" />.</summary>
+/// <summary>Default implementation of <see cref="IDispatchInformationFeature" />.</summary>
 public sealed class DispatchInformationFeature : IDispatchInformationFeature
 {
     /// <inheritdoc/>

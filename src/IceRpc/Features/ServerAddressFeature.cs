@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace IceRpc.Features;
 
-/// <summary>The default implementation of <see cref="IServerAddressFeature" />.</summary>
+/// <summary>Default implementation of <see cref="IServerAddressFeature" />.</summary>
 public sealed class ServerAddressFeature : IServerAddressFeature
 {
     /// <inheritdoc/>
