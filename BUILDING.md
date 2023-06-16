@@ -8,7 +8,7 @@
 - [Project Templates](#project-templates)
 - [Packaging](#packaging)
 - [Publishing Packages](#publishing-packages)
-- [Generating API Documentation](#generating-api-documentation)
+- [Generating the IceRpc API Reference](#generating-the-icerpc-api-reference)
 
 This document describes how to build and use the source code in this repository.
 
@@ -158,23 +158,31 @@ Windows
 build.cmd -installTemplates
 ```
 
-## Generating API Documentation
+## Generating the IceRpc API Reference
 
-Before generating reference documentation for the IceRPC API, ensure that you have the
-[docfx](https://www.nuget.org/packages/docfx) command in your system's PATH, with version 2.63 or higher.
+We use [docfx](https://www.nuget.org/packages/docfx) to generate the IceRpc API reference.
 
-To generate the documentation, use the following command:
+Step 1: Install the latest version of docfx
+
+```shell
+dotnet tool update -g docfx
+```
+
+Step 2: Execute the build script
 
 Linux or macOS
-
 ```shell
 ./build.sh --doc
 ```
 
 Windows
-
 ```shell
 build.cmd -doc
 ```
 
-The resulting documentation will be located in the `docfx\_site` directory.
+The build script generates the API reference into the `docfx\_site` directory. You can then start a local web server to
+view this local API reference:
+
+```shell
+docfx serve docfx/_site
+```
