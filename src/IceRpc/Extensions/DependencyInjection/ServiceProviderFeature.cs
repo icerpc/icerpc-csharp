@@ -2,7 +2,7 @@
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Default implementation for <see cref="IServiceProviderFeature" />.</summary>
+/// <summary>Default implementation of <see cref="IServiceProviderFeature" />.</summary>
 public sealed class ServiceProviderFeature : IServiceProviderFeature
 {
     /// <inheritdoc/>

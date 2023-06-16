@@ -3,4 +3,4 @@ uid: IceRpc.Extensions.DependencyInjection
 summary: *content
 ---
 
-The IceRpc.Extensions.DependencyInjection namespace.
+Provides extensions for Microsoft's DI container (Microsoft.Extensions.DependencyInjection).

@@ -3,4 +3,4 @@ uid: IceRpc.Retry
 summary: *content
 ---
 
-The IceRpc.Retry namespace.
+Provides the retry interceptor.

@@ -2,7 +2,7 @@
 
 namespace IceRpc.Features;
 
-/// <summary>Extension methods for interface <see cref="IServerAddressFeature" />.</summary>
+/// <summary>Provides extension methods for <see cref="IServerAddressFeature" />.</summary>
 public static class ServerAddressFeatureExtensions
 {
     /// <summary>Tries to remove a server address from this server address feature. The server address is added to the

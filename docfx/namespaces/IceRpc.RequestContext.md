@@ -3,4 +3,4 @@ uid: IceRpc.RequestContext
 summary: *content
 ---
 
-The IceRpc.RequestContext namespace.
+Provides the request context interceptor and middleware.

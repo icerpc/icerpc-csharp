@@ -3,4 +3,4 @@ uid: IceRpc.Locator
 summary: *content
 ---
 
-The IceRpc.Locator namespace.
+Provides the locator interceptor. This interceptor enables interop with Ice servers that use a locator such as IceGrid.

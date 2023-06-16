@@ -3,4 +3,4 @@ uid: IceRpc.Ice
 summary: *content
 ---
 
-The IceRpc.Ice namespace.
+Supports interop with Ice applications.

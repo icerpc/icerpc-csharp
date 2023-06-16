@@ -4,7 +4,7 @@ using System.Collections;
 
 namespace IceRpc.Features;
 
-/// <summary>Default implementation for <see cref="IRequestContextFeature" />.</summary>
+/// <summary>Default implementation of <see cref="IRequestContextFeature" />.</summary>
 /// <remarks>This class implements <see cref="IEnumerable" />, <see cref="Add" /> and the indexer operator to allow you
 /// to use a collection initializer.</remarks>
 public sealed class RequestContextFeature : IRequestContextFeature, IEnumerable<KeyValuePair<string, string>>

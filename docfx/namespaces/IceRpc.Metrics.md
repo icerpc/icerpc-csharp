@@ -3,4 +3,4 @@ uid: IceRpc.Metrics
 summary: *content
 ---
 
-The IceRpc.Metrics namespace.
+Provides the metrics interceptor and middleware.

@@ -2,7 +2,7 @@
 
 namespace IceRpc.Features;
 
-/// <summary>A feature that provides information about the current dispatch.</summary>
+/// <summary>Provides information about the current dispatch.</summary>
 public interface IDispatchInformationFeature
 {
     /// <summary>Gets the connection context.</summary>

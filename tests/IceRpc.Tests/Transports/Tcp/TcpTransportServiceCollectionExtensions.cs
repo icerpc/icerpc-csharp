@@ -9,8 +9,11 @@ namespace IceRpc.Tests.Transports.Tcp;
 
 internal static class TcpTransportServiceCollectionExtensions
 {
-    internal static IServiceCollection AddTcpTest(this IServiceCollection services, int? listenBacklog) => services
-        .AddDuplexTransportTest(new Uri("icerpc://127.0.0.1:0/"))
+    internal static IServiceCollection AddTcpTest(
+        this IServiceCollection services,
+        int? listenBacklog,
+        Uri? serverAddressUri = null) => services
+        .AddDuplexTransportTest(serverAddressUri ?? new Uri("icerpc://127.0.0.1:0/"))
         .AddTcpTransport()
         .AddSingleton<TcpServerTransportOptions>(
             _ => listenBacklog is null ? new() : new() { ListenBacklog = listenBacklog.Value });

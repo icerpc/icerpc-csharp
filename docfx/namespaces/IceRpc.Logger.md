@@ -3,4 +3,4 @@ uid: IceRpc.Logger
 summary: *content
 ---
 
-The IceRpc.Logger namespace.
+Provides the logger interceptor and middleware, for logging requests and responses to an ILogger.

@@ -2,7 +2,7 @@
 
 namespace IceRpc.Features;
 
-/// <summary>Default implementation for <see cref="ICompressFeature" />.</summary>
+/// <summary>Default implementation of <see cref="ICompressFeature" />.</summary>
 public sealed class CompressFeature : ICompressFeature
 {
     /// <summary>Gets an <see cref="ICompressFeature" /> with <see cref="Value" /> set to <see langword="true" />.

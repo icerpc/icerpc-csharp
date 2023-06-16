@@ -3,4 +3,4 @@ uid: IceRpc.Deadline
 summary: *content
 ---
 
-The IceRpc.Deadline namespace.
+Provides the deadline interceptor and middleware.
