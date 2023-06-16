@@ -11,9 +11,6 @@ using VisitorCenter;
 // The activity source used by the telemetry interceptor and middleware.
 using var activitySource = new ActivitySource("IceRpc");
 
-// Add the telemetry interceptor to the invocation pipeline.
-Pipeline pipeline = new Pipeline().UseTelemetry(activitySource);
-
 // Add the telemetry middleware to the dispatch pipeline.
 Router router = new Router().UseTelemetry(activitySource);
 
