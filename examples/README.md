@@ -2,7 +2,7 @@
 
 This folder contains example applications for various IceRPC components. These examples are here to help you get
 started using a specific feature or programming technique in IceRPC.
-
+|                                       |                                                                                                                                                                                            |
 |---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Compress](./Compress/)               | The Compress example shows how to use the compress interceptor and middleware to compress and decompress the arguments and return the value of an invocation.                              |
 | [Deadline](./Deadline/)               | The Deadline example shows how to use the deadline interceptor to set the invocation deadline.                                                                                             |
