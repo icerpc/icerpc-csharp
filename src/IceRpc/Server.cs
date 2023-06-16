@@ -295,8 +295,9 @@ public sealed class Server : IAsyncDisposable
     /// <summary>Starts accepting connections on the configured server address. Requests received over these connections
     /// are then dispatched by the configured dispatcher.</summary>
     /// <returns>The server address this server is listening on and that a client would connect to. This address is the
-    /// same as <see cref="ServerOptions.ServerAddress" /> except its <see cref="ServerAddress.Transport" /> property is
-    /// always non-null and its port number is never 0 when the host is an IP address.</returns>
+    /// same as the <see cref="ServerOptions.ServerAddress" /> of <see cref="ServerOptions" /> except its
+    /// <see cref="ServerAddress.Transport" /> property is always non-null and its port number is never 0 when the host
+    /// is an IP address.</returns>
     /// <exception cref="IceRpcException">Thrown when the server transport fails to listen on the configured <see
     /// cref="ServerOptions.ServerAddress" />.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the server is already listening, shut down or shutting
