@@ -2,7 +2,7 @@
 
 This directory provides [Slice][slice] definitions shared by all IceRPC implementations.
 
-| Directory      | Description |
+| Subdirectory   | Description |
 |----------------|-------------|
 | Ice            | Interfaces and exceptions provided for interop with [Ice][zeroc-ice] applications.|
 | IceRpc         | Enumerations that specify response status codes, request field keys, response field keys and known compression formats.|
