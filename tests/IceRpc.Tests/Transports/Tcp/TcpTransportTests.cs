@@ -79,16 +79,20 @@ public class TcpTransportTests
     [Test]
     public void Configure_client_connection_local_network_address()
     {
-        var localNetworkAddress = new IPEndPoint(IPAddress.Loopback, 10000);
-
         using TcpClientConnection connection = CreateTcpClientConnection(
             new ServerAddress(Protocol.IceRpc),
             options: new TcpClientTransportOptions
             {
-                LocalNetworkAddress = localNetworkAddress,
+                LocalNetworkAddress = new IPEndPoint(IPAddress.Loopback, 10000),
             });
 
-        Assert.That(connection.Socket.LocalEndPoint, Is.EqualTo(localNetworkAddress));
+        Assert.That(connection.Socket.LocalEndPoint, Is.InstanceOf<IPEndPoint>());
+        IPEndPoint localEndpoint = (IPEndPoint)connection.Socket.LocalEndPoint!;
+        Assert.That(localEndpoint.Port, Is.EqualTo(10000));
+        Assert.That(
+            localEndpoint.Address,
+            Is.EqualTo(localEndpoint.Address.IsIPv4MappedToIPv6 ?
+                IPAddress.Parse("::ffff:127.0.0.1") : IPAddress.Loopback));
     }
 
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize" /> and
