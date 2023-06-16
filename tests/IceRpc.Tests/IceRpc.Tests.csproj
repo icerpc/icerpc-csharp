@@ -29,5 +29,9 @@
     <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\D\D.csproj" />
     <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\DPrime\DPrime.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <None Include="..\..\certs\*.p12">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
