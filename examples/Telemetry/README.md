@@ -1,4 +1,4 @@
-# OpenTelemetry
+# Telemetry
 
 This application illustrates how to use the IceRPC telemetry interceptor and middleware, and how they can be integrated
 with OpenTelemetry to export traces to Zipkin. The application also shows how the trace context is propagated from the

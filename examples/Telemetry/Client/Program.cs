@@ -10,9 +10,6 @@ using VisitorCenter;
 // The activity source used by the telemetry interceptor.
 using var activitySource = new ActivitySource("IceRpc");
 
-// Create an invocation pipeline and add the telemetry interceptor to it.
-Pipeline pipeline = new Pipeline().UseTelemetry(activitySource);
-
 // Configure OpenTelemetry trace provider to subscribe to the activity source used by the IceRpc telemetry interceptor,
 // and to export the traces to the Zipkin service.
 using TracerProvider? tracerProvider = Sdk.CreateTracerProviderBuilder()
@@ -22,8 +19,8 @@ using TracerProvider? tracerProvider = Sdk.CreateTracerProviderBuilder()
    .Build();
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
-
-pipeline.Into(connection);
+// Create an invocation pipeline and add the telemetry interceptor to it.
+Pipeline pipeline = new Pipeline().UseTelemetry(activitySource).Into(connection);
 
 var greeter = new GreeterProxy(pipeline);
 
