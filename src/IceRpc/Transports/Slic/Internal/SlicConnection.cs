@@ -163,9 +163,10 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         // Unsupported version, try to negotiate another version by sending a Version frame with the
                         // Slic versions supported by this server.
-                        WriteConnectionFrame(
+                        await WriteConnectionFrameAsync(
                             FrameType.Version,
-                            new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode);
+                            new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
+                            cancellationToken).ConfigureAwait(false);
 
                         (version, initializeBody) = await ReadFrameAsync(
                             DecodeInitialize,
@@ -191,20 +192,22 @@ internal class SlicConnection : IMultiplexedConnection
                     DecodeParameters(initializeBody.Value.Parameters);
 
                     // Write back an InitializeAck frame.
-                    WriteConnectionFrame(
+                    await WriteConnectionFrameAsync(
                         FrameType.InitializeAck,
-                        new InitializeAckBody(EncodeParameters()).Encode);
+                        new InitializeAckBody(EncodeParameters()).Encode,
+                        cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
                     // Write the Initialize frame.
-                    WriteConnectionFrame(
+                    await WriteConnectionFrameAsync(
                         FrameType.Initialize,
                         (ref SliceEncoder encoder) =>
                         {
                             encoder.EncodeVarUInt62(SlicDefinitions.V1);
                             new InitializeBody(Protocol.IceRpc.Name, EncodeParameters()).Encode(ref encoder);
-                        });
+                        },
+                        cancellationToken).ConfigureAwait(false);
 
                     // Read the Initialize frame.
                     InitializeAckBody initializeAckBody = await ReadFrameAsync(
@@ -310,13 +313,20 @@ internal class SlicConnection : IMultiplexedConnection
             // torn down and there's no point in sending a ping frame.
             if (Interlocked.Increment(ref _pendingPongCount) > 0)
             {
+                _ = PingAsync();
+            }
+
+            async Task PingAsync()
+            {
                 try
                 {
                     // For now, the Ping frame payload is just a long which is always set to 0. In the future, it could
                     // be a ping frame type value if the ping frame is used for different purpose (e.g: a KeepAlive or
                     // RTT ping frame type).
-                    var pingBody = new PingBody(0L);
-                    WriteConnectionFrame(FrameType.Ping, pingBody.Encode);
+                    await WriteConnectionFrameAsync(
+                        FrameType.Ping,
+                        new PingBody(0L).Encode,
+                        _closedCancellationToken).ConfigureAwait(false);
                 }
                 catch (IceRpcException)
                 {
@@ -325,6 +335,7 @@ internal class SlicConnection : IMultiplexedConnection
                 catch (Exception exception)
                 {
                     Debug.Fail($"The Slic keep alive timer failed with an unexpected exception: {exception}");
+                    throw;
                 }
             }
         }
@@ -368,14 +379,18 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
+        // Calling DisposeAsync while CloseAsync is pending is not allowed. We can safely assume that _writeSemaphore is
+        // not disposed and there's no need to create a linked token source with _disposedCts.Token.
+
         bool waitForWriterShutdown = false;
         if (TryClose(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed."))
         {
-            using SemaphoreLock _ = _writeSemaphore.Acquire();
+            using SemaphoreLock _ = await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false);
 
-            // A server connection might have shutdown already if the client sent the Close frame and shutdown the
-            // duplex connection. We have to make sure here that it's not already the case otherwise the Write on
-            // the SlicDuplexConnectionWriter would fail when writing on a completed pipe writer.
+            // The duplex connection writer of a server connection might already be shutdown (_writerIsShutdown=true) if
+            // the client-side sent the Close frame and shut down the duplex connection. This doesn't apply to the
+            // client-side since the server-side doesn't shutdown the duplex connection writer after sending the Close
+            // frame.
             if (!IsServer || !_writerIsShutdown)
             {
                 WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
@@ -525,9 +540,13 @@ internal class SlicConnection : IMultiplexedConnection
             {
             }
 
-            _duplexConnection.Dispose();
+            // Wait for tasks to release the write semaphore before disposing the duplex connection writer.
+            using (await _writeSemaphore.AcquireAsync(CancellationToken.None).ConfigureAwait(false))
+            {
+                await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
+            }
             _duplexConnectionReader.Dispose();
-            await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
+            _duplexConnection.Dispose();
 
             _disposedCts.Dispose();
             _writeSemaphore.Dispose();
@@ -646,10 +665,15 @@ internal class SlicConnection : IMultiplexedConnection
     /// <summary>Writes a connection frame.</summary>
     /// <param name="frameType">The frame type.</param>
     /// <param name="encode">The action to encode the frame.</param>
-    internal void WriteConnectionFrame(FrameType frameType, EncodeAction? encode)
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    internal async Task WriteConnectionFrameAsync(
+        FrameType frameType,
+        EncodeAction? encode,
+        CancellationToken cancellationToken)
     {
         Debug.Assert(frameType < FrameType.Stream);
-        using SlicDuplexConnectionWriterLock _ = AcquireWriterLock();
+
+        using SlicDuplexConnectionWriterLock _ = await AcquireWriterLockAsync(cancellationToken).ConfigureAwait(false);
         WriteFrame(frameType, streamId: null, encode);
     }
 
@@ -659,7 +683,9 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="encode">The action to encode the frame.</param>
     /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
     /// frame should be written after the stream frame.</param>
-    internal void WriteStreamFrame(
+    /// <remarks>This method is called by streams and might be called on a closed connection. The connection might
+    /// also be closed concurrently while it's in progress.</remarks>
+    internal async Task WriteStreamFrameAsync(
         SlicStream stream,
         FrameType frameType,
         EncodeAction? encode,
@@ -668,7 +694,8 @@ internal class SlicConnection : IMultiplexedConnection
         // Ensure that this method is called for any FrameType.StreamXxx frame type except FrameType.Stream.
         Debug.Assert(frameType >= FrameType.StreamLast && stream.IsStarted);
 
-        using SlicDuplexConnectionWriterLock _ = AcquireWriterLock();
+        using SlicDuplexConnectionWriterLock _ =
+            await AcquireWriterLockAsync(_closedCancellationToken).ConfigureAwait(false);
         WriteFrame(frameType, stream.Id, encode);
         if (writeReadsClosedFrame)
         {
@@ -691,6 +718,8 @@ internal class SlicConnection : IMultiplexedConnection
     /// <param name="writeReadsClosedFrame"><see langword="true" /> if a <see cref="FrameType.StreamReadsClosed" />
     /// frame should be written after the stream frame.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <remarks>This method is called by streams and might be called on a closed connection. The connection might
+    /// also be closed concurrently while it's in progress.</remarks>
     internal async ValueTask<FlushResult> WriteStreamDataFrameAsync(
         SlicStream stream,
         ReadOnlySequence<byte> source1,
@@ -700,6 +729,7 @@ internal class SlicConnection : IMultiplexedConnection
         CancellationToken cancellationToken)
     {
         Debug.Assert(!source1.IsEmpty || endStream);
+
         if (_connectTask is null)
         {
             throw new InvalidOperationException("Cannot send a stream frame before calling ConnectAsync.");
@@ -751,7 +781,8 @@ internal class SlicConnection : IMultiplexedConnection
                 // If there's no data left to send and endStream is true, it's the last stream frame.
                 bool lastStreamFrame = endStream && source1.IsEmpty && source2.IsEmpty;
 
-                using SlicDuplexConnectionWriterLock _ = await AcquireWriterLockAsync().ConfigureAwait(false);
+                using SlicDuplexConnectionWriterLock _ =
+                    await AcquireWriterLockAsync(writeCts.Token).ConfigureAwait(false);
 
                 if (!stream.IsStarted)
                 {
@@ -822,8 +853,9 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private SlicDuplexConnectionWriterLock AcquireWriterLock()
+    private async Task<SlicDuplexConnectionWriterLock> AcquireWriterLockAsync(CancellationToken cancellationToken)
     {
+        Task waitTask;
         lock (_mutex)
         {
             // Make sure the connection is not being closed or closed when we acquire the semaphore.
@@ -831,25 +863,14 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
             }
-        }
-        _writeSemaphore.Wait();
-        return new SlicDuplexConnectionWriterLock(this);
-    }
 
-    private async Task<SlicDuplexConnectionWriterLock> AcquireWriterLockAsync()
-    {
-        // An async version of AcquireWriterLock is also provided for use by WriteStreamDataFrameAsync. Benchmarking
-        // shows that using the synchronous version leads to slower request/s benchmarks.
-
-        lock (_mutex)
-        {
-            // Make sure the connection is not being closed or closed when we acquire the semaphore.
-            if (_isClosed)
-            {
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
-            }
+            // Acquire the semaphore within the mutex lock to make sure it's not disposed concurrently by DisposeAsync.
+            // The caller is also responsible for providing a cancellation token which is canceled either when
+            // CloseAsync or DisposeAsync is called. This ensures that the semaphore wait is canceled before the
+            // semaphore is disposed
+            waitTask = _writeSemaphore.WaitAsync(cancellationToken);
         }
-        await _writeSemaphore.WaitAsync().ConfigureAwait(false);
+        await waitTask.ConfigureAwait(false);
         return new SlicDuplexConnectionWriterLock(this);
     }
 
@@ -1104,8 +1125,9 @@ internal class SlicConnection : IMultiplexedConnection
             // server-side.
             if (notAlreadyClosed && !IsServer)
             {
+                // DisposeAsync waits for the reads frames task to complete before disposing the semaphore.
+                using (await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    using SemaphoreLock _ = _writeSemaphore.Acquire();
                     _duplexConnectionWriter.Shutdown();
                 }
                 // Wait for the writer task completion outside the semaphore lock.
@@ -1122,7 +1144,10 @@ internal class SlicConnection : IMultiplexedConnection
                 cancellationToken).ConfigureAwait(false);
 
             // Return a pong frame with the ping payload.
-            WriteConnectionFrame(FrameType.Pong, new PongBody(pingBody.Payload).Encode);
+            await WriteConnectionFrameAsync(
+                FrameType.Pong,
+                new PongBody(pingBody.Payload).Encode,
+                cancellationToken).ConfigureAwait(false);
         }
 
         async Task ReadPongFrameAsync(int size, CancellationToken cancellationToken)
@@ -1282,8 +1307,10 @@ internal class SlicConnection : IMultiplexedConnection
                 // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
+
+                // DisposeAsync waits for the reads frames task to complete before disposing the semaphore.
+                using (await _writeSemaphore.AcquireAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    using SemaphoreLock _ = _writeSemaphore.Acquire();
                     _duplexConnectionWriter.Shutdown();
 
                     // Make sure that CloseAsync doesn't call Write on the writer if it's called shortly after the peer

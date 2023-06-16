@@ -19,8 +19,8 @@ namespace IceRpc.Transports;
 /// <item><description>The <see cref="CreateStreamAsync" /> and <see cref="AcceptStreamAsync" /> methods are never
 /// called after a <see cref="CloseAsync" /> call.</description></item>
 /// <item><description>The <see cref="IAsyncDisposable.DisposeAsync" /> method can be called while a <see
-/// cref="CreateStreamAsync" /> call is in progress. It can be called multiple times but not
-/// concurrently.</description></item>
+/// cref="CreateStreamAsync" /> call is in progress. It is never called while <see cref="AcceptStreamAsync" /> or <see
+/// cref="CloseAsync" /> are in progress.</description></item>
 /// </list>
 /// </remarks>
 public interface IMultiplexedConnection : IAsyncDisposable

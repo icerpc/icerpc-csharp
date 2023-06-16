@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::comments::CommentTag;
 use crate::cs_util::CsCase;
 use crate::slicec_ext::*;
 use convert_case::Case;
@@ -21,9 +22,12 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
         &format!("{} enum", enum_def.access_modifier()),
         &enum_def.escape_identifier(),
     );
+    if let Some(summary) = enum_def.formatted_doc_comment_summary() {
+        builder.add_comment("summary", summary);
+    }
     builder
-        .add_comments(enum_def.formatted_doc_comment())
         .add_generated_remark("enum", enum_def)
+        .add_comments(enum_def.formatted_doc_comment_seealso())
         .add_obsolete_attribute(enum_def)
         .add_base(enum_def.get_underlying_cs_type())
         .add_block(enum_values(enum_def));
@@ -40,7 +44,11 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
     for enumerator in enum_def.enumerators() {
         let mut declaration = CodeBlock::default();
 
-        for comment_tag in enumerator.formatted_doc_comment() {
+        if let Some(summary) = enumerator.formatted_doc_comment_summary() {
+            declaration.writeln(&CommentTag::new("summary", summary));
+        }
+
+        for comment_tag in enumerator.formatted_doc_comment_seealso() {
             declaration.writeln(&comment_tag);
         }
 

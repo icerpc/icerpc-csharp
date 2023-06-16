@@ -159,6 +159,15 @@ internal class SlicStream : IMultiplexedStream
 
         if (writeReadsClosedFrame)
         {
+            _ = WriteReadsClosedFrameAsync();
+        }
+        else
+        {
+            TrySetReadsClosed();
+        }
+
+        async Task WriteReadsClosedFrameAsync()
+        {
             try
             {
                 if (IsRemote)
@@ -171,11 +180,11 @@ internal class SlicStream : IMultiplexedStream
                     TrySetReadsClosed();
                 }
 
-                _connection.WriteStreamFrame(
+                await _connection.WriteStreamFrameAsync(
                     stream: this,
                     FrameType.StreamReadsClosed,
                     encode: null,
-                    writeReadsClosedFrame: false);
+                    writeReadsClosedFrame: false).ConfigureAwait(false);
 
                 if (!IsRemote)
                 {
@@ -193,10 +202,6 @@ internal class SlicStream : IMultiplexedStream
                 Debug.Fail($"Writing of StreamReadsClosed frame failed due to an unhandled exception: {exception}");
                 throw;
             }
-        }
-        else
-        {
-            TrySetReadsClosed();
         }
     }
 
@@ -221,6 +226,15 @@ internal class SlicStream : IMultiplexedStream
 
         if (writeWritesClosedFrame)
         {
+            _ = WriteWritesClosedFrameAsync();
+        }
+        else
+        {
+            TrySetWritesClosed();
+        }
+
+        async Task WriteWritesClosedFrameAsync()
+        {
             try
             {
                 if (IsRemote)
@@ -235,7 +249,11 @@ internal class SlicStream : IMultiplexedStream
 
                 if (graceful)
                 {
-                    _connection.WriteStreamFrame(this, FrameType.StreamLast, encode: null, writeReadsClosedFrame);
+                    await _connection.WriteStreamFrameAsync(
+                        this,
+                        FrameType.StreamLast,
+                        encode: null,
+                        writeReadsClosedFrame).ConfigureAwait(false);
 
                     // If the stream is a local stream, writes are not closed until the StreamReadsClosed frame is
                     // received from the peer (see ReceivedReadsClosedFrame). This ensures that the connection's
@@ -244,11 +262,11 @@ internal class SlicStream : IMultiplexedStream
                 }
                 else
                 {
-                    _connection.WriteStreamFrame(
+                    await _connection.WriteStreamFrameAsync(
                         stream: this,
                         FrameType.StreamWritesClosed,
                         encode: null,
-                        writeReadsClosedFrame);
+                        writeReadsClosedFrame).ConfigureAwait(false);
 
                     if (!IsRemote)
                     {
@@ -268,10 +286,6 @@ internal class SlicStream : IMultiplexedStream
                 Debug.Fail($"Writing of StreamWritesClosed frame failed due to an unhandled exception: {exception}");
                 throw;
             }
-        }
-        else
-        {
-            TrySetWritesClosed();
         }
     }
 
@@ -337,23 +351,28 @@ internal class SlicStream : IMultiplexedStream
     /// <param name="size">The amount of data consumed by the application on the stream <see cref="Input" />.</param>
     internal void WriteStreamWindowUpdateFrame(int size)
     {
-        try
+        _ = WriteStreamConsumedFrame();
+
+        async Task WriteStreamConsumedFrame()
         {
-            // Send the stream consumed frame.
-            _connection.WriteStreamFrame(
-                stream: this,
-                FrameType.StreamWindowUpdate,
-                new StreamWindowUpdateBody((ulong)size).Encode,
-                writeReadsClosedFrame: false);
-        }
-        catch (IceRpcException)
-        {
-            // Ignore connection failures.
-        }
-        catch (Exception exception)
-        {
-            Debug.Fail($"Writing of the StreamWindowUpdate frame failed due to an unhandled exception: {exception}");
-            throw;
+            try
+            {
+                // Send the stream consumed frame.
+                await _connection.WriteStreamFrameAsync(
+                    stream: this,
+                    FrameType.StreamWindowUpdate,
+                    new StreamWindowUpdateBody((ulong)size).Encode,
+                    writeReadsClosedFrame: false).ConfigureAwait(false);
+            }
+            catch (IceRpcException)
+            {
+                // Ignore connection failures.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"Writing of the StreamWindowUpdate frame failed due to an unhandled exception: {exception}");
+                throw;
+            }
         }
     }
 

@@ -29,19 +29,21 @@ pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let interface_bases: Vec<String> = bases.into_iter().map(|b| b.scoped_interface_name(&namespace)).collect();
 
     let mut code = CodeBlock::default();
-    code.add_block(
-        &ContainerBuilder::new(&format!("{access} partial interface"), &interface)
-            .add_comments(interface_def.formatted_doc_comment())
-            .add_generated_remark_with_note(
-                "client-side interface",
-                format!("It's implemented by <see cref=\"{proxy_impl}\" />."),
-                interface_def,
-            )
-            .add_type_id_attribute(interface_def)
-            .add_bases(&interface_bases)
-            .add_block(proxy_interface_operations(interface_def))
-            .build(),
-    );
+    let mut proxy_interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &interface);
+    if let Some(summary) = interface_def.formatted_doc_comment_summary() {
+        proxy_interface_builder.add_comment("summary", summary);
+    }
+    proxy_interface_builder
+        .add_generated_remark_with_note(
+            "client-side interface",
+            format!("It's implemented by <see cref=\"{proxy_impl}\" />."),
+            interface_def,
+        )
+        .add_comments(interface_def.formatted_doc_comment_seealso())
+        .add_type_id_attribute(interface_def)
+        .add_bases(&interface_bases)
+        .add_block(proxy_interface_operations(interface_def));
+    code.add_block(&proxy_interface_builder.build());
 
     let mut proxy_impl_builder =
         ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
@@ -320,18 +322,20 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def.operations();
 
     for operation in operations {
-        code.add_block(
-            &FunctionBuilder::new(
-                "",
-                &operation.return_task(false),
-                &operation.escape_identifier_with_suffix("Async"),
-                FunctionType::Declaration,
-            )
-            .add_obsolete_attribute(operation)
-            .add_comments(operation.formatted_doc_comment())
-            .add_operation_parameters(operation, TypeContext::Encode)
-            .build(),
+        let mut builder = FunctionBuilder::new(
+            "",
+            &operation.return_task(false),
+            &operation.escape_identifier_with_suffix("Async"),
+            FunctionType::Declaration,
         );
+        if let Some(summary) = operation.formatted_doc_comment_summary() {
+            builder.add_comment("summary", summary);
+        }
+        builder
+            .add_operation_parameters(operation, TypeContext::Encode)
+            .add_comments(operation.formatted_doc_comment_seealso())
+            .add_obsolete_attribute(operation);
+        code.add_block(&builder.build());
     }
 
     code

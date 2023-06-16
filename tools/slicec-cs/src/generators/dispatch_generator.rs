@@ -17,13 +17,17 @@ pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
     let access = interface_def.access_modifier();
     let mut interface_builder = ContainerBuilder::new(&format!("{access} partial interface"), &service_name);
 
+    if let Some(summary) = interface_def.formatted_doc_comment_summary() {
+        interface_builder.add_comment("summary", summary);
+    }
+
     interface_builder
-        .add_comments(interface_def.formatted_doc_comment())
         .add_generated_remark_with_note(
             "server-side interface",
             r#"Your service implementation must implement this interface and derive from <see cref="Service" />."#,
             interface_def,
         )
+        .add_comments(interface_def.formatted_doc_comment_seealso())
         .add_type_id_attribute(interface_def);
 
     interface_builder.add_bases(
@@ -328,15 +332,19 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 }
 
 fn operation_declaration(operation: &Operation) -> CodeBlock {
-    FunctionBuilder::new(
+    let mut builder = FunctionBuilder::new(
         "public",
         &operation.return_task(true),
         &operation.escape_identifier_with_suffix("Async"),
         FunctionType::Declaration,
-    )
-    .add_comments(operation.formatted_doc_comment())
-    .add_operation_parameters(operation, TypeContext::Decode)
-    .build()
+    );
+    if let Some(summary) = operation.formatted_doc_comment_summary() {
+        builder.add_comment("summary", summary);
+    }
+    builder
+        .add_operation_parameters(operation, TypeContext::Decode)
+        .add_comments(operation.formatted_doc_comment_seealso())
+        .build()
 }
 
 fn operation_dispatch(operation: &Operation) -> CodeBlock {

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
     <NUnit>
-      <DisplayName>FullNameSep</DisplayName>
+        <DisplayName>FullNameSep</DisplayName>
+        <!-- Limit the max number for NUnit workers to workaround failures when running with high number of workers -->
+        <NumberOfTestWorkers>10</NumberOfTestWorkers>
     </NUnit>
     <DataCollectionRunSettings>
         <DataCollectors>
