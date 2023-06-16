@@ -79,16 +79,20 @@ public class TcpTransportTests
     [Test]
     public void Configure_client_connection_local_network_address()
     {
-        var localNetworkAddress = new IPEndPoint(IPAddress.IPv6Loopback, 10000);
-
         using TcpClientConnection connection = CreateTcpClientConnection(
             new ServerAddress(Protocol.IceRpc),
             options: new TcpClientTransportOptions
             {
-                LocalNetworkAddress = localNetworkAddress,
+                LocalNetworkAddress = new IPEndPoint(IPAddress.Loopback, 10000),
             });
 
-        Assert.That(connection.Socket.LocalEndPoint, Is.EqualTo(localNetworkAddress));
+        Assert.That(connection.Socket.LocalEndPoint, Is.InstanceOf<IPEndPoint>());
+        IPEndPoint localEndpoint = (IPEndPoint)connection.Socket.LocalEndPoint!;
+        Assert.That(localEndpoint.Port, Is.EqualTo(10000));
+        Assert.That(
+            localEndpoint.Address,
+            Is.EqualTo(localEndpoint.Address.IsIPv4MappedToIPv6 ?
+                IPAddress.Parse("::ffff:127.0.0.1") : IPAddress.Loopback));
     }
 
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize" /> and
@@ -235,6 +239,7 @@ public class TcpTransportTests
     }
 
     [Test]
+    [Repeat(1000)]
     public async Task Tcp_transport_connection_information([Values(true, false)] bool tls)
     {
         // Arrange
@@ -258,12 +263,12 @@ public class TcpTransportTests
         Assert.That(transportConnectionInformation.LocalNetworkAddress, Is.TypeOf<IPEndPoint>());
         Assert.That(
             transportConnectionInformation.LocalNetworkAddress?.AddressFamily,
-            Is.EqualTo(AddressFamily.InterNetworkV6));
+            Is.EqualTo(AddressFamily.InterNetwork));
         var endPoint = (IPEndPoint?)transportConnectionInformation.LocalNetworkAddress;
-        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.Loopback));
         Assert.That(transportConnectionInformation.RemoteNetworkAddress, Is.TypeOf<IPEndPoint>());
         endPoint = (IPEndPoint?)transportConnectionInformation.RemoteNetworkAddress;
-        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.IPv6Loopback));
+        Assert.That(endPoint?.Address, Is.EqualTo(IPAddress.Loopback));
         Assert.That(
             transportConnectionInformation.RemoteCertificate,
             Is.EqualTo(tls ? DefaultSslServerAuthenticationOptions.ServerCertificate : null));
@@ -275,7 +280,7 @@ public class TcpTransportTests
     {
         // Arrange
         await using IListener<IDuplexConnection> listener = CreateTcpListener(
-            new ServerAddress(new Uri("ice://[::0]:0")));
+            new ServerAddress(new Uri("ice://127.0.0.1:0")));
 
         ServerAddress sslAddress = listener.ServerAddress with { Transport = "ssl" };
         using TcpClientConnection clientConnection = CreateTcpClientConnection(
@@ -290,14 +295,14 @@ public class TcpTransportTests
             Throws.Exception.TypeOf<OperationCanceledException>().Or.TypeOf<IceRpcException>());
     }
 
-    [TestCase("ice://[::0]:0")]
-    [TestCase("ice://[::0]:0?transport=tcp")]
-    [TestCase("ice://[::0]:0?transport=ssl")]
-    [TestCase("ice://[::0]:0?transport=tcp&t=60000&z")]
-    [TestCase("ice://[::0]:0?transport=tcp&z=foo,z=bar")] // z can have any value
-    [TestCase("ice://[::0]:0?transport=tcp&t=abcd")] // t can have any value
-    [TestCase("icerpc://[::0]:0")]
-    [TestCase("icerpc://[::0]:0?transport=tcp")]
+    [TestCase("ice://127.0.0.1:0")]
+    [TestCase("ice://127.0.0.1:0?transport=tcp")]
+    [TestCase("ice://127.0.0.1:0?transport=ssl")]
+    [TestCase("ice://127.0.0.1:0?transport=tcp&t=60000&z")]
+    [TestCase("ice://127.0.0.1:0?transport=tcp&z=foo,z=bar")] // z can have any value
+    [TestCase("ice://127.0.0.1:0?transport=tcp&t=abcd")] // t can have any value
+    [TestCase("icerpc://127.0.0.1:0")]
+    [TestCase("icerpc://127.0.0.1:0?transport=tcp")]
     public void Create_connection_to_valid_tcp_server_address(ServerAddress serverAddress) =>
         Assert.That(
             () =>
@@ -307,11 +312,11 @@ public class TcpTransportTests
                     clientAuthenticationOptions: null).Dispose(),
            Throws.Nothing);
 
-    [TestCase("ice://[::0]:0")]
-    [TestCase("ice://[::0]:0?transport=tcp")]
-    [TestCase("ice://[::0]:0?transport=ssl")]
-    [TestCase("icerpc://[::0]:0")]
-    [TestCase("icerpc://[::0]:0?transport=tcp")]
+    [TestCase("ice://127.0.0.1:0")]
+    [TestCase("ice://127.0.0.1:0?transport=tcp")]
+    [TestCase("ice://127.0.0.1:0?transport=ssl")]
+    [TestCase("icerpc://127.0.0.1:0")]
+    [TestCase("icerpc://127.0.0.1:0?transport=tcp")]
     public void Listen_on_valid_tcp_server_address(ServerAddress serverAddress) =>
         Assert.That(
             async () =>
@@ -321,11 +326,11 @@ public class TcpTransportTests
                     serverAuthenticationOptions: DefaultSslServerAuthenticationOptions).DisposeAsync(),
            Throws.Nothing);
 
-    [TestCase("ice://[::0]:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("ice://[::0]:0?transport=tcp&x", typeof(ArgumentException))]
-    [TestCase("icerpc://[::0]:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("icerpc://[::0]:0?transport=ssl", typeof(NotSupportedException))]
-    [TestCase("icerpc://[::0]:0?transport=tcp&z", typeof(ArgumentException))]
+    [TestCase("ice://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
+    [TestCase("ice://127.0.0.1:0?transport=tcp&x", typeof(ArgumentException))]
+    [TestCase("icerpc://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
+    [TestCase("icerpc://127.0.0.1:0?transport=ssl", typeof(NotSupportedException))]
+    [TestCase("icerpc://127.0.0.1:0?transport=tcp&z", typeof(ArgumentException))]
     public void Create_connection_to_invalid_tcp_server_address_fails(ServerAddress serverAddress, Type exceptionType)
     {
         Assert.That(
@@ -337,12 +342,12 @@ public class TcpTransportTests
             Throws.InstanceOf(exceptionType));
     }
 
-    [TestCase("ice://[::0]:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("ice://[::0]:0?transport=tcp&z&t=30000", typeof(ArgumentException))]
+    [TestCase("ice://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
+    [TestCase("ice://127.0.0.1:0?transport=tcp&z&t=30000", typeof(ArgumentException))]
     [TestCase("ice://localhost:0?transport=tcp", typeof(ArgumentException))]
-    [TestCase("icerpc://[::0]:0?transport=foo", typeof(NotSupportedException))]
-    [TestCase("icerpc://[::0]:0?transport=ssl", typeof(NotSupportedException))]
-    [TestCase("icerpc://[::0]:0?transport=tcp&z", typeof(ArgumentException))]
+    [TestCase("icerpc://127.0.0.1:0?transport=foo", typeof(NotSupportedException))]
+    [TestCase("icerpc://127.0.0.1:0?transport=ssl", typeof(NotSupportedException))]
+    [TestCase("icerpc://127.0.0.1:0?transport=tcp&z", typeof(ArgumentException))]
     [TestCase("icerpc://localhost:0?transport=tcp", typeof(ArgumentException))]
     public void Listen_on_invalid_tcp_server_address_fails(ServerAddress serverAddress, Type exceptionType) =>
          Assert.That(
@@ -358,7 +363,7 @@ public class TcpTransportTests
          Assert.That(
             () =>
                 new TcpServerTransport().Listen(
-                    new ServerAddress(new Uri("ice://[::0]:0?transport=ssl")),
+                    new ServerAddress(new Uri("ice://127.0.0.1:0?transport=ssl")),
                     new DuplexConnectionOptions(),
                     serverAuthenticationOptions: null),
             Throws.InstanceOf<ArgumentNullException>());
@@ -428,7 +433,7 @@ public class TcpTransportTests
     {
         IDuplexServerTransport serverTransport = new TcpServerTransport(options ?? new());
         return serverTransport.Listen(
-            serverAddress ?? new ServerAddress(Protocol.IceRpc) { Host = "::1", Port = 0 },
+            serverAddress ?? new ServerAddress(Protocol.IceRpc) { Host = "127.0.0.1", Port = 0 },
             new DuplexConnectionOptions(),
             authenticationOptions);
     }
