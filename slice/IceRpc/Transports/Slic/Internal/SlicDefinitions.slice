@@ -67,9 +67,9 @@ unchecked enum ParameterKey : varuint62 {
     /// The maximum packet size in bytes.
     PacketMaxSize = 3
 
-    /// The stream initial window size. The peer should hold off sending data when the stream window size is 0. It
+    /// The initial stream window size. The peer should hold off sending data when the stream window size is 0. It
     /// should resume sending after receiving the {@link FrameType::StreamWindowUpdate} frame.
-    StreamInitialWindowSize = 4
+    InitialStreamWindowSize = 4
 }
 
 typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>

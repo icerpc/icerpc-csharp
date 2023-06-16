@@ -133,7 +133,7 @@ internal class SlicPipeReader : PipeReader
     internal SlicPipeReader(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
-        _windowSize = connection.StreamInitialWindowSize;
+        _windowSize = connection.InitialStreamWindowSize;
 
         // We keep the default readerScheduler (ThreadPool) because the _pipe.Writer.FlushAsync executes in the
         // "read loop task" and we don't want this task to continue into application code. The writerScheduler

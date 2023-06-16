@@ -28,21 +28,21 @@ public sealed record class SlicTransportOptions
             throw new ArgumentException($"The {nameof(PacketMaxSize)} value cannot be less than 1KB.", nameof(value));
     }
 
-    /// <summary>Gets or sets the stream initial window size. It defines the initial size of the stream receive buffer
+    /// <summary>Gets or sets the initial stream window size. It defines the initial size of the stream receive buffer
     /// for data that has not been consumed yet by the application. When this buffer is full the sender should stop
     /// sending additional data.</summary>
     /// <value>The initial window size in bytes. It can't be less than <c>1</c> KB. Defaults to <c>64</c> KB.</value>
-    public int StreamInitialWindowSize
+    public int InitialStreamWindowSize
     {
-        get => _streamInitialWindowSize;
-        set => _streamInitialWindowSize =
+        get => _initialStreamWindowSize;
+        set => _initialStreamWindowSize =
             value < 1024 ?
             throw new ArgumentException(
-                $"The {nameof(StreamInitialWindowSize)} value cannot be less than 1 KB.",
+                $"The {nameof(InitialStreamWindowSize)} value cannot be less than 1 KB.",
                 nameof(value)) :
             value > MaxWindowSize ?
             throw new ArgumentException(
-                $"The {nameof(StreamInitialWindowSize)} value cannot be larger than {MaxWindowSize}.",
+                $"The {nameof(InitialStreamWindowSize)} value cannot be larger than {MaxWindowSize}.",
                 nameof(value)) :
             value;
     }
@@ -53,5 +53,5 @@ public sealed record class SlicTransportOptions
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(30);
     private int _packetMaxSize = 32768;
     // The default specified in the HTTP/2 specification.
-    private int _streamInitialWindowSize = 65_536;
+    private int _initialStreamWindowSize = 65_536;
 }

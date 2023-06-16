@@ -28,22 +28,22 @@ internal class SlicConnection : IMultiplexedConnection
     internal int PeerPacketMaxSize { get; private set; }
 
     /// <summary>Gets the peer's initial stream window size. This property is set to the <see
-    /// cref="ParameterKey.StreamInitialWindowSize"/> value carried by the <see cref="FrameType.Initialize" />
+    /// cref="ParameterKey.InitialStreamWindowSize"/> value carried by the <see cref="FrameType.Initialize" />
     /// frame.</summary>
-    internal int PeerStreamInitialWindowSize { get; private set; }
+    internal int PeerInitialStreamWindowSize { get; private set; }
 
     /// <summary>Gets the <see cref="MemoryPool{T}" /> used for obtaining memory buffers.</summary>
     internal MemoryPool<byte> Pool { get; }
 
-    /// <summary>Gets the stream initial window size.</summary>
-    internal int StreamInitialWindowSize { get; }
+    /// <summary>Gets the initial stream window size.</summary>
+    internal int InitialStreamWindowSize { get; }
 
     /// <summary>Gets the window update threshold. When the window size is increased and this threshold reached, a <see
     /// cref="FrameType.StreamWindowUpdate" /> frame is sent.</summary>
-    internal int StreamWindowUpdateThreshold => StreamInitialWindowSize / StreamWindowUpdateRatio;
+    internal int StreamWindowUpdateThreshold => InitialStreamWindowSize / StreamWindowUpdateRatio;
 
     // The ratio used to compute the StreamWindowUpdateThreshold. For now, the stream window update is sent when the
-    // window size grows over StreamInitialWindowSize / StreamWindowUpdateRatio.
+    // window size grows over InitialStreamWindowSize / StreamWindowUpdateRatio.
     private const int StreamWindowUpdateRatio = 8;
 
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
@@ -569,7 +569,7 @@ internal class SlicConnection : IMultiplexedConnection
         _maxBidirectionalStreams = options.MaxBidirectionalStreams;
         _maxUnidirectionalStreams = options.MaxUnidirectionalStreams;
 
-        StreamInitialWindowSize = slicOptions.StreamInitialWindowSize;
+        InitialStreamWindowSize = slicOptions.InitialStreamWindowSize;
         _localIdleTimeout = slicOptions.IdleTimeout;
         _packetMaxSize = slicOptions.PacketMaxSize;
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
@@ -907,7 +907,7 @@ internal class SlicConnection : IMultiplexedConnection
     private void DecodeParameters(IDictionary<ParameterKey, IList<byte>> parameters)
     {
         int? peerPacketMaxSize = null;
-        int? peerStreamInitialWindowSize = null;
+        int? peerInitialStreamWindowSize = null;
         foreach ((ParameterKey key, IList<byte> buffer) in parameters)
         {
             switch (key)
@@ -950,13 +950,13 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     break;
                 }
-                case ParameterKey.StreamInitialWindowSize:
+                case ParameterKey.InitialStreamWindowSize:
                 {
-                    peerStreamInitialWindowSize = DecodeParamValue(buffer);
-                    if (peerStreamInitialWindowSize < 1024)
+                    peerInitialStreamWindowSize = DecodeParamValue(buffer);
+                    if (peerInitialStreamWindowSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The StreamInitialWindowSize connection parameter is invalid, it must be greater than 1KB.");
+                            "The InitialStreamWindowSize connection parameter is invalid, it must be greater than 1KB.");
                     }
                     break;
                 }
@@ -974,14 +974,14 @@ internal class SlicConnection : IMultiplexedConnection
             PeerPacketMaxSize = peerPacketMaxSize.Value;
         }
 
-        if (peerStreamInitialWindowSize is null)
+        if (peerInitialStreamWindowSize is null)
         {
             throw new InvalidDataException(
-                "The peer didn't send the required StreamInitialWindowSize connection parameter.");
+                "The peer didn't send the required InitialStreamWindowSize connection parameter.");
         }
         else
         {
-            PeerStreamInitialWindowSize = peerStreamInitialWindowSize.Value;
+            PeerInitialStreamWindowSize = peerInitialStreamWindowSize.Value;
         }
 
         // all parameter values are currently integers in the range 0..Int32Max encoded as varuint62.
@@ -1008,7 +1008,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             // Required parameters.
             EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
-            EncodeParameter(ParameterKey.StreamInitialWindowSize, (ulong)StreamInitialWindowSize)
+            EncodeParameter(ParameterKey.InitialStreamWindowSize, (ulong)InitialStreamWindowSize)
         };
 
         // Optional parameters.

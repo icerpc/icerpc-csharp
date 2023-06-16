@@ -152,7 +152,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     internal SlicPipeWriter(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
-        _peerWindowSize = connection.PeerStreamInitialWindowSize;
+        _peerWindowSize = connection.PeerInitialStreamWindowSize;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
         // the Slic flow control doesn't permit sending more data.

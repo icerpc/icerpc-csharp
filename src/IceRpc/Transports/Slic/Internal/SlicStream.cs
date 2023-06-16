@@ -351,9 +351,9 @@ internal class SlicStream : IMultiplexedStream
     /// <param name="size">The amount of data consumed by the application on the stream <see cref="Input" />.</param>
     internal void WriteStreamWindowUpdateFrame(int size)
     {
-        _ = WriteStreamConsumedFrame();
+        _ = WriteStreamWindowUpdateFrame();
 
-        async Task WriteStreamConsumedFrame()
+        async Task WriteStreamWindowUpdateFrame()
         {
             try
             {

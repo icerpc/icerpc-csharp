@@ -603,12 +603,12 @@ public class SlicTransportTests
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(options =>
             {
-                options.StreamInitialWindowSize = 6893;
+                options.InitialStreamWindowSize = 6893;
                 options.PacketMaxSize = 2098;
             });
         services.AddOptions<SlicTransportOptions>("client").Configure(options =>
             {
-                options.StreamInitialWindowSize = 2405;
+                options.InitialStreamWindowSize = 2405;
                 options.PacketMaxSize = 4567;
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
@@ -622,8 +622,8 @@ public class SlicTransportTests
         var serverConnection = (SlicConnection)sut.Server;
         var clientConnection = (SlicConnection)sut.Client;
 
-        Assert.That(serverConnection.PeerStreamInitialWindowSize, Is.EqualTo(2405));
-        Assert.That(clientConnection.PeerStreamInitialWindowSize, Is.EqualTo(6893));
+        Assert.That(serverConnection.PeerInitialStreamWindowSize, Is.EqualTo(2405));
+        Assert.That(clientConnection.PeerInitialStreamWindowSize, Is.EqualTo(6893));
         Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
         Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
     }
@@ -636,7 +636,7 @@ public class SlicTransportTests
         // Arrange
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(
-            options => options.StreamInitialWindowSize = windowSize);
+            options => options.InitialStreamWindowSize = windowSize);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         byte[] payload = new byte[windowSize - 1];
@@ -670,7 +670,7 @@ public class SlicTransportTests
         byte[] payload = new byte[windowSize - 1];
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(
-            options => options.StreamInitialWindowSize = windowSize);
+            options => options.InitialStreamWindowSize = windowSize);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -741,7 +741,7 @@ public class SlicTransportTests
         // Arrange
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(
-            options => options.StreamInitialWindowSize = windowSize);
+            options => options.InitialStreamWindowSize = windowSize);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
