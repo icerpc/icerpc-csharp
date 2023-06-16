@@ -10,27 +10,20 @@ namespace IceRpc.Transports.Slic.Internal;
 
 // The SlicPipeReader doesn't override ReadAtLeastAsyncCore or CopyToAsync methods because:
 // - we can't forward the calls to the internal pipe reader since reading relies on the AdvanceTo implementation to send
-//   the StreamConsumed frame once the data is examined,
+//   the StreamWindowUpdate frame once the data is examined,
 // - the default implementation can't be much optimized.
 internal class SlicPipeReader : PipeReader
 {
-    // A StreamConsumed frame is sent if the sender is blocked and if the available space in the received buffer reaches
-    // the StreamReceiveWindowSize / StreamWindowUpdateRatio threshold. For now, it's a hard-coded value. We could make
-    // it configurable but the goal is to implement a dynamic window size. This configuration will no longer be needed
-    // since this ratio will be computed.
-    public const int StreamWindowUpdateRatio = 8;
-
     private int _examined;
     private volatile Exception? _exception;
     private long _lastExaminedOffset;
     private readonly Pipe _pipe;
     private ReadResult _readResult;
-    private int _receiveCredit;
-    private readonly int _resumeThreshold;
     // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
     // locking.
     private int _state;
     private readonly SlicStream _stream;
+    private int _windowSize;
 
     public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
@@ -48,10 +41,10 @@ internal class SlicPipeReader : PipeReader
 
         // If the number of examined bytes is superior to the resume threshold notifies the sender it's safe to send
         // additional data.
-        if (_examined >= _resumeThreshold)
+        if (_examined >= _stream.WindowUpdateThreshold)
         {
-            Interlocked.Add(ref _receiveCredit, _examined);
-            _stream.WriteStreamConsumedFrame(_examined);
+            Interlocked.Add(ref _windowSize, _examined);
+            _stream.WriteStreamWindowUpdateFrame(_examined);
             _examined = 0;
         }
 
@@ -140,8 +133,7 @@ internal class SlicPipeReader : PipeReader
     internal SlicPipeReader(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
-        _resumeThreshold = connection.StreamReceiveWindowSize / StreamWindowUpdateRatio;
-        _receiveCredit = connection.StreamReceiveWindowSize;
+        _windowSize = connection.StreamInitialWindowSize;
 
         // We keep the default readerScheduler (ThreadPool) because the _pipe.Writer.FlushAsync executes in the
         // "read loop task" and we don't want this task to continue into application code. The writerScheduler
@@ -178,7 +170,7 @@ internal class SlicPipeReader : PipeReader
     /// reader on its internal pipe.</summary>
     /// <returns><see langword="true" /> if the data was consumed; otherwise, <see langword="false"/> if the reader was
     /// completed by the application.</returns>
-    internal async ValueTask<bool> ReceivedStreamFrameAsync(
+    internal async ValueTask<bool> ReceivedDataFrameAsync(
         int dataSize,
         bool endStream,
         CancellationToken cancellationToken)
@@ -193,7 +185,7 @@ internal class SlicPipeReader : PipeReader
         if (!_state.TrySetFlag(State.PipeWriterInUse))
         {
             throw new InvalidOperationException(
-                $"The {nameof(ReceivedStreamFrameAsync)} operation is not thread safe.");
+                $"The {nameof(ReceivedDataFrameAsync)} operation is not thread safe.");
         }
 
         try
@@ -203,8 +195,8 @@ internal class SlicPipeReader : PipeReader
                 return false; // No bytes consumed because the application completed the stream input.
             }
 
-            int newCredit = Interlocked.Add(ref _receiveCredit, -dataSize);
-            if (newCredit < 0)
+            int newWindowSize = Interlocked.Add(ref _windowSize, -dataSize);
+            if (newWindowSize < 0)
             {
                 throw new IceRpcException(
                     IceRpcError.IceRpcError,
@@ -281,7 +273,7 @@ internal class SlicPipeReader : PipeReader
 
     /// <summary>The state enumeration is used to ensure the reader is not used after it's completed and to ensure that
     /// the internal pipe writer isn't completed concurrently when it's being used by <see
-    /// cref="ReceivedStreamFrameAsync" />.</summary>
+    /// cref="ReceivedDataFrameAsync" />.</summary>
     private enum State : int
     {
         /// <summary><see cref="Complete" /> was called on this Slic pipe reader.</summary>

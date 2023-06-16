@@ -28,20 +28,30 @@ public sealed record class SlicTransportOptions
             throw new ArgumentException($"The {nameof(PacketMaxSize)} value cannot be less than 1KB.", nameof(value));
     }
 
-    /// <summary>Gets or sets the stream receive window size. It defines the size of the stream receive buffer for data
-    /// that has not been consumed yet by the application. When this buffer is full the sender should stop sending
-    /// additional data.</summary>
-    /// <value>The receive windows size in bytes. It can't be less than <c>1</c> KB. Defaults to <c>64</c> KB.</value>
-    public int StreamReceiveWindowSize
+    /// <summary>Gets or sets the stream initial window size. It defines the initial size of the stream receive buffer
+    /// for data that has not been consumed yet by the application. When this buffer is full the sender should stop
+    /// sending additional data.</summary>
+    /// <value>The initial window size in bytes. It can't be less than <c>1</c> KB. Defaults to <c>64</c> KB.</value>
+    public int StreamInitialWindowSize
     {
-        get => _streamReceiveWindowSize;
-        set => _streamReceiveWindowSize = value >= 1024 ? value :
+        get => _streamInitialWindowSize;
+        set => _streamInitialWindowSize =
+            value < 1024 ?
             throw new ArgumentException(
-                $"The {nameof(StreamReceiveWindowSize)} value cannot be less than 1KB.",
-                nameof(value));
+                $"The {nameof(StreamInitialWindowSize)} value cannot be less than 1 KB.",
+                nameof(value)) :
+            value > MaxWindowSize ?
+            throw new ArgumentException(
+                $"The {nameof(StreamInitialWindowSize)} value cannot be larger than {MaxWindowSize}.",
+                nameof(value)) :
+            value;
     }
+
+    // We use the HTTP/2 maximum window size (2GB).
+    internal const int MaxWindowSize = int.MaxValue;
 
     private TimeSpan _idleTimeout = TimeSpan.FromSeconds(30);
     private int _packetMaxSize = 32768;
-    private int _streamReceiveWindowSize = 65536;
+    // The default specified in the HTTP/2 specification.
+    private int _streamInitialWindowSize = 65_536;
 }

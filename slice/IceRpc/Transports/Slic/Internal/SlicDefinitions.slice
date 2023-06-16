@@ -33,14 +33,14 @@ enum FrameType : uint8 {
     /// Carries the last stream data.
     StreamLast
 
-    /// Carries the amount of consumed data.
-    StreamConsumed
-
     /// Indicates that no more data will be read. This frame is sent when the application closes the read-side of the
     /// stream or when it consumed all the stream data. Upon receiving this frame, the application should stop sending
     /// data. If both reads and writes are closed, the connection can decrement its stream count and eventually allow a
     /// new stream to be started.
     StreamReadsClosed
+
+    /// Carries the window size increment.
+    StreamWindowUpdate
 
     /// Indicates that no more data will be written. This frame is sent when the application closes the write-side of
     /// the stream before sending all the stream data. If both reads and writes are closed, the connection can decrement
@@ -67,9 +67,9 @@ unchecked enum ParameterKey : varuint62 {
     /// The maximum packet size in bytes.
     PacketMaxSize = 3
 
-    /// The stream receive window size. The peer should hold on sending data when the stream receive window is full. It
-    /// should resume sending after receiving the {@link FrameType::StreamConsumed} frame.
-    StreamReceiveWindowSize = 4
+    /// The stream initial window size. The peer should hold off sending data when the stream window size is 0. It
+    /// should resume sending after receiving the {@link FrameType::StreamWindowUpdate} frame.
+    StreamInitialWindowSize = 4
 }
 
 typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
@@ -130,10 +130,10 @@ compact struct PongBody {
     payload: OpaqueData
 }
 
-/// The {@link FrameType::StreamConsumed} frame body.
+/// The {@link FrameType::StreamWindowUpdate} frame body.
 [cs::internal]
 [cs::readonly]
-compact struct StreamConsumedBody {
-    /// The size of the consumed data.
-    size: varuint62
+compact struct StreamWindowUpdateBody {
+    /// The window size increment.
+    windowSizeIncrement: varuint62
 }

@@ -48,6 +48,8 @@ internal class SlicStream : IMultiplexedStream
 
     public Task WritesClosed => _writesClosedTcs.Task;
 
+    internal int WindowUpdateThreshold => _connection.StreamWindowUpdateThreshold;
+
     private bool _closeReadsOnWritesClosure;
     private readonly SlicConnection _connection;
     private ulong _id = ulong.MaxValue;
@@ -93,10 +95,13 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    /// <summary>Acquires send credit. This method should be called to ensure credit is available to send a stream
-    /// frame. If no send credit is available, it will block until send credit is available.</summary>
+    /// <summary>Acquires send credit.</summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The available send credit.</returns>
+    /// <remarks>This method should be called before sending a <see cref="FrameType.Stream"/> or <see
+    /// cref="FrameType.StreamLast"/> frame to ensure enough send credit is available. If no send credit is available,
+    /// it will block until send credit is available. The send credit matches the size of the peer's flow-control
+    /// window.</remarks>
     internal ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken) =>
         _outputPipeWriter!.AcquireSendCreditAsync(cancellationToken);
 
@@ -270,7 +275,8 @@ internal class SlicStream : IMultiplexedStream
         }
     }
 
-    /// <summary>Notifies the stream of the amount of data consumed by the connection to send a stream frame.</summary>
+    /// <summary>Notifies the stream of the amount of data consumed by the connection to send a <see
+    /// cref="FrameType.Stream" /> or <see cref="FrameType.StreamLast" /> frame.</summary>
     /// <param name="size">The size of the stream frame.</param>
     internal void ConsumedSendCredit(int size) => _outputPipeWriter!.ConsumedSendCredit(size);
 
@@ -284,19 +290,18 @@ internal class SlicStream : IMultiplexedStream
         CancellationToken cancellationToken) =>
         _connection.FillBufferWriterAsync(bufferWriter, byteCount, cancellationToken);
 
-    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamConsumed" /> frame.</summary>
-    /// <param name="frame">The body of the <see cref="FrameType.StreamConsumed" /> frame.</param>
-    internal void ReceivedConsumedFrame(StreamConsumedBody frame)
+    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.Stream" /> or <see
+    /// cref="FrameType.StreamLast" /> frame.</summary>
+    /// <param name="size">The size of the data carried by the stream frame.</param>
+    /// <param name="endStream"><see langword="true" /> if the received stream frame is the <see
+    /// cref="FrameType.StreamLast" /> frame; otherwise, <see langword="false" />.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    internal ValueTask<bool> ReceivedDataFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
-        int newSendCredit = _outputPipeWriter!.ReceivedConsumedFrame((int)frame.Size);
-
-        // Ensure the peer is not trying to increase the credit to a value which is larger than what it is allowed to.
-        if (newSendCredit > _connection.PeerStreamReceiveWindowSize)
-        {
-            throw new IceRpcException(
-                IceRpcError.IceRpcError,
-                "The consumed frame size is trying to increase the credit to a value larger than allowed.");
-        }
+        Debug.Assert(_inputPipeReader is not null);
+        return _state.HasFlag(State.ReadsClosed) ?
+            new(false) :
+            _inputPipeReader.ReceivedDataFrameAsync(size, endStream, cancellationToken);
     }
 
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamReadsClosed" /> frame.</summary>
@@ -306,18 +311,17 @@ internal class SlicStream : IMultiplexedStream
         _outputPipeWriter?.CompleteWrites(exception: null);
     }
 
-    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.Stream" /> or <see
-    /// cref="FrameType.StreamLast" /> frame.</summary>
-    /// <param name="size">The size of the data carried by the stream frame.</param>
-    /// <param name="endStream"><see langword="true" /> if the received stream frame is the <see
-    /// cref="FrameType.StreamLast" /> frame; otherwise, <see langword="false" />.</param>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    internal ValueTask<bool> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
+    /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamWindowUpdate" /> frame.</summary>
+    /// <param name="frame">The body of the <see cref="FrameType.StreamWindowUpdate" /> frame.</param>
+    internal void ReceivedWindowUpdateFrame(StreamWindowUpdateBody frame)
     {
-        Debug.Assert(_inputPipeReader is not null);
-        return _state.HasFlag(State.ReadsClosed) ?
-            new(false) :
-            _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancellationToken);
+        if (frame.WindowSizeIncrement > SlicTransportOptions.MaxWindowSize)
+        {
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                $"The window update is trying to increase the window size to a value larger than allowed.");
+        }
+        _outputPipeWriter!.ReceivedWindowUpdateFrame((int)frame.WindowSizeIncrement);
     }
 
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamWritesClosed" /> frame.</summary>
@@ -329,17 +333,17 @@ internal class SlicStream : IMultiplexedStream
         _inputPipeReader?.CompleteReads(new IceRpcException(IceRpcError.TruncatedData));
     }
 
-    /// <summary>Writes a <see cref="FrameType.StreamConsumed" /> frame on the connection.</summary>
+    /// <summary>Writes a <see cref="FrameType.StreamWindowUpdate" /> frame on the connection.</summary>
     /// <param name="size">The amount of data consumed by the application on the stream <see cref="Input" />.</param>
-    internal void WriteStreamConsumedFrame(int size)
+    internal void WriteStreamWindowUpdateFrame(int size)
     {
         try
         {
             // Send the stream consumed frame.
             _connection.WriteStreamFrame(
                 stream: this,
-                FrameType.StreamConsumed,
-                new StreamConsumedBody((ulong)size).Encode,
+                FrameType.StreamWindowUpdate,
+                new StreamWindowUpdateBody((ulong)size).Encode,
                 writeReadsClosedFrame: false);
         }
         catch (IceRpcException)
@@ -348,7 +352,7 @@ internal class SlicStream : IMultiplexedStream
         }
         catch (Exception exception)
         {
-            Debug.Fail($"Writing of the StreamConsumed frame failed due to an unhandled exception: {exception}");
+            Debug.Fail($"Writing of the StreamWindowUpdate frame failed due to an unhandled exception: {exception}");
             throw;
         }
     }
