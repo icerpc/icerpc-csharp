@@ -1,6 +1,6 @@
 # Compressor interceptor and middleware for IceRPC
 
-IceRpc.Compressor provides an [IceRPC][icerpc] interceptor and the corresponding IceRPC middleware.
+IceRpc.Compressor provides an [IceRPC][icerpc-csharp] interceptor and the corresponding IceRPC middleware.
 
 The compressor interceptor allows you to compress the payloads of outgoing requests. It also decompresses the payloads
 of incoming responses when these payloads are compressed.
@@ -8,12 +8,14 @@ of incoming responses when these payloads are compressed.
 The compressor middleware allows you to compress the payloads of outgoing responses. It also decompresses the payloads
 of incoming requests these payloads are compressed.
 
-[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
+[Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
 
 ```slice
 // Slice definitions
+
+module VisitorCenter
 
 interface Greeter {
     // The compress attribute instructs the compressor interceptor or middleware (if installed)
@@ -27,6 +29,7 @@ interface Greeter {
 // Client application
 
 using IceRpc;
+using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
@@ -36,17 +39,18 @@ Pipeline pipeline = new Pipeline()
     .Into(connection);
 
 // Create the proxy using the invocation pipeline.
-var greeter = new GreeterProxy(pipeline);
+var greeterProxy = new GreeterProxy(pipeline);
 
 // The compressor interceptor compresses the request payload. It also decompresses the
 // response payload (if it comes back compressed).
-string greeting = await greeter.GreetAsync(Environment.UserName);
+string greeting = await greeterProxy.GreetAsync(Environment.UserName);
 ```
 
 ```csharp
 // Server application
 
 using IceRpc;
+using VisitorCenter;
 
 // Add the compressor middleware to the dispatch pipeline.
 Router router = new Router()
@@ -62,6 +66,8 @@ server.Listen();
 ```slice
 // Slice definitions
 
+module VisitorCenter
+
 interface Greeter {
     // The compress attribute instructs the compressor interceptor or middleware (if installed)
     // to compress the payload of the outgoing request or response. The compressor interceptor
@@ -75,6 +81,7 @@ interface Greeter {
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using VisitorCenter;
 
 var hostBuilder = Host.CreateDefaultBuilder(args);
 
@@ -98,6 +105,7 @@ host.Run();
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using VisitorCenter;
 
 var hostBuilder = Host.CreateDefaultBuilder(args);
 
@@ -120,7 +128,7 @@ The compressor interceptor and middleware compress and decompress payloads regar
 They work well with Slice but don't require Slice.
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Compressor.html
-[icerpc]: https://www.nuget.org/packages/IceRpc
+[icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware

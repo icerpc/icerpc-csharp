@@ -1,11 +1,11 @@
 # Deadline interceptor and middleware for IceRPC
 
-IceRpc.Deadline provides an [IceRPC][icerpc] interceptor and the corresponding middleware.
+IceRpc.Deadline provides an [IceRPC][icerpc-csharp] interceptor and the corresponding middleware.
 
 The deadline interceptor adds deadline fields to outgoing requests, while the deadline middleware decodes deadline
 fields received with incoming requests.
 
-[Source code][source] | [Package][package] | [Example][example] | [API reference documentation][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
+[Source code][source] | [Package][package] | [Example][example] | [API reference][api] | [Interceptor documentation][interceptor] | [Middleware documentation][middleware]
 
 ## Sample code
 
@@ -81,7 +81,7 @@ host.Run();
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Deadline.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Deadline
-[icerpc]: https://www.nuget.org/packages/IceRpc
+[icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
 [middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Deadline
