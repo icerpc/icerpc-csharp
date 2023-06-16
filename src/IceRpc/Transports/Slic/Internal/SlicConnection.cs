@@ -44,7 +44,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     // The ratio used to compute the StreamWindowUpdateThreshold. For now, the stream window update is sent when the
     // window size grows over InitialStreamWindowSize / StreamWindowUpdateRatio.
-    private const int StreamWindowUpdateRatio = 8;
+    private const int StreamWindowUpdateRatio = 2;
 
     private readonly Channel<IMultiplexedStream> _acceptStreamChannel;
     private int _bidirectionalStreamCount;
