@@ -3,4 +3,5 @@ uid: IceRpc.Transports.Coloc
 summary: *content
 ---
 
-The IceRpc.Transports.Coloc namespace.
+Provides the coloc duplex transport. It implements the duplex transport abstractions for "colocated" communications
+within the same address space.

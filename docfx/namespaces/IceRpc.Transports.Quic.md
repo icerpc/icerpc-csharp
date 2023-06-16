@@ -3,4 +3,4 @@ uid: IceRpc.Transports.Quic
 summary: *content
 ---
 
-The IceRpc.Transports.Quic namespace.
+Provides the QUIC multiplexed transport. It implements the multiplexed transport abstractions using QUIC.

@@ -3,4 +3,4 @@ uid: IceRpc.Transports
 summary: *content
 ---
 
-The IceRpc.Transports namespace.
+Provides the duplex and multiplexed transport abstractions.

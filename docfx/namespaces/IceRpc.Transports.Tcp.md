@@ -3,4 +3,4 @@ uid: IceRpc.Transports.Tcp
 summary: *content
 ---
 
-The IceRpc.Transports.Tcp namespace.
+Provides the TCP duplex transport. It implements the duplex transport abstractions using plain TCP and TCP + SSL.
