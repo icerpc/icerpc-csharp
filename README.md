@@ -26,8 +26,8 @@ Multiple request/response pairs can proceed in parallel inside the same QUIC con
 other. QUIC also gives us bidirectional streaming for free: long-lived requests and responses that carry audio/video
 streams or streams of sensor data, stock quotes, etc. can share a network connection with small, short-lived RPCs.
 
-IceRPC uses its own application protocol to exchange connection settings, transmit requests and responses, and ensure
-an orderly shutdown: [`icerpc`][icerpc-protocol]. This new RPC-focused protocol is a thin layer over QUIC.
+IceRPC uses its own application protocol, [`icerpc`][icerpc-protocol], to exchange connection settings, transmit 
+requests and responses, and ensure an orderly shutdown. This new RPC-focused protocol is a thin layer over QUIC.
 
 ### Not only for QUIC
 
