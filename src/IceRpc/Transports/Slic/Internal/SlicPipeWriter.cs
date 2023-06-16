@@ -7,7 +7,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Slic.Internal;
 
-#pragma warning disable CA1001 // Type owns disposable field(s) '_completeWritesCts' but is not disposable
+// Type owns disposable field(s) '_completeWritesCts' and '_sendCreditSemaphore' but is not disposable
+#pragma warning disable CA1001
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
@@ -17,8 +18,8 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     private readonly CancellationTokenSource _completeWritesCts = new();
     private Exception? _exception;
     private bool _isCompleted;
+    private volatile int _peerWindowSize = SlicTransportOptions.MaxWindowSize;
     private readonly Pipe _pipe;
-    private volatile int _sendCredit = int.MaxValue;
     // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
     private readonly SemaphoreSlim _sendCreditSemaphore = new(1, 1);
     private readonly SlicStream _stream;
@@ -54,7 +55,12 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 
             _pipe.Writer.Complete();
             _pipe.Reader.Complete();
-            _sendCreditSemaphore.Dispose();
+
+            // Don't dispose the semaphore. It's not needed and we don't want to have to catch ObjectDisposedException
+            // from AdjustPeerWindowSize if a StreamWindowUpdate is received after the application completed the stream
+            // output. An alternative would be to add a lock but it's a bit overkill given than disposing the semaphore
+            // is only useful when using SemaphoreSlim.AvailableWaitHandle.
+            // _sendCreditSemaphore.Dispose();
         }
     }
 
@@ -146,7 +152,7 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     internal SlicPipeWriter(SlicStream stream, SlicConnection connection)
     {
         _stream = stream;
-        _sendCredit = connection.PeerPauseWriterThreshold;
+        _peerWindowSize = connection.PeerInitialStreamWindowSize;
 
         // Create a pipe that never pauses on flush or write. The SlicePipeWriter will pause the flush or write if
         // the Slic flow control doesn't permit sending more data.
@@ -159,14 +165,17 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
             useSynchronizationContext: false));
     }
 
+    /// <summary>Acquires send credit.</summary>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The available send credit.</returns>
+    /// <remarks>The send credit matches the size of the peer's flow-control window.</remarks>
     internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancellationToken)
     {
         // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire the
-        // semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send additional data
-        // (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send additional data and
-        // _sendCredit can be used to figure out the size of the next packet to send.
+        // semaphore before checking the peer window size. The semaphore acquisition will block if we can't send
+        // additional data (_peerWindowSize <= 0).
         await _sendCreditSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return _sendCredit;
+        return _peerWindowSize;
     }
 
     /// <summary>Complete writes.</summary>
@@ -182,35 +191,38 @@ internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     /// <param name="size">The size of the stream frame.</param>
     internal void ConsumedSendCredit(int size)
     {
-        // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed, _sendCredit
-        // will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be released once
-        // the stream receives a StreamConsumed frame.
-        int sendCredit = Interlocked.Add(ref _sendCredit, -size);
-        if (sendCredit > 0)
+        Debug.Assert(_sendCreditSemaphore.CurrentCount == 0); // Can only be called with the semaphore acquired.
+
+        // Release the semaphore if the peer's window size is still superior to 0
+        int newPeerWindowSize = Interlocked.Add(ref _peerWindowSize, -size);
+        if (newPeerWindowSize > 0)
         {
             _sendCreditSemaphore.Release();
         }
-        Debug.Assert(sendCredit >= 0);
     }
 
-    /// <summary>Notifies the writer of the amount of data consumed by peer.</summary>
-    /// <param name="size">The amount of data consumed by the peer.</param>
-    internal int ReceivedConsumedFrame(int size)
+    /// <summary>Notifies the writer of the reception of a <see cref="FrameType.StreamWindowUpdate" /> frame.</summary>
+    /// <param name="size">The window size increment.</param>
+    internal void ReceivedWindowUpdateFrame(int size)
     {
-        int newValue = Interlocked.Add(ref _sendCredit, size);
-        if (newValue == size)
+        Debug.Assert(size > 0);
+
+        int newPeerWindowSize = Interlocked.Add(ref _peerWindowSize, size);
+        if (newPeerWindowSize > SlicTransportOptions.MaxWindowSize)
         {
-            try
-            {
-                Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
-                _sendCreditSemaphore.Release();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the writer has been completed.
-                Debug.Assert(_isCompleted);
-            }
+            throw new IceRpcException(
+                IceRpcError.IceRpcError,
+                $"The window update is trying to increase the window size to a value larger than allowed.");
         }
-        return newValue;
+
+        int previousPeerWindowSize = newPeerWindowSize - size;
+
+        // A zero peer window size indicates that the last write consumed all the send credit and as a result didn't
+        // release the semaphore. We can now release the semaphore to allow another write to send data.
+        if (previousPeerWindowSize == 0)
+        {
+            Debug.Assert(_sendCreditSemaphore.CurrentCount == 0);
+            _sendCreditSemaphore.Release();
+        }
     }
 }

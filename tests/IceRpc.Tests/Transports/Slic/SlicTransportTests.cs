@@ -603,14 +603,12 @@ public class SlicTransportTests
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(options =>
             {
-                options.PauseWriterThreshold = 6893;
-                options.ResumeWriterThreshold = 2000;
+                options.InitialStreamWindowSize = 6893;
                 options.PacketMaxSize = 2098;
             });
         services.AddOptions<SlicTransportOptions>("client").Configure(options =>
             {
-                options.PauseWriterThreshold = 2405;
-                options.ResumeWriterThreshold = 2000;
+                options.InitialStreamWindowSize = 2405;
                 options.PacketMaxSize = 4567;
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
@@ -624,8 +622,8 @@ public class SlicTransportTests
         var serverConnection = (SlicConnection)sut.Server;
         var clientConnection = (SlicConnection)sut.Client;
 
-        Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
-        Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
+        Assert.That(serverConnection.PeerInitialStreamWindowSize, Is.EqualTo(2405));
+        Assert.That(clientConnection.PeerInitialStreamWindowSize, Is.EqualTo(6893));
         Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
         Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
     }
@@ -633,15 +631,15 @@ public class SlicTransportTests
     [TestCase(1024 * 32)]
     [TestCase(1024 * 512)]
     [TestCase(1024 * 1024)]
-    public async Task Stream_write_blocks_after_consuming_the_send_credit(int pauseThreshold)
+    public async Task Stream_write_blocks_after_consuming_the_send_credit(int windowSize)
     {
         // Arrange
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(
-            options => options.PauseWriterThreshold = pauseThreshold);
+            options => options.InitialStreamWindowSize = windowSize);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
-        byte[] payload = new byte[pauseThreshold - 1];
+        byte[] payload = new byte[windowSize - 1];
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
@@ -657,7 +655,7 @@ public class SlicTransportTests
         Assert.That(writeTask.IsCompleted, Is.False);
 
         // Make sure the writeTask completes before completing the stream output.
-        ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(windowSize - 1);
         Assert.That(readResult.IsCanceled, Is.False);
         streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
         await writeTask;
@@ -666,13 +664,13 @@ public class SlicTransportTests
     [TestCase(32 * 1024)]
     [TestCase(512 * 1024)]
     [TestCase(1024 * 1024)]
-    public async Task Stream_write_blocking_does_not_affect_concurrent_streams(int pauseThreshold)
+    public async Task Stream_write_blocking_does_not_affect_concurrent_streams(int windowSize)
     {
         // Arrange
-        byte[] payload = new byte[pauseThreshold - 1];
+        byte[] payload = new byte[windowSize - 1];
         IServiceCollection services = new ServiceCollection().AddSlicTest();
         services.AddOptions<SlicTransportOptions>("server").Configure(
-            options => options.PauseWriterThreshold = pauseThreshold);
+            options => options.InitialStreamWindowSize = windowSize);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -690,14 +688,14 @@ public class SlicTransportTests
 
         // Assert
         Assert.That(streams2.Local.Id, Is.EqualTo(streams2.Remote.Id));
-        ReadResult readResult = await streams2.Remote.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        ReadResult readResult = await streams2.Remote.Input.ReadAtLeastAsync(windowSize - 1);
         Assert.That(readResult.IsCanceled, Is.False);
         streams2.Remote.Input.AdvanceTo(readResult.Buffer.End);
         await Task.Delay(TimeSpan.FromMilliseconds(50));
         Assert.That(writeTask.IsCompleted, Is.False);
 
         // Make sure the writeTask completes before completing the stream output.
-        readResult = await streams1.Remote.Input.ReadAtLeastAsync(pauseThreshold - 1);
+        readResult = await streams1.Remote.Input.ReadAtLeastAsync(windowSize - 1);
         Assert.That(readResult.IsCanceled, Is.False);
         streams1.Remote.Input.AdvanceTo(readResult.Buffer.End);
         await writeTask;
@@ -735,20 +733,15 @@ public class SlicTransportTests
         duplexClientConnection.Operations.Hold = DuplexTransportOperations.None;
     }
 
-    [TestCase(64 * 1024, 32 * 1024)]
-    [TestCase(1024 * 1024, 512 * 1024)]
-    [TestCase(2048 * 1024, 512 * 1024)]
-    public async Task Write_resumes_after_reaching_the_resume_writer_threshold(
-        int pauseThreshold,
-        int resumeThreshold)
+    [Test]
+    public async Task Write_resumes_after_reaching_the_resume_writer_threshold()
     {
+        int windowSize = 32 * 1024;
+
         // Arrange
         IServiceCollection services = new ServiceCollection().AddSlicTest();
-        services.AddOptions<SlicTransportOptions>("server").Configure(options =>
-            {
-                options.PauseWriterThreshold = pauseThreshold;
-                options.ResumeWriterThreshold = resumeThreshold;
-            });
+        services.AddOptions<SlicTransportOptions>("server").Configure(
+            options => options.InitialStreamWindowSize = windowSize);
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -756,11 +749,11 @@ public class SlicTransportTests
 
         using var streams = await sut.CreateAndAcceptStreamAsync();
 
-        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[pauseThreshold], default);
-        ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(pauseThreshold - resumeThreshold, default);
+        ValueTask<FlushResult> writeTask = streams.Local.Output.WriteAsync(new byte[windowSize + 1024], default);
+        ReadResult readResult = await streams.Remote.Input.ReadAtLeastAsync(windowSize, default);
 
         // Act
-        streams.Remote.Input.AdvanceTo(readResult.Buffer.GetPosition(pauseThreshold - resumeThreshold));
+        streams.Remote.Input.AdvanceTo(readResult.Buffer.GetPosition(windowSize));
 
         // Assert
         Assert.That(async () => await writeTask, Throws.Nothing);
