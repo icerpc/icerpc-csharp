@@ -239,7 +239,6 @@ public class TcpTransportTests
     }
 
     [Test]
-    [Repeat(1000)]
     public async Task Tcp_transport_connection_information([Values(true, false)] bool tls)
     {
         // Arrange

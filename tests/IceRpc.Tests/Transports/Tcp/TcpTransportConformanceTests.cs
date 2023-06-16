@@ -33,7 +33,7 @@ public class Ipv6TcpConnectionConformanceTests : DuplexConnectionConformanceTest
     public void FixtureSetUp() => Ipv6SupportFixture.FixtureSetUp();
 
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
-        new ServiceCollection().AddTcpTest(listenBacklog);
+        new ServiceCollection().AddTcpTest(listenBacklog, new Uri("icerpc://[::1]:0/"));
 }
 
 /// <summary>Conformance tests for the tcp transport listener.</summary>
@@ -46,7 +46,6 @@ public class Ipv6TcpListenerConformanceTests : DuplexListenerConformanceTests
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
         new ServiceCollection().AddTcpTest(listenBacklog, new Uri("icerpc://[::1]:0/"));
 }
-
 
 internal class Ipv6SupportFixture
 {
