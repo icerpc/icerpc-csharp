@@ -12,6 +12,20 @@ Windows
 build.cmd -help
 ```
 
+- [Prerequisites](#prerequisites)
+- [Build roadmap](#build-roadmap)
+- [Building IceRpc](#building-icerpc)
+  - [Command line](#command-line)
+  - [Visual Studio Code](#visual-studio-code)
+- [Running the tests](#running-the-tests)
+- [Creating NuGet packages](#creating-nuget-packages)
+  - [Slice tools](#slice-tools)
+- [Publishing Nuget packages](#publishing-nuget-packages)
+- [Installing the templates](#installing-the-templates)
+- [Generating the API Reference](#generating-the-api-reference)
+- [Generating code coverage reports](#generating-code-coverage-reports)
+- [Shutting down background MSBuild servers](#shutting-down-background-msbuild-servers)
+
 ## Prerequisites
 
 1. Rust\
@@ -42,7 +56,7 @@ dotnet tool install -g dotnet-reportgenerator-globaltool
 flowchart LR
     compiler(slicec-cs) --> tools(IceRpc.Slice.Tools) --> IceRpc.*
     IceRpc.* --> api(API reference)
-    IceRpc.* --> cov(Code coverage report)
+    IceRpc.* --> cov(Code coverage reports)
     IceRpc.* --> nuget(NuGet packages) --> examples(Examples)
     IceRpc.* --> tests(Tests)
 ```
