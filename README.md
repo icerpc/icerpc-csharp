@@ -82,8 +82,8 @@ and a dispatch pipeline (on the server side):
 title: Invocation and dispatch pipelines
 ---
 flowchart LR
-    client -- request --> ip[invocation pipeline] --> connection --> ip -- response --> client
-    connection --> dp[dispatch pipeline] -- request --> service -- response --> dp --> connection
+    client(client) -- request --> ip(invocation\npipeline) --> connection(connection) --> ip -- response --> client
+    connection --> dp(dispatch\npipeline) -- request --> service(service) -- response --> dp --> connection
 ```
 
 These pipelines intercept your requests and responses and you decide what they do with them. If you want to log
@@ -101,7 +101,7 @@ and fewer bugs.
 This modularity and extensibility is everywhere in IceRPC. You can easily implement a new duplex or multiplexed
 transport and then plug it in IceRPC. All the transport interfaces are public and fully documented.
 
-And you can use IceRPC with a [DI container][icerpc-with-di]--or not. It's all opt-in.
+And you can use IceRPC with a [DI container][icerpc-with-di]—or not. It's all opt-in.
 
 ## Slice
 
