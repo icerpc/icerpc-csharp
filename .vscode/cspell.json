@@ -3,8 +3,8 @@
   "language": "en",
   "words": [
     "ALPN",
-    "attributables",
     "appsettings",
+    "attributables",
     "Brotli",
     "browsable",
     "buildtransitive",
@@ -36,6 +36,7 @@
     "QUIC",
     "reportgenerator",
     "retryable",
+    "Roadmap",
     "rposition",
     "rustup",
     "signtool",
