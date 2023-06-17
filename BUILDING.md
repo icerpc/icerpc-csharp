@@ -12,6 +12,8 @@ Windows
 build.cmd -help
 ```
 
+## Table of contents
+
 - [Prerequisites](#prerequisites)
 - [Build roadmap](#build-roadmap)
 - [Building IceRpc](#building-icerpc)
@@ -22,8 +24,8 @@ build.cmd -help
   - [Slice tools](#slice-tools)
 - [Publishing Nuget packages](#publishing-nuget-packages)
 - [Installing the templates](#installing-the-templates)
-- [Generating the API Reference](#generating-the-api-reference)
-- [Generating code coverage reports](#generating-code-coverage-reports)
+- [Generating the API reference](#generating-the-api-reference)
+- [Generating the code coverage reports](#generating-the-code-coverage-reports)
 - [Shutting down background MSBuild servers](#shutting-down-background-msbuild-servers)
 
 ## Prerequisites
@@ -56,9 +58,8 @@ dotnet tool install -g dotnet-reportgenerator-globaltool
 flowchart LR
     compiler(slicec-cs) --> tools(IceRpc.Slice.Tools) --> IceRpc.*
     IceRpc.* --> api(API reference)
-    IceRpc.* --> cov(Code coverage reports)
     IceRpc.* --> nuget(NuGet packages) --> examples(Examples)
-    IceRpc.* --> tests(Tests)
+    IceRpc.* --> tests(Tests) --> cov(Code coverage reports)
 ```
 
 The Slice compiler for C# (slicec-cs) is written in Rust. Everything else is written in C#.
@@ -169,7 +170,7 @@ build.cmd -installTemplates
 This command installs the `IceRpc.ProjectTemplates` templates from this source distribution instead of the ones from the
 published NuGet packages.
 
-## Generating the API Reference
+## Generating the API reference
 
 Linux or macOS
 ```shell
@@ -188,7 +189,7 @@ API reference:
 docfx serve docfx/_site
 ```
 
-## Generating code coverage reports
+## Generating the code coverage reports
 
 Linux or macOS
 ```shell.
