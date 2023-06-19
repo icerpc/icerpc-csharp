@@ -159,49 +159,32 @@ internal class SlicStream : IMultiplexedStream
 
         if (writeReadsClosedFrame)
         {
-            _ = WriteReadsClosedFrameAsync();
+            if (IsRemote)
+            {
+                // If it's a remote stream, we close writes before sending the StreamReadsClosed frame to ensure
+                // _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount is decreased before
+                // the peer receives the frame. This is necessary to prevent a race condition where the peer could
+                // release the connection's bidirectional or unidirectional stream semaphore before this connection's
+                // stream count is actually decreased.
+                TrySetReadsClosed();
+            }
+
+            _connection.WriteStreamFrame(
+                stream: this,
+                FrameType.StreamReadsClosed,
+                encode: null,
+                writeReadsClosedFrame: false);
+
+            if (!IsRemote)
+            {
+                // We can now close reads to permit a new stream to be started. The peer will receive the
+                // StreamReadsClosed frame before the new stream sends a Stream frame.
+                TrySetReadsClosed();
+            }
         }
         else
         {
             TrySetReadsClosed();
-        }
-
-        async Task WriteReadsClosedFrameAsync()
-        {
-            try
-            {
-                if (IsRemote)
-                {
-                    // If it's a remote stream, we close writes before sending the StreamReadsClosed frame to ensure
-                    // _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount is decreased
-                    // before the peer receives the frame. This is necessary to prevent a race condition where the peer
-                    // could release the connection's bidirectional or unidirectional stream semaphore before this
-                    // connection's stream count is actually decreased.
-                    TrySetReadsClosed();
-                }
-
-                await _connection.WriteStreamFrameAsync(
-                    stream: this,
-                    FrameType.StreamReadsClosed,
-                    encode: null,
-                    writeReadsClosedFrame: false).ConfigureAwait(false);
-
-                if (!IsRemote)
-                {
-                    // We can now close reads to permit a new stream to be started. The peer will receive the
-                    // StreamReadsClosed frame before the new stream sends a Stream frame.
-                    TrySetReadsClosed();
-                }
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"Writing of StreamReadsClosed frame failed due to an unhandled exception: {exception}");
-                throw;
-            }
         }
     }
 
@@ -226,66 +209,45 @@ internal class SlicStream : IMultiplexedStream
 
         if (writeWritesClosedFrame)
         {
-            _ = WriteWritesClosedFrameAsync();
+            if (IsRemote)
+            {
+                // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
+                // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
+                // is decreased before the peer receives the frame. This is necessary to prevent a race condition
+                // where the peer could release the connection's bidirectional or unidirectional stream semaphore
+                // before this connection's stream count is actually decreased.
+                TrySetWritesClosed();
+            }
+
+            if (graceful)
+            {
+                _connection.WriteStreamFrame(this, FrameType.StreamLast, encode: null, writeReadsClosedFrame);
+
+                // If the stream is a local stream, writes are not closed until the StreamReadsClosed frame is
+                // received from the peer (see ReceivedReadsClosedFrame). This ensures that the connection's
+                // bidirectional or unidirectional stream semaphore is released only once the peer consumed the
+                // buffered data.
+            }
+            else
+            {
+                _connection.WriteStreamFrame(
+                    stream: this,
+                    FrameType.StreamWritesClosed,
+                    encode: null,
+                    writeReadsClosedFrame);
+
+                if (!IsRemote)
+                {
+                    // We can now close writes to allow starting a new stream. Since the sending of frames is
+                    // serialized over the connection, the peer will receive this StreamWritesClosed frame before
+                    // a new stream sends a StreamFrame frame.
+                    TrySetWritesClosed();
+                }
+            }
         }
         else
         {
             TrySetWritesClosed();
-        }
-
-        async Task WriteWritesClosedFrameAsync()
-        {
-            try
-            {
-                if (IsRemote)
-                {
-                    // If it's a remote stream, we close writes before sending the StreamLast or StreamWritesClosed
-                    // frame to ensure _connection._bidirectionalStreamCount or _connection._unidirectionalStreamCount
-                    // is decreased before the peer receives the frame. This is necessary to prevent a race condition
-                    // where the peer could release the connection's bidirectional or unidirectional stream semaphore
-                    // before this connection's stream count is actually decreased.
-                    TrySetWritesClosed();
-                }
-
-                if (graceful)
-                {
-                    await _connection.WriteStreamFrameAsync(
-                        this,
-                        FrameType.StreamLast,
-                        encode: null,
-                        writeReadsClosedFrame).ConfigureAwait(false);
-
-                    // If the stream is a local stream, writes are not closed until the StreamReadsClosed frame is
-                    // received from the peer (see ReceivedReadsClosedFrame). This ensures that the connection's
-                    // bidirectional or unidirectional stream semaphore is released only once the peer consumed the
-                    // buffered data.
-                }
-                else
-                {
-                    await _connection.WriteStreamFrameAsync(
-                        stream: this,
-                        FrameType.StreamWritesClosed,
-                        encode: null,
-                        writeReadsClosedFrame).ConfigureAwait(false);
-
-                    if (!IsRemote)
-                    {
-                        // We can now close writes to allow starting a new stream. Since the sending of frames is
-                        // serialized over the connection, the peer will receive this StreamWritesClosed frame before
-                        // a new stream sends a StreamFrame frame.
-                        TrySetWritesClosed();
-                    }
-                }
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"Writing of StreamWritesClosed frame failed due to an unhandled exception: {exception}");
-                throw;
-            }
         }
     }
 
@@ -349,32 +311,12 @@ internal class SlicStream : IMultiplexedStream
 
     /// <summary>Writes a <see cref="FrameType.StreamWindowUpdate" /> frame on the connection.</summary>
     /// <param name="size">The amount of data consumed by the application on the stream <see cref="Input" />.</param>
-    internal void WriteStreamWindowUpdateFrame(int size)
-    {
-        _ = WriteStreamWindowUpdateFrame();
-
-        async Task WriteStreamWindowUpdateFrame()
-        {
-            try
-            {
-                // Send the stream consumed frame.
-                await _connection.WriteStreamFrameAsync(
-                    stream: this,
-                    FrameType.StreamWindowUpdate,
-                    new StreamWindowUpdateBody((ulong)size).Encode,
-                    writeReadsClosedFrame: false).ConfigureAwait(false);
-            }
-            catch (IceRpcException)
-            {
-                // Ignore connection failures.
-            }
-            catch (Exception exception)
-            {
-                Debug.Fail($"Writing of the StreamWindowUpdate frame failed due to an unhandled exception: {exception}");
-                throw;
-            }
-        }
-    }
+    internal void WriteStreamWindowUpdateFrame(int size) =>
+        _connection.WriteStreamFrame(
+            stream: this,
+            FrameType.StreamWindowUpdate,
+            new StreamWindowUpdateBody((ulong)size).Encode,
+            writeReadsClosedFrame: false);
 
     /// <summary>Writes a <see cref="FrameType.Stream" /> or <see cref="FrameType.StreamLast" /> frame on the
     /// connection.</summary>
