@@ -10,7 +10,7 @@ a specific feature or programming technique.
 | [Download](./Download/)               | Shows how to download a file from a server by streaming this file.                                              |
 | [GenericHost](./GenericHost/)         | Shows how to create client and server applications using Microsoft's Dependency Injection container.            |
 | [Greeter](./Greeter/)                 | Shows how to call and implement a canonical Greeter service.                                                    |
-| [GreeterCore](./GreeterCore/)         | The Greeter example updated to use IceRPC's core API--without Slice definitions or generated code.              |
+| [GreeterCore](./GreeterCore/)         | The Greeter example updated to use IceRPC's core API—without Slice definitions or generated code.               |
 | [GreeterJson](./GreeterJson/)         | The Greeter example updated to use JSON instead of Slice.                                                       |
 | [GreeterLog](./GreeterLog/)           | The Greeter example updated to include logging.                                                                 |
 | [GreeterProtobuf](./GreeterProtobuf/) | The Greeter example updated to use Protobuf instead of Slice.                                                   |
@@ -19,9 +19,9 @@ a specific feature or programming technique.
 | [Metrics](./Metrics/)                 | Shows how to use the metrics interceptor and middleware.                                                        |
 | [RequestContext](./RequestContext/)   | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server. |
 | [Retry](./Retry/)                     | Shows how to use the retry interceptor to retry failed requests.                                                |
-| [Secure](./Secure/)                   | Shows how to create client and server applications that communicate using connections secured with TLS.         |
+| [Secure](./Secure/)                   | Shows how to secure TCP connections with TLS.                                                                   |
 | [Stream](./Stream/)                   | Shows how to stream data from a client to a server.                                                             |
 | [Telemetry](./Telemetry/)             | Shows how to use the telemetry interceptor and middleware.                                                      |
-| [Upload](./Upload/)                   | Shows how to upload a file from a client to a sever by streaming this file.                                     |
+| [Upload](./Upload/)                   | Shows how to upload a file from a client to a server by streaming this file.                                    |
 
 [1]: https://github.com/zeroc-ice/ice
