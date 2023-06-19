@@ -64,7 +64,7 @@ function Clean($config) {
 
     RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 
-    Push-Location "src\IceRpc.ProjectTemplates"
+    Push-Location "src\IceRpc.Templates"
     RunCommand "dotnet" @('clean', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 
@@ -118,7 +118,7 @@ function Pack($config) {
     RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
     RunCommand "dotnet"  @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
-    Push-Location "src\IceRpc.ProjectTemplates"
+    Push-Location "src\IceRpc.Templates"
     RunCommand "dotnet" @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 }

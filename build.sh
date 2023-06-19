@@ -75,7 +75,7 @@ clean()
         run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
     done
 
-    pushd src/IceRpc.ProjectTemplates
+    pushd src/IceRpc.Templates
     run_command dotnet "clean"$version_property "-nr:false"
     popd
 }
@@ -94,7 +94,7 @@ pack()
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
-    pushd src/IceRpc.ProjectTemplates
+    pushd src/IceRpc.Templates
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 }

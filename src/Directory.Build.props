@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectTemplatesDirectory>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)/IceRpc.ProjectTemplates'))</ProjectTemplatesDirectory>
+        <ProjectTemplatesDirectory>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)/IceRpc.Templates'))</ProjectTemplatesDirectory>
         <SrcDirectory>$(MSBuildThisFileDirectory)</SrcDirectory>
         <IsTemplateProject Condition="$(MSBuildProjectDirectory.StartsWith('$(ProjectTemplatesDirectory)'))">true</IsTemplateProject>
         <IsSrcProject Condition="$(MSBuildProjectDirectory.StartsWith('$(SrcDirectory)')) AND '$(IsTemplateProject)' != 'true'">true</IsSrcProject>
