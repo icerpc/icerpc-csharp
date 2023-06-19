@@ -370,10 +370,10 @@ internal class SlicConnection : IMultiplexedConnection
         {
             lock (_mutex)
             {
-                // The duplex connection writer of a server connection might already be shutdown (_writerIsShutdown=true) if
-                // the client-side sent the Close frame and shut down the duplex connection. This doesn't apply to the
-                // client-side since the server-side doesn't shutdown the duplex connection writer after sending the Close
-                // frame.
+                // The duplex connection writer of a server connection might already be shutdown
+                // (_writerIsShutdown=true) if the client-side sent the Close frame and shut down the duplex connection.
+                // This doesn't apply to the client-side since the server-side doesn't shutdown the duplex connection
+                // writer after sending the Close frame.
                 if (!IsServer || !_writerIsShutdown)
                 {
                     WriteFrame(FrameType.Close, streamId: null, new CloseBody((ulong)closeError).Encode);
@@ -383,9 +383,9 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     else
                     {
-                        // The sending of the client-side Close frame is followed by the shutdown of the duplex connection.
-                        // For TCP, it's important to always shutdown the connection on the client-side first to avoid
-                        // TIME_WAIT states on the server-side.
+                        // The sending of the client-side Close frame is followed by the shutdown of the duplex
+                        // connection. For TCP, it's important to always shutdown the connection on the client-side
+                        // first to avoid TIME_WAIT states on the server-side.
                         _duplexConnectionWriter.Shutdown();
                         waitForWriterShutdown = true;
                     }
@@ -790,9 +790,9 @@ internal class SlicConnection : IMultiplexedConnection
                         }
                     }
 
-                    // Notify the stream that we're consuming sendSize credit. It's important to call this before sending
-                    // the stream frame to avoid race conditions where the StreamWindowUpdate frame could be received before
-                    // the send credit was updated.
+                    // Notify the stream that we're consuming sendSize credit. It's important to call this before
+                    // sending the stream frame to avoid race conditions where the StreamWindowUpdate frame could be
+                    // received before the send credit was updated.
                     if (sendCredit > 0)
                     {
                         stream.ConsumedSendCredit((int)(sendSource1.Length + sendSource2.Length));
@@ -802,8 +802,9 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (lastStreamFrame)
                     {
-                        // Notify the stream that the last stream frame is considered sent at this point. This will complete
-                        // writes on the stream and allow the stream to be released if reads are also completed.
+                        // Notify the stream that the last stream frame is considered sent at this point. This will
+                        // complete writes on the stream and allow the stream to be released if reads are also
+                        // completed.
                         stream.WroteLastStreamFrame();
                     }
 
@@ -1464,7 +1465,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        // Cancel pending CreateStreamAsync, AcceptStreamAsync and WriteStreamFrameAsync operations.
+        // Cancel pending CreateStreamAsync, AcceptStreamAsync and WriteStreamDataFrameAsync operations.
         _closedCts.Cancel();
         _acceptStreamChannel.Writer.TryComplete(exception);
 
