@@ -176,7 +176,7 @@ docfx serve docfx/_site
 ## Generating the code coverage reports
 
 Linux or macOS
-```shell.
+```shell
 ./build.sh --test --coverage
 ```
 
