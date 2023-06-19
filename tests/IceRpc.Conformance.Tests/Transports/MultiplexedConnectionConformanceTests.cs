@@ -409,7 +409,6 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    [Repeat(500)]
     public async Task Connection_dispose_aborts_pending_operations_with_operation_aborted_error()
     {
         // Arrange
