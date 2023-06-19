@@ -7,7 +7,7 @@
                         "src/*/*.csproj",
                     ],
                     "exclude": [
-                        "src/IceRpc.ProjectTemplates/**"
+                        "src/IceRpc.Templates/**"
                     ],
                     "src": "../"
                 }

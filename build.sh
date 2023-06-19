@@ -18,9 +18,7 @@ usage()
     echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
     echo "  --pack                 Create the IceRPC NuGet packages."
     echo "  --examples             Build the example project (uses installed NuGet packages)."
-    echo "  --docfxExamples        Build the examples used in docfx generated documentation (uses installed NuGet packages)."
     echo "  --publish              Publish the IceRPC NuGet packages to the global-packages source."
-    echo "  --installTemplates     Install the IceRPC dotnet new project templates."
     echo "  --clean                Clean all build artifacts."
     echo "  --test                 Runs tests."
     echo "  --doc                  Generate the C# API documentation"
@@ -35,7 +33,7 @@ usage()
     echo "  --help                 Print help and exit."
 }
 
-build_compiler()
+build()
 {
     arguments=("build")
     if [ "$config" == "release" ]; then
@@ -44,43 +42,49 @@ build_compiler()
     pushd tools/slicec-cs
     run_command cargo "${arguments[@]}"
     popd
+
+    pushd tools/IceRpc.Slice.Tools
+    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
+    popd
+
+    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
 }
 
-clean_compiler()
+build_examples()
+{
+    for solution in examples/*/*.sln examples/*/*/*.sln
+    do
+        run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
+    done
+}
+
+clean()
 {
     pushd tools/slicec-cs
     run_command cargo clean
     popd
-}
 
-build_icerpc_slice_tools()
-{
-    pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
-    popd
-}
-
-clean_icerpc_slice_tools()
-{
     pushd tools/IceRpc.Slice.Tools
     run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
-}
 
-build_icerpc()
-{
-    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
-}
-
-clean_icerpc()
-{
     run_command dotnet "clean" "-nr:false"$version_property
+
+    for solution in examples/*/*.sln examples/*/*/*.sln
+    do
+        run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
+    done
+
+    pushd src/IceRpc.Templates
+    run_command dotnet "clean"$version_property "-nr:false"
+    popd
 }
 
-clean_icerpc_project_templates()
+doc()
 {
-    pushd src/IceRpc.ProjectTemplates
-    run_command dotnet "clean"$version_property "-nr:false"
+    pushd docfx
+    run_command docfx "metadata" "--property" "Configuration=$dotnet_config"
+    run_command docfx "build"
     popd
 }
 
@@ -90,7 +94,7 @@ pack()
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
-    pushd src/IceRpc.ProjectTemplates
+    pushd src/IceRpc.Templates
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 }
@@ -102,61 +106,6 @@ publish()
     run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
     run_command dotnet "nuget" "push" "tools/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
-}
-
-install_templates()
-{
-    dotnet_templates=$(dotnet new -l)
-    if [[ "$dotnet_templates" == *"icerpc-client"* ]]; then
-        run_command "dotnet" 'new' 'uninstall' 'IceRpc.ProjectTemplates'
-    fi
-
-    pushd src/IceRpc.ProjectTemplates
-    run_command dotnet "pack" "-c" "$dotnet_config"
-    run_command "dotnet" 'new' 'install' "bin/$dotnet_config/IceRpc.ProjectTemplates.$version.nupkg"
-    popd
-}
-
-build()
-{
-    build_compiler
-    build_icerpc_slice_tools
-    build_icerpc
-}
-
-build_examples()
-{
-    for solution in examples/*/*.sln examples/*/*/*.sln
-    do
-        run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
-    done
-}
-
-build_docfx_examples()
-{
-    for project in docfx/examples/*/*.csproj
-    do
-        run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
-    done
-}
-
-clean()
-{
-    clean_compiler
-    clean_icerpc_slice_tools
-    clean_icerpc
-
-    for solution in examples/*/*.sln examples/*/*/*.sln
-    do
-        run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
-    done
-
-    for project in docfx/examples/*/*.csproj
-    do
-        run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$project"
-    done
-
-    clean_icerpc_project_templates
 }
 
 run_test()
@@ -180,14 +129,6 @@ run_test()
     fi
 }
 
-doc()
-{
-    pushd docfx
-    run_command docfx "metadata" "--property" "Configuration=$dotnet_config"
-    run_command docfx "build"
-    popd
-}
-
 run_command()
 {
     echo "$@"
@@ -203,7 +144,7 @@ config=""
 coverage="no"
 version_property=""
 passedInActions=()
-actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish" "--examples" "--docfxExamples" "--installTemplates")
+actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish" "--examples")
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -277,17 +218,11 @@ for action in "${passedInActions[@]}"; do
         "--examples")
             build_examples
             ;;
-        "--docfxExamples")
-            build_docfx_examples
-            ;;
         "--pack")
             pack
             ;;
         "--publish")
             publish
-            ;;
-        "--installTemplates")
-            install_templates
             ;;
         "--clean")
             clean

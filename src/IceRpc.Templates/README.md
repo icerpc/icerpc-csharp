@@ -1,7 +1,6 @@
-# Project Templates for IceRPC
+# Templates for IceRPC
 
-IceRpc.ProjectTemplates provides `dotnet new` project templates for [IceRPC][icerpc]. The following templates
-are included:
+IceRpc.Templates provides `dotnet new` project templates for [IceRPC][icerpc]. The following templates are included:
 
 | Template Name      | Description                                                                                          |
 |--------------------|------------------------------------------------------------------------------------------------------|
@@ -13,7 +12,7 @@ are included:
 ## Installation
 
 ``` shell
-dotnet new install IceRpc.ProjectTemplates
+dotnet new install IceRpc.Templates
 ```
 
 ## Sample Code
@@ -39,5 +38,5 @@ dotnet run
 [Source code][source] | [Package][package]
 
 [icerpc]: https://www.nuget.org/packages/IceRpc
-[package]: https://www.nuget.org/packages/IceRpc.ProjectTemplates
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.ProjectTemplates
+[package]: https://www.nuget.org/packages/IceRpc.Templates
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Templates
