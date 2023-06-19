@@ -76,7 +76,7 @@ Windows
 build.cmd -build
 ```
 
-This command builds slicec-cs, all the IceRpc assemblies and the IceRpc tests with the default configuration (debug).
+This command builds slicec-cs, all the IceRpc assemblies, and the IceRpc tests with the default configuration (debug).
 
 The -build/--build action is optional since it's the default build action.
 
