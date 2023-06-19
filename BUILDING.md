@@ -126,7 +126,7 @@ This command creates all the IceRpc NuGet packages.
 
 By default, the NuGet package `IceRpc.Slice.Tools` includes only the `slice-cs` compiler created by the local build.
 
-If you set the MSBuild property `SLICEC_CS_STAGING_PATH`, `IceRpc.Slice.Tools` includes instead the `slicec-cs` compiler
+If you set the MSBuild property `SLICEC_CS_STAGING_PATH`, `IceRpc.Slice.Tools` instead includes the `slicec-cs` compiler
 for all supported platforms. The expected layout of the staging directory is
 `<os-name>-<os-arch>/<compiler-executable>`, with the following subdirectories:
 - `linux-x64`: Linux x86_64
