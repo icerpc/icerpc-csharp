@@ -365,9 +365,6 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        // Calling DisposeAsync while CloseAsync is pending is not allowed. We can safely assume that _writeSemaphore is
-        // not disposed and there's no need to create a linked token source with _disposedCts.Token.
-
         bool waitForWriterShutdown = false;
         if (TryClose(new IceRpcException(IceRpcError.OperationAborted), "The connection was closed."))
         {
@@ -398,7 +395,6 @@ internal class SlicConnection : IMultiplexedConnection
 
         if (waitForWriterShutdown)
         {
-            // Wait for the writer task completion outside the semaphore lock.
             await _duplexConnectionWriter.WriterTask.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -527,7 +523,6 @@ internal class SlicConnection : IMultiplexedConnection
             {
             }
 
-            // Wait for tasks to release the write semaphore before disposing the duplex connection writer.
             await _duplexConnectionWriter.DisposeAsync().ConfigureAwait(false);
             _duplexConnectionReader.Dispose();
             _duplexConnection.Dispose();
@@ -654,7 +649,6 @@ internal class SlicConnection : IMultiplexedConnection
 
         lock (_mutex)
         {
-            // Make sure the connection is not being closed or closed when we acquire the semaphore.
             if (_isClosed)
             {
                 throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
@@ -1282,7 +1276,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
                 // server-side.
 
-                // DisposeAsync waits for the reads frames task to complete before disposing the semaphore.
+                // DisposeAsync waits for the reads frames task to complete before disposing the writer.
                 lock (_mutex)
                 {
                     _duplexConnectionWriter.Shutdown();
@@ -1292,7 +1286,6 @@ internal class SlicConnection : IMultiplexedConnection
                     _writerIsShutdown = true;
                 }
 
-                // Wait for the writer task completion outside the semaphore lock.
                 await _duplexConnectionWriter.WriterTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
