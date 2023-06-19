@@ -22,8 +22,7 @@ build.cmd -help
 - [Running the tests](#running-the-tests)
 - [Creating NuGet packages](#creating-nuget-packages)
   - [Slice tools](#slice-tools)
-- [Publishing Nuget packages](#publishing-nuget-packages)
-- [Installing the templates](#installing-the-templates)
+- [Publishing NuGet packages](#publishing-nuget-packages)
 - [Generating the API reference](#generating-the-api-reference)
 - [Generating the code coverage reports](#generating-the-code-coverage-reports)
 - [Shutting down background MSBuild servers](#shutting-down-background-msbuild-servers)
@@ -138,7 +137,7 @@ for all supported platforms. The expected layout of the staging directory is
 
 Make sure that all these compilers are available when you set `SLICEC_CS_STAGING_PATH`.
 
-## Publishing Nuget packages
+## Publishing NuGet packages
 
 Linux or macOS
 ```shell
@@ -154,21 +153,6 @@ This command publishes all the NuGet packages created with `-pack/--pack` to you
 
 > **Note**
 > This is an essential step if you want to use a local build with the [examples](examples).
-
-## Installing the templates
-
-Linux or macOS
-```shell
-./build.sh --installTemplates
-```
-
-Windows
-```shell
-build.cmd -installTemplates
-```
-
-This command installs the `IceRpc.ProjectTemplates` templates from this source distribution instead of the ones from the
-published NuGet packages.
 
 ## Generating the API reference
 

@@ -19,6 +19,7 @@
     "ECONNRESET",
     "EPIPE",
     "finalizers",
+    "globaltool",
     "icerpc",
     "localizable",
     "Memberwise",
