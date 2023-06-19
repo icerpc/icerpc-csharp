@@ -4,5 +4,7 @@ runs:
   using: "composite"
   steps:
   - name: 🔨 Build Examples
-    run: ./build.sh --examples --docfxExamples
+    run: |
+      ./build.sh --examples
+      dotnet build docfx/examples/Examples.sln
     shell: bash
