@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{scoped_identifier, InterfaceExt, MemberExt, ModuleExt};
-use crate::cs_attributes::{CsAttribute, CsIdentifier, CsInternal, CsReadonly};
+use crate::cs_attributes::{CsAttribute, CsIdentifier, CsInternal};
 use crate::cs_util::{escape_keyword, CsCase};
 use convert_case::Case;
 use slicec::grammar::attributes::Deprecated;

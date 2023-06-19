@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-use slicec::grammar::{Contained, Entities};
-
 use super::*;
+use slicec::grammar::{Contained, Entities};
 
 #[derive(Debug)]
 pub struct CsReadonly {}
@@ -18,7 +17,7 @@ impl CsReadonly {
 
     pub fn validate_on(&self, applied_on: Attributables, span: &Span, reporter: &mut DiagnosticReporter) {
         match applied_on {
-            Attributables::Struct(_) => {},
+            Attributables::Struct(_) => {}
             Attributables::Field(field) => {
                 if !matches!(field.parent().concrete_entity(), Entities::Struct(_)) {
                     let note = "'cs::readonly' can only be applied to structs, or fields inside structs";

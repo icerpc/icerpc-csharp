@@ -37,7 +37,6 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
     // Fields inherit the visibility of their enclosing struct.
     let mut modifiers = vec![field.parent().access_modifier()];
 
-    // TODO: re-fix the attribute methods.
     // Check if this field, or it's parent struct, are marked with `cs::readonly`.
     let mut attributes = field.all_attributes().concat().into_iter();
     if attributes.any(|a| a.downcast::<CsReadonly>().is_some()) {
