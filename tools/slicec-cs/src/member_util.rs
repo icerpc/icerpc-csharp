@@ -34,7 +34,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
         writeln!(prelude, "[{obsolete}]");
     }
 
-    // Fields inherit the visibility of their enclosing struct.
+    // Fields inherit the visibility of their parents.
     let mut modifiers = vec![field.parent().access_modifier()];
 
     // Check if this field, or it's parent struct, are marked with `cs::readonly`.
