@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::comments::CommentTag;
+use crate::cs_attributes::CsReadonly;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
-use slicec::grammar::{Contained, Field, Member};
+use slicec::grammar::{Attributable, Contained, Field, Member};
 use slicec::utils::code_gen_util::TypeContext;
 
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
@@ -33,13 +34,22 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
         writeln!(prelude, "[{obsolete}]");
     }
 
-    // All field modifiers are based on the parent's modifiers.
-    let modifiers = field.parent().modifiers();
-    let name = field.field_name(field_type);
+    // Fields inherit the visibility of their enclosing struct.
+    let mut modifiers = vec![field.parent().access_modifier()];
+
+    // TODO: re-fix the attribute methods.
+    // Check if this field, or it's parent struct, are marked with `cs::readonly`.
+    let mut attributes = field.all_attributes().concat().into_iter();
+    if attributes.any(|a| a.downcast::<CsReadonly>().is_some()) {
+        modifiers.push("readonly");
+    }
+
     format!(
         "\
 {prelude}
-{modifiers} {type_string} {name};"
+{modifiers} {type_string} {name};",
+        modifiers = modifiers.join(" "),
+        name = field.field_name(field_type),
     )
 }
 

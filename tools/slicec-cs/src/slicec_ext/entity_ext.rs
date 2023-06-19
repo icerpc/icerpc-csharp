@@ -124,15 +124,6 @@ pub trait EntityExt: Entity {
         }
     }
 
-    /// Returns the C# modifiers for this entity.
-    fn modifiers(&self) -> String {
-        let mut modifiers = self.access_modifier().to_owned();
-        if self.has_attribute::<CsReadonly>() {
-            modifiers += " readonly";
-        }
-        modifiers
-    }
-
     /// Returns a vector of C# attributes applied to this entity with `cs::attribute`.
     fn cs_attributes(&self) -> Vec<String> {
         self.find_attributes::<CsAttribute>()

@@ -3,6 +3,7 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
+use crate::cs_attributes::CsReadonly;
 use crate::cs_util::FieldType;
 use crate::decoding::*;
 use crate::encoding::*;
@@ -17,10 +18,13 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     let fields = struct_def.fields();
     let namespace = struct_def.namespace();
 
-    let mut builder = ContainerBuilder::new(
-        &format!("{} partial record struct", struct_def.modifiers()),
-        &escaped_identifier,
-    );
+    let mut declaration = vec![struct_def.access_modifier()];
+    if struct_def.has_attribute::<CsReadonly>() {
+        declaration.push("readonly");
+    }
+    declaration.extend(["partial", "record", "struct"]);
+
+    let mut builder = ContainerBuilder::new(&declaration.join(" "), &escaped_identifier);
     if let Some(summary) = struct_def.formatted_doc_comment_summary() {
         builder.add_comment("summary", summary);
     }
