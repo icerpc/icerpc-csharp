@@ -162,10 +162,9 @@ internal class SlicConnection : IMultiplexedConnection
                     {
                         // Unsupported version, try to negotiate another version by sending a Version frame with the
                         // Slic versions supported by this server.
-                        await WriteConnectionFrameAsync(
+                        WriteConnectionFrame(
                             FrameType.Version,
-                            new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode,
-                            cancellationToken).ConfigureAwait(false);
+                            new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode);
 
                         (version, initializeBody) = await ReadFrameAsync(
                             DecodeInitialize,
@@ -191,22 +190,18 @@ internal class SlicConnection : IMultiplexedConnection
                     DecodeParameters(initializeBody.Value.Parameters);
 
                     // Write back an InitializeAck frame.
-                    await WriteConnectionFrameAsync(
-                        FrameType.InitializeAck,
-                        new InitializeAckBody(EncodeParameters()).Encode,
-                        cancellationToken).ConfigureAwait(false);
+                    WriteConnectionFrame(FrameType.InitializeAck, new InitializeAckBody(EncodeParameters()).Encode);
                 }
                 else
                 {
                     // Write the Initialize frame.
-                    await WriteConnectionFrameAsync(
+                    WriteConnectionFrame(
                         FrameType.Initialize,
                         (ref SliceEncoder encoder) =>
                         {
                             encoder.EncodeVarUInt62(SlicDefinitions.V1);
                             new InitializeBody(Protocol.IceRpc.Name, EncodeParameters()).Encode(ref encoder);
-                        },
-                        cancellationToken).ConfigureAwait(false);
+                        });
 
                     // Read the Initialize frame.
                     InitializeAckBody initializeAckBody = await ReadFrameAsync(
@@ -312,20 +307,12 @@ internal class SlicConnection : IMultiplexedConnection
             // torn down and there's no point in sending a ping frame.
             if (Interlocked.Increment(ref _pendingPongCount) > 0)
             {
-                _ = PingAsync();
-            }
-
-            async Task PingAsync()
-            {
                 try
                 {
                     // For now, the Ping frame payload is just a long which is always set to 0. In the future, it could
                     // be a ping frame type value if the ping frame is used for different purpose (e.g: a KeepAlive or
                     // RTT ping frame type).
-                    await WriteConnectionFrameAsync(
-                        FrameType.Ping,
-                        new PingBody(0L).Encode,
-                        _closedCancellationToken).ConfigureAwait(false);
+                    WriteConnectionFrame(FrameType.Ping, new PingBody(0L).Encode);
                 }
                 catch (IceRpcException)
                 {
@@ -661,11 +648,7 @@ internal class SlicConnection : IMultiplexedConnection
     /// <summary>Writes a connection frame.</summary>
     /// <param name="frameType">The frame type.</param>
     /// <param name="encode">The action to encode the frame.</param>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    internal Task WriteConnectionFrameAsync(
-        FrameType frameType,
-        EncodeAction? encode,
-        CancellationToken cancellationToken)
+    internal void WriteConnectionFrame(FrameType frameType, EncodeAction? encode)
     {
         Debug.Assert(frameType < FrameType.Stream);
 
@@ -679,7 +662,6 @@ internal class SlicConnection : IMultiplexedConnection
             WriteFrame(frameType, streamId: null, encode);
             _duplexConnectionWriter.Flush();
         }
-        return Task.CompletedTask;
     }
 
     /// <summary>Writes a stream frame.</summary>
@@ -690,7 +672,7 @@ internal class SlicConnection : IMultiplexedConnection
     /// frame should be written after the stream frame.</param>
     /// <remarks>This method is called by streams and might be called on a closed connection. The connection might
     /// also be closed concurrently while it's in progress.</remarks>
-    internal Task WriteStreamFrameAsync(
+    internal void WriteStreamFrame(
         SlicStream stream,
         FrameType frameType,
         EncodeAction? encode,
@@ -701,10 +683,9 @@ internal class SlicConnection : IMultiplexedConnection
 
         lock (_mutex)
         {
-            // Make sure the connection is not being closed or closed when we acquire the semaphore.
             if (_isClosed)
             {
-                throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
+                return;
             }
 
             WriteFrame(frameType, stream.Id, encode);
@@ -720,7 +701,6 @@ internal class SlicConnection : IMultiplexedConnection
             }
             _duplexConnectionWriter.Flush();
         }
-        return Task.CompletedTask;
     }
 
     /// <summary>Writes a stream data frame.</summary>
@@ -797,7 +777,6 @@ internal class SlicConnection : IMultiplexedConnection
 
                 lock (_mutex)
                 {
-                    // Make sure the connection is not being closed or closed when we acquire the semaphore.
                     if (_isClosed)
                     {
                         throw new IceRpcException(_peerCloseError ?? IceRpcError.ConnectionAborted, _closedMessage);
@@ -1120,17 +1099,15 @@ internal class SlicConnection : IMultiplexedConnection
                     peerCloseError);
             }
 
-            // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When
-            // using TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the
-            // server-side.
+            // The server-side of the duplex connection is only shutdown once the client-side is shutdown. When using
+            // TCP, this ensures that the server TCP connection won't end-up in the TIME_WAIT state on the server-side.
             if (notAlreadyClosed && !IsServer)
             {
-                // DisposeAsync waits for the reads frames task to complete before disposing the semaphore.
+                // DisposeAsync waits for the reads frames task to complete before disposing the writer.
                 lock (_mutex)
                 {
                     _duplexConnectionWriter.Shutdown();
                 }
-                // Wait for the writer task completion outside the semaphore lock.
                 await _duplexConnectionWriter.WriterTask.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -1144,10 +1121,7 @@ internal class SlicConnection : IMultiplexedConnection
                 cancellationToken).ConfigureAwait(false);
 
             // Return a pong frame with the ping payload.
-            await WriteConnectionFrameAsync(
-                FrameType.Pong,
-                new PongBody(pingBody.Payload).Encode,
-                cancellationToken).ConfigureAwait(false);
+            WriteConnectionFrame(FrameType.Pong, new PongBody(pingBody.Payload).Encode);
         }
 
         async Task ReadPongFrameAsync(int size, CancellationToken cancellationToken)
