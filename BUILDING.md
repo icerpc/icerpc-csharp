@@ -166,7 +166,7 @@ Windows
 build.cmd -doc
 ```
 
-This command generates the API reference into the `docfx\_site` directory. Start a local web server to view this local
+This command generates the API reference into the `docfx\_site` directory. Start a local web server to view this
 API reference:
 
 ```shell
