@@ -133,7 +133,7 @@ for all supported platforms. The expected layout of the staging directory is
 - `linux-arm64`: Linux ARM64
 - `macos-x64`: macOS x86_64
 - `macos-arm64`: macOS Apple silicon
-- `windows-x64`: Windows x64ß
+- `windows-x64`: Windows x64
 
 Make sure that all these compilers are available when you set `SLICEC_CS_STAGING_PATH`.
 
