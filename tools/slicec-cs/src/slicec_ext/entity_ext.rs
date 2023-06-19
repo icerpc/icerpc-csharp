@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{scoped_identifier, InterfaceExt, MemberExt, ModuleExt};
-use crate::cs_attributes::{CsAttribute, CsIdentifier, CsInternal, CsReadonly};
+use crate::cs_attributes::{CsAttribute, CsIdentifier, CsInternal};
 use crate::cs_util::{escape_keyword, CsCase};
 use convert_case::Case;
 use slicec::grammar::attributes::Deprecated;
@@ -122,15 +122,6 @@ pub trait EntityExt: Entity {
             true => "internal",
             false => "public",
         }
-    }
-
-    /// Returns the C# modifiers for this entity.
-    fn modifiers(&self) -> String {
-        let mut modifiers = self.access_modifier().to_owned();
-        if self.has_attribute::<CsReadonly>() {
-            modifiers += " readonly";
-        }
-        modifiers
     }
 
     /// Returns a vector of C# attributes applied to this entity with `cs::attribute`.

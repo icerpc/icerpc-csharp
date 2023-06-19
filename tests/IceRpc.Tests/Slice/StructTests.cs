@@ -447,4 +447,14 @@ public sealed class StructTests
         // Assert
         Assert.That(description, Is.EqualTo("An integer"));
     }
+
+    [Test]
+    public void Cs_readonly_on_field()
+    {
+        // Arrange / Act
+        var fieldInfo = typeof(MyStructWithFieldAttributes).GetField("J")!;
+
+        // Assert
+        Assert.That(fieldInfo.IsInitOnly);
+    }
 }
