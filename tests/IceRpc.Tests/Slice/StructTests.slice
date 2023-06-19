@@ -22,4 +22,7 @@ compact struct MyCompactStruct {
 struct MyStructWithFieldAttributes {
     [cs::attribute("System.ComponentModel.Description(\"An integer\")")]
     i: int32,
+
+    [cs::readonly]
+    j: int32,
 }
