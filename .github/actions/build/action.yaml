@@ -40,6 +40,7 @@ runs:
       sudo apt update
       sudo apt install libmsquic
     shell: bash
+    if: runner.os == 'Linux'
   - name: 🔗 Start SSH Agent
     uses: webfactory/ssh-agent@v0.5.4
     with:
