@@ -20,6 +20,8 @@ build.cmd -help
   - [Command line](#command-line)
   - [Visual Studio Code](#visual-studio-code)
 - [Running the tests](#running-the-tests)
+  - [C# tests](#c-tests)
+  - [Rust tests](#rust-tests)
 - [Creating NuGet packages](#creating-nuget-packages)
   - [Slice tools](#slice-tools)
 - [Publishing NuGet packages](#publishing-nuget-packages)
@@ -101,12 +103,23 @@ Select `Tasks: Run Build Task...` from the command palette to run the build scri
 
 ## Running the tests
 
+### C# tests
+
 ```shell
 dotnet test
 ```
 
 This command executes all tests known to the `IceRpc.sln` solution. See
 [dotnet-test](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test) for additional options.
+
+### Rust tests
+
+```shell
+cd tools/slicec-cs
+cargo test
+```
+
+This command runs the test suite for `slicec-cs`.
 
 ## Creating NuGet packages
 
