@@ -119,7 +119,7 @@ cd tools/slicec-cs
 cargo test
 ```
 
-This command executes the unit tests for `slicec-cs`.
+This command runs the test suite for `slicec-cs`.
 
 ## Creating NuGet packages
 
