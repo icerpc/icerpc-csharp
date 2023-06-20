@@ -208,7 +208,7 @@ dotnet_diagnostic.SA1405.severity = none
 # SA1413: Use trailing comma in multi-line initializers
 dotnet_diagnostic.SA1413.severity = none
 
-# SA1414: Tuple types in signatures should have element names, TODO Review this rule
+# SA1414: Tuple types in signatures should have element names
 dotnet_diagnostic.SA1414.severity = none
 
 # SA1512: Single-line comments should not be followed by blank line

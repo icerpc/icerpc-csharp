@@ -244,7 +244,7 @@ public class ServiceAddressTests
             ("ice:///location/identity#facet", "/location/identity", "facet"), // we tolerate an empty host
             ("icerpc://host.zeroc.com//identity", "//identity", ""),
             ("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F"),
-            // TODO: add test with # in fragment
+            ("ice://host.zeroc.com/foo##", "/foo", "#"),
             ("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!$'()*+,:;=@[]%20%2F"),
             (@"icerpc://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!", ""), // \ becomes / another syntax for empty port
             ("icerpc://host.zeroc.com:/identity", "/identity", ""),

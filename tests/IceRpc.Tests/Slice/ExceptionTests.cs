@@ -334,7 +334,6 @@ public sealed class ExceptionTests
             SliceEncoding.Slice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
-        // TODO how we test this without using DecodeUserException?
         var decoded = decoder.DecodeUserException() as MyDerivedException;
         Assert.That(decoded, Is.Not.Null);
         Assert.That(decoded!.I, Is.EqualTo(expected.I));
@@ -352,7 +351,6 @@ public sealed class ExceptionTests
 
         expected.Encode(ref encoder);
 
-        // TODO how we test this without using DecodeUserException?
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
@@ -375,7 +373,6 @@ public sealed class ExceptionTests
 
         expected.Encode(ref encoder);
 
-        // TODO how we test this without using DecodeUserException?
         var decoder = new SliceDecoder(
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
