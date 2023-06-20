@@ -28,9 +28,6 @@
       <IncludeBuildOutput>false</IncludeBuildOutput>
       <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
       <NoWarn>NU5100</NoWarn>
-      <TimeStampServer Condition="'$(SIGN_TIMESTAMP_SERVER)' == ''">http://timestamp.digicert.com</TimeStampServer>
-      <SignCommandSHA1 Condition="Exists('$(SIGN_CERTIFICATE)')">signtool sign /f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /t $(TimeStampServer)</SignCommandSHA1>
-      <SignCommandSHA256 Condition="Exists('$(SIGN_CERTIFICATE)')">signtool sign /f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256 /as</SignCommandSHA256>
       <RustConfiguration Condition="'$(Configuration)' == 'Release'">release</RustConfiguration>
       <RustConfiguration Condition="'$(Configuration)' == 'Debug'">debug</RustConfiguration>
       <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
@@ -46,10 +43,6 @@
       <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.11.0" />
       <PackageReference Include="System.Text.Json" Version="6.0.5" />
    </ItemGroup>
-   <Target Name="Sign" AfterTargets="CopyFilesToOutputDirectory" Condition="Exists('$(SIGN_CERTIFICATE)')">
-      <Exec Command="$(SignCommandSHA1) $(OutputPath)$(AssemblyName).dll" />
-      <Exec Command="$(SignCommandSHA256) $(OutputPath)$(AssemblyName).dll" />
-   </Target>
    <ItemGroup>
       <Content Include="../../../../LICENSE">
          <PackagePath />
@@ -129,4 +122,5 @@
    <ItemGroup>
       <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
    </ItemGroup>
+   <Import Project="$(MSBuildThisFileDirectory)../../../../build/Sign.targets" />
 </Project>

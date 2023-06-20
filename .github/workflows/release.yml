@@ -43,7 +43,7 @@ jobs:
           name: slicec-cs-${{ matrix.target }}
           path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
   build-packages:
-    runs-on: ubuntu-22.04
+    runs-on: windows-2022
     timeout-minutes: 10
     needs: build-compiler
     steps:
@@ -52,14 +52,20 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Create Tools directory structure
         run: |
-          mkdir -p /tmp/tools/macos-x64 /tmp/tools/macos-arm64 /tmp/tools/linux-x64 /tmp/tools/linux-arm64 /tmp/tools/windows-x64
-          mv slicec-cs-x86_64-apple-darwin/slicec-cs /tmp/tools/macos-x64/
-          mv slicec-cs-aarch64-apple-darwin/slicec-cs /tmp/tools/macos-arm64/
-          mv slicec-cs-x86_64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-x64/
-          mv slicec-cs-aarch64-unknown-linux-gnu/slicec-cs /tmp/tools/linux-arm64/
-          mv slicec-cs-x86_64-pc-windows-msvc/slicec-cs.exe /tmp/tools/windows-x64/
+          mkdir C:\tmp\tools\macos-x64 C:\tmp\tools\macos-arm64 C:\tmp\tools\linux-x64 C:\tmp\tools\linux-arm64 C:\tmp\tools\windows-x64
+          move slicec-cs-x86_64-apple-darwin\slicec-cs C:\tmp\tools\macos-x64\
+          move slicec-cs-aarch64-apple-darwin\slicec-cs C:\tmp\tools\macos-arm64\
+          move slicec-cs-x86_64-unknown-linux-gnu\slicec-cs C:\tmp\tools\linux-x64\
+          move slicec-cs-aarch64-unknown-linux-gnu\slicec-cs C:\tmp\tools\linux-arm64\
+          move slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe C:\tmp\tools\windows-x64\
       - name: Set VERSION variable from tag
         run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+      - name: Create Code Signing Certificate
+        run: |
+          mkdir C:\tmp\certificates
+          Set-Content -Path C:\tmp\certificates\certificate.pfx.base64 -Value '${{ secrets.CERTIFICATE }}'
+          certutil -decode C:\tmp\certificates\certificate.pfx.base64 C:\tmp\certificates\certificate.pfx
+          Remove-Item C:\tmp\certificates\certificate.pfx.base64
       - name: Build
         uses: ./.github/actions/build
         with:
@@ -67,11 +73,20 @@ jobs:
           dotnet-build-args: --configuration Release
         env:
           ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+          SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
+          SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
-        run: dotnet pack --configuration Release --output ../../
+        run: |
+             dotnet msbuild /t:SignCompilers ../../build/Sign.targets
+             dotnet pack --configuration Release --output ../../
         env:
-          SLICEC_CS_STAGING_PATH: /tmp/tools
+          SLICEC_CS_STAGING_PATH: C:\tmp\tools
+          SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
+          SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
+      - name: Cleanup
+        if: always()
+        run: Remove-Item C:\tmp\certificates\certificate.pfx -ErrorAction SilentlyContinue
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
