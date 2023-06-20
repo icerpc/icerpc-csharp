@@ -44,7 +44,7 @@
     </Target>
 
     <Target Name="SignCompilers">
-        <Message Text="Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
+        <Message Text="Signing $(slicec-cs)" />
         <SignTask AdditionalOptions="$(SignCommand)" Files="$(slicec-cs)" />
     </Target>
 
