@@ -3,8 +3,8 @@
 mod attributes {
 
     use crate::cs_attributes::*;
-    use crate::cs_options::CsOptions;
     use crate::cs_compile::{cs_patcher, cs_validator};
+    use crate::cs_options::CsOptions;
     use slicec::diagnostics::{Diagnostic, Error};
     use slicec::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
     use test_case::test_case;
