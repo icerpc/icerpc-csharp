@@ -36,7 +36,7 @@ jobs:
           cargo-build-args: --release
           target: ${{ matrix.target }}
         env:
-          ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+          SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
       - name: Archive Build
         uses: actions/upload-artifact@v3
         with:
@@ -72,7 +72,7 @@ jobs:
           cargo-build-args: --release
           dotnet-build-args: --configuration Release
         env:
-          ICERPC_DEPLOY_KEY: ${{ secrets.ICERPC_DEPLOY_KEY }}
+          SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
           SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
           SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       - name: Pack IceRPC Tools
