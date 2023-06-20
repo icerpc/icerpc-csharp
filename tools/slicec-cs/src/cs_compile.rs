@@ -65,9 +65,9 @@ fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationSt
 #[cfg(test)]
 mod test {
     use super::{cs_patcher, cs_validator};
+    use crate::cs_options::CsOptions;
     use crate::generators::generate_from_slice_file;
     use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
-    use slicec::slice_options::SliceOptions;
     use slicec::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
     use slicec::utils::file_util::resolve_files_from;
     use std::io;
@@ -84,7 +84,7 @@ mod test {
 
         // Use `resolve_files_from` to find all Slice files in the tests directory.
         let test_slice_files = {
-            let mut options = SliceOptions::default();
+            let mut options = CsOptions::default().slice_options;
             options.references.push(tests_dir.clone());
             let mut diagnostic_reporter = DiagnosticReporter::new(&options);
             resolve_files_from(&options, &mut diagnostic_reporter)
@@ -92,7 +92,7 @@ mod test {
 
         // Compile and generate code for each test Slice file.
         for slice_file in test_slice_files {
-            let mut options = SliceOptions::default();
+            let mut options = CsOptions::default().slice_options;
             options.sources.push(slice_file.relative_path);
             options.references.push(slice_dir.clone());
             options.references.push(tests_dir.clone());
@@ -114,7 +114,7 @@ mod test {
         let slice1 = root_dir.join("tests/IceRpc.Tests/Slice/Pingable.slice");
         let slice2 = root_dir.join("tests/IntegrationTests/Pingable.slice");
 
-        let mut options = SliceOptions::default();
+        let mut options = CsOptions::default().slice_options;
         options.sources.push(slice1.display().to_string());
         options.sources.push(slice2.display().to_string());
 
