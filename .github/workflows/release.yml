@@ -65,6 +65,7 @@ jobs:
           mkdir C:\tmp\certificates
           Set-Content -Path C:\tmp\certificates\certificate.pfx.base64 -Value '${{ secrets.CERTIFICATE }}'
           certutil -decode C:\tmp\certificates\certificate.pfx.base64 C:\tmp\certificates\certificate.pfx
+          Remove-Item C:\tmp\certificates\certificate.pfx.base64
       - name: Build
         uses: ./.github/actions/build
         with:
@@ -83,6 +84,9 @@ jobs:
           SLICEC_CS_STAGING_PATH: C:\tmp\tools
           SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
           SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
+      - name: Cleanup
+        if: always()
+        run: Remove-Item C:\tmp\certificates\certificate.pfx -ErrorAction SilentlyContinue
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
