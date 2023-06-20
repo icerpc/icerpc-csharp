@@ -25,4 +25,4 @@ add files or directories containing Slice files that are required for the compil
 
 For detailed documentation about the supported  options use the `--help` compiler option.
 
-[building][../../BUILDING.md]
+[building]:[../../BUILDING.md]
