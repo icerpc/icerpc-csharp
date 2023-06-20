@@ -1,28 +1,25 @@
 # The Slice compiler for C#
 
-This directory contains the source code for the Slice compiler for C#, for build instruction see [building][building].
-
 The Slice compiler for C#, `slicec-cs`, allows you to compile Slice definitions (in `.slice` files) into C# code (in
 `.cs` files).
 
-## Generated files
-
-The compiler generates a C# file for each Slice file it compiles, the generated file has the same name as the source
-Slice file but `.cs` extension.
-
-The generated files are placed in the current working directory, a different location can be specified using the
-`--output-dir` compiler option.
-
-If the generated C# file exists, the compiler only overwrites it when its contents are different from the contenst of
-the new version.
-
-## Referenced files
-
-The Slice compilation can reference files for which no code is generated, the compiler `-R` option can be used to
-add files or directories containing Slice files that are required for the compilation.
+[Package][package] | [Building from source][building] | [Slice documentation][slice-documentation]
 
 ## Options
 
-For detailed documentation about the supported  options use the `--help` compiler option.
+|                                           |                                                                                            |
+|-------------------------------------------|--------------------------------------------------------------------------------------------|
+| `-R <REFERENCE>`                          | Add a directory or Slice file to the list of references                                    |
+| `-D <DEFINITION>`                         | Define a preprocessor definition                                                           |
+| `-W, --warn-as-error`                     | Instruct the compiler to treat warnings as errors                                          |
+| `-A, --allow <WARNING>`                   | Instruct the compiler to allow (not emit) the specified warning                            |
+| `--dry-run`                               | Validate input files without generating code for them                                      |
+| `-O, --output-dir <OUTPUT_DIR>`           | Set the output directory for the generated code. Defaults to the current working directory |
+| `--diagnostic-format <DIAGNOSTIC_FORMAT>` | Set the output format for emitted errors [default: human] [possible values: human, json]   |
+| `--disable-color`                         | Disable ANSI color codes in diagnostic output                                              |
+| `-h, --help`                              | Print help (see more with '--help')                                                        |
+| `-V, --version`                           | Print version                                                                              |
 
+[package]:  https://www.nuget.org/packages/IceRpc.Slice.Tools
 [building]: ../../BUILDING.md
+[slice-documentation]: https://docs.testing.zeroc.com/docs/slice
