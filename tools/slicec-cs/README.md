@@ -1,5 +1,7 @@
 # The Slice compiler for C#
 
+This directory contains the source code for the Slice compiler for C#, for build instruction see [building][building]
+
 The Slice compiler for C#, `slicec-cs`, allows you to compile Slice definitions (in `.slice` files) into C# code (in
 `.cs` files).
 
@@ -18,3 +20,9 @@ the new version.
 
 The Slice compilation can reference files for which no code is generated, the compiler `-R` option can be used to
 add files or directories containing Slice files that are required for the compilation.
+
+## Options
+
+For detailed documentation about the supported  options use the `--help` compiler option.
+
+[building][../../BUILDING.md]
