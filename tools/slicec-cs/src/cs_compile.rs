@@ -65,6 +65,7 @@ fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationSt
 #[cfg(test)]
 mod test {
     use super::{cs_patcher, cs_validator};
+    use crate::cs_options::SLICEC_CS;
     use crate::generators::generate_from_slice_file;
     use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
     use slicec::slice_options::SliceOptions;
@@ -96,6 +97,7 @@ mod test {
             options.sources.push(slice_file.relative_path);
             options.references.push(slice_dir.clone());
             options.references.push(tests_dir.clone());
+            options.definitions.push(SLICEC_CS.to_owned());
 
             let compilation_state = slicec::compile_from_options(&options, cs_patcher, cs_validator);
             if compilation_state.diagnostic_reporter.has_errors() {
@@ -117,6 +119,7 @@ mod test {
         let mut options = SliceOptions::default();
         options.sources.push(slice1.display().to_string());
         options.sources.push(slice2.display().to_string());
+        options.definitions.push(SLICEC_CS.to_owned());
 
         // Act
         let compilation_state = slicec::compile_from_options(&options, cs_patcher, cs_validator);

@@ -4,6 +4,7 @@ mod attributes {
 
     use crate::cs_attributes::*;
     use crate::cs_compile::{cs_patcher, cs_validator};
+    use crate::cs_options::{CsOptions, SLICEC_CS};
     use slicec::diagnostics::{Diagnostic, Error};
     use slicec::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
     use test_case::test_case;
@@ -11,7 +12,10 @@ mod attributes {
     /// This function parses the provided Slice file and returns any Diagnostics that were emitted during parsing.
     #[must_use]
     pub fn parse_for_diagnostics(slice: impl Into<String>) -> Vec<Diagnostic> {
-        let state = slicec::compile_from_strings(&[&slice.into()], None, cs_patcher, cs_validator);
+        let mut options = CsOptions::default().slice_options;
+        options.definitions.push(SLICEC_CS.to_owned());
+
+        let state = slicec::compile_from_strings(&[&slice.into()], Some(options), cs_patcher, cs_validator);
         diagnostics_from_compilation_state(state)
     }
 

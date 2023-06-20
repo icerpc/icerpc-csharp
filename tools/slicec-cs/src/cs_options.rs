@@ -3,6 +3,9 @@
 use clap::Parser;
 use slicec::slice_options::SliceOptions;
 
+/// `slicec-cs` automatically defines this preprocessor symbol when compiling.
+pub const SLICEC_CS: &'static str = "SLICEC_CS";
+
 // Note: Clap uses the doc-comments of fields to populate the '--help' output of slicec-cs.
 //       boolean flags automatically default to false, and strings automatically default to empty.
 

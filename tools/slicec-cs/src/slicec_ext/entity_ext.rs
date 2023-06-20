@@ -173,13 +173,17 @@ impl<T: Entity + ?Sized> EntityExt for T {}
 #[cfg(test)]
 mod formatted_link_tests {
     use super::EntityExt;
+    use crate::cs_options::{CsOptions, SLICEC_CS};
     use slicec::compilation_state::CompilationState;
     use slicec::grammar::{Enumerator, Interface, Operation, Parameter, Struct};
 
     // TODO we should add some actual testing infrastructure to this crate.
 
     fn compile_slice(slice: &str) -> CompilationState {
-        slicec::compile_from_strings(&[slice], None, |_| {}, |_| {})
+        let mut options = CsOptions::default().slice_options;
+        options.definitions.push(SLICEC_CS.to_owned());
+
+        slicec::compile_from_strings(&[slice], Some(options), |_| {}, |_| {})
     }
 
     #[test]

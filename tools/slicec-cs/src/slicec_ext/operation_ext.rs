@@ -54,12 +54,12 @@ impl OperationExt for Operation {
 }
 
 fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
-    let ns = operation.parent().namespace();
+    let namespace = operation.parent().namespace();
     if is_dispatch && operation.has_attribute::<CsEncodedReturn>() {
         if let Some(stream_member) = operation.streamed_return_member() {
             format!(
                 "(global::System.IO.Pipelines.PipeReader Payload, {} {})",
-                stream_member.cs_type_string(&ns, context, false),
+                stream_member.cs_type_string(&namespace, context, false),
                 stream_member.field_name(FieldType::NonMangled),
             )
         } else {
@@ -68,8 +68,8 @@ fn operation_return_type(operation: &Operation, is_dispatch: bool, context: Type
     } else {
         match operation.return_members().as_slice() {
             [] => "void".to_owned(),
-            [member] => member.cs_type_string(&ns, context, false),
-            members => members.to_tuple_type(&ns, context, false),
+            [member] => member.cs_type_string(&namespace, context, false),
+            members => members.to_tuple_type(&namespace, context, false),
         }
     }
 }

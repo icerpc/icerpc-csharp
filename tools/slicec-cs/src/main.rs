@@ -18,6 +18,7 @@ mod attribute_tests;
 use crate::cs_options::CsOptions;
 use clap::Parser;
 use cs_compile::{cs_patcher, cs_validator};
+use cs_options::SLICEC_CS;
 use generators::generate_from_slice_file;
 use slicec::diagnostics::{Diagnostic, Error};
 use std::fs::File;
@@ -26,8 +27,9 @@ use std::io::prelude::*;
 use std::path::Path;
 
 pub fn main() {
-    let options = CsOptions::parse();
-    let slice_options = &options.slice_options;
+    let mut options = CsOptions::parse();
+    let slice_options = &mut options.slice_options;
+    slice_options.definitions.push(SLICEC_CS.to_owned());
 
     let mut compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
 
