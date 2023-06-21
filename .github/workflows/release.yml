@@ -94,4 +94,7 @@ jobs:
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
-        run: dotnet nuget push *.$env:VERSION.nupkg --source https://nuget.pkg.github.com/icerpc/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: NuGet-Packages
+          path: *.$env:VERSION.nupkg
