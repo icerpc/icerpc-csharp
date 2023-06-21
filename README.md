@@ -1,6 +1,6 @@
 # IceRPC for C#
 
-![Continuous Integration][ci-badge]
+[![Continuous Integration][ci-badge]][ci-home]
 
 [Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
 
@@ -26,7 +26,7 @@ Multiple request/response pairs can proceed in parallel inside the same QUIC con
 other. QUIC also gives us bidirectional streaming for free: long-lived requests and responses that carry audio/video
 streams or streams of sensor data, stock quotes, etc. can share a network connection with small, short-lived RPCs.
 
-IceRPC uses its own application protocol, [`icerpc`][icerpc-protocol], to exchange connection settings, transmit 
+IceRPC uses its own application protocol, [`icerpc`][icerpc-protocol], to exchange connection settings, transmit
 requests and responses, and ensure an orderly shutdown. This new RPC-focused protocol is a thin layer over QUIC.
 
 ### Not only for QUIC
@@ -188,6 +188,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [api]: https://api.testing.zeroc.com/csharp/
 [building]: BUILDING.md
 [ci-badge]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg
+[ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml
 [custom-type]: https://docs.testing.zeroc.com/docs/slice/language-guide/custom-types
 [docs]: https://docs.testing.zeroc.com/docs
 [getting-started]: https://docs.testing.zeroc.com/docs/getting-started
