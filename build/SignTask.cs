@@ -46,6 +46,7 @@ public class SignTask : Task
             {
                 output = "";
                 error = "";
+                Log.LogMessage(MessageImportance.Normal, $"command: {SignTool} args: {commandLineCommands}");
                 status = RunCommand(WorkingDirectory, SignTool, commandLineCommands, ref output, ref error);
                 if (status != 0 && error.IndexOf("timestamp server") != -1)
                 {
@@ -68,7 +69,7 @@ public class SignTask : Task
         }
         catch (Exception ex)
         {
-            Log.LogMessage(MessageImportance.Normal, ex.ToString());
+            Log.LogError(ex.ToString());
             Console.WriteLine(ex);
             throw;
         }
@@ -99,7 +100,6 @@ public class SignTask : Task
 
     public static int RunCommand(string workingDir, string command, string args, ref string output, ref string error)
     {
-        Log.LogMessage(MessageImportance.Normal, $"command: {command} args: {args}");
         Process process = new();
         process.StartInfo.FileName = command;
         process.StartInfo.Arguments = args;
