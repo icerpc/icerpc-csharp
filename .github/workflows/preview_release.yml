@@ -9,7 +9,6 @@ on:
 
 env:
   SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
-  VERSION: 0.1.0-preview1
 
 jobs:
   build-packages:
@@ -24,19 +23,10 @@ jobs:
           certutil -decode C:\tmp\certificates\certificate.pfx.base64 C:\tmp\certificates\certificate.pfx
           Remove-Item C:\tmp\certificates\certificate.pfx.base64
       - name: Build
-        uses: ./.github/actions/build
-        with:
-          dotnet-build-args: --configuration Debug
+        run: dotnet build
+        working-directory: tools\IceRpc.Slice.Tools
         env:
           SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
-          SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
-          SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
-      - name: Pack IceRPC Tools
-        working-directory: tools/IceRpc.Slice.Tools
-        run: |
-             dotnet msbuild /t:SignCompilers ../../build/Sign.targets
-             dotnet pack --configuration Release --output ../../
-        env:
           SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
           SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       - name: Cleanup
