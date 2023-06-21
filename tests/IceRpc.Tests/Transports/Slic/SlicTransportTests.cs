@@ -439,7 +439,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
+            listener.ServerAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
@@ -450,7 +450,8 @@ public class SlicTransportTests
         // Act
         EncodeInitializeFrame(writer, version: 2);
         await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
-        (var multiplexedServerConnection, _) = await acceptTask;
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
         var connectTask = multiplexedServerConnection.ConnectAsync(default);
         (FrameType frameType, int frameSize, VersionBody versionBody) = await ReadFrameHeaderAsync(reader);
         writer.Clear();

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Slice;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
@@ -169,11 +170,14 @@ internal class SlicStream : IMultiplexedStream
                 TrySetReadsClosed();
             }
 
-            _connection.WriteStreamFrame(
-                stream: this,
-                FrameType.StreamReadsClosed,
-                encode: null,
-                writeReadsClosedFrame: false);
+            try
+            {
+                WriteStreamFrame(FrameType.StreamReadsClosed, encode: null, writeReadsClosedFrame: false);
+            }
+            catch (IceRpcException)
+            {
+                // Ignore connection failures.
+            }
 
             if (!IsRemote)
             {
@@ -221,7 +225,14 @@ internal class SlicStream : IMultiplexedStream
 
             if (graceful)
             {
-                _connection.WriteStreamFrame(this, FrameType.StreamLast, encode: null, writeReadsClosedFrame);
+                try
+                {
+                    WriteStreamFrame(FrameType.StreamLast, encode: null, writeReadsClosedFrame);
+                }
+                catch (IceRpcException)
+                {
+                    // Ignore connection failures.
+                }
 
                 // If the stream is a local stream, writes are not closed until the StreamReadsClosed frame is
                 // received from the peer (see ReceivedReadsClosedFrame). This ensures that the connection's
@@ -230,11 +241,14 @@ internal class SlicStream : IMultiplexedStream
             }
             else
             {
-                _connection.WriteStreamFrame(
-                    stream: this,
-                    FrameType.StreamWritesClosed,
-                    encode: null,
-                    writeReadsClosedFrame);
+                try
+                {
+                    WriteStreamFrame(FrameType.StreamWritesClosed, encode: null, writeReadsClosedFrame);
+                }
+                catch (IceRpcException)
+                {
+                    // Ignore connection failures.
+                }
 
                 if (!IsRemote)
                 {
@@ -309,14 +323,23 @@ internal class SlicStream : IMultiplexedStream
         _inputPipeReader?.CompleteReads(new IceRpcException(IceRpcError.TruncatedData));
     }
 
-    /// <summary>Writes a <see cref="FrameType.StreamWindowUpdate" /> frame on the connection.</summary>
+    /// <summary>Notifies the stream of the window update.</summary>
     /// <param name="size">The amount of data consumed by the application on the stream <see cref="Input" />.</param>
-    internal void WriteStreamWindowUpdateFrame(int size) =>
-        _connection.WriteStreamFrame(
-            stream: this,
-            FrameType.StreamWindowUpdate,
-            new StreamWindowUpdateBody((ulong)size).Encode,
-            writeReadsClosedFrame: false);
+    internal void WindowUpdate(int size)
+    {
+        try
+        {
+            // Notify the sender of the window update to permit the sending of additional data.
+            WriteStreamFrame(
+                FrameType.StreamWindowUpdate,
+                new StreamWindowUpdateBody((ulong)size).Encode,
+                writeReadsClosedFrame: false);
+        }
+        catch (IceRpcException)
+        {
+            // Ignore connection failures.
+        }
+    }
 
     /// <summary>Writes a <see cref="FrameType.Stream" /> or <see cref="FrameType.StreamLast" /> frame on the
     /// connection.</summary>
@@ -401,6 +424,9 @@ internal class SlicStream : IMultiplexedStream
             return false;
         }
     }
+
+    private void WriteStreamFrame(FrameType frameType, EncodeAction? encode, bool writeReadsClosedFrame) =>
+        _connection.WriteStreamFrame(stream: this, frameType, encode, writeReadsClosedFrame);
 
     [Flags]
     private enum State : int
