@@ -439,7 +439,7 @@ public class SlicTransportTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var acceptTask = listener.AcceptAsync(default);
         using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            new ServerAddress(Protocol.IceRpc) { Host = "colochost" },
+            listener.ServerAddress,
             new DuplexConnectionOptions(),
             clientAuthenticationOptions: null);
         await duplexClientConnection.ConnectAsync(default);
