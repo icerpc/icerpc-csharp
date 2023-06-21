@@ -73,8 +73,7 @@
             "_appName":"IceRPC",
             "_appFaviconPath":"images/favicon.ico",
             "_appLogoPath":"images/logo.svg",
-            "_appFooter":"<strong>API Reference</strong>",
-            "_copyrightFooter":"Copyright © ZeroC, Inc.",
+            "_appFooter":"© 2023 ZeroC",
             "_enableSearch": true,
             "_gitContribute": {
                 "repo": "https://github.com/icerpc/icerpc-csharp",
