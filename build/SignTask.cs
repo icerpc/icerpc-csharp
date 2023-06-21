@@ -36,44 +36,35 @@ public class SignTask : Task
 
     public override bool Execute()
     {
-        try
+        string commandLineCommands = GenerateCommandLineCommands();
+        int status = 0;
+        string output = "";
+        string error = "";
+        int nRetries = 0;
+        while (nRetries++ < 10)
         {
-            string commandLineCommands = GenerateCommandLineCommands();
-            int status = 0;
-            string output = "";
-            string error = "";
-            int nRetries = 0;
-            while (nRetries++ < 10)
+            output = "";
+            error = "";
+            Log.LogMessage(MessageImportance.Normal, $"command: {SignTool} args: {commandLineCommands}");
+            status = RunCommand(WorkingDirectory, SignTool, commandLineCommands, ref output, ref error);
+            if (status != 0 && error.IndexOf("timestamp server") != -1)
             {
-                output = "";
-                error = "";
-                Log.LogMessage(MessageImportance.Normal, $"command: {SignTool} args: {commandLineCommands}");
-                status = RunCommand(WorkingDirectory, SignTool, commandLineCommands, ref output, ref error);
-                if (status != 0 && error.IndexOf("timestamp server") != -1)
-                {
-                    Thread.Sleep(10);
-                    continue;
-                }
-                break;
+                Thread.Sleep(10);
+                continue;
             }
-
-            if (status == 0)
-            {
-                Log.LogMessage(MessageImportance.High, output.Trim());
-            }
-            else
-            {
-                Log.LogError(error.Trim());
-            }
-
-            return status == 0;
+            break;
         }
-        catch (Exception ex)
+
+        if (status == 0)
         {
-            Log.LogError(ex.ToString());
-            Console.WriteLine(ex);
-            throw;
+            Log.LogMessage(MessageImportance.High, output.Trim());
         }
+        else
+        {
+            Log.LogError(error.Trim());
+        }
+
+        return status == 0;
     }
 
     public class StreamReader
