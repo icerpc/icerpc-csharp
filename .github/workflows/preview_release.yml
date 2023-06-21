@@ -27,8 +27,6 @@ jobs:
         working-directory: tools\IceRpc.Slice.Tools
         env:
           SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
-          SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
-          SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       - name: Cleanup
         if: always()
         run: Remove-Item C:\tmp\certificates\certificate.pfx -ErrorAction SilentlyContinue

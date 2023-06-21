@@ -5,6 +5,8 @@
         <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
         <SignCommand>/f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256 /as</SignCommand>
         <SignTool Condition="'$(SignTool)' == ''">signtool.exe</SignTool>
+        <SIGN_CERTIFICATE>$(MSBuildThisFileDirectory)cert.pfx</SIGN_CERTIFICATE>
+        <SIGN_PASSWORD>password</SIGN_PASSWORD>
     </PropertyGroup>
 
     <ItemGroup>
