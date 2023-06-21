@@ -25,8 +25,7 @@ jobs:
           Remove-Item C:\tmp\certificates\certificate.pfx.base64
       - name: Build
         uses: ./.github/actions/build
-        with:
-          cargo-build-args: --debug
+        with:g
           dotnet-build-args: --configuration Debug
         env:
           SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
