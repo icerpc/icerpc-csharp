@@ -3,7 +3,7 @@
 
     <PropertyGroup>
         <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
-        <SignCommand>/f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256 /as</SignCommand>
+        <SignCommand>/f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256</SignCommand>
         <SignTool Condition="'$(SignTool)' == ''">signtool.exe</SignTool>
     </PropertyGroup>
 
@@ -51,7 +51,10 @@
 
     <Target Name="SignCompilers">
         <Message Text="Signing $(slicec-cs)" />
-        <SignTask AdditionalOptions="$(SignCommand)" Files="$(slicec-cs)" />
+        <SignTask
+            WorkingDirectory="$(MSBuildThisFileDirectory)"
+            AdditionalOptions="$(SignCommand)"
+            Files="$(slicec-cs)" />
     </Target>
 
     <Target Name="SignPackageClean" AfterTargets="Clean" Condition="'$(OS)' == 'Windows_NT' ">
