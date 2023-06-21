@@ -94,4 +94,4 @@ jobs:
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
-        run: dotnet nuget push *.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget push *.$env:VERSION.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
