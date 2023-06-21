@@ -58,8 +58,10 @@ jobs:
           Copy-Item "slicec-cs-x86_64-unknown-linux-gnu\slicec-cs" -Destination "C:\tmp\tools\linux-x64"
           Copy-Item "slicec-cs-aarch64-unknown-linux-gnu\slicec-cs" -Destination "C:\tmp\tools\linux-arm64"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "C:\tmp\tools\windows-x64"
-      - name: Set VERSION variable from tag
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+      - name: Set Enviroment
+        run: |
+             echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+             echo "PATH=$PATH;C:\Program Files (x86)\Windows Kits\10\bin\x64\" >> $GITHUB_ENV
       - name: Create Code Signing Certificate
         run: |
           mkdir C:\tmp\certificates
