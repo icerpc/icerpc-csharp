@@ -35,34 +35,42 @@ public class SignTask : Task
 
     public override bool Execute()
     {
-        string commandLineCommands = GenerateCommandLineCommands();
-        int status = 0;
-        string output = "";
-        string error = "";
-        int nRetries = 0;
-        while (nRetries++ < 10)
+        try
         {
-            output = "";
-            error = "";
-            status = RunCommand(WorkingDirectory, SignTool, commandLineCommands, ref output, ref error);
-            if (status != 0 && error.IndexOf("timestamp server") != -1)
+            string commandLineCommands = GenerateCommandLineCommands();
+            int status = 0;
+            string output = "";
+            string error = "";
+            int nRetries = 0;
+            while (nRetries++ < 10)
             {
-                Thread.Sleep(10);
-                continue;
+                output = "";
+                error = "";
+                status = RunCommand(WorkingDirectory, SignTool, commandLineCommands, ref output, ref error);
+                if (status != 0 && error.IndexOf("timestamp server") != -1)
+                {
+                    Thread.Sleep(10);
+                    continue;
+                }
+                break;
             }
-            break;
-        }
 
-        if (status == 0)
-        {
-            Log.LogMessage(MessageImportance.High, output.Trim());
-        }
-        else
-        {
-            Log.LogError(error.Trim());
-        }
+            if (status == 0)
+            {
+                Log.LogMessage(MessageImportance.High, output.Trim());
+            }
+            else
+            {
+                Log.LogError(error.Trim());
+            }
 
-        return status == 0;
+            return status == 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            throw;
+        }
     }
 
     public class StreamReader
