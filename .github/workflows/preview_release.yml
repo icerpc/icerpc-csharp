@@ -26,8 +26,8 @@ jobs:
       - name: Build
         uses: ./.github/actions/build
         with:
-          cargo-build-args: --release
-          dotnet-build-args: --configuration Release
+          cargo-build-args: --debug
+          dotnet-build-args: --configuration Debug
         env:
           SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
           SIGN_CERTIFICATE: C:\tmp\certificates\certificate.pfx
