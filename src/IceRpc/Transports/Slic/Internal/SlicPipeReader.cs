@@ -39,12 +39,12 @@ internal class SlicPipeReader : PipeReader
         _examined += (int)(examinedOffset - _lastExaminedOffset);
         _lastExaminedOffset = examinedOffset - consumedOffset;
 
-        // If the number of examined bytes is superior to the resume threshold notifies the sender it's safe to send
-        // additional data.
+        // If the number of examined bytes is superior to the window update threshold, notifies the stream of the window
+        // update. This will trigger the sending of a window update frame and allow the sender to send additional data.
         if (_examined >= _stream.WindowUpdateThreshold)
         {
             Interlocked.Add(ref _windowSize, _examined);
-            _stream.WriteStreamWindowUpdateFrame(_examined);
+            _stream.WindowUpdate(_examined);
             _examined = 0;
         }
 
