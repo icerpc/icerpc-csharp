@@ -93,8 +93,8 @@ jobs:
         run: Remove-Item C:\tmp\certificates\certificate.pfx -ErrorAction SilentlyContinue
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
-      - name: Push
+      - name: Upload packages
         uses: actions/upload-artifact@v3
         with:
-          name: NuGet-Packages
-          path: *.$env:VERSION.nupkg
+          name: packages
+          path: *.nupkg
