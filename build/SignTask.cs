@@ -68,6 +68,7 @@ public class SignTask : Task
         }
         catch (Exception ex)
         {
+            Log.LogMessage(MessageImportance.Normal, ex.ToString());
             Console.WriteLine(ex);
             throw;
         }
@@ -98,6 +99,7 @@ public class SignTask : Task
 
     public static int RunCommand(string workingDir, string command, string args, ref string output, ref string error)
     {
+        Log.LogMessage(MessageImportance.Normal, $"command: {command} args: {args}");
         Process process = new();
         process.StartInfo.FileName = command;
         process.StartInfo.Arguments = args;
