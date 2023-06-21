@@ -21,6 +21,7 @@ jobs:
           mkdir C:\tmp\certificates
           Set-Content -Path C:\tmp\certificates\certificate.pfx.base64 -Value '${{ secrets.CERTIFICATE }}'
           certutil -decode C:\tmp\certificates\certificate.pfx.base64 C:\tmp\certificates\certificate.pfx
+          echo Get-Content -Path C:\tmp\certificates\certificate.pfx.base64
           Remove-Item C:\tmp\certificates\certificate.pfx.base64
       - name: Build
         run: dotnet build /v:d
