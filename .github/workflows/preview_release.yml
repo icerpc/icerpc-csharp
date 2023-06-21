@@ -23,7 +23,7 @@ jobs:
           certutil -decode C:\tmp\certificates\certificate.pfx.base64 C:\tmp\certificates\certificate.pfx
           Remove-Item C:\tmp\certificates\certificate.pfx.base64
       - name: Build
-        run: dotnet build
+        run: dotnet build /v:d
         working-directory: tools\IceRpc.Slice.Tools
         env:
           SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
