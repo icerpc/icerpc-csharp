@@ -67,7 +67,7 @@ jobs:
       - name: Create Code Signing Certificate
         run: |
           mkdir C:\tmp\certificates
-          Set-Content -Path C:\tmp\certificates\certificate.pfx.base64 -Value '${{ secrets.CERTIFICATE }}'
+          Set-Content -Path C:\tmp\certificates\certificate.pfx.base64 -Value '${{ secrets.SIGN_CERTIFICATE }}'
           certutil -decode C:\tmp\certificates\certificate.pfx.base64 C:\tmp\certificates\certificate.pfx
           Remove-Item C:\tmp\certificates\certificate.pfx.base64
       - name: Build
@@ -94,4 +94,4 @@ jobs:
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Push
-        run: dotnet nuget push *.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget push *.${VERSION}.nupkg --source https://nuget.pkg.github.com/zeroc-ice/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
