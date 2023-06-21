@@ -24,6 +24,7 @@ public class SignTask : Task
         CommandLineBuilder builder = new(false);
         builder.AppendSwitch("sign");
         builder.AppendSwitch("/v");
+        builder.AppendSwitch("/debug");
         if (AdditionalOptions is not null)
         {
             builder.AppendTextUnquoted(" ");
