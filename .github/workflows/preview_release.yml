@@ -15,7 +15,6 @@ jobs:
   build-packages:
     runs-on: windows-2022
     timeout-minutes: 10
-    needs: build-compiler
     steps:
       - uses: actions/checkout@v3
       - name: Create Code Signing Certificate
