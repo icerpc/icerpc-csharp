@@ -4,6 +4,7 @@
     <PropertyGroup>
         <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
         <SignCommand>/f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256 /as</SignCommand>
+        <SignTool Condition="'$(SignTool)' == ''">signtool.exe</SignTool>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,6 +23,7 @@
             <WorkingDirectory ParameterType="System.String" Required="true" />
             <AdditionalOptions ParameterType="System.String" Required="true" />
             <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="True" />
+            <SignTool ParameterType="System.String" Required="false" />
         </ParameterGroup>
         <Task>
             <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)/SignTask.cs" />
@@ -34,7 +36,11 @@
         <Message Text="Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
 
         <!-- Authenticode signing -->
-        <SignTask WorkingDirectory="$(IntermediateOutputPath)" AdditionalOptions="$(SignCommand)" Files="$(TargetName)$(TargetExt)" />
+        <SignTask
+            WorkingDirectory="$(IntermediateOutputPath)"
+            AdditionalOptions="$(SignCommand)"
+            Files="$(TargetName)$(TargetExt)"
+            SignTool="$(SignTool)"/>
 
         <WriteLinesToFile
             File = "$(IntermediateOutputPath)sign.log"

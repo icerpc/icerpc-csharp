@@ -10,24 +10,14 @@ using Microsoft.Build.Utilities;
 public class SignTask : Task
 {
     [Required]
-    public string WorkingDirectory
-    {
-        get;
-        set;
-    }
+    public string WorkingDirectory { get; set; }
 
     [Required]
-    public ITaskItem[] Files
-    {
-        get;
-        set;
-    }
+    public ITaskItem[] Files { get; set; }
 
-    public string AdditionalOptions
-    {
-        get;
-        set;
-    }
+    public string AdditionalOptions { get; set; }
+
+    public string SignTool { get; set; } = "signtool.exe";
 
     protected string GenerateCommandLineCommands()
     {
@@ -53,7 +43,7 @@ public class SignTask : Task
         {
             output = "";
             error = "";
-            status = RunCommand(WorkingDirectory, "signtool.exe", commandLineCommands, ref output, ref error);
+            status = RunCommand(WorkingDirectory, SignTool, commandLineCommands, ref output, ref error);
             if (status != 0 && error.IndexOf("timestamp server") != -1)
             {
                 Thread.Sleep(10);
