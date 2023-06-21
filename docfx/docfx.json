@@ -41,6 +41,9 @@
                 ]
             }
         ],
+        "sitemap": {
+            "baseUrl": "https://docs.testing.zeroc.com"
+        },
         "overwrite": [
             {
                 "files": [
@@ -70,7 +73,7 @@
             "_appName":"IceRPC",
             "_appFaviconPath":"images/favicon.ico",
             "_appLogoPath":"images/logo.svg",
-            "_appFooter":"<strong>IceRPC</strong>",
+            "_appFooter":"<strong>API Reference</strong>",
             "_copyrightFooter":"Copyright © ZeroC, Inc.",
             "_enableSearch": true,
             "_gitContribute": {
