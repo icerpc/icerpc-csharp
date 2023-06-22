@@ -29,6 +29,11 @@
         </Task>
     </UsingTask>
 
+    <Target Name="SignInfo" BeforeTargets="SignPackage">
+        <Message Text="Certificate: $(SIGN_CERTIFICATE) exists: true" Condition="Exists('$(SIGN_CERTIFICATE)')" />
+        <Message Text="Certificate: $(SIGN_CERTIFICATE) exists: false" Condition="!Exists('$(SIGN_CERTIFICATE)')" />
+    </Target>
+
     <Target Name="SignPackage"
             BeforeTargets="CopyFilesToOutputDirectory"
             Condition="'$(OS)' == 'Windows_NT' and Exists('$(SIGN_CERTIFICATE)') and (!Exists('$(IntermediateOutputPath)sign.log') or $([System.IO.File]::GetLastWriteTime('$(IntermediateOutputPath)$(TargetName)$(TargetExt)').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(IntermediateOutputPath)sign.log').Ticks))">

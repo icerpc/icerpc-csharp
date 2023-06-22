@@ -64,8 +64,8 @@ jobs:
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v3
       #- name: Set Enviroment
-      #  run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
-      - name: Create Tools directory structure
+      #  run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENVx
+      - name: Copy Slice for C# compilers to stagging path
         run: |
           # Copy Slice C# compilers build by build-compiler job to the staging path.
           @("macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "windows-x64") | ForEach-Object { New-Item -ItemType Directory -Path $env:GITHUB_WORKSPACE\tools\slicec-cs\staging -Name $_ }
@@ -80,9 +80,9 @@ jobs:
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
-        run: dotnet pack --configuration Release --output ../../ /v:d
+        run: dotnet pack --configuration Release --output ../../ /v:n
         env:
-          SLICEC_CS_STAGING_PATH: $env:GITHUB_WORKSPACE\tools\slicec-cs\staging
+          SLICEC_CS_STAGING_PATH: $GITHUB_WORKSPACE\tools\slicec-cs\staging
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output . /v:n
       - name: Pack IceRPC Templates
