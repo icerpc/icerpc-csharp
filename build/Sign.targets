@@ -7,13 +7,6 @@
         <SignTool Condition="'$(SignTool)' == ''">signtool.exe</SignTool>
     </PropertyGroup>
 
-    <ItemGroup>
-        <slicec-cs Include="macos-x64/slicec-cs" />
-        <slicec-cs Include="macos-arm64/slicec-cs" />
-        <slicec-cs Include="linux-x64/slicec-cs" />
-        <slicec-cs Include="linux-arm64/slicec-cs" />
-        <slicec-cs Include="windows-x64/slicec-cs.exe" />
-    </ItemGroup>
     <!-- Authenticode sign task that retries on failures -->
     <UsingTask TaskName="SignTask"
         TaskFactory="RoslynCodeTaskFactory"
@@ -53,14 +46,14 @@
             Lines = "Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
     </Target>
 
-    <!-- Sign the compiler executables when building the release packagefs (SLICEC_CS_STAGING_PATH is set) -->
+    <!-- Sign the Windows compiler executables when building the release packagefs (SLICEC_CS_STAGING_PATH is set) -->
     <Target Name="SignCompilers"
             BeforeTargets="SignPackage"
             Condition="Exists('$(SIGN_CERTIFICATE)') and Exists('$(SLICEC_CS_STAGING_PATH)')">
         <SignTask
             WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
             AdditionalOptions="$(SignCommand)"
-            Files="@(slicec-cs)"
+            Files="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe"
             SignTool="$(SignTool)" />
     </Target>
 

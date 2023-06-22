@@ -80,14 +80,14 @@ jobs:
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
-        run: dotnet pack --configuration Release --output ../../ /v:n
+        run: dotnet pack --configuration Release --output ../../
         env:
           SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
       - name: Pack IceRPC
-        run: dotnet pack --configuration Release --output . /v:n
+        run: dotnet pack --configuration Release --output .
       - name: Pack IceRPC Templates
         working-directory: src/IceRpc.Templates
-        run: dotnet pack --configuration Release --output ../../ /v:n
+        run: dotnet pack --configuration Release --output ../../
       - name: Upload packages
         uses: actions/upload-artifact@v3
         with:
