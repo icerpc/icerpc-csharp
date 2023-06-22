@@ -60,7 +60,8 @@
         <SignTask
             WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
             AdditionalOptions="$(SignCommand)"
-            Files="@(slicec-cs)" />
+            Files="@(slicec-cs)"
+            SignTool="$(SignTool)" />
     </Target>
 
     <Target Name="SignPackageClean" AfterTargets="Clean" Condition="'$(OS)' == 'Windows_NT' ">
