@@ -37,6 +37,7 @@ jobs:
           cargo-build-args: --release
           target: ${{ matrix.target }}
         env:
+          # TODO remove once slicec repository is public
           SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
       - name: Archive Build
         uses: actions/upload-artifact@v3
@@ -48,7 +49,6 @@ jobs:
     timeout-minutes: 10
     needs: build-compiler
     env:
-      SLICEC_CS_STAGING_PATH: $env:GITHUB_WORKSPACE\tools\slicec-cs\staging
       SIGN_CERTIFICATE: $env:GITHUB_WORKSPACE\certificate.pfx
       SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
@@ -60,25 +60,27 @@ jobs:
         run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
       - name: Create Tools directory structure
         run: |
+          # Copy Slice C# compilers build by build-compiler job to the staging path.
           @("macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "windows-x64") | ForEach-Object { New-Item -ItemType Directory -Path $env:GITHUB_WORKSPACE\tools\slicec-cs\staging -Name $_ }
           Copy-Item "slicec-cs-x86_64-apple-darwin\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\macos-x64"
           Copy-Item "slicec-cs-aarch64-apple-darwin\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\macos-arm64"
           Copy-Item "slicec-cs-x86_64-unknown-linux-gnu\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\linux-x64"
           Copy-Item "slicec-cs-aarch64-unknown-linux-gnu\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\linux-arm64"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\windows-x64"
+
+          # Copy the compiler to the expected location to avoid rebuilding it for creating the NuGet packages
           New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
       - name: Create Code Signing Certificate
         run: |
-          mkdir C:\tmp\certificates
           Set-Content -Path $env:GITHUB_WORKSPACE\certificate.pfx.base64 -Value '${{ secrets.SIGN_CERTIFICATE }}'
           certutil -decode $env:GITHUB_WORKSPACE\certificate.pfx.base64 $env:GITHUB_WORKSPACE\certificate.pfx
           Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx.base64
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
-        run: |
-             dotnet msbuild /t:SignCompilers ../../build/Sign.targets
-             dotnet pack --configuration Release --output ../../
+        run: dotnet pack --configuration Release --output ../../
+        env:
+          SLICEC_CS_STAGING_PATH: $env:GITHUB_WORKSPACE\tools\slicec-cs\staging
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output .
       - name: Pack IceRPC Templates

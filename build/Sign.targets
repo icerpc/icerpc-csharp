@@ -8,13 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <slicec-cs Include="$(SLICEC_CS_STAGING_PATH)/macos-x64/slicec-cs" />
-        <slicec-cs Include="$(SLICEC_CS_STAGING_PATH)/macos-arm64/slicec-cs" />
-        <slicec-cs Include="$(SLICEC_CS_STAGING_PATH)/linux-x64/slicec-cs" />
-        <slicec-cs Include="$(SLICEC_CS_STAGING_PATH)/linux-arm64/slicec-cs" />
-        <slicec-cs Include="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe" />
+        <slicec-cs Include="macos-x64/slicec-cs" />
+        <slicec-cs Include="macos-arm64/slicec-cs" />
+        <slicec-cs Include="linux-x64/slicec-cs" />
+        <slicec-cs Include="linux-arm64/slicec-cs" />
+        <slicec-cs Include="windows-x64/slicec-cs.exe" />
     </ItemGroup>
-
     <!-- Authenticode sign task that retries on failures -->
     <UsingTask TaskName="SignTask"
         TaskFactory="RoslynCodeTaskFactory"
@@ -49,12 +48,14 @@
             Lines = "Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
     </Target>
 
-    <Target Name="SignCompilers">
-        <Message Text="Signing $(slicec-cs)" />
+    <!-- Sign the compiler executables when building the release packagefs (SLICEC_CS_STAGING_PATH is set) -->
+    <Target Name="SignCompilers"
+            BeforeTargets="SignPackage"
+            Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
         <SignTask
-            WorkingDirectory="$(MSBuildThisFileDirectory)"
+            WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
             AdditionalOptions="$(SignCommand)"
-            Files="$(slicec-cs)" />
+            Files="@(slicec-cs)" />
     </Target>
 
     <Target Name="SignPackageClean" AfterTargets="Clean" Condition="'$(OS)' == 'Windows_NT' ">
