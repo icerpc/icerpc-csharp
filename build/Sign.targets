@@ -51,7 +51,7 @@
     <!-- Sign the compiler executables when building the release packagefs (SLICEC_CS_STAGING_PATH is set) -->
     <Target Name="SignCompilers"
             BeforeTargets="SignPackage"
-            Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
+            Condition="Exists('$(SIGN_CERTIFICATE)') and Exists('$(SLICEC_CS_STAGING_PATH)')">
         <SignTask
             WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
             AdditionalOptions="$(SignCommand)"

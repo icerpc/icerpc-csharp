@@ -56,6 +56,11 @@ jobs:
       VERSION: 0.1.0-preview1
     steps:
       - uses: actions/checkout@v3
+      - name: Create Code Signing Certificate
+        run: |
+          Set-Content -Path $env:GITHUB_WORKSPACE\certificate.pfx.base64 -Value '${{ secrets.SIGN_CERTIFICATE }}'
+          certutil -decode $env:GITHUB_WORKSPACE\certificate.pfx.base64 $env:GITHUB_WORKSPACE\certificate.pfx
+          Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx.base64
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v3
       #- name: Set Enviroment
@@ -73,21 +78,16 @@ jobs:
           # Copy the compiler to the expected location to avoid rebuilding it for creating the NuGet packages
           New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
-      - name: Create Code Signing Certificate
-        run: |
-          Set-Content -Path $env:GITHUB_WORKSPACE\certificate.pfx.base64 -Value '${{ secrets.SIGN_CERTIFICATE }}'
-          certutil -decode $env:GITHUB_WORKSPACE\certificate.pfx.base64 $env:GITHUB_WORKSPACE\certificate.pfx
-          Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx.base64
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
-        run: dotnet pack --configuration Release --output ../../
+        run: dotnet pack --configuration Release --output ../../ /v:n
         env:
           SLICEC_CS_STAGING_PATH: $env:GITHUB_WORKSPACE\tools\slicec-cs\staging
       - name: Pack IceRPC
-        run: dotnet pack --configuration Release --output .
+        run: dotnet pack --configuration Release --output . /v:n
       - name: Pack IceRPC Templates
         working-directory: src/IceRpc.Templates
-        run: dotnet pack --configuration Release --output ../../
+        run: dotnet pack --configuration Release --output ../../ /v:n
       - name: Upload packages
         uses: actions/upload-artifact@v3
         with:
