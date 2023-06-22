@@ -52,12 +52,14 @@ jobs:
       SIGN_CERTIFICATE: $env:GITHUB_WORKSPACE\certificate.pfx
       SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
+      # TODO: Version for testing remove
+      VERSION: 0.1.0-preview1
     steps:
       - uses: actions/checkout@v3
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v3
-      - name: Set Enviroment
-        run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
+      #- name: Set Enviroment
+      #  run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
       - name: Create Tools directory structure
         run: |
           # Copy Slice C# compilers build by build-compiler job to the staging path.
