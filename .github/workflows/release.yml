@@ -49,7 +49,7 @@ jobs:
     timeout-minutes: 10
     needs: build-compiler
     env:
-      SIGN_CERTIFICATE: ${{ github.workspace\certificate.pfx }}
+      SIGN_CERTIFICATE: ${{ github.workspace }}\certificate.pfx
       SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
       # TODO: Version for testing remove
@@ -82,7 +82,7 @@ jobs:
         working-directory: tools/IceRpc.Slice.Tools
         run: dotnet pack --configuration Release --output ../../ /v:n
         env:
-          SLICEC_CS_STAGING_PATH: ${{ github.workspace\tools\slicec-cs\staging }}
+          SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
       - name: Pack IceRPC
         run: dotnet pack --configuration Release --output . /v:n
       - name: Pack IceRPC Templates
