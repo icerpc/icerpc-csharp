@@ -1,2 +1,14 @@
-- name: API
+- name: Getting Started
+  href: https://docs.testing.zeroc.com/docs/getting-started
+
+- name: IceRPC Core
+  href: https://docs.testing.zeroc.com/docs/icerpc-core
+
+- name: Slice
+  href: https://docs.testing.zeroc.com/docs/slice
+
+- name: IceRPC for Ice users
+  href: https://docs.testing.zeroc.com/docs/icerpc-for-ice-users
+
+- name: API Reference
   href: api/

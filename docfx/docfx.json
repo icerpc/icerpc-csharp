@@ -41,6 +41,9 @@
                 ]
             }
         ],
+        "sitemap": {
+            "baseUrl": "https://docs.testing.zeroc.com"
+        },
         "overwrite": [
             {
                 "files": [
@@ -70,8 +73,7 @@
             "_appName":"IceRPC",
             "_appFaviconPath":"images/favicon.ico",
             "_appLogoPath":"images/logo.svg",
-            "_appFooter":"<strong>IceRPC</strong>",
-            "_copyrightFooter":"Copyright © ZeroC, Inc.",
+            "_appFooter":"© 2023 ZeroC",
             "_enableSearch": true,
             "_gitContribute": {
                 "repo": "https://github.com/icerpc/icerpc-csharp",
