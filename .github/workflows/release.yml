@@ -49,7 +49,7 @@ jobs:
     timeout-minutes: 10
     needs: build-compiler
     env:
-      SIGN_CERTIFICATE: $env:GITHUB_WORKSPACE\certificate.pfx
+      SIGN_CERTIFICATE: $GITHUB_WORKSPACE\certificate.pfx
       SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
       # TODO: Version for testing remove
