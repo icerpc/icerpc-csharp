@@ -56,7 +56,7 @@ public class SlicingTests
         if (partialSlicing)
         {
             Assert.That(((SlicingDerivedClass)r1).M3, Is.TypeOf<SlicingDerivedClass>());
-            Assert.That(((SlicingDerivedClass)r1).M3.M1, Is.EqualTo("p2-m1"));
+            Assert.That(((SlicingDerivedClass)r1).M3!.M1, Is.EqualTo("p2-m1"));
         }
 
         Assert.That(r2.UnknownSlices, Is.Empty);
@@ -64,7 +64,7 @@ public class SlicingTests
         Assert.That(r2.M2, Is.EqualTo("p1-m2"));
         Assert.That(r2.M3, Is.InstanceOf<SlicingMostDerivedClass>());
         Assert.That(r2.M3, Is.SameAs(r2.M4));
-        var r3 = (SlicingMostDerivedClass)r2.M3;
+        var r3 = (SlicingMostDerivedClass)r2.M3!;
         Assert.That(r3!.M1, Is.EqualTo("p2-m1"));
         Assert.That(r3.M2, Is.EqualTo("p2-m2"));
         Assert.That(r3!.M3, Is.Null);
@@ -119,7 +119,7 @@ public class SlicingTests
         Assert.That(r2.M1, Is.EqualTo("p1-m1"));
         Assert.That(r2.M2, Is.EqualTo("p1-m2"));
         Assert.That(r2.M3, Is.InstanceOf<SlicingMostDerivedClassWithCompactId>());
-        var r3 = (SlicingMostDerivedClassWithCompactId)r2.M3;
+        var r3 = (SlicingMostDerivedClassWithCompactId)r2.M3!;
         Assert.That(r3!.M1, Is.EqualTo("p2-m1"));
         Assert.That(r3.M2, Is.EqualTo("p2-m2"));
         Assert.That(r3!.M3, Is.Null);
@@ -175,7 +175,7 @@ public class SlicingTests
         Assert.That(r2.M2, Is.EqualTo("p1-m2"));
         Assert.That(r2.M3, Is.InstanceOf<SlicingClassWithTaggedFields>());
         Assert.That(r2.M5, Is.EqualTo("p1-m5"));
-        var r3 = (SlicingClassWithTaggedFields)r2.M3;
+        var r3 = (SlicingClassWithTaggedFields)r2.M3!;
         Assert.That(r3!.M1, Is.EqualTo("p2-m1"));
         Assert.That(r3.M2, Is.EqualTo("p2-m2"));
         Assert.That(r3!.M3, Is.Null);
