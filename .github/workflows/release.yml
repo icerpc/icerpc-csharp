@@ -80,7 +80,7 @@ jobs:
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
       - name: Pack IceRPC Tools
         working-directory: tools/IceRpc.Slice.Tools
-        run: dotnet pack --configuration Release --output ../../ /v:n
+        run: dotnet pack --configuration Release --output ../../ /v:d
         env:
           SLICEC_CS_STAGING_PATH: $env:GITHUB_WORKSPACE\tools\slicec-cs\staging
       - name: Pack IceRPC
