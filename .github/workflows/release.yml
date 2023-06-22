@@ -1,10 +1,11 @@
 name: release
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  tags:
+    # Release tag
+    - 'v[0-9]+.[0-9]+.[0-9]+'
+    # Preview tag
+    - 'v[0-9]+.[0-9]+.[0-9]+-preview[0-9]+'
 
 jobs:
   build-compiler:
@@ -52,8 +53,6 @@ jobs:
       SIGN_CERTIFICATE: ${{ github.workspace }}\certificate.pfx
       SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
-      # TODO: Version for testing remove
-      VERSION: 0.1.0-preview1
     steps:
       - uses: actions/checkout@v3
       - name: Create Code Signing Certificate
@@ -63,8 +62,8 @@ jobs:
           Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx.base64
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v3
-      #- name: Set version from tag
-      #  run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENVx
+      - name: Set version from tag
+        run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENVx
       - name: Copy Slice compiler for C# binaries to stagging path
         run: |
           # Copy Slice C# compilers build by build-compiler job to the staging path.
@@ -92,7 +91,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: packages
-          path: ./*.nupkg
+          path: |
+            ./*.nupkg
+            ./*.snupkg
       - name: Cleanup
         if: always()
         run: Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx -ErrorAction SilentlyContinue
