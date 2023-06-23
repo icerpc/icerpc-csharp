@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{scoped_identifier, InterfaceExt, MemberExt, ModuleExt};
+use crate::cs_attributes::CsType;
 use crate::cs_attributes::{CsAttribute, CsIdentifier, CsInternal};
 use crate::cs_util::{escape_keyword, CsCase};
 use convert_case::Case;
@@ -159,6 +160,10 @@ pub trait EntityExt: Entity {
                 let enumerator_name = enumerator.escape_identifier();
                 format!(r#"<see cref="{enum_name}.{enumerator_name}" />"#)
             }
+            Entities::CustomType(custom_type) => {
+                let attribute = custom_type.find_attribute::<CsType>();
+                format!(r#"<see cref="{}" />"#, attribute.unwrap().type_string)
+            }
             _ => {
                 let name = self.escape_scoped_identifier(namespace);
                 format!(r#"<see cref="{name}" />"#)
@@ -271,7 +276,9 @@ mod formatted_link_tests {
             }
         ";
         let ast = compile_slice(slice).ast;
-        let parameter = ast.find_element::<Parameter>("Test::MyInterface::myOperation::myParam").unwrap();
+        let parameter = ast
+            .find_element::<Parameter>("Test::MyInterface::myOperation::myParam")
+            .unwrap();
 
         // Act
         let parameter_link = parameter.get_formatted_link("");
