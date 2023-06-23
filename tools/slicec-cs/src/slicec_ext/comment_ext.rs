@@ -3,7 +3,6 @@
 use super::EntityExt;
 use crate::comments::CommentTag;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::format_message;
 
 pub trait CommentExt: Commentable {
     /// If this entity has a doc comment with an overview on it, this returns it with any links resolved to the
@@ -13,7 +12,7 @@ pub trait CommentExt: Commentable {
             comment
                 .overview
                 .as_ref()
-                .map(|overview| format_message(&overview.message, |link| link.get_formatted_link(&self.namespace())))
+                .map(|overview| format_comment_message(&overview.message, &self.namespace()))
         })
     }
 
@@ -47,3 +46,24 @@ pub trait CommentExt: Commentable {
 }
 
 impl<T: Commentable + ?Sized> CommentExt for T {}
+
+pub fn format_comment_message(message: &Message, namespace: &str) -> String {
+    // Iterate through the components of the message and append them into a string.
+    // If the component is text, append it as is. If the component is a link, format it first, then append it.
+    message.iter().fold(String::new(), |s, component| match &component {
+        MessageComponent::Text(text) => s + &xml_escape(text),
+        MessageComponent::Link(link_tag) => match link_tag.linked_entity() {
+            // If the link is to a valid entity, run the link formatter. Otherwise just use the link's raw text.
+            Ok(entity) => s + &entity.get_formatted_link(namespace),
+            Err(identifier) => s + &identifier.value,
+        },
+    })
+}
+
+fn xml_escape(text: &str) -> String {
+    text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("'", "&apos;")
+        .replace("\"", "&quot;")
+}
