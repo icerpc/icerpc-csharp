@@ -29,7 +29,7 @@ use std::path::Path;
 pub fn main() {
     let mut options = CsOptions::parse();
     let slice_options = &mut options.slice_options;
-    slice_options.definitions.push(SLICEC_CS.to_owned());
+    slice_options.defined_symbols.push(SLICEC_CS.to_owned());
 
     let mut compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
 

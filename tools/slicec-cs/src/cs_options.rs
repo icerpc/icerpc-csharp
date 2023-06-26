@@ -22,7 +22,7 @@ pub struct CsOptions {
 impl Default for CsOptions {
     fn default() -> Self {
         let mut slice_options = SliceOptions::default();
-        slice_options.definitions.push(SLICEC_CS.to_owned());
+        slice_options.defined_symbols.push(SLICEC_CS.to_owned());
         CsOptions { slice_options }
     }
 }

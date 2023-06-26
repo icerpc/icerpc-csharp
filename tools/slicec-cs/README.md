@@ -11,7 +11,6 @@ The Slice compiler for C#, `slicec-cs`, allows you to compile Slice definitions 
 |-------------------------------------------|--------------------------------------------------------------------------------------------|
 | `-R <REFERENCE>`                          | Add a directory or Slice file to the list of references                                    |
 | `-D <SYMBOL>`                             | Define a preprocessor symbol                                                               |
-| `-W, --warn-as-error`                     | Instruct the compiler to treat warnings as errors                                          |
 | `-A, --allow <WARNING>`                   | This flag will set which warnings should be set to the allow level                         |
 | `--dry-run`                               | Validate input files without generating code for them                                      |
 | `-O, --output-dir <OUTPUT_DIR>`           | Set the output directory for the generated code. Defaults to the current working directory |
