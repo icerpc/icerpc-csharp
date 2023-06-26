@@ -9,7 +9,7 @@ use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
 use slicec::supported_encodings::SupportedEncodings;
-use slicec::utils::code_gen_util::{format_message, TypeContext};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
@@ -378,8 +378,7 @@ impl FunctionBuilder {
 
                 // If there's a single return tag, generate a normal `returns` message.
                 [single] => {
-                    let message =
-                        format_message(&single.message, |link| link.get_formatted_link(&operation.namespace()));
+                    let message = format_comment_message(&single.message, &operation.namespace());
                     self.add_comment("returns", message);
                 }
 
@@ -389,9 +388,7 @@ impl FunctionBuilder {
                     let mut content = "A tuple containing:\n<list type=\"bullet\">\n".to_owned();
                     for return_tag in multiple {
                         // TODO add references to the types/identifiers here later!
-                        let message = format_message(&return_tag.message, |link| {
-                            link.get_formatted_link(&operation.namespace())
-                        });
+                        let message = format_comment_message(&return_tag.message, &operation.namespace());
                         content = content + "<item><description>" + message.trim_end() + "</description></item>\n";
                     }
                     content += "</list>\n";
@@ -402,9 +399,7 @@ impl FunctionBuilder {
 
             // Generate documentation for any '@throws' tags on the operation.
             for throws_tag in &comment.throws {
-                let message = format_message(&throws_tag.message, |link| {
-                    link.get_formatted_link(&operation.namespace())
-                });
+                let message = format_comment_message(&throws_tag.message, &operation.namespace());
                 // If an identifier was provided in the '@throws' tag, emit a link to the corresponding entity.
                 if let Some(exception_link) = throws_tag.thrown_type() {
                     match exception_link {

@@ -2,9 +2,10 @@
 
 use super::{EntityExt, TypeRefExt};
 use crate::cs_util::{escape_keyword, mangle_name, FieldType};
+use crate::slicec_ext::comment_ext::format_comment_message;
 use convert_case::Case;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::{format_message, TypeContext};
+use slicec::utils::code_gen_util::TypeContext;
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;
@@ -57,7 +58,7 @@ impl ParameterExt for Parameter {
                 .params
                 .iter()
                 .find(|param_tag| param_tag.identifier.value == self.identifier())
-                .map(|param_tag| format_message(&param_tag.message, |link| link.get_formatted_link(&self.namespace())))
+                .map(|param_tag| format_comment_message(&param_tag.message, &self.namespace()))
         })
     }
 }
