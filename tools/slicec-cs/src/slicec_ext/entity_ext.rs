@@ -164,6 +164,11 @@ pub trait EntityExt: Entity {
                 let attribute = custom_type.find_attribute::<CsType>();
                 format!(r#"<see cref="{}" />"#, attribute.unwrap().type_string)
             }
+            Entities::Field(field) => {
+                let parent_name = field.parent().escape_scoped_identifier(namespace);
+                let field_name = field.escape_identifier();
+                format!(r#"<see cref="{parent_name}.{field_name}" />"#)
+            }
             _ => {
                 let name = self.escape_scoped_identifier(namespace);
                 format!(r#"<see cref="{name}" />"#)
