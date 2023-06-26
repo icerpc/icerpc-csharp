@@ -63,8 +63,8 @@ jobs:
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v3
       - name: Set version from tag
-        run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENVx
-      - name: Copy Slice compiler for C# binaries to stagging path
+        run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
+      - name: Copy slicec-cs binaries to staging path
         run: |
           @("macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "windows-x64") | ForEach-Object { New-Item -ItemType Directory -Path $env:GITHUB_WORKSPACE\tools\slicec-cs\staging -Name $_ }
           Copy-Item "slicec-cs-x86_64-apple-darwin\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\macos-x64"
@@ -73,10 +73,10 @@ jobs:
           Copy-Item "slicec-cs-aarch64-unknown-linux-gnu\slicec-cs" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\linux-arm64"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\staging\windows-x64"
 
-          # Copy the compiler to the expected location to avoid rebuilding it for creating the NuGet packages
+          # Copy the compiler to the expected location to avoid rebuilding it when creating the NuGet packages
           New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
-      - name: Pack IceRPC Tools
+      - name: Pack IceRPC Slice Tools
         working-directory: tools/IceRpc.Slice.Tools
         run: dotnet pack --configuration Release --output ../../
         env:
