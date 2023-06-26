@@ -85,7 +85,7 @@
    </ItemGroup>
    <Choose>
       <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
-         <!-- Use the pre-built compilers from ICERPC_SLICE_TOOLS_PATH. -->
+         <!-- Use the pre-built compilers from SLICEC_CS_STAGING_PATH. -->
          <ItemGroup>
             <Content Include="$(SLICEC_CS_STAGING_PATH)/linux-x64/slicec-cs">
                <PackagePath>tools/linux-x64/</PackagePath>
