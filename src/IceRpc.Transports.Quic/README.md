@@ -50,5 +50,5 @@ as the [HTTP/3 platform dependencies][platform].
 [quic]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview
 [package]: https://www.nuget.org/packages/IceRpc.Transports.Quic
 [platform]: https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-http3#platform-dependencies
-[product]: https://docs.testing.zeroc.com/docs/icerpc-core
+[product]: https://docs.testing.zeroc.com/icerpc-core
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Transports.Quic

@@ -14,7 +14,7 @@ public static class LoggerRouterExtensions
     /// <see cref="LoggerMiddleware" />.</param>
     /// <returns>The router being configured.</returns>
     /// <example>
-    /// The following code adds the logger interceptor to the dispatch pipeline.
+    /// The following code adds the logger middleware to the dispatch pipeline.
     /// <code source="../../docfx/examples/IceRpc.Logger.Examples/LoggerMiddlewareExamples.cs" region="UseLogger" lang="csharp" />
     /// </example>
     /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterLog"/>

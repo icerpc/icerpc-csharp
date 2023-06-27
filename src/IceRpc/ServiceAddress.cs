@@ -184,8 +184,8 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Gets the URI used to create this service address.</summary>
-    /// <value>The <see cref="Uri" /> of this service address if it was constructed from an URI and if URI-derived
-    /// properties have not been updated. The setting of an URI-derived property such as <see cref="ServerAddress" />
+    /// <value>The <see cref="Uri" /> of this service address if it was constructed from a URI and if URI-derived
+    /// properties have not been updated. The setting of a URI-derived property such as <see cref="ServerAddress" />
     /// sets <see cref="OriginalUri" /> to <see langword="null"/>.</value>
     public Uri? OriginalUri { get; private set; }
 

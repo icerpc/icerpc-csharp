@@ -26,7 +26,7 @@ public static class DeadlinePipelineExtensions
     /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline
     /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
     /// </param>
-    /// <returns>The builder being configured.</returns>
+    /// <returns>The pipeline being configured.</returns>
     /// <example>
     /// The following code adds the deadline interceptor to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.Deadline.Examples/DeadlineInterceptorExamples.cs" region="UseDeadlineWithDefaultTimeout" lang="csharp" />

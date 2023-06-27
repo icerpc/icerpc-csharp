@@ -66,8 +66,8 @@ internal class Chatbot : Service, IGreeterService
 ```
 
 [api]: https://api.icerpc.com/csharp/api/
-[docs]:https://docs.testing.zeroc.com/docs/
-[getting-started]: https://docs.testing.zeroc.com/docs/getting-started
+[docs]:https://docs.testing.zeroc.com
+[getting-started]: https://docs.testing.zeroc.com/getting-started
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
 [package]: https://www.nuget.org/packages/IceRpc

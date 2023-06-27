@@ -115,7 +115,7 @@ public class ServerAddressTests
     }
 
     /// <summary>Verifies that the <see cref="ServerAddress.OriginalUri" /> property is set for a server address created
-    /// from an URI.</summary>
+    /// from a URI.</summary>
     [Test]
     public void ServerAddress_original_URI()
     {
