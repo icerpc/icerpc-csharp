@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{EntityExt, TypeRefExt};
-use crate::cs_util::{escape_keyword, mangle_name, FieldType};
-use crate::slicec_ext::comment_ext::format_comment_message;
+use crate::cs_util::{escape_keyword, format_comment_message, mangle_name, FieldType};
 use convert_case::Case;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::TypeContext;

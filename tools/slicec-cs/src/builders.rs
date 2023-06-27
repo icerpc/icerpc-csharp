@@ -4,8 +4,9 @@ use std::collections::HashMap;
 
 use crate::comments::CommentTag;
 use crate::cs_attributes::CsType;
+use crate::cs_util::format_comment_message;
 use crate::member_util::escape_parameter_name;
-use crate::slicec_ext::*;
+use crate::slicec_ext::{EncodingExt, EntityExt, MemberExt, ParameterExt};
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
 use slicec::supported_encodings::SupportedEncodings;

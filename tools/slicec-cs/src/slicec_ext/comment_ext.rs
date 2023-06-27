@@ -2,7 +2,8 @@
 
 use super::EntityExt;
 use crate::comments::CommentTag;
-use slicec::grammar::*;
+use crate::cs_util::format_comment_message;
+use slicec::grammar::Commentable;
 
 pub trait CommentExt: Commentable {
     /// If this entity has a doc comment with an overview on it, this returns it with any links resolved to the
@@ -46,35 +47,3 @@ pub trait CommentExt: Commentable {
 }
 
 impl<T: Commentable + ?Sized> CommentExt for T {}
-
-pub fn format_comment_message(message: &Message, namespace: &str) -> String {
-    // Iterate through the components of the message and append them into a string.
-    // If the component is text, escape XML entities and then append it. If the component is a link, format it first,
-    // then append it.
-    message.iter().fold(String::new(), |s, component| match &component {
-        MessageComponent::Text(text) => s + &xml_escape(text),
-        MessageComponent::Link(link_tag) => match link_tag.linked_entity() {
-            Ok(entity) => {
-                if let Entities::TypeAlias(type_alias) = entity.concrete_entity() {
-                    // We don't generate any C# code for type-aliases, so if a user tries to link to one,
-                    // instead of generating a `see` tag, we just output the type-alias' identifier as raw text.
-                    s + type_alias.identifier()
-                } else {
-                    // If the link is to a valid (non type-alias) entity, run the link formatter on it.
-                    s + &entity.get_formatted_link(namespace)
-                }
-            }
-
-            // If the link was broken, just output it's raw text.
-            Err(identifier) => s + &identifier.value,
-        },
-    })
-}
-
-fn xml_escape(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('\'', "&apos;")
-        .replace('"', "&quot;")
-}
