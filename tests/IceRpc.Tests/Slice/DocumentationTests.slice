@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice
 
-// This file contains Slice definitions for testing the mapping of the doc comments
+// This file contains Slice definitions for testing the mapping of doc comments
 
 typealias UserList = sequence<string>
 
