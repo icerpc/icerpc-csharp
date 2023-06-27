@@ -2,22 +2,56 @@
 
 module IceRpc::Tests::Slice
 
-/// This is the summary of an interface
-/// It is unrelated to {@link InterfaceLink}.
-/// @see InterfaceLink::operationLink
-interface MyInterface {
-    /// This interface tests the generated documentation.
-    /// It can throw a {@link ThrownException}.
-    /// @param s: A test string.
-    /// @returns b: Can be true or false.
-    /// @returns i: An integer.
-    /// @throws ThrownException: If the operation fails.
-    /// @see MyInterface
-    myOperation(s: string) -> (b: bool, i: int32) throws ThrownException
+// This file contains Slice definitions for testing the mapping of doc comments
+
+typealias UserList = sequence<string>
+
+/// This is the session manager interface summary. The caller must use the {@link MyAuthorizationManager::createAuthToken}
+/// operation to create an authentication token before creating a session.
+/// @see MyAuthorizationManager
+interface MySessionManager {
+    /// Creates a session. The {@link MySession::status} is always {@link MyStatus::Idle} after creation. To retrieve the
+    /// status of a user call {@link getStatus}.
+    /// @param authToken: The authentication token.
+    /// @throws MyAuthDeniedException: if the provided {@link authToken} is not valid or doesn't have permissions
+    /// for creating a session.
+    createSession(authToken: MyAuthToken) -> MySession throws MyAuthDeniedException
+
+    /// Retrieve the status of the given user.
+    /// @param user: The user.
+    /// @returns status: The status.
+    /// @returns lastSee: The time at what the user was last seen.
+    getStatus(user: string) -> (status: MyStatus, lastSeen: WellKnownTypes::TimeStamp)
+
+    /// Retrieves the {@link UserList} containing the names of the active users.
+    getActiveUsers() -> UserList
 }
 
-interface InterfaceLink {
-    operationLink()
+/// This summary comment includes special XML characters like < > & ' ", which should be properly escaped by
+/// the slicec-cs compiler.
+interface MyAuthorizationManager {
+    createAuthToken() -> MyAuthToken
 }
 
-exception ThrownException {}
+/// An authentication token, the {@link payload} contains the JWT authentication token.
+struct MyAuthToken {
+    /// The payload.
+    payload: sequence<uint8>
+}
+
+exception MyAuthDeniedException {}
+
+/// The MySession struct represents a user session.
+struct MySession {
+    user: string,
+    status: MyStatus
+}
+
+// The user status, it is either {@link MyStatus::Idle} or {@link MyStatus::Busy}.
+enum MyStatus : uint8 {
+    /// The user is not active, that is the default status after creating a session
+    /// {@link MySessionManager::createSession}
+    Idle,
+    /// The user is busy.
+    Busy
+}
