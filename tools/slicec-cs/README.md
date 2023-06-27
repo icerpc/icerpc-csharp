@@ -21,4 +21,4 @@ The Slice compiler for C#, `slicec-cs`, allows you to compile Slice definitions 
 
 [package]:  https://www.nuget.org/packages/IceRpc.Slice.Tools
 [building]: ../../BUILDING.md
-[slice-documentation]: https://docs.testing.zeroc.com/docs/slice
+[slice-documentation]: https://docs.testing.zeroc.com/slice

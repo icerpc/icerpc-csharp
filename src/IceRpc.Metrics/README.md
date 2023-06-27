@@ -77,9 +77,9 @@ host.Run();
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Metrics.html
 [dotnet_counters]: https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
-[interceptor]: https://docs.testing.zeroc.com/docs/icerpc-core/invocation/interceptor
+[interceptor]: https://docs.testing.zeroc.com/icerpc-core/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Metrics
 [meter]: https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics.meter
-[middleware]: https://docs.testing.zeroc.com/docs/icerpc-core/dispatch/middleware
+[middleware]: https://docs.testing.zeroc.com/icerpc-core/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Metrics
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Metrics

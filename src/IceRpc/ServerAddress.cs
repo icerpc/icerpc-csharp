@@ -88,7 +88,7 @@ public readonly record struct ServerAddress
     }
 
     /// <summary>Gets the URI used to create this server address.</summary>
-    /// <value>The <see cref="Uri" /> of this server address if it was constructed from an URI; otherwise,
+    /// <value>The <see cref="Uri" /> of this server address if it was constructed from a URI; otherwise,
     /// <see langword="null"/>.</value>
     public Uri? OriginalUri { get; private init; }
 

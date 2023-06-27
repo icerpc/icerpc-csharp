@@ -8,7 +8,7 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentityTests
 {
-    /// <summary>Verifies that any arbitrary Ice Identity can represented by an URI path.</summary>
+    /// <summary>Verifies that any arbitrary Ice Identity can represented by a URI path.</summary>
     /// <param name="name">The name field of the Identity.</param>
     /// <param name="category">The category field of the Identity.</param>
     /// <param name="referencePath">The normalized URI path to check against.</param>

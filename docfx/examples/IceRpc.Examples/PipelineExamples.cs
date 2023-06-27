@@ -2,7 +2,6 @@
 
 using GreeterExample;
 using Microsoft.Extensions.Logging;
-using System.Collections.Immutable;
 
 namespace IceRpc.Examples;
 

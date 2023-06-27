@@ -90,6 +90,6 @@ unique set of options results in a separate execution of `slicec-cs`.
 [default_items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
-[slice]: https://docs.testing.zeroc.com/docs/slice
+[slice]: https://docs.testing.zeroc.com/slice
 [slicec-cs]: TODO
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/tools.IceRpc.Slice.Tools
