@@ -3,19 +3,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace IceRpc_DI_Server;
 
-/// <summary>The server hosted service is ran and managed by the .NET Generic Host</summary>
-public class ServerHostedService : IHostedService, IAsyncDisposable
+/// <summary>The server hosted service is ran and managed by the .NET Generic Host.</summary>
+public class ServerHostedService : IHostedService
 {
     // The IceRPC server accepts connections from IceRPC clients.
     private readonly Server _server;
 
     public ServerHostedService(Server server) => _server = server;
-
-    public ValueTask DisposeAsync()
-    {
-        GC.SuppressFinalize(this);
-        return _server.DisposeAsync();
-    }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -25,6 +19,6 @@ public class ServerHostedService : IHostedService, IAsyncDisposable
     }
 
     public Task StopAsync(CancellationToken cancellationToken) =>
-        // Shuts down the IceRPC server when the hosted service is stopped.
+        // Shut down the IceRPC server when the hosted service is stopped.
         _server.ShutdownAsync(cancellationToken);
 }
