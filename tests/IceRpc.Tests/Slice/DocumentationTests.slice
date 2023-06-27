@@ -11,7 +11,7 @@ typealias UserList = sequence<string>
 /// @see MyAuthorizationManager
 interface MySessionManager {
     /// Creates a session. The {@link MySession::status} is always {@link MyStatus::Idle} after creation. To retrieve the
-    /// status of an active.
+    /// status of a user call {@link getStatus}.
     /// @param authToken: The authentication token.
     /// @throws MyAuthDeniedException: if the provided {@link authToken} is not valid or doesn't have permissions
     /// for creating a session.
