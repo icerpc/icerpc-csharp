@@ -27,7 +27,7 @@ interface MySessionManager {
     getActiveUsers() -> UserList
 }
 
-/// This summary comment include XML special characters like < > & ' ", which should be properly escaped by
+/// This summary comment includes special XML characters like < > & ' ", which should be properly escaped by
 /// the slicec-cs compiler.
 interface MyAuthorizationManager {
     createAuthToken() -> MyAuthToken
