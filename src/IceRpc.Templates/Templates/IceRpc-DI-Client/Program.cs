@@ -30,7 +30,7 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
             // flows into the ClientConnection singleton.
             .AddIceRpcInvoker(
                 builder => builder
-                    .UseDeadline(defaultTimeout: hostContext.Configuration.GetValue<TimeSpan>("Deadline:DefaultTimeout"))
+                    .UseDeadline(hostContext.Configuration.GetValue<TimeSpan>("Deadline:DefaultTimeout"))
                     .UseLogger()
                     .Into<ClientConnection>())
             // Add an IGreeter singleton using the invoker singleton registered above.

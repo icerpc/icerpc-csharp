@@ -13,8 +13,6 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 
 // Create a router (dispatch pipeline) and install the logger middleware. This middleware logs dispatches using category
 // `IceRpc.Logger.LoggerMiddleware`.
-// We also map our implementation of `IGreeterService` at the default path for this service:
-// `/GreeterLogExample.Greeter`
 Router router = new Router()
     .UseLogger(loggerFactory)
     .Map<IGreeterService>(new Chatbot());
