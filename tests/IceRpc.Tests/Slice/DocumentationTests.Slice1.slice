@@ -4,7 +4,7 @@ encoding = Slice1
 
 module IceRpc::Tests::Slice
 
-// This file contains Slice definitions for testing the mapping of the doc comments
+// This file contains Slice definitions for testing the mapping of doc comments
 
 /// The User class represents an entity that has access to the system, the associated
 /// {@link email} address must be unique.
