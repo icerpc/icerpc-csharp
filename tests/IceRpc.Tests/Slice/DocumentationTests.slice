@@ -10,7 +10,7 @@ typealias UserList = sequence<string>
 /// operation to create an authentication token before creating a session.
 /// @see MyAuthorizationManager
 interface MySessionManager {
-    /// Creates a session. The {@link MySession::status} is always {@link MyStatus::idle} after creation. To retrieve the
+    /// Creates a session. The {@link MySession::status} is always {@link MyStatus::Idle} after creation. To retrieve the
     /// status of an active.
     /// @param authToken: The authentication token.
     /// @throws MyAuthDeniedException: if the provided {@link authToken} is not valid or doesn't have permissions
@@ -47,11 +47,11 @@ struct MySession {
     status: MyStatus
 }
 
-// The user status, it is either {@link MyStatus::idle} or {@link MyStatus::busy}
+// The user status, it is either {@link MyStatus::Idle} or {@link MyStatus::Busy}
 enum MyStatus : uint8 {
     /// The user is not active, that is the default status after creating a session
     /// {@link MySessionManager::createSession}
-    idle,
+    Idle,
     /// The user is busy.
-    busy
+    Busy
 }
