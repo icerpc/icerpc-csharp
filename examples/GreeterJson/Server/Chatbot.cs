@@ -9,9 +9,7 @@ namespace GreeterJsonServer;
 /// <summary>Implements a dispatcher for the Greet operation.</summary>
 internal class Chatbot : IDispatcher
 {
-    public async ValueTask<OutgoingResponse> DispatchAsync(
-        IncomingRequest request,
-        CancellationToken cancellationToken)
+    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (request.Operation == "greet")
         {
