@@ -21,7 +21,8 @@ applications:
 In a separate window, start the Client program:
 
 ```shell
-dotnet run --project Client/Client.csproj
+cd Client
+dotnet run
 ```
 
 [1]: https://github.com/zeroc-ice/ice-demos/tree/3.7/cpp11/IceGrid/simple

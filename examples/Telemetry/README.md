@@ -17,13 +17,15 @@ First start the Zipkin service as documented in the Zipkin quick start guide:
 In a separate window start the Greeter Server program:
 
 ```shell
-dotnet run --project Server/Server.csproj
+cd Server
+dotnet run
 ```
 
 In a separate window, start the Client program:
 
 ```shell
-dotnet run --project Client/Client.csproj
+cd Client
+dotnet run
 ```
 
 The trace information should now be available in the Zipkin local service:

@@ -10,7 +10,7 @@ await using var server = new Server(
     new Chatbot(),
     new SslServerAuthenticationOptions
     {
-        ServerCertificate = new X509Certificate2("../../certs/server.p12", "password")
+        ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
     },
     multiplexedServerTransport: new QuicServerTransport());
 

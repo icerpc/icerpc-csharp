@@ -15,13 +15,15 @@ dotnet build
 First start the Server program:
 
 ```shell
-dotnet run --project Server/Server.csproj
+cd Server
+dotnet run
 ```
 
 In a separate window, start the Client program:
 
 ```shell
-dotnet run --project Client/Client.csproj
+cd Client
+dotnet run
 ```
 
 [protobuf]: https://protobuf.dev/getting-started/csharptutorial/

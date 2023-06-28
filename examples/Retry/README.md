@@ -17,25 +17,29 @@ dotnet build
 First start at least two instances of the Server:
 
 ```shell
-dotnet run --project Server/Server.csproj -- 0
+cd Server
+dotnet run -- 0
 ```
 
 In a separate window, start the second instance:
 
 ```shell
-dotnet run --project Server/Server.csproj -- 1
+cd Server
+dotnet run -- 1
 ```
 
 You can start additional instances of the Server, using consecutive numbers:
 
 ```shell
-dotnet run --project Server/Server.csproj -- 2
+cd Server
+dotnet run -- 2
 ```
 
 In a separate window, start the Client program, passing the number of server instances as an argument:
 
 ```shell
-dotnet run --project Client/Client.csproj -- 3
+cd Client
+dotnet run -- 3
 ```
 
 The client will continue sending invocations until you stop it with Ctrl+C, or until the invocation fails because the
