@@ -12,7 +12,7 @@ automatically compiled into C# files every time you build this project.
 > When `slicec-cs` compiles a Slice file and the resulting .cs file is identical to the existing output .cs file,
 > the existing .cs file is kept as-is; the output file is overwritten only when something changed.
 
-[Source code][source] | [Package][package] | [slicec-cs documentation][slicec-cs] | [Slice documentation][slice]
+[Source code][source] | [Package][package] | [slicec-cs options][slicec-cs] | [Slice documentation][slice]
 
 ## Slice files and Slice directories
 
@@ -30,7 +30,7 @@ directory to include in your project's Slice directories with the `SliceDirector
 
 By default, all `.slice` files located in your project's home directory and any of its subdirectories, recursively, are
 included in `SliceFile`. You can prevent this auto-inclusion of `.slice` files by setting either
-[`EnableDefaultItems`][default_items] or `EnableDefaultSliceFileItems` to `false`. The default value of these properties
+[`EnableDefaultItems`][default-items] or `EnableDefaultSliceFileItems` to `false`. The default value of these properties
 is `true`.
 
 You can also add Slice files to your project explicitly. For example:
@@ -73,7 +73,7 @@ automatically sees these Slice files when compiling. For example:
 ```
 
 The [IceRpc][icerpc] NuGet package follows this pattern and provides definitions for common Slice types such as
-WellKnownTypes::Duration, WellKnownTypes::TimeStamp and WellKnownTypes::Uri.
+`WellKnownTypes::Duration`, `WellKnownTypes::TimeStamp` and `WellKnownTypes::Uri`.
 
 ## SliceFile item metadata
 
@@ -82,14 +82,14 @@ unique set of options results in a separate execution of `slicec-cs`.
 
 | Name              | Default   | Description                                                                                                              |
 |-------------------|-----------|--------------------------------------------------------------------------------------------------------------------------|
-| AdditionalOptions |           | Specifies additional options to pass to `slicec-cs`.                                                                     |
+| AdditionalOptions |           | Specifies additional options to pass to [`slicec-cs`][slicec-cs].                                                        |
 | OutputDir         | generated | Sets the output directory for the generated code. This metadata corresponds to the `--output-dir` option of `slicec-cs`. |
 | Pack              | `false`   | Specifies whether or not to include the items (Slice files) in the NuGet package.                                        |
 | PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                |
 
-[default_items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
+[default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
 [slice]: https://docs.testing.zeroc.com/slice
-[slicec-cs]: TODO
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/tools.IceRpc.Slice.Tools
+[slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/slicec-cs
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
