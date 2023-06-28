@@ -8,7 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 // Create the authentication options with our server certificate.
 var serverAuthenticationOptions = new SslServerAuthenticationOptions()
 {
-    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+    ServerCertificate = new X509Certificate2("../../../certs/server.p12")
 };
 
 await using var server = new Server(new Chatbot(), serverAuthenticationOptions);

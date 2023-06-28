@@ -21,7 +21,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
             .AddSingleton(
                 new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = new X509Certificate2("server-untrusted.p12", "password"),
+                    ServerCertificate = new X509Certificate2("server-untrusted.p12"),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
@@ -65,14 +65,14 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                 {
                     ClientCertificateRequired = true,
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false,
-                    ServerCertificate = new X509Certificate2("server.p12", "password"),
+                    ServerCertificate = new X509Certificate2("server.p12"),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
                 {
                     ClientCertificates = new X509CertificateCollection()
                     {
-                        new X509Certificate2("client-untrusted.p12", "password")
+                        new X509Certificate2("client-untrusted.p12")
                     },
 #pragma warning disable CA5359 // Do Not Disable Certificate Validation, certificate validation is not required for these tests.
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
