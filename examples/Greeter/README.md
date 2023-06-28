@@ -11,13 +11,15 @@ dotnet build
 First start the Server program:
 
 ```shell
-dotnet run --project Server/Server.csproj
+cd Server
+dotnet run
 ```
 
 In a separate window, start the Client program:
 
 ```shell
-dotnet run --project Client/Client.csproj
+cd Client
+dotnet run
 ```
 
 > This is a concise example with minimal code. If you are looking for a more realistic example, see the

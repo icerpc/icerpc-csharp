@@ -25,6 +25,9 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
         // The activity source used by the telemetry interceptor.
         services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
+        string workingDirectory = Directory.GetCurrentDirectory();
+        Console.WriteLine(workingDirectory);
+
         // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
         // callback to configure its authentication options.
         services

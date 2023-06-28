@@ -17,13 +17,15 @@ dotnet build
 First start the Server program:
 
 ```shell
-dotnet run --project Server/Server.csproj
+cd Server
+dotnet run
 ```
 
 In a separate window, start the Client program:
 
 ```shell
-dotnet run --project Client/Client.csproj
+cd Client
+dotnet run
 ```
 
 You will notice the two logger categories in the output. The client shows log messages for `IceRpc.ClientConnection` and

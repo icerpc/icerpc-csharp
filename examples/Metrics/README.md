@@ -16,7 +16,8 @@ dotnet build
 First start the Server program:
 
 ```shell
-dotnet run --project Server/Server.csproj
+cd Server
+dotnet run
 ```
 
 To monitor the server counter metrics, in a separate window run:
@@ -28,7 +29,8 @@ dotnet-counters monitor --name Server --counters IceRpc.Dispatch
 In a separate window run the client program to send requests to the server:
 
 ```shell
-dotnet run --project Client/Client.csproj
+cd Client
+dotnet run
 ```
 
 To monitor the client counter metrics, in a separate window run:
