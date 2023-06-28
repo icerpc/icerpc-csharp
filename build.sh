@@ -17,7 +17,6 @@ usage()
     echo "Actions (defaults to --build):"
     echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
     echo "  --pack                 Create the IceRPC NuGet packages."
-    echo "  --examples             Build the example project (uses installed NuGet packages)."
     echo "  --publish              Publish the IceRPC NuGet packages to the global-packages source."
     echo "  --clean                Clean all build artifacts."
     echo "  --test                 Runs tests."
@@ -50,14 +49,6 @@ build()
     run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
 }
 
-build_examples()
-{
-    for solution in examples/*/*.sln examples/*/*/*.sln
-    do
-        run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
-    done
-}
-
 clean()
 {
     pushd tools/slicec-cs
@@ -69,11 +60,6 @@ clean()
     popd
 
     run_command dotnet "clean" "-nr:false"$version_property
-
-    for solution in examples/*/*.sln examples/*/*/*.sln
-    do
-        run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config" "$solution"
-    done
 
     pushd src/IceRpc.Templates
     run_command dotnet "clean"$version_property "-nr:false"
@@ -144,7 +130,7 @@ config=""
 coverage="no"
 version_property=""
 passedInActions=()
-actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish" "--examples")
+actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish")
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -214,9 +200,6 @@ for action in "${passedInActions[@]}"; do
     case $action in
         "--build")
             build
-            ;;
-        "--examples")
-            build_examples
             ;;
         "--pack")
             pack
