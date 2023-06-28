@@ -15,10 +15,7 @@ internal class Chatbot : Service, IGreeterService
 
     internal Chatbot(int serverNumber) => _serverNumber = serverNumber;
 
-    public ValueTask<string> GreetAsync(
-        string name,
-        IFeatureCollection features,
-        CancellationToken cancellationToken)
+    public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         // 50% failure/success ratio

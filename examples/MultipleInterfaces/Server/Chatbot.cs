@@ -13,14 +13,10 @@ internal class Chatbot : Service, IGreeterService, IRequestCounterService
 {
     private int _requestCount;
 
-    public ValueTask<int> GetRequestCountAsync(
-        IFeatureCollection features,
-        CancellationToken cancellationToken) => new(_requestCount);
+    public ValueTask<int> GetRequestCountAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
+        new(_requestCount);
 
-    public ValueTask<string> GreetAsync(
-        string name,
-        IFeatureCollection features,
-        CancellationToken cancellationToken)
+    public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
         Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         Interlocked.Increment(ref _requestCount);
