@@ -10,13 +10,10 @@ param (
     [switch]$test,
     [switch]$pack,
     [switch]$publish,
-    [switch]$examples,
     [switch]$help,
     [switch]$coverage,
     [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
-
-$exampleProjects = $packages = Get-Childitem -Path "examples" -Include *.sln -Recurse
 
 if ($version) {
     $versionProperty = "-p:Version=$version"
@@ -43,14 +40,6 @@ function Build($config) {
     RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
-function BuildExamples($config) {
-    $dotnetConfiguration = DotnetConfiguration($config)
-    foreach ($example in $exampleProjects)
-    {
-        RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration, "$example")
-    }
-}
-
 function Clean($config) {
     Push-Location "tools\slicec-cs"
     RunCommand "cargo" "clean"
@@ -67,11 +56,6 @@ function Clean($config) {
     Push-Location "src\IceRpc.Templates"
     RunCommand "dotnet" @('clean', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
-
-    foreach ($example in $exampleProjects)
-    {
-        RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration, "$example")
-    }
 }
 
 function Doc() {
@@ -96,7 +80,6 @@ function Get-Help() {
     Write-Host "Actions (defaults to -build):"
     Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
     Write-Host "  -pack                     Create the IceRPC NuGet packages."
-    Write-Host "  -examples                 Build the example project (uses installed NuGet packages)."
     Write-Host "  -publish                  Publish the IceRPC NuGet packages to the global-packages source."
     Write-Host "  -clean                    Clean all build artifacts."
     Write-Host "  -test                     Runs tests."
@@ -174,7 +157,7 @@ if ( $configs -notcontains $config ) {
     exit 1
 }
 
-$actions = @("build", "clean", "doc", "test", "pack", "publish", "examples")
+$actions = @("build", "clean", "doc", "test", "pack", "publish")
 $passedInActions = @()
 
 foreach ($key in $PSBoundParameters.Keys) {
@@ -215,9 +198,6 @@ foreach ($action in $passedInActions) {
         }
         "test" {
            Test $config $coverage
-        }
-        "examples" {
-            BuildExamples $config
         }
         "doc" {
             Doc
