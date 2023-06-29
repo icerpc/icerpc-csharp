@@ -80,7 +80,7 @@ function Get-Help() {
     Write-Host "  -pack                     Create the IceRPC NuGet packages."
     Write-Host "  -publish                  Publish the IceRPC NuGet packages to the global-packages source."
     Write-Host "  -clean                    Clean all build artifacts."
-    Write-Host "  -coverage                 Generate code coverage rport from the tests runs."
+    Write-Host "  -coverage                 Generate code coverage report from the tests runs."
     Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -doc                      Generate the C# API documentation"
     Write-Host "                            Requires docfx from https://github.com/dotnet/docfx"

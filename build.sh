@@ -18,7 +18,7 @@ usage()
     echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
     echo "  --publish              Publish the IceRPC NuGet packages to the global-packages source."
     echo "  --clean                Clean all build artifacts."
-    echo "  --coverage             Generate code coverage rport from the tests runs."
+    echo "  --coverage             Generate code coverage report from the tests runs."
     echo "                         Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     echo "  --doc                  Generate the C# API documentation"
     echo "                         Requires docfx from https://github.com/dotnet/docfx"
