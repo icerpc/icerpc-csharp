@@ -45,7 +45,7 @@ public record class TcpTransportOptions
 /// <summary>The options class for configuring <see cref="TcpClientTransport" />.</summary>
 public sealed record class TcpClientTransportOptions : TcpTransportOptions
 {
-    /// <summary>Gets or sets the address and port represented by a .NET IPEndPoint to use for a client
+    /// <summary>Gets or sets the address and port represented by a .NET <see cref="IPEndPoint"/> to use for a client
     /// socket. If specified the client socket will bind to this address and port before connection establishment.
     /// </summary>
     /// <value>The address and port to bind the socket to. Defaults to <see langword="null" />.</value>

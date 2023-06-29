@@ -11,14 +11,14 @@ namespace IceRpc.Slice;
 /// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
 public static class PipeReaderExtensions
 {
-    /// <summary>Creates an async enumerable over a pipe reader to decode streamed members.</summary>
+    /// <summary>Creates an async enumerable over a pipe reader to decode streamed elements.</summary>
     /// <typeparam name="T">The type of the element being decoded.</typeparam>
     /// <param name="reader">The pipe reader.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
     /// <param name="elementSize">The size in bytes of one element.</param>
     /// <param name="sliceFeature">The Slice feature to customize the decoding.</param>
-    /// <returns>The async enumerable to decode and return the streamed members.</returns>
+    /// <returns>The async enumerable to decode and return the streamed elements.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="elementSize" /> is equal of inferior to
     /// <c>0</c>.</exception>
     /// <remarks>The reader ownership is transferred to the returned async enumerable. The caller should no longer use

@@ -17,16 +17,20 @@ public interface ISliceFeature
     SliceEncodeOptions? EncodeOptions { get; }
 
     /// <summary>Gets the maximum collection allocation when decoding a payload, in bytes.</summary>
+    /// <value>The maximum collection allocation.</value>
     int MaxCollectionAllocation { get; }
 
     /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
+    /// <value>The maximum depth.</value>
     int MaxDepth { get; }
 
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
     /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
     /// variable-size elements.</summary>
+    /// <value>The maximum size of a Slice payload segment, in bytes.</value>
     int MaxSegmentSize { get; }
 
     /// <summary>Gets the proxy factory to use when decoding proxies in request or response payloads.</summary>
+    /// <value>The proxy factory used when decoding proxies.</value>
     Func<ServiceAddress, GenericProxy?, GenericProxy>? ProxyFactory { get; }
 }
