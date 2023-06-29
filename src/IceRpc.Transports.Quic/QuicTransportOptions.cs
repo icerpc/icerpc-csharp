@@ -17,9 +17,9 @@ public record class QuicTransportOptions
 /// <summary>The options class for configuring <see cref="QuicClientTransport"/>.</summary>
 public sealed record class QuicClientTransportOptions : QuicTransportOptions
 {
-    /// <summary>Gets or sets the address and port represented by a .NET IPEndPoint to use for a client Quic connection.
-    /// If specified the client Quic connection will bind to this address and port before connection establishment.
-    /// </summary>
+    /// <summary>Gets or sets the address and port represented by a .NET <see cref="IPEndPoint"/> to use for a client
+    /// Quic connection. If specified the client Quic connection will bind to this address and port before connection
+    /// establishment.</summary>
     /// <value>The address and port to bind to. Defaults to <see langword="null" />.</value>
     public IPEndPoint? LocalNetworkAddress { get; set; }
 }

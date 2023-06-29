@@ -7,9 +7,10 @@ using System.Diagnostics;
 
 namespace IceRpc.Telemetry;
 
-/// <summary>An interceptor that starts an <see cref="Activity" /> per request, following OpenTelemetry conventions. The
-/// activity context is written in the request <see cref="RequestFieldKey.TraceContext" /> field and can be restored on
-/// the server-side by installing the <see cref="TelemetryMiddleware" />.</summary>
+/// <summary>An interceptor that starts an <see cref="Activity" /> per request, following
+/// <see href="https://opentelemetry.io/">OpenTelemetry</see> conventions. The activity context is written in the
+/// request <see cref="RequestFieldKey.TraceContext" /> field and can be restored on the server-side by installing the
+/// <see cref="TelemetryMiddleware" />.</summary>
 /// <remarks>The activities are only created for requests using the icerpc protocol.</remarks>
 /// <seealso cref="TelemetryPipelineExtensions"/>
 /// <seealso cref="TelemetryDispatcherBuilderExtensions"/>

@@ -13,6 +13,8 @@ public static class IncomingRequestExtensions
     /// the request is not marked idempotent. If the request is marked idempotent, it means the caller incorrectly
     /// believes this operation is idempotent.</summary>
     /// <param name="request">The request to check.</param>
+    /// <exception cref="InvalidDataException">If the request contains the <see cref="RequestFieldKey.Idempotent"/>
+    /// field.</exception>
     public static void CheckNonIdempotent(this IncomingRequest request)
     {
         if (request.Fields.ContainsKey(RequestFieldKey.Idempotent))
