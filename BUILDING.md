@@ -188,15 +188,28 @@ docfx serve docfx/_site
 
 ## Generating the code coverage reports
 
+Generating the code coverage reports is a two steps process.
+
+You first have to run the test suite with code coverage enabled to collect the code coverage data:
+
 Linux or macOS
 ```shell
-./build.sh --test --coverage
+dotnet test -p:RunSettingsFilePath=build/Coverlet.runsettings --collect:\"XPlat Code Coverage\"
 ```
 
 Windows
 ```shell
-build.cmd -test -coverage
+dotnet test -p:RunSettingsFilePath=%cd%\build\Coverlet.runsettings --collect:"XPlat Code Coverage"
 ```
+
+Then you run the [reportgenerator][reportgenerator] tool to generate a code coverage report from the collected coverage data:
+
+```shell
+reportgenerator -reports:tests/*/TestResults/*/coverage.cobertura.xml -targetdir:tests/CodeCoverageReport
+```
+
+*It is important to remove any TestResults from previous runs before generating a new code coverage report,
+otherwise you might get inaccurate reports*
 
 ## Shutting down background MSBuild servers
 
@@ -206,3 +219,5 @@ You may occasionally encounter errors when cleaning and building because backgro
 ```shell
 dotnet build-server shutdown
 ```
+
+[reportgenerator]: https://github.com/danielpalme/ReportGenerator

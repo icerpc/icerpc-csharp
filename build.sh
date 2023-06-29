@@ -19,7 +19,6 @@ usage()
     echo "  --pack                 Create the IceRPC NuGet packages."
     echo "  --publish              Publish the IceRPC NuGet packages to the global-packages source."
     echo "  --clean                Clean all build artifacts."
-    echo "  --test                 Runs tests."
     echo "  --doc                  Generate the C# API documentation"
     echo "                         Requires docfx from https://github.com/dotnet/docfx"
     echo ""
@@ -27,8 +26,6 @@ usage()
     echo "  --config               Build configuration: debug or release, the default is debug."
     echo "  --version              The version override for the IceRPC NuGet packages. The default version is the version"
     echo "                         specified in the build/IceRpc.Version.props file."
-    echo "  --coverage             Collect code coverage from test runs."
-    echo "                         Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     echo "  --help                 Print help and exit."
 }
 
@@ -94,27 +91,6 @@ publish()
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
 }
 
-run_test()
-{
-    arguments=("test" "-c" "$dotnet_config")
-    if [ "$coverage" == "yes" ]; then
-        runsettings=${PWD}/build/Coverlet.runsettings
-        arguments+=("-p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
-    fi
-    run_command dotnet "${arguments[@]}"
-
-    if [ "$coverage" == "yes" ]; then
-        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
-        if [ -n "${REPORTGENERATOR_LICENSE:-}" ]; then
-            arguments+=("-license:${REPORTGENERATOR_LICENSE}")
-        fi
-
-        run_command reportgenerator "${arguments[@]}"
-        # Remove code coverage results after the report has been generated.
-        find "tests" -type d -name "TestResults" -prune -exec rm -rf {} \;
-    fi
-}
-
 run_command()
 {
     echo "$@"
@@ -127,10 +103,9 @@ run_command()
 }
 
 config=""
-coverage="no"
 version_property=""
 passedInActions=()
-actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish")
+actions=("--build" "--clean" "--doc" "--pack" "--publish")
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -147,10 +122,6 @@ while [[ $# -gt 0 ]]; do
             version=$2
             version_property=" -p:Version=$version"
             shift
-            shift
-            ;;
-        --coverage)
-            coverage="yes"
             shift
             ;;
         *)
@@ -209,9 +180,6 @@ for action in "${passedInActions[@]}"; do
             ;;
         "--clean")
             clean
-            ;;
-        "--test")
-            run_test
             ;;
         "--doc")
             doc
