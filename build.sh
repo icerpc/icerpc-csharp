@@ -16,10 +16,10 @@ usage()
     echo ""
     echo "Actions (defaults to --build):"
     echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
-    echo "  --pack                 Create the IceRPC NuGet packages."
     echo "  --publish              Publish the IceRPC NuGet packages to the global-packages source."
     echo "  --clean                Clean all build artifacts."
-    echo "  --test                 Runs tests."
+    echo "  --coverage             Generate code coverage rport from the tests runs."
+    echo "                         Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     echo "  --doc                  Generate the C# API documentation"
     echo "                         Requires docfx from https://github.com/dotnet/docfx"
     echo ""
@@ -27,8 +27,6 @@ usage()
     echo "  --config               Build configuration: debug or release, the default is debug."
     echo "  --version              The version override for the IceRPC NuGet packages. The default version is the version"
     echo "                         specified in the build/IceRpc.Version.props file."
-    echo "  --coverage             Collect code coverage from test runs."
-    echo "                         Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     echo "  --help                 Print help and exit."
 }
 
@@ -74,7 +72,7 @@ doc()
     popd
 }
 
-pack()
+publish()
 {
     pushd tools/IceRpc.Slice.Tools
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
@@ -83,10 +81,7 @@ pack()
     pushd src/IceRpc.Templates
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
-}
 
-publish()
-{
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
     run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
@@ -94,25 +89,20 @@ publish()
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
 }
 
-run_test()
+code_coverage()
 {
-    arguments=("test" "-c" "$dotnet_config")
-    if [ "$coverage" == "yes" ]; then
-        runsettings=${PWD}/build/Coverlet.runsettings
-        arguments+=("-p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
-    fi
+    arguments=("test" "-c" "$dotnet_config" "-p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
+    runsettings=${PWD}/build/Coverlet.runsettings
     run_command dotnet "${arguments[@]}"
 
-    if [ "$coverage" == "yes" ]; then
-        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
-        if [ -n "${REPORTGENERATOR_LICENSE:-}" ]; then
-            arguments+=("-license:${REPORTGENERATOR_LICENSE}")
-        fi
-
-        run_command reportgenerator "${arguments[@]}"
-        # Remove code coverage results after the report has been generated.
-        find "tests" -type d -name "TestResults" -prune -exec rm -rf {} \;
+    arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
+    if [ -n "${REPORTGENERATOR_LICENSE:-}" ]; then
+        arguments+=("-license:${REPORTGENERATOR_LICENSE}")
     fi
+
+    run_command reportgenerator "${arguments[@]}"
+    # Remove code coverage results after the report has been generated.
+    find "tests" -type d -name "TestResults" -prune -exec rm -rf {} \;
 }
 
 run_command()
@@ -127,10 +117,9 @@ run_command()
 }
 
 config=""
-coverage="no"
 version_property=""
 passedInActions=()
-actions=("--build" "--clean" "--doc" "--test" "--pack" "--publish")
+actions=("--build" "--clean" "--doc" "--coverage" "--publish")
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -147,10 +136,6 @@ while [[ $# -gt 0 ]]; do
             version=$2
             version_property=" -p:Version=$version"
             shift
-            shift
-            ;;
-        --coverage)
-            coverage="yes"
             shift
             ;;
         *)
@@ -201,17 +186,14 @@ for action in "${passedInActions[@]}"; do
         "--build")
             build
             ;;
-        "--pack")
-            pack
-            ;;
         "--publish")
             publish
             ;;
         "--clean")
             clean
             ;;
-        "--test")
-            run_test
+        "--coverage")
+            code_coverage
             ;;
         "--doc")
             doc
