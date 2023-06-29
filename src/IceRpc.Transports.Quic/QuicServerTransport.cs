@@ -6,7 +6,7 @@ using System.Net.Security;
 
 namespace IceRpc.Transports.Quic;
 
-/// <summary>Implements <see cref="IMultiplexedServerTransport"/> using Quic.</summary>
+/// <summary>Implements <see cref="IMultiplexedServerTransport"/> using QUIC.</summary>
 public class QuicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>
@@ -14,11 +14,11 @@ public class QuicServerTransport : IMultiplexedServerTransport
 
     private readonly QuicServerTransportOptions _quicOptions;
 
-    /// <summary>Constructs a Quic server transport.</summary>
+    /// <summary>Constructs a QUIC server transport.</summary>
     /// <param name="options">The options to configure the transport.</param>
     public QuicServerTransport(QuicServerTransportOptions options) => _quicOptions = options;
 
-    /// <summary>Constructs a Quic server transport.</summary>
+    /// <summary>Constructs a QUIC server transport.</summary>
     public QuicServerTransport()
         : this(new QuicServerTransportOptions())
     {
