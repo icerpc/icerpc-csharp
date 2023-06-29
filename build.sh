@@ -91,8 +91,8 @@ publish()
 
 code_coverage()
 {
-    arguments=("test" "-c" "$dotnet_config" "-p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
     runsettings=${PWD}/build/Coverlet.runsettings
+    arguments=("test" "-c" "$dotnet_config" "-p:RunSettingsFilePath=$runsettings" "--collect:\"XPlat Code Coverage\"")
     run_command dotnet "${arguments[@]}"
 
     arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageReport")
