@@ -124,12 +124,12 @@ This command runs the test suite for `slicec-cs`.
 
 Linux or macOS
 ```shell
-./build.sh --build --publish
+./build.sh --publish
 ```
 
 Windows
 ```shell
-build.cmd -build -publish
+build.cmd -publish
 ```
 
 This command creates all the IceRpc NuGet packages and publishes them to your local `global-packages` source.

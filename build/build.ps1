@@ -77,8 +77,7 @@ function Get-Help() {
     Write-Host ""
     Write-Host "Actions (defaults to -build):"
     Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
-    Write-Host "  -pack                     Create the IceRPC NuGet packages."
-    Write-Host "  -publish                  Publish the IceRPC NuGet packages to the global-packages source."
+    Write-Host "  -publish                  Creates and publishes the IceRPC NuGet packages to the global-packages source."
     Write-Host "  -clean                    Clean all build artifacts."
     Write-Host "  -coverage                 Generate code coverage report from the tests runs."
     Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
@@ -93,6 +92,7 @@ function Get-Help() {
 }
 
 function Publish($config) {
+    Build $config
     $dotnetConfiguration = DotnetConfiguration($config)
     Push-Location "tools\IceRpc.Slice.Tools"
     RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)

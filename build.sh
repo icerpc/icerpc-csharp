@@ -16,7 +16,7 @@ usage()
     echo ""
     echo "Actions (defaults to --build):"
     echo "  --build                Build the IceRPC assemblies and the slicec-cs compiler."
-    echo "  --publish              Publish the IceRPC NuGet packages to the global-packages source."
+    echo "  --publish              Creates and publishes the IceRPC NuGet packages to the global-packages source."
     echo "  --clean                Clean all build artifacts."
     echo "  --coverage             Generate code coverage report from the tests runs."
     echo "                         Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
@@ -74,6 +74,7 @@ doc()
 
 publish()
 {
+    build
     pushd tools/IceRpc.Slice.Tools
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
