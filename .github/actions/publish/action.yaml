@@ -4,5 +4,5 @@ runs:
   using: "composite"
   steps:
   - name: 📦 Publish Packages
-    run: ./build.sh --pack --publish
+    run: ./build.sh --publish
     shell: bash
