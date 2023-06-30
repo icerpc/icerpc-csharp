@@ -6,6 +6,7 @@ using IceRpc.Transports.Quic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
+// Create a server that uses our server certificate, and the QUIC multiplexed transport.
 await using var server = new Server(
     new Chatbot(),
     new SslServerAuthenticationOptions
