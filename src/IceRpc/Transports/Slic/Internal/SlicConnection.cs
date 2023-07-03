@@ -158,25 +158,34 @@ internal class SlicConnection : IMultiplexedConnection
                         DecodeInitialize,
                         cancellationToken).ConfigureAwait(false);
 
-                    if (version != 1)
+                    if (initializeBody is null)
                     {
                         // Unsupported version, try to negotiate another version by sending a Version frame with the
                         // Slic versions supported by this server.
-                        WriteConnectionFrame(
-                            FrameType.Version,
-                            new VersionBody(new ulong[] { SlicDefinitions.V1 }).Encode);
+                        ulong[] supportedVersions = new ulong[] { SlicDefinitions.V1 };
+
+                        WriteConnectionFrame(FrameType.Version, new VersionBody(supportedVersions).Encode);
 
                         (version, initializeBody) = await ReadFrameAsync(
-                            DecodeInitialize,
+                            (frameType, buffer) =>
+                            {
+                                if (frameType is null)
+                                {
+                                    // The client shut down the connection because it doesn't support any of the
+                                    // server's supported Slic versions.
+                                    throw new IceRpcException(
+                                        IceRpcError.ConnectionRefused,
+                                        $"The connection was refused because the client Slic version {version} is not supported.");
+                                }
+                                else
+                                {
+                                    return DecodeInitialize(frameType, buffer);
+                                }
+                            },
                             cancellationToken).ConfigureAwait(false);
                     }
 
-                    if (initializeBody is null)
-                    {
-                        throw new IceRpcException(
-                            IceRpcError.ConnectionAborted,
-                            $"The connection was aborted because the peer's Slic version '{version}' is not supported.");
-                    }
+                    Debug.Assert(initializeBody is not null);
 
                     // Check the application protocol and set the parameters.
                     string protocolName = initializeBody.Value.ApplicationProtocolName;
@@ -203,12 +212,25 @@ internal class SlicConnection : IMultiplexedConnection
                             new InitializeBody(Protocol.IceRpc.Name, EncodeParameters()).Encode(ref encoder);
                         });
 
-                    // Read the Initialize frame.
-                    InitializeAckBody initializeAckBody = await ReadFrameAsync(
+                    // Read and decode the InitializeAck or Version frame.
+                    (InitializeAckBody? initializeAckBody, VersionBody? versionBody) = await ReadFrameAsync(
                         DecodeInitializeAckOrVersion,
                         cancellationToken).ConfigureAwait(false);
 
-                    DecodeParameters(initializeAckBody.Parameters);
+                    Debug.Assert(initializeAckBody is not null || versionBody is not null);
+
+                    if (initializeAckBody is not null)
+                    {
+                        DecodeParameters(initializeAckBody.Value.Parameters);
+                    }
+
+                    if (versionBody is not null)
+                    {
+                        // We only support V1 and the peer rejected V1.
+                        throw new IceRpcException(
+                            IceRpcError.ConnectionRefused,
+                            $"The connection was refused because the server only supports Slic version(s) {string.Join(", ", versionBody.Value.Versions)}.");
+                    }
                 }
             }
             catch (InvalidDataException exception)
@@ -254,18 +276,18 @@ internal class SlicConnection : IMultiplexedConnection
             return transportConnectionInformation;
         }
 
-        static (uint, InitializeBody?) DecodeInitialize(FrameType frameType, ReadOnlySequence<byte> buffer)
+        static (ulong, InitializeBody?) DecodeInitialize(FrameType? frameType, ReadOnlySequence<byte> buffer)
         {
             if (frameType != FrameType.Initialize)
             {
                 throw new InvalidDataException($"Received unexpected {frameType} frame.");
             }
 
-            return SliceEncoding.Slice2.DecodeBuffer<(uint, InitializeBody?)>(
+            return SliceEncoding.Slice2.DecodeBuffer<(ulong, InitializeBody?)>(
                 buffer,
                 (ref SliceDecoder decoder) =>
                 {
-                    uint version = decoder.DecodeVarUInt32();
+                    ulong version = decoder.DecodeVarUInt62();
                     if (version == SlicDefinitions.V1)
                     {
                         return (version, new InitializeBody(ref decoder));
@@ -278,28 +300,23 @@ internal class SlicConnection : IMultiplexedConnection
                 });
         }
 
-        static InitializeAckBody DecodeInitializeAckOrVersion(FrameType frameType, ReadOnlySequence<byte> buffer)
-        {
-            switch (frameType)
+        static (InitializeAckBody?, VersionBody?) DecodeInitializeAckOrVersion(
+            FrameType? frameType,
+            ReadOnlySequence<byte> buffer) =>
+            frameType switch
             {
-                case FrameType.InitializeAck:
-                    return SliceEncoding.Slice2.DecodeBuffer(
+                FrameType.InitializeAck => (
+                    SliceEncoding.Slice2.DecodeBuffer(
                         buffer,
-                        (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder));
-
-                case FrameType.Version:
-                    // We currently only support V1
-                    VersionBody versionBody = SliceEncoding.Slice2.DecodeBuffer(
+                        (ref SliceDecoder decoder) => new InitializeAckBody(ref decoder)),
+                    null),
+                FrameType.Version => (
+                    null,
+                    SliceEncoding.Slice2.DecodeBuffer(
                         buffer,
-                        (ref SliceDecoder decoder) => new VersionBody(ref decoder));
-                    throw new IceRpcException(
-                        IceRpcError.ConnectionAborted,
-                        $"The connection was aborted because the peer's Slic version(s) '{string.Join(", ", versionBody.Versions)}' are not supported.");
-
-                default:
-                    throw new InvalidDataException($"Received unexpected Slic frame: '{frameType}'.");
-            }
-        }
+                        (ref SliceDecoder decoder) => new VersionBody(ref decoder))),
+                _ => throw new InvalidDataException($"Received unexpected Slic frame: '{frameType}'."),
+            };
 
         void KeepAlive()
         {
@@ -327,27 +344,29 @@ internal class SlicConnection : IMultiplexedConnection
         }
 
         async ValueTask<T> ReadFrameAsync<T>(
-            Func<FrameType, ReadOnlySequence<byte>, T> decodeFunc,
+            Func<FrameType?, ReadOnlySequence<byte>, T> decodeFunc,
             CancellationToken cancellationToken)
         {
             (FrameType FrameType, int FrameSize, ulong?)? header =
                 await ReadFrameHeaderAsync(cancellationToken).ConfigureAwait(false);
 
+            ReadOnlySequence<byte> buffer;
             if (header is null || header.Value.FrameSize == 0)
             {
-                throw new InvalidDataException("Received invalid Slic frame.");
+                buffer = ReadOnlySequence<byte>.Empty;
             }
-
-            ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(
-                header.Value.FrameSize,
-                cancellationToken).ConfigureAwait(false);
-
-            if (buffer.Length > header.Value.FrameSize)
+            else
             {
-                buffer = buffer.Slice(0, header.Value.FrameSize);
+                buffer = await _duplexConnectionReader.ReadAtLeastAsync(
+                    header.Value.FrameSize,
+                    cancellationToken).ConfigureAwait(false);
+                if (buffer.Length > header.Value.FrameSize)
+                {
+                    buffer = buffer.Slice(0, header.Value.FrameSize);
+                }
             }
 
-            T decodedFrame = decodeFunc(header.Value.FrameType, buffer);
+            T decodedFrame = decodeFunc(header?.FrameType, buffer);
             _duplexConnectionReader.AdvanceTo(buffer.End);
             return decodedFrame;
         }
@@ -1239,19 +1258,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (buffer.IsEmpty)
             {
-                lock (_mutex)
-                {
-                    if (_isClosed)
-                    {
-                        return null;
-                    }
-                    else
-                    {
-                        // The duplex transport ReadAsync call returned an empty buffer. This indicates a peer
-                        // connection abort.
-                        throw new IceRpcException(IceRpcError.ConnectionAborted);
-                    }
-                }
+                return null;
             }
 
             if (TryDecodeHeader(
@@ -1324,6 +1331,14 @@ internal class SlicConnection : IMultiplexedConnection
 
                 if (header is null)
                 {
+                    lock (_mutex)
+                    {
+                        if (!_isClosed)
+                        {
+                            // Unexpected duplex connection shutdown.
+                            throw new IceRpcException(IceRpcError.ConnectionAborted);
+                        }
+                    }
                     // The peer has shut down the duplex connection.
                     break;
                 }
