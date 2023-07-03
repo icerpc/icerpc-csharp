@@ -65,8 +65,8 @@ internal class SlicConnection : IMultiplexedConnection
     private ulong? _lastRemoteUnidirectionalStreamId;
     private readonly TimeSpan _localIdleTimeout;
     private readonly int _maxBidirectionalStreams;
-    private readonly int _maxUnidirectionalStreams;
     private readonly int _maxStreamFrameSize;
+    private readonly int _maxUnidirectionalStreams;
     // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
     // an atomic operation.
     private readonly object _mutex = new();
