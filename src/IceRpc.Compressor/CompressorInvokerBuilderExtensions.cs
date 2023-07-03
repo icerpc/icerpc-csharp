@@ -7,7 +7,7 @@ namespace IceRpc.Extensions.DependencyInjection;
 
 /// <summary>Provides an extension method to add the compressor interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>
-public static class CompressInvokerBuilderExtensions
+public static class CompressorInvokerBuilderExtensions
 {
     /// <summary>Adds a <see cref="CompressorInterceptor" /> to this invoker builder.</summary>
     /// <param name="builder">The builder being configured.</param>
