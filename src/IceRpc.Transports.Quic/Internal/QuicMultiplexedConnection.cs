@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Net.Quic;
+using System.Net.Sockets;
 
 namespace IceRpc.Transports.Quic.Internal;
 
@@ -129,6 +130,10 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
                 cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
