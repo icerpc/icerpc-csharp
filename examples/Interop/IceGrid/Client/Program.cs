@@ -39,7 +39,7 @@ var helloProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
 // server addresses; the locator interceptor caches successful resolutions.
 await helloProxy.SayHelloAsync();
 
-// A second call would use the resolved server adress for `/hello` from the locator interceptor cache.
+// A second call would use the resolved server address for `/hello` from the locator interceptor cache.
 await helloProxy.SayHelloAsync();
 
 await connectionCache.ShutdownAsync();
