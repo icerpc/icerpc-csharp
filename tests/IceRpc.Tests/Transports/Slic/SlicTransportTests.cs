@@ -357,136 +357,6 @@ public class SlicTransportTests
                 "CancellationToken").EqualTo(connectCts.Token));
     }
 
-    [Test]
-    public async Task Connect_with_slic_version_unsupported_by_the_server()
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-          .AddSlicTest()
-          .BuildServiceProvider(validateScopes: true);
-
-        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var acceptTask = listener.AcceptAsync(default);
-        using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
-            new DuplexConnectionOptions(),
-            clientAuthenticationOptions: null);
-        await duplexClientConnection.ConnectAsync(default);
-        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
-        await using var _ = multiplexedServerConnection;
-
-        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
-
-        // Write the initialize frame.
-        await WriteInitializeFrameAsync(duplexClientConnection, version: 2);
-
-        // Connect the server connection to read the initialize frame. It will send the version frame since the version
-        // 2 is not supported.
-        var connectTask = multiplexedServerConnection.ConnectAsync(default);
-
-        // Read the version frame.
-        await ReadFrameAsync(reader);
-
-        // Act
-
-        // Shutdown the client connection because it doesn't support any of the versions returned by the server.
-        await duplexClientConnection.ShutdownWriteAsync(default);
-
-        // Assert
-        Assert.That(
-            () => connectTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
-    }
-
-    [Test]
-    public async Task Connect_with_server_that_returns_unsupported_slic_version()
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-          .AddSlicTest()
-          .BuildServiceProvider(validateScopes: true);
-
-        var multiplexedClientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
-        var duplexServerTransport = provider.GetRequiredService<IDuplexServerTransport>();
-        await using var listener = duplexServerTransport.Listen(
-            new ServerAddress(new Uri("icerpc://[::1]")),
-            options: new(),
-            serverAuthenticationOptions: null);
-        var acceptTask = listener.AcceptAsync(default);
-        await using var multiplexedClientConnection = multiplexedClientTransport.CreateConnection(
-            listener.ServerAddress,
-            new MultiplexedConnectionOptions(),
-            clientAuthenticationOptions: null);
-        var connectTask = multiplexedClientConnection.ConnectAsync(default);
-        (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
-        using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
-
-        // Read the initialize frame
-        await ReadFrameAsync(reader);
-
-        // Act
-
-        // Write the version frame with versions unsupported by the client.
-        await WriteFrameAsync(duplexServerConnection, FrameType.Version, new VersionBody(new ulong[] { 3 }).Encode);
-
-        // Assert
-        Assert.That(
-            () => connectTask,
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
-    }
-
-    [Test]
-    public async Task Connect_version_negotiation()
-    {
-        // Arrange
-        await using ServiceProvider provider = new ServiceCollection()
-          .AddSlicTest()
-          .BuildServiceProvider(validateScopes: true);
-
-        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
-        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
-        var acceptTask = listener.AcceptAsync(default);
-        using var duplexClientConnection = duplexClientTransport.CreateConnection(
-            listener.ServerAddress,
-            new DuplexConnectionOptions(),
-            clientAuthenticationOptions: null);
-        await duplexClientConnection.ConnectAsync(default);
-        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
-        await using var _ = multiplexedServerConnection;
-
-        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
-
-        // Act
-
-        // Write initialize frame
-        await WriteInitializeFrameAsync(duplexClientConnection, version: 2);
-
-        // Connect server connection, it doesn't support the client version so should return a version frame.
-        var connectTask = multiplexedServerConnection.ConnectAsync(default);
-        (FrameType versionFrameType, ReadOnlySequence<byte> versionBuffer) = await ReadFrameAsync(reader);
-
-        // Write back an initialize version with a supported version.
-        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
-
-        // Wait and read the initialize ack frame from the server.
-        (FrameType initializeAckFrameType, ReadOnlySequence<byte> _) = await ReadFrameAsync(reader);
-
-        // Assert
-        Assert.That(versionFrameType, Is.EqualTo(FrameType.Version));
-        Assert.That(DecodeVersionBody(versionBuffer).Versions, Is.EqualTo(new ulong[] { 1 }));
-        Assert.That(initializeAckFrameType, Is.EqualTo(FrameType.InitializeAck));
-        Assert.That(() => connectTask, Throws.Nothing);
-
-        static VersionBody DecodeVersionBody(ReadOnlySequence<byte> buffer)
-        {
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            var versionBody = new VersionBody(ref decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return versionBody;
-        }
-    }
-
     /// <summary>Verifies that disabling the idle timeout doesn't abort the connection if it's idle.</summary>
     [Test]
     public async Task Connection_with_no_idle_timeout_is_not_aborted_when_idle()
@@ -663,6 +533,114 @@ public class SlicTransportTests
             exception?.IceRpcError,
             Is.EqualTo(IceRpcError.IceRpcError),
             $"The test failed with an unexpected IceRpcError {exception}");
+    }
+
+    [Test]
+    public async Task Send_initialize_frame_with_unsupported_slic_version_replies_with_version_frame()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+          .AddSlicTest()
+          .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        await duplexClientConnection.ConnectAsync(default);
+
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+        var writer = new MemoryBufferWriter(new byte[1024]);
+
+        // Act
+        EncodeInitializeFrame(writer, version: 2);
+        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        var connectTask = multiplexedServerConnection.ConnectAsync(default);
+        (FrameType frameType, int frameSize, VersionBody versionBody) = await ReadFrameHeaderAsync(reader);
+        writer.Clear();
+        EncodeInitializeFrame(writer, version: 1);
+        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
+
+        // Assert
+        Assert.That(frameType, Is.EqualTo(FrameType.Version));
+        Assert.That(versionBody.Versions, Is.EqualTo(new ulong[] { 1 }));
+        Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>()); // The initialize frame is incomplete.
+
+        await multiplexedServerConnection.DisposeAsync();
+
+        void EncodeInitializeFrame(IBufferWriter<byte> writer, ulong version)
+        {
+            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, IList<byte>>());
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeFrameType(FrameType.Initialize);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encoder.EncodeVarUInt62(version);
+            initializeBody.Encode(ref encoder);
+            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        }
+
+        async Task<(FrameType FrameType, int FrameSize, VersionBody VersionBody)> ReadFrameHeaderAsync(
+            DuplexConnectionReader reader)
+        {
+            while (true)
+            {
+                // Read data from the pipe reader.
+                if (!reader.TryRead(out ReadOnlySequence<byte> buffer))
+                {
+                    buffer = await reader.ReadAsync(default);
+                }
+
+                if (TryDecodeHeader(
+                    buffer,
+                    out (FrameType FrameType, int FrameSize) header,
+                    out int consumed))
+                {
+                    reader.AdvanceTo(buffer.GetPosition(consumed));
+                    buffer = await reader.ReadAtLeastAsync(header.FrameSize);
+                    return (header.FrameType, header.FrameSize, DecodeVersionBody(buffer));
+                }
+                else
+                {
+                    reader.AdvanceTo(buffer.Start, buffer.End);
+                }
+            }
+        }
+
+        static VersionBody DecodeVersionBody(ReadOnlySequence<byte> buffer)
+        {
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+            var versionBody = new VersionBody(ref decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return versionBody;
+        }
+
+        static bool TryDecodeHeader(
+            ReadOnlySequence<byte> buffer,
+            out (FrameType FrameType, int FrameSize) header,
+            out int consumed)
+        {
+            header = default;
+            consumed = default;
+
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+
+            // Decode the frame type and frame size.
+            if (!decoder.TryDecodeUInt8(out byte frameType) ||
+                !decoder.TryDecodeSize(out header.FrameSize))
+            {
+                return false;
+            }
+            header.FrameType = frameType.AsFrameType();
+
+            consumed = (int)decoder.Consumed;
+            return true;
+        }
     }
 
     /// <summary>This test verifies that stream flow control prevents a new stream from being created under the
