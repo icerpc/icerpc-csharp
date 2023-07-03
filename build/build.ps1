@@ -7,8 +7,6 @@ param (
     [switch]$build,
     [switch]$clean,
     [switch]$doc,
-    [switch]$test,
-    [switch]$pack,
     [switch]$publish,
     [switch]$help,
     [switch]$coverage,
@@ -79,10 +77,10 @@ function Get-Help() {
     Write-Host ""
     Write-Host "Actions (defaults to -build):"
     Write-Host "  -build                    Build the IceRPC assemblies and the slicec-cs compiler."
-    Write-Host "  -pack                     Create the IceRPC NuGet packages."
-    Write-Host "  -publish                  Publish the IceRPC NuGet packages to the global-packages source."
+    Write-Host "  -publish                  Creates and publishes the IceRPC NuGet packages to the local global-packages source."
     Write-Host "  -clean                    Clean all build artifacts."
-    Write-Host "  -test                     Runs tests."
+    Write-Host "  -coverage                 Generate code coverage report from the tests runs."
+    Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -doc                      Generate the C# API documentation"
     Write-Host "                            Requires docfx from https://github.com/dotnet/docfx"
     Write-Host ""
@@ -90,12 +88,11 @@ function Get-Help() {
     Write-Host "  -config                   Build configuration: debug or release, the default is debug."
     Write-Host "  -version                  The version override for the IceRPC NuGet packages. The default version is the version"
     Write-Host "                            specified in the build/IceRpc.Version.props file."
-    Write-Host "  -coverage                 Collect code coverage from test runs."
-    Write-Host "                            Requires reportgenerator command from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -help                     Print help and exit."
 }
 
-function Pack($config) {
+function Publish($config) {
+    Build $config
     $dotnetConfiguration = DotnetConfiguration($config)
     Push-Location "tools\IceRpc.Slice.Tools"
     RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
@@ -104,10 +101,7 @@ function Pack($config) {
     Push-Location "src\IceRpc.Templates"
     RunCommand "dotnet" @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
-}
 
-function Publish($config) {
-    $dotnetConfiguration = DotnetConfiguration($config)
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
     Remove-Item $global_packages"\IceRpc.Slice.Tools\$version" -Recurse -Force -ErrorAction Ignore
@@ -130,23 +124,20 @@ function RunCommand($command, $arguments) {
     }
 }
 
-function Test($config, $coverage) {
+function CodeCoverage($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    $arguments = @('test', '--configuration', $dotnetConfiguration)
-    if ($coverage) {
-       $runsettings = Resolve-Path -Path "./build/Coverlet.runsettings"
-       $arguments += @("-p:RunSettingsFilePath=$runsettings", '--collect:"XPlat Code Coverage"')
-    }
+    $runsettings = Resolve-Path -Path "./build/Coverlet.runsettings"
+    $arguments = @('test', '--configuration', $dotnetConfiguration, "-p:RunSettingsFilePath=$runsettings", '--collect:"XPlat Code Coverage"')
+
     RunCommand "dotnet" $arguments
-    if ($coverage) {
-        $arguments = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageReport')
-        if ($env:REPORTGENERATOR_LICENSE) {
-            $arguments += @("-version:$env:REPORTGENERATOR_LICENSE")
-        }
-        RunCommand "reportgenerator" $arguments
-        # Remove code coverage results after the report has been generated.
-        Get-ChildItem -Path .\tests\ -Filter TestResults -Recurse | Remove-Item -Recurse -Force
+
+    $arguments = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageReport')
+    if ($env:REPORTGENERATOR_LICENSE) {
+        $arguments += @("-version:$env:REPORTGENERATOR_LICENSE")
     }
+    RunCommand "reportgenerator" $arguments
+    # Remove code coverage results after the report has been generated.
+    Get-ChildItem -Path .\tests\ -Filter TestResults -Recurse | Remove-Item -Recurse -Force
 }
 
 $configs = "debug","release"
@@ -157,7 +148,7 @@ if ( $configs -notcontains $config ) {
     exit 1
 }
 
-$actions = @("build", "clean", "doc", "test", "pack", "publish")
+$actions = @("build", "clean", "doc", "coverage", "publish")
 $passedInActions = @()
 
 foreach ($key in $PSBoundParameters.Keys) {
@@ -187,17 +178,14 @@ foreach ($action in $passedInActions) {
         "build" {
             Build $config
         }
-        "pack" {
-            Pack $config
-        }
         "publish" {
             Publish $config
         }
         "clean" {
             Clean $config
         }
-        "test" {
-           Test $config $coverage
+        "coverage" {
+           CodeCoverage $config
         }
         "doc" {
             Doc
