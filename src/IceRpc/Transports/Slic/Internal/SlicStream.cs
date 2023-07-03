@@ -64,12 +64,12 @@ internal class SlicStream : IMultiplexedStream
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _writesClosePending;
 
-    internal SlicStream(SlicConnection connection, bool bidirectional, bool remote)
+    internal SlicStream(SlicConnection connection, bool isBidirectional, bool isRemote)
     {
         _connection = connection;
 
-        IsBidirectional = bidirectional;
-        IsRemote = remote;
+        IsBidirectional = isBidirectional;
+        IsRemote = isRemote;
 
         if (!IsBidirectional)
         {
@@ -289,6 +289,7 @@ internal class SlicStream : IMultiplexedStream
     internal ValueTask<bool> ReceivedDataFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
         Debug.Assert(_inputPipeReader is not null);
+
         return _state.HasFlag(State.ReadsClosed) ?
             new(false) :
             _inputPipeReader.ReceivedDataFrameAsync(size, endStream, cancellationToken);
@@ -432,6 +433,6 @@ internal class SlicStream : IMultiplexedStream
     private enum State : int
     {
         ReadsClosed = 1,
-        WritesClosed = 2,
+        WritesClosed = 2
     }
 }
