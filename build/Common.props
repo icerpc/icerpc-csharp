@@ -4,11 +4,7 @@
     <Import Project="$(MSBuildThisFileDirectory)IceRpc.Version.props" />
     <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <Prefer32Bit>false</Prefer32Bit>
-        <FileAlignment>512</FileAlignment>
-        <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
-        <DefineConstants>TRACE</DefineConstants>
         <Nullable>enable</Nullable>
         <TargetFramework>net7.0</TargetFramework>
         <LangVersion>11.0</LangVersion>
