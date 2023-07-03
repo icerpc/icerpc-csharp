@@ -4,10 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <LangVersion>10.0</LangVersion>
-    <ImplicitUsings>true</ImplicitUsings>
-    <WarningLevel>4</WarningLevel>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
