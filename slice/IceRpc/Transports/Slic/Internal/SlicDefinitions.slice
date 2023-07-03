@@ -64,11 +64,11 @@ unchecked enum ParameterKey : varuint62 {
     /// closed.
     IdleTimeout = 2
 
-    /// The maximum packet size in bytes.
-    PacketMaxSize = 3
-
     /// The initial stream window size.
-    InitialStreamWindowSize = 4
+    InitialStreamWindowSize = 3
+
+    /// The maximum stream frame size in bytes.
+    MaxStreamFrameSize = 4
 }
 
 typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
@@ -77,9 +77,6 @@ typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
 [cs::internal]
 [cs::readonly]
 compact struct InitializeBody {
-    /// The application protocol name.
-    applicationProtocolName: string
-
     /// The parameters.
     parameters: ParameterFields
 }

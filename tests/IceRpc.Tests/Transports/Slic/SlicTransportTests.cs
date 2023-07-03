@@ -467,7 +467,7 @@ public class SlicTransportTests
 
         void EncodeInitializeFrame(IBufferWriter<byte> writer, ulong version)
         {
-            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, IList<byte>>());
+            var initializeBody = new InitializeBody(new Dictionary<ParameterKey, IList<byte>>());
             var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
             encoder.EncodeFrameType(FrameType.Initialize);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
@@ -605,12 +605,12 @@ public class SlicTransportTests
         services.AddOptions<SlicTransportOptions>("server").Configure(options =>
             {
                 options.InitialStreamWindowSize = 6893;
-                options.PacketMaxSize = 2098;
+                options.MaxStreamFrameSize = 2098;
             });
         services.AddOptions<SlicTransportOptions>("client").Configure(options =>
             {
                 options.InitialStreamWindowSize = 2405;
-                options.PacketMaxSize = 4567;
+                options.MaxStreamFrameSize = 4567;
             });
         await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
 
@@ -625,8 +625,8 @@ public class SlicTransportTests
 
         Assert.That(serverConnection.PeerInitialStreamWindowSize, Is.EqualTo(2405));
         Assert.That(clientConnection.PeerInitialStreamWindowSize, Is.EqualTo(6893));
-        Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
-        Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
+        Assert.That(serverConnection.PeerMaxStreamFrameSize, Is.EqualTo(4567));
+        Assert.That(clientConnection.PeerMaxStreamFrameSize, Is.EqualTo(2098));
     }
 
     [TestCase(1024 * 32)]

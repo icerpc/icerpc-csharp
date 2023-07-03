@@ -23,14 +23,15 @@ internal class SlicConnection : IMultiplexedConnection
     /// <summary>Gets the minimum size of the segment requested from <see cref="Pool" />.</summary>
     internal int MinSegmentSize { get; }
 
-    /// <summary>Gets the maximum size of packets accepted by the peer. This property is set to the <see
-    /// cref="ParameterKey.PacketMaxSize"/> value carried by the <see cref="FrameType.Initialize" /> frame.</summary>
-    internal int PeerPacketMaxSize { get; private set; }
-
     /// <summary>Gets the peer's initial stream window size. This property is set to the <see
     /// cref="ParameterKey.InitialStreamWindowSize"/> value carried by the <see cref="FrameType.Initialize" />
     /// frame.</summary>
     internal int PeerInitialStreamWindowSize { get; private set; }
+
+    /// <summary>Gets the maximum size of stream frames accepted by the peer. This property is set to the <see
+    /// cref="ParameterKey.MaxStreamFrameSize"/> value carried by the <see cref="FrameType.Initialize" />
+    /// frame.</summary>
+    internal int PeerMaxStreamFrameSize { get; private set; }
 
     /// <summary>Gets the <see cref="MemoryPool{T}" /> used for obtaining memory buffers.</summary>
     internal MemoryPool<byte> Pool { get; }
@@ -65,12 +66,12 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly TimeSpan _localIdleTimeout;
     private readonly int _maxBidirectionalStreams;
     private readonly int _maxUnidirectionalStreams;
+    private readonly int _maxStreamFrameSize;
     // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
     // an atomic operation.
     private readonly object _mutex = new();
     private ulong _nextBidirectionalId;
     private ulong _nextUnidirectionalId;
-    private readonly int _packetMaxSize;
     private IceRpcError? _peerCloseError;
     private TimeSpan _peerIdleTimeout = Timeout.InfiniteTimeSpan;
     private int _pendingPongCount;
@@ -178,15 +179,6 @@ internal class SlicConnection : IMultiplexedConnection
                             $"The connection was aborted because the peer's Slic version '{version}' is not supported.");
                     }
 
-                    // Check the application protocol and set the parameters.
-                    string protocolName = initializeBody.Value.ApplicationProtocolName;
-                    if (!Protocol.TryParse(protocolName, out Protocol? protocol) || protocol != Protocol.IceRpc)
-                    {
-                        throw new IceRpcException(
-                            IceRpcError.ConnectionAborted,
-                            $"The connection was aborted because the peer's application protocol '{protocolName}' is not supported.");
-                    }
-
                     DecodeParameters(initializeBody.Value.Parameters);
 
                     // Write back an InitializeAck frame.
@@ -200,7 +192,7 @@ internal class SlicConnection : IMultiplexedConnection
                         (ref SliceEncoder encoder) =>
                         {
                             encoder.EncodeVarUInt62(SlicDefinitions.V1);
-                            new InitializeBody(Protocol.IceRpc.Name, EncodeParameters()).Encode(ref encoder);
+                            new InitializeBody(EncodeParameters()).Encode(ref encoder);
                         });
 
                     // Read the Initialize frame.
@@ -549,7 +541,8 @@ internal class SlicConnection : IMultiplexedConnection
 
         InitialStreamWindowSize = slicOptions.InitialStreamWindowSize;
         _localIdleTimeout = slicOptions.IdleTimeout;
-        _packetMaxSize = slicOptions.PacketMaxSize;
+        _maxStreamFrameSize = slicOptions.MaxStreamFrameSize;
+
         _acceptStreamChannel = Channel.CreateUnbounded<IMultiplexedStream>(new UnboundedChannelOptions
         {
             SingleReader = true,
@@ -567,10 +560,6 @@ internal class SlicConnection : IMultiplexedConnection
             _duplexConnection,
             options.Pool,
             options.MinSegmentSize);
-
-        // Initially set the peer packet max size to the local max size to ensure we can receive the first initialize
-        // frame.
-        PeerPacketMaxSize = _packetMaxSize;
 
         // We use the same stream ID numbering scheme as Quic.
         if (IsServer)
@@ -740,8 +729,8 @@ internal class SlicConnection : IMultiplexedConnection
                     Debug.Assert(sendCredit > 0);
                 }
 
-                // Gather data from source1 or source2 up to sendCredit bytes or the Slic packet maximum size.
-                int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
+                // Gather data from source1 or source2 up to sendCredit bytes or the peer maximum stream frame size.
+                int sendMaxSize = Math.Min(sendCredit, PeerMaxStreamFrameSize);
                 ReadOnlySequence<byte> sendSource1;
                 ReadOnlySequence<byte> sendSource2;
                 if (!source1.IsEmpty)
@@ -880,7 +869,7 @@ internal class SlicConnection : IMultiplexedConnection
 
     private void DecodeParameters(IDictionary<ParameterKey, IList<byte>> parameters)
     {
-        int? peerPacketMaxSize = null;
+        int? maxStreamFrameSize = null;
         int? peerInitialStreamWindowSize = null;
         foreach ((ParameterKey key, IList<byte> buffer) in parameters)
         {
@@ -914,13 +903,13 @@ internal class SlicConnection : IMultiplexedConnection
                     }
                     break;
                 }
-                case ParameterKey.PacketMaxSize:
+                case ParameterKey.MaxStreamFrameSize:
                 {
-                    peerPacketMaxSize = DecodeParamValue(buffer);
-                    if (peerPacketMaxSize < 1024)
+                    maxStreamFrameSize = DecodeParamValue(buffer);
+                    if (maxStreamFrameSize < 1024)
                     {
                         throw new InvalidDataException(
-                            "The PacketMaxSize connection parameter is invalid, it must be greater than 1KB.");
+                            "The MaxStreamFrameSize connection parameter is invalid, it must be greater than 1KB.");
                     }
                     break;
                 }
@@ -938,14 +927,14 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        if (peerPacketMaxSize is null)
+        if (maxStreamFrameSize is null)
         {
             throw new InvalidDataException(
-                "The peer didn't send the required PacketMaxSize connection parameter.");
+                "The peer didn't send the required MaxStreamFrameSize connection parameter.");
         }
         else
         {
-            PeerPacketMaxSize = peerPacketMaxSize.Value;
+            PeerMaxStreamFrameSize = maxStreamFrameSize.Value;
         }
 
         if (peerInitialStreamWindowSize is null)
@@ -981,7 +970,7 @@ internal class SlicConnection : IMultiplexedConnection
         var parameters = new List<KeyValuePair<ParameterKey, IList<byte>>>
         {
             // Required parameters.
-            EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
+            EncodeParameter(ParameterKey.MaxStreamFrameSize, (ulong)_maxStreamFrameSize),
             EncodeParameter(ParameterKey.InitialStreamWindowSize, (ulong)InitialStreamWindowSize)
         };
 
