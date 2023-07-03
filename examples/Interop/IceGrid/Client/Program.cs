@@ -34,50 +34,12 @@ pipeline = pipeline
 // Create a hello proxy with the invocation pipeline as its invoker. Note that this proxy has no server address.
 var helloProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
-menu();
-string? line = null;
-do
-{
-    try
-    {
-        Console.Write("==> ");
-        await Console.Out.FlushAsync();
-        line = await Console.In.ReadLineAsync();
 
-        switch (line)
-        {
-            case "t":
-                // The locator interceptor calls the locator during this invocation to resolve `/hello` into one or more
-                // server addresses; the locator interceptor caches successful resolutions.
-                await helloProxy.SayHelloAsync();
-                break;
-            case "s":
-                await helloProxy.ShutdownAsync();
-                break;
-            case "x":
-                break;
-            case "?":
-                menu();
-                break;
-            default:
-                Console.WriteLine($"unknown command '{line}'");
-                menu();
-                break;
-        };
-    }
-    catch (Exception exception)
-    {
-        await Console.Error.WriteLineAsync(exception.ToString());
-    }
-} while (line != "x");
+// The locator interceptor calls the locator during this invocation to resolve `/hello` into one or more
+// server addresses; the locator interceptor caches successful resolutions.
+await helloProxy.SayHelloAsync();
+
+// A second call would use the resolved server adress for `/hello` from the locator interceptor cache.
+await helloProxy.SayHelloAsync();
 
 await connectionCache.ShutdownAsync();
-
-static void menu() =>
-    Console.WriteLine(
-        "usage:\n" +
-        "t: send greeting\n" +
-        "s: shutdown server\n" +
-        "x: exit\n" +
-        "?: help\n"
-    );
