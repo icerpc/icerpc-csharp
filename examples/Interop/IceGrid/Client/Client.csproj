@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../Hello.slice" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
