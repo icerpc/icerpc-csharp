@@ -22,9 +22,8 @@ build.cmd -help
 - [Running the tests](#running-the-tests)
   - [C# tests](#c-tests)
   - [Rust tests](#rust-tests)
-- [Creating NuGet packages](#creating-nuget-packages)
+- [Creating and publishing NuGet packages](#creating-and-publishing-nuget-packages)
   - [Slice tools](#slice-tools)
-- [Publishing NuGet packages](#publishing-nuget-packages)
 - [Generating the API reference](#generating-the-api-reference)
 - [Generating the code coverage reports](#generating-the-code-coverage-reports)
 - [Shutting down background MSBuild servers](#shutting-down-background-msbuild-servers)
@@ -82,7 +81,7 @@ This command builds slicec-cs, all the IceRpc assemblies, and the IceRpc tests w
 
 The -build/--build action is optional since it's the default build action.
 
-> **Note** TEMPORARY
+> **Note** TODO: remove once the repository is public
 >
 > The build system for the slicec-cs compiler fetches the slicec library from the slicec repository. If the build fails
 > to fetch slicec with a permission denied error, set the following environment variable:
@@ -121,19 +120,22 @@ cargo test
 
 This command runs the test suite for `slicec-cs`.
 
-## Creating NuGet packages
+## Creating and publishing NuGet packages
 
 Linux or macOS
 ```shell
-./build.sh --build --pack
+./build.sh --publish
 ```
 
 Windows
 ```shell
-build.cmd -build -pack
+build.cmd -publish
 ```
 
-This command creates all the IceRpc NuGet packages.
+This command creates all the IceRpc NuGet packages and publishes them to your local `global-packages` source.
+
+> **Note**
+> This is an essential step if you want to use a local build with the [examples](examples).
 
 ### Slice tools
 
@@ -149,23 +151,6 @@ for all supported platforms. The expected layout of the staging directory is
 - `windows-x64`: Windows x64
 
 Make sure that all these compilers are available when you set `SLICEC_CS_STAGING_PATH`.
-
-## Publishing NuGet packages
-
-Linux or macOS
-```shell
-./build.sh --publish
-```
-
-Windows
-```shell
-build.cmd -publish
-```
-
-This command publishes all the NuGet packages created with `-pack/--pack` to your local `global-packages` source.
-
-> **Note**
-> This is an essential step if you want to use a local build with the [examples](examples).
 
 ## Generating the API reference
 
@@ -190,12 +175,12 @@ docfx serve docfx/_site
 
 Linux or macOS
 ```shell
-./build.sh --test --coverage
+./build.sh --coverage
 ```
 
 Windows
 ```shell
-build.cmd -test -coverage
+build.cmd -coverage
 ```
 
 ## Shutting down background MSBuild servers
