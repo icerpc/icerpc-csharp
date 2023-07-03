@@ -1,0 +1,15 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "icerpc",
+    "Slic",
+    "varint",
+    "varuint",
+    "ZeroC",
+  ],
+  "dictionaries": [
+    "softwareTerms",
+    "en_US"
+  ]
+}
