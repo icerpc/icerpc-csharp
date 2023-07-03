@@ -280,7 +280,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             if (frameType != FrameType.Initialize)
             {
-                throw new InvalidDataException($"Received unexpected Slic frame: '{frameType}'.");
+                throw new InvalidDataException($"Received unexpected {frameType} frame.");
             }
 
             return SliceEncoding.Slice2.DecodeBuffer<(ulong, InitializeBody?)>(
@@ -463,7 +463,7 @@ internal class SlicConnection : IMultiplexedConnection
                 await streamCountSemaphore.WaitAsync(createStreamCts.Token).ConfigureAwait(false);
             }
 
-            return new SlicStream(this, bidirectional, remote: false);
+            return new SlicStream(this, bidirectional, isRemote: false);
         }
         catch (OperationCanceledException)
         {
@@ -1029,14 +1029,42 @@ internal class SlicConnection : IMultiplexedConnection
         }
     }
 
-    private Task ReadFrameAsync(FrameType type, int size, ulong? streamId, CancellationToken cancellationToken)
+    private bool IsUnknownStream(ulong streamId)
     {
-        if (type >= FrameType.Stream && streamId is null)
+        bool isRemote = streamId % 2 == (IsServer ? 0ul : 1ul);
+        bool isBidirectional = streamId % 4 < 2;
+        if (isRemote)
+        {
+            if (isBidirectional)
+            {
+                return _lastRemoteBidirectionalStreamId is null || streamId > _lastRemoteBidirectionalStreamId;
+            }
+            else
+            {
+                return _lastRemoteUnidirectionalStreamId is null || streamId > _lastRemoteUnidirectionalStreamId;
+            }
+        }
+        else
+        {
+            if (isBidirectional)
+            {
+                return streamId >= _nextBidirectionalId;
+            }
+            else
+            {
+                return streamId >= _nextUnidirectionalId;
+            }
+        }
+    }
+
+    private Task ReadFrameAsync(FrameType frameType, int size, ulong? streamId, CancellationToken cancellationToken)
+    {
+        if (frameType >= FrameType.Stream && streamId is null)
         {
             throw new InvalidDataException("Received stream frame without stream ID.");
         }
 
-        switch (type)
+        switch (frameType)
         {
             case FrameType.Close:
             {
@@ -1053,37 +1081,52 @@ internal class SlicConnection : IMultiplexedConnection
             case FrameType.Stream:
             case FrameType.StreamLast:
             {
-                return ReadStreamDataFrameAsync(type, size, streamId!.Value, cancellationToken);
+                return ReadStreamDataFrameAsync(frameType, size, streamId!.Value, cancellationToken);
             }
             case FrameType.StreamWindowUpdate:
             {
+                if (IsUnknownStream(streamId!.Value))
+                {
+                    throw new InvalidDataException($"Received {frameType} frame for unknown stream.");
+                }
+
                 return ReadStreamWindowUpdateFrameAsync(size, streamId!.Value, cancellationToken);
             }
             case FrameType.StreamReadsClosed:
-            {
-                if (_streams.TryGetValue(streamId!.Value, out SlicStream? stream))
-                {
-                    stream.ReceivedReadsClosedFrame();
-                }
-                return Task.CompletedTask;
-            }
             case FrameType.StreamWritesClosed:
             {
-                if (_streams.TryGetValue(streamId!.Value, out SlicStream? stream))
+                if (size > 0)
                 {
-                    stream.ReceivedWritesClosedFrame();
+                    throw new InvalidDataException($"Unexpected body for {frameType} frame.");
+                }
+                if (IsUnknownStream(streamId!.Value))
+                {
+                    throw new InvalidDataException($"Received {frameType} frame for unknown stream.");
+                }
+
+                if (_streams.TryGetValue(streamId.Value, out SlicStream? stream))
+                {
+                    if (frameType == FrameType.StreamWritesClosed)
+                    {
+                        stream.ReceivedWritesClosedFrame();
+                    }
+                    else
+                    {
+                        stream.ReceivedReadsClosedFrame();
+                    }
                 }
                 return Task.CompletedTask;
             }
             default:
             {
-                throw new InvalidDataException($"Received unexpected Slic frame '{type}'.");
+                throw new InvalidDataException($"Received unexpected {frameType} frame.");
             }
         }
 
         async Task ReadCloseFrameAsync(int size, CancellationToken cancellationToken)
         {
             CloseBody closeBody = await ReadFrameBodyAsync(
+                FrameType.Close,
                 size,
                 (ref SliceDecoder decoder) => new CloseBody(ref decoder),
                 cancellationToken).ConfigureAwait(false);
@@ -1130,6 +1173,7 @@ internal class SlicConnection : IMultiplexedConnection
         {
             // Read the ping frame.
             PingBody pingBody = await ReadFrameBodyAsync(
+                FrameType.Ping,
                 size,
                 (ref SliceDecoder decoder) => new PingBody(ref decoder),
                 cancellationToken).ConfigureAwait(false);
@@ -1145,6 +1189,7 @@ internal class SlicConnection : IMultiplexedConnection
                 // Ensure the pong frame payload value is expected.
 
                 PongBody pongBody = await ReadFrameBodyAsync(
+                    FrameType.Pong,
                     size,
                     (ref SliceDecoder decoder) => new PongBody(ref decoder),
                     cancellationToken).ConfigureAwait(false);
@@ -1158,13 +1203,14 @@ internal class SlicConnection : IMultiplexedConnection
             else
             {
                 // If not waiting for a pong frame, this pong frame is unexpected.
-                throw new InvalidDataException($"Received an unexpected {nameof(FrameType.Pong)} frame.");
+                throw new InvalidDataException($"Received unexpected {nameof(FrameType.Pong)} frame.");
             }
         }
 
         async Task ReadStreamWindowUpdateFrameAsync(int size, ulong streamId, CancellationToken cancellationToken)
         {
             StreamWindowUpdateBody frame = await ReadFrameBodyAsync(
+                FrameType.StreamWindowUpdate,
                 size,
                 (ref SliceDecoder decoder) => new StreamWindowUpdateBody(ref decoder),
                 cancellationToken).ConfigureAwait(false);
@@ -1174,9 +1220,16 @@ internal class SlicConnection : IMultiplexedConnection
             }
         }
 
-        async Task<T> ReadFrameBodyAsync<T>(int size, DecodeFunc<T> decodeFunc, CancellationToken cancellationToken)
+        async Task<T> ReadFrameBodyAsync<T>(
+            FrameType frameType,
+            int size,
+            DecodeFunc<T> decodeFunc,
+            CancellationToken cancellationToken)
         {
-            Debug.Assert(size > 0);
+            if (size <= 0)
+            {
+                throw new InvalidDataException($"Unexpected empty body for {frameType} frame.");
+            }
 
             ReadOnlySequence<byte> buffer = await _duplexConnectionReader.ReadAtLeastAsync(size, cancellationToken)
                 .ConfigureAwait(false);
@@ -1243,6 +1296,11 @@ internal class SlicConnection : IMultiplexedConnection
             // If it's a stream frame, try to decode the stream ID
             if (header.FrameType >= FrameType.Stream)
             {
+                if (header.FrameSize == 0)
+                {
+                    throw new InvalidDataException("Invalid stream frame size.");
+                }
+
                 consumed = (int)decoder.Consumed;
                 if (!decoder.TryDecodeVarUInt62(out ulong streamId))
                 {
@@ -1250,6 +1308,11 @@ internal class SlicConnection : IMultiplexedConnection
                 }
                 header.StreamId = streamId;
                 header.FrameSize -= (int)decoder.Consumed - consumed;
+
+                if (header.FrameSize < 0)
+                {
+                    throw new InvalidDataException("Invalid stream frame size.");
+                }
             }
 
             consumed = (int)decoder.Consumed;
@@ -1344,27 +1407,29 @@ internal class SlicConnection : IMultiplexedConnection
         if (!isBidirectional && !isRemote)
         {
             throw new InvalidDataException(
-                "Received unexpected Slic stream frame on local unidirectional stream.");
+                "Received unexpected stream frame on local unidirectional stream.");
         }
         else if (size == 0 && !endStream)
         {
-            throw new InvalidDataException(
-                "Received invalid Slic stream frame, received 0 bytes without end of stream.");
+            throw new InvalidDataException($"Received invalid {nameof(FrameType.Stream)} frame.");
         }
 
-        if (!_streams.TryGetValue(streamId, out SlicStream? stream) &&
-            isRemote &&
-            !IsKnownRemoteStream(streamId, isBidirectional))
+        if (!_streams.TryGetValue(streamId, out SlicStream? stream) && isRemote && IsUnknownStream(streamId))
         {
             // Create a new remote stream.
 
             if (size == 0)
             {
-                throw new InvalidDataException("Received empty Slic stream frame on new stream.");
+                throw new InvalidDataException("Received empty stream frame on new stream.");
             }
 
             if (isBidirectional)
             {
+                if (streamId > _lastRemoteBidirectionalStreamId + 4)
+                {
+                    throw new InvalidDataException("Invalid stream ID.");
+                }
+
                 if (_bidirectionalStreamCount == _maxBidirectionalStreams)
                 {
                     throw new IceRpcException(
@@ -1375,6 +1440,11 @@ internal class SlicConnection : IMultiplexedConnection
             }
             else
             {
+                if (streamId > _lastRemoteUnidirectionalStreamId + 4)
+                {
+                    throw new InvalidDataException("Invalid stream ID.");
+                }
+
                 if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
                 {
                     throw new IceRpcException(
@@ -1386,7 +1456,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             // The stream is registered with the connection and queued on the channel. The caller of AcceptStreamAsync
             // is responsible for cleaning up the stream.
-            stream = new SlicStream(this, isBidirectional, remote: true);
+            stream = new SlicStream(this, isBidirectional, isRemote: true);
 
             try
             {
@@ -1421,7 +1491,6 @@ internal class SlicConnection : IMultiplexedConnection
         }
 
         bool isDataConsumed = false;
-
         if (stream is not null)
         {
             // Let the stream consume the stream frame data.
@@ -1448,18 +1517,6 @@ internal class SlicConnection : IMultiplexedConnection
 
             pipe.Writer.Complete();
             pipe.Reader.Complete();
-        }
-
-        bool IsKnownRemoteStream(ulong streamId, bool bidirectional)
-        {
-            if (bidirectional)
-            {
-                return _lastRemoteBidirectionalStreamId is not null && streamId <= _lastRemoteBidirectionalStreamId;
-            }
-            else
-            {
-                return _lastRemoteUnidirectionalStreamId is not null && streamId <= _lastRemoteUnidirectionalStreamId;
-            }
         }
     }
 

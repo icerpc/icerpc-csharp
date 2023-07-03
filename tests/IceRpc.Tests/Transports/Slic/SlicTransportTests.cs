@@ -18,6 +18,75 @@ namespace IceRpc.Tests.Transports.Slic;
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportTests
 {
+    private static IEnumerable<TestCaseData> InvalidConnectionFrames
+    {
+        get
+        {
+            // TestCase(FrameType frameType, bool emptyBody)
+
+            yield return new TestCaseData(nameof(FrameType.Close), false);
+            yield return new TestCaseData(nameof(FrameType.Close), true);
+            yield return new TestCaseData(nameof(FrameType.Ping), false);
+            yield return new TestCaseData(nameof(FrameType.Ping), true);
+            yield return new TestCaseData(nameof(FrameType.Pong), false);
+            yield return new TestCaseData(nameof(FrameType.Pong), true);
+        }
+    }
+
+    private static IEnumerable<TestCaseData> ConnectionProtocolErrors
+    {
+        get
+        {
+            // Unexpected frames after connection establishment.
+            foreach (FrameType frameType in new FrameType[] {
+                    FrameType.Initialize,
+                    FrameType.InitializeAck,
+                    FrameType.Version
+                })
+            {
+                yield return new TestCaseData(
+                    (IDuplexConnection connection) => WriteFrameAsync(connection, frameType),
+                    $"Received unexpected {frameType} frame.");
+            }
+
+            // Pong frame without Ping frame.
+            yield return new TestCaseData(
+                (IDuplexConnection connection) => WriteFrameAsync(connection, FrameType.Pong, new PongBody(64).Encode),
+                $"Received unexpected {nameof(FrameType.Pong)} frame.");
+
+            // Stream frames which are not supposed to be sent on a non-started stream.
+            foreach (FrameType frameType in new FrameType[] {
+                    FrameType.StreamReadsClosed,
+                    FrameType.StreamWindowUpdate,
+                    FrameType.StreamWritesClosed
+                 })
+            {
+                yield return new TestCaseData(
+                    (IDuplexConnection connection) => WriteStreamFrameAsync(connection, frameType, streamId: 4ul),
+                    $"Received {frameType} frame for unknown stream.");
+            }
+
+            // Bogus stream frame with FrameSize=0 (stream ID not encoded)
+            yield return new TestCaseData((IDuplexConnection connection) =>
+                WriteFrameAsync(connection, FrameType.StreamLast, (ref SliceEncoder encoder) => { }),
+                "Invalid stream frame size.");
+
+            // Encode a stream frame with a frame size inferior to the stream ID size.
+            yield return new TestCaseData((IDuplexConnection connection) =>
+                {
+                    var writer = new MemoryBufferWriter(new byte[1024]);
+                    {
+                        var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+                        encoder.EncodeFrameType(FrameType.Stream);
+                        encoder.EncodeSize(1);
+                        encoder.EncodeVarUInt62(int.MaxValue);
+                    }
+                    return connection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default).AsTask();
+                },
+                "Invalid stream frame size.");
+        }
+    }
+
     /// <summary>Verifies that create stream fails if called before connect.</summary>
     [Test]
     public async Task Create_stream_before_calling_connect_fails()
@@ -309,18 +378,15 @@ public class SlicTransportTests
 
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
 
-        // Encode Initialize frame.
-        var writer = new MemoryBufferWriter(new byte[1024]);
-        EncodeInitializeFrame(writer, version: 2);
-        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
+        // Write the initialize frame.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 2);
 
-        // Connect the server connection to read the initialize frame. It will send the version frame since the
-        // version 2 is not supported.
+        // Connect the server connection to read the initialize frame. It will send the version frame since the version
+        // 2 is not supported.
         var connectTask = multiplexedServerConnection.ConnectAsync(default);
 
         // Read the version frame.
-        ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
-        reader.AdvanceTo(buffer.End);
+        await ReadFrameAsync(reader);
 
         // Act
 
@@ -331,18 +397,6 @@ public class SlicTransportTests
         Assert.That(
             () => connectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
-
-        static void EncodeInitializeFrame(IBufferWriter<byte> writer, ulong version)
-        {
-            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, IList<byte>>());
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-            encoder.EncodeFrameType(FrameType.Initialize);
-            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-            int startPos = encoder.EncodedByteCount;
-            encoder.EncodeVarUInt62(version);
-            initializeBody.Encode(ref encoder);
-            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-        }
     }
 
     [Test]
@@ -366,34 +420,20 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Read the initialize frame
-        using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
-        ReadOnlySequence<byte> buffer = await reader.ReadAsync(default);
-        reader.AdvanceTo(buffer.End);
+        await ReadFrameAsync(reader);
 
         // Act
 
         // Write the version frame with versions unsupported by the client.
-        var writer = new MemoryBufferWriter(new byte[1024]);
-        EncodeVersionFrame(writer);
-        await duplexServerConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
+        await WriteFrameAsync(duplexServerConnection, FrameType.Version, new VersionBody(new ulong[] { 3 }).Encode);
 
         // Assert
         Assert.That(
             () => connectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
-
-        static void EncodeVersionFrame(IBufferWriter<byte> writer)
-        {
-            var versionBody = new VersionBody(new ulong[] { 3 });
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-            encoder.EncodeFrameType(FrameType.Version);
-            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-            int startPos = encoder.EncodedByteCount;
-            versionBody.Encode(ref encoder);
-            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-        }
     }
 
     [Test]
@@ -416,22 +456,18 @@ public class SlicTransportTests
         await using var _ = multiplexedServerConnection;
 
         using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
-        var writer = new MemoryBufferWriter(new byte[1024]);
 
         // Act
 
         // Write initialize frame
-        EncodeInitializeFrame(writer, version: 2);
-        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 2);
 
         // Connect server connection, it doesn't support the client version so should return a version frame.
         var connectTask = multiplexedServerConnection.ConnectAsync(default);
         (FrameType versionFrameType, ReadOnlySequence<byte> versionBuffer) = await ReadFrameAsync(reader);
-        writer.Clear();
 
-        // Write back an initialize version with a support version.
-        EncodeInitializeFrame(writer, version: 1);
-        await duplexClientConnection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default);
+        // Write back an initialize version with a supported version.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
 
         // Wait and read the initialize ack frame from the server.
         (FrameType initializeAckFrameType, ReadOnlySequence<byte> _) = await ReadFrameAsync(reader);
@@ -442,85 +478,12 @@ public class SlicTransportTests
         Assert.That(initializeAckFrameType, Is.EqualTo(FrameType.InitializeAck));
         Assert.That(() => connectTask, Throws.Nothing);
 
-        void EncodeInitializeFrame(IBufferWriter<byte> writer, ulong version)
-        {
-            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, new Dictionary<ParameterKey, IList<byte>>());
-
-            // Set required parameters.
-            byte[] packetMaxSizeBuffer = new byte[4];
-            SliceEncoder.EncodeVarUInt62(4096, packetMaxSizeBuffer);
-            initializeBody.Parameters[ParameterKey.PacketMaxSize] = packetMaxSizeBuffer;
-            byte[] initialStreamWindowSizeBuffer = new byte[4];
-            SliceEncoder.EncodeVarUInt62(32 * 1024, initialStreamWindowSizeBuffer);
-            initializeBody.Parameters[ParameterKey.InitialStreamWindowSize] = initialStreamWindowSizeBuffer;
-
-            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
-            encoder.EncodeFrameType(FrameType.Initialize);
-            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-            int startPos = encoder.EncodedByteCount;
-            encoder.EncodeVarUInt62(version);
-            initializeBody.Encode(ref encoder);
-            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-        }
-
-        async Task<(FrameType FrameType, ReadOnlySequence<byte> buffer)> ReadFrameAsync(
-            DuplexConnectionReader reader)
-        {
-            while (true)
-            {
-                // Read data from the pipe reader.
-                if (!reader.TryRead(out ReadOnlySequence<byte> buffer))
-                {
-                    buffer = await reader.ReadAsync(default);
-                }
-
-                if (TryDecodeHeader(
-                    buffer,
-                    out (FrameType FrameType, int FrameSize) header,
-                    out int consumed))
-                {
-                    reader.AdvanceTo(buffer.GetPosition(consumed));
-                    buffer = await reader.ReadAtLeastAsync(header.FrameSize);
-                    Memory<byte> frameBuffer = new byte[header.FrameSize];
-                    buffer.CopyTo(frameBuffer.Span);
-                    reader.AdvanceTo(buffer.End);
-                    return (header.FrameType, new ReadOnlySequence<byte>(frameBuffer));
-                }
-                else
-                {
-                    reader.AdvanceTo(buffer.Start, buffer.End);
-                }
-            }
-        }
-
         static VersionBody DecodeVersionBody(ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
             var versionBody = new VersionBody(ref decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return versionBody;
-        }
-
-        static bool TryDecodeHeader(
-            ReadOnlySequence<byte> buffer,
-            out (FrameType FrameType, int FrameSize) header,
-            out int consumed)
-        {
-            header = default;
-            consumed = default;
-
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-
-            // Decode the frame type and frame size.
-            if (!decoder.TryDecodeUInt8(out byte frameType) ||
-                !decoder.TryDecodeSize(out header.FrameSize))
-            {
-                return false;
-            }
-            header.FrameType = frameType.AsFrameType();
-
-            consumed = (int)decoder.Consumed;
-            return true;
         }
     }
 
@@ -621,6 +584,45 @@ public class SlicTransportTests
 
         // Act/Assert
         Assert.That(async () => await sut.Client.CloseAsync(0ul, default), Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [Test, TestCaseSource(nameof(ConnectionProtocolErrors))]
+    public async Task Connection_protocol_errors(
+        Func<IDuplexConnection, Task> protocolAction,
+        string expectedErrorMessage)
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        await ReadFrameAsync(reader);
+        ValueTask<IMultiplexedStream> acceptStreamTask = multiplexedServerConnection.AcceptStreamAsync(default);
+
+        // Act
+        await protocolAction(duplexClientConnection);
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
+        Assert.That(exception.InnerException?.Message, Is.EqualTo(expectedErrorMessage));
     }
 
     [Test]
@@ -863,6 +865,171 @@ public class SlicTransportTests
     }
 
     [Test]
+    public async Task Write_initialize_frame_with_empty_body()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Act
+        await WriteFrameAsync(duplexClientConnection, FrameType.Initialize, (ref SliceEncoder encoder) => { });
+
+        // Assert
+        Assert.That(
+            async () => await multiplexedServerConnection.ConnectAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+    }
+
+    [TestCase(nameof(FrameType.InitializeAck))]
+    [TestCase(nameof(FrameType.Version))]
+    public async Task Write_initialize_ack_or_version_frame_with_empty_body(string frameTypeStr)
+    {
+        FrameType frameType = Enum.Parse<FrameType>(frameTypeStr);
+
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+          .AddSlicTest()
+          .BuildServiceProvider(validateScopes: true);
+
+        var multiplexedClientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        var duplexServerTransport = provider.GetRequiredService<IDuplexServerTransport>();
+        await using var listener = duplexServerTransport.Listen(
+            new ServerAddress(new Uri("icerpc://[::1]")),
+            options: new(),
+            serverAuthenticationOptions: null);
+        var acceptTask = listener.AcceptAsync(default);
+        await using var multiplexedClientConnection = multiplexedClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new MultiplexedConnectionOptions(),
+            clientAuthenticationOptions: null);
+        var connectTask = multiplexedClientConnection.ConnectAsync(default);
+        (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Act
+        await WriteFrameAsync(duplexServerConnection, frameType, (ref SliceEncoder encoder) => { });
+
+        // Assert
+        Assert.That(
+            async () => _ = await connectTask,
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+    }
+
+    [Test, TestCaseSource(nameof(InvalidConnectionFrames))]
+    public async Task Write_connection_frame_with_invalid_body(string frameTypeStr, bool emptyBody)
+    {
+        FrameType frameType = Enum.Parse<FrameType>(frameTypeStr);
+
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        (FrameType initializeAckFrameType, ReadOnlySequence<byte> _) = await ReadFrameAsync(reader);
+
+        var body = new ReadOnlyMemory<byte>(new byte[256]);
+
+        // Act
+        await WriteFrameAsync(
+            duplexClientConnection,
+            frameType,
+            (ref SliceEncoder encoder) => encoder.WriteByteSpan(emptyBody ? ReadOnlySpan<byte>.Empty : body.Span));
+
+        // Assert
+        Assert.That(
+            async () => await multiplexedServerConnection.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+    }
+
+    [TestCase(nameof(FrameType.Stream))]
+    [TestCase(nameof(FrameType.StreamWritesClosed))]
+    [TestCase(nameof(FrameType.StreamReadsClosed))]
+    public async Task Write_stream_frame_with_invalid_body(string frameTypeStr)
+    {
+        FrameType frameType = Enum.Parse<FrameType>(frameTypeStr);
+        bool emptyBody = frameType == FrameType.Stream;
+
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddSlicTest()
+            .BuildServiceProvider(validateScopes: true);
+
+        var duplexClientTransport = provider.GetRequiredService<IDuplexClientTransport>();
+        var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
+        var acceptTask = listener.AcceptAsync(default);
+        using var duplexClientConnection = duplexClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new DuplexConnectionOptions(),
+            clientAuthenticationOptions: null);
+        Task connectTask = duplexClientConnection.ConnectAsync(default);
+        (var multiplexedServerConnection, var transportConnectionInformation) = await acceptTask;
+        await using var _ = multiplexedServerConnection;
+        await connectTask;
+        using var reader = new DuplexConnectionReader(duplexClientConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Connect the multiplexed connection.
+        await WriteInitializeFrameAsync(duplexClientConnection, version: 1);
+        await multiplexedServerConnection.ConnectAsync(default);
+        (FrameType initializeAckFrameType, ReadOnlySequence<byte> _) = await ReadFrameAsync(reader);
+
+        var body = new ReadOnlyMemory<byte>(new byte[256]);
+
+        // Start the stream.
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            FrameType.Stream,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => encoder.EncodeBool(false));
+
+        IMultiplexedStream acceptedStream = await multiplexedServerConnection.AcceptStreamAsync(default);
+
+        // Act
+        await WriteStreamFrameAsync(
+            duplexClientConnection,
+            frameType,
+            streamId: 0ul,
+            (ref SliceEncoder encoder) => encoder.WriteByteSpan(emptyBody ? ReadOnlySpan<byte>.Empty : body.Span));
+
+        // Assert
+        Assert.That(
+            async () => await multiplexedServerConnection.AcceptStreamAsync(default),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
+
+        acceptedStream?.Output.Complete();
+        acceptedStream?.Input.Complete();
+    }
+
+    [Test]
     public async Task Write_resumes_after_reaching_the_resume_writer_threshold()
     {
         int windowSize = 32 * 1024;
@@ -989,4 +1156,111 @@ public class SlicTransportTests
         // Act
         Assert.That(sut.Client.DisposeAsync, Throws.Nothing);
     }
+
+    private static async Task<(FrameType FrameType, ReadOnlySequence<byte> buffer)> ReadFrameAsync(
+        DuplexConnectionReader reader)
+    {
+        while (true)
+        {
+            // Read data from the pipe reader.
+            if (!reader.TryRead(out ReadOnlySequence<byte> buffer))
+            {
+                buffer = await reader.ReadAsync(default);
+            }
+
+            if (TryDecodeHeader(
+                buffer,
+                out (FrameType FrameType, int FrameSize) header,
+                out int consumed))
+            {
+                reader.AdvanceTo(buffer.GetPosition(consumed));
+                buffer = await reader.ReadAtLeastAsync(header.FrameSize);
+                Memory<byte> frameBuffer = new byte[header.FrameSize];
+                buffer.CopyTo(frameBuffer.Span);
+                reader.AdvanceTo(buffer.End);
+                return (header.FrameType, new ReadOnlySequence<byte>(frameBuffer));
+            }
+            else
+            {
+                reader.AdvanceTo(buffer.Start, buffer.End);
+            }
+        }
+
+        static bool TryDecodeHeader(
+            ReadOnlySequence<byte> buffer,
+            out (FrameType FrameType, int FrameSize) header,
+            out int consumed)
+        {
+            header = default;
+            consumed = default;
+
+            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+
+            // Decode the frame type and frame size.
+            if (!decoder.TryDecodeUInt8(out byte frameType) ||
+                !decoder.TryDecodeSize(out header.FrameSize))
+            {
+                return false;
+            }
+            header.FrameType = frameType.AsFrameType();
+
+            consumed = (int)decoder.Consumed;
+            return true;
+        }
+    }
+
+    private static Task WriteFrameAsync(
+        IDuplexConnection connection,
+        FrameType frameType,
+        EncodeAction? encodeAction = null)
+    {
+        var writer = new MemoryBufferWriter(new byte[1024]);
+        Encode(writer);
+        return connection.WriteAsync(new ReadOnlySequence<byte>(writer.WrittenMemory), default).AsTask();
+
+        void Encode(IBufferWriter<byte> writer)
+        {
+            var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+            encoder.EncodeFrameType(frameType);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encodeAction?.Invoke(ref encoder);
+            SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
+        }
+    }
+
+    private static Task WriteInitializeFrameAsync(IDuplexConnection connection, ulong version)
+    {
+        return WriteFrameAsync(connection, FrameType.Initialize, Encode);
+
+        void Encode(ref SliceEncoder encoder)
+        {
+            // Required parameters.
+            var parameters = new Dictionary<ParameterKey, IList<byte>>();
+            byte[] packetMaxSizeBuffer = new byte[4];
+            SliceEncoder.EncodeVarUInt62(4096, packetMaxSizeBuffer);
+            parameters[ParameterKey.PacketMaxSize] = packetMaxSizeBuffer;
+            byte[] initialStreamWindowSizeBuffer = new byte[4];
+            SliceEncoder.EncodeVarUInt62(32 * 1024, initialStreamWindowSizeBuffer);
+            parameters[ParameterKey.InitialStreamWindowSize] = initialStreamWindowSizeBuffer;
+
+            var initializeBody = new InitializeBody(Protocol.IceRpc.Name, parameters);
+            encoder.EncodeVarUInt62(version);
+            initializeBody.Encode(ref encoder);
+        }
+    }
+
+    private static Task WriteStreamFrameAsync(
+        IDuplexConnection connection,
+        FrameType frameType,
+        ulong streamId,
+        EncodeAction? encodeAction = null) =>
+        WriteFrameAsync(
+            connection,
+            frameType,
+            (ref SliceEncoder encoder) =>
+            {
+                encoder.EncodeVarUInt62(streamId);
+                encodeAction?.Invoke(ref encoder);
+            });
 }
