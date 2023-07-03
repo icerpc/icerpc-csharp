@@ -45,6 +45,7 @@
     "Slic",
     "slicec",
     "srcdist",
+    "structs",
     "SYSLIB",
     "testhost",
     "traceparent",
