@@ -99,6 +99,10 @@ internal sealed class MultiplexedStreamDecorator : IMultiplexedStream
 
     private class OutputDecorator : ReadOnlySequencePipeWriter
     {
+        public override bool CanGetUnflushedBytes => _decoratee.CanGetUnflushedBytes;
+
+        public override long UnflushedBytes => _decoratee.UnflushedBytes;
+
         private readonly ReadOnlySequencePipeWriter _decoratee;
         private bool _isCompleted;
         private readonly Action _onCompleted;

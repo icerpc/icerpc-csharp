@@ -582,20 +582,22 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 // Write the IceRpc request header.
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
-                int headerStartPos = encoder.EncodedByteCount; // does not include the size
+
+                // We use UnflushedBytes because EncodeFieldDictionary can write directly to writer.
+                long headerStartPos = writer.UnflushedBytes;
 
                 var header = new IceRpcRequestHeader(request.ServiceAddress.Path, request.Operation);
 
                 header.Encode(ref encoder);
 
-                encoder.EncodeDictionary(
+                EncodeFieldDictionary(
                     request.Fields,
                     (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
-                    (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                        value.Encode(ref encoder, _headerSizeLength));
+                    ref encoder,
+                    writer);
 
                 // We're done with the header encoding, write the header size.
-                int headerSize = encoder.EncodedByteCount - headerStartPos;
+                int headerSize = (int)(writer.UnflushedBytes - headerStartPos);
                 CheckPeerHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
@@ -803,8 +805,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         else
         {
-            // TODO: since this pipe is purely internal to the icerpc protocol implementation, it should be easy
-            // to pool.
             var pipe = new Pipe();
 
             decoder.CopyTo(pipe.Writer);
@@ -1202,7 +1202,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             // Write the IceRpc response header.
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
-            int headerStartPos = encoder.EncodedByteCount;
+
+            // We use UnflushedBytes because EncodeFieldDictionary can write directly to streamOutput.
+            long headerStartPos = streamOutput.UnflushedBytes;
 
             encoder.EncodeStatusCode(response.StatusCode);
             if (response.StatusCode > StatusCode.Success)
@@ -1210,18 +1212,45 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 encoder.EncodeString(response.ErrorMessage!);
             }
 
-            encoder.EncodeDictionary(
+            EncodeFieldDictionary(
                 response.Fields,
                 (ref SliceEncoder encoder, ResponseFieldKey key) => encoder.EncodeResponseFieldKey(key),
-                (ref SliceEncoder encoder, OutgoingFieldValue value) =>
-                    value.Encode(ref encoder, _headerSizeLength));
+                ref encoder,
+                streamOutput);
 
             // We're done with the header encoding, write the header size.
-            int headerSize = encoder.EncodedByteCount - headerStartPos;
+            int headerSize = (int)(streamOutput.UnflushedBytes - headerStartPos);
             CheckPeerHeaderSize(headerSize);
             SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
         }
     }
+
+    /// <summary>Encodes the fields dictionary at the end of a request or response header.</summary>
+    /// <remarks>This method can write bytes directly to <paramref name="output"/> without going through
+    /// <paramref name="encoder"/>.</remarks>
+    private void EncodeFieldDictionary<TKey>(
+        IDictionary<TKey, OutgoingFieldValue> fields,
+        EncodeAction<TKey> encodeKeyAction,
+        ref SliceEncoder encoder,
+        PipeWriter output) where TKey : struct =>
+        encoder.EncodeDictionary(
+            fields,
+            encodeKeyAction,
+            (ref SliceEncoder encoder, OutgoingFieldValue value) =>
+                {
+                    if (value.WriteAction is Action<IBufferWriter<byte>> writeAction)
+                    {
+                        Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
+                        long startPos = output.UnflushedBytes;
+                        writeAction(output);
+                        SliceEncoder.EncodeVarUInt62((ulong)(output.UnflushedBytes - startPos), sizePlaceholder);
+                    }
+                    else
+                    {
+                        encoder.EncodeSize(checked((int)value.ByteSequence.Length));
+                        encoder.WriteByteSequence(value.ByteSequence);
+                    }
+                });
 
     /// <summary>Increments the dispatch-invocation count.</summary>
     /// <remarks>This method must be called with _mutex locked.</remarks>

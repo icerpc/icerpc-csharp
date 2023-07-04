@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Diagnostics;
@@ -123,8 +122,7 @@ public sealed class TelemetryInterceptorTests
         if (fields.TryGetValue(RequestFieldKey.TraceContext, out var traceContextField))
         {
             var pipe = new Pipe();
-            var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-            traceContextField.EncodeAction!(ref encoder);
+            traceContextField.WriteAction!(pipe.Writer);
             pipe.Writer.Complete();
 
             pipe.Reader.TryRead(out var readResult);
@@ -132,7 +130,6 @@ public sealed class TelemetryInterceptorTests
             var activity = new Activity(operationName);
             TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, activity);
             return activity;
-
         }
         else
         {

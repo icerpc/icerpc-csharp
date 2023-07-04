@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using System.Buffers;
 
 namespace IceRpc;
@@ -15,26 +14,24 @@ public readonly record struct OutgoingFieldValue
     /// cref="OutgoingFieldValue(ReadOnlySequence{byte})" />.</remarks>
     public ReadOnlySequence<byte> ByteSequence { get; }
 
-    /// <summary>Gets the action used to encode the field value using the Slice2 encoding. The action is executed when
-    /// the fields are about to be sent.</summary>
-    /// <value>The encode action of this outgoing field. Defaults to <see langword="null"/>.</value>
-    /// <remarks><see cref="EncodeAction" /> is set when the outgoing field value is constructed with <see
-    /// cref="OutgoingFieldValue(EncodeAction)" />.</remarks>
-    public EncodeAction? EncodeAction { get; }
+    /// <summary>Gets the action used to write the field value. This action is executed when the fields are sent.
+    /// </summary>
+    /// <value>The write action of this outgoing field. Defaults to <see langword="null"/>.</value>
+    public Action<IBufferWriter<byte>>? WriteAction { get; }
 
     /// <summary>Constructs an outgoing field value that holds a byte sequence.</summary>
     /// <param name="byteSequence">The field encoded value.</param>
     public OutgoingFieldValue(ReadOnlySequence<byte> byteSequence)
     {
         ByteSequence = byteSequence;
-        EncodeAction = null;
+        WriteAction = null;
     }
 
-    /// <summary>Constructs an outgoing field value that holds an encode action.</summary>
-    /// <param name="encodeAction">The action used to encode the field value.</param>
-    public OutgoingFieldValue(EncodeAction encodeAction)
+    /// <summary>Constructs an outgoing field value that holds a write action.</summary>
+    /// <param name="writeAction">The action that writes the field value.</param>
+    public OutgoingFieldValue(Action<IBufferWriter<byte>> writeAction)
     {
         ByteSequence = default;
-        EncodeAction = encodeAction;
+        WriteAction = writeAction;
     }
 }

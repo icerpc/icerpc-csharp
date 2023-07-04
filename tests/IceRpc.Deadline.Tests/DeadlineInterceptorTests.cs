@@ -165,8 +165,7 @@ public sealed class DeadlineInterceptorTests
     private static DateTime ReadDeadline(OutgoingFieldValue field)
     {
         var pipe = new Pipe();
-        var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-        field.EncodeAction!(ref encoder);
+        field.WriteAction!(pipe.Writer);
         pipe.Writer.Complete();
 
         pipe.Reader.TryRead(out var readResult);

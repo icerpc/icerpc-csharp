@@ -31,10 +31,12 @@ public class RequestContextInterceptor : IInvoker
             {
                 request.Fields = request.Fields.With(
                     RequestFieldKey.Context,
-                    (ref SliceEncoder encoder) => encoder.EncodeDictionary(
-                        context,
+                    context,
+                    (ref SliceEncoder encoder, IDictionary<string, string> dictionary) => encoder.EncodeDictionary(
+                        dictionary,
                         (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
+                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)),
+                    request.Protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2);
             }
         }
         return _next.InvokeAsync(request, cancellationToken);

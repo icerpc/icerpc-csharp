@@ -39,9 +39,7 @@ public class TelemetryInterceptor : IInvoker
             activity.AddTag("rpc.service", request.ServiceAddress.Path);
             activity.AddTag("rpc.method", request.Operation);
             activity.Start();
-            request.Fields = request.Fields.With(
-                RequestFieldKey.TraceContext,
-                (ref SliceEncoder encoder) => WriteActivityContext(ref encoder, activity));
+            request.Fields = request.Fields.With(RequestFieldKey.TraceContext, activity, WriteActivityContext);
             return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
         else
