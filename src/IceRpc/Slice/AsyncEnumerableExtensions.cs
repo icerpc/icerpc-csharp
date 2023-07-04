@@ -34,7 +34,7 @@ public static class AsyncEnumerableExtensions
             encodeOptions);
 
     // Overriding ReadAtLeastAsyncCore or CopyToAsync methods for this reader is not critical since this reader is
-    // mostly used by the IceRpc core to copy the encoded data for the enumerable to the network stream. This copy
+    // mostly used by the IceRPC core to copy the encoded data for the enumerable to the network stream. This copy
     // doesn't use these methods.
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable.
     private class AsyncEnumerablePipeReader<T> : PipeReader

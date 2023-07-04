@@ -2,7 +2,7 @@
 
 namespace IceRpc;
 
-/// <summary>The IceRpc core and built-in invokers, dispatchers (including built-in middleware and interceptors) report
+/// <summary>The IceRPC core and built-in invokers, dispatchers (including built-in middleware and interceptors) report
 /// errors by throwing this exception. Slice invocations throw <see cref="DispatchException" /> in addition to
 /// <see cref="IceRpcException" />.</summary>
 public class IceRpcException : IOException
