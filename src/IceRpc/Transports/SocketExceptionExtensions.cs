@@ -2,12 +2,18 @@
 
 using System.Net.Sockets;
 
-namespace IceRpc.Transports.Tcp.Internal;
+namespace IceRpc.Transports;
 
-internal static class SocketExceptionExtensions
+/// <summary>Provides an extension method to convert a <see cref="SocketException"/> into an
+/// <see cref="IceRpcException"/>.</summary>
+public static class SocketExceptionExtensions
 {
-    /// <summary>Converts a SocketException into an <see cref="IceRpcException" />.</summary>
-    internal static IceRpcException ToIceRpcException(this SocketException exception, Exception? innerException = null)
+    /// <summary>Converts a <see cref="SocketException"/> into an <see cref="IceRpcException" />.</summary>
+    /// <param name="exception">The exception to convert.</param>
+    /// <param name="innerException">The inner exception for the <see cref="IceRpcException"/>, when
+    /// <see langword="null"/> <paramref name="exception"/> is used as the inner exception.</param>
+    /// <returns>The <see cref="IceRpcException"/> created from the <see cref="SocketException"/>.</returns>
+    public static IceRpcException ToIceRpcException(this SocketException exception, Exception? innerException = null)
     {
         innerException ??= exception;
         IceRpcError errorCode = exception.SocketErrorCode switch
