@@ -4,7 +4,6 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
-using System.Text;
 
 namespace IceRpc.Tests.Slice;
 

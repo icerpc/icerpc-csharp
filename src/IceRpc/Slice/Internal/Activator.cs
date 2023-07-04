@@ -110,7 +110,7 @@ internal class ActivatorFactory
                 new Type[] { typeof(SliceDecoder).MakeByRefType(), typeof(string) } :
                 new Type[] { typeof(SliceDecoder).MakeByRefType() };
 
-            ConstructorInfo? constructor = type.GetConstructor(
+            ConstructorInfo constructor = type.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 null,
                 types,
