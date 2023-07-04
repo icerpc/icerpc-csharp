@@ -3,7 +3,6 @@
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
