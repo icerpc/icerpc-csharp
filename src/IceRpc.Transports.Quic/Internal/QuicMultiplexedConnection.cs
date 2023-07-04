@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Transports.Tcp.Internal;
 using System.Buffers;
 using System.Net.Quic;
 using System.Net.Sockets;
