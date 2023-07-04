@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Transports.Tcp.Internal;
 using System.Buffers;
 using System.Net.Quic;
+using System.Net.Sockets;
 
 namespace IceRpc.Transports.Quic.Internal;
 
@@ -36,6 +38,10 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         {
             throw exception.ToIceRpcException();
         }
+        catch (SocketException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
     }
 
     public abstract Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
@@ -51,6 +57,10 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
             }
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
@@ -73,6 +83,10 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
                 cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
@@ -129,6 +143,10 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
                 cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
