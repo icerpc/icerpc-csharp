@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
@@ -31,15 +30,4 @@ public static class DispatcherBuilderExtensions
             request.Features = request.Features.With(feature);
             return next.DispatchAsync(request, cancellationToken);
         }));
-
-    /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
-    /// an existing route at the same path, it is replaced.</summary>
-    /// <typeparam name="TService">The type of the DI service that will handle the requests. The implementation of this
-    /// service must implement <see cref="IDispatcher" />.</typeparam>
-    /// <param name="builder">The builder being configured.</param>
-    /// <returns>This builder.</returns>
-    /// <remarks>With Slice, it is common for <typeparamref name="TService" /> to correspond to a generated
-    /// I{name}Service interface. This generated interface does not extend <see cref="IDispatcher" />.</remarks>
-    public static IDispatcherBuilder Map<TService>(this IDispatcherBuilder builder) where TService : notnull =>
-        builder.Map<TService>(typeof(TService).GetDefaultServicePath());
 }

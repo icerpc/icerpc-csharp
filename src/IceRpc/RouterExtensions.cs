@@ -1,25 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 
 namespace IceRpc;
 
 /// <summary>Provides extension methods for <see cref="Router" />.</summary>
 public static class RouterExtensions
 {
-    /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
-    /// an existing route at the same path, it is replaced.</summary>
-    /// <typeparam name="TService">The service type used to get the default path.</typeparam>
-    /// <param name="router">The router being configured.</param>
-    /// <param name="service">The target service of this route.</param>
-    /// <returns>The router being configured.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync" /> was already
-    /// called on this router.</exception>
-    public static Router Map<TService>(this Router router, IDispatcher service)
-        where TService : class =>
-        router.Map(typeof(TService).GetDefaultServicePath(), service);
-
     /// <summary>Creates a sub-router, configures this sub-router and mounts it (with
     /// <see cref="Router.Mount(string, IDispatcher)" />) at the given <c>prefix</c>.</summary>
     /// <param name="router">The router being configured.</param>
