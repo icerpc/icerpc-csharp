@@ -88,7 +88,7 @@
     <StringListProperty
         DisplayName="Additional Options"
         Name="AdditionalOptions"
-        Description="Additional options to pass to the the Slice compiler for C#."
+        Description="Additional options to pass to the Slice compiler for C#."
         Visible="true"
         Category="SliceTools">
         <StringListProperty.DataSource>

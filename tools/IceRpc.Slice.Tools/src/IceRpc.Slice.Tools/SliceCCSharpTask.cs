@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice.Tools;
 
-/// <summary>A MSbuild task to compile Slice files to C# using the IceRPC <c>slicec-cs</c> compiler.</summary>
+/// <summary>A MSBuild task to compile Slice files to C# using the IceRPC <c>slicec-cs</c> compiler.</summary>
 public class SliceCCSharpTask : ToolTask
 {
     /// <summary>Additional options to pass to the <c>slicec-cs</c> compiler.</summary>

@@ -23,7 +23,7 @@
       <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
       <DevelopmentDependency>true</DevelopmentDependency>
       <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-      <PackageTags>IceRPC;RPC;MSbuild;Slice</PackageTags>
+      <PackageTags>IceRPC;RPC;MSBuild;Slice</PackageTags>
       <PackageReadmeFile>README.md</PackageReadmeFile>
       <PackageType>Dependency</PackageType>
       <IncludeBuildOutput>false</IncludeBuildOutput>
