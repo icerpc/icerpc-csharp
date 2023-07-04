@@ -228,3 +228,6 @@ dotnet_diagnostic.SA1642.severity = none
 
 # SA1649: File name should match first type name
 dotnet_diagnostic.SA1649.severity = none
+
+# VSSpell001: VSSpell analyzer produces many false postives
+dotnet_diagnostic.VSSpell001.severity = none
