@@ -166,12 +166,11 @@ public sealed class DeadlineInterceptorTests
     {
         var pipe = new Pipe();
         var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
-        field.Encode(ref encoder);
+        field.EncodeAction!(ref encoder);
         pipe.Writer.Complete();
 
         pipe.Reader.TryRead(out var readResult);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        decoder.SkipSize();
         return decoder.DecodeTimeStamp();
     }
 }

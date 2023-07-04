@@ -37,41 +37,4 @@ public readonly record struct OutgoingFieldValue
         ByteSequence = default;
         EncodeAction = encodeAction;
     }
-
-    /// <summary>Encodes this field value using a Slice encoder.</summary>
-    /// <param name="encoder">The Slice encoder.</param>
-    /// <param name="sizeLength">The number of bytes to use to encode the size when <see cref="EncodeAction" /> is
-    /// not <see langword="null" />.</param>
-    public void Encode(ref SliceEncoder encoder, int sizeLength = 2)
-    {
-        if (encoder.Encoding == SliceEncoding.Slice1)
-        {
-            // It's a field of the ice protocol, and the ice protocol supports only one field: the request context.
-            // It's known to both peers.
-            if (EncodeAction is EncodeAction encodeAction)
-            {
-                encodeAction(ref encoder);
-            }
-            else
-            {
-                encoder.WriteByteSequence(ByteSequence);
-            }
-        }
-        else
-        {
-            if (EncodeAction is EncodeAction encodeAction)
-            {
-                // We encode a size: this way, the recipient can skip this field value if it does not know the field.
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(sizeLength);
-                int startPos = encoder.EncodedByteCount;
-                encodeAction(ref encoder);
-                SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
-            }
-            else
-            {
-                encoder.EncodeSize(checked((int)ByteSequence.Length));
-                encoder.WriteByteSequence(ByteSequence);
-            }
-        }
-    }
 }
