@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using GreeterExample;
+using IceRpc.Slice;
+
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Logger.Examples;
