@@ -5,6 +5,12 @@ The Slice compiler for C#, `slicec-cs`, allows you to compile Slice definitions 
 
 [Package][package] | [Building from source][building] | [Slice documentation][slice-documentation]
 
+## Predefined symbols
+
+The slicec-cs compiler predefines the following preprocessor symbols:
+
+`SLICEC_CS`
+
 ## Options
 
 |                                           |                                                                                            |
