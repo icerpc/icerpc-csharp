@@ -420,6 +420,7 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var _ = duplexServerConnection;
         using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Read the initialize frame
@@ -457,6 +458,7 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var _ = duplexServerConnection;
         using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Read the initialize frame
@@ -955,6 +957,7 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var _ = duplexServerConnection;
         using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
