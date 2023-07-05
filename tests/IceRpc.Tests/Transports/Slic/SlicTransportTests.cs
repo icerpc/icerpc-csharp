@@ -420,6 +420,7 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var _ = duplexServerConnection;
         using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Read the initialize frame
@@ -434,6 +435,44 @@ public class SlicTransportTests
         Assert.That(
             () => connectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
+    }
+
+    [Test]
+    public async Task Connect_with_server_that_returns_invalid_slic_version()
+    {
+        // Arrange
+        await using ServiceProvider provider = new ServiceCollection()
+          .AddSlicTest()
+          .BuildServiceProvider(validateScopes: true);
+
+        var multiplexedClientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
+        var duplexServerTransport = provider.GetRequiredService<IDuplexServerTransport>();
+        await using var listener = duplexServerTransport.Listen(
+            new ServerAddress(new Uri("icerpc://[::1]")),
+            options: new(),
+            serverAuthenticationOptions: null);
+        var acceptTask = listener.AcceptAsync(default);
+        await using var multiplexedClientConnection = multiplexedClientTransport.CreateConnection(
+            listener.ServerAddress,
+            new MultiplexedConnectionOptions(),
+            clientAuthenticationOptions: null);
+        var connectTask = multiplexedClientConnection.ConnectAsync(default);
+        (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var _ = duplexServerConnection;
+        using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
+
+        // Read the initialize frame
+        await ReadFrameAsync(reader);
+
+        // Act
+
+        // Write the version frame with the version requested by the client in the initialize frame.
+        await WriteFrameAsync(duplexServerConnection, FrameType.Version, new VersionBody(new ulong[] { 3, 1 }).Encode);
+
+        // Assert
+        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await connectTask);
+        Assert.That(exception!.IceRpcError, Is.EqualTo(IceRpcError.IceRpcError));
+        Assert.That(exception.Message, Is.EqualTo("The connection was aborted by a Slic protocol error."));
     }
 
     [Test]
@@ -918,6 +957,7 @@ public class SlicTransportTests
             clientAuthenticationOptions: null);
         var connectTask = multiplexedClientConnection.ConnectAsync(default);
         (var duplexServerConnection, var transportConnectionInformation) = await acceptTask;
+        using var _ = duplexServerConnection;
         using var reader = new DuplexConnectionReader(duplexServerConnection, MemoryPool<byte>.Shared, 4096);
 
         // Act
