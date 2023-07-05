@@ -6,9 +6,8 @@ namespace IceRpc.Transports;
 
 /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
 /// <remarks>The implementation of the <see cref="IDuplexPipe" /> interface must return a
-/// <seecref="ReadOnlySequencePipeWriter" /> for the <see cref="IDuplexPipe.Output" />, and its
-/// <see cref="PipeWriter.CanGetUnflushedBytes"/> implementation must return true and implement
-/// <see cref="PipeWriter.UnflushedBytes"/>.</remarks>
+/// <see cref="ReadOnlySequencePipeWriter" /> for the <see cref="IDuplexPipe.Output" /> and this pipe writer must
+/// support reporting its count of unflushed bytes.</remarks>
 public interface IMultiplexedStream : IDuplexPipe
 {
     /// <summary>Gets the stream ID.</summary>
@@ -32,8 +31,8 @@ public interface IMultiplexedStream : IDuplexPipe
 
     /// <summary>Gets a value indicating whether the stream is started.</summary>
     /// <value><see langword="true" /> if the stream is started; otherwise, <see langword="false" />.</value>
-    /// <remarks>Remote streams are always started after construction. A local stream is started after the first write
-    /// to the <see cref="IDuplexPipe.Output"/>.</remarks>
+    /// <remarks>Remote streams are always started after construction. A local stream is started by the first write.
+    /// </remarks>
     bool IsStarted { get; }
 
     /// <summary>Gets a task that completes when all write network activity ceases for this stream. This occurs when:
