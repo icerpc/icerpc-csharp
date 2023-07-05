@@ -14,7 +14,7 @@
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     </PropertyGroup>
     <ItemGroup>
-        <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" />
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" Condition="'$(IsSrcProject)' == 'true'"/>
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.globalconfig" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Src.globalconfig" Condition="'$(IsSrcProject)' == 'true'" />
         <!-- Reference the built-in Slice files -->
