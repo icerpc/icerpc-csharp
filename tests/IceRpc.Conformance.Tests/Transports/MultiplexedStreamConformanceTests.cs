@@ -153,8 +153,8 @@ public abstract class MultiplexedStreamConformanceTests
         // Assert
         Assert.That(localStream, Is.Not.Null);
         Assert.That(remoteStream, Is.Not.Null);
-        Assert.That(localStream.Id, Is.EqualTo(expectedId));
-        Assert.That(remoteStream.Id, Is.EqualTo(expectedId));
+        Assert.That(localStream!.Id, Is.EqualTo(expectedId));
+        Assert.That(remoteStream!.Id, Is.EqualTo(expectedId));
 
         // Cleanup
         foreach (IMultiplexedStream stream in localStreams)
