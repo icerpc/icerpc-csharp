@@ -87,7 +87,7 @@ public class TcpTransportTests
             });
 
         Assert.That(connection.Socket.LocalEndPoint, Is.InstanceOf<IPEndPoint>());
-        IPEndPoint localEndpoint = (IPEndPoint)connection.Socket.LocalEndPoint!;
+        var localEndpoint = (IPEndPoint)connection.Socket.LocalEndPoint!;
         Assert.That(localEndpoint.Port, Is.EqualTo(10000));
         Assert.That(
             localEndpoint.Address,

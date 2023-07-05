@@ -476,7 +476,7 @@ public ref partial struct SliceEncoder
     /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
     /// <param name="size">The size.</param>
     /// <returns>The minimum number of bytes.</returns>
-    public int GetSizeLength(int size) => Encoding == SliceEncoding.Slice1 ?
+    public readonly int GetSizeLength(int size) => Encoding == SliceEncoding.Slice1 ?
         (size < 255 ? 1 : 5) : GetVarUInt62EncodedSize(checked((ulong)size));
 
     /// <summary>Copies a span of bytes to the underlying buffer writer.</summary>

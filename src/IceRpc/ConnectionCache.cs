@@ -609,7 +609,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <see cref="IServerAddressFeature" /> without allocations.</summary>
     private struct ServerAddressEnumerator
     {
-        internal ServerAddress Current
+        internal readonly ServerAddress Current
         {
             get
             {

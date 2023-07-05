@@ -94,20 +94,12 @@ public static class ServiceCollectionExtensions
         where TTransportService : class where TTransportDecoratorService : class, TTransportService
     {
         // Find the last TTransportService transport service registered with this service collection.
-        ServiceDescriptor? descriptor = services.LastOrDefault(
+        ServiceDescriptor descriptor = services.LastOrDefault(
             desc => desc!.ServiceType == typeof(TTransportService),
-            null);
-        if (descriptor is null)
-        {
-            throw new ArgumentException($"No {typeof(TTransportService)} service is registered");
-        }
+            null) ?? throw new ArgumentException($"No {typeof(TTransportService)} service is registered");
 
-        Func<IServiceProvider, object>? factory = descriptor.ImplementationFactory;
-        if (factory is null)
-        {
-            throw new ArgumentException(
+        Func<IServiceProvider, object> factory = descriptor.ImplementationFactory ?? throw new ArgumentException(
                 "Only transport services registered with an implementation factory are supported.");
-        }
         if (descriptor.Lifetime != ServiceLifetime.Singleton)
         {
             throw new NotSupportedException(

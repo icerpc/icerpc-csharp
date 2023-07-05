@@ -110,17 +110,11 @@ internal class ActivatorFactory
                 new Type[] { typeof(SliceDecoder).MakeByRefType(), typeof(string) } :
                 new Type[] { typeof(SliceDecoder).MakeByRefType() };
 
-            ConstructorInfo? constructor = type.GetConstructor(
+            ConstructorInfo constructor = type.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 null,
                 types,
-                null);
-
-            if (constructor is null)
-            {
-                throw new InvalidOperationException($"Cannot get Slice decoding constructor for '{type}'.");
-            }
-
+                null) ?? throw new InvalidOperationException($"Cannot get Slice decoding constructor for '{type}'.");
             ParameterExpression decoderParam =
                 Expression.Parameter(typeof(SliceDecoder).MakeByRefType(), "decoder");
 

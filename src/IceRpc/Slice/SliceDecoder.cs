@@ -19,7 +19,7 @@ public ref partial struct SliceDecoder
     public SliceEncoding Encoding { get; }
 
     /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>
-    public long Consumed => _reader.Consumed;
+    public readonly long Consumed => _reader.Consumed;
 
     private const string EndOfBufferMessage = "Attempting to decode past the end of the Slice decoder buffer.";
 
@@ -860,7 +860,7 @@ public ref partial struct SliceDecoder
         }
     }
 
-    private byte PeekByte() =>
+    private readonly byte PeekByte() =>
         _reader.TryPeek(out byte value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
     private void SkipTaggedValue(TagFormat format)
