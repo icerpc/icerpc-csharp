@@ -111,6 +111,44 @@ public abstract class MultiplexedStreamConformanceTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
+    [TestCase(true, true, 1, 0u)]
+    [TestCase(false, true, 1, 1u)]
+    [TestCase(true, false, 1, 2u)]
+    [TestCase(false, false, 1, 3u)]
+    [TestCase(true, true, 4, 12u)]
+    [TestCase(false, true, 4, 13u)]
+    [TestCase(true, false, 4, 14u)]
+    [TestCase(false, false, 4, 15u)]
+    public async Task Created_stream_has_expected_id(
+        bool clientInitiated,
+        bool bidirectional,
+        int streamCount,
+        ulong expectedId)
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+
+        IMultiplexedConnection connection =
+            clientInitiated ? clientServerConnection.Client : clientServerConnection.Server;
+        IMultiplexedConnection peerConnection =
+            clientInitiated ? clientServerConnection.Server : clientServerConnection.Client;
+        IMultiplexedStream? stream = null;
+        IMultiplexedStream? peerStream = null;
+        for (int i = 0; i < streamCount; i++)
+        {
+            stream = await connection.CreateStreamAsync(bidirectional: bidirectional, default);
+            await stream.Output.WriteAsync(new byte[1]);
+            peerStream = await peerConnection.AcceptStreamAsync(default);
+        }
+
+        Assert.That(stream, Is.Not.Null);
+        Assert.That(peerStream, Is.Not.Null);
+        Assert.That(stream.Id, Is.EqualTo(expectedId));
+        Assert.That(peerStream.Id, Is.EqualTo(expectedId));
+    }
+
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
