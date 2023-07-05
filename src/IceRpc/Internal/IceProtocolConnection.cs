@@ -824,8 +824,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             request.ServiceAddress.Path,
             request.ServiceAddress.Fragment,
             request.Operation,
-            request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
-                OperationMode.Idempotent : OperationMode.Normal);
+            request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent : OperationMode.Normal);
         requestHeader.Encode(ref encoder);
         int directWriteSize = 0;
         if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))

@@ -576,15 +576,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 return (statusCode, errorMessage, fields, pipeReader);
             }
 
-            void EncodeHeader(PipeWriter writer)
+            void EncodeHeader(PipeWriter streamOutput)
             {
-                var encoder = new SliceEncoder(writer, SliceEncoding.Slice2);
+                var encoder = new SliceEncoder(streamOutput, SliceEncoding.Slice2);
 
                 // Write the IceRpc request header.
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(_headerSizeLength);
 
-                // We use UnflushedBytes because EncodeFieldDictionary can write directly to writer.
-                long headerStartPos = writer.UnflushedBytes;
+                // We use UnflushedBytes because EncodeFieldDictionary can write directly to streamOutput.
+                long headerStartPos = streamOutput.UnflushedBytes;
 
                 var header = new IceRpcRequestHeader(request.ServiceAddress.Path, request.Operation);
 
@@ -594,10 +594,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     request.Fields,
                     (ref SliceEncoder encoder, RequestFieldKey key) => encoder.EncodeRequestFieldKey(key),
                     ref encoder,
-                    writer);
+                    streamOutput);
 
                 // We're done with the header encoding, write the header size.
-                int headerSize = (int)(writer.UnflushedBytes - headerStartPos);
+                int headerSize = (int)(streamOutput.UnflushedBytes - headerStartPos);
                 CheckPeerHeaderSize(headerSize);
                 SliceEncoder.EncodeVarUInt62((uint)headerSize, sizePlaceholder);
             }
