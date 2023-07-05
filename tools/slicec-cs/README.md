@@ -7,7 +7,7 @@ The Slice compiler for C#, `slicec-cs`, allows you to compile Slice definitions 
 
 ## Predefined symbols
 
-The slicec-cs compiler predefines the following preprocessor symbols:
+The slicec-cs compiler implicitly defines the following preprocessor symbols:
 
 `SLICEC_CS`
 
