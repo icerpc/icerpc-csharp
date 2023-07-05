@@ -13,7 +13,7 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <value>The stream ID.</value>
     /// <exception cref="InvalidOperationException">Thrown if the stream is not started. Local streams are not started
     /// until data is written. A remote stream is always started.</exception>
-    /// <remarks>The stream Id indentifies a stream within a connection, the least significant bit of a stream ID
+    /// <remarks>The stream Id identifies a stream within a connection, the least significant bit of a stream ID
     /// identifies the initiator of the stream, for client initiated streams this bit is set to 0 and for server
     /// initiated streams is set to 1. The second least significant bit identifies if the stream is bidirectional with
     /// this bit set to 0, or unidirectional with this bit set to 1. Successive streams of each type are created with
