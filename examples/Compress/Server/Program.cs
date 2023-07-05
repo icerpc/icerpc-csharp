@@ -2,6 +2,7 @@
 
 using CompressServer;
 using IceRpc;
+using IceRpc.Slice;
 using VisitorCenter;
 
 // Add the Compressor middleware to the dispatch pipeline.

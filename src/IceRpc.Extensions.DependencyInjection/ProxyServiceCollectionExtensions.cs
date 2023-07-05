@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides extension methods that add an IceRPC proxy to an <see cref="IServiceCollection" />.</summary>
+/// <summary>Provides extension methods that add a Slice proxy to an <see cref="IServiceCollection" />.</summary>
 public static class ProxyServiceCollectionExtensions
 {
     /// <summary>Adds a proxy that implements <typeparamref name="T"/> to this service collection.</summary>
