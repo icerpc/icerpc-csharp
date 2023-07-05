@@ -11,4 +11,3 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
 
 [assembly: InternalsVisibleTo("IceRpc.Compressor.Tests")] // For GetPayloadWriter
-[assembly: InternalsVisibleTo("IceRpc.Telemetry.Tests")] // For SliceEncoder internal constructor

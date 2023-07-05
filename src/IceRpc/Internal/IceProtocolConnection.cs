@@ -800,7 +800,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     }
 
     private static void EncodeRequestHeader(
-        IBufferWriter<byte> output,
+        IceDuplexConnectionWriter output,
         OutgoingRequest request,
         int requestId,
         int payloadSize)
@@ -824,12 +824,22 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             request.ServiceAddress.Path,
             request.ServiceAddress.Fragment,
             request.Operation,
-            request.Fields.ContainsKey(RequestFieldKey.Idempotent) ?
-                OperationMode.Idempotent : OperationMode.Normal);
+            request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent : OperationMode.Normal);
         requestHeader.Encode(ref encoder);
+        int directWriteSize = 0;
         if (request.Fields.TryGetValue(RequestFieldKey.Context, out OutgoingFieldValue requestField))
         {
-            requestField.Encode(ref encoder);
+            if (requestField.WriteAction is Action<IBufferWriter<byte>> writeAction)
+            {
+                // This writes directly to the underlying output; we measure how many bytes are written.
+                long start = output.UnflushedBytes;
+                writeAction(output);
+                directWriteSize = (int)(output.UnflushedBytes - start);
+            }
+            else
+            {
+                encoder.WriteByteSequence(requestField.ByteSequence);
+            }
         }
         else
         {
@@ -843,7 +853,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             encodingMajor,
             encodingMinor).Encode(ref encoder);
 
-        int frameSize = checked(encoder.EncodedByteCount + payloadSize);
+        int frameSize = checked(encoder.EncodedByteCount + directWriteSize + payloadSize);
         SliceEncoder.EncodeInt32(frameSize, sizePlaceholder);
     }
 

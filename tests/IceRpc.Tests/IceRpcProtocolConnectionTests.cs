@@ -1218,7 +1218,8 @@ public sealed class IceRpcProtocolConnectionTests
                 };
                 response.Fields = response.Fields.With(
                     ResponseFieldKey.CompressionFormat,
-                    (ref SliceEncoder encoder) => throw new NotSupportedException("invalid request fields"));
+                    0,
+                    (ref SliceEncoder encoder, int value) => throw new NotSupportedException("invalid request fields"));
                 return new(response);
             });
 
@@ -1650,7 +1651,8 @@ public sealed class IceRpcProtocolConnectionTests
             var response = new OutgoingResponse(request);
             response.Fields = response.Fields.With(
                 (ResponseFieldKey)1000,
-                (ref SliceEncoder encoder) => encoder.EncodeString(expectedValue));
+                expectedValue,
+                (ref SliceEncoder encoder, string expectedValue) => encoder.EncodeString(expectedValue));
             return new(response);
         });
         await using var provider = new ServiceCollection()

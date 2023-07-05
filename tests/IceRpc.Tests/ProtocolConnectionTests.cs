@@ -782,6 +782,9 @@ public sealed class ProtocolConnectionTests
             field = request.Fields[RequestFieldKey.Context].ToArray();
             return new(new OutgoingResponse(request));
         });
+
+        SliceEncoding encoding = protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2;
+
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(protocol, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -790,14 +793,15 @@ public sealed class ProtocolConnectionTests
 
         using var request = new OutgoingRequest(new ServiceAddress(protocol))
         {
-            Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>
-            {
-                [RequestFieldKey.Context] = new OutgoingFieldValue(
-                    (ref SliceEncoder encoder) => encoder.EncodeDictionary(
-                        expectedValue,
+            Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(1).With(
+                RequestFieldKey.Context,
+                expectedValue,
+                (ref SliceEncoder encoder, IDictionary<string, string> dictionary) =>
+                    encoder.EncodeDictionary(
+                        dictionary,
                         (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)))
-            }
+                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)),
+                encoding)
         };
 
         // Act
@@ -809,7 +813,6 @@ public sealed class ProtocolConnectionTests
 
         Dictionary<string, string> DecodeField()
         {
-            SliceEncoding encoding = protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2;
             var decoder = new SliceDecoder(field, encoding);
             return decoder.DecodeDictionary(
                 count => new Dictionary<string, string>(count),
