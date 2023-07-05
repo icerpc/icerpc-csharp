@@ -68,7 +68,7 @@ public class ActivatorTests
     public void Activator_cannot_create_instances_of_classes_defined_in_unknown_assemblies(string typeId)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
+        var sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
 
         object? instance = sut.CreateClassInstance(typeId, ref decoder);
 
@@ -79,7 +79,7 @@ public class ActivatorTests
     public void Activator_cannot_create_instances_of_exceptions_defined_in_unknown_assemblies(string typeId)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
+        var sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
 
         object? instance = sut.CreateExceptionInstance(typeId, ref decoder, message: null);
 
@@ -93,7 +93,7 @@ public class ActivatorTests
         Type expectedType)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = IActivator.FromAssembly(assembly);
+        var sut = IActivator.FromAssembly(assembly);
 
         object? instance = sut.CreateClassInstance(typeId, ref decoder);
 
@@ -108,7 +108,7 @@ public class ActivatorTests
         Type expectedType)
     {
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
-        IActivator sut = IActivator.FromAssembly(assembly);
+        var sut = IActivator.FromAssembly(assembly);
 
         object? instance = sut.CreateExceptionInstance(typeId, ref decoder, message: null);
 

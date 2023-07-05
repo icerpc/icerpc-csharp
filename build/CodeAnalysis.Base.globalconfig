@@ -231,3 +231,6 @@ dotnet_diagnostic.SA1649.severity = none
 
 # VSSpell001: VSSpell analyzer produces many false postives
 dotnet_diagnostic.VSSpell001.severity = none
+
+# Use primary constructor
+dotnet_diagnostic.IDE0290.severity = none
