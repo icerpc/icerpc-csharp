@@ -120,33 +120,61 @@ public abstract class MultiplexedStreamConformanceTests
     [TestCase(true, false, 4, 14u)]
     [TestCase(false, false, 4, 15u)]
     public async Task Created_stream_has_expected_id(
-        bool clientInitiated,
-        bool bidirectional,
+        bool isClientInitiated,
+        bool isBidirectional,
         int streamCount,
         ulong expectedId)
     {
+        // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await clientServerConnection.AcceptAndConnectAsync();
 
-        IMultiplexedConnection connection =
-            clientInitiated ? clientServerConnection.Client : clientServerConnection.Server;
-        IMultiplexedConnection peerConnection =
-            clientInitiated ? clientServerConnection.Server : clientServerConnection.Client;
-        IMultiplexedStream? stream = null;
-        IMultiplexedStream? peerStream = null;
+        IMultiplexedConnection localConnection =
+            isClientInitiated ? clientServerConnection.Client : clientServerConnection.Server;
+        IMultiplexedConnection remoteConnection =
+            isClientInitiated ? clientServerConnection.Server : clientServerConnection.Client;
+        IMultiplexedStream? localStream = null;
+        IMultiplexedStream? remoteStream = null;
+        var localStreams = new List<IMultiplexedStream>();
+        var remoteStreams = new List<IMultiplexedStream>();
+
+        // Act
         for (int i = 0; i < streamCount; i++)
         {
-            stream = await connection.CreateStreamAsync(bidirectional: bidirectional, default);
-            await stream.Output.WriteAsync(new byte[1]);
-            peerStream = await peerConnection.AcceptStreamAsync(default);
+            localStream = await localConnection.CreateStreamAsync(bidirectional: isBidirectional, default);
+            localStreams.Add(localStream);
+            await localStream.Output.WriteAsync(new byte[1]);
+            remoteStream = await remoteConnection.AcceptStreamAsync(default);
+            remoteStreams.Add(remoteStream);
         }
 
-        Assert.That(stream, Is.Not.Null);
-        Assert.That(peerStream, Is.Not.Null);
-        Assert.That(stream.Id, Is.EqualTo(expectedId));
-        Assert.That(peerStream.Id, Is.EqualTo(expectedId));
+        // Assert
+        Assert.That(localStream, Is.Not.Null);
+        Assert.That(remoteStream, Is.Not.Null);
+        Assert.That(localStream.Id, Is.EqualTo(expectedId));
+        Assert.That(remoteStream.Id, Is.EqualTo(expectedId));
+
+        // Cleanup
+        foreach (IMultiplexedStream stream in localStreams)
+        {
+            if (isBidirectional)
+            {
+                stream.Input.Complete();
+            }
+            stream.Output.Complete();
+        }
+
+        foreach (IMultiplexedStream stream in remoteStreams)
+        {
+
+            stream.Input.Complete();
+            if (isBidirectional)
+            {
+                stream.Output.Complete();
+            }
+        }
     }
 
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
