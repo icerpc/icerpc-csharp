@@ -392,9 +392,6 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Act/Assert
         Assert.That(sut.Local.Output, Is.InstanceOf<ReadOnlySequencePipeWriter>());
-
-        sut.Local.Output.Complete();
-        sut.Remote.Input.Complete();
     }
 
     /// <summary>Ensures that the stream output can report unflushed bytes.</summary>
@@ -405,8 +402,8 @@ public abstract class MultiplexedStreamConformanceTests
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await clientServerConnection.AcceptAndConnectAsync();
         using var sut = await clientServerConnection.CreateAndAcceptStreamAsync(bidirectional: false);
-        Memory<byte> pipeMemory = sut.Local.Output.GetMemory();
-        new ReadOnlySequence<byte>(new byte[] { 0x1, 0x2, 0x3 }).CopyTo(pipeMemory.Span);
+        var data = new Memory<byte>(new byte[] { 0x1, 0x2, 0x3 });
+        sut.Local.Output.Write(data.Span);
         sut.Local.Output.Advance(3);
 
         // Act/Assert
@@ -414,8 +411,6 @@ public abstract class MultiplexedStreamConformanceTests
         Assert.That(sut.Local.Output.UnflushedBytes, Is.EqualTo(3));
 
         await sut.Local.Output.FlushAsync();
-        sut.Local.Output.Complete();
-        sut.Remote.Input.Complete();
     }
 
     [Test]
