@@ -13,6 +13,8 @@ public interface IMultiplexedStream : IDuplexPipe
     /// <value>The stream ID.</value>
     /// <exception cref="InvalidOperationException">Thrown if the stream is not started. Local streams are not started
     /// until data is written. A remote stream is always started.</exception>
+    /// <remarks>The stream IDs has the same format as the QUIC stream IDs
+    /// <see href="https://datatracker.ietf.org/doc/html/rfc9000#name-stream-types-and-identifier"/>.</remarks>
     ulong Id { get; }
 
     /// <summary>Gets a value indicating whether the stream is bidirectional.</summary>

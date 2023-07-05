@@ -111,6 +111,72 @@ public abstract class MultiplexedStreamConformanceTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
+    [TestCase(true, true, 1, 0u)]
+    [TestCase(false, true, 1, 1u)]
+    [TestCase(true, false, 1, 2u)]
+    [TestCase(false, false, 1, 3u)]
+    [TestCase(true, true, 4, 12u)]
+    [TestCase(false, true, 4, 13u)]
+    [TestCase(true, false, 4, 14u)]
+    [TestCase(false, false, 4, 15u)]
+    public async Task Created_stream_has_expected_id(
+        bool isClientInitiated,
+        bool isBidirectional,
+        int streamCount,
+        ulong expectedId)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+
+        IMultiplexedConnection localConnection =
+            isClientInitiated ? clientServerConnection.Client : clientServerConnection.Server;
+        IMultiplexedConnection remoteConnection =
+            isClientInitiated ? clientServerConnection.Server : clientServerConnection.Client;
+        IMultiplexedStream? localStream = null;
+        IMultiplexedStream? remoteStream = null;
+        var localStreams = new List<IMultiplexedStream>();
+        var remoteStreams = new List<IMultiplexedStream>();
+
+        // Act
+        for (int i = 0; i < streamCount; i++)
+        {
+            localStream = await localConnection.CreateStreamAsync(bidirectional: isBidirectional, default);
+            localStreams.Add(localStream);
+            await localStream.Output.WriteAsync(new byte[1]);
+            remoteStream = await remoteConnection.AcceptStreamAsync(default);
+            remoteStreams.Add(remoteStream);
+        }
+
+        // Assert
+        Assert.That(localStream, Is.Not.Null);
+        Assert.That(remoteStream, Is.Not.Null);
+        Assert.That(localStream.Id, Is.EqualTo(expectedId));
+        Assert.That(remoteStream.Id, Is.EqualTo(expectedId));
+
+        // Cleanup
+        foreach (IMultiplexedStream stream in localStreams)
+        {
+            if (isBidirectional)
+            {
+                stream.Input.Complete();
+            }
+            stream.Output.Complete();
+        }
+
+        foreach (IMultiplexedStream stream in remoteStreams)
+        {
+
+            stream.Input.Complete();
+            if (isBidirectional)
+            {
+                stream.Output.Complete();
+            }
+        }
+    }
+
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
