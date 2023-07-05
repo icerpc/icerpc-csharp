@@ -218,10 +218,18 @@ internal class SlicConnection : IMultiplexedConnection
 
                     if (versionBody is not null)
                     {
-                        // We only support V1 and the peer rejected V1.
-                        throw new IceRpcException(
-                            IceRpcError.ConnectionRefused,
-                            $"The connection was refused because the server only supports Slic version(s) {string.Join(", ", versionBody.Value.Versions)}.");
+                        if (versionBody.Value.Versions.Contains(SlicDefinitions.V1))
+                        {
+                            throw new InvalidDataException(
+                                "The server supported versions include the version initially requested.");
+                        }
+                        else
+                        {
+                            // We only support V1 and the peer rejected V1.
+                            throw new IceRpcException(
+                                IceRpcError.ConnectionRefused,
+                                $"The connection was refused because the server only supports Slic version(s) {string.Join(", ", versionBody.Value.Versions)}.");
+                        }
                     }
                 }
             }
