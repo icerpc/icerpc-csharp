@@ -402,8 +402,8 @@ public abstract class MultiplexedStreamConformanceTests
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await clientServerConnection.AcceptAndConnectAsync();
         using var sut = await clientServerConnection.CreateAndAcceptStreamAsync(bidirectional: false);
-        var data = new Memory<byte>(new byte[] { 0x1, 0x2, 0x3 });
-        sut.Local.Output.Write(data.Span);
+        var data = new byte[] { 0x1, 0x2, 0x3 };
+        sut.Local.Output.Write(data);
 
         // Act/Assert
         Assert.That(sut.Local.Output.CanGetUnflushedBytes, Is.True);
