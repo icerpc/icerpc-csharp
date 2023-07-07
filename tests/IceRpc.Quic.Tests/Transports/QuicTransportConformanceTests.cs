@@ -24,9 +24,6 @@ public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTe
 }
 
 [Parallelizable(ParallelScope.All)]
-[System.Runtime.Versioning.SupportedOSPlatform("macOS")]
-[System.Runtime.Versioning.SupportedOSPlatform("linux")]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
 {
     [OneTimeSetUp]
