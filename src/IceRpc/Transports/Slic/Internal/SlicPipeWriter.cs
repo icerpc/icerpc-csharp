@@ -12,6 +12,10 @@ namespace IceRpc.Transports.Slic.Internal;
 internal class SlicPipeWriter : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
 {
+    public override bool CanGetUnflushedBytes => true;
+
+    public override long UnflushedBytes => _pipe.Writer.UnflushedBytes;
+
     // We can avoid disposing _completeWritesCts because it was not created using CreateLinkedTokenSource, and it
     // doesn't use a timer. It is not easy to dispose it because CompleteWrites can be called by another thread after
     // Complete has been called.

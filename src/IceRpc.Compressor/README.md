@@ -50,6 +50,7 @@ string greeting = await greeterProxy.GreetAsync(Environment.UserName);
 // Server application
 
 using IceRpc;
+using IceRpc.Slice;
 using VisitorCenter;
 
 // Add the compressor middleware to the dispatch pipeline.
@@ -105,6 +106,7 @@ host.Run();
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Slice;
 using VisitorCenter;
 
 var hostBuilder = Host.CreateDefaultBuilder(args);

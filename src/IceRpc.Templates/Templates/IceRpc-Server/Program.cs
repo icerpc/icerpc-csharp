@@ -1,4 +1,5 @@
 using IceRpc;
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 
 using IceRpc_Server;

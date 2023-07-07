@@ -201,6 +201,10 @@ public class PipeWriterExtensionsTests
 
     private class ReadOnlySequencePipeWriterDecorator : ReadOnlySequencePipeWriter
     {
+        public override bool CanGetUnflushedBytes => _decoratee.CanGetUnflushedBytes;
+
+        public override long UnflushedBytes => _decoratee.UnflushedBytes;
+
         internal bool ReadOnlySequenceWriteCalled { get; private set; }
 
         private readonly PipeWriter _decoratee;

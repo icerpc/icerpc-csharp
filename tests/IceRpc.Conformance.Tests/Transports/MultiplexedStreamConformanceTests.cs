@@ -111,6 +111,72 @@ public abstract class MultiplexedStreamConformanceTests
             Throws.TypeOf<InvalidOperationException>());
     }
 
+    [TestCase(true, true, 1, 0u)]
+    [TestCase(false, true, 1, 1u)]
+    [TestCase(true, false, 1, 2u)]
+    [TestCase(false, false, 1, 3u)]
+    [TestCase(true, true, 4, 12u)]
+    [TestCase(false, true, 4, 13u)]
+    [TestCase(true, false, 4, 14u)]
+    [TestCase(false, false, 4, 15u)]
+    public async Task Created_stream_has_expected_id(
+        bool isClientInitiated,
+        bool isBidirectional,
+        int streamCount,
+        ulong expectedId)
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+
+        IMultiplexedConnection localConnection =
+            isClientInitiated ? clientServerConnection.Client : clientServerConnection.Server;
+        IMultiplexedConnection remoteConnection =
+            isClientInitiated ? clientServerConnection.Server : clientServerConnection.Client;
+        IMultiplexedStream? localStream = null;
+        IMultiplexedStream? remoteStream = null;
+        var localStreams = new List<IMultiplexedStream>();
+        var remoteStreams = new List<IMultiplexedStream>();
+
+        // Act
+        for (int i = 0; i < streamCount; i++)
+        {
+            localStream = await localConnection.CreateStreamAsync(bidirectional: isBidirectional, default);
+            localStreams.Add(localStream);
+            await localStream.Output.WriteAsync(new byte[1]);
+            remoteStream = await remoteConnection.AcceptStreamAsync(default);
+            remoteStreams.Add(remoteStream);
+        }
+
+        // Assert
+        Assert.That(localStream, Is.Not.Null);
+        Assert.That(remoteStream, Is.Not.Null);
+        Assert.That(localStream!.Id, Is.EqualTo(expectedId));
+        Assert.That(remoteStream!.Id, Is.EqualTo(expectedId));
+
+        // Cleanup
+        foreach (IMultiplexedStream stream in localStreams)
+        {
+            if (isBidirectional)
+            {
+                stream.Input.Complete();
+            }
+            stream.Output.Complete();
+        }
+
+        foreach (IMultiplexedStream stream in remoteStreams)
+        {
+
+            stream.Input.Complete();
+            if (isBidirectional)
+            {
+                stream.Output.Complete();
+            }
+        }
+    }
+
     [TestCase(MultiplexedConnectionCloseError.NoError, IceRpcError.ConnectionClosedByPeer)]
     [TestCase(MultiplexedConnectionCloseError.Aborted, IceRpcError.ConnectionAborted)]
     [TestCase(MultiplexedConnectionCloseError.ServerBusy, IceRpcError.ServerBusy)]
@@ -326,6 +392,24 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Act/Assert
         Assert.That(sut.Local.Output, Is.InstanceOf<ReadOnlySequencePipeWriter>());
+    }
+
+    /// <summary>Ensures that the stream output can report unflushed bytes.</summary>
+    [Test]
+    public async Task Stream_output_can_report_unflushed_bytes()
+    {
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync(bidirectional: false);
+        var data = new byte[] { 0x1, 0x2, 0x3 };
+        sut.Local.Output.Write(data);
+
+        // Act/Assert
+        Assert.That(sut.Local.Output.CanGetUnflushedBytes, Is.True);
+        Assert.That(sut.Local.Output.UnflushedBytes, Is.EqualTo(3));
+
+        await sut.Local.Output.FlushAsync();
     }
 
     [Test]

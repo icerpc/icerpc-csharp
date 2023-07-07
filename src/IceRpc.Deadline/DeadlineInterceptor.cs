@@ -74,7 +74,8 @@ public class DeadlineInterceptor : IInvoker
         {
             request.Fields = request.Fields.With(
                 RequestFieldKey.Deadline,
-                (ref SliceEncoder encoder) => encoder.EncodeTimeStamp(deadline));
+                deadline,
+                (ref SliceEncoder encoder, DateTime deadline) => encoder.EncodeTimeStamp(deadline));
         }
 
         return timeout is null ? _next.InvokeAsync(request, cancellationToken) : PerformInvokeAsync(timeout.Value);

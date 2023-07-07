@@ -1,10 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Telemetry.Tests;
 
@@ -122,19 +121,15 @@ public sealed class TelemetryInterceptorTests
     {
         if (fields.TryGetValue(RequestFieldKey.TraceContext, out var traceContextField))
         {
-            var buffer = new byte[1024];
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-            traceContextField.Encode(ref encoder);
-            var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
-            decoder.SkipSize();
+            var pipe = new Pipe();
+            traceContextField.WriteAction!(pipe.Writer);
+            pipe.Writer.Complete();
+
+            pipe.Reader.TryRead(out var readResult);
 
             var activity = new Activity(operationName);
-            TelemetryMiddleware.RestoreActivityContext(
-                new ReadOnlySequence<byte>(buffer, (int)decoder.Consumed, encoder.EncodedByteCount),
-                activity);
+            TelemetryMiddleware.RestoreActivityContext(readResult.Buffer, activity);
             return activity;
-
         }
         else
         {

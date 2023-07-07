@@ -5,6 +5,7 @@ using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Telemetry.Tests;
 
@@ -66,9 +67,9 @@ public sealed class TelemetryMiddlewareTests
 
         string? encodedActivityId;
         ActivitySpanId? parentSpanId;
-        ReadOnlySequence<byte>? encodedTraceContext = EncodeTraceContext();
+        PipeReader encodedTraceContext = EncodeTraceContext();
 
-        ReadOnlySequence<byte> EncodeTraceContext()
+        PipeReader EncodeTraceContext()
         {
             // Encode the parent activity context here, in a separate scope, we don't want this activity to be running
             // when we call dispatch on the "sut" as the telemetry middleware interacts with Activity.Current.
@@ -78,13 +79,12 @@ public sealed class TelemetryMiddlewareTests
             encodedActivityId = encodedActivity.Id;
             parentSpanId = encodedActivity.SpanId;
 
-            var buffer = new byte[1024];
-            var bufferWriter = new MemoryBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
-
+            var pipe = new Pipe();
+            var encoder = new SliceEncoder(pipe.Writer, SliceEncoding.Slice2);
             TelemetryInterceptor.WriteActivityContext(ref encoder, encodedActivity);
+            pipe.Writer.Complete();
 
-            return new ReadOnlySequence<byte>(buffer, 0, encoder.EncodedByteCount);
+            return pipe.Reader;
         }
 
         // Add a mock activity listener that allows the activity source to create the dispatch activity.
@@ -92,12 +92,14 @@ public sealed class TelemetryMiddlewareTests
         using ActivityListener mockActivityListener = CreateMockActivityListener(activitySource);
         var sut = new TelemetryMiddleware(dispatcher, activitySource);
 
+        encodedTraceContext.TryRead(out ReadResult readResult);
+
         // Create an incoming request that carries the encoded trace context
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
         {
             Fields = new Dictionary<RequestFieldKey, ReadOnlySequence<byte>>()
             {
-                [RequestFieldKey.TraceContext] = encodedTraceContext.Value
+                [RequestFieldKey.TraceContext] = readResult.Buffer
             },
             Operation = "Op",
             Path = "/"
@@ -105,6 +107,9 @@ public sealed class TelemetryMiddlewareTests
 
         // Act
         await sut.DispatchAsync(request, default);
+
+        // Cleanup
+        encodedTraceContext.Complete();
 
         // Assert
         Assert.That(dispatchActivity, Is.Not.Null);

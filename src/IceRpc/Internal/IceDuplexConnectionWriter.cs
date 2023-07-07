@@ -11,24 +11,22 @@ namespace IceRpc.Internal;
 /// PipeWriter. Like a PipeWriter, its methods shouldn't be called concurrently.</summary>
 internal class IceDuplexConnectionWriter : IBufferWriter<byte>, IDisposable
 {
+    public long UnflushedBytes => _pipe.Writer.UnflushedBytes;
+
     private readonly IDuplexConnection _connection;
     private readonly Pipe _pipe;
     private readonly SequenceCoupler _sequenceCoupler = new();
 
-    /// <inheritdoc/>
     public void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
-    /// <inheritdoc/>
     public void Dispose()
     {
         _pipe.Writer.Complete();
         _pipe.Reader.Complete();
     }
 
-    /// <inheritdoc/>
     public Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
 
-    /// <inheritdoc/>
     public Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
 
     /// <summary>Constructs a duplex connection writer.</summary>

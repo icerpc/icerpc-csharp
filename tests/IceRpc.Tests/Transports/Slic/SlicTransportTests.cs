@@ -965,7 +965,7 @@ public class SlicTransportTests
 
         // Assert
         Assert.That(
-            async () => _ = await connectTask,
+            async () => await connectTask,
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.IceRpcError));
     }
 

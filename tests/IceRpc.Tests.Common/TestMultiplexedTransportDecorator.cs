@@ -398,6 +398,10 @@ public sealed class TestMultiplexedStreamDecorator : IMultiplexedStream
 
 internal sealed class TestPipeWriter : ReadOnlySequencePipeWriter
 {
+    public override bool CanGetUnflushedBytes => _decoratee.CanGetUnflushedBytes;
+
+    public override long UnflushedBytes => _decoratee.UnflushedBytes;
+
     private readonly ReadOnlySequencePipeWriter _decoratee;
     private readonly TransportOperations<MultiplexedTransportOperations> _operations;
 

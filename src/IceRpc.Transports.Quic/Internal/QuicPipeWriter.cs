@@ -9,17 +9,22 @@ namespace IceRpc.Transports.Quic.Internal;
 
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
+    public override bool CanGetUnflushedBytes => true;
+
+    public override long UnflushedBytes => _pipe.Writer.UnflushedBytes;
+
     internal Task Closed { get; }
 
     private bool _isCompleted;
     private readonly Action _completeCallback;
-    private readonly Action _throwIfConnectionClosedOrDisposed;
     private readonly int _minSegmentSize;
 
     // We use a helper Pipe instead of a StreamPipeWriter over _stream because StreamPipeWriter does not provide a
     // WriteAsync with an endStream/completeWrites parameter while QuicStream does.
     private readonly Pipe _pipe;
     private readonly QuicStream _stream;
+
+    private readonly Action _throwIfConnectionClosedOrDisposed;
 
     public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
