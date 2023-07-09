@@ -30,8 +30,6 @@ public static class IncomingRequestExtensions
     /// <param name="sliceException">The Slice exception to encode in the payload.</param>
     /// <param name="encoding">The encoding used for the request payload.</param>
     /// <returns>The new outgoing response.</returns>
-    /// <exception cref="ArgumentException">Thrown if the <see cref="DispatchException.ConvertToUnhandled" /> property
-    /// of <paramref name="sliceException" /> is <see langword="true" />.</exception>
     /// <exception cref="NotSupportedException">Thrown when <paramref name="sliceException" /> does not support encoding
     /// <paramref name="encoding" />.</exception>
     public static OutgoingResponse CreateSliceExceptionResponse(
@@ -39,13 +37,6 @@ public static class IncomingRequestExtensions
         SliceException sliceException,
         SliceEncoding encoding)
     {
-        if (sliceException.ConvertToUnhandled)
-        {
-            throw new ArgumentException(
-                "Cannot create a response using an slice exception that has 'ConvertToUnhandled' property set to true.",
-                nameof(sliceException));
-        }
-
         SliceEncodeOptions encodeOptions =
             request.Features.Get<ISliceFeature>()?.EncodeOptions ?? SliceEncodeOptions.Default;
 
@@ -70,7 +61,10 @@ public static class IncomingRequestExtensions
 
             pipe.Writer.Complete();
 
-            return new OutgoingResponse(request, sliceException) { Payload = pipe.Reader };
+            return new OutgoingResponse(request, StatusCode.ApplicationError, GetErrorMessage(sliceException))
+            {
+                Payload = pipe.Reader
+            };
         }
         catch
         {
@@ -121,4 +115,11 @@ public static class IncomingRequestExtensions
             encoding,
             request.Features.Get<ISliceFeature>() ?? SliceFeature.Default,
             cancellationToken);
+
+    // The error message includes the inner exception type and message because we don't transmit this inner exception
+    // with the response.
+    private static string GetErrorMessage(SliceException exception) =>
+        exception.InnerException is Exception innerException ?
+            $"{exception.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" :
+            exception.Message;
 }

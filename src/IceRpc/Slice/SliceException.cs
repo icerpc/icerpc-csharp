@@ -6,7 +6,7 @@ namespace IceRpc.Slice;
 
 /// <summary>Represents the base class for exceptions defined in Slice. The Slice keyword AnyException maps to this
 /// class.</summary>
-public abstract class SliceException : DispatchException
+public abstract class SliceException : Exception
 {
     /// <summary>Encodes this exception.</summary>
     /// <param name="encoder">The Slice encoder.</param>
@@ -18,7 +18,7 @@ public abstract class SliceException : DispatchException
     /// <param name="message">A message that describes the exception.</param>
     /// <param name="innerException">The inner exception.</param>
     protected SliceException(string? message = null, Exception? innerException = null)
-        : base(StatusCode.ApplicationError, message, innerException)
+        : base(message, innerException)
     {
     }
 

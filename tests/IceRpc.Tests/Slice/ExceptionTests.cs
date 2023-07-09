@@ -10,10 +10,8 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(ParallelScope.All)]
 public sealed class ExceptionTests
 {
-    private static IEnumerable<TestCaseData> Slice1DispatchThrowsSource
+    private static IEnumerable<TestCaseData> Slice1DispatchThrowsAnyExceptionSource
     {
-        // Slice1-encodable exceptions are transmitted as dispatch exceptions with status code
-        // StatusCode.ApplicationError over icerpc regardless of the exception specification.
         get
         {
             yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
@@ -22,17 +20,6 @@ public sealed class ExceptionTests
             yield return new TestCaseData(
                 new MyExceptionWithTaggedFields(5, 12, 13, 28),
                 StatusCode.ApplicationError);
-        }
-    }
-
-    private static IEnumerable<TestCaseData> Slice1DispatchThrowsAnyExceptionSource
-    {
-        get
-        {
-            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
 
             // The generated code attempts to encode the exception and fails to do so since it's Slice2-only.
             yield return new TestCaseData(
@@ -45,15 +32,17 @@ public sealed class ExceptionTests
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
+            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.ApplicationError);
 
-            // The generated code does not attempt to encode this exception, and we transmit it over icerpc.
+            yield return new TestCaseData(
+                new MyExceptionWithTaggedFields(5, 12, 13, 28),
+                StatusCode.ApplicationError);
+
+            // The generated code does not attempt to encode this exception: it becomes a run-of-the-mill unhandled.
             yield return new TestCaseData(
                 new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.ApplicationError);
+                StatusCode.UnhandledException);
         }
     }
 
@@ -61,29 +50,18 @@ public sealed class ExceptionTests
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice1DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
+            // The generated code does not attempt to encode any of these exceptions.
 
-            // The generated code does not attempt to encode this exception, and we transmit it over icerpc.
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.UnhandledException);
+            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.UnhandledException);
+
             yield return new TestCaseData(
-                new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.ApplicationError);
-        }
-    }
-
-    private static IEnumerable<TestCaseData> Slice2DispatchThrowsSource
-    {
-        // Slice2-encodable exceptions are transmitted as application error over icerpc regardless of the exception
-        // specification.
-        get
-        {
-            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
+                new MyExceptionWithTaggedFields(5, 12, 13, 28),
+                StatusCode.UnhandledException);
 
             yield return new TestCaseData(
                 new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.ApplicationError);
+                StatusCode.UnhandledException);
         }
     }
 
@@ -91,10 +69,11 @@ public sealed class ExceptionTests
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice2DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
+
+            yield return new TestCaseData(
+                new MyExceptionWithOptionalFields(5, 12, 13, 28),
+                StatusCode.UnhandledException);
 
             // When there is an exception specification, we attempt and fail to encode the Slice1-only
             // MyDerivedException.
@@ -106,14 +85,15 @@ public sealed class ExceptionTests
     {
         get
         {
-            foreach (TestCaseData testCaseData in Slice2DispatchThrowsSource)
-            {
-                yield return testCaseData;
-            }
+            // When there is no exception specification, we don't attempt to encode the Slice exception at all.
 
-            // When there is no exception specification, we don't attempt to encode the Slice exception at all; we
-            // only encode the base DispatchException.
-            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.ApplicationError);
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.UnhandledException);
+
+            yield return new TestCaseData(
+                new MyExceptionWithOptionalFields(5, 12, 13, 28),
+                StatusCode.UnhandledException);
+
+            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.UnhandledException);
         }
     }
 
@@ -472,12 +452,15 @@ public sealed class ExceptionTests
             throwException.GetType() : typeof(DispatchException);
 
         // Act/Assert
-        var exception = (DispatchException?)Assert.ThrowsAsync(
+        var exception = Assert.ThrowsAsync(
                 expectedType,
                 () => proxy.OpThrowsMyExceptionAsync());
 
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
+        if (expectedStatusCode != StatusCode.ApplicationError)
+        {
+            Assert.That(((DispatchException)exception!).StatusCode, Is.EqualTo(expectedStatusCode));
+        }
     }
 
     [Test, TestCaseSource(nameof(Slice2DispatchThrowsNothingSource))]
@@ -506,12 +489,15 @@ public sealed class ExceptionTests
         Type expectedType = expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
 
-        var exception = (DispatchException?)Assert.ThrowsAsync(
+        var exception = Assert.ThrowsAsync(
             expectedType,
             () => proxy.OpThrowsAnyExceptionAsync());
 
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
+        if (expectedStatusCode != StatusCode.ApplicationError)
+        {
+            Assert.That(((DispatchException)exception!).StatusCode, Is.EqualTo(expectedStatusCode));
+        }
     }
 
     [Test, TestCaseSource(nameof(Slice1DispatchThrowsMyExceptionSource))]
@@ -525,12 +511,15 @@ public sealed class ExceptionTests
         Type expectedType = throwException is MyException && expectedStatusCode == StatusCode.ApplicationError ?
             throwException.GetType() : typeof(DispatchException);
 
-        var exception = (DispatchException?)Assert.ThrowsAsync(
+        var exception = Assert.ThrowsAsync(
                 expectedType,
                 () => proxy.OpThrowsMyExceptionAsync());
 
         Assert.That(exception, Is.Not.Null);
-        Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
+        if (expectedStatusCode != StatusCode.ApplicationError)
+        {
+            Assert.That(((DispatchException)exception!).StatusCode, Is.EqualTo(expectedStatusCode));
+        }
     }
 
     [Test, TestCaseSource(nameof(Slice1DispatchThrowsNothingSource))]

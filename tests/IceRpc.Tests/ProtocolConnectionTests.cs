@@ -29,12 +29,11 @@ public sealed class ProtocolConnectionTests
                 // an unexpected OCE
                 yield return new(protocol, new OperationCanceledException(), StatusCode.UnhandledException);
                 yield return new(protocol, new InvalidOperationException(), StatusCode.UnhandledException);
+                yield return new(protocol, new MyException(), StatusCode.UnhandledException);
             }
 
             yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);
-            yield return new(Protocol.IceRpc, new MyException(), StatusCode.ApplicationError);
             yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.UnhandledException);
-            yield return new(Protocol.Ice, new MyException(), StatusCode.UnhandledException);
         }
     }
 

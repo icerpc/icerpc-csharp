@@ -107,32 +107,25 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
             )
             .add_base_parameter("message")
             .set_body(
-                EncodingBlockBuilder::new(
-                    "decoder.Encoding",
-                    &exception_name,
-                    supported_encodings.clone(),
-                    false,
-                )
-                .add_encoding_block(Encoding::Slice1, || {
-                    format!(
-                        "\
+                EncodingBlockBuilder::new("decoder.Encoding", &exception_name, supported_encodings.clone(), false)
+                    .add_encoding_block(Encoding::Slice1, || {
+                        format!(
+                            "\
+{}",
+                            initialize_required_fields(&fields, FieldType::Exception),
+                        )
+                        .into()
+                    })
+                    .add_encoding_block(Encoding::Slice2, || {
+                        format!(
+                            "\
 {}
-ConvertToUnhandled = true;",
-                        initialize_required_fields(&fields, FieldType::Exception),
-                    )
-                    .into()
-                })
-                .add_encoding_block(Encoding::Slice2, || {
-                    format!(
-                        "\
-{}
-decoder.SkipTagged(useTagEndMarker: true);
-ConvertToUnhandled = true;",
-                        decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2,),
-                    )
-                    .into()
-                })
-                .build(),
+decoder.SkipTagged(useTagEndMarker: true);",
+                            decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2,),
+                        )
+                        .into()
+                    })
+                    .build(),
             );
 
         if supported_encodings.supports(&Encoding::Slice2) && supported_encodings.supports(&Encoding::Slice1) {

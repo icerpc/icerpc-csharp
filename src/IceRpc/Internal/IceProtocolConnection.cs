@@ -1501,7 +1501,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         // With ice, a dispatch cannot throw an exception that comes from the application code:
                         // any exception thrown when reading the response payload is converted into a DispatchException
-                        // response, and the response header has no field.
+                        // response, and the response header has no field to encode.
                         Debug.Fail($"ice dispatch {request} failed with an unexpected exception: {exception}");
                         throw;
                     }

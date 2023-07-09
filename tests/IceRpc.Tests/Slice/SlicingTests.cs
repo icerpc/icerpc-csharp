@@ -204,22 +204,20 @@ public class SlicingTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
 
         // Act
-        DispatchException? dispatchException = decoder.DecodeUserException();
+        SliceException sliceException = decoder.DecodeUserException();
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
         // Assert
-        Assert.That(dispatchException, Is.Not.Null);
-
         if (partialSlicing)
         {
-            Assert.That(dispatchException, Is.TypeOf<SlicingDerivedException>());
-            var slicingDerivedException = (SlicingDerivedException)dispatchException;
+            Assert.That(sliceException, Is.TypeOf<SlicingDerivedException>());
+            var slicingDerivedException = (SlicingDerivedException)sliceException;
             Assert.That(slicingDerivedException.M1, Is.EqualTo(p1.M1));
             Assert.That(slicingDerivedException.M2, Is.EqualTo(p1.M2));
         }
         else
         {
-            Assert.That(dispatchException, Is.TypeOf<DispatchException>());
+            Assert.That(sliceException, Is.TypeOf<UnknownSliceException>());
         }
     }
 
