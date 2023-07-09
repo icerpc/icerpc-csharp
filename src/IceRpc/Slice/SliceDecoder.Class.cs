@@ -281,7 +281,7 @@ public ref partial struct SliceDecoder
             if (instance is null && SkipSlice(typeId))
             {
                 // Slice off what we don't understand.
-                instance = new UnknownSlicedClass();
+                instance = new UnknownSliceClass();
                 // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList.
                 decodeIndirectionTable = false;
             }

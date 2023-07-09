@@ -51,7 +51,7 @@ public class SlicingTests
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
         // Assert
-        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSlicedClass>());
+        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSliceClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
         if (partialSlicing)
         {
@@ -112,7 +112,7 @@ public class SlicingTests
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
         // Assert
-        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClassWithCompactId>() : Is.TypeOf<UnknownSlicedClass>());
+        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClassWithCompactId>() : Is.TypeOf<UnknownSliceClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
 
         Assert.That(r2.UnknownSlices, Is.Empty);
@@ -167,7 +167,7 @@ public class SlicingTests
         decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
         // Assert
-        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSlicedClass>());
+        Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSliceClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
 
         Assert.That(r2.UnknownSlices, Is.Empty);
