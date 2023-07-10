@@ -30,7 +30,7 @@ public interface ISliceFeature
     /// <value>The maximum size of a Slice payload segment, in bytes.</value>
     int MaxSegmentSize { get; }
 
-    /// <summary>Gets the proxy factory to use when decoding proxies in request or response payloads.</summary>
+    /// <summary>Gets the proxy factory to customize the decoding of proxies in request or response payloads.</summary>
     /// <value>The proxy factory used when decoding proxies.</value>
-    Func<ServiceAddress, GenericProxy?, GenericProxy>? ProxyFactory { get; }
+    Func<ServiceAddress, GenericProxy>? ProxyFactory { get; }
 }
