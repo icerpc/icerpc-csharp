@@ -109,12 +109,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
             .set_body(
                 EncodingBlockBuilder::new("decoder.Encoding", &exception_name, supported_encodings.clone(), false)
                     .add_encoding_block(Encoding::Slice1, || {
-                        format!(
-                            "\
-{}",
-                            initialize_required_fields(&fields, FieldType::Exception),
-                        )
-                        .into()
+                        initialize_required_fields(&fields, FieldType::Exception)
                     })
                     .add_encoding_block(Encoding::Slice2, || {
                         format!(
