@@ -116,7 +116,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
                             "\
 {}
 decoder.SkipTagged(useTagEndMarker: true);",
-                            decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2,),
+                            decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2),
                         )
                         .into()
                     })
