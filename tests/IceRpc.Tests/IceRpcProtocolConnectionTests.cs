@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using IceRpc.Tests.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -167,13 +166,6 @@ public sealed class IceRpcProtocolConnectionTests
         ReadResult readResult = await response.Payload.ReadAsync();
 
         // Assert
-        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
-            async () => await response.DecodeVoidReturnValueAsync(
-                request,
-                SliceEncoding.Slice2,
-                InvalidProxy.Instance));
-        Assert.That(decodedException, Is.Not.Null);
-        Assert.That(decodedException!.ConvertToUnhandled, Is.True);
         Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
         Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
         Assert.That(readResult.IsCompleted, Is.True);

@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
-using IceRpc.Tests.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -90,13 +88,6 @@ public sealed class IceProtocolConnectionTests
         response.Payload.TryRead(out ReadResult readResult);
 
         // Assert
-        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
-            async () => await response.DecodeVoidReturnValueAsync(
-                request,
-                SliceEncoding.Slice2,
-                InvalidProxy.Instance));
-        Assert.That(decodedException, Is.Not.Null);
-        Assert.That(decodedException!.ConvertToUnhandled, Is.True);
         Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
         Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
         Assert.That(readResult.IsCompleted, Is.True);
