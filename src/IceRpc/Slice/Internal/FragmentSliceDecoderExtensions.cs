@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
+
 namespace IceRpc.Slice.Internal;
 
 /// <summary>Provides an extension method for decoding a fragment.</summary>

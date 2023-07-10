@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice.Internal;
+using Slice;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;

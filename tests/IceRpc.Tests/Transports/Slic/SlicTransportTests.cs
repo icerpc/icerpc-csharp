@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
@@ -8,6 +7,7 @@ using IceRpc.Transports.Slic;
 using IceRpc.Transports.Slic.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Security.Authentication;

@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Represents a Slice exception that could not be decoded (Slice1 only).</summary>
 public sealed class UnknownSliceException : SliceException

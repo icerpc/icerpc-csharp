@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Encapsulates the details of a class slice (as in slice of cake) that an <see cref="IActivator" /> could
 /// not decode.</summary>

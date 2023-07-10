@@ -3,7 +3,7 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Represents the base class for classes defined in Slice. The Slice keyword AnyClass maps to this class.
 /// </summary>

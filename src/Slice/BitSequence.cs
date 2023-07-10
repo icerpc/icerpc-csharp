@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
+using Slice.Internal;
 using System.Buffers;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Provides a method for reading a bit sequence.</summary>
 /// <seealso href="https://docs.testing.zeroc.com/slice/encoding/encoding-only-constructs?encoding=Slice2#bit-sequence"/>

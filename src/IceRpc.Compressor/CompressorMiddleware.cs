@@ -4,6 +4,7 @@ using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using Slice;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Compression;

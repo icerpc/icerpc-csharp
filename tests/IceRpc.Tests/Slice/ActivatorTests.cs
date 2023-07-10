@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Tests.ReferencedAssemblies;
 using NUnit.Framework;
+using Slice;
 using System.Reflection;
 
 namespace IceRpc.Tests.Slice;
