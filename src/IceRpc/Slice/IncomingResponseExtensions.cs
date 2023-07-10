@@ -137,7 +137,7 @@ public static class IncomingResponseExtensions
                 cancellationToken).ConfigureAwait(false);
     }
 
-    private static async ValueTask<DispatchException> DecodeSliceExceptionAsync(
+    private static async ValueTask<SliceException> DecodeSliceExceptionAsync(
         this IncomingResponse response,
         SliceEncoding encoding,
         ISliceFeature feature,
@@ -160,24 +160,17 @@ public static class IncomingResponseExtensions
             throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
         }
 
-        DispatchException exception = DecodeBuffer(readResult.Buffer);
+        SliceException exception = DecodeBuffer(readResult.Buffer);
         response.Payload.AdvanceTo(readResult.Buffer.End);
         return exception;
 
-        DispatchException DecodeBuffer(ReadOnlySequence<byte> buffer)
+        SliceException DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
             // If the error message is empty, we switch to null to get the default System exception message. This would
             // typically happen when the Slice exception is received over ice.
             string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
 
-            if (readResult.Buffer.IsEmpty)
-            {
-                // The payload is empty, no need to decode it. This is very uncommon for a payload received over ice.
-                // Note the Slice-encoded payload of an empty exception uses at least 1 byte (with Slice2, for the tag
-                // end marker).
-                return new DispatchException(response.StatusCode, errorMessage) { ConvertToUnhandled = true };
-            }
-            else if (encoding == SliceEncoding.Slice1)
+            if (encoding == SliceEncoding.Slice1)
             {
                 var decoder = new SliceDecoder(
                     buffer,
@@ -188,12 +181,11 @@ public static class IncomingResponseExtensions
                     activator,
                     maxDepth: feature.MaxDepth);
 
-                DispatchException exception = decoder.DecodeUserException(errorMessage);
-                if (exception is SliceException)
+                SliceException exception = decoder.DecodeUserException(errorMessage);
+                if (exception is not UnknownSliceException)
                 {
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
                 }
-                // else the exception was not decoded.
                 return exception;
             }
             else

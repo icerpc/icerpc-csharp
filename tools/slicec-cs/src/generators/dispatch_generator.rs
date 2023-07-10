@@ -498,7 +498,7 @@ try
 {{
     {dispatch_and_return}
 }}
-catch ({exception_type} sliceException) when (!sliceException.ConvertToUnhandled)
+catch ({exception_type} sliceException)
 {{
     return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
