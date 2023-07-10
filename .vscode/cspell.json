@@ -4,9 +4,11 @@
   "words": [
     "icerpc",
     "Slic",
+    "structs",
+    "unregisters",
     "varint",
     "varuint",
-    "ZeroC",
+    "ZeroC"
   ],
   "dictionaries": [
     "softwareTerms",
