@@ -174,7 +174,7 @@ public ref partial struct SliceEncoder
 
             if (v.UnknownSlices.Count > 0 && _classContext.ClassFormat == ClassFormat.Sliced)
             {
-                EncodeUnknownSlices(v.UnknownSlices, fullySliced: v is UnknownSlicedClass);
+                EncodeUnknownSlices(v.UnknownSlices, fullySliced: v is UnknownSliceClass);
                 _classContext.Current.FirstSlice = false;
             }
             v.Encode(ref this);

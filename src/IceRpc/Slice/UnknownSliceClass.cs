@@ -6,7 +6,7 @@ namespace IceRpc.Slice;
 
 /// <summary>Represents a fully sliced class instance. The <see cref="IActivator"/> used during decoding does not know
 /// this type or any of its base classes.</summary>
-public sealed class UnknownSlicedClass : SliceClass
+public sealed class UnknownSliceClass : SliceClass
 {
     /// <inheritdoc/>
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -20,7 +20,7 @@ public sealed class UnknownSlicedClass : SliceClass
     {
     }
 
-    internal UnknownSlicedClass()
+    internal UnknownSliceClass()
     {
     }
 }
