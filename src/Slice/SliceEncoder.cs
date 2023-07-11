@@ -323,7 +323,7 @@ public ref partial struct SliceEncoder
 
         if (Encoding == SliceEncoding.Slice1)
         {
-            EncodeTaggedParamHeader(tag, TagFormat.VSize);
+            EncodeTaggedFieldHeader(tag, TagFormat.VSize);
         }
         else
         {
@@ -369,11 +369,11 @@ public ref partial struct SliceEncoder
             case TagFormat.F4:
             case TagFormat.F8:
             case TagFormat.Size:
-                EncodeTaggedParamHeader(tag, tagFormat);
+                EncodeTaggedFieldHeader(tag, tagFormat);
                 encodeAction(ref this, v);
                 break;
             case TagFormat.FSize:
-                EncodeTaggedParamHeader(tag, tagFormat);
+                EncodeTaggedFieldHeader(tag, tagFormat);
                 Span<byte> placeholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
                 encodeAction(ref this, v);
@@ -384,7 +384,7 @@ public ref partial struct SliceEncoder
             case TagFormat.OptimizedVSize:
                 // Used to encode string, and sequences of non optional elements with 1 byte min wire size,
                 // in this case OptimizedVSize is always used to optimize out the size.
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
+                EncodeTaggedFieldHeader(tag, TagFormat.VSize);
                 encodeAction(ref this, v);
                 break;
 
@@ -562,10 +562,10 @@ public ref partial struct SliceEncoder
         EncodedByteCount += count;
     }
 
-    /// <summary>Encodes the header for a tagged parameter or field. Slice1 only.</summary>
-    /// <param name="tag">The numeric tag associated with the parameter or field.</param>
+    /// <summary>Encodes the header for a tagged field. Slice1 only.</summary>
+    /// <param name="tag">The numeric tag associated with the field.</param>
     /// <param name="format">The tag format.</param>
-    private void EncodeTaggedParamHeader(int tag, TagFormat format)
+    private void EncodeTaggedFieldHeader(int tag, TagFormat format)
     {
         Debug.Assert(Encoding == SliceEncoding.Slice1);
         Debug.Assert(format != TagFormat.OptimizedVSize); // OptimizedVSize cannot be encoded

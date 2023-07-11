@@ -305,15 +305,13 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Decodes a Slice2-encoded tagged parameter or field.</summary>
+    /// <summary>Decodes a Slice2-encoded tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
     /// <param name="tag">The tag.</param>
-    /// <param name="decodeFunc">A decode function that decodes the value of this tagged parameter or field.
-    /// </param>
-    /// <param name="useTagEndMarker">When <see langword="true" />, we are decoding a field and a tag end marker marks
-    /// the end of the tagged fields. When <see langword="false" />, we are decoding a parameter and the end of the
-    /// buffer marks the end of the tagged parameters.</param>
-    /// <returns>The decoded value of the tagged parameter or field, or <see langword="null" /> if not found.</returns>
+    /// <param name="decodeFunc">A decode function that decodes the value of this tagged field.</param>
+    /// <param name="useTagEndMarker">When <see langword="true" />, a tag end marker marks the end of the tagged fields.
+    /// When <see langword="false" />, the end of the buffer marks the end of the tagged fields.</param>
+    /// <returns>The decoded value of the tagged field, or <see langword="null" /> if not found.</returns>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
     /// such as string?.</remarks>
     public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
@@ -350,15 +348,14 @@ public ref partial struct SliceDecoder
         return default;
     }
 
-    /// <summary>Decodes a Slice1-encoded tagged parameter or field.</summary>
+    /// <summary>Decodes a Slice1-encoded tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
-    /// <param name="useTagEndMarker">When <see langword="true" />, we are decoding a field and a tag end marker marks
-    /// the end of the tagged fields. When <see langword="false" />, we are decoding a parameter and the end of the
-    /// buffer marks the end of the tagged parameters.</param>
-    /// <returns>The decoded value of the tagged parameter or field, or <see langword="null" /> if not found.</returns>
+    /// <param name="useTagEndMarker">When <see langword="true" />, a tag end marker marks the end of the tagged fields.
+    /// When <see langword="false" />, the end of the buffer marks the end of the tagged fields.</param>
+    /// <returns>The decoded value of the tagged field, or <see langword="null" /> if not found.</returns>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
     /// such as string?.</remarks>
     public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
@@ -448,8 +445,7 @@ public ref partial struct SliceDecoder
             {
                 if (!useTagEndMarker && _reader.End)
                 {
-                    // When we don't use an end marker, the end of the buffer indicates the end of the tagged params
-                    // or fields.
+                    // When we don't use an end marker, the end of the buffer indicates the end of the tagged fields.
                     break;
                 }
 
@@ -457,7 +453,7 @@ public ref partial struct SliceDecoder
                 if (useTagEndMarker && v == TagEndMarker)
                 {
                     // When we use an end marker, the end marker (and only the end marker) indicates the end of the
-                    // tagged params / fields.
+                    // tagged fields.
                     break;
                 }
 
@@ -753,7 +749,7 @@ public ref partial struct SliceDecoder
             // tagged fields of a class or exception
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) == 0)
             {
-                // The current slice has no tagged parameter.
+                // The current slice has no tagged field.
                 return false;
             }
         }
@@ -764,7 +760,7 @@ public ref partial struct SliceDecoder
         {
             if (!useTagEndMarker && _reader.End)
             {
-                return false; // End of buffer indicates end of tagged parameters.
+                return false; // End of buffer indicates end of tagged fields.
             }
 
             long savedPos = _reader.Consumed;
@@ -786,7 +782,7 @@ public ref partial struct SliceDecoder
             if (tag > requestedTag)
             {
                 _reader.Rewind(_reader.Consumed - savedPos);
-                return false; // No tagged parameter with the requested tag.
+                return false; // No tagged field with the requested tag.
             }
             else if (tag < requestedTag)
             {
@@ -801,7 +797,7 @@ public ref partial struct SliceDecoder
 
                 if (format != expectedFormat)
                 {
-                    throw new InvalidDataException($"Invalid tagged parameter '{tag}': unexpected format.");
+                    throw new InvalidDataException($"Invalid tagged field '{tag}': unexpected format.");
                 }
                 return true;
             }
@@ -844,7 +840,7 @@ public ref partial struct SliceDecoder
                 Skip(size);
                 break;
             default:
-                throw new InvalidDataException($"Cannot skip tagged parameter or field with tag format '{format}'.");
+                throw new InvalidDataException($"Cannot skip tagged field with tag format '{format}'.");
         }
     }
 }
