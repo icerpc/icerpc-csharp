@@ -1,25 +1,29 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Internal;
-using IceRpc.Slice.Internal;
+using Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using static IceRpc.Slice.Internal.Slice1Definitions;
+using static Slice.Internal.Slice1Definitions;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Provides methods to decode data encoded with Slice1 or Slice2.</summary>
 public ref partial struct SliceDecoder
 {
+    /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>
+    public readonly long Consumed => _reader.Consumed;
+
     /// <summary>Gets the Slice encoding decoded by this decoder.</summary>
     public SliceEncoding Encoding { get; }
 
-    /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>
-    public readonly long Consumed => _reader.Consumed;
+    /// <summary>Gets the proxy decoding context.</summary>
+    /// <remarks>The proxy decoding context is a kind of cookie the code that creates the decoder can store in the
+    /// decoder for later retrieval.</remarks>
+    public object? ProxyDecodingContext { get; }
 
     private const string EndOfBufferMessage = "Attempting to decode past the end of the Slice decoder buffer.";
 
@@ -45,18 +49,13 @@ public ref partial struct SliceDecoder
     // The maximum depth when decoding a class recursively.
     private readonly int _maxDepth;
 
-    private readonly Func<ServiceAddress, GenericProxy?, GenericProxy>? _proxyFactory;
-
     // The sequence reader.
     private SequenceReader<byte> _reader;
-
-    private readonly GenericProxy? _templateProxy;
 
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="proxyFactory">The proxy factory.</param>
-    /// <param name="templateProxy">The template proxy to give to <paramref name="proxyFactory" />.</param>
+    /// <param name="proxyDecodingContext">The proxy decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -65,17 +64,15 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlySequence<byte> buffer,
         SliceEncoding encoding,
-        Func<ServiceAddress, GenericProxy?, GenericProxy>? proxyFactory = null,
-        GenericProxy? templateProxy = null,
+        object? proxyDecodingContext = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
     {
         Encoding = encoding;
+        ProxyDecodingContext = proxyDecodingContext;
 
         _currentCollectionAllocation = 0;
-        _proxyFactory = proxyFactory;
-        _templateProxy = templateProxy;
 
         _maxCollectionAllocation = maxCollectionAllocation == -1 ? 8 * (int)buffer.Length :
             (maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -95,8 +92,7 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="proxyFactory">The proxy factory.</param>
-    /// <param name="templateProxy">The template proxy to give to <paramref name="proxyFactory" />.</param>
+    /// <param name="proxyDecodingContext">The proxy decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -105,16 +101,14 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlyMemory<byte> buffer,
         SliceEncoding encoding,
-        Func<ServiceAddress, GenericProxy?, GenericProxy>? proxyFactory = null,
-        GenericProxy? templateProxy = null,
+        object? proxyDecodingContext = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
         : this(
             new ReadOnlySequence<byte>(buffer),
             encoding,
-            proxyFactory,
-            templateProxy,
+            proxyDecodingContext,
             maxCollectionAllocation,
             activator,
             maxDepth)
@@ -292,24 +286,6 @@ public ref partial struct SliceDecoder
     /// <returns>The ulong decoded by this decoder.</returns>
     public ulong DecodeVarUInt62() =>
         TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
-
-    // Decode methods for constructed types
-
-    /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
-    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
-    /// <returns>The decoded proxy, or <see langword="null" />.</returns>
-    public TProxy? DecodeNullableProxy<TProxy>() where TProxy : struct, IProxy =>
-        this.DecodeNullableServiceAddress() is ServiceAddress serviceAddress ?
-            CreateProxy<TProxy>(serviceAddress) : null;
-
-    /// <summary>Decodes a proxy struct.</summary>
-    /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
-    /// <returns>The decoded proxy struct.</returns>
-    public TProxy DecodeProxy<TProxy>() where TProxy : struct, IProxy =>
-        Encoding == SliceEncoding.Slice1 ?
-            DecodeNullableProxy<TProxy>() ??
-                throw new InvalidDataException("Decoded null for a non-nullable proxy.") :
-           CreateProxy<TProxy>(this.DecodeServiceAddress());
 
     // Other methods
 
@@ -753,34 +729,6 @@ public ref partial struct SliceDecoder
         }
         value = 0;
         return false;
-    }
-
-    private TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress) where TProxy : struct, IProxy
-    {
-        if (_proxyFactory is null)
-        {
-            return _templateProxy is GenericProxy templateProxy ?
-                new TProxy
-                {
-                    EncodeOptions = templateProxy.EncodeOptions,
-                    Invoker = templateProxy.Invoker,
-                    ServiceAddress = serviceAddress.Protocol is null ?
-                        templateProxy.ServiceAddress with { Path = serviceAddress.Path } : serviceAddress
-                }
-                :
-                new TProxy { ServiceAddress = serviceAddress };
-        }
-        else
-        {
-            GenericProxy proxy = _proxyFactory(serviceAddress, _templateProxy);
-
-            return new TProxy
-            {
-                EncodeOptions = proxy.EncodeOptions,
-                Invoker = proxy.Invoker,
-                ServiceAddress = proxy.ServiceAddress
-            };
-        }
     }
 
     private bool DecodeTagHeader(int tag, TagFormat expectedFormat, bool useTagEndMarker)

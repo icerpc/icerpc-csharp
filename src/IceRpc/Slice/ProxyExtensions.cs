@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
+using Slice;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 

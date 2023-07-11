@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
+
 namespace IceRpc.Slice;
 
 /// <summary>Default implementation of <see cref="ISliceFeature" />.</summary>
@@ -28,7 +30,7 @@ public sealed class SliceFeature : ISliceFeature
     public int MaxSegmentSize { get; }
 
     /// <inheritdoc/>
-    public Func<ServiceAddress, GenericProxy?, GenericProxy>? ProxyFactory { get; }
+    public Func<ServiceAddress, GenericProxy>? ProxyFactory { get; }
 
     /// <summary>Constructs a Slice feature.</summary>
     /// <param name="activator">The activator.</param>
@@ -47,7 +49,7 @@ public sealed class SliceFeature : ISliceFeature
         int maxCollectionAllocation = -1,
         int maxDepth = -1,
         int maxSegmentSize = -1,
-        Func<ServiceAddress, GenericProxy?, GenericProxy>? proxyFactory = null,
+        Func<ServiceAddress, GenericProxy>? proxyFactory = null,
         ISliceFeature? defaultFeature = null)
     {
         defaultFeature ??= Default;
@@ -77,6 +79,6 @@ public sealed class SliceFeature : ISliceFeature
 
         public int MaxSegmentSize => 1024 * 1024;
 
-        public Func<ServiceAddress, GenericProxy?, GenericProxy>? ProxyFactory => null;
+        public Func<ServiceAddress, GenericProxy>? ProxyFactory => null;
     }
 }

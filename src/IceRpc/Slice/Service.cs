@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Ice;
+using Slice;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;

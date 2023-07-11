@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
 

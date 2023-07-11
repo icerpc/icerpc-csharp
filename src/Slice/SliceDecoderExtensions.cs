@@ -3,7 +3,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Provides extension methods for <see cref="SliceDecoder" />.</summary>
 public static class SliceDecoderExtensions

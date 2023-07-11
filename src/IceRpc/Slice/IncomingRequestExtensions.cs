@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice.Internal;
+using Slice;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice;
@@ -96,7 +97,7 @@ public static class IncomingRequestExtensions
         return request.DecodeValueAsync(
             encoding,
             feature,
-            templateProxy: null,
+            feature.ProxyFactory,
             decodeFunc,
             feature.Activator ?? defaultActivator,
             cancellationToken);

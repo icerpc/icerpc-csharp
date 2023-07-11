@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Internal;
@@ -12,7 +13,7 @@ internal static class IncomingFrameExtensions
     /// <param name="frame">The incoming frame.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="feature">The Slice feature.</param>
-    /// <param name="templateProxy">The template proxy.</param>
+    /// <param name="proxyFactory">The proxy factory.</param>
     /// <param name="decodeFunc">The decode function for the payload arguments or return value.</param>
     /// <param name="activator">The activator.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -21,7 +22,7 @@ internal static class IncomingFrameExtensions
         this IncomingFrame frame,
         SliceEncoding encoding,
         ISliceFeature feature,
-        GenericProxy? templateProxy,
+        Func<ServiceAddress, GenericProxy>? proxyFactory,
         DecodeFunc<T> decodeFunc,
         IActivator? activator,
         CancellationToken cancellationToken)
@@ -42,8 +43,7 @@ internal static class IncomingFrameExtensions
             var decoder = new SliceDecoder(
                 readResult.Buffer,
                 encoding,
-                feature.ProxyFactory,
-                templateProxy,
+                proxyFactory,
                 feature.MaxCollectionAllocation,
                 activator,
                 feature.MaxDepth);

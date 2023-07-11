@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
+using Slice;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
