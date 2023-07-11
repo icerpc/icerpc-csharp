@@ -16,7 +16,7 @@ public static class RetryInvokerBuilderExtensions
         builder.UseRetry(new RetryOptions());
 
     /// <summary>Adds a <see cref="RetryInterceptor" /> to the builder. This interceptor relies on the
-    /// <see cref="ILoggerFactory" /> service managed by the service provider.</summary>
+    /// <see cref="ILogger{T}" /> service managed by the service provider.</summary>
     /// <param name="builder">The builder being configured.</param>
     /// <param name="options">The options to configure the <see cref="RetryInterceptor" />.</param>
     /// <returns>The builder being configured.</returns>

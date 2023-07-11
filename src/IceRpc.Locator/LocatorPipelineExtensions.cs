@@ -32,10 +32,11 @@ public static class LocatorPipelineExtensions
                 new LocatorOptions(),
                 loggerFactory.CreateLogger<LocatorInterceptor>()));
 
-    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline.</summary>
+    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified location resolver.
+    /// </summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="locatorLocationResolver">The locator-based location resolver instance.</param>
+    /// <param name="locationResolver">The location resolver instance.</param>
     /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, LocatorLocationResolver locatorLocationResolver) =>
-        pipeline.Use(next => new LocatorInterceptor(next, locatorLocationResolver));
+    public static Pipeline UseLocator(this Pipeline pipeline, ILocationResolver locationResolver) =>
+        pipeline.Use(next => new LocatorInterceptor(next, locationResolver));
 }
