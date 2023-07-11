@@ -20,10 +20,19 @@ public ref partial struct SliceDecoder
     /// <summary>Gets the Slice encoding decoded by this decoder.</summary>
     public SliceEncoding Encoding { get; }
 
+    /// <summary>Gets a value indicating whether this decoder has reached the end of its underlying buffer.</summary>
+    /// <value><see langword="true" /> when this decoder has reached the end of its underlying buffer; otherwise
+    /// <see langword="false" />.</value>
+    public readonly bool End => _reader.End;
+
     /// <summary>Gets the proxy decoding context.</summary>
     /// <remarks>The proxy decoding context is a kind of cookie the code that creates the decoder can store in the
     /// decoder for later retrieval.</remarks>
     public object? ProxyDecodingContext { get; }
+
+    /// <summary>Gets the number of bytes remaining in the underlying buffer.</summary>
+    /// <value>The number of bytes remaining in the underlying buffer.</value>
+    public readonly long Remaining => _reader.Remaining;
 
     private const string EndOfBufferMessage = "Attempting to decode past the end of the Slice decoder buffer.";
 
@@ -421,9 +430,8 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Skips the remaining tagged fields or parameters.</summary>
-    /// <param name="useTagEndMarker">Whether or not the tagged fields or parameters use a tag end marker.
-    /// </param>
+    /// <summary>Skips the remaining tagged fields.</summary>
+    /// <param name="useTagEndMarker">Whether or not the tagged fields use a tag end marker.</param>
     public void SkipTagged(bool useTagEndMarker)
     {
         if (Encoding == SliceEncoding.Slice1)
@@ -507,22 +515,6 @@ public ref partial struct SliceDecoder
 
     // Applies to all var type: varint62, varuint62 etc.
     internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
-
-    /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
-    /// <param name="skipTaggedParams">When <see langword="true" />, first skips all remaining tagged parameters in the
-    /// current buffer.</param>
-    internal void CheckEndOfBuffer(bool skipTaggedParams)
-    {
-        if (skipTaggedParams)
-        {
-            SkipTagged(useTagEndMarker: false);
-        }
-
-        if (!_reader.End)
-        {
-            throw new InvalidDataException($"There are {_reader.Remaining} bytes remaining in the buffer.");
-        }
-    }
 
     /// <summary>Copy all bytes from the underlying reader into the destination buffer writer.</summary>
     /// <remarks>This method also moves the reader's Consumed property.</remarks>
