@@ -26,6 +26,6 @@ fn scoped_identifier(identifier: String, identifier_namespace: String, current_n
     if current_namespace == identifier_namespace {
         identifier
     } else {
-        identifier_namespace + "." + &identifier
+        format!("global::{identifier_namespace}.{identifier}")
     }
 }
