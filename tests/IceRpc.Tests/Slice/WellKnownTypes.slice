@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-// TODO: remove Tmp suffix when #3501 is fixed.
-module IceRpc::Tests::SliceTmp
+module IceRpc::Tests::Slice
 
 struct WellKnown {
     duration: WellKnownTypes::Duration

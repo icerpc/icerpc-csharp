@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-// TODO: remove Tmp suffix when #3501 is fixed.
-module IceRpc::Tests::SliceTmp
+module IceRpc::Tests::Slice
 
 // This file contains Slice definitions for testing the mapping of doc comments
 
