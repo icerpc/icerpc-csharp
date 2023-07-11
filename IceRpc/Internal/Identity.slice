@@ -2,7 +2,7 @@
 
 encoding = Slice1
 
-module IceRpc::Slice::Internal
+module IceRpc::Internal
 
 /// The identity of a service. Used only with Slice1.
 [cs::internal]
