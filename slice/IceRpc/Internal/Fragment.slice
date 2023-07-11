@@ -2,10 +2,10 @@
 
 encoding = Slice1
 
-module IceRpc::Slice::Internal
+module IceRpc::Internal
 
 /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
-/// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
-/// percent-escaped, the sequence element is not.
+/// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is percent-escaped,
+/// the sequence element is not.
 [cs::type("string")]
 custom Fragment
