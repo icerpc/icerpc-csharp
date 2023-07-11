@@ -7,11 +7,6 @@
     </PropertyGroup>
    <ItemGroup>
         <SliceFile
-            Include="../../slice/WellKnownTypes/*.slice"
-            OutputDir="$(MSBuildProjectDirectory)/generated"
-            Pack="true"
-            PackagePath="slice/WellKnownTypes"/>
-        <SliceFile
             Include="../../slice/$(AssemblyName)/*.slice"
             OutputDir="$(MSBuildProjectDirectory)/generated"
             Pack="true"
@@ -22,7 +17,6 @@
             Pack="true"
             PackagePath="slice/Ice" />
         <SliceFile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceFile Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
         <SliceFile Include="../../slice/$(AssemblyName)/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
     </ItemGroup>
     <ItemGroup>
