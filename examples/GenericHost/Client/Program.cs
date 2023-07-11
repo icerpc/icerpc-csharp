@@ -30,8 +30,8 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
             .Configure(options =>
             {
                 // Configure the authentication options
-                var rootCA = new X509Certificate2(
-                    hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile")!);
+                string caFile = hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile")!;
+                var rootCA = new X509Certificate2($"{hostContext.HostingEnvironment.ContentRootPath}{caFile}");
 
                 options.ClientAuthenticationOptions = new SslClientAuthenticationOptions
                 {
