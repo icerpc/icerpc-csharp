@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Represents a delegate that decodes a value from a Slice decoder.</summary>
 /// <typeparam name="T">The type of the value to decode.</typeparam>

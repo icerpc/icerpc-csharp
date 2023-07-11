@@ -3,6 +3,7 @@
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Slice;
+using Slice;
 
 namespace IceRpc.Deadline;
 

@@ -5,6 +5,7 @@ using IceRpc.Ice;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
+using Slice;
 
 namespace IceRpc.Tests.Slice;
 
@@ -31,7 +32,8 @@ public class ProxyTests
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that calling <see cref="SliceDecoder.DecodeProxy" /> correctly decodes a proxy.</summary>
+    /// <summary>Verifies that calling <see cref="ProxySliceDecoderExtensions.DecodeProxy" /> correctly decodes
+    /// a proxy. </summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     /// <param name="encoding">The encoding used to decode the service address.</param>
@@ -189,7 +191,7 @@ public class ProxyTests
         var router = new Router();
         router.Map<ISendProxyTestService>(service);
         router.UseFeature<ISliceFeature>(
-            new SliceFeature(proxyFactory: (serviceAddress, _) =>
+            new SliceFeature(proxyFactory: serviceAddress =>
                 new GenericProxy
                 {
                     Invoker = pipeline,

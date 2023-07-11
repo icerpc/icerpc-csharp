@@ -3,6 +3,7 @@
 using IceRpc.Ice;
 using IceRpc.Slice;
 using NUnit.Framework;
+using Slice;
 
 namespace IceRpc.Tests.Slice.TypeIdAttributeTestNamespace;
 

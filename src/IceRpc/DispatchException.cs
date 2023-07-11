@@ -20,10 +20,12 @@ public sealed class DispatchException : Exception
     public StatusCode StatusCode { get; }
 
     /// <summary>Constructs a new instance of <see cref="DispatchException" />.</summary>
-    /// <param name="statusCode">The status code of this exception. It must be greater than
-    /// <see cref="StatusCode.Success" />.</param>
+    /// <param name="statusCode">The status code of this exception. It must be greater than <see
+    /// cref="StatusCode.Success" />.</param>
     /// <param name="message">A message that describes the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="statusCode" /> is equal to <see
+    /// cref="StatusCode.Success" />.</exception>
     public DispatchException(
         StatusCode statusCode,
         string? message = null,

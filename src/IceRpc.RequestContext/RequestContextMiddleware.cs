@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using Slice;
 using System.Buffers;
 
 namespace IceRpc.RequestContext;

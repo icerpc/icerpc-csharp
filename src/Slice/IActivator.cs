@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
+using Slice.Internal;
 using System.Reflection;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Provides methods that create class and exception instances from Slice type IDs.</summary>
 /// <remarks>When decoding a Slice1-encoded buffer, a Slice decoder uses its activator to create a class or exception

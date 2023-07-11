@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Tests.Slice.Tagged.Slice1;
 using NUnit.Framework;
+using Slice;
+using Slice.Internal;
 
 namespace IceRpc.Tests.Slice;
 
@@ -103,7 +104,6 @@ public class TaggedTests
 
             yield return new TestCaseData(_structWithTaggedFields[1]).SetName(
                 "Skip_slice2_tagged_fields(no_fields_set)");
-
 
             yield return new TestCaseData(_structWithTaggedFields[2]).SetName(
                 "Skip_slice2_tagged_fields(some_fields_set)");

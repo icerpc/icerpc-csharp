@@ -4,7 +4,7 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Provides extension methods for <see cref="SliceEncoder" />.</summary>
 public static class SliceEncoderExtensions

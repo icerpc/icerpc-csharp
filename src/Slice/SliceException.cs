@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Represents the base class for exceptions defined in Slice. The Slice keyword AnyException maps to this
 /// class.</summary>

@@ -31,12 +31,14 @@ impl Visitor for Generator<'_> {
     }
 
     fn visit_exception(&mut self, exception_def: &Exception) {
-        self.code.add_block(&exception_generator::generate_exception(exception_def));
+        self.code
+            .add_block(&exception_generator::generate_exception(exception_def));
     }
 
     fn visit_interface(&mut self, interface_def: &Interface) {
         self.code.add_block(&proxy_generator::generate_proxy(interface_def));
-        self.code.add_block(&dispatch_generator::generate_dispatch(interface_def));
+        self.code
+            .add_block(&dispatch_generator::generate_dispatch(interface_def));
     }
 
     fn visit_enum(&mut self, enum_def: &Enum) {
@@ -92,6 +94,7 @@ fn preamble(slice_file: &SliceFile) -> CodeBlock {
 #pragma warning disable CS0618 // Type or member is obsolete
 
 using IceRpc.Slice;
+using Slice;
 
 [assembly:Slice("{file}.slice")]
 "#,

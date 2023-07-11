@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice.Internal;
+namespace Slice.Internal;
 
 /// <summary>An enumerator over one or more <see cref="Span{T}" /> of bytes. Used by <see cref="BitSequenceWriter" />.
 /// </summary>
