@@ -27,7 +27,7 @@ public static class LocatorInvokerBuilderExtensions
             typeof(ILogger<LocatorInterceptor>)) is not ILogger<LocatorInterceptor> logger)
         {
             throw new InvalidOperationException(
-                $"Could not find service of type '{nameof(ILocator)}' in the service container.");
+                $"Could not find service of type '{nameof(ILogger<LocatorInterceptor>)}' in the service container.");
         }
         return builder.Use(
             next => new LocatorInterceptor(next, new LocatorLocationResolver(locator, options, logger)));
