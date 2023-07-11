@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <PropertyGroup>
-        <ProjectTemplatesDirectory>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)/IceRpc.Templates'))</ProjectTemplatesDirectory>
-        <IsTemplateProject Condition="$(MSBuildProjectDirectory.StartsWith('$(ProjectTemplatesDirectory)'))">true</IsTemplateProject>
-        <IsSrcProject Condition="'$(IsTemplateProject)' != 'true'">true</IsSrcProject>
-    </PropertyGroup>
-    <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Src.props" Condition="'$(IsSrcProject)' == 'true'" />
-    <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Version.props" Condition="'$(IsTemplateProject)' == 'true'" />
-    <Import Project="$(MSBuildThisFileDirectory)../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" Condition="'$(IsSrcProject)' == 'true'"/>
+    <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Src.props" />
+    <Import Project="$(MSBuildThisFileDirectory)../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
     <PropertyGroup>
         <!-- Include PDB in the built .nupkg -->
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     </PropertyGroup>
     <ItemGroup>
-        <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" Condition="'$(IsSrcProject)' == 'true'"/>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.globalconfig" />
-        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Src.globalconfig" Condition="'$(IsSrcProject)' == 'true'" />
-        <!-- Reference the built-in Slice files -->
-        <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice" Condition="'$(IsSrcProject)' == 'true'" />
+        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Src.globalconfig" />
     </ItemGroup>
 </Project>

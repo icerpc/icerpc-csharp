@@ -18,6 +18,8 @@
             PackagePath="slice/Ice" />
         <SliceFile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
         <SliceFile Include="../../slice/$(AssemblyName)/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
+        <!-- Reference the built-in Slice files -->
+        <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Slice\Slice.csproj" ExactVersion="true" />
