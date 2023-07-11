@@ -22,6 +22,7 @@ public class IncomingResponseTests
             StatusCode.DeadlineExpired,
             "deadline expired");
 
+        // Act/Assert
         DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
             async () => await response.DecodeVoidReturnValueAsync(
                 request,
@@ -42,6 +43,7 @@ public class IncomingResponseTests
             StatusCode.DeadlineExpired,
             "deadline expired");
 
+        // Act/Assert
         DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
             async () => await response.DecodeReturnValueAsync(
                 request,
