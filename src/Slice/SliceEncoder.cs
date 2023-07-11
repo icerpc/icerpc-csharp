@@ -2,7 +2,6 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -89,12 +88,18 @@ public ref partial struct SliceEncoder
     public static int GetVarUInt62EncodedSize(ulong value) => 1 << GetVarUInt62EncodedSizeExponent(value);
 
     /// <summary>Constructs a Slice encoder.</summary>
-    /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
+    /// <param name="bufferWriter">A buffer writer that writes to byte buffers. See important remarks below.</param>
     /// <param name="encoding">The Slice encoding.</param>
     /// <param name="classFormat">The class format (Slice1 only).</param>
-    public SliceEncoder(PipeWriter pipeWriter, SliceEncoding encoding, ClassFormat classFormat = default)
-        : this((IBufferWriter<byte>)pipeWriter, encoding, classFormat)
+    /// <remarks>Warning: the Slice encoding requires rewriting buffers, and many buffer writers do not support this
+    /// behavior. It is safe to use a pipe writer or a buffer writer that writes to a single fixed-size buffer (without
+    /// reallocation).</remarks>
+    public SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, ClassFormat classFormat = default)
+        : this()
     {
+        Encoding = encoding;
+        _bufferWriter = bufferWriter;
+        _classContext = new ClassContext(classFormat);
     }
 
     // Encode methods for basic types
@@ -484,19 +489,6 @@ public ref partial struct SliceEncoder
     {
         _bufferWriter.Write(span);
         EncodedByteCount += span.Length;
-    }
-
-    // We want to keep this constructor internal because not all IBufferWriter are safe to use with the
-    // SliceEncoder, specially not all implementations allow to rewrite bytes.
-    internal SliceEncoder(
-        IBufferWriter<byte> bufferWriter,
-        SliceEncoding encoding,
-        ClassFormat classFormat = default)
-        : this()
-    {
-        Encoding = encoding;
-        _bufferWriter = bufferWriter;
-        _classContext = new ClassContext(classFormat);
     }
 
     internal static int GetBitSequenceByteCount(int bitCount) => (bitCount >> 3) + ((bitCount & 0x07) != 0 ? 1 : 0);
