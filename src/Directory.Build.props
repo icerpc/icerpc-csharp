@@ -2,9 +2,8 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectTemplatesDirectory>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)/IceRpc.Templates'))</ProjectTemplatesDirectory>
-        <SrcDirectory>$(MSBuildThisFileDirectory)</SrcDirectory>
         <IsTemplateProject Condition="$(MSBuildProjectDirectory.StartsWith('$(ProjectTemplatesDirectory)'))">true</IsTemplateProject>
-        <IsSrcProject Condition="$(MSBuildProjectDirectory.StartsWith('$(SrcDirectory)')) AND '$(IsTemplateProject)' != 'true'">true</IsSrcProject>
+        <IsSrcProject Condition="'$(IsTemplateProject)' != 'true'">true</IsSrcProject>
     </PropertyGroup>
     <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Src.props" Condition="'$(IsSrcProject)' == 'true'" />
     <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Version.props" Condition="'$(IsTemplateProject)' == 'true'" />

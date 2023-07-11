@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice.Internal;
+namespace Slice.Internal;
 
 /// <summary>Enumerations and constants used by Slice1.</summary>
 internal static class Slice1Definitions

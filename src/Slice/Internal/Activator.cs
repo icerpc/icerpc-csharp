@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace IceRpc.Slice.Internal;
+namespace Slice.Internal;
 
 // Instantiates a Slice class or exception. The message is used only for exceptions.
 // Note that the decoder is actually not used by the constructor of the Slice class or exception since the actual

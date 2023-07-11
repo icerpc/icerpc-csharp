@@ -2,6 +2,7 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Slice;
+using Slice;
 using System.Buffers;
 using System.Diagnostics;
 

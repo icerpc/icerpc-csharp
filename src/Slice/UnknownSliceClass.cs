@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Represents a fully sliced class instance. The <see cref="IActivator"/> used during decoding does not know
 /// this type or any of its base classes.</summary>

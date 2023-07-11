@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Assigns a Slice type ID to a class, interface, or struct.</summary>
 /// <remarks>The Slice compiler assigns Slice type IDs to classes, interfaces and structs it generates from Slice
