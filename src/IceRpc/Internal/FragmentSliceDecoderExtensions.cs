@@ -2,7 +2,7 @@
 
 using Slice;
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Internal;
 
 /// <summary>Provides an extension method for decoding a fragment.</summary>
 internal static class FragmentSliceDecoderExtensions
