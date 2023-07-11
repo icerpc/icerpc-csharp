@@ -17,14 +17,13 @@ public ref partial struct SliceDecoder
     /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>
     public readonly long Consumed => _reader.Consumed;
 
-    /// <summary>Gets the decoding context.</summary>
-    /// <remarks>The decoding context is a kind of cookie the code that creates the decoder can store in the decoder for
-    /// later retrieval.
-    /// </remarks>
-    public object? DecodingContext { get; }
-
     /// <summary>Gets the Slice encoding decoded by this decoder.</summary>
     public SliceEncoding Encoding { get; }
+
+    /// <summary>Gets the proxy decoding context.</summary>
+    /// <remarks>The proxy decoding context is a kind of cookie the code that creates the decoder can store in the
+    /// decoder for later retrieval.</remarks>
+    public object? ProxyDecodingContext { get; }
 
     private const string EndOfBufferMessage = "Attempting to decode past the end of the Slice decoder buffer.";
 
@@ -56,7 +55,7 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="decodingContext">The decoding context.</param>
+    /// <param name="proxyDecodingContext">The proxy decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -65,13 +64,13 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlySequence<byte> buffer,
         SliceEncoding encoding,
-        object? decodingContext = null,
+        object? proxyDecodingContext = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
     {
         Encoding = encoding;
-        DecodingContext = decodingContext;
+        ProxyDecodingContext = proxyDecodingContext;
 
         _currentCollectionAllocation = 0;
 
@@ -93,7 +92,7 @@ public ref partial struct SliceDecoder
     /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
     /// <param name="buffer">The byte buffer.</param>
     /// <param name="encoding">The Slice encoding version.</param>
-    /// <param name="decodingContext">The decoding context.</param>
+    /// <param name="proxyDecodingContext">The proxy decoding context.</param>
     /// <param name="maxCollectionAllocation">The maximum cumulative allocation in bytes when decoding strings,
     /// sequences, and dictionaries from this buffer.<c>-1</c> (the default) is equivalent to 8 times the buffer
     /// length.</param>
@@ -102,14 +101,14 @@ public ref partial struct SliceDecoder
     public SliceDecoder(
         ReadOnlyMemory<byte> buffer,
         SliceEncoding encoding,
-        object? decodingContext = null,
+        object? proxyDecodingContext = null,
         int maxCollectionAllocation = -1,
         IActivator? activator = null,
         int maxDepth = 3)
         : this(
             new ReadOnlySequence<byte>(buffer),
             encoding,
-            decodingContext,
+            proxyDecodingContext,
             maxCollectionAllocation,
             activator,
             maxDepth)

@@ -13,7 +13,7 @@ public static class ProxySliceDecoderExtensions
     /// <returns>The decoded proxy, or <see langword="null" />.</returns>
     public static TProxy? DecodeNullableProxy<TProxy>(this ref SliceDecoder decoder) where TProxy : struct, IProxy =>
         decoder.DecodeNullableServiceAddress() is ServiceAddress serviceAddress ?
-            CreateProxy<TProxy>(serviceAddress, decoder.DecodingContext) : null;
+            CreateProxy<TProxy>(serviceAddress, decoder.ProxyDecodingContext) : null;
 
     /// <summary>Decodes a proxy struct.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
@@ -23,13 +23,19 @@ public static class ProxySliceDecoderExtensions
         decoder.Encoding == SliceEncoding.Slice1 ?
             decoder.DecodeNullableProxy<TProxy>() ??
                 throw new InvalidDataException("Decoded null for a non-nullable proxy.") :
-           CreateProxy<TProxy>(decoder.DecodeServiceAddress(), decoder.DecodingContext);
+           CreateProxy<TProxy>(decoder.DecodeServiceAddress(), decoder.ProxyDecodingContext);
 
-    private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
+    private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? proxyDecodingContext)
         where TProxy : struct, IProxy
     {
-        if (decodingContext is Func<ServiceAddress, GenericProxy> proxyFactory)
+        if (proxyDecodingContext is null)
         {
+            return new TProxy { ServiceAddress = serviceAddress };
+        }
+        else
+        {
+            var proxyFactory = (Func<ServiceAddress, GenericProxy>)proxyDecodingContext;
+
             GenericProxy proxy = proxyFactory(serviceAddress);
             return new TProxy
             {
@@ -37,10 +43,6 @@ public static class ProxySliceDecoderExtensions
                 Invoker = proxy.Invoker,
                 ServiceAddress = proxy.ServiceAddress
             };
-        }
-        else
-        {
-            return new TProxy { ServiceAddress = serviceAddress };
         }
     }
 }
