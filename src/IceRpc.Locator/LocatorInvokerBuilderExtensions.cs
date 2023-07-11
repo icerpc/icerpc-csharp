@@ -3,6 +3,7 @@
 using IceRpc.Ice;
 using IceRpc.Locator;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
@@ -23,14 +24,11 @@ public static class LocatorInvokerBuilderExtensions
                 $"Could not find service of type '{nameof(ILocator)}' in the service container.");
         }
 
-        if (builder.ServiceProvider.GetService(
-            typeof(ILogger<LocatorInterceptor>)) is not ILogger<LocatorInterceptor> logger)
-        {
-            throw new InvalidOperationException(
-                $"Could not find service of type '{nameof(ILogger<LocatorInterceptor>)}' in the service container.");
-        }
+        var logger = (ILogger?)builder.ServiceProvider.GetService(typeof(ILogger<LocatorInterceptor>));
         return builder.Use(
-            next => new LocatorInterceptor(next, new LocatorLocationResolver(locator, options, logger)));
+            next => new LocatorInterceptor(
+                next,
+                new LocatorLocationResolver(locator, options, logger ?? NullLogger.Instance)));
     }
 
     /// <summary>Adds a <see cref="LocatorInterceptor" /> to the builder. This interceptor relies on the
