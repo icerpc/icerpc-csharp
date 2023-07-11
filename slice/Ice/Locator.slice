@@ -22,7 +22,7 @@ interface Locator {
     /// @returns: A dummy service address, or null if a service with the requested identity (path) was not found.
     /// @throws ObjectNotFoundException: Thrown if a service with the requested identity (path) was not found. The
     /// caller should treat this exception like a null return value.
-    idempotent findObjectById(id: IdentityPath) -> WellKnownTypes::ServiceAddress? throws ObjectNotFoundException
+    idempotent findObjectById(id: IdentityPath) -> IceRpc::ServiceAddress? throws ObjectNotFoundException
 
     /// Finds an object adapter by adapter ID and returns a dummy service address with the object adapter's server
     /// address(es).
@@ -31,7 +31,7 @@ interface Locator {
     /// adapter ID {@link id} was not found.
     /// @throws AdapterNotFoundException: Thrown if an object adapter with this adapter ID was not found. The caller
     /// should treat this exception like a null return value.
-    idempotent findAdapterById(id: string) -> WellKnownTypes::ServiceAddress? throws AdapterNotFoundException
+    idempotent findAdapterById(id: string) -> IceRpc::ServiceAddress? throws AdapterNotFoundException
 
     /// Gets the locator registry.
     /// @returns: The locator registry, or null if this locator has no associated registry.
