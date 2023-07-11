@@ -24,7 +24,7 @@ public class DispatchException : Exception
     /// cref="StatusCode.Success" />.</param>
     /// <param name="message">A message that describes the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="statusCode" /> is not greater than <see
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="statusCode" /> is equal to <see
     /// cref="StatusCode.Success" />.</exception>
     public DispatchException(
         StatusCode statusCode,
