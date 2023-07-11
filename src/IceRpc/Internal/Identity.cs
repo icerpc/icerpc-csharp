@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Internal;
 
 internal readonly partial record struct Identity
 {

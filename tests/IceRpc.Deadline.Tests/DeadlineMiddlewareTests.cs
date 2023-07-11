@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using Slice;
+using Slice.WellKnownTypes;
 using System.Buffers;
 using System.IO.Pipelines;
 

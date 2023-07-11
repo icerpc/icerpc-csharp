@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using Slice;
-
-namespace IceRpc.Slice;
+namespace Slice.WellKnownTypes;
 
 /// <summary>Provides an extension method for decoding a WellKnownTypes::Uri.</summary>
 public static class UriSliceDecoderExtensions

@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
+using IceRpc.Internal;
 using Slice;
 using System.Diagnostics;
 using System.Globalization;
 
-namespace IceRpc.Slice;
+namespace IceRpc;
 
 /// <summary>Provides extension methods for encoding service addresses.</summary>
 public static class ServiceAddressSliceEncoderExtensions

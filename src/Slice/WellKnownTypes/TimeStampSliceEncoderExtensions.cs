@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using Slice;
-
-namespace IceRpc.Slice;
+namespace Slice.WellKnownTypes;
 
 /// <summary>Provides an extension method for encoding a DateTime as a WellKnownTypes::TimeStamp.</summary>
 public static class TimeStampSliceEncoderExtensions
