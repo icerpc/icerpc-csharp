@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>The tag format used by tagged parameters with the Slice1 encoding.</summary>
 /// <remarks>With the Slice1 encoding, each tagged parameter has a specific tag format. This tag format describes how

@@ -5,7 +5,7 @@
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
     </PropertyGroup>
-    <ItemGroup>
+   <ItemGroup>
         <SliceFile
             Include="../../slice/WellKnownTypes/*.slice"
             OutputDir="$(MSBuildProjectDirectory)/generated"
@@ -28,6 +28,7 @@
         <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
     </ItemGroup>
     <ItemGroup>
+        <ProjectReference Include="..\Slice\Slice.csproj" ExactVersion="true" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
             <PrivateAssets>all</PrivateAssets>

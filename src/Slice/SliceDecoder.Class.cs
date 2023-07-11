@@ -1,15 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
+using Slice.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-using static IceRpc.Slice.Internal.Slice1Definitions;
+using static Slice.Internal.Slice1Definitions;
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Provides methods to decode data encoded with Slice1 or Slice2.</summary>
 public ref partial struct SliceDecoder

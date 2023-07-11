@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
+
 namespace IceRpc.Slice;
 
 /// <summary>Provides an extension method for field dictionaries.</summary>

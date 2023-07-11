@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice.Internal;
+using Slice;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -47,7 +48,7 @@ public static class IncomingResponseExtensions
             StatusCode.Success => response.DecodeValueAsync(
                 encoding,
                 feature,
-                sender,
+                feature.ProxyFactory ?? sender.With,
                 decodeReturnValue,
                 activator,
                 cancellationToken),
@@ -175,8 +176,7 @@ public static class IncomingResponseExtensions
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    feature.ProxyFactory,
-                    sender,
+                    feature.ProxyFactory ?? sender.With,
                     maxCollectionAllocation: feature.MaxCollectionAllocation,
                     activator,
                     maxDepth: feature.MaxDepth);
@@ -193,8 +193,7 @@ public static class IncomingResponseExtensions
                 var decoder = new SliceDecoder(
                     buffer,
                     encoding,
-                    feature.ProxyFactory,
-                    sender,
+                    feature.ProxyFactory ?? sender.With,
                     maxCollectionAllocation: feature.MaxCollectionAllocation);
 
                 try

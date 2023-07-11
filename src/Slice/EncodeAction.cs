@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Represents a delegate that encodes into a Slice encoder.</summary>
 /// <param name="encoder">The Slice encoder.</param>

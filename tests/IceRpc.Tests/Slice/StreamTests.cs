@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
+using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;

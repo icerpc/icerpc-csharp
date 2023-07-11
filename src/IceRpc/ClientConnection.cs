@@ -161,6 +161,8 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <exception cref="InvalidOperationException">Thrown if this client connection is shut down or shutting down.
     /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
+    /// <remarks>This method can be called multiple times and concurrently. If the connection is not established, it
+    /// will be connected or reconnected.</remarks>
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken = default)
     {
         Task<TransportConnectionInformation> connectTask;
@@ -266,10 +268,17 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
         }
     }
 
-    /// <inheritdoc/>
-    public Task<IncomingResponse> InvokeAsync(
-        OutgoingRequest request,
-        CancellationToken cancellationToken = default)
+    /// <summary>Sends an outgoing request and returns the corresponding incoming response.</summary>
+    /// <param name="request">The outgoing request being sent.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if none of the request's server addresses matches this
+    /// connection's server address.</exception>
+    /// <exception cref="IceRpcException">Thrown with error <see cref="IceRpcError.InvocationRefused" /> if this client
+    /// connection is shutdown.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this client connection is disposed.</exception>
+    /// <remarks>If the connection is not established, it will be connected or reconnected.</remarks>
+    public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken = default)
     {
         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
         {
@@ -372,10 +381,10 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     /// <returns>A task that completes once the shutdown is complete. This task can also complete with one of the
     /// following exceptions:
     /// <list type="bullet">
-    /// <item><description><see cref="IceRpcException" />if the connection shutdown failed.</description></item>
-    /// <item><description><see cref="OperationCanceledException" />if cancellation was requested through the
+    /// <item><description><see cref="IceRpcException" /> if the connection shutdown failed.</description></item>
+    /// <item><description><see cref="OperationCanceledException" /> if cancellation was requested through the
     /// cancellation token.</description></item>
-    /// <item><description><see cref="TimeoutException" />if this shutdown attempt or a previous attempt exceeded <see
+    /// <item><description><see cref="TimeoutException" /> if this shutdown attempt or a previous attempt exceeded <see
     /// cref="ClientConnectionOptions.ShutdownTimeout" />.</description></item>
     /// </list>
     /// </returns>

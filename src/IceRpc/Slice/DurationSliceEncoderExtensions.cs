@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
+
 namespace IceRpc.Slice;
 
 /// <summary>Provides an extension method for encoding a <see cref="TimeSpan"/> as a <c>WellKnownTypes::Duration</c>.

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Slice.Internal;
+using Slice;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -86,7 +87,7 @@ public static class PipeReaderExtensions
     /// <param name="reader">The pipe reader.</param>
     /// <param name="encoding">The Slice encoding version.</param>
     /// <param name="decodeFunc">The function used to decode the streamed member.</param>
-    /// <param name="templateProxy">The template proxy.</param>
+    /// <param name="sender">The proxy that sent the request, if applicable.</param>
     /// <param name="sliceFeature">The slice feature to customize the decoding.</param>
     /// <returns>The async enumerable to decode and return the streamed members.</returns>
     /// <remarks>The reader ownership is transferred to the returned async enumerable. The caller should no longer use
@@ -95,21 +96,22 @@ public static class PipeReaderExtensions
         this PipeReader reader,
         SliceEncoding encoding,
         DecodeFunc<T> decodeFunc,
-        GenericProxy? templateProxy = null,
+        GenericProxy? sender = null,
         ISliceFeature? sliceFeature = null)
     {
         sliceFeature ??= SliceFeature.Default;
+
+        Func<ServiceAddress, GenericProxy>? proxyFactory = sliceFeature.ProxyFactory;
+        if (proxyFactory is null && sender is GenericProxy proxy)
+        {
+            proxyFactory = proxy.With;
+        }
         return reader.ToAsyncEnumerable(ReadAsync, DecodeBuffer);
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
             // No activator or max depth since streams are Slice2+.
-            var decoder = new SliceDecoder(
-                buffer,
-                encoding,
-                sliceFeature.ProxyFactory,
-                templateProxy,
-                sliceFeature.MaxCollectionAllocation);
+            var decoder = new SliceDecoder(buffer, encoding, proxyFactory, sliceFeature.MaxCollectionAllocation);
 
             var items = new List<T>();
             do

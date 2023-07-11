@@ -6,6 +6,7 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
 

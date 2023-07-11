@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Describes the versions of the Slice encoding supported by this IceRPC runtime.</summary>
 public enum SliceEncoding : byte

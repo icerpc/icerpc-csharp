@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace Slice;
 
 /// <summary>Provides a constant used by the Slice2 encoding.</summary>
 public static class Slice2Definitions
