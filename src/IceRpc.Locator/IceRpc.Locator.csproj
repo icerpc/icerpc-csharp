@@ -12,6 +12,8 @@
             OutputDir="$(MSBuildProjectDirectory)/generated"
             Pack="true"
             PackagePath="slice/Ice" />
+        <!-- Reference the built-in Slice files -->
+        <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
