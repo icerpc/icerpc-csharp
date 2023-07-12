@@ -1,0 +1,8 @@
+// Copyright (c) ZeroC, Inc.
+
+[cs::namespace("Slice.Tests.CustomNamespace.MyNamespace")]
+module MyNamespace
+
+struct S1 {
+    i: string
+}

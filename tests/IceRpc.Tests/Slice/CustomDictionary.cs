@@ -3,7 +3,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Slice.Tests;
+namespace IceRpc.Tests.Slice;
 
 // A custom dictionary type to test the dictionary mapping for fields. Mapping for a field of dictionary type requires
 // a type that implements IDictionary<TKey, TValue> and provides a constructor with a size parameter.

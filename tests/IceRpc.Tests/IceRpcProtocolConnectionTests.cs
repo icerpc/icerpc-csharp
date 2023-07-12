@@ -32,16 +32,16 @@ public sealed class IceRpcProtocolConnectionTests
             // Truncated frame
             yield return CreateFrameTestCaseData(
                 IceRpcControlFrameType.GoAway,
-                (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue));
+                (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(Slice2Definitions.VarUInt62MaxValue));
 
             // Frame with extra data
             yield return CreateFrameTestCaseData(
                 IceRpcControlFrameType.GoAway,
                 (ref SliceEncoder encoder) =>
                 {
-                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
-                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
-                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
+                    encoder.EncodeVarUInt62(Slice2Definitions.VarUInt62MaxValue);
+                    encoder.EncodeVarUInt62(Slice2Definitions.VarUInt62MaxValue);
+                    encoder.EncodeVarUInt62(Slice2Definitions.VarUInt62MaxValue);
                 });
         }
     }
@@ -59,7 +59,7 @@ public sealed class IceRpcProtocolConnectionTests
             // Bogus dictionary size
             yield return CreateFrameTestCaseData(
                 IceRpcControlFrameType.Settings,
-                (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue));
+                (ref SliceEncoder encoder) => encoder.EncodeVarUInt62(Slice2Definitions.VarUInt62MaxValue));
 
             // Truncated frame (dictionary with 3 elements but no encoded elements)
             yield return CreateFrameTestCaseData(
@@ -72,7 +72,7 @@ public sealed class IceRpcProtocolConnectionTests
                 (ref SliceEncoder encoder) =>
                 {
                     encoder.EncodeVarUInt62(0);
-                    encoder.EncodeVarUInt62(SliceEncoder.VarUInt62MaxValue);
+                    encoder.EncodeVarUInt62(Slice2Definitions.VarUInt62MaxValue);
                 });
 
             // Invalid MaxHeaderSize
@@ -84,7 +84,7 @@ public sealed class IceRpcProtocolConnectionTests
                         new Dictionary<IceRpcSettingKey, ulong>
                         {
                             // Bogus MaxHeaderSize
-                            [IceRpcSettingKey.MaxHeaderSize] = SliceEncoder.VarUInt62MaxValue
+                            [IceRpcSettingKey.MaxHeaderSize] = Slice2Definitions.VarUInt62MaxValue
                         });
                     settings.Encode(ref encoder);
                 });

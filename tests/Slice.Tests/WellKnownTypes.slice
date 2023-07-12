@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice
+module Slice::Tests
 
 struct WellKnown {
     duration: WellKnownTypes::Duration

@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 using Slice;
-using Slice.Internal;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Slice;

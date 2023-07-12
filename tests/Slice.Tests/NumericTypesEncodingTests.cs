@@ -48,13 +48,13 @@ public class NumericTypesEncodingTests
     /// <summary>Tests the encoding of a variable size long.</summary>
     /// <param name="value">The long to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
-    [TestCase(SliceEncoder.VarInt62MinValue, new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 })]
+    [TestCase(Slice2Definitions.VarInt62MinValue, new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 })]
     [TestCase(-16384, new byte[] { 0x02, 0x00, 0xFF, 0xFF })]
     [TestCase(-256, new byte[] { 0x01, 0xFC })]
     [TestCase(0, new byte[] { 0x00 })]
     [TestCase(256, new byte[] { 0x01, 0x04 })]
     [TestCase(16384, new byte[] { 0x02, 0x00, 0x01, 0x00 })]
-    [TestCase(SliceEncoder.VarInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]
+    [TestCase(Slice2Definitions.VarInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F })]
     public void Encode_varint62_value(long value, byte[] expected)
     {
         var buffer = new byte[256];
@@ -70,8 +70,8 @@ public class NumericTypesEncodingTests
     /// <summary>Tests that <see cref="SliceEncoder.EncodeVarInt62" /> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varint62 or smaller than the min value of a varint62.</summary>
     /// <param name="value">The varint62 to be encoded.</param>
-    [TestCase(SliceEncoder.VarInt62MinValue - 1)]
-    [TestCase(SliceEncoder.VarInt62MaxValue + 1)]
+    [TestCase(Slice2Definitions.VarInt62MinValue - 1)]
+    [TestCase(Slice2Definitions.VarInt62MaxValue + 1)]
     public void Encode_varint62_out_of_range_value_fails(long value)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
@@ -91,10 +91,10 @@ public class NumericTypesEncodingTests
     /// <summary>Tests the encoding of a variable size unsigned long.</summary>
     /// <param name="value">The ulong to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
-    [TestCase(SliceEncoder.VarUInt62MinValue, new byte[] { 0x00 })]
+    [TestCase(Slice2Definitions.VarUInt62MinValue, new byte[] { 0x00 })]
     [TestCase((ulong)512, new byte[] { 0x01, 0x08 })]
     [TestCase((ulong)32768, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
-    [TestCase(SliceEncoder.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
+    [TestCase(Slice2Definitions.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
     public void Encode_varuint62_value(ulong value, byte[] expected)
     {
         var buffer = new byte[256];
@@ -110,10 +110,10 @@ public class NumericTypesEncodingTests
     /// <summary>Tests the encoding of a variable size unsigned long.</summary>
     /// <param name="value">The ulong to be encoded.</param>
     /// <param name="expected">The expected byte array produced from encoding value.</param>
-    [TestCase(SliceEncoder.VarUInt62MinValue, new byte[] { 0x00 })]
+    [TestCase(Slice2Definitions.VarUInt62MinValue, new byte[] { 0x00 })]
     [TestCase((ulong)512, new byte[] { 0x01, 0x08 })]
     [TestCase((ulong)32768, new byte[] { 0x02, 0x00, 0x02, 0x00 })]
-    [TestCase(SliceEncoder.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
+    [TestCase(Slice2Definitions.VarUInt62MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
     public void Encode_varuint62_value_with_a_fixed_number_of_bytes(ulong value, byte[] expected)
     {
         var buffer = new byte[expected.Length];
@@ -130,7 +130,7 @@ public class NumericTypesEncodingTests
     [TestCase(64u, 1)]
     [TestCase(16_384u, 2)]
     [TestCase(1_073_741_824u, 4)]
-    [TestCase(SliceEncoder.VarUInt62MaxValue + 1, 8)]
+    [TestCase(Slice2Definitions.VarUInt62MaxValue + 1, 8)]
     public void Encode_varuint62_value_throws_out_of_range(ulong value, int numBytes)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of
@@ -147,7 +147,7 @@ public class NumericTypesEncodingTests
     /// <summary>Tests that <see cref="SliceEncoder.EncodeVarUInt62(ulong)" /> will throw an ArgumentOutOfRangeException
     /// if the parameter is larger than the max value of a varuint62.</summary>
     /// <param name="value">The value to be encoded.</param>
-    [TestCase(SliceEncoder.VarUInt62MaxValue + 1)]
+    [TestCase(Slice2Definitions.VarUInt62MaxValue + 1)]
     public void Encode_varuint62_value_with_a_fixed_number_of_bytes_throws_out_of_range(ulong value)
     {
         // Due to limitations on ref types, we cannot setup the arrange outside of the assertion. This is a result of

@@ -1,0 +1,32 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Tests::Slice
+
+enum MyEnum : int32 {
+    Enum1
+    Enum2
+    Enum3
+}
+
+enum MyFixedLengthEnum : int16 {
+    SEnum1
+    SEnum2
+    SEnum3
+}
+
+enum MyVarSizeEnum : varint32 {
+    Enum1 = -10
+    Enum2 = 20
+    Enum3 = 30
+}
+
+[cs::attribute("System.Flags")]
+unchecked enum MyUncheckedEnum : uint32 {
+    E0 = 1
+    E1 = 2
+    E2 = 4
+    E3 = 8
+
+    [cs::attribute("System.ComponentModel.Description(\"Sixteen\")")]
+    E4 = 16
+}

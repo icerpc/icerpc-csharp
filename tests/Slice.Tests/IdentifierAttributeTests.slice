@@ -1,0 +1,13 @@
+// Copyright (c) ZeroC, Inc.
+
+module Slice::Tests
+
+[cs::identifier("REnamedStruct")]
+struct OriginalStruct {
+    [cs::identifier("renamedX")] x: int32
+}
+
+[cs::identifier("REnamedEnum")]
+enum OriginalEnum : uint8 {
+    [cs::identifier("REnamedEnumerator")] originalEnumerator
+}

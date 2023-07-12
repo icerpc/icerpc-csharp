@@ -1,0 +1,12 @@
+// Copyright (c) ZeroC, Inc.
+
+module Slice::Tests
+
+struct S {
+    v: string
+}
+
+struct S2 {
+    s: S,
+    innerS: Inner::S
+}

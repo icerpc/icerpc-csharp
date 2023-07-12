@@ -45,14 +45,14 @@ public class NumericTypesDecodingTests
     /// <summary>Tests the decoding of variable size long.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
     /// <param name="expected">The expected long to be decoded.</param>
-    [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, SliceEncoder.VarInt62MinValue)]
+    [TestCase(new byte[] { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }, Slice2Definitions.VarInt62MinValue)]
     [TestCase(new byte[] { 0x02, 0x00, 0xFF, 0xFF }, -16384)]
     [TestCase(new byte[] { 0x01, 0xFC }, -256)]
     [TestCase(new byte[] { 0x00 }, 0)]
     [TestCase(new byte[] { (5 << 2) + 0x02, 0x00, 0x00, 0x00 }, 5)]
     [TestCase(new byte[] { 0x01, 0x04 }, 256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, 16384)]
-    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, SliceEncoder.VarInt62MaxValue)]
+    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, Slice2Definitions.VarInt62MaxValue)]
     public void Decode_varint62_value(byte[] encodedBytes, long expected)
     {
         var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
@@ -81,8 +81,8 @@ public class NumericTypesDecodingTests
     /// <summary>Tests the decoding of a variable size unsigned long.</summary>
     /// <param name="encodedBytes">>An encoded byte array to decode.</param>
     /// <param name="expected">The expected ulong to be decoded.</param>
-    [TestCase(new byte[] { 0x00 }, SliceEncoder.VarUInt62MinValue)]
-    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, SliceEncoder.VarUInt62MaxValue)]
+    [TestCase(new byte[] { 0x00 }, Slice2Definitions.VarUInt62MinValue)]
+    [TestCase(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, Slice2Definitions.VarUInt62MaxValue)]
     [TestCase(new byte[] { 0x16, 0x00, 0x00, 0x00 }, (ulong)5)]
     [TestCase(new byte[] { 0x01, 0x04 }, (ulong)256)]
     [TestCase(new byte[] { 0x02, 0x00, 0x01, 0x00 }, (ulong)16384)]
