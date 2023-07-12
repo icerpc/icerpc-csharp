@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using Slice;
+using Slice.WellKnownTypes;
 
 namespace IceRpc.Tests.Slice;
 

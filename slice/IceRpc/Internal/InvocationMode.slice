@@ -2,7 +2,7 @@
 
 encoding = Slice1
 
-module IceRpc::Slice::Internal
+module IceRpc::Internal
 
 /// A service address encoded with Slice1 includes an InvocationMode which specifies the behavior when sending requests to that service.
 /// When encoding a service address, IceRPC always uses Twoway.
