@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using static Slice.Slice1Definitions;
+using static Slice.Internal.Slice1Definitions;
 
 namespace Slice;
 

@@ -46,9 +46,10 @@ public class SlicingTests
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly));
 
         SlicingMostDerivedClass r2 = decoder.DecodeClass<SlicingMostDerivedClass>();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.SkipTagged(useTagEndMarker: false);
 
         // Assert
+        Assert.That(decoder.End, Is.True);
         Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSliceClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
         if (partialSlicing)
@@ -107,9 +108,10 @@ public class SlicingTests
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
 
         SlicingMostDerivedClassWithCompactId r2 = decoder.DecodeClass<SlicingMostDerivedClassWithCompactId>();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.SkipTagged(useTagEndMarker: false);
 
         // Assert
+        Assert.That(decoder.End, Is.True);
         Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClassWithCompactId>() : Is.TypeOf<UnknownSliceClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
 
@@ -162,9 +164,10 @@ public class SlicingTests
             activator: IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly));
 
         SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.SkipTagged(useTagEndMarker: false);
 
         // Assert
+        Assert.That(decoder.End, Is.True);
         Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSliceClass>());
         Assert.That(r1.UnknownSlices, Is.Not.Empty);
 
@@ -203,9 +206,10 @@ public class SlicingTests
 
         // Act
         SliceException sliceException = decoder.DecodeUserException();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.SkipTagged(useTagEndMarker: false);
 
         // Assert
+        Assert.That(decoder.End, Is.True);
         if (partialSlicing)
         {
             Assert.That(sliceException, Is.TypeOf<SlicingDerivedException>());

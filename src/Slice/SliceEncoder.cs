@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using static Slice.Slice1Definitions;
+using static Slice.Internal.Slice1Definitions;
 
 namespace Slice;
 
@@ -18,6 +18,11 @@ public ref partial struct SliceEncoder
 
     /// <summary>Gets the Slice encoding of this encoder.</summary>
     public SliceEncoding Encoding { get; }
+
+    internal const long VarInt62MinValue = -2_305_843_009_213_693_952; // -2^61
+    internal const long VarInt62MaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
+    internal const ulong VarUInt62MinValue = 0;
+    internal const ulong VarUInt62MaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
     private static readonly UTF8Encoding _utf8 =
         new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
@@ -50,7 +55,7 @@ public ref partial struct SliceEncoder
             1 => (0x00u, 63), // 2^6 - 1
             2 => (0x01u, 16_383), // 2^14 - 1
             4 => (0x02u, 1_073_741_823), // 2^30 - 1
-            _ => (0x03u, (long)Slice2Definitions.VarUInt62MaxValue)
+            _ => (0x03u, (long)SliceEncoder.VarUInt62MaxValue)
         };
 
         if (value > (ulong)maxSize)
@@ -517,7 +522,7 @@ public ref partial struct SliceEncoder
     /// <returns>N where 2^N is the number of bytes needed to encode value with Slice's varint62 encoding.</returns>
     private static int GetVarInt62EncodedSizeExponent(long value)
     {
-        if (value < Slice2Definitions.VarInt62MinValue || value > Slice2Definitions.VarInt62MaxValue)
+        if (value < VarInt62MinValue || value > VarInt62MaxValue)
         {
             throw new ArgumentOutOfRangeException(nameof(value), $"The value '{value}' is out of the varint62 range.");
         }
@@ -537,7 +542,7 @@ public ref partial struct SliceEncoder
     /// <returns>N where 2^N is the number of bytes needed to encode value with Slice's varuint62 encoding.</returns>
     private static int GetVarUInt62EncodedSizeExponent(ulong value)
     {
-        if (value > Slice2Definitions.VarUInt62MaxValue)
+        if (value > SliceEncoder.VarUInt62MaxValue)
         {
             throw new ArgumentOutOfRangeException(nameof(value), $"The value '{value}' is out of the varuint62 range.");
         }

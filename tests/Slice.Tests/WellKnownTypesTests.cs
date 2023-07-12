@@ -15,8 +15,8 @@ public class WellKnownTypesTests
         {
             yield return new(TimeSpan.FromSeconds(10));
             yield return new(TimeSpan.FromSeconds(-10));
-            yield return new(new TimeSpan(Slice2Definitions.VarInt62MaxValue));
-            yield return new(new TimeSpan(Slice2Definitions.VarInt62MinValue));
+            yield return new(new TimeSpan(SliceEncoder.VarInt62MaxValue));
+            yield return new(new TimeSpan(SliceEncoder.VarInt62MinValue));
         }
     }
 
