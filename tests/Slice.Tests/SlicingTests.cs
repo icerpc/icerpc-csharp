@@ -206,7 +206,6 @@ public class SlicingTests
 
         // Act
         SliceException sliceException = decoder.DecodeUserException();
-        decoder.SkipTagged(useTagEndMarker: false);
 
         // Assert
         Assert.That(decoder.End, Is.True);
