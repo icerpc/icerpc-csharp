@@ -25,11 +25,6 @@ public sealed class TypeIdAttributeTests
     {
         [typeof(IceObjectProxy)] = new string[] { "::Ice::Object" },
         [typeof(PingableProxy)] = new string[] { "::IceRpc::Tests::Slice::Pingable" },
-        [typeof(MyDerivedClass)] = new string[]
-        {
-            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyDerivedClass",
-            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass"
-        },
         [typeof(IMyDerivedInterface)] = new string[]
         {
             "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyDerivedInterface",
@@ -40,20 +35,16 @@ public sealed class TypeIdAttributeTests
         [typeof(ServiceAddress)] = Array.Empty<string>(),
     };
 
-    /// <summary>Verifies that types generated from Slice definitions have the expected type ID.</summary>
+    /// <summary>Verifies that interface types generated from Slice definitions have the expected type ID.</summary>
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [TestCase(typeof(IceObjectProxy), "::Ice::Object")]
     [TestCase(typeof(PingableProxy), "::IceRpc::Tests::Slice::Pingable")]
-    [TestCase(typeof(MyClass), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyClass")]
     [TestCase(typeof(IMyInterface), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
     [TestCase(typeof(MyInterfaceProxy), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
     [TestCase(typeof(IMyInterfaceService), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
-    [TestCase(typeof(MyException), null)] // Slice2 exception
-    [TestCase(typeof(MyOtherClass), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::myOtherClass")]
     [TestCase(typeof(MyOtherInterfaceProxy), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::myOtherInterface")]
     [TestCase(typeof(IMyOtherInterfaceService), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::myOtherInterface")]
-    [TestCase(typeof(MyOtherException), null)] // Slice2 exception
     public void Get_slice_type_id(Type type, string? expected)
     {
         string? typeId = type.GetSliceTypeId();
@@ -86,5 +77,5 @@ public sealed class TypeIdAttributeTests
     [TestCase(typeof(MyException))]
     [TestCase(typeof(ServerAddress))]
     public void Get_default_path_exception(Type type) =>
-        Assert.That(() => type.GetDefaultServicePath(), Throws.ArgumentException);
+        Assert.That(type.GetDefaultServicePath, Throws.ArgumentException);
 }

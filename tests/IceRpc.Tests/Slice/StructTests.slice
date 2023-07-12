@@ -6,23 +6,3 @@ struct MyStruct {
     i: int32
     j: int32
 }
-
-struct MyStructWithOptionalFields {
-    i: int32
-    j: int32
-    k: int32?
-    l: int32?
-}
-
-compact struct MyCompactStruct {
-    i: int32
-    j: int32
-}
-
-struct MyStructWithFieldAttributes {
-    [cs::attribute("System.ComponentModel.Description(\"An integer\")")]
-    i: int32,
-
-    [cs::readonly]
-    j: int32,
-}

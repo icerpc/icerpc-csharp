@@ -1,0 +1,17 @@
+// Copyright (c) ZeroC, Inc.
+
+encoding = Slice1
+
+module Slice::Tests::ReferencedAssemblies
+
+class ClassD : ClassB {
+    dValue: string
+}
+
+class CompactClassD(4) : CompactClassC {
+    dValue: string
+}
+
+exception ExceptionD : ExceptionC {
+    dValue: string
+}

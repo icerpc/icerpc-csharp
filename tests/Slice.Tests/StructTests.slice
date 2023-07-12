@@ -1,0 +1,38 @@
+// Copyright (c) ZeroC, Inc.
+
+module Slice::Tests
+
+struct MyStruct {
+    i: int32
+    j: int32
+}
+
+struct MyStructWithOptionalFields {
+    i: int32
+    j: int32
+    k: int32?
+    l: int32?
+}
+
+compact struct MyCompactStruct {
+    i: int32
+    j: int32
+}
+
+struct MyStructWithFieldAttributes {
+    [cs::attribute("System.ComponentModel.Description(\"An integer\")")]
+    i: int32,
+
+    [cs::readonly]
+    j: int32,
+}
+
+[cs::readonly] compact struct LargeStruct {
+    x: int64
+    y: int64
+}
+
+[cs::readonly] compact struct KeyValuePair {
+    Key: int32
+    Value: string?
+}

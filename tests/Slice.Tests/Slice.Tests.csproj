@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Missing XML comment for publicly visible type or member. -->
+    <NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
+    <PackageReference Include="NUnit.Analyzers" Version="3.6.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="NUnit" Version="3.13.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Slice\Slice.csproj" />
+    <ProjectReference Include="..\Slice.Tests.ReferencedAssemblies\A\A.csproj" />
+    <ProjectReference Include="..\Slice.Tests.ReferencedAssemblies\B\B.csproj" />
+    <ProjectReference Include="..\Slice.Tests.ReferencedAssemblies\C\C.csproj" />
+    <ProjectReference Include="..\Slice.Tests.ReferencedAssemblies\D\D.csproj" />
+    <ProjectReference Include="..\Slice.Tests.ReferencedAssemblies\DPrime\DPrime.csproj" />
+  </ItemGroup>
+</Project>
