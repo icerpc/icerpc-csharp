@@ -2,8 +2,7 @@
 
 namespace Slice;
 
-/// <summary>
-/// This class provides an extension methods to extract the <see cref="Slice1Definitions.TypeIdKind" /> of a
+/// <summary>This class provides an extension methods to extract the <see cref="Slice1Definitions.TypeIdKind" /> of a
 /// <see cref="Slice1Definitions.SliceFlags" /> value.</summary>
 public static class SliceFlagsExtensions
 {

@@ -11,7 +11,8 @@ public static class Slice1Definitions
     public const byte TagEndMarker = 0xFF;
 
     /// <summary>The first byte of each encoded class or exception slice.</summary>
-    /// <remarks>The first 2 bits of SliceFlags represent the <see cref="TypeIdKind"/>.</remarks>
+    /// <remarks>The first 2 bits of SliceFlags represent the <see cref="TypeIdKind"/>, which can be extracted using
+    /// <see cref="SliceFlagsExtensions.GetTypeIdKind" />.</remarks>
     [Flags]
 #pragma warning disable CA2217 // Do not mark enums with FlagsAttribute
     public enum SliceFlags : byte

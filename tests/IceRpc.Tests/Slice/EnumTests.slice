@@ -30,3 +30,9 @@ unchecked enum MyUncheckedEnum : uint32 {
     [cs::attribute("System.ComponentModel.Description(\"Sixteen\")")]
     E4 = 16
 }
+
+interface EnumOperations {
+    opCheckedEnumSeq(p1: sequence<MyEnum>)
+    opCheckedEnumWithFixedLengthSeq(p1: sequence<MyFixedLengthEnum>)
+    opUncheckedEnumSeq(p1: sequence<MyUncheckedEnum>)
+}
