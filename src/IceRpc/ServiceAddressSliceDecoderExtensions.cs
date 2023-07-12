@@ -3,6 +3,7 @@
 using IceRpc.Ice;
 using IceRpc.Internal;
 using Slice;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
@@ -124,7 +125,12 @@ public static class ServiceAddressSliceDecoderExtensions
                         // else no e
 
                         builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                        builder.Add("v", decoder.ReadBytesAsBase64String(size));
+                        {
+                            using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(size);
+                            Span<byte> span = memoryOwner.Memory.Span[0..size];
+                            decoder.CopyTo(span);
+                            builder.Add("v", Convert.ToBase64String(span));
+                        }
 
                         serverAddress = new ServerAddress(
                             Protocol.Ice,

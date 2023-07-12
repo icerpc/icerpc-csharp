@@ -603,37 +603,6 @@ public ref partial struct SliceDecoder
         }
     }
 
-    /// <summary>Reads bytes and returns them as base64-encoded string.</summary>
-    /// <param name="byteCount">The number of bytes to read.</param>
-    /// <returns>A base64-encoded string that represents the bytes.</returns>
-    public string ReadBytesAsBase64String(int byteCount)
-    {
-        using IMemoryOwner<byte>? memoryOwner =
-            _reader.UnreadSpan.Length < byteCount ? MemoryPool<byte>.Shared.Rent(byteCount) : null;
-
-        ReadOnlySpan<byte> vSpan;
-
-        if (memoryOwner?.Memory is Memory<byte> buffer)
-        {
-            Span<byte> span = buffer.Span[0..byteCount];
-            CopyTo(span);
-            vSpan = span;
-        }
-        else
-        {
-            if (_reader.UnreadSpan.Length >= byteCount)
-            {
-                vSpan = _reader.UnreadSpan[0..byteCount];
-                _reader.Advance(byteCount);
-            }
-            else
-            {
-                throw new InvalidDataException(EndOfBufferMessage);
-            }
-        }
-        return Convert.ToBase64String(vSpan);
-    }
-
     /// <summary>Skip the given number of bytes.</summary>
     /// <param name="count">The number of bytes to skip.</param>
     public void Skip(int count)
