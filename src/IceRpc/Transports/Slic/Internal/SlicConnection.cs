@@ -1283,12 +1283,20 @@ internal class SlicConnection : IMultiplexedConnection
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
 
             // Decode the frame type and frame size.
-            if (!decoder.TryDecodeUInt8(out byte frameType) ||
-                !decoder.TryDecodeSize(out header.FrameSize))
+            if (!decoder.TryDecodeUInt8(out byte frameType) || !decoder.TryDecodeVarUInt62(out ulong frameSize))
             {
                 return false;
             }
+
             header.FrameType = frameType.AsFrameType();
+            try
+            {
+                header.FrameSize = checked((int)frameSize);
+            }
+            catch (OverflowException)
+            {
+                throw new InvalidDataException("The frame size can't be larger than int.MaxValue.");
+            }
 
             // If it's a stream frame, try to decode the stream ID
             if (header.FrameType >= FrameType.Stream)
