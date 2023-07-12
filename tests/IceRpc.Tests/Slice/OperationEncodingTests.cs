@@ -145,7 +145,7 @@ public class OperationEncodingTests
 
         // Assert
         // readResult: 18 bytes payload + 4 bytes payload size
-        // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1
+        // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) + 1 (tag end marker)
         Assert.That(payload.TryRead(out var readResult));
         Assert.That(readResult.IsCompleted, Is.True);
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
