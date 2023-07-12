@@ -27,7 +27,7 @@ public class IdentifierAttributeTests
         _ = new REnamedException();
 
         // Assert
-        Assert.That(typeof(REnamedException).GetSliceTypeId(), Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
+        Assert.That(typeof(REnamedException).GetSliceTypeId(), Is.EqualTo("::Slice::Tests::OriginalException"));
     }
 
     [Test]
