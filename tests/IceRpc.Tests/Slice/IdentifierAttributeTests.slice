@@ -2,21 +2,11 @@
 
 module IceRpc::Tests::Slice
 
-[cs::identifier("REnamedStruct")]
-struct OriginalStruct {
-    [cs::identifier("renamedX")] x: int32
-}
-
 [cs::identifier("REnamedInterface")]
 interface OriginalInterface {
     [cs::identifier("REnamedOp")]
-    op([cs::identifier("renamedParam")] myParam: OriginalStruct) -> (
+    op([cs::identifier("renamedParam")] myParam: int32) -> (
         [cs::identifier("renamedReturnOne")] myReturnOne: int32
         [cs::identifier("renamedReturnTwo")] myReturnTwo: int32
     )
-}
-
-[cs::identifier("REnamedEnum")]
-enum OriginalEnum : uint8 {
-    [cs::identifier("REnamedEnumerator")] originalEnumerator
 }

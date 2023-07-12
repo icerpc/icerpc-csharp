@@ -4,7 +4,8 @@ module Slice::Tests
 
 [cs::identifier("REnamedStruct")]
 struct OriginalStruct {
-    [cs::identifier("renamedX")] x: int32
+    [cs::identifier("renamedX")] x: int32,
+    y: OriginalEnum
 }
 
 [cs::identifier("REnamedEnum")]

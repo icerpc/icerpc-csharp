@@ -14,7 +14,7 @@ public class IdentifierAttributeTests
     public void Renamed_struct_identifier()
     {
         // Act
-        var myStruct = new REnamedStruct(1);
+        var myStruct = new REnamedStruct(1, REnamedEnum.REnamedEnumerator);
 
         // Assert
         Assert.That(myStruct.renamedX, Is.EqualTo(1));

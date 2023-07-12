@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Tests.Common;
 using NUnit.Framework;
-using Slice;
 using System.Buffers;
 using System.Collections.Immutable;
 
-namespace IceRpc.Tests.Slice;
+namespace Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceEncodingTests
