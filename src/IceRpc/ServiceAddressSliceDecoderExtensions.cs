@@ -86,6 +86,11 @@ public static class ServiceAddressSliceDecoderExtensions
         byte encodingMajor = decoder.DecodeUInt8();
         byte encodingMinor = decoder.DecodeUInt8();
 
+        if (decoder.Remaining < size)
+        {
+            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too big.");
+        }
+
         if (encodingMajor == 1 && encodingMinor <= 1)
         {
             long oldPos = decoder.Consumed;
@@ -129,7 +134,9 @@ public static class ServiceAddressSliceDecoderExtensions
                             using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(size);
                             Span<byte> span = memoryOwner.Memory.Span[0..size];
                             decoder.CopyTo(span);
-                            builder.Add("v", Convert.ToBase64String(span));
+                            string value = Convert.ToBase64String(span);
+                            builder.Add("v", value);
+                            decoder.IncreaseCollectionAllocation(value.Length * Unsafe.SizeOf<char>());
                         }
 
                         serverAddress = new ServerAddress(
