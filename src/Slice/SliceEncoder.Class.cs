@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using static Slice.Slice1Definitions;
+using static Slice.Internal.Slice1Definitions;
 
 namespace Slice;
 

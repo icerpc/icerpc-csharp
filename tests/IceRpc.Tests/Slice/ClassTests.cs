@@ -140,4 +140,26 @@ public sealed class ClassTests
         Assert.That(decoder.DecodeSize(), Is.EqualTo(0)); // null instance
         Assert.That(decoder.Consumed, Is.EqualTo(readResult.Buffer.Length));
     }
+
+    // Copied from Slice/Internal/Slice1Definitions.cs
+    internal static class Slice1Definitions
+    {
+        [Flags]
+        internal enum SliceFlags : byte
+        {
+            TypeIdMask = 3,
+            HasTaggedFields = 4,
+            HasIndirectionTable = 8,
+            HasSliceSize = 16,
+            IsLastSlice = 32
+        }
+
+        internal enum TypeIdKind : byte
+        {
+            None = 0,
+            String = 1,
+            Index = 2,
+            CompactId = 3,
+        }
+    }
 }

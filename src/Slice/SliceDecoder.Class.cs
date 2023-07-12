@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-using static Slice.Slice1Definitions;
+using static Slice.Internal.Slice1Definitions;
 
 namespace Slice;
 
