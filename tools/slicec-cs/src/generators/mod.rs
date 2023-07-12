@@ -108,6 +108,6 @@ fn preamble(slice_file: &SliceFile, rpc_provider: RpcProvider) -> CodeBlock {
 fn rpc_usings(rpc_provider: RpcProvider) -> &'static str {
     match rpc_provider {
         RpcProvider::None => "",
-        RpcProvider::IceRPC => "using IceRpc.Slice;\n",
+        RpcProvider::IceRpc => "using IceRpc.Slice;\n",
     }
 }

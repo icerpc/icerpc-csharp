@@ -65,7 +65,7 @@ fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationSt
 #[cfg(test)]
 mod test {
     use super::{cs_patcher, cs_validator};
-    use crate::cs_options::{CsOptions, RpcProvider};
+    use crate::cs_options::CsOptions;
     use crate::generators::generate_from_slice_file;
     use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
     use slicec::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
@@ -83,8 +83,6 @@ mod test {
         let slice_dir = root_dir.join("slice").display().to_string();
 
         let mut cs_options = CsOptions::default();
-        cs_options.rpc_provider = RpcProvider::IceRPC;
-
         let slice_options = &mut cs_options.slice_options;
         slice_options.references.push(tests_dir.clone());
 
