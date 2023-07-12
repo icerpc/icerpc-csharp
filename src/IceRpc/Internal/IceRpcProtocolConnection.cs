@@ -493,7 +493,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                             "Received an icerpc response with an empty header.");
                     }
 
-                    (StatusCode statusCode, string? errorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? fieldsPipeReader) =
+                    (StatusCode statusCode, string? errorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields) =
                         DecodeHeader(readResult.Buffer);
                     stream.Input.AdvanceTo(readResult.Buffer.End);
 
@@ -502,7 +502,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         // Canceling the sending of the payload continuation triggers the completion of the stream
                         // output. This may lead to a TruncatedPayload if the dispatch is currently reading the payload
                         // continuation. In such cases, we prioritize throwing an OperationCanceledException.
-                        fieldsPipeReader?.Complete();
                         invocationCts.Token.ThrowIfCancellationRequested();
                     }
 
@@ -511,8 +510,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         _connectionContext!,
                         statusCode,
                         errorMessage,
-                        fields,
-                        fieldsPipeReader)
+                        fields)
                     {
                         Payload = streamInput
                     };
@@ -562,7 +560,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 DecrementDispatchInvocationCount();
             }
 
-            static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
+            static (StatusCode StatusCode, string? ErrorMessage, IDictionary<ResponseFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
@@ -570,10 +568,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 StatusCode statusCode = decoder.DecodeStatusCode();
                 string? errorMessage = statusCode == StatusCode.Success ? null : decoder.DecodeString();
 
-                (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
+                IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields =
                     DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
-                return (statusCode, errorMessage, fields, pipeReader);
+                return (statusCode, errorMessage, fields);
             }
 
             void EncodeHeader(PipeWriter streamOutput)
@@ -789,18 +787,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         });
     }
 
-    private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
+    private static IDictionary<TKey, ReadOnlySequence<byte>> DecodeFieldDictionary<TKey>(
         ref SliceDecoder decoder,
-        DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
-    {
-        IDictionary<TKey, ReadOnlySequence<byte>> fields = decoder.DecodeDictionary(
+        DecodeFunc<TKey> decodeKeyFunc) where TKey : struct =>
+        decoder.DecodeDictionary(
             count => (IDictionary<TKey, ReadOnlySequence<byte>>)(count == 0 ?
                 ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty :
                 new Dictionary<TKey, ReadOnlySequence<byte>>(count)),
             decodeKeyFunc,
             (ref SliceDecoder decoder) => new ReadOnlySequence<byte>(decoder.DecodeSequence<byte>()));
-        return (fields, null);
-    }
 
     private async Task AcceptRequestsAsync(CancellationToken cancellationToken)
     {
@@ -939,7 +934,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             stream.WritesClosed.AsCancellationToken(_disposedCts.Token) :
             _disposedCts.Token;
 
-        PipeReader? fieldsPipeReader = null;
         IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields;
         IceRpcRequestHeader header;
 
@@ -961,7 +955,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     throw new IceRpcException(IceRpcError.IceRpcError, "Received icerpc request with empty header.");
                 }
 
-                (header, fields, fieldsPipeReader) = DecodeHeader(readResult.Buffer);
+                (header, fields) = DecodeHeader(readResult.Buffer);
                 streamInput.AdvanceTo(readResult.Buffer.End);
             }
             catch (InvalidDataException exception)
@@ -1091,7 +1085,6 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 streamOutput?.CompleteOutput(success: false);
                 streamInput?.Complete();
             }
-            fieldsPipeReader?.Complete();
 
             DecrementDispatchInvocationCount();
         }
@@ -1154,15 +1147,15 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             return response;
         }
 
-        static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>, PipeReader?) DecodeHeader(
+        static (IceRpcRequestHeader, IDictionary<RequestFieldKey, ReadOnlySequence<byte>>) DecodeHeader(
             ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
             var header = new IceRpcRequestHeader(ref decoder);
-            (IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
+            IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields =
                 DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
-            return (header, fields, pipeReader);
+            return (header, fields);
         }
 
         void EncodeHeader(OutgoingResponse response)

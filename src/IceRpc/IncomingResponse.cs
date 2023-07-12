@@ -23,8 +23,6 @@ public sealed class IncomingResponse : IncomingFrame
     /// <value>The <see cref="IceRpc.StatusCode" /> of this response.</value>
     public StatusCode StatusCode { get; }
 
-    private readonly PipeReader? _fieldsPipeReader;
-
     /// <summary>Constructs an incoming response with empty fields.</summary>
     /// <param name="request">The corresponding outgoing request.</param>
     /// <param name="connectionContext">The connection context of the connection that received this response.</param>
@@ -42,8 +40,7 @@ public sealed class IncomingResponse : IncomingFrame
             connectionContext,
             statusCode,
             errorMessage,
-            ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty,
-            fieldsPipeReader: null)
+            ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty)
     {
     }
 
@@ -61,27 +58,6 @@ public sealed class IncomingResponse : IncomingFrame
         StatusCode statusCode,
         string? errorMessage,
         IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields)
-        : this(request, connectionContext, statusCode, errorMessage, fields, fieldsPipeReader: null)
-    {
-    }
-
-    /// <summary>Constructs an incoming response with a pipe reader holding the memory for the fields.</summary>
-    /// <param name="request">The corresponding outgoing request.</param>
-    /// <param name="connectionContext">The connection context of the connection that received this response.</param>
-    /// <param name="statusCode">The status code of this response.</param>
-    /// <param name="errorMessage">The error message of this response.</param>
-    /// <param name="fields">The fields of this response.</param>
-    /// <param name="fieldsPipeReader">The pipe reader that holds the memory of the fields. Use <see langword="null"/>
-    /// when the fields memory is not held by a pipe reader.</param>
-    /// <remarks>The constructor also associates this response with the request. If another response is already set on
-    /// the request, its payload and payload continuation are completed.</remarks>
-    internal IncomingResponse(
-        OutgoingRequest request,
-        IConnectionContext connectionContext,
-        StatusCode statusCode,
-        string? errorMessage,
-        IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields,
-        PipeReader? fieldsPipeReader)
         : base(request.Protocol, connectionContext)
     {
         if (statusCode == StatusCode.Success)
@@ -103,7 +79,6 @@ public sealed class IncomingResponse : IncomingFrame
         StatusCode = statusCode;
         ErrorMessage = errorMessage;
         Fields = fields;
-        _fieldsPipeReader = fieldsPipeReader;
         request.Response = this;
     }
 
@@ -114,7 +89,6 @@ public sealed class IncomingResponse : IncomingFrame
     internal void Dispose()
     {
         Payload.Complete();
-        _fieldsPipeReader?.Complete();
         Fields = ImmutableDictionary<ResponseFieldKey, ReadOnlySequence<byte>>.Empty;
     }
 }
