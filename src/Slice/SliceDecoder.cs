@@ -296,6 +296,123 @@ public ref partial struct SliceDecoder
     public ulong DecodeVarUInt62() =>
         TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
+    /// <summary>Tries to decode a Slice uint8 into a byte.</summary>
+    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; otherwise, <see langword="false" />.</returns>
+    public bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
+
+    /// <summary>Tries to decode a Slice int32 into an int.</summary>
+    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded int.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; otherwise, <see langword="false" />.</returns>
+    public bool TryDecodeInt32(out int value) => SequenceMarshal.TryRead(ref _reader, out value);
+
+    /// <summary>Tries to decode a size encoded on a variable number of bytes.</summary>
+    /// <param name="size">When this method returns <see langword="true" />, this value is set to the decoded size.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; otherwise, <see langword="false" />.</returns>
+    public bool TryDecodeSize(out int size)
+    {
+        if (Encoding == SliceEncoding.Slice1)
+        {
+            if (TryDecodeUInt8(out byte firstByte))
+            {
+                if (firstByte < 255)
+                {
+                    size = firstByte;
+                    return true;
+                }
+                else if (TryDecodeInt32(out size))
+                {
+                    if (size < 0)
+                    {
+                        throw new InvalidDataException($"Decoded invalid size: {size}.");
+                    }
+                    return true;
+                }
+            }
+            size = 0;
+            return false;
+        }
+        else
+        {
+            if (TryDecodeVarUInt62(out ulong v))
+            {
+                try
+                {
+                    size = checked((int)v);
+                    return true;
+                }
+                catch (OverflowException ex)
+                {
+                    throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", ex);
+                }
+            }
+            else
+            {
+                size = 0;
+                return false;
+            }
+        }
+    }
+
+    /// <summary>Tries to decode a Slice varuint62 into a ulong.</summary>
+    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded ulong.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; otherwise, <see langword="false" />.</returns>
+    public bool TryDecodeVarUInt62(out ulong value)
+    {
+        if (_reader.TryPeek(out byte b))
+        {
+            switch (b & 0x03)
+            {
+                case 0:
+                {
+                    if (_reader.TryRead(out byte byteValue))
+                    {
+                        value = (uint)byteValue >> 2;
+                        return true;
+                    }
+                    break;
+                }
+                case 1:
+                {
+                    if (SequenceMarshal.TryRead(ref _reader, out ushort ushortValue))
+                    {
+                        value = (uint)ushortValue >> 2;
+                        return true;
+                    }
+                    break;
+                }
+                case 2:
+                {
+                    if (SequenceMarshal.TryRead(ref _reader, out uint uintValue))
+                    {
+                        value = uintValue >> 2;
+                        return true;
+                    }
+                    break;
+                }
+                default:
+                {
+                    if (SequenceMarshal.TryRead(ref _reader, out ulong ulongValue))
+                    {
+                        value = ulongValue >> 2;
+                        return true;
+                    }
+                    break;
+                }
+            }
+        }
+        value = 0;
+        return false;
+    }
+
     // Other methods
 
     /// <summary>Copy bytes from the underlying reader into the destination to fill completely destination.
@@ -312,6 +429,61 @@ public ref partial struct SliceDecoder
         {
             throw new InvalidDataException(EndOfBufferMessage);
         }
+    }
+
+    /// <summary>Copy all bytes from the underlying reader into the destination buffer writer.</summary>
+    /// <param name="destination">The destination buffer writer.</param>
+    /// <remarks>This method also moves the reader's Consumed property.</remarks>
+    public void CopyTo(IBufferWriter<byte> destination)
+    {
+        destination.Write(_reader.UnreadSequence);
+        _reader.AdvanceToEnd();
+    }
+
+    /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
+    /// <typeparam name="TKey">The type of the keys of this field dictionary.</typeparam>
+    /// <param name="count">The number of fields in the field dictionary.</param>
+    /// <param name="decodeKeyFunc">A function that decodes the keys.</param>
+    /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not copied.
+    /// </returns>
+    public Dictionary<TKey, ReadOnlySequence<byte>> DecodeShallowFieldDictionary<TKey>(
+        int count,
+        DecodeFunc<TKey> decodeKeyFunc)
+        where TKey : struct
+    {
+        if (count <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), $"{nameof(count)} must be greater than 0.");
+        }
+
+        // We don't use the normal collection allocation check here because SizeOf<ReadOnlySequence<byte>> is quite
+        // large (24).
+        // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
+        // using 1 byte (dictionary size) + 1 byte (key) + 1 byte (value size) = 3 bytes. The decoder's default max
+        // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1 * (4 + 24)), we'll exceed
+        // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
+
+        // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
+        if (count * 2 > _reader.Remaining)
+        {
+            throw new InvalidDataException("Too many fields.");
+        }
+
+        var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(count);
+
+        for (int i = 0; i < count; ++i)
+        {
+            TKey key = decodeKeyFunc(ref this);
+            int valueSize = DecodeSize();
+            if (valueSize > _reader.Remaining)
+            {
+                throw new InvalidDataException($"The value of field '{key}' extends beyond the end of the buffer.");
+            }
+            ReadOnlySequence<byte> value = _reader.UnreadSequence.Slice(0, valueSize);
+            _reader.Advance(valueSize);
+            fields.Add(key, value);
+        }
+        return fields;
     }
 
     /// <summary>Decodes a Slice2-encoded tagged field.</summary>
@@ -416,6 +588,52 @@ public ref partial struct SliceDecoder
         return new BitSequenceReader(bitSequence);
     }
 
+    /// <summary>Increases the number of bytes in the decoder's collection allocation.</summary>
+    /// <param name="byteCount">The number of bytes to add.</param>
+    /// <exception cref="InvalidDataException">Thrown when the total number of bytes exceeds the max collection
+    /// allocation.</exception>
+    /// <seealso cref="SliceDecoder(ReadOnlySequence{byte}, SliceEncoding, object?, int, IActivator?, int)" />
+    public void IncreaseCollectionAllocation(int byteCount)
+    {
+        _currentCollectionAllocation += byteCount;
+        if (_currentCollectionAllocation > _maxCollectionAllocation)
+        {
+            throw new InvalidDataException(
+                $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
+        }
+    }
+
+    /// <summary>Reads bytes and returns them as base64-encoded string.</summary>
+    /// <param name="byteCount">The number of bytes to read.</param>
+    /// <returns>A base64-encoded string that represents the bytes.</returns>
+    public string ReadBytesAsBase64String(int byteCount)
+    {
+        using IMemoryOwner<byte>? memoryOwner =
+            _reader.UnreadSpan.Length < byteCount ? MemoryPool<byte>.Shared.Rent(byteCount) : null;
+
+        ReadOnlySpan<byte> vSpan;
+
+        if (memoryOwner?.Memory is Memory<byte> buffer)
+        {
+            Span<byte> span = buffer.Span[0..byteCount];
+            CopyTo(span);
+            vSpan = span;
+        }
+        else
+        {
+            if (_reader.UnreadSpan.Length >= byteCount)
+            {
+                vSpan = _reader.UnreadSpan[0..byteCount];
+                _reader.Advance(byteCount);
+            }
+            else
+            {
+                throw new InvalidDataException(EndOfBufferMessage);
+            }
+        }
+        return Convert.ToBase64String(vSpan);
+    }
+
     /// <summary>Skip the given number of bytes.</summary>
     /// <param name="count">The number of bytes to skip.</param>
     public void Skip(int count)
@@ -515,209 +733,6 @@ public ref partial struct SliceDecoder
 
     // Applies to all var type: varint62, varuint62 etc.
     internal static int DecodeVarInt62Length(byte from) => 1 << (from & 0x03);
-
-    /// <summary>Copy all bytes from the underlying reader into the destination buffer writer.</summary>
-    /// <remarks>This method also moves the reader's Consumed property.</remarks>
-    internal void CopyTo(IBufferWriter<byte> destination)
-    {
-        destination.Write(_reader.UnreadSequence);
-        _reader.AdvanceToEnd();
-    }
-
-    /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
-    /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not
-    /// copied.</returns>
-    internal Dictionary<TKey, ReadOnlySequence<byte>> DecodeShallowFieldDictionary<TKey>(
-        int count,
-        DecodeFunc<TKey> decodeKeyFunc)
-        where TKey : struct
-    {
-        Debug.Assert(count > 0);
-
-        // We don't use the normal collection allocation check here because SizeOf<ReadOnlySequence<byte>> is quite
-        // large (24).
-        // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
-        // using 1 byte (dictionary size) + 1 byte (key) + 1 byte (value size) = 3 bytes. The decoder's default max
-        // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1 * (4 + 24)), we'll exceed
-        // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
-
-        // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
-        if (count * 2 > _reader.Remaining)
-        {
-            throw new InvalidDataException("Too many fields.");
-        }
-
-        var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(count);
-
-        for (int i = 0; i < count; ++i)
-        {
-            TKey key = decodeKeyFunc(ref this);
-            int valueSize = DecodeSize();
-            if (valueSize > _reader.Remaining)
-            {
-                throw new InvalidDataException($"The value of field '{key}' extends beyond the end of the buffer.");
-            }
-            ReadOnlySequence<byte> value = _reader.UnreadSequence.Slice(0, valueSize);
-            _reader.Advance(valueSize);
-            fields.Add(key, value);
-        }
-        return fields;
-    }
-
-    internal void IncreaseCollectionAllocation(int byteCount)
-    {
-        _currentCollectionAllocation += byteCount;
-        if (_currentCollectionAllocation > _maxCollectionAllocation)
-        {
-            throw new InvalidDataException(
-                $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
-        }
-    }
-
-    internal string ReadBytesAsBase64String(int byteCount)
-    {
-        using IMemoryOwner<byte>? memoryOwner =
-            _reader.UnreadSpan.Length < byteCount ? MemoryPool<byte>.Shared.Rent(byteCount) : null;
-
-        ReadOnlySpan<byte> vSpan;
-
-        if (memoryOwner?.Memory is Memory<byte> buffer)
-        {
-            Span<byte> span = buffer.Span[0..byteCount];
-            CopyTo(span);
-            vSpan = span;
-        }
-        else
-        {
-            if (_reader.UnreadSpan.Length >= byteCount)
-            {
-                vSpan = _reader.UnreadSpan[0..byteCount];
-                _reader.Advance(byteCount);
-            }
-            else
-            {
-                throw new InvalidDataException(EndOfBufferMessage);
-            }
-        }
-        return Convert.ToBase64String(vSpan);
-    }
-
-    /// <summary>Tries to decode a Slice uint8 into a byte.</summary>
-    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    internal bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
-
-    /// <summary>Tries to decode a Slice int32 into an int.</summary>
-    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded int.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    internal bool TryDecodeInt32(out int value) => SequenceMarshal.TryRead(ref _reader, out value);
-
-    /// <summary>Tries to decode a size encoded on a variable number of bytes.</summary>
-    /// <param name="size">When this method returns <see langword="true" />, this value is set to the decoded size.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    internal bool TryDecodeSize(out int size)
-    {
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            if (TryDecodeUInt8(out byte firstByte))
-            {
-                if (firstByte < 255)
-                {
-                    size = firstByte;
-                    return true;
-                }
-                else if (TryDecodeInt32(out size))
-                {
-                    if (size < 0)
-                    {
-                        throw new InvalidDataException($"Decoded invalid size: {size}.");
-                    }
-                    return true;
-                }
-            }
-            size = 0;
-            return false;
-        }
-        else
-        {
-            if (TryDecodeVarUInt62(out ulong v))
-            {
-                try
-                {
-                    size = checked((int)v);
-                    return true;
-                }
-                catch (OverflowException ex)
-                {
-                    throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", ex);
-                }
-            }
-            else
-            {
-                size = 0;
-                return false;
-            }
-        }
-    }
-
-    /// <summary>Tries to decode a Slice varuint62 into a ulong.</summary>
-    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded ulong.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    internal bool TryDecodeVarUInt62(out ulong value)
-    {
-        if (_reader.TryPeek(out byte b))
-        {
-            switch (b & 0x03)
-            {
-                case 0:
-                {
-                    if (_reader.TryRead(out byte byteValue))
-                    {
-                        value = (uint)byteValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-                case 1:
-                {
-                    if (SequenceMarshal.TryRead(ref _reader, out ushort ushortValue))
-                    {
-                        value = (uint)ushortValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-                case 2:
-                {
-                    if (SequenceMarshal.TryRead(ref _reader, out uint uintValue))
-                    {
-                        value = uintValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-                default:
-                {
-                    if (SequenceMarshal.TryRead(ref _reader, out ulong ulongValue))
-                    {
-                        value = ulongValue >> 2;
-                        return true;
-                    }
-                    break;
-                }
-            }
-        }
-        value = 0;
-        return false;
-    }
 
     private bool DecodeTagHeader(int tag, TagFormat expectedFormat, bool useTagEndMarker)
     {
