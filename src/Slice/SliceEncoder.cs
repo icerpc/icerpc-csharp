@@ -541,7 +541,7 @@ public ref partial struct SliceEncoder
     /// <returns>N where 2^N is the number of bytes needed to encode value with Slice's varuint62 encoding.</returns>
     private static int GetVarUInt62EncodedSizeExponent(ulong value)
     {
-        if (value > SliceEncoder.VarUInt62MaxValue)
+        if (value > VarUInt62MaxValue)
         {
             throw new ArgumentOutOfRangeException(nameof(value), $"The value '{value}' is out of the varuint62 range.");
         }
