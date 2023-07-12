@@ -296,13 +296,6 @@ public ref partial struct SliceDecoder
     public ulong DecodeVarUInt62() =>
         TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
 
-    /// <summary>Tries to decode a Slice uint8 into a byte.</summary>
-    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    public bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
-
     /// <summary>Tries to decode a Slice int32 into an int.</summary>
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded int.
     /// Otherwise, this value is set to its default value.</param>
@@ -359,6 +352,13 @@ public ref partial struct SliceDecoder
             }
         }
     }
+
+    /// <summary>Tries to decode a Slice uint8 into a byte.</summary>
+    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
+    /// Otherwise, this value is set to its default value.</param>
+    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
+    /// succeeded; otherwise, <see langword="false" />.</returns>
+    public bool TryDecodeUInt8(out byte value) => _reader.TryRead(out value);
 
     /// <summary>Tries to decode a Slice varuint62 into a ulong.</summary>
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded ulong.
