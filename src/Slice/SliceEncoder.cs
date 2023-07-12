@@ -54,7 +54,7 @@ public ref partial struct SliceEncoder
             1 => (0x00u, 63), // 2^6 - 1
             2 => (0x01u, 16_383), // 2^14 - 1
             4 => (0x02u, 1_073_741_823), // 2^30 - 1
-            _ => (0x03u, (long)SliceEncoder.VarUInt62MaxValue)
+            _ => (0x03u, (long)VarUInt62MaxValue)
         };
 
         if (value > (ulong)maxSize)

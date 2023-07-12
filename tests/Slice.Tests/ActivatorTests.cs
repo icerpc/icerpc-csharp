@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using Slice.Tests.ReferencedAssemblies;
 using NUnit.Framework;
+using Slice.Tests.ReferencedAssemblies;
 using System.Reflection;
 
 namespace Slice.Tests;
