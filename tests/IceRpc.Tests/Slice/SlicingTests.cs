@@ -49,7 +49,7 @@ public class SlicingTests
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClass).Assembly));
 
         SlicingMostDerivedClass r2 = decoder.DecodeClass<SlicingMostDerivedClass>();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.CheckEndOfBuffer();
 
         // Assert
         Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSliceClass>());
@@ -110,7 +110,7 @@ public class SlicingTests
             activator: IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly));
 
         SlicingMostDerivedClassWithCompactId r2 = decoder.DecodeClass<SlicingMostDerivedClassWithCompactId>();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.CheckEndOfBuffer();
 
         // Assert
         Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClassWithCompactId>() : Is.TypeOf<UnknownSliceClass>());
@@ -165,7 +165,7 @@ public class SlicingTests
             activator: IActivator.FromAssembly(typeof(SlicingClassWithTaggedFields).Assembly));
 
         SlicingClassWithTaggedFields r2 = decoder.DecodeClass<SlicingClassWithTaggedFields>();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.CheckEndOfBuffer();
 
         // Assert
         Assert.That(r1, partialSlicing ? Is.TypeOf<SlicingDerivedClass>() : Is.TypeOf<UnknownSliceClass>());
@@ -206,7 +206,7 @@ public class SlicingTests
 
         // Act
         SliceException sliceException = decoder.DecodeUserException();
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.CheckEndOfBuffer();
 
         // Assert
         if (partialSlicing)

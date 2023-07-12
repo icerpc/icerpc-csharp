@@ -801,7 +801,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             fields = ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
             pipeReader = null;
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            decoder.CheckEndOfBuffer();
         }
         else
         {
@@ -816,7 +816,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 var fieldsDecoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
 
                 fields = fieldsDecoder.DecodeShallowFieldDictionary(count, decodeKeyFunc);
-                fieldsDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+                fieldsDecoder.CheckEndOfBuffer();
 
                 pipe.Reader.AdvanceTo(readResult.Buffer.Start); // complete read without consuming anything
 

@@ -490,12 +490,10 @@ public ref partial struct SliceDecoder
     /// <typeparam name="T">The type of the decoded value.</typeparam>
     /// <param name="tag">The tag.</param>
     /// <param name="decodeFunc">A decode function that decodes the value of this tagged field.</param>
-    /// <param name="useTagEndMarker">When <see langword="true" />, a tag end marker marks the end of the tagged fields.
-    /// When <see langword="false" />, the end of the buffer marks the end of the tagged fields.</param>
     /// <returns>The decoded value of the tagged field, or <see langword="null" /> if not found.</returns>
     /// <remarks>We return a T? and not a T to avoid ambiguities in the generated code with nullable reference types
     /// such as string?.</remarks>
-    public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc, bool useTagEndMarker)
+    public T? DecodeTagged<T>(int tag, DecodeFunc<T> decodeFunc)
     {
         if (Encoding == SliceEncoding.Slice1)
         {
@@ -504,7 +502,7 @@ public ref partial struct SliceDecoder
 
         int requestedTag = tag;
 
-        while (useTagEndMarker || !_reader.End)
+        while (true)
         {
             long startPos = _reader.Consumed;
             tag = DecodeVarInt32();
@@ -515,7 +513,7 @@ public ref partial struct SliceDecoder
                 SkipSize();
                 return decodeFunc(ref this);
             }
-            else if ((useTagEndMarker && tag == Slice2Definitions.TagEndMarker) || tag > requestedTag)
+            else if (tag == Slice2Definitions.TagEndMarker || tag > requestedTag)
             {
                 _reader.Rewind(_reader.Consumed - startPos); // rewind
                 break; // while
@@ -649,8 +647,8 @@ public ref partial struct SliceDecoder
     }
 
     /// <summary>Skips the remaining tagged fields.</summary>
-    /// <param name="useTagEndMarker">Whether or not the tagged fields use a tag end marker.</param>
-    public void SkipTagged(bool useTagEndMarker)
+    /// <param name="useTagEndMarker">Whether or not the tagged fields use a tag end marker (Slice1 only).</param>
+    public void SkipTagged(bool useTagEndMarker = true)
     {
         if (Encoding == SliceEncoding.Slice1)
         {
@@ -691,7 +689,7 @@ public ref partial struct SliceDecoder
                 SkipTaggedValue(format);
             }
         }
-        else if (useTagEndMarker)
+        else
         {
             while (true)
             {
@@ -701,14 +699,6 @@ public ref partial struct SliceDecoder
                 }
 
                 // Skip tagged value
-                Skip(DecodeSize());
-            }
-        }
-        else
-        {
-            while (!_reader.End)
-            {
-                Skip(DecodeVarInt62Length(PeekByte()));
                 Skip(DecodeSize());
             }
         }

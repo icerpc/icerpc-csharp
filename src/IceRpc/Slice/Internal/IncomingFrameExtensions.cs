@@ -48,7 +48,8 @@ internal static class IncomingFrameExtensions
                 activator,
                 feature.MaxDepth);
             T value = decodeFunc(ref decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
+            decoder.SkipTaggedParams();
+            decoder.CheckEndOfBuffer();
 
             frame.Payload.AdvanceTo(readResult.Buffer.End);
             return value;
@@ -94,7 +95,8 @@ internal static class IncomingFrameExtensions
                 // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
                 // do is skip unknown tags
                 var decoder = new SliceDecoder(readResult.Buffer, encoding);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                decoder.SkipTaggedParams();
+                decoder.CheckEndOfBuffer();
             }
             frame.Payload.AdvanceTo(readResult.Buffer.End);
         }

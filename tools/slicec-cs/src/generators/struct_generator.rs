@@ -91,7 +91,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     .build();
 
     if !struct_def.is_compact {
-        writeln!(decode_body, "decoder.SkipTagged(useTagEndMarker: true);");
+        writeln!(decode_body, "decoder.SkipTagged();");
     }
     builder.add_block(
             FunctionBuilder::new(
