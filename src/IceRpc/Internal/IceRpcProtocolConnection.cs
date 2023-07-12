@@ -793,44 +793,13 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         ref SliceDecoder decoder,
         DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
     {
-        int count = decoder.DecodeSize();
-
-        IDictionary<TKey, ReadOnlySequence<byte>> fields;
-        PipeReader? pipeReader;
-        if (count == 0)
-        {
-            fields = ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
-            pipeReader = null;
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-        }
-        else
-        {
-            var pipe = new Pipe();
-
-            decoder.CopyTo(pipe.Writer);
-            pipe.Writer.Complete();
-
-            try
-            {
-                _ = pipe.Reader.TryRead(out ReadResult readResult);
-                var fieldsDecoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-
-                fields = fieldsDecoder.DecodeShallowFieldDictionary(count, decodeKeyFunc);
-                fieldsDecoder.CheckEndOfBuffer(skipTaggedParams: false);
-
-                pipe.Reader.AdvanceTo(readResult.Buffer.Start); // complete read without consuming anything
-
-                pipeReader = pipe.Reader;
-            }
-            catch
-            {
-                pipe.Reader.Complete();
-                throw;
-            }
-        }
-
-        // The caller is responsible for completing the pipe reader.
-        return (fields, pipeReader);
+        IDictionary<TKey, ReadOnlySequence<byte>> fields = decoder.DecodeDictionary(
+            count => (IDictionary<TKey, ReadOnlySequence<byte>>)(count == 0 ?
+                ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty :
+                new Dictionary<TKey, ReadOnlySequence<byte>>(count)),
+            decodeKeyFunc,
+            (ref SliceDecoder decoder) => new ReadOnlySequence<byte>(decoder.DecodeSequence<byte>()));
+        return (fields, null);
     }
 
     private async Task AcceptRequestsAsync(CancellationToken cancellationToken)
