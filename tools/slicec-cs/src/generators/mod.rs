@@ -7,6 +7,7 @@ mod exception_generator;
 mod proxy_generator;
 mod struct_generator;
 
+use crate::cs_options::{CsOptions, RpcProvider};
 use crate::slicec_ext::ModuleExt;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
@@ -60,9 +61,10 @@ impl Visitor for Generator<'_> {
     fn visit_type_ref(&mut self, _: &TypeRef) {}
 }
 
-pub fn generate_from_slice_file(slice_file: &SliceFile) -> String {
+pub fn generate_from_slice_file(slice_file: &SliceFile, options: &CsOptions) -> String {
     // Write the preamble at the top of the generated file.
     let mut generated_code = preamble(slice_file);
+    generated_code.add_block(rpc_preamble(options.rpc_provider));
 
     // If the slice file wasn't empty, generate code for its contents.
     if let Some(module_ptr) = &slice_file.module {
@@ -102,4 +104,11 @@ using Slice;
         file = slice_file.filename,
     )
     .into()
+}
+
+fn rpc_preamble(rpc_provider: RpcProvider) -> &'static str {
+    match rpc_provider {
+        RpcProvider::None => "",
+        RpcProvider::IceRPC => "using IceRpc.Slice;\n",
+    }
 }

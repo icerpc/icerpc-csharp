@@ -14,6 +14,7 @@ pub const SLICEC_CS: &str = "SLICEC_CS";
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about=DESCRIPTION, rename_all = "kebab-case")]
 pub struct CsOptions {
+    /// Specify which RPC framework the generated code will be used with.
     #[arg(long = "interface", value_enum, default_value_t = RpcProvider::None)]
     pub rpc_provider: RpcProvider,
 

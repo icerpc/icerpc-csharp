@@ -62,6 +62,7 @@ public class SliceCCSharpTask : ToolTask
             builder.AppendTextUnquoted(" ");
             builder.AppendTextUnquoted(option);
         }
+        builder.AppendSwitch("--interface=icerpc");
         builder.AppendSwitch("--diagnostic-format=json");
         builder.AppendFileNamesIfNotNull(
             Sources.Select(item => item.GetMetadata("FullPath").ToString()).ToArray(),
