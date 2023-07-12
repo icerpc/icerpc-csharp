@@ -26,8 +26,8 @@ public ref partial struct SliceDecoder
     public readonly bool End => _reader.End;
 
     /// <summary>Gets the proxy decoding context.</summary>
-    /// <remarks>The proxy decoding context is a kind of cookie the code that creates the decoder can store in the
-    /// decoder for later retrieval.</remarks>
+    /// <remarks>The proxy decoding context is a kind of cookie: the code that creates the decoder can store this
+    /// context in the decoder for later retrieval.</remarks>
     public object? ProxyDecodingContext { get; }
 
     /// <summary>Gets the number of bytes remaining in the underlying buffer.</summary>
