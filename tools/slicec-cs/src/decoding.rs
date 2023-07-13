@@ -132,7 +132,7 @@ pub fn decode_tagged(
     member: &impl Member,
     namespace: &str,
     param: &str,
-    use_tag_end_marker: bool,
+    constructed_type: bool,
     encoding: Encoding,
 ) -> CodeBlock {
     let data_type = member.data_type();
@@ -146,7 +146,7 @@ pub fn decode_tagged(
             (encoding == Encoding::Slice1).then(|| format!("TagFormat.{}", data_type.tag_format().unwrap())),
         )
         .add_argument(decode_func(data_type, namespace, encoding))
-        .add_argument(format!("useTagEndMarker: {use_tag_end_marker}"))
+        .add_argument_if_present((encoding == Encoding::Slice1).then(|| format!("useTagEndMarker: {constructed_type}")))
         .build();
 
     format!("{param} = {decode}").into()
@@ -497,7 +497,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 member,
                 namespace,
                 &member.parameter_name_with_prefix("sliceP_"),
-                false, // no tag end marker for operations
+                false, // not a constructed type
                 operation.encoding
             ),
         )

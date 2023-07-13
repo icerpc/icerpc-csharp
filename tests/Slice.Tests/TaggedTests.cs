@@ -467,38 +467,23 @@ public class TaggedTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
 
         Assert.That(
-            decoder.DecodeTagged(
-                1,
-                (ref SliceDecoder decoder) => decoder.DecodeUInt8() as byte?,
-                useTagEndMarker: true),
+            decoder.DecodeTagged(1, (ref SliceDecoder decoder) => decoder.DecodeUInt8() as byte?),
             Is.EqualTo(expected.A));
 
         Assert.That(
-            decoder.DecodeTagged(
-                2,
-                (ref SliceDecoder decoder) => new MyStruct(ref decoder) as MyStruct?,
-                useTagEndMarker: true),
+            decoder.DecodeTagged(2, (ref SliceDecoder decoder) => new MyStruct(ref decoder) as MyStruct?),
             Is.EqualTo(expected.B));
 
         Assert.That(
-            decoder.DecodeTagged(
-                3,
-                (ref SliceDecoder decoder) => decoder.DecodeMyEnum() as MyEnum?,
-                useTagEndMarker: true),
+            decoder.DecodeTagged(3, (ref SliceDecoder decoder) => decoder.DecodeMyEnum() as MyEnum?),
             Is.EqualTo(expected.C));
 
         Assert.That(
-            decoder.DecodeTagged(
-                4,
-                (ref SliceDecoder decoder) => decoder.DecodeSequence<byte>(),
-                useTagEndMarker: true),
+            decoder.DecodeTagged(4, (ref SliceDecoder decoder) => decoder.DecodeSequence<byte>()),
             Is.EqualTo(expected.D));
 
         Assert.That(
-            decoder.DecodeTagged(
-                5,
-                (ref SliceDecoder decoder) => decoder.DecodeString(),
-                useTagEndMarker: true),
+            decoder.DecodeTagged(5, (ref SliceDecoder decoder) => decoder.DecodeString()),
             Is.EqualTo(expected.E));
 
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));

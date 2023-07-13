@@ -522,7 +522,7 @@ public class SlicTransportTests
         {
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
             var versionBody = new VersionBody(ref decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            decoder.CheckEndOfBuffer();
             return versionBody;
         }
     }

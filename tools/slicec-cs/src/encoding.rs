@@ -499,6 +499,10 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
         ));
     }
 
+    if operation.encoding != Encoding::Slice1 {
+        writeln!(code, "{encoder_param}.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
+    }
+
     code
 }
 

@@ -794,7 +794,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     break;
             }
 
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            decoder.CheckEndOfBuffer();
             return (statusCode, message, buffer.End);
         }
     }
