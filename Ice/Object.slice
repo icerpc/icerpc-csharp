@@ -2,7 +2,7 @@
 
 encoding = Slice1
 
-[cs::namespace("IceRpc.Ice")]
+[cs::namespace("IceRpc.Slice.Ice")]
 module Ice
 
 /// Provides 3 ice_ operations. Services implemented with Ice or that offer compatibility with Ice implement this
