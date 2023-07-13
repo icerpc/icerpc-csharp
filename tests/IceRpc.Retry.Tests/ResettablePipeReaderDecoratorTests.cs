@@ -20,6 +20,8 @@ public sealed class ResettablePipeReaderDecoratorTests
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
+        // Ensure the read data is marked as examined on the decoratee (the Examined test bellow would fail otherwise).
+        sut.TryRead(out _);
         sut.Complete();
 
         // Act
@@ -51,7 +53,7 @@ public sealed class ResettablePipeReaderDecoratorTests
     }
 
     [Test]
-    public async Task Read_again()
+    public async Task Read_reset_and_read_again()
     {
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[10]);
@@ -60,21 +62,81 @@ public sealed class ResettablePipeReaderDecoratorTests
         ReadResult result = await sut.ReadAsync();
         sut.AdvanceTo(result.Buffer.End);
 
-        await pipe.Writer.WriteAsync(new byte[5]);
-        result = await sut.ReadAsync();
-        sut.AdvanceTo(result.Buffer.End);
-
         // Act
         sut.Reset();
         result = await sut.ReadAsync();
 
         // Assert
-        Assert.That(result.Buffer.Length, Is.EqualTo(15));
+        Assert.That(result.Buffer.Length, Is.EqualTo(10));
 
-        sut.AdvanceTo(result.Buffer.End);
-        pipe.Writer.Complete();
-        sut.IsResettable = false;
         sut.Complete();
+        pipe.Writer.Complete();
+        pipe.Reader.Complete();
+    }
+
+    [Test]
+    public async Task Read_buffered_data_after_consuming_half()
+    {
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+        ReadResult result = await sut.ReadAsync();
+        sut.AdvanceTo(result.Buffer.GetPosition(5));
+
+        // Act
+        result = await sut.ReadAsync();
+
+        // Assert
+        Assert.That(result.Buffer.Length, Is.EqualTo(5));
+
+        sut.Complete();
+        pipe.Writer.Complete();
+        pipe.Reader.Complete();
+    }
+
+    [Test]
+    public async Task ReadAtLeast_reset_and_read_at_least_again()
+    {
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+        ReadResult result = await sut.ReadAtLeastAsync(1);
+        sut.AdvanceTo(result.Buffer.End);
+
+        // Act
+        sut.Reset();
+        result = await sut.ReadAtLeastAsync(1);
+
+        // Assert
+        Assert.That(result.Buffer.Length, Is.EqualTo(10));
+
+        sut.Complete();
+        pipe.Writer.Complete();
+        pipe.Reader.Complete();
+    }
+
+    [Test]
+    public async Task TryRead_reset_and_try_read_again()
+    {
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+        sut.TryRead(out ReadResult result);
+        sut.AdvanceTo(result.Buffer.End);
+
+        // Act
+        sut.Reset();
+        sut.TryRead(out result);
+
+        // Assert
+        Assert.That(result.Buffer.Length, Is.EqualTo(10));
+
+        sut.Complete();
+        pipe.Writer.Complete();
+        pipe.Reader.Complete();
     }
 
     [Test]
@@ -115,19 +177,21 @@ public sealed class ResettablePipeReaderDecoratorTests
     }
 
     [Test]
-    public async Task CancelPendingRead_does_not_change_resettable_status()
+    public async Task CancelPendingRead_does_not_change_resettable_status([Values] bool advanceTo)
     {
         var pipe = new Pipe();
-        await pipe.Writer.WriteAsync(new byte[10]);
-
         var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
-        ReadResult result = await sut.ReadAsync();
-        sut.AdvanceTo(result.Buffer.End);
 
         // Act
         var readTask = sut.ReadAsync();
         sut.CancelPendingRead();
-        result = await readTask;
+        ReadResult result = await readTask;
+        if (advanceTo)
+        {
+            // We test with both calling AdvanceTo because it's valid behavior to call or not call AdvanceTo before
+            // calling again ReadAsync after a CancelPendingRead.
+            sut.AdvanceTo(result.Buffer.End);
+        }
 
         // Assert
 
@@ -136,10 +200,13 @@ public sealed class ResettablePipeReaderDecoratorTests
         Assert.That(sut.IsResettable, Is.True);
 
         // Ensure we can read again the data after a reset.
+        pipe.Writer.Complete();
         sut.Reset();
-        await pipe.Writer.WriteAsync(new byte[1]);
         result = await sut.ReadAsync();
-        Assert.That(result.Buffer.Length, Is.EqualTo(11));
+        Assert.That(result.IsCompleted);
+
+        sut.Complete();
+        pipe.Reader.Complete();
     }
 
     [Test]
@@ -155,6 +222,8 @@ public sealed class ResettablePipeReaderDecoratorTests
 
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.GetPosition(3), readResult.Buffer.GetPosition(4));
+        // Ensure the read data is marked as examined on the decoratee (the Examined test bellow would fail otherwise).
+        sut.TryRead(out _);
         sut.Complete();
         sut.Reset();
 
@@ -174,6 +243,7 @@ public sealed class ResettablePipeReaderDecoratorTests
     [Test]
     public async Task Consume_slices_next_read_result()
     {
+        // Arrange
         var readResult = new ReadResult(
             new ReadOnlySequence<byte>(new byte[] { 1, 2, 3, 4, 5 }),
             false,
@@ -188,6 +258,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         ReadResult slicedResult = await sut.ReadAsync();
         sut.Complete();
 
+        // Assert
         Assert.That(slicedResult.Buffer.Length, Is.EqualTo(2));
         Assert.That(slicedResult.Buffer.FirstSpan[0], Is.EqualTo(4));
         Assert.That(mock.CompleteCalled, Is.False);
