@@ -70,7 +70,7 @@ compact struct EncapsulationHeader {
 [cs::internal]
 [cs::readonly]
 compact struct IceRequestHeader {
-    path: Ice::IdentityPath
+    identity: Ice::Identity
     fragment: Fragment
     operation: string
     operationMode: OperationMode
@@ -118,7 +118,7 @@ enum ReplyStatus {
 [cs::internal]
 [cs::readonly]
 compact struct RequestFailedExceptionData {
-    path: Ice::IdentityPath
+    identity: Ice::Identity
     fragment: Fragment
     operation: string
 }
