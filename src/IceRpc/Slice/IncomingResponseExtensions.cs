@@ -184,7 +184,7 @@ public static class IncomingResponseExtensions
                 SliceException exception = decoder.DecodeUserException(errorMessage);
                 if (exception is not UnknownSliceException)
                 {
-                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                    decoder.CheckEndOfBuffer();
                 }
                 return exception;
             }
@@ -199,7 +199,7 @@ public static class IncomingResponseExtensions
                 try
                 {
                     SliceException sliceException = decodeException!(ref decoder, errorMessage);
-                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                    decoder.CheckEndOfBuffer();
                     return sliceException;
                 }
                 catch (InvalidDataException exception)

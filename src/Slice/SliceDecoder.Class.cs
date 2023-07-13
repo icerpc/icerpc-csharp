@@ -115,7 +115,7 @@ public ref partial struct SliceDecoder
 
         if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0)
         {
-            SkipTagged(useTagEndMarker: true);
+            SkipTagged();
         }
         if ((_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
         {

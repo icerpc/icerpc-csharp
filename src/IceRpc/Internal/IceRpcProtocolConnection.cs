@@ -571,7 +571,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 string? errorMessage = statusCode == StatusCode.Success ? null : decoder.DecodeString();
 
                 (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
-                    DecodeShallowFieldDictionary(
+                    DecodeFieldDictionary(
                         ref decoder,
                         (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
@@ -791,7 +791,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         });
     }
 
-    private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeShallowFieldDictionary<TKey>(
+    private static (IDictionary<TKey, ReadOnlySequence<byte>>, PipeReader?) DecodeFieldDictionary<TKey>(
         ref SliceDecoder decoder,
         DecodeFunc<TKey> decodeKeyFunc) where TKey : struct
     {
@@ -803,15 +803,10 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             fields = ImmutableDictionary<TKey, ReadOnlySequence<byte>>.Empty;
             pipeReader = null;
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            decoder.CheckEndOfBuffer();
         }
         else
         {
-            if (count <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count), $"{nameof(count)} must be greater than 0.");
-            }
-
             // We don't use the normal collection allocation check here because SizeOf<ReadOnlySequence<byte>> is quite
             // large (24).
             // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
@@ -864,7 +859,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     // Skip the field value to prepare the decoder to read the next field value.
                     fieldsDecoder.Skip(valueSize);
                 }
-                fieldsDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+                fieldsDecoder.CheckEndOfBuffer();
 
                 pipe.Reader.AdvanceTo(readResult.Buffer.Start); // complete read without consuming anything
 
@@ -1239,7 +1234,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
             var header = new IceRpcRequestHeader(ref decoder);
             (IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
-                DecodeShallowFieldDictionary(
+                DecodeFieldDictionary(
                     ref decoder,
                     (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
