@@ -571,7 +571,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 string? errorMessage = statusCode == StatusCode.Success ? null : decoder.DecodeString();
 
                 (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
-                    DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
+                    DecodeFieldDictionary(
+                        ref decoder,
+                        (ref SliceDecoder decoder) => decoder.DecodeResponseFieldKey());
 
                 return (statusCode, errorMessage, fields, pipeReader);
             }
@@ -805,8 +807,21 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         }
         else
         {
-            var pipe = new Pipe();
+            // We don't use the normal collection allocation check here because SizeOf<ReadOnlySequence<byte>> is quite
+            // large (24).
+            // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
+            // using 1 byte (dictionary size) + 1 byte (key) + 1 byte (value size) = 3 bytes. The decoder's default max
+            // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1 * (4 + 24)), we'll exceed
+            // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
 
+            // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
+            if (count * 2 > decoder.Remaining)
+            {
+                throw new InvalidDataException("Too many fields.");
+            }
+
+            fields = new Dictionary<TKey, ReadOnlySequence<byte>>(count);
+            var pipe = new Pipe();
             decoder.CopyTo(pipe.Writer);
             pipe.Writer.Complete();
 
@@ -815,7 +830,35 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 _ = pipe.Reader.TryRead(out ReadResult readResult);
                 var fieldsDecoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
 
-                fields = fieldsDecoder.DecodeShallowFieldDictionary(count, decodeKeyFunc);
+                for (int i = 0; i < count; ++i)
+                {
+                    // Decode the field key.
+                    TKey key = decodeKeyFunc(ref fieldsDecoder);
+
+                    // Decode and check the field value size.
+                    int valueSize;
+                    try
+                    {
+                        valueSize = checked((int)fieldsDecoder.DecodeVarUInt62());
+                    }
+                    catch (OverflowException exception)
+                    {
+                        throw new InvalidDataException("The field size can't be larger than int.MaxValue.", exception);
+                    }
+
+                    if (valueSize > fieldsDecoder.Remaining)
+                    {
+                        throw new InvalidDataException(
+                            $"The value of field '{key}' extends beyond the end of the buffer.");
+                    }
+
+                    // Create a ROS reference to the field value by slicing the fields pipe reader ROS.
+                    ReadOnlySequence<byte> value = readResult.Buffer.Slice(fieldsDecoder.Consumed, valueSize);
+                    fields.Add(key, value);
+
+                    // Skip the field value to prepare the decoder to read the next field value.
+                    fieldsDecoder.Skip(valueSize);
+                }
                 fieldsDecoder.CheckEndOfBuffer();
 
                 pipe.Reader.AdvanceTo(readResult.Buffer.Start); // complete read without consuming anything
@@ -1191,7 +1234,9 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
             var header = new IceRpcRequestHeader(ref decoder);
             (IDictionary<RequestFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
-                DecodeFieldDictionary(ref decoder, (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
+                DecodeFieldDictionary(
+                    ref decoder,
+                    (ref SliceDecoder decoder) => decoder.DecodeRequestFieldKey());
 
             return (header, fields, pipeReader);
         }
