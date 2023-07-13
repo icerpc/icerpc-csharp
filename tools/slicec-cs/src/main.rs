@@ -27,15 +27,15 @@ use std::io::prelude::*;
 use std::path::Path;
 
 pub fn main() {
-    let mut options = CsOptions::parse();
-    let slice_options = &mut options.slice_options;
-    slice_options.defined_symbols.push(SLICEC_CS.to_owned());
+    let mut cs_options = CsOptions::parse();
+    cs_options.slice_options.defined_symbols.push(SLICEC_CS.to_owned());
+    let slice_options = &cs_options.slice_options;
 
     let mut compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
 
     if !compilation_state.diagnostic_reporter.has_errors() && !slice_options.dry_run {
         for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
-            let code = generate_from_slice_file(slice_file);
+            let code = generate_from_slice_file(slice_file, &cs_options);
 
             let path = match &slice_options.output_dir {
                 Some(output_dir) => Path::new(output_dir),
