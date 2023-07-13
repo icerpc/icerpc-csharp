@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Ice;
 using IceRpc.Internal;
 using Slice;
 using System.Buffers;
@@ -56,7 +55,8 @@ public static class ServiceAddressSliceDecoderExtensions
             throw new InvalidOperationException(
                 $"Decoding a nullable service address with {decoder.Encoding} requires a bit sequence.");
         }
-        string path = decoder.DecodeIdentityPath();
+
+        string path = new Identity(ref decoder).ToPath();
         return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
     }
 

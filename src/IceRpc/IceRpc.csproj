@@ -13,13 +13,16 @@
     <ItemGroup>
         <SliceFile
           Include="../../slice/IceRpc/*.slice"
-          OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+          OutputDir="$(MSBuildProjectDirectory)/generated"
           Pack="true"
           PackagePath="slice/$(AssemblyName)" />
-        <SliceFile Include="../../slice/IceRpc/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceFile Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
-        <!-- Reference the built-in Slice files -->
-        <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
+        <SliceFile
+          Include="../../slice/IceRpc/Internal/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+        <SliceFile
+          Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
+       <SliceDirectory Include="../../slice/IceRpc/"/>
       </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Slice\Slice.csproj" ExactVersion="true" />

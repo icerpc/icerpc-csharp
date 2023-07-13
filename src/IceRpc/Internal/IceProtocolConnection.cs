@@ -783,7 +783,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     var requestFailed = new RequestFailedExceptionData(ref decoder);
 
                     string target = requestFailed.Fragment.Length > 0 ?
-                        $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+                        $"{requestFailed.Identity.ToPath()}#{requestFailed.Fragment}" : requestFailed.Identity.ToPath();
 
                     message =
                         $"The dispatch failed with status code {statusCode} while dispatching '{requestFailed.Operation}' on '{target}'.";
@@ -819,7 +819,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         // Request header.
         var requestHeader = new IceRequestHeader(
-            request.ServiceAddress.Path,
+            Identity.Parse(request.ServiceAddress.Path),
             request.ServiceAddress.Fragment,
             request.Operation,
             request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent : OperationMode.Normal);
@@ -884,7 +884,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     encoder.EncodeReplyStatus(response.StatusCode == StatusCode.ServiceNotFound ?
                         ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
-                    new RequestFailedExceptionData(request.Path, request.Fragment, request.Operation)
+                    new RequestFailedExceptionData(Identity.Parse(request.Path), request.Fragment, request.Operation)
                         .Encode(ref encoder);
                     break;
                 case StatusCode.UnhandledException:
@@ -1480,7 +1480,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         Fragment = requestHeader.Fragment,
                         IsOneway = requestId == 0,
                         Operation = requestHeader.Operation,
-                        Path = requestHeader.Path,
+                        Path = requestHeader.Identity.ToPath(),
                         Payload = requestFrameReader,
                     };
 

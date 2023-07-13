@@ -3,7 +3,7 @@
 using IceRpc.Internal;
 using Slice;
 
-namespace IceRpc.Ice;
+namespace IceRpc.Slice.Ice;
 
 /// <summary>Provides an extension method for encoding a path as an Ice identity.</summary>
 public static class IdentityPathSliceEncoderExtensions

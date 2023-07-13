@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Ice;
 using IceRpc.Locator.Internal;
+using IceRpc.Slice.Ice;
 using NUnit.Framework;
 
 namespace IceRpc.Locator.Tests;
