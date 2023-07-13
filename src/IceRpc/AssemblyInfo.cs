@@ -13,8 +13,3 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
 
 [assembly: InternalsVisibleTo("IceRpc.Compressor.Tests")] // For GetPayloadWriter
-
-// TODO remove once --rpc none slicec-cs option is available
-namespace IceRpc.Slice
-{
-}

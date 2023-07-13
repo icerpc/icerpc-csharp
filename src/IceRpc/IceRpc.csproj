@@ -5,6 +5,11 @@
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
     </PropertyGroup>
+    <ItemDefinitionGroup>
+      <SliceFile>
+        <AdditionalOptions>--rpc none</AdditionalOptions>
+      </SliceFile>
+    </ItemDefinitionGroup>
     <ItemGroup>
         <SliceFile Include="../../slice/IceRpc/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
         <SliceFile Include="../../slice/IceRpc/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
