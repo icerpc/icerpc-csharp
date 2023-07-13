@@ -5,22 +5,22 @@
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
     </PropertyGroup>
-   <ItemGroup>
+    <ItemDefinitionGroup>
+      <SliceFile>
+        <AdditionalOptions>--rpc none</AdditionalOptions>
+      </SliceFile>
+    </ItemDefinitionGroup>
+    <ItemGroup>
         <SliceFile
-            Include="../../slice/$(AssemblyName)/*.slice"
-            OutputDir="$(MSBuildProjectDirectory)/generated"
-            Pack="true"
-            PackagePath="slice/$(AssemblyName)"/>
-        <SliceFile
-            Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice"
-            OutputDir="$(MSBuildProjectDirectory)/generated"
-            Pack="true"
-            PackagePath="slice/Ice" />
-        <SliceFile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceFile Include="../../slice/$(AssemblyName)/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
+          Include="../../slice/IceRpc/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+          Pack="true"
+          PackagePath="slice/$(AssemblyName)" />
+        <SliceFile Include="../../slice/IceRpc/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+        <SliceFile Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
         <!-- Reference the built-in Slice files -->
         <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
-    </ItemGroup>
+      </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Slice\Slice.csproj" ExactVersion="true" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />

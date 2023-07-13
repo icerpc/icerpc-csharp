@@ -1,8 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+  <ItemDefinitionGroup>
+    <SliceFile>
+      <AdditionalOptions>--rpc none</AdditionalOptions>
+    </SliceFile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <SliceDirectory Include="..\A;..\B;..\C" />
-    <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\..\..\src\Slice\Slice.csproj" />
     <ProjectReference Include="..\B\B.csproj" />
     <ProjectReference Include="..\C\C.csproj" />
     <PackageReference Include="coverlet.collector" Version="6.0.0">

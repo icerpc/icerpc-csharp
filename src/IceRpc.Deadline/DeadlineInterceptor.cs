@@ -2,7 +2,6 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using IceRpc.Slice;
 using Slice;
 using Slice.WellKnownTypes;
 

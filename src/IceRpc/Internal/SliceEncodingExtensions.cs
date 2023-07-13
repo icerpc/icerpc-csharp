@@ -3,7 +3,7 @@
 using Slice;
 using System.Buffers;
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Internal;
 
 /// <summary>Extension methods for <see cref="SliceEncoding" />.</summary>
 internal static class SliceEncodingExtensions

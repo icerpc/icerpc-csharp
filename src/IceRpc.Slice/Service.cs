@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Ice;
+using IceRpc.Slice.Ice;
 using Slice;
 using System.Collections.Concurrent;
 using System.Diagnostics;

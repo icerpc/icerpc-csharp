@@ -4,7 +4,7 @@ using Slice;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Internal;
 
 /// <summary>Extension methods to decode payloads carried by a PipeReader.</summary>
 internal static class PipeReaderExtensions

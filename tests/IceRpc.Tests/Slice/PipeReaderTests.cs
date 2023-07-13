@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
+using IceRpc.Internal;
 using NUnit.Framework;
 using Slice;
 using System.Buffers;
