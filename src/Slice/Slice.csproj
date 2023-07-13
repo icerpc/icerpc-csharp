@@ -5,6 +5,11 @@
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>Slice;Binary;Serialization;Format</PackageTags>
     </PropertyGroup>
+    <ItemDefinitionGroup>
+      <SliceFile>
+        <AdditionalOptions>--rpc none</AdditionalOptions>
+      </SliceFile>
+    </ItemDefinitionGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">

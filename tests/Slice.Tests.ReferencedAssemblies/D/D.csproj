@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+  <ItemDefinitionGroup>
+    <SliceFile>
+      <AdditionalOptions>--rpc none</AdditionalOptions>
+    </SliceFile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <SliceDirectory Include="..\A;..\B;..\C" />
     <ProjectReference Include="..\..\..\src\Slice\Slice.csproj" />

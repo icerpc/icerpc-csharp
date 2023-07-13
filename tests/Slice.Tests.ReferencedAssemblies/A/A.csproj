@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemDefinitionGroup>
+    <SliceFile>
+      <AdditionalOptions>--rpc none</AdditionalOptions>
+    </SliceFile>
+  </ItemDefinitionGroup>
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
