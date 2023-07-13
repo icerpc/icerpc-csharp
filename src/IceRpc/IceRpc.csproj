@@ -11,7 +11,11 @@
       </SliceFile>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <SliceFile Include="../../slice/IceRpc/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+        <SliceFile
+          Include="../../slice/IceRpc/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+          Pack="true"
+          PackagePath="slice/$(AssemblyName)" />
         <SliceFile Include="../../slice/IceRpc/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
         <SliceFile Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
         <!-- Reference the built-in Slice files -->
