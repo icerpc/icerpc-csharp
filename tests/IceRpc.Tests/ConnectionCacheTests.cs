@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Tests.Common;
-using IceRpc.Tests.Slice;
 using IceRpc.Transports.Coloc;
 using IceRpc.Transports.Slic;
 using NUnit.Framework;
@@ -51,10 +51,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await new PingableProxy(cache, new Uri("icerpc://bar")).PingAsync();
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
 
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -98,7 +98,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://bar/?alt-server=foo")).PingAsync();
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://bar/?alt-server=foo")));
 
         // Assert
         Assert.That(selectedServerAddress?.Host, Is.EqualTo(serverAddress.Host));
@@ -148,7 +148,7 @@ public sealed class ConnectionCacheTests
             .Into(cache);
 
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -199,10 +199,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await new PingableProxy(cache, new Uri("icerpc://bar")).PingAsync();
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
 
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
@@ -237,7 +237,7 @@ public sealed class ConnectionCacheTests
         await using var cache = new ConnectionCache(
             options: new(),
             multiplexedClientTransport: multiplexedClientTransport);
-        await new PingableProxy(cache, new Uri("icerpc://foo")).PingAsync();
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
 
         TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastCreatedConnection!;
         clientConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
@@ -255,5 +255,14 @@ public sealed class ConnectionCacheTests
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
         clientConnection.Operations.Hold = MultiplexedTransportOperations.None; // Release dispose
         await disposeTask;
+    }
+
+    private static async Task SendEmptyRequestAsync(IInvoker invoker, ServiceAddress serviceAddress)
+    {
+        using var request = new OutgoingRequest(serviceAddress)
+        {
+            Payload = EmptyPipeReader.Instance
+        };
+        await invoker.InvokeAsync(request, CancellationToken.None);
     }
 }

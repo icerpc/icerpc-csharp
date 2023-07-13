@@ -109,7 +109,7 @@ mod test {
     fn unique_filenames() {
         // Arrange
         let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let slice1 = root_dir.join("tests/IceRpc.Tests/Slice/Pingable.slice");
+        let slice1 = root_dir.join("tests/IceRpc.Slice.Tests/Pingable.slice");
         let slice2 = root_dir.join("tests/IntegrationTests/Pingable.slice");
 
         let mut options = CsOptions::default().slice_options;
