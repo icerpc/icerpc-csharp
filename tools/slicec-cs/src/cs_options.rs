@@ -14,7 +14,7 @@ pub const SLICEC_CS: &str = "SLICEC_CS";
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about=DESCRIPTION, rename_all = "kebab-case")]
 pub struct CsOptions {
-    /// Specify which RPC framework the generated code will be used with.
+    /// Generate code for the specified RPC framework.
     #[arg(long = "rpc", value_enum, default_value_t = RpcProvider::IceRpc, ignore_case = true)]
     pub rpc_provider: RpcProvider,
 
@@ -49,7 +49,7 @@ pub enum RpcProvider {
     None,
 
     /// IceRPC is being used.
-    /// With this set, a `using IceRPC.Slice` statement is added to the preamble of any generated code.
+    /// With this set, a `using IceRpc.Slice` statement is added to the preamble of any generated code.
     #[clap(name = "icerpc")]
     IceRpc,
 }
