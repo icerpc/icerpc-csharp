@@ -7,6 +7,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
+        <ProjectReference Include="..\IceRpc.Slice\IceRpc.Slice.csproj" ExactVersion="true" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(NetRuntimeVersion)" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="$(NetRuntimeVersion)" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">

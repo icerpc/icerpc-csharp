@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Slice;
@@ -793,7 +792,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     message = decoder.DecodeString();
                     break;
             }
-
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return (statusCode, message, buffer.End);
         }

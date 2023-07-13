@@ -1,10 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using Slice;
 
-namespace IceRpc.Ice;
+namespace IceRpc.Slice.Ice;
 
 /// <summary>Provides an extension method for interface <see cref="IProxy" />.</summary>
 public static class ProxyExtensions

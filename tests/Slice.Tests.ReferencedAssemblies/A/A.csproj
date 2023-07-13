@@ -8,7 +8,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\..\..\src\Slice\Slice.csproj" />
   </ItemGroup>
 
 </Project>
