@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-
 using static Slice.Internal.Slice1Definitions;
 
 namespace Slice;
@@ -167,8 +166,37 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
     /// <returns>The size decoded by this decoder.</returns>
-    public int DecodeSize() =>
-        TryDecodeSize(out int value) ? value : throw new InvalidDataException(EndOfBufferMessage);
+    public int DecodeSize()
+    {
+        if (Encoding == SliceEncoding.Slice1)
+        {
+            byte firstByte = DecodeUInt8();
+            if (firstByte < 255)
+            {
+                return firstByte;
+            }
+            else
+            {
+                int size = DecodeInt32();
+                if (size < 0)
+                {
+                    throw new InvalidDataException($"Decoded invalid size: {size}.");
+                }
+                return size;
+            }
+        }
+        else
+        {
+            try
+            {
+                return checked((int)DecodeVarUInt62());
+            }
+            catch (OverflowException ex)
+            {
+                throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", ex);
+            }
+        }
+    }
 
     /// <summary>Decodes a Slice string into a string.</summary>
     /// <returns>The string decoded by this decoder.</returns>
@@ -287,7 +315,7 @@ public ref partial struct SliceDecoder
         }
         catch (OverflowException ex)
         {
-            throw new InvalidDataException("The value is out of the varuint62 accepted range.", ex);
+            throw new InvalidDataException("The value is out of the varuint32 accepted range.", ex);
         }
     }
 
@@ -295,63 +323,6 @@ public ref partial struct SliceDecoder
     /// <returns>The ulong decoded by this decoder.</returns>
     public ulong DecodeVarUInt62() =>
         TryDecodeVarUInt62(out ulong value) ? value : throw new InvalidDataException(EndOfBufferMessage);
-
-    /// <summary>Tries to decode a Slice int32 into an int.</summary>
-    /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded int.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    public bool TryDecodeInt32(out int value) => SequenceMarshal.TryRead(ref _reader, out value);
-
-    /// <summary>Tries to decode a size encoded on a variable number of bytes.</summary>
-    /// <param name="size">When this method returns <see langword="true" />, this value is set to the decoded size.
-    /// Otherwise, this value is set to its default value.</param>
-    /// <returns><see langword="true" /> if the decoder is not at the end of the buffer and the decode operation
-    /// succeeded; otherwise, <see langword="false" />.</returns>
-    public bool TryDecodeSize(out int size)
-    {
-        if (Encoding == SliceEncoding.Slice1)
-        {
-            if (TryDecodeUInt8(out byte firstByte))
-            {
-                if (firstByte < 255)
-                {
-                    size = firstByte;
-                    return true;
-                }
-                else if (TryDecodeInt32(out size))
-                {
-                    if (size < 0)
-                    {
-                        throw new InvalidDataException($"Decoded invalid size: {size}.");
-                    }
-                    return true;
-                }
-            }
-            size = 0;
-            return false;
-        }
-        else
-        {
-            if (TryDecodeVarUInt62(out ulong v))
-            {
-                try
-                {
-                    size = checked((int)v);
-                    return true;
-                }
-                catch (OverflowException ex)
-                {
-                    throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", ex);
-                }
-            }
-            else
-            {
-                size = 0;
-                return false;
-            }
-        }
-    }
 
     /// <summary>Tries to decode a Slice uint8 into a byte.</summary>
     /// <param name="value">When this method returns <see langword="true" />, this value is set to the decoded byte.
@@ -599,37 +570,6 @@ public ref partial struct SliceDecoder
             throw new InvalidDataException(
                 $"The decoding exceeds the max collection allocation of '{_maxCollectionAllocation}'.");
         }
-    }
-
-    /// <summary>Reads bytes and returns them as base64-encoded string.</summary>
-    /// <param name="byteCount">The number of bytes to read.</param>
-    /// <returns>A base64-encoded string that represents the bytes.</returns>
-    public string ReadBytesAsBase64String(int byteCount)
-    {
-        using IMemoryOwner<byte>? memoryOwner =
-            _reader.UnreadSpan.Length < byteCount ? MemoryPool<byte>.Shared.Rent(byteCount) : null;
-
-        ReadOnlySpan<byte> vSpan;
-
-        if (memoryOwner?.Memory is Memory<byte> buffer)
-        {
-            Span<byte> span = buffer.Span[0..byteCount];
-            CopyTo(span);
-            vSpan = span;
-        }
-        else
-        {
-            if (_reader.UnreadSpan.Length >= byteCount)
-            {
-                vSpan = _reader.UnreadSpan[0..byteCount];
-                _reader.Advance(byteCount);
-            }
-            else
-            {
-                throw new InvalidDataException(EndOfBufferMessage);
-            }
-        }
-        return Convert.ToBase64String(vSpan);
     }
 
     /// <summary>Skip the given number of bytes.</summary>

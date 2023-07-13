@@ -4,7 +4,6 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using Slice;
 
 namespace IceRpc.Tests.Slice.Identifiers;
 
@@ -15,16 +14,6 @@ namespace IceRpc.Tests.Slice.Identifiers;
 public class IdentifierAttributeTests
 {
     [Test]
-    public void Renamed_struct_identifier()
-    {
-        // Act
-        var myStruct = new REnamedStruct(1);
-
-        // Assert
-        Assert.That(myStruct.renamedX, Is.EqualTo(1));
-    }
-
-    [Test]
     public async Task Renamed_interface_and_operation()
     {
         // Arrange
@@ -32,43 +21,13 @@ public class IdentifierAttributeTests
         var proxy = new REnamedInterfaceProxy(invoker);
 
         // Act / Assert
-        _ = await proxy.REnamedOpAsync(renamedParam: new REnamedStruct(1));
-    }
-
-    [Test]
-    public void Renamed_exception()
-    {
-        // Act
-        _ = new REnamedException();
-
-        // Assert
-        Assert.That(typeof(REnamedException).GetSliceTypeId(), Is.EqualTo("::IceRpc::Tests::Slice::OriginalException"));
-    }
-
-    [Test]
-    public void Renamed_enum_and_enumerators()
-    {
-        // Act / Assert
-        REnamedEnum myEnum = REnamedEnum.REnamedEnumerator;
-
-        // Assert
-        Assert.That(myEnum, Is.EqualTo(REnamedEnum.REnamedEnumerator));
-    }
-
-    [Test]
-    public void Renamed_class_with_renamed_field()
-    {
-        // Act / Assert
-        var myClass = new REnamedClass(1);
-
-        // Assert
-        Assert.That(myClass.renamedX, Is.EqualTo(1));
+        _ = await proxy.REnamedOpAsync(renamedParam: 1);
     }
 
     private sealed class IdentifierOperationsService : Service, IREnamedInterfaceService
     {
         public ValueTask<(int, int)> REnamedOpAsync(
-            REnamedStruct renamedParam,
+            int renamedParam,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new((1, 2));
     }

@@ -1238,13 +1238,12 @@ public class SlicTransportTests
             var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
 
             // Decode the frame type and frame size.
-            if (!decoder.TryDecodeUInt8(out byte frameType) ||
-                !decoder.TryDecodeSize(out header.FrameSize))
+            if (!decoder.TryDecodeUInt8(out byte frameType) || !decoder.TryDecodeVarUInt62(out ulong frameSize))
             {
                 return false;
             }
             header.FrameType = frameType.AsFrameType();
-
+            header.FrameSize = checked((int)frameSize);
             consumed = (int)decoder.Consumed;
             return true;
         }

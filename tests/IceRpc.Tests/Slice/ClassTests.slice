@@ -17,32 +17,6 @@ class MyClassC {
     theB: MyClassB?
 }
 
-class Person {
-    spouse: Person?
-    emergencyContact: Person?
-}
-
-class MyCompactClass(15) {}
-
-class MyClassWithTaggedFields {
-    tag(10) a: int32?
-}
-
-class MyDerivedClassWithTaggedFields : MyClassWithTaggedFields {
-    tag(20) b: string?
-}
-
-class MyDerivedCompactClass(789) : MyCompactClass {}
-
-class MyClassWithValues {
-    a: int32
-    tag(5) b: int32?
-    c: AnyClass
-    d: AnyClass?
-    tag(3) e: int32?
-    f: int32
-}
-
 // Tests for operations that accept and return class instances
 interface ClassOperations {
     // Compact format
@@ -52,14 +26,4 @@ interface ClassOperations {
     // Sliced format
     [slicedFormat(Args, Return)] opAnyClassSliced(p1: AnyClass) -> AnyClass
     [slicedFormat(Args, Return)] opMyClassSliced(p1: MyClassA) -> MyClassA
-}
-
-[cs::internal]
-class MyInternalBaseClass {
-    m1: string
-}
-
-[cs::internal]
-class MyInternalClass : MyInternalBaseClass {
-    m2: string
 }

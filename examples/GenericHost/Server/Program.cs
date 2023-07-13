@@ -39,7 +39,9 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
                 options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
                 {
                     ServerCertificate = new X509Certificate2(
-                        hostContext.Configuration.GetValue<string>("Certificate:File")!)
+                        Path.Combine(
+                            hostContext.HostingEnvironment.ContentRootPath,
+                            hostContext.Configuration.GetValue<string>("Certificate:File")!))
                 };
             });
 

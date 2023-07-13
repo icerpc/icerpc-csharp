@@ -219,9 +219,18 @@ internal static class PipeReaderExtensions
         }
 
         var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
-        if (decoder.TryDecodeSize(out segmentSize))
+        if (decoder.TryDecodeVarUInt62(out ulong ulongSize))
         {
             consumed = decoder.Consumed;
+
+            try
+            {
+                segmentSize = checked((int)ulongSize);
+            }
+            catch (OverflowException exception)
+            {
+                throw new InvalidDataException("The segment size can't be larger than int.MaxValue.", exception);
+            }
 
             if (segmentSize > maxSize)
             {
