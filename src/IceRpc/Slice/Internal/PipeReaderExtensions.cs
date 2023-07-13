@@ -227,9 +227,9 @@ internal static class PipeReaderExtensions
             {
                 segmentSize = checked((int)ulongSize);
             }
-            catch (OverflowException)
+            catch (OverflowException exception)
             {
-                throw new InvalidDataException("The segment size can't be larger than int.MaxValue.");
+                throw new InvalidDataException("The segment size can't be larger than int.MaxValue.", exception);
             }
 
             if (segmentSize > maxSize)

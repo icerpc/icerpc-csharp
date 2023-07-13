@@ -1293,9 +1293,9 @@ internal class SlicConnection : IMultiplexedConnection
             {
                 header.FrameSize = checked((int)frameSize);
             }
-            catch (OverflowException)
+            catch (OverflowException exception)
             {
-                throw new InvalidDataException("The frame size can't be larger than int.MaxValue.");
+                throw new InvalidDataException("The frame size can't be larger than int.MaxValue.", exception);
             }
 
             // If it's a stream frame, try to decode the stream ID
