@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Tests.Common;
-using IceRpc.Tests.Slice;
 using IceRpc.Transports.Coloc;
 using IceRpc.Transports.Slic;
 using NUnit.Framework;
@@ -51,16 +51,28 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await new PingableProxy(cache, new Uri("icerpc://bar")).PingAsync();
+        using var request1 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://bar")))
+        {
+            Payload = EmptyPipeReader.Instance
+        };
+
+        await cache.InvokeAsync(request1, CancellationToken.None);
+
+        using var request2 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")))
+        {
+            Payload = EmptyPipeReader.Instance
+        };
 
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
+        await pipeline.InvokeAsync(request2);
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
         Assert.That(server1Address, Is.Not.EqualTo(server2Address));
 
         // Cleanup
+        request1.Dispose();
+        request2.Dispose();
         await server1.ShutdownAsync();
         await server2.ShutdownAsync();
         await cache.ShutdownAsync();
@@ -97,13 +109,19 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
+        using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://bar/?alt-server=foo")))
+        {
+            Payload = EmptyPipeReader.Instance
+        };
+
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://bar/?alt-server=foo")).PingAsync();
+        await pipeline.InvokeAsync(request);
 
         // Assert
         Assert.That(selectedServerAddress?.Host, Is.EqualTo(serverAddress.Host));
 
         // Cleanup
+        request.Dispose();
         await server.ShutdownAsync();
         await cache.ShutdownAsync();
     }
@@ -147,8 +165,13 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
+        using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")))
+        {
+            Payload = EmptyPipeReader.Instance
+        };
+
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
+        await pipeline.InvokeAsync(request);
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -199,10 +222,20 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        await new PingableProxy(cache, new Uri("icerpc://bar")).PingAsync();
+        using var request1 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://bar")))
+        {
+            Payload = EmptyPipeReader.Instance
+        };
+
+        await cache.InvokeAsync(request1, CancellationToken.None);
+
+        using var request2 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")))
+        {
+            Payload = EmptyPipeReader.Instance
+        };
 
         // Act
-        await new PingableProxy(pipeline, new Uri("icerpc://foo/?alt-server=bar")).PingAsync();
+        await pipeline.InvokeAsync(request2);
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
@@ -237,7 +270,13 @@ public sealed class ConnectionCacheTests
         await using var cache = new ConnectionCache(
             options: new(),
             multiplexedClientTransport: multiplexedClientTransport);
-        await new PingableProxy(cache, new Uri("icerpc://foo")).PingAsync();
+        {
+            using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo")))
+            {
+                Payload = EmptyPipeReader.Instance
+            };
+            await cache.InvokeAsync(request, CancellationToken.None);
+        }
 
         TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastCreatedConnection!;
         clientConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
