@@ -9,13 +9,15 @@ namespace IceRpc.Slice;
 /// <summary>Provides an extension method for <see cref="SliceEncoding" />.</summary>
 public static class SliceEncodingExtensions
 {
-    private static readonly ReadOnlySequence<byte> _sizeZeroPayload = new(new byte[] { 0 });
+    // 4 = varuint62 encoding of the size (1)
+    // 252 = varint32 encoding of the Slice2 tag end marker (-1)
+    private static readonly ReadOnlySequence<byte> _emptyStructPayload = new(new byte[] { 4, 252 });
 
-    /// <summary>Creates a non-empty payload with size 0.</summary>
+    /// <summary>Creates the payload of an empty struct.</summary>
     /// <param name="encoding">The Slice encoding.</param>
-    /// <returns>A non-empty payload with size 0.</returns>
-    public static PipeReader CreateSizeZeroPayload(this SliceEncoding encoding) =>
-        encoding != SliceEncoding.Slice1 ? PipeReader.Create(_sizeZeroPayload) :
+    /// <returns>The payload of an empty struct.</returns>
+    public static PipeReader CreateEmptyStructPayload(this SliceEncoding encoding) =>
+        encoding != SliceEncoding.Slice1 ? PipeReader.Create(_emptyStructPayload) :
             throw new NotSupportedException(
-                $"{nameof(CreateSizeZeroPayload)} is only available for stream-capable Slice encodings.");
+                $"{nameof(CreateEmptyStructPayload)} is only available for stream-capable Slice encodings.");
 }

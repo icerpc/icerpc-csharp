@@ -54,7 +54,7 @@ public static class PipeReaderExtensions
             {
                 items[i] = decodeFunc(ref decoder);
             }
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            decoder.CheckEndOfBuffer();
             return items;
         }
 

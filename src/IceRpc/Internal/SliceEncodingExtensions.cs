@@ -23,7 +23,7 @@ internal static class SliceEncodingExtensions
     {
         var decoder = new SliceDecoder(buffer, encoding);
         T result = decodeFunc(ref decoder);
-        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+        decoder.CheckEndOfBuffer();
         return result;
     }
 }

@@ -212,7 +212,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
     if operation.parameters.is_empty() {
         invocation_builder.add_argument("payload: null");
     } else if parameters.is_empty() {
-        invocation_builder.add_argument(format!("{encoding}.CreateSizeZeroPayload()"));
+        invocation_builder.add_argument(format!("{encoding}.CreateEmptyStructPayload()"));
     } else {
         invocation_builder.add_argument(format!(
             "Request.Encode{operation_name}({}, encodeOptions: EncodeOptions)",

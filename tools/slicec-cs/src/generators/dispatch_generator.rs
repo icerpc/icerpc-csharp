@@ -524,7 +524,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     });
 
     match non_streamed_return_values.len() {
-        0 => format!("{encoding}.CreateSizeZeroPayload()"),
+        0 => format!("{encoding}.CreateEmptyStructPayload()"),
         _ => format!(
             "Response.Encode{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
             operation_name = operation.escape_identifier(),
