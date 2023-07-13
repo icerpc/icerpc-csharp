@@ -51,6 +51,98 @@ public sealed class ResettablePipeReaderDecoratorTests
     }
 
     [Test]
+    public async Task Read_again()
+    {
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+        ReadResult result = await sut.ReadAsync();
+        sut.AdvanceTo(result.Buffer.End);
+
+        await pipe.Writer.WriteAsync(new byte[5]);
+        result = await sut.ReadAsync();
+        sut.AdvanceTo(result.Buffer.End);
+
+        // Act
+        sut.Reset();
+        result = await sut.ReadAsync();
+
+        // Assert
+        Assert.That(result.Buffer.Length, Is.EqualTo(15));
+
+        sut.AdvanceTo(result.Buffer.End);
+        pipe.Writer.Complete();
+        sut.IsResettable = false;
+        sut.Complete();
+    }
+
+    [Test]
+    public async Task Cancel_read_does_not_change_resettable_status()
+    {
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+        ReadResult result = await sut.ReadAsync();
+        sut.AdvanceTo(result.Buffer.End);
+
+        // Act
+        using var cts = new CancellationTokenSource();
+        var readTask = sut.ReadAsync(cts.Token);
+        bool isCanceled = false;
+        cts.Cancel();
+        try
+        {
+            _ = await readTask;
+        }
+        catch (OperationCanceledException)
+        {
+            isCanceled = true;
+        }
+
+        // Assert
+
+        // Ensure the decorator is still resettable.
+        Assert.That(isCanceled, Is.True);
+        Assert.That(sut.IsResettable, Is.True);
+
+        // Ensure we can read again the data after a reset.
+        sut.Reset();
+        await pipe.Writer.WriteAsync(new byte[1]);
+        result = await sut.ReadAsync();
+        Assert.That(result.Buffer.Length, Is.EqualTo(11));
+    }
+
+    [Test]
+    public async Task CancelPendingRead_does_not_change_resettable_status()
+    {
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+
+        var sut = new ResettablePipeReaderDecorator(pipe.Reader, maxBufferSize: 100);
+        ReadResult result = await sut.ReadAsync();
+        sut.AdvanceTo(result.Buffer.End);
+
+        // Act
+        var readTask = sut.ReadAsync();
+        sut.CancelPendingRead();
+        result = await readTask;
+
+        // Assert
+
+        // Ensure the decorator is still resettable.
+        Assert.That(result.IsCanceled, Is.True);
+        Assert.That(sut.IsResettable, Is.True);
+
+        // Ensure we can read again the data after a reset.
+        sut.Reset();
+        await pipe.Writer.WriteAsync(new byte[1]);
+        result = await sut.ReadAsync();
+        Assert.That(result.Buffer.Length, Is.EqualTo(11));
+    }
+
+    [Test]
     public async Task Examined_keeps_increasing()
     {
         var readResult = new ReadResult(
@@ -191,6 +283,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         private readonly ReadResult _readResult;
 
         public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
+
         public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
         {
             Consumed = consumed;
@@ -206,6 +299,7 @@ public sealed class ResettablePipeReaderDecoratorTests
         }
 
         public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken) => new(_readResult);
+
         public override bool TryRead(out ReadResult result)
         {
             result = _readResult;

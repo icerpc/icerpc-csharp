@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc.Retry.Tests;
 
@@ -199,6 +200,9 @@ public sealed class RetryInterceptorTests
             }
         });
 
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(new byte[10]);
+
         var sut = new RetryInterceptor(invoker, new RetryOptions(), NullLogger.Instance);
         var serviceAddress = new ServiceAddress(Protocol.IceRpc);
         using var request = new OutgoingRequest(serviceAddress)
@@ -207,7 +211,8 @@ public sealed class RetryInterceptorTests
             {
                 [RequestFieldKey.Idempotent] = new OutgoingFieldValue(new ReadOnlySequence<byte>())
             },
-            Operation = "Op"
+            Operation = "Op",
+            Payload = pipe.Reader
         };
 
         // Act

@@ -6,8 +6,11 @@ using System.IO.Pipelines;
 
 namespace IceRpc;
 
-/// <summary>Represents a <see cref="PipeReader" /> decorator that allows to reset its decoratee to its initial state
-/// (from the caller's perspective).</summary>
+/// <summary>Represents a <see cref="PipeReader" /> decorator that doesn't consume the data from the decoratee to allow
+/// reading again this data from the beginning after being reset.</summary>
+/// <remarks>The decorator becomes non-resettable if the decoratee's buffered data exceeds the maximum buffer size
+/// provided to <see cref="ResettablePipeReaderDecorator(PipeReader, int)" /> or if the reading from the decoratee
+/// fails with an exception other than <see cref="OperationCanceledException"/>.</remarks>
 // The default CopyToAsync implementation is suitable for this reader implementation. It calls ReadAsync/AdvanceTo to
 // read the data. This ensures that the decorated pipe reader buffered data is not consumed.
 public sealed class ResettablePipeReaderDecorator : PipeReader
@@ -15,6 +18,8 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
     /// <value><see langword="true"/> if this decorator can be reset; otherwise, <see langword="false"/>. Defaults to
     /// <see langword="true"/>.</value>
+    /// <remarks>This property can only be set to <see langword="false" />. If <see cref="IsResettable"/> value is true
+    /// and <see cref="Complete" /> was called on the decorator, the decoratee will be completed.</remarks>
     public bool IsResettable
     {
         get => _isResettable;
@@ -30,6 +35,8 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
             if (_isResettable)
             {
+                Advance(commitExamined: true);
+
                 // If Complete was called on this resettable decorator without an intervening Reset, we call Complete
                 // on the decoratee.
 
@@ -44,12 +51,13 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     }
 
     // The latest consumed given by caller; reset by Reset.
-    private SequencePosition? _consumed;
-
+    private long _consumed;
     private readonly PipeReader _decoratee;
+    // The latest examined given by caller.
+    private long _examined;
 
     // The highest examined given to _decoratee; not affected by Reset.
-    private SequencePosition? _highestExamined;
+    private long _highestExamined;
 
     // True when the caller complete this reader; reset by Reset.
     private bool _isReaderCompleted;
@@ -61,10 +69,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     // The latest sequence returned by _decoratee; not affected by Reset.
     private ReadOnlySequence<byte>? _sequence;
 
-    /// <summary>Constructs a resettable pipe reader decorator. This decorator avoids consuming the read data to allow
-    /// restart reading from the beginning. The decorator becomes non-resettable and <see cref="IsResettable"/> returns
-    /// <see langword="false" /> if the buffered data exceeds the <paramref name="maxBufferSize"/>, if the reading fails
-    /// or if it's canceled with <see cref="CancelPendingRead" />.</summary>
+    /// <summary>Constructs a resettable pipe reader decorator.</summary>
     /// <param name="decoratee">The pipe reader being decorated.</param>
     /// <param name="maxBufferSize">The maximum size of buffered data in bytes.</param>
     public ResettablePipeReaderDecorator(PipeReader decoratee, int maxBufferSize)
@@ -92,29 +97,24 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         // All successful calls to ReadAsync/TryRead set _sequence.
         Debug.Assert(_sequence is not null);
 
-        // The examined given to _decoratee must be ever-increasing.
-        if (_highestExamined is null)
-        {
-            // first AdvanceTo ever
-            _highestExamined = examined;
-        }
-        else if (_sequence.Value.GetOffset(examined) > _sequence.Value.GetOffset(_highestExamined.Value))
-        {
-            _highestExamined = examined;
-        }
+        Debug.Assert(_examined == 0);
 
         if (_isResettable)
         {
             ThrowIfCompleted();
-            _consumed = consumed; // saved to slice the buffer returned by the next ReadAsync/ReadAtLeastAsync/TryRead
-            _decoratee.AdvanceTo(_sequence.Value.Start, _highestExamined.Value);
+            _examined = _sequence.Value.GetOffset(examined);
+            _consumed = _sequence.Value.GetOffset(consumed);
         }
         else
         {
             // the first time around, consumed is necessarily equals to or greater than the _sequence.Value.Start passed
             // by the preceding call in the_isResettable=true block above
-            _decoratee.AdvanceTo(consumed, _highestExamined.Value);
-            _consumed = null; // don't slice the buffer returned by the next ReadAsync/ReadAtAtLeastAsync/TryRead
+            if (_sequence.Value.GetOffset(examined) <= _highestExamined)
+            {
+                examined = _sequence.Value.GetPosition(_highestExamined);
+            }
+            _decoratee.AdvanceTo(consumed, examined);
+            _sequence = null;
         }
     }
 
@@ -130,6 +130,8 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <param name="exception">Optional <see cref="Exception "/> indicating a failure that's causing the pipeline to
     /// complete.</param>
     /// <seealso cref="PipeReader.Complete(Exception?)"/>
+    /// <remarks>If <see cref="IsResettable"/> value is true, <see cref="Complete" /> is not called on the decoratee to
+    /// allow reading again the data after a call to <see cref="Reset" />.</remarks>
     public override void Complete(Exception? exception = default)
     {
         if (_isResettable)
@@ -166,10 +168,22 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         ThrowIfCompleted();
 
+        Advance(commitExamined: true);
+
         ReadResult readResult;
         try
         {
             readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
+            if (readResult.IsCanceled)
+            {
+                _isReadingInProgress = false;
+                return readResult;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _isReadingInProgress = false;
+            throw;
         }
         catch
         {
@@ -180,8 +194,8 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     }
 
     /// <summary>Resets this pipe reader.</summary>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable" /> is <see langword="false" />.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable" /> is <see langword="false" /> or
+    /// if reading is in progress.</exception>
     public void Reset()
     {
         if (_isResettable)
@@ -192,7 +206,11 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
                     "The resettable pipe reader decorator cannot be reset while reading is in progress.");
             }
 
-            _consumed = null;
+            // Don't commit the caller's examined data on the decoratee to ensure that the ReadAsync call after Reset
+            // returns synchronously the decoratee's buffered data.
+            Advance(commitExamined: false);
+
+            _consumed = 0;
             _isReaderCompleted = false;
             _readerCompleteException = null;
         }
@@ -216,6 +234,8 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         ThrowIfCompleted();
 
+        Advance(commitExamined: true);
+
         try
         {
             if (_decoratee.TryRead(out result))
@@ -225,6 +245,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
             }
             else
             {
+                _isReadingInProgress = false;
                 return false;
             }
         }
@@ -248,10 +269,9 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         ThrowIfCompleted();
 
-        if (_consumed is SequencePosition consumed)
-        {
-            minimumSize += (int)_sequence!.Value.GetOffset(consumed);
-        }
+        Advance(commitExamined: true);
+
+        minimumSize += (int)_consumed;
 
         ReadResult readResult;
         try
@@ -270,23 +290,40 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     {
         _sequence = readResult.Buffer;
 
-        if (_consumed is SequencePosition consumed)
+        if (_consumed > 0)
         {
             // Remove bytes marked as consumed
             readResult = new ReadResult(
-                readResult.Buffer.Slice(consumed),
+                readResult.Buffer.Slice(_consumed),
                 readResult.IsCanceled,
                 readResult.IsCompleted);
         }
 
-        // We don't retry when the buffered data exceeds the maximum buffer size or when the application requests
-        // cancellation via CancelPendingRead.
-        if (_isResettable && (_sequence.Value.Length > _maxBufferSize || readResult.IsCanceled))
+        // We don't retry when the buffered data exceeds the maximum buffer size.
+        if (_isResettable && (_sequence.Value.Length > _maxBufferSize))
         {
             _isResettable = false;
         }
 
         return readResult;
+    }
+
+    private void Advance(bool commitExamined)
+    {
+        if (_isResettable && _sequence is not null)
+        {
+            Debug.Assert(_sequence is not null);
+
+            // The examined given to _decoratee must be ever-increasing.
+            if (commitExamined && _examined > _highestExamined)
+            {
+                _highestExamined = _examined;
+            }
+
+            _decoratee.AdvanceTo(_sequence.Value.Start, _sequence.Value.GetPosition(_highestExamined));
+            _sequence = null;
+            _examined = 0;
+        }
     }
 
     private void ThrowIfCompleted()
