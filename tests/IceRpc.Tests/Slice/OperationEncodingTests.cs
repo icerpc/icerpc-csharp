@@ -383,7 +383,7 @@ public class OperationEncodingTests
         // readResult: size + 4 bytes payload size
         // payload: (int 4 bytes) + (string 1 byte size + 12 bytes contents) +
         // (tagged int 0 | tag 1 byte, size 1 byte, int 4 bytes) +
-        // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes)
+        // (tagged string 0 |  tag 1 byte, size 4 byte, string 13 bytes) +
         // 1 for tag end marker
         int size = 4 + 13 + (p3 is null ? 0 : 6) + (p4 is null ? 0 : 18) + 1;
         Assert.That(payload.TryRead(out var readResult));
