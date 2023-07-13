@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Ice;
 using IceRpc.Locator;
+using IceRpc.Slice.Ice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

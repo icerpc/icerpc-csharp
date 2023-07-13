@@ -2,7 +2,7 @@
 
 encoding = Slice1
 
-[cs::namespace("IceRpc.Ice")]
+[cs::namespace("IceRpc.Slice.Ice")]
 module Ice
 
 /// This exception is thrown when a server application tries to register server addresses for an object adapter that is

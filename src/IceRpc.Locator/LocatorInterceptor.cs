@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Ice;
 using IceRpc.Locator.Internal;
+using IceRpc.Slice.Ice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Ice;
+using IceRpc.Slice.Ice;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
