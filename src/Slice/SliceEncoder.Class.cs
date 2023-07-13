@@ -1,11 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using Slice.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-
 using static Slice.Internal.Slice1Definitions;
 
 namespace Slice;
@@ -71,7 +69,7 @@ public ref partial struct SliceEncoder
         // the indirection table and are included in the slice size.
         if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0)
         {
-            EncodeUInt8(Slice1Definitions.TagEndMarker);
+            EncodeUInt8(TagEndMarker);
         }
 
         // Encodes the slice size if necessary.

@@ -2,9 +2,9 @@
 
 namespace Slice;
 
-/// <summary>The tag format used by tagged parameters with the Slice1 encoding.</summary>
-/// <remarks>With the Slice1 encoding, each tagged parameter has a specific tag format. This tag format describes how
-/// the data is encoded and how it can be skipped by the decoding code if the tagged parameter is present in the buffer
+/// <summary>The tag format used by tagged fields with the Slice1 encoding.</summary>
+/// <remarks>With the Slice1 encoding, each tagged fields has a specific tag format. This tag format describes how
+/// the data is encoded and how it can be skipped by the decoding code if the tagged field is present in the buffer
 /// but is not known to the receiver. The tag format is encoded on 3 bits; as a result, only values in the range 0 to 7
 /// are encoded.</remarks>
 public enum TagFormat : int

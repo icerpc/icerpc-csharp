@@ -1,9 +1,0 @@
-// Copyright (c) ZeroC, Inc.
-
-module IceRpc::Tests::Slice
-
-struct WellKnown {
-    duration: WellKnownTypes::Duration
-    timeStamp: WellKnownTypes::TimeStamp
-    uri: WellKnownTypes::Uri
-}
