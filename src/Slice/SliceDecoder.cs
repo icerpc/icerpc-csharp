@@ -411,52 +411,6 @@ public ref partial struct SliceDecoder
         _reader.AdvanceToEnd();
     }
 
-    /// <summary>Decodes non-empty field dictionary without making a copy of the field values.</summary>
-    /// <typeparam name="TKey">The type of the keys of this field dictionary.</typeparam>
-    /// <param name="count">The number of fields in the field dictionary.</param>
-    /// <param name="decodeKeyFunc">A function that decodes the keys.</param>
-    /// <returns>The fields dictionary. The field values reference memory in the underlying buffer. They are not copied.
-    /// </returns>
-    public Dictionary<TKey, ReadOnlySequence<byte>> DecodeShallowFieldDictionary<TKey>(
-        int count,
-        DecodeFunc<TKey> decodeKeyFunc)
-        where TKey : struct
-    {
-        if (count <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(count), $"{nameof(count)} must be greater than 0.");
-        }
-
-        // We don't use the normal collection allocation check here because SizeOf<ReadOnlySequence<byte>> is quite
-        // large (24).
-        // For example, say we decode a fields dictionary with a single field with an empty value. It's encoded
-        // using 1 byte (dictionary size) + 1 byte (key) + 1 byte (value size) = 3 bytes. The decoder's default max
-        // allocation size is 3 * 8 = 24. If we simply call IncreaseCollectionAllocation(1 * (4 + 24)), we'll exceed
-        // the default collection allocation limit. (sizeof TKey is currently 4 but could/should increase to 8).
-
-        // Each field consumes at least 2 bytes: 1 for the key and one for the value size.
-        if (count * 2 > _reader.Remaining)
-        {
-            throw new InvalidDataException("Too many fields.");
-        }
-
-        var fields = new Dictionary<TKey, ReadOnlySequence<byte>>(count);
-
-        for (int i = 0; i < count; ++i)
-        {
-            TKey key = decodeKeyFunc(ref this);
-            int valueSize = DecodeSize();
-            if (valueSize > _reader.Remaining)
-            {
-                throw new InvalidDataException($"The value of field '{key}' extends beyond the end of the buffer.");
-            }
-            ReadOnlySequence<byte> value = _reader.UnreadSequence.Slice(0, valueSize);
-            _reader.Advance(valueSize);
-            fields.Add(key, value);
-        }
-        return fields;
-    }
-
     /// <summary>Decodes a Slice2-encoded tagged field.</summary>
     /// <typeparam name="T">The type of the decoded value.</typeparam>
     /// <param name="tag">The tag.</param>
