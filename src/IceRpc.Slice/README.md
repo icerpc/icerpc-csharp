@@ -6,7 +6,7 @@ TODO
 
 ## Sample Code
 
-TBD
+TODO
 
 [api]: https://docs.testing.zeroc.com/api/csharp/api/IceRpc.Slice.html
 [docs]: TODO
