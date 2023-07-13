@@ -51,28 +51,16 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        using var request1 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://bar")))
-        {
-            Payload = EmptyPipeReader.Instance
-        };
-
-        await cache.InvokeAsync(request1, CancellationToken.None);
-
-        using var request2 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")))
-        {
-            Payload = EmptyPipeReader.Instance
-        };
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
 
         // Act
-        await pipeline.InvokeAsync(request2);
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
         Assert.That(server1Address, Is.Not.EqualTo(server2Address));
 
         // Cleanup
-        request1.Dispose();
-        request2.Dispose();
         await server1.ShutdownAsync();
         await server2.ShutdownAsync();
         await cache.ShutdownAsync();
@@ -109,19 +97,13 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://bar/?alt-server=foo")))
-        {
-            Payload = EmptyPipeReader.Instance
-        };
-
         // Act
-        await pipeline.InvokeAsync(request);
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://bar/?alt-server=foo")));
 
         // Assert
         Assert.That(selectedServerAddress?.Host, Is.EqualTo(serverAddress.Host));
 
         // Cleanup
-        request.Dispose();
         await server.ShutdownAsync();
         await cache.ShutdownAsync();
     }
@@ -165,13 +147,8 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")))
-        {
-            Payload = EmptyPipeReader.Instance
-        };
-
         // Act
-        await pipeline.InvokeAsync(request);
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server1Address.Host));
@@ -222,20 +199,10 @@ public sealed class ConnectionCacheTests
                 }))
             .Into(cache);
 
-        using var request1 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://bar")))
-        {
-            Payload = EmptyPipeReader.Instance
-        };
-
-        await cache.InvokeAsync(request1, CancellationToken.None);
-
-        using var request2 = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")))
-        {
-            Payload = EmptyPipeReader.Instance
-        };
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://bar")));
 
         // Act
-        await pipeline.InvokeAsync(request2);
+        await SendEmptyRequestAsync(pipeline, new ServiceAddress(new Uri("icerpc://foo/?alt-server=bar")));
 
         // Assert
         Assert.That(serverAddress?.Host, Is.EqualTo(server2Address.Host));
@@ -270,13 +237,7 @@ public sealed class ConnectionCacheTests
         await using var cache = new ConnectionCache(
             options: new(),
             multiplexedClientTransport: multiplexedClientTransport);
-        {
-            using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc://foo")))
-            {
-                Payload = EmptyPipeReader.Instance
-            };
-            await cache.InvokeAsync(request, CancellationToken.None);
-        }
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
 
         TestMultiplexedConnectionDecorator clientConnection = multiplexedClientTransport.LastCreatedConnection!;
         clientConnection.Operations.Hold = MultiplexedTransportOperations.Dispose;
@@ -294,5 +255,14 @@ public sealed class ConnectionCacheTests
         Assert.That(() => disposeTask.AsTask().WaitAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
         clientConnection.Operations.Hold = MultiplexedTransportOperations.None; // Release dispose
         await disposeTask;
+    }
+
+    private static async Task SendEmptyRequestAsync(IInvoker invoker, ServiceAddress serviceAddress)
+    {
+        using var request = new OutgoingRequest(serviceAddress)
+        {
+            Payload = EmptyPipeReader.Instance
+        };
+        await invoker.InvokeAsync(request, CancellationToken.None);
     }
 }
