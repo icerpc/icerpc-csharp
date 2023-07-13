@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
-namespace Slice;
+namespace IceRpc.Internal;
 
 /// <summary>Extension methods to decode payloads carried by a PipeReader.</summary>
-public static class PipeReaderExtensions
+internal static class PipeReaderExtensions
 {
     /// <summary>Reads a Slice segment from a pipe reader.</summary>
     /// <param name="reader">The pipe reader.</param>
@@ -21,7 +22,7 @@ public static class PipeReaderExtensions
     /// the remaining bytes in the reader; otherwise, this method reads the segment size in the segment and returns
     /// exactly segment size bytes. This method often examines the buffer it returns as part of ReadResult,
     /// therefore the caller should never examine less than Buffer.End.</remarks>
-    public static async ValueTask<ReadResult> ReadSegmentAsync(
+    internal static async ValueTask<ReadResult> ReadSegmentAsync(
         this PipeReader reader,
         SliceEncoding encoding,
         int maxSize,
@@ -122,7 +123,7 @@ public static class PipeReaderExtensions
     /// usual. This method often examines the buffer it returns as part of ReadResult, therefore the caller should never
     /// examine less than Buffer.End when the return value is <see langword="true" />. When this method returns
     /// <see langword="false" />, the caller must call <see cref="ReadSegmentAsync" />.</remarks>
-    public static bool TryReadSegment(
+    internal static bool TryReadSegment(
         this PipeReader reader,
         SliceEncoding encoding,
         int maxSize,

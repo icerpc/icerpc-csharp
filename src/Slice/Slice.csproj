@@ -16,7 +16,6 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="System.IO.Pipelines" Version="7.0.0" />
     </ItemGroup>
     <!-- NuGet package contents-->
     <!-- There is no need to compile the well known types with the Slice compiler since they are all custom. -->

@@ -123,22 +123,6 @@ public ref partial struct SliceDecoder
     {
     }
 
-    /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
-    /// <param name="skipTaggedParams">When <see langword="true" />, first skips all remaining tagged parameters in the
-    /// current buffer.</param>
-    public void CheckEndOfBuffer(bool skipTaggedParams)
-    {
-        if (skipTaggedParams)
-        {
-            SkipTagged(useTagEndMarker: false);
-        }
-
-        if (!End)
-        {
-            throw new InvalidDataException($"There are {Remaining} bytes remaining in the buffer.");
-        }
-    }
-
     // Decode methods for basic types
 
     /// <summary>Decodes a slice bool into a bool.</summary>

@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
+using Slice;
 using System.Buffers;
 
-namespace Slice;
+namespace IceRpc.Internal;
 
 /// <summary>Extension methods for <see cref="SliceEncoding" />.</summary>
-public static class SliceEncodingExtensions
+internal static class SliceEncodingExtensions
 {
     /// <summary>Decodes a buffer.</summary>
     /// <typeparam name="T">The decoded type.</typeparam>
@@ -15,7 +16,7 @@ public static class SliceEncodingExtensions
     /// <returns>The decoded value.</returns>
     /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc" /> finds invalid data.
     /// </exception>
-    public static T DecodeBuffer<T>(
+    internal static T DecodeBuffer<T>(
         this SliceEncoding encoding,
         ReadOnlySequence<byte> buffer,
         DecodeFunc<T> decodeFunc)
