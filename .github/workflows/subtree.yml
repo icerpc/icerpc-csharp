@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: Check Slice Subtree Updates
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  build_and_test:
+  subtree_rules:
 
     runs-on: ubuntu-latest
     timeout-minutes: 10
