@@ -2,7 +2,7 @@
 
 encoding = Slice1
 
-[cs::namespace("IceRpc.Ice")]
+[cs::namespace("IceRpc.Slice.Ice")]
 module Ice
 
 /// A server application managed by a locator implementation such as IceGrid hosts a Process service and registers a
