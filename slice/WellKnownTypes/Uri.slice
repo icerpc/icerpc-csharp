@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice.WellKnownTypes")]
+[cs::namespace("ZeroC.Slice")]
 module WellKnownTypes
 
 /// Represents a Uniform Resource Identifier (URI), encoded as a string.
