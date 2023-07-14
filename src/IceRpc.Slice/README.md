@@ -1,6 +1,6 @@
-# Slice IceRPC integration
+# Making RPCs with IceRPC and Slice
 
-TODO
+IceRpc.Slice helps the Slice compiler implement Slice interfaces and operations with IceRPC.
 
 [Package][package] | [Source code][source] | [Documentation][docs] | [API reference][api]
 
