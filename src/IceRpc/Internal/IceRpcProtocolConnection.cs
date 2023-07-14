@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports;
-using Slice;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Security.Authentication;
+using ZeroC.Slice;
 
 namespace IceRpc.Internal;
 

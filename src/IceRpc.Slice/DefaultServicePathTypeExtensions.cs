@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using Slice;
 using System.Diagnostics;
+using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 

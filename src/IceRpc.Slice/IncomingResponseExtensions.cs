@@ -2,10 +2,10 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
-using Slice;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 

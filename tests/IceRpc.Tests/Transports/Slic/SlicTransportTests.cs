@@ -8,10 +8,10 @@ using IceRpc.Transports.Slic;
 using IceRpc.Transports.Slic.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Security.Authentication;
+using ZeroC.Slice;
 
 namespace IceRpc.Tests.Transports.Slic;
 
