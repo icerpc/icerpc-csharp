@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace ZeroC.Slice.WellKnownTypes;
+namespace ZeroC.Slice;
 
 /// <summary>Provides an extension method for decoding a WellKnownTypes::Uri.</summary>
 public static class UriSliceDecoderExtensions

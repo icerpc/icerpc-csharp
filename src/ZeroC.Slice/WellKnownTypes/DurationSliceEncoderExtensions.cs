@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace ZeroC.Slice.WellKnownTypes;
+namespace ZeroC.Slice;
 
 /// <summary>Provides an extension method for encoding a <see cref="TimeSpan"/> as a <c>WellKnownTypes::Duration</c>.
 /// </summary>
