@@ -9,8 +9,8 @@ format.
 
 In C#, the [Slice compiler for C#][slicec-cs] generates code that relies on this Slice serialization library.
 
-Unlike older C# libraries, Slice uses [System.Buffers][cs-buffers] (`IBufferWriter<byte>`, `ReadOnlySequence<byte>`)
-and is typically used with the [Pipelines][pipelines] library.
+Unlike older C# libraries, Slice relies on [System.Buffers][cs-buffers] (`IBufferWriter<byte>`,
+`ReadOnlySequence<byte>`) and is typically used with the [Pipelines][pipelines] library.
 
 [Package][package] | [Source code][source] | [Documentation][docs] | [API reference][api]
 
