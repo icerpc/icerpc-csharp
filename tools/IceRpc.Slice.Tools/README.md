@@ -72,7 +72,7 @@ automatically sees these Slice files when compiling. For example:
 </ItemGroup>
 ```
 
-The [IceRpc][icerpc] NuGet package follows this pattern and provides definitions for common Slice types such as
+The [ZeroC.Slice][zeroc-slice] NuGet package follows this pattern and provides definitions for common Slice types such as
 `WellKnownTypes::Duration`, `WellKnownTypes::TimeStamp` and `WellKnownTypes::Uri`.
 
 ## SliceFile item metadata
@@ -89,6 +89,7 @@ unique set of options results in a separate execution of `slicec-cs`.
 
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
+[zeroc-slice]: https://www.nuget.org/packages/ZeroC.Slice
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
 [slice]: https://docs.testing.zeroc.com/slice
 [slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/slicec-cs

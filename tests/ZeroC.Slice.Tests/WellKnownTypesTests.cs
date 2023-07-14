@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.WellKnownTypes;
+using ZeroC.Slice;
 
 namespace ZeroC.Slice.Tests;
 
