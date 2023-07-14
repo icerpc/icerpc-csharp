@@ -2,9 +2,9 @@
 
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
+using ZeroC.Slice;
 
 namespace IceRpc.Tests.Slice;
 

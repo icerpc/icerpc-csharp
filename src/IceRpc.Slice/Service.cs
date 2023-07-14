@@ -2,11 +2,11 @@
 
 using IceRpc.Features;
 using IceRpc.Slice.Ice;
-using Slice;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
+using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 

@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using Slice;
 using System.Diagnostics;
 using System.Globalization;
+using ZeroC.Slice;
 
 namespace IceRpc;
 

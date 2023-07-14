@@ -4,10 +4,10 @@ using IceRpc.Internal; // For InvalidPipeReader
 using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using ZeroC.Slice;
 
 namespace IceRpc.Tests.Slice;
 

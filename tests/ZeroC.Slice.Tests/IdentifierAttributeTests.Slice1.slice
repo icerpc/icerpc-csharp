@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc.
+
+encoding = Slice1
+
+module ZeroC::Slice::Tests
+
+[cs::identifier("REnamedClass")]
+class OriginalClass {
+    [cs::identifier("renamedX")] x: int32
+}
+
+[cs::identifier("REnamedException")]
+exception OriginalException {}
+
+exception DerivedException : OriginalException {}
