@@ -73,9 +73,9 @@
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
-      <None Include="../../logo.png">
+      <None Include="../../../../build/IceRPC-Logo.png">
          <Pack>true</Pack>
-         <PackagePath />
+         <PackagePath>logo.png</PackagePath>
       </None>
       <Content Include="../../../../slice/**/*.slice"
                Exclude="../../../../slice/**/Internal/*.slice">
