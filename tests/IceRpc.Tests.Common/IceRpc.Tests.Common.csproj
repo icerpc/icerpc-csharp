@@ -28,7 +28,7 @@
   <ItemGroup>
     <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
     <Content Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="..\..\build\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\build\IceRPC-Logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
