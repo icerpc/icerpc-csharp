@@ -20,6 +20,6 @@
         <Compile Remove="**\*" />
         <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
         <Content Include="README.md" Pack="true" PackagePath="\" />
-        <None Include="..\..\build\IceRPC-Logo.png" Pack="true" PackagePath="logo.png" />
+        <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
     </ItemGroup>
 </Project>

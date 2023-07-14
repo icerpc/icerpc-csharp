@@ -18,7 +18,7 @@
       <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
       <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
       <RepositoryType>git</RepositoryType>
-      <PackageIcon>logo.png</PackageIcon>
+      <PackageIcon>icerpc-icon.png</PackageIcon>
       <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
       <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
       <DevelopmentDependency>true</DevelopmentDependency>
@@ -73,9 +73,9 @@
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
-      <None Include="../../../../build/IceRPC-Logo.png">
+      <None Include="../../../../build/icerpc-icon.png">
          <Pack>true</Pack>
-         <PackagePath>logo.png</PackagePath>
+         <PackagePath>\</PackagePath>
       </None>
       <Content Include="../../../../slice/**/*.slice"
                Exclude="../../../../slice/**/Internal/*.slice">
