@@ -9,6 +9,9 @@ format.
 
 In C#, the [Slice compiler for C#][slicec-cs] generates code that relies on this Slice serialization library.
 
+Unlike older C# libraries, Slice uses [System.Buffers][cs-buffers] (`IBufferWriter<byte>`, `ReadOnlySequence<byte>`)
+and is typically used with the [Pipelines][pipelines] library.
+
 [Package][package] | [Source code][source] | [Documentation][docs] | [API reference][api]
 
 ## Sample Code
@@ -59,8 +62,10 @@ public partial record struct Person
 ```
 
 [api]: https://docs.testing.zeroc.com/api/csharp/api/ZeroC.Slice.html
+[cs-buffers]: https://learn.microsoft.com/en-us/dotnet/standard/io/buffers
 [docs]: https://docs.testing.zeroc.com/slice
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
 [package]: https://www.nuget.org/packages/ZeroC.Slice
+[pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
 [slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/ZeroC.Slice
