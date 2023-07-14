@@ -5,7 +5,7 @@ using IceRpc.Features;
 namespace IceRpc;
 
 /// <summary>Provides an extension method for <see cref="Pipeline" />.</summary>
-public static class PipelineExtensions
+public static class FeaturePipelineExtensions
 {
     /// <summary>Adds an interceptor that sets a feature in all requests.</summary>
     /// <typeparam name="TFeature">The type of the feature.</typeparam>
