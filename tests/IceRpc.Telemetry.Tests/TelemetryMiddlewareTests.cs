@@ -2,10 +2,10 @@
 
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using Slice;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using ZeroC.Slice;
 
 namespace IceRpc.Telemetry.Tests;
 

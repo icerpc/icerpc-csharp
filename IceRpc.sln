@@ -61,19 +61,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Transports.Coloc", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Transports.Quic", "src\IceRpc.Transports.Quic\IceRpc.Transports.Quic.csproj", "{1333E966-157B-463A-9E6A-5C52AC9C414A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Slice", "src\Slice\Slice.csproj", "{4A3D074B-F171-432A-A4A9-EC0F137B9BA9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZeroC.Slice", "src\ZeroC.Slice\ZeroC.Slice.csproj", "{4A3D074B-F171-432A-A4A9-EC0F137B9BA9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Slice.Tests", "tests\Slice.Tests\Slice.Tests.csproj", "{A750BB8B-AD1A-483D-AA7E-5CAE4B077D64}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZeroC.Slice.Tests", "tests\ZeroC.Slice.Tests\ZeroC.Slice.Tests.csproj", "{A750BB8B-AD1A-483D-AA7E-5CAE4B077D64}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "A", "tests\Slice.Tests.ReferencedAssemblies\A\A.csproj", "{1424FCAD-4F35-4392-92EF-8EFE20693D2B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "A", "tests\ZeroC.Slice.Tests.ReferencedAssemblies\A\A.csproj", "{1424FCAD-4F35-4392-92EF-8EFE20693D2B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "B", "tests\Slice.Tests.ReferencedAssemblies\B\B.csproj", "{BAC3AB55-7C4F-4F1F-A0C1-A936B55832AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "B", "tests\ZeroC.Slice.Tests.ReferencedAssemblies\B\B.csproj", "{BAC3AB55-7C4F-4F1F-A0C1-A936B55832AA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C", "tests\Slice.Tests.ReferencedAssemblies\C\C.csproj", "{25D49D40-19B6-4502-AF2F-3F8E836A652A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C", "tests\ZeroC.Slice.Tests.ReferencedAssemblies\C\C.csproj", "{25D49D40-19B6-4502-AF2F-3F8E836A652A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "D", "tests\Slice.Tests.ReferencedAssemblies\D\D.csproj", "{42B76213-A8A0-4850-841B-5A32D1385348}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "D", "tests\ZeroC.Slice.Tests.ReferencedAssemblies\D\D.csproj", "{42B76213-A8A0-4850-841B-5A32D1385348}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DPrime", "tests\Slice.Tests.ReferencedAssemblies\DPrime\DPrime.csproj", "{FF8AAD85-1446-45B0-9A16-4C3DBE2671C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DPrime", "tests\ZeroC.Slice.Tests.ReferencedAssemblies\DPrime\DPrime.csproj", "{FF8AAD85-1446-45B0-9A16-4C3DBE2671C3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Slice", "src\IceRpc.Slice\IceRpc.Slice.csproj", "{84E9E519-22AB-4296-B463-84F8AEA8BCE6}"
 EndProject

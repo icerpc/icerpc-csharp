@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+module ZeroC::Slice::Tests
+
+exception MyExceptionWithOptionalFields {
+    i: int32
+    j: int32
+    k: int32?
+    l: int32?
+}

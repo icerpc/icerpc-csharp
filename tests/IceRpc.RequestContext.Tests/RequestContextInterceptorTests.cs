@@ -3,8 +3,8 @@
 using IceRpc.Features;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using Slice;
 using System.IO.Pipelines;
+using ZeroC.Slice;
 
 namespace IceRpc.RequestContext.Tests;
 

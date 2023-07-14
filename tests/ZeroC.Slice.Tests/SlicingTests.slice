@@ -1,0 +1,47 @@
+// Copyright (c) ZeroC, Inc.
+
+encoding = Slice1
+
+module ZeroC::Slice::Tests
+
+class SlicingBaseClass {
+    m1: string
+}
+
+class SlicingDerivedClass : SlicingBaseClass {
+    m2: string
+    m3: SlicingBaseClass?
+}
+
+class SlicingMostDerivedClass : SlicingDerivedClass {
+    m4: SlicingBaseClass?
+}
+
+class SlicingClassWithTaggedFields : SlicingDerivedClass {
+    m4: SlicingBaseClass?
+    tag(1) m5: string?
+}
+
+class SlicingBaseClassWithCompactId(1) {
+    m1: string
+}
+
+class SlicingDerivedClassWithCompactId(2) : SlicingBaseClassWithCompactId {
+    m2: string
+}
+
+class SlicingMostDerivedClassWithCompactId(3) : SlicingDerivedClassWithCompactId {
+    m3: SlicingBaseClassWithCompactId?
+}
+
+exception SlicingBaseException {
+    m1: string
+}
+
+exception SlicingDerivedException : SlicingBaseException {
+    m2: string
+}
+
+exception SlicingMostDerivedException : SlicingDerivedException {
+    m3: SlicingBaseClass?
+}

@@ -2,8 +2,8 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using Slice;
-using Slice.WellKnownTypes;
+using ZeroC.Slice;
+using ZeroC.Slice.WellKnownTypes;
 
 namespace IceRpc.Deadline;
 

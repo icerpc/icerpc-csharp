@@ -1,0 +1,22 @@
+// Copyright (c) ZeroC, Inc.
+
+encoding = Slice1
+
+module ZeroC::Slice::Tests
+
+exception MyException {
+    i: int32
+    j: int32
+}
+
+exception MyExceptionWithTaggedFields {
+    i: int32
+    j: int32
+    tag(1) k: int32?
+    tag(255) l: int32?
+}
+
+exception MyDerivedException : MyException {
+    k: int32
+    l: int32
+}

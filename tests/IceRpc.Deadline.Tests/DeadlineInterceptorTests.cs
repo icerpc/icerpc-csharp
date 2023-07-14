@@ -3,9 +3,9 @@
 using IceRpc.Features;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using Slice;
-using Slice.WellKnownTypes;
 using System.IO.Pipelines;
+using ZeroC.Slice;
+using ZeroC.Slice.WellKnownTypes;
 
 namespace IceRpc.Deadline.Tests;
 

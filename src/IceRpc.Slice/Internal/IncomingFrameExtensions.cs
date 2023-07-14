@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using Slice;
 using System.IO.Pipelines;
+using ZeroC.Slice;
 
 namespace IceRpc.Slice.Internal;
 

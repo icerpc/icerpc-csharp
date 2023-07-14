@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Extensions.DependencyInjection;
-using Slice;
 using System.Buffers;
 using System.Diagnostics;
+using ZeroC.Slice;
 
 namespace IceRpc.Telemetry;
 

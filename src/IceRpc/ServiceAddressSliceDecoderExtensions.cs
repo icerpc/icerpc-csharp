@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using Slice;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using ZeroC.Slice;
 
 namespace IceRpc;
 
