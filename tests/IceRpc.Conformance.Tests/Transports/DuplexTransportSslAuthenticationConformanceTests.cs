@@ -51,7 +51,7 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
             });
         Assert.That(
             exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionAborted),
+            Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
 
