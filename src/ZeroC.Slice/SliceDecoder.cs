@@ -191,9 +191,9 @@ public ref partial struct SliceDecoder
             {
                 return checked((int)DecodeVarUInt62());
             }
-            catch (OverflowException ex)
+            catch (OverflowException exception)
             {
-                throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", ex);
+                throw new InvalidDataException("Cannot decode size larger than int.MaxValue.", exception);
             }
         }
     }
@@ -288,9 +288,9 @@ public ref partial struct SliceDecoder
         {
             return checked((int)DecodeVarInt62());
         }
-        catch (OverflowException ex)
+        catch (OverflowException exception)
         {
-            throw new InvalidDataException("The value is out of the varint32 accepted range.", ex);
+            throw new InvalidDataException("The value is out of the varint32 accepted range.", exception);
         }
     }
 
@@ -313,9 +313,9 @@ public ref partial struct SliceDecoder
         {
             return checked((uint)DecodeVarUInt62());
         }
-        catch (OverflowException ex)
+        catch (OverflowException exception)
         {
-            throw new InvalidDataException("The value is out of the varuint32 accepted range.", ex);
+            throw new InvalidDataException("The value is out of the varuint32 accepted range.", exception);
         }
     }
 

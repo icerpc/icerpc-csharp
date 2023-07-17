@@ -1430,7 +1430,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
                 catch (ArgumentOutOfRangeException exception)
                 {
-                    throw new InvalidDataException($"Received invalid maximum header size setting.", exception);
+                    throw new InvalidDataException("Received invalid maximum header size setting.", exception);
                 }
                 _headerSizeLength = SliceEncoder.GetVarUInt62EncodedSize(value);
             }
