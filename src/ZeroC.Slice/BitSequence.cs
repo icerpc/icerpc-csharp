@@ -6,15 +6,16 @@ using ZeroC.Slice.Internal;
 namespace ZeroC.Slice;
 
 /// <summary>Provides a method for reading a bit sequence.</summary>
-/// <seealso href="https://docs.testing.zeroc.com/slice/encoding/encoding-only-constructs?encoding=Slice2#bit-sequence"/>
+/// <seealso href="https://docs.testing.zeroc.com/slice2/encoding/encoding-only-constructs#bit-sequence"/>
+/// <seealso cref="SliceDecoder.GetBitSequenceReader(int)" />
 public ref struct BitSequenceReader
 {
     private byte _currentByte;
     private int _index; // between 0 and 7
     private SequenceReader<byte> _sequenceReader;
 
-    /// <summary>Constructs a bit sequence reader over a bit sequence.</summary>
-    /// <param name="bitSequence">The bit sequence, as a buffer of bytes.</param>
+    /// <summary>Constructs a bit sequence reader over a <see cref="ReadOnlySequence{T}" />.</summary>
+    /// <param name="bitSequence">The read-only sequence.</param>
     public BitSequenceReader(ReadOnlySequence<byte> bitSequence)
     {
         _sequenceReader = new SequenceReader<byte>(bitSequence);
@@ -27,7 +28,7 @@ public ref struct BitSequenceReader
         }
     }
 
-    /// <summary>Reads the next bit in the bit sequence.</summary>
+    /// <summary>Reads the next bit and advance the reader.</summary>
     /// <returns><see langword="true" /> when the next bit is set; otherwise, <see langword="false" />.</returns>
     public bool Read()
     {
@@ -43,8 +44,10 @@ public ref struct BitSequenceReader
     }
 }
 
-/// <summary>Provides a method for writing a bit sequence.</summary>
-/// <seealso href="https://docs.testing.zeroc.com/slice/encoding/encoding-only-constructs?encoding=Slice2#bit-sequence"/>
+/// <summary>Provides a method for writing a bit sequence to the underlying buffer writer of a <see cref="SliceEncoder"
+/// />.</summary>
+/// <seealso href="https://docs.testing.zeroc.com/slice2/encoding/encoding-only-constructs#bit-sequence"/>
+/// <seealso cref="SliceEncoder.GetBitSequenceWriter(int)" />
 public ref struct BitSequenceWriter
 {
     private int _index; // the bit index in _spanEnumerator.Current
