@@ -4,11 +4,14 @@
 body {
   --bs-link-color-rgb: 69, 161, 247 !important;
   --bs-link-hover-color-rgb: 63, 151, 234 !important;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 nav {
   --bs-navbar-nav-link-padding-x: 1rem !important;
   --bs-navbar-toggler-padding-x: 1rem !important;
+  --bs-nav-link-font-size: 11pt;
 }
 
 /* Logo styling */
@@ -21,4 +24,9 @@ nav img {
 
 .navbar .navbar-brand {
   font-weight: bold;
+  margin: 0 25px;
+}
+
+.navbar #navbar form.icons {
+  margin-left: 10px;
 }
