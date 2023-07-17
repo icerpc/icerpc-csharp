@@ -56,7 +56,8 @@ public class LoggerMiddleware : IDispatcher
     }
 }
 
-/// <summary>This class contains the ILogger extension methods for logging LoggerMiddleware messages.</summary>
+/// <summary>Provides <see cref="ILogger" /> extension methods for logging <see cref="LoggerMiddleware" />
+/// messages.</summary>
 internal static partial class LoggerMiddlewareLoggerExtensions
 {
     [LoggerMessage(

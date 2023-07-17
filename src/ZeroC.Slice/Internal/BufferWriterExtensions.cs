@@ -4,7 +4,7 @@ using System.Buffers;
 
 namespace ZeroC.Slice.Internal;
 
-/// <summary>This class provides extension methods for <see cref="IBufferWriter{T}" />.</summary>
+/// <summary>Provides extension methods for <see cref="IBufferWriter{T}" />.</summary>
 internal static class BufferWriterExtensions
 {
     /// <summary>Writes a sequence of bytes to a buffer writer.</summary>

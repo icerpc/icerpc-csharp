@@ -5,8 +5,7 @@ using System.Diagnostics;
 
 namespace IceRpc;
 
-/// <summary>This class provide extension methods to add the telemetry middleware to a <see cref="Router" />.
-/// </summary>
+/// <summary>Provides an extension method to add the telemetry middleware to a <see cref="Router" />.</summary>
 public static class TelemetryRouterExtensions
 {
     /// <summary>Adds a <see cref="TelemetryMiddleware" /> to the router.</summary>

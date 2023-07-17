@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>This class provide extension methods to add the telemetry interceptor to an <see cref="IInvokerBuilder" />.
+/// <summary>Provides an extension method to add the telemetry interceptor to an <see cref="IInvokerBuilder" />.
 /// </summary>
 public static class TelemetryInvokerBuilderExtensions
 {

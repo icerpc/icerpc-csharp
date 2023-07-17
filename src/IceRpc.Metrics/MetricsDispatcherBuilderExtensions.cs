@@ -4,7 +4,7 @@ using IceRpc.Metrics;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>This class provides extension methods to add the metrics middleware to a <see cref="IDispatcherBuilder" />.
+/// <summary>Provides an extension method to add the metrics middleware to a <see cref="IDispatcherBuilder" />.
 /// </summary>
 public static class MetricsDispatcherBuilderExtensions
 {

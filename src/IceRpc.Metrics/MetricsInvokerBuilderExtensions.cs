@@ -4,8 +4,7 @@ using IceRpc.Metrics;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>This class provides extension methods to add the metrics interceptor to an <see cref="IInvokerBuilder" />.
-/// </summary>
+/// <summary>Provides an extension method to add the metrics interceptor to an <see cref="IInvokerBuilder" />.</summary>
 public static class MetricsInvokerBuilderExtensions
 {
     /// <summary>Adds a <see cref="MetricsInterceptor" /> to the builder.</summary>

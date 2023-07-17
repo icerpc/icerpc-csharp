@@ -4,7 +4,7 @@ using IceRpc.RequestContext;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method to add a request context middleware to an <see cref="IDispatcherBuilder" />.
+/// <summary>Provides an extension method to add the request context middleware to an <see cref="IDispatcherBuilder" />.
 /// </summary>
 public static class RequestContextDispatcherBuilderExtensions
 {

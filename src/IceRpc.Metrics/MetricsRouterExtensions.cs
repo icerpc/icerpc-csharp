@@ -4,8 +4,7 @@ using IceRpc.Metrics;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to add the metrics middleware to a <see cref="Router" />.
-/// </summary>
+/// <summary>Provides an extension method to add the metrics middleware to a <see cref="Router" />.</summary>
 public static class MetricsRouterExtensions
 {
     /// <summary>Adds a <see cref="MetricsMiddleware" /> to the router.</summary>

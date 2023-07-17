@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>This class contains ILogger extension methods used by <see cref="LogServerAddressFinderDecorator"/>.
+/// <summary>Provides <see cref="ILogger" /> extension methods used by <see cref="LogServerAddressFinderDecorator"/>.
 /// </summary>
 internal static partial class ServerAddressFinderLoggerExtensions
 {

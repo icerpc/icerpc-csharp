@@ -4,7 +4,8 @@ using IceRpc.Extensions.DependencyInjection;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method for <see cref="IDispatcherBuilder" />.</summary>
+/// <summary>Provides a <see cref="IDispatcherBuilder" /> extension method to register a route to a service that uses
+/// the service's default path as the route path.</summary>
 public static class SliceDispatcherBuilderExtensions
 {
     /// <summary>Registers a route to a service that uses the service's default path as the route path. If there is an
