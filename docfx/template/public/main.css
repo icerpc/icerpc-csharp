@@ -6,7 +6,19 @@ body {
   --bs-link-hover-color-rgb: 63, 151, 234 !important;
 }
 
+nav {
+  --bs-navbar-nav-link-padding-x: 1rem !important;
+  --bs-navbar-toggler-padding-x: 1rem !important;
+}
+
+/* Logo styling */
 nav img {
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
+  margin-right: 10px;
+  margin-left: 5px;
+}
+
+.navbar .navbar-brand {
+  font-weight: bold;
 }
