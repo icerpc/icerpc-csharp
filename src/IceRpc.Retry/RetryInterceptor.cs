@@ -171,11 +171,11 @@ public class RetryInterceptor : IInvoker
         }
     }
 
-    private static Exception RethrowException(Exception ex)
+    private static Exception RethrowException(Exception exception)
     {
-        ExceptionDispatchInfo.Throw(ex);
+        ExceptionDispatchInfo.Throw(exception);
         Debug.Assert(false);
-        return ex;
+        return exception;
     }
 
     private IDisposable? CreateRetryLogScope(int attempt) =>

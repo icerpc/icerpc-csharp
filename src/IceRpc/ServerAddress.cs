@@ -78,9 +78,9 @@ public readonly record struct ServerAddress
             {
                 ServiceAddress.CheckParams(value);
             }
-            catch (FormatException ex)
+            catch (FormatException exception)
             {
-                throw new ArgumentException("Invalid parameters.", nameof(value), ex);
+                throw new ArgumentException("Invalid parameters.", nameof(value), exception);
             }
             _params = value;
             OriginalUri = null; // new params invalidates OriginalUri

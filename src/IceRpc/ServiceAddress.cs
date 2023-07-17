@@ -72,9 +72,9 @@ public sealed record class ServiceAddress
                 CheckPath(value); // make sure it's properly escaped
                 Protocol?.CheckPath(value); // make sure the protocol is happy with this path
             }
-            catch (FormatException ex)
+            catch (FormatException exception)
             {
-                throw new ArgumentException("Invalid path.", nameof(value), ex);
+                throw new ArgumentException("Invalid path.", nameof(value), exception);
             }
             _path = value;
             OriginalUri = null;
@@ -136,9 +136,9 @@ public sealed record class ServiceAddress
                 CheckParams(value); // general checking (properly escape, no empty name)
                 Protocol.CheckServiceAddressParams(value); // protocol-specific checking
             }
-            catch (FormatException ex)
+            catch (FormatException exception)
             {
-                throw new ArgumentException("Invalid parameters.", nameof(value), ex);
+                throw new ArgumentException("Invalid parameters.", nameof(value), exception);
             }
 
             if (_serverAddress is not null && value.Count > 0)
@@ -168,9 +168,9 @@ public sealed record class ServiceAddress
             {
                 CheckFragment(value); // make sure it's properly escaped
             }
-            catch (FormatException ex)
+            catch (FormatException exception)
             {
-                throw new ArgumentException("Invalid fragment.", nameof(value), ex);
+                throw new ArgumentException("Invalid fragment.", nameof(value), exception);
             }
 
             if (!Protocol.HasFragment && value.Length > 0)
