@@ -6,7 +6,7 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods to decode the Slice-encoded payload of an <see cref="IncomingRequest" />.
+/// <summary>Provides extension methods for <see cref="IncomingRequest" /> to decode its Slice-encoded payload.
 /// </summary>
 public static class IncomingRequestExtensions
 {

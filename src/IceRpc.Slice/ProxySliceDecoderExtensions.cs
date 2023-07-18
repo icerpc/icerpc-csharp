@@ -4,7 +4,7 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for decoding proxies.</summary>
+/// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode proxies.</summary>
 public static class ProxySliceDecoderExtensions
 {
     /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>

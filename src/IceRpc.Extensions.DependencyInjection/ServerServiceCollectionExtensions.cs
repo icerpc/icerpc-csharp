@@ -11,8 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides extension methods that add a <see cref="Server" /> to an <see cref="IServiceCollection" />.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="IServiceCollection" /> to add a <see cref="Server" />.</summary>
 public static class ServerServiceCollectionExtensions
 {
     /// <summary>Adds a <see cref="Server" /> with the specified dispatch pipeline to this service collection; you can

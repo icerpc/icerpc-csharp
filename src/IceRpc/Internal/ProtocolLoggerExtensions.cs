@@ -5,8 +5,8 @@ using System.Net;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides <see cref="ILogger" /> extension methods for logging related to <see cref="IProtocolConnection" />
-/// and its implementations.</summary>
+/// <summary>Provides extension methods for <see cref="ILogger" /> to provide logging related to <see
+/// cref="IProtocolConnection" /> and its implementations.</summary>
 internal static partial class ProtocolLoggerExtensions
 {
     [LoggerMessage(

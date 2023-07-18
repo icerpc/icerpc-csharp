@@ -4,7 +4,7 @@ using IceRpc.Features;
 
 namespace IceRpc;
 
-/// <summary>Provides a <see cref="Pipeline" /> extension method to add an interceptor that sets a feature in all
+/// <summary>Provides an extension method for <see cref="Pipeline" /> to add an interceptor that sets a feature in all
 /// requests.</summary>
 public static class FeaturePipelineExtensions
 {

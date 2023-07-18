@@ -7,7 +7,7 @@ using ZeroC.Slice;
 
 namespace IceRpc;
 
-/// <summary>Provides extension methods for encoding service addresses.</summary>
+/// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode service addresses.</summary>
 public static class ServiceAddressSliceEncoderExtensions
 {
     /// <summary>The default timeout value for tcp/ssl server addresses with Slice1.</summary>

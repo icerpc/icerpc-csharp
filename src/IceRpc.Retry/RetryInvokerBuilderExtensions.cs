@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides extension methods to add the retry interceptor to a <see cref="IInvokerBuilder" />.</summary>
+/// <summary>Provides extension methods for <see cref="IInvokerBuilder" /> to add the retry interceptor.</summary>
 public static class RetryInvokerBuilderExtensions
 {
     /// <summary>Adds a <see cref="RetryInterceptor" /> that uses the default <see cref="RetryOptions" />.</summary>

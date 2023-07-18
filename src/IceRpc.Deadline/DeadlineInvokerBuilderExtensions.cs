@@ -4,8 +4,7 @@ using IceRpc.Deadline;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides extension methods to add the deadline interceptor to an <see cref="IInvokerBuilder" />.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="IInvokerBuilder" /> to add the deadline interceptor.</summary>
 public static class DeadlineInvokerBuilderExtensions
 {
     /// <summary>Adds a <see cref="DeadlineInterceptor" /> with an infinite default timeout to this invoker builder.

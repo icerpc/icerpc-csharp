@@ -6,7 +6,8 @@ using System.Diagnostics;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>Provides <see cref="ILogger" /> extension methods used by <see cref="LogServerAddressCacheDecorator"/>.
+/// <summary>Provides extension methods for <see cref="ILogger" /> to provide logging for <see
+/// cref="LogServerAddressCacheDecorator"/> messages.
 /// </summary>
 internal static partial class ServerAddressCacheLoggerExtensions
 {

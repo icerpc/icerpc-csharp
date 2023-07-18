@@ -9,7 +9,7 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
+/// <summary>Provides extension methods for <see cref="PipeReader" /> to decode streamed elements.</summary>
 public static class PipeReaderExtensions
 {
     /// <summary>Creates an async enumerable over a pipe reader to decode streamed elements.</summary>

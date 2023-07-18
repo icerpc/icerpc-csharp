@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Locator.Internal;
 
-/// <summary>Provides <see cref="ILogger" /> extension methods used by <see cref="LogLocationResolverDecorator"/>.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="ILogger" /> to provide logging <see
+/// cref="LogLocationResolverDecorator"/> messages.</summary>
 internal static partial class LocatorLoggerExtensions
 {
     [LoggerMessage(
