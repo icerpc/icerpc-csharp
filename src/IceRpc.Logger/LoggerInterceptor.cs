@@ -46,8 +46,8 @@ public class LoggerInterceptor : IInvoker
     }
 }
 
-/// <summary>Provides extension methods for <see cref="ILogger" /> to provide logging for <see cref="LoggerInterceptor"
-/// /> messages.</summary>
+/// <summary>Provides extension methods for <see cref="ILogger" />. They are used by <see cref="LoggerInterceptor"/>.
+/// </summary>
 internal static partial class LoggerInterceptorLoggerExtensions
 {
     [LoggerMessage(

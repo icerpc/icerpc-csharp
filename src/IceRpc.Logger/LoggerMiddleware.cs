@@ -56,8 +56,8 @@ public class LoggerMiddleware : IDispatcher
     }
 }
 
-/// <summary>Provides extension methods for <see cref="ILogger" /> to provide logging <see cref="LoggerMiddleware" />
-/// messages.</summary>
+/// <summary>Provides extension methods for <see cref="ILogger" />. They are used by <see cref="LoggerMiddleware" />.
+/// </summary>
 internal static partial class LoggerMiddlewareLoggerExtensions
 {
     [LoggerMessage(

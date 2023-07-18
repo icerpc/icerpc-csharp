@@ -4,7 +4,7 @@ using System.Buffers;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides extension methods for <see cref="IBufferWriter{T}" /> to write a <see cref="ReadOnlySequence{T}"
+/// <summary>Provides an extension method for <see cref="IBufferWriter{T}" /> to write a <see cref="ReadOnlySequence{T}"
 /// />.</summary>
 internal static class BufferWriterExtensions
 {

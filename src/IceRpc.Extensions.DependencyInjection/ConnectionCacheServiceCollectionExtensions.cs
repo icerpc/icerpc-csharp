@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method for <see cref="IServiceCollection" /> to  add a connection cache.</summary>
+/// <summary>Provides an extension method for <see cref="IServiceCollection" /> to add a connection cache.</summary>
 public static class ConnectionCacheServiceCollectionExtensions
 {
     /// <summary>Adds a <see cref="ConnectionCache" /> and an <see cref="IInvoker" /> to this service collection.

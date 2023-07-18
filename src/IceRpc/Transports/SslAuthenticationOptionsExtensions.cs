@@ -5,7 +5,7 @@ using System.Net.Security;
 namespace IceRpc.Transports;
 
 /// <summary>Provides extension methods for <see cref="SslClientAuthenticationOptions" /> and <see
-/// cref="SslServerAuthenticationOptions" /> to provide a method to clone authentication options.</summary>
+/// cref="SslServerAuthenticationOptions" />.</summary>
 public static class SslAuthenticationOptionsExtensions
 {
     /// <summary>Makes a shallow copy of an SSL client authentication options.</summary>
