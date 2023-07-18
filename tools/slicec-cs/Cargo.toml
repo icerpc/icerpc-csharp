@@ -10,14 +10,14 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.2.7", features = ["derive"] }
+clap = { version = "4.3.15", features = ["derive"] }
 convert_case = "0.6.0"
 in_definite = "0.2.5"
 # Uses the github repo when built locally, and crates.io when published.
 slicec = { git = "ssh://git@github.com/icerpc/slicec", version = "0.1.0" }
 
 [dev-dependencies]
-test-case = "3.0.0"
+test-case = "3.1.0"
 
 [[bin]]
 name = "slicec-cs"
