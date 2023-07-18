@@ -1,7 +1,14 @@
 # Slice Tools for IceRPC
 
 IceRpc.Slice.Tools allows you to compile Slice definitions (in `.slice` files) into C# code (in `.cs` files) within
-MSBuild projects. The generated C# code depends on the [IceRpc.Slice][icerpc-slice] NuGet package.
+MSBuild projects. The generated C# code depends on the following NuGet packages:
+
+- [ZeroC.Slice][zeroc-slice]
+- [IceRpc][icerpc]] (*)
+- [IceRpc.Slice][icerpc-slice] (*)
+- [System.IO.Pipelines][system-io-pipelines] (*)
+
+> (*) unless you pass the option --rpc none to slicec-cs.
 
 This package includes the Slice compiler for C#, `slicec-cs`. This compiler is a native tool with binaries for Linux
 (x64 and arm64), macOS (x64 and arm64) and Windows (x64).
@@ -88,9 +95,11 @@ unique set of options results in a separate execution of `slicec-cs`.
 | PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                |
 
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
+[icerpc]: https://www.nuget.org/packages/IceRpc
 [icerpc-slice]: https://www.nuget.org/packages/IceRpc.Slice
 [zeroc-slice]: https://www.nuget.org/packages/ZeroC.Slice
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
 [slice]: https://docs.testing.zeroc.com/slice
 [slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/slicec-cs
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
+[system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
