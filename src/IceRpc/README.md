@@ -7,44 +7,53 @@ and package represent the base assembly and package for the [C# implementation o
 
 ## Sample Code
 
-```slice
-// Slice contract
-
-module VisitorCenter
-
-/// Represents a simple greeter.
-interface Greeter {
-    /// Creates a personalized greeting.
-    /// @param name: The name of the person to greet.
-    /// @returns: The greeting.
-    greet(name: string) -> string
-}
-```
-
 ```csharp
 // Client application
 
+using GreeterCore; // for the StringCodec helper class
 using IceRpc;
-using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-var greeterProxy = new GreeterProxy(connection);
-string greeting = await greeterProxy.GreetAsync(Environment.UserName);
-
+string greeting = await GreetAsync(Environment.UserName);
 Console.WriteLine(greeting);
 
 await connection.ShutdownAsync();
+
+// Create the request to the greeter and then await and decode the response.
+async Task<string> GreetAsync(string name)
+{
+    // Construct an outgoing request for the icerpc protocol.
+    using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
+    {
+        Operation = "greet",
+        Payload = StringCodec.EncodeString(name)
+    };
+
+    // Make the invocation: we send the request using the client connection and then wait for the response. Since the
+    // client connection is not connected yet, this call also connects it.
+    IncomingResponse response = await connection.InvokeAsync(request);
+
+    // When the response's status code is Success, we decode its payload.
+    if (response.StatusCode == StatusCode.Success)
+    {
+        return await StringCodec.DecodePayloadStringAsync(response.Payload);
+    }
+    else
+    {
+        // Convert the response into a dispatch exception.
+        throw new DispatchException(response.StatusCode, response.ErrorMessage);
+    }
+}
 ```
 
 ```csharp
 // Server application
 
+using GreeterCore; // for the StringCodec helper class
 using IceRpc;
-using IceRpc.Features;
-using IceRpc.Slice;
-using VisitorCenter;
 
+// Create a server that will dispatch all requests to the same dispatcher, an instance of Chatbot.
 await using var server = new Server(new Chatbot());
 server.Listen();
 
@@ -52,15 +61,22 @@ server.Listen();
 await CancelKeyPressed;
 await server.ShutdownAsync();
 
-internal class Chatbot : Service, IGreeterService
+internal class Chatbot : IDispatcher
 {
-    public ValueTask<string> GreetAsync(
-        string name,
-        IFeatureCollection features,
-        CancellationToken cancellationToken)
+    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
-        return new($"Hello, {name}!");
+        if (request.Operation == "greet")
+        {
+            string name = await StringCodec.DecodePayloadStringAsync(request.Payload);
+            Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
+
+            return new OutgoingResponse(request) { Payload = StringCodec.EncodeString($"Hello, {name}!") };
+        }
+        else
+        {
+            // We only implement greet.
+            throw new DispatchException(StatusCode.OperationNotFound);
+        }
     }
 }
 ```
