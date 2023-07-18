@@ -4,7 +4,7 @@ IceRpc.Slice.Tools allows you to compile Slice definitions (in `.slice` files) i
 MSBuild projects. The generated C# code depends on the following NuGet packages:
 
 - [ZeroC.Slice][zeroc-slice]
-- [IceRpc][icerpc]] (*)
+- [IceRpc][icerpc] (*)
 - [IceRpc.Slice][icerpc-slice] (*)
 - [System.IO.Pipelines][system-io-pipelines] (*)
 
