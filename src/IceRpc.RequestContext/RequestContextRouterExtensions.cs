@@ -4,7 +4,7 @@ using IceRpc.RequestContext;
 
 namespace IceRpc;
 
-/// <summary>Provides an extension method to add the request context middleware to a <see cref="Router" />.</summary>
+/// <summary>Provides an extension method for <see cref="Router" /> to add the request context middleware.</summary>
 public static class RequestContextRouterExtensions
 {
     /// <summary>Adds a <see cref="RequestContextMiddleware" /> to this router.</summary>

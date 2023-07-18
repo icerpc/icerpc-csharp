@@ -2,8 +2,8 @@
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides an extension method for decoding a <c>WellKnownTypes::Duration</c> into a
-/// <see cref="TimeSpan"/>.</summary>
+/// <summary>Provides an extension method for <see cref="SliceDecoder" /> to decode a <c>WellKnownTypes::Duration</c>
+/// into a <see cref="TimeSpan"/>.</summary>
 public static class DurationSliceDecoderExtensions
 {
     /// <summary>Decodes a duration.</summary>

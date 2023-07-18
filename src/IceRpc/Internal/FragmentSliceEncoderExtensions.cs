@@ -4,7 +4,7 @@ using ZeroC.Slice;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides an extension method for encoding a fragment.</summary>
+/// <summary>Provides an extension method for <see cref="SliceEncoder" /> to encode a fragment.</summary>
 internal static class FragmentSliceEncoderExtensions
 {
     internal static void EncodeFragment(this ref SliceEncoder encoder, string value)

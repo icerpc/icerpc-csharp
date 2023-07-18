@@ -4,7 +4,8 @@ using ZeroC.Slice;
 
 namespace IceRpc.Internal;
 
-/// <summary>Provides an extension method for the Slice decoder.</summary>
+/// <summary>Provides an extension method for <see cref="SliceDecoder" /> to check if the end of the decoder's
+/// underlying buffer is reached.</summary>
 internal static class SliceDecoderExtensions
 {
     /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>

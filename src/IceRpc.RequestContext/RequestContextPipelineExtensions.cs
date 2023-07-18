@@ -4,7 +4,7 @@ using IceRpc.RequestContext;
 
 namespace IceRpc;
 
-/// <summary>Provides an extension method to add the request context interceptor to a <see cref="Pipeline" />.</summary>
+/// <summary>Provides an extension method for <see cref="Pipeline" /> to add the request context interceptor.</summary>
 public static class RequestContextPipelineExtensions
 {
     /// <summary>Adds a <see cref="RequestContextInterceptor" /> to this pipeline.</summary>

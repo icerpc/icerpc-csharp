@@ -6,7 +6,7 @@ using ZeroC.Slice;
 
 namespace IceRpc.Internal;
 
-/// <summary>Extension methods to decode payloads carried by a PipeReader.</summary>
+/// <summary>Extension methods <see cref="PipeReader" /> to decode payloads.</summary>
 internal static class PipeReaderExtensions
 {
     /// <summary>Reads a Slice segment from a pipe reader.</summary>

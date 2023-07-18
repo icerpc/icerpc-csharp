@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc;
 
-/// <summary>Provides an extension method to add the logger interceptor to a <see cref="Pipeline" />.</summary>
+/// <summary>Provides an extension method for <see cref="Pipeline" /> to add the logger interceptor.</summary>
 public static class LoggerPipelineExtensions
 {
     /// <summary>Adds a <see cref="LoggerInterceptor" /> to this pipeline.</summary>

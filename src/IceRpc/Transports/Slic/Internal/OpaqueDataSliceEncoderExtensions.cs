@@ -4,8 +4,8 @@ using ZeroC.Slice;
 
 namespace IceRpc.Transports.Slic.Internal;
 
-/// <summary>Provides an extension method for encoding a <see langword="long" /> into a 64-bit opaque data value.
-/// </summary>
+/// <summary>Provides an extension method for <see cref="SliceEncoder" /> to encode a <see langword="long" /> into a
+/// 64-bit opaque data value.</summary>
 internal static class OpaqueDataSliceEncoderExtensions
 {
     /// <summary>Encodes a <see langword="long" /> as a 64-bit opaque data value.</summary>

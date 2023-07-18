@@ -6,8 +6,8 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice.Internal;
 
-/// <summary>Extension methods to decode the payload of an incoming frame when this payload is encoded with the
-/// Slice encoding.</summary>
+/// <summary>Provides extension methods for <see cref="IncomingFrame" /> to decode its payload when this payload is
+/// encoded with the Slice encoding.</summary>
 internal static class IncomingFrameExtensions
 {
     /// <summary>Decodes arguments or a response value from a pipe reader.</summary>

@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method that adds an invoker to an <see cref="IServiceCollection" />.</summary>
+/// <summary>Provides an extension method for <see cref="IServiceCollection" /> to add an invoker.</summary>
 public static class InvokerServiceCollectionExtensions
 {
     /// <summary>Adds an <see cref="IInvoker" /> to this service collection.</summary>

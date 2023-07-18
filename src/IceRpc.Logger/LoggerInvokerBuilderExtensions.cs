@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method to add the logger interceptor to an <see cref="IInvokerBuilder" />.</summary>
+/// <summary>Provides an extension method for <see cref="IInvokerBuilder" /> to add the logger interceptor.</summary>
 public static class LoggerInvokerBuilderExtensions
 {
     /// <summary>Adds a <see cref="LoggerInterceptor" /> to the builder. This interceptor relies on the

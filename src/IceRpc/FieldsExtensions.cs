@@ -2,11 +2,12 @@
 
 using IceRpc.Internal;
 using System.Buffers;
+using System.Collections;
 using ZeroC.Slice;
 
 namespace IceRpc;
 
-/// <summary>Provides extension method for field dictionaries.</summary>
+/// <summary>Provides extension method for <see cref="IDictionary" /> field dictionaries.</summary>
 public static class FieldsExtensions
 {
     /// <summary>Retrieves the decoded field value associated with a field key.</summary>

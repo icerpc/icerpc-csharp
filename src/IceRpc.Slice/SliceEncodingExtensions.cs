@@ -6,7 +6,7 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method for <see cref="SliceEncoding" />.</summary>
+/// <summary>Provides an extension method for <see cref="SliceEncoding" /> to create an empty struct payload.</summary>
 public static class SliceEncodingExtensions
 {
     // 4 = varuint62 encoding of the size (1)

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method to add the logger middleware to a <see cref="IDispatcherBuilder" />.</summary>
+/// <summary>Provides an extension method for <see cref="IDispatcherBuilder" /> to add the logger middleware.</summary>
 public static class LoggerDispatcherBuilderExtensions
 {
     /// <summary>Adds a <see cref="LoggerMiddleware" /> to this dispatcher builder. This interceptor relies on the

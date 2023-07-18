@@ -2,7 +2,8 @@
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides an extension method for encoding a DateTime as a WellKnownTypes::TimeStamp.</summary>
+/// <summary>Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cref="DateTime" /> as a
+/// <c>WellKnownTypes::TimeStamp</c>.</summary>
 public static class TimeStampSliceEncoderExtensions
 {
     /// <summary>Encodes a DateTime as a time stamp.</summary>

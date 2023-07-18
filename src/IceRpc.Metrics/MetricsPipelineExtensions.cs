@@ -4,7 +4,7 @@ using IceRpc.Metrics;
 
 namespace IceRpc;
 
-/// <summary>Provides an extension method to add the metrics interceptor to a <see cref="Pipeline" />.</summary>
+/// <summary>Provides an extension method for <see cref="Pipeline" /> to add the metrics interceptor.</summary>
 public static class MetricsPipelineExtensions
 {
     /// <summary>Adds a <see cref="MetricsInterceptor" /> to the pipeline.</summary>
