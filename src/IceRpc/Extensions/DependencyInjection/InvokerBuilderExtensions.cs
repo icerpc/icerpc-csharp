@@ -4,7 +4,8 @@ using IceRpc.Features;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides extension methods for <see cref="IInvokerBuilder" />.</summary>
+/// <summary>Provides extension methods for <see cref="IInvokerBuilder" /> to add the last invoker of an invocation
+/// pipeline or to add a middleware that sets a feature.</summary>
 public static class InvokerBuilderExtensions
 {
     /// <summary>Sets the last invoker of the invocation pipeline to be a DI service managed by the service provider.

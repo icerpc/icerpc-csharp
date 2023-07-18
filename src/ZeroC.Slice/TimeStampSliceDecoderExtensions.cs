@@ -2,7 +2,8 @@
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides an extension method for decoding a WellKnownTypes::TimeStamp.</summary>
+/// <summary>Provides an extension method for <see cref="SliceDecoder" /> to decode a
+/// <c>WellKnownTypes::TimeStamp</c> into a <see cref="DateTime" />.</summary>
 public static class TimeStampSliceDecoderExtensions
 {
     /// <summary>Decodes a time stamp.</summary>

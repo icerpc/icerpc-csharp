@@ -10,8 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method that adds a client connection to an <see cref="IServiceCollection" />.
-/// </summary>
+/// <summary>Provides an extension method for <see cref="IServiceCollection" /> to add a client connection.</summary>
 public static class ClientConnectionServiceCollectionExtensions
 {
     /// <summary>Adds a <see cref="ClientConnection" /> and an <see cref="IInvoker" /> to this service collection.

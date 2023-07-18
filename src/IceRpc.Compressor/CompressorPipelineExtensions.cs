@@ -5,7 +5,7 @@ using System.IO.Compression;
 
 namespace IceRpc;
 
-/// <summary>Provides an extension method to add the compressor interceptor to a <see cref="Pipeline" />.</summary>
+/// <summary>Provides an extension method for <see cref="Pipeline" /> to add the compressor interceptor.</summary>
 public static class CompressorPipelineExtensions
 {
     /// <summary>Adds a <see cref="CompressorInterceptor" /> to this pipeline.</summary>

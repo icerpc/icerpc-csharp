@@ -4,7 +4,8 @@ using IceRpc.Features;
 
 namespace IceRpc;
 
-/// <summary>Provides extension methods for <see cref="Router" />.</summary>
+/// <summary>Provides extension methods for <see cref="Router" /> to add a sub-router or to add a middleware that sets a
+/// feature.</summary>
 public static class RouterExtensions
 {
     /// <summary>Creates a sub-router, configures this sub-router and mounts it (with

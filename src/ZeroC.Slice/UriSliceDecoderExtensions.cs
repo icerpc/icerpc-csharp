@@ -2,7 +2,8 @@
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides an extension method for decoding a WellKnownTypes::Uri.</summary>
+/// <summary>Provides an extension method for <see cref="SliceDecoder" /> to decode a <c>WellKnownTypes::Uri</c> into a
+/// <see cref="Uri" />.</summary>
 public static class UriSliceDecoderExtensions
 {
     /// <summary>Decodes a URI.</summary>

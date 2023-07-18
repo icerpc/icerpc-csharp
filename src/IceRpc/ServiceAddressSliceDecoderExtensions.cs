@@ -10,7 +10,7 @@ using ZeroC.Slice;
 
 namespace IceRpc;
 
-/// <summary>Provides extension methods for decoding service addresses.</summary>
+/// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode service addresses.</summary>
 public static class ServiceAddressSliceDecoderExtensions
 {
     /// <summary>Decodes a service address.</summary>

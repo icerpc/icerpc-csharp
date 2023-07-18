@@ -2,7 +2,8 @@
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method for <see cref="Router" />.</summary>
+/// <summary>Provides an extension method for <see cref="Router" /> to register a route to a service that uses the
+/// service default path as the route path.</summary>
 public static class SliceRouterExtensions
 {
     /// <summary>Registers a route to a service that uses the service default path as the route path. If there is an

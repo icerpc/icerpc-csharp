@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using System.Buffers;
+using System.Collections;
 using ZeroC.Slice;
 
 namespace IceRpc;

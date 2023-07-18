@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace IceRpc;
 
-/// <summary>This class provide extension methods to add the telemetry interceptor to a <see cref="Pipeline" />.
+/// <summary>Provides an extension method for <see cref="Pipeline" /> to add the telemetry interceptor.
 /// </summary>
 public static class TelemetryPipelineExtensions
 {

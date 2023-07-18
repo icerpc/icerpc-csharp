@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method that adds a dispatcher to an <see cref="IServiceCollection" />.</summary>
+/// <summary>Provides an extension method for <see cref="IServiceCollection" /> to add a dispatcher.</summary>
 public static class DispatcherServiceCollectionExtensions
 {
     /// <summary>Adds an <see cref="IDispatcher" /> to this service collection.</summary>

@@ -4,7 +4,8 @@ using System.Buffers;
 
 namespace ZeroC.Slice.Internal;
 
-/// <summary>This class provides extension methods for <see cref="IBufferWriter{T}" />.</summary>
+/// <summary>Provides an extension method for <see cref="IBufferWriter{T}" /> to write a <see cref="ReadOnlySequence{T}"
+/// />.</summary>
 internal static class BufferWriterExtensions
 {
     /// <summary>Writes a sequence of bytes to a buffer writer.</summary>

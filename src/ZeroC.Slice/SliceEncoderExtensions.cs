@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides extension methods for <see cref="SliceEncoder" />.</summary>
+/// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode sequences or dictionaries.</summary>
 public static class SliceEncoderExtensions
 {
     /// <summary>Encodes a dictionary.</summary>

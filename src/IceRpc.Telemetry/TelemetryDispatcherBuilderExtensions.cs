@@ -5,8 +5,8 @@ using System.Diagnostics;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>This class provides extension methods to add the telemetry middleware to a
-/// <see cref="IDispatcherBuilder" />.</summary>
+/// <summary>Provides an extension method for <see cref="IDispatcherBuilder" /> to add the telemetry middleware.
+/// </summary>
 public static class TelemetryDispatcherBuilderExtensions
 {
     /// <summary>Adds a <see cref="TelemetryMiddleware" /> to the dispatcher builder.</summary>

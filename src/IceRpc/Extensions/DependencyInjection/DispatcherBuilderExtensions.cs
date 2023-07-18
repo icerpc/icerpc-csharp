@@ -4,7 +4,8 @@ using IceRpc.Features;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides extension methods for <see cref="IDispatcherBuilder" />.</summary>
+/// <summary>Provides extension methods for <see cref="IDispatcherBuilder" /> to add a middleware that sets a feature.
+/// </summary>
 public static class DispatcherBuilderExtensions
 {
     /// <summary>Adds a middleware that creates and inserts the <see cref="IDispatchInformationFeature" /> feature

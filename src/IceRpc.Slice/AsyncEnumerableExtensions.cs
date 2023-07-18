@@ -6,8 +6,8 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method for encoding an <see cref="IAsyncEnumerable{T}" /> into a
-/// <see cref="PipeReader"/>.</summary>
+/// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a <see
+/// cref="PipeReader"/>.</summary>
 public static class AsyncEnumerableExtensions
 {
     /// <summary>Encodes an async enumerable into a stream of bytes represented by a <see cref="PipeReader"/>.</summary>

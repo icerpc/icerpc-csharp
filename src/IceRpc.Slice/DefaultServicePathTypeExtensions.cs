@@ -5,7 +5,8 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method get the default service path from a generated interface or proxy type.
+/// <summary>Provides an extension method for <see cref="Type" /> to get the default service path from a generated
+/// interface or proxy type.
 /// </summary>
 public static class DefaultServicePathTypeExtensions
 {

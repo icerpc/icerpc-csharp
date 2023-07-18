@@ -5,7 +5,8 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice.Ice;
 
-/// <summary>Provides an extension method for decoding a path encoded as an Ice identity.</summary>
+/// <summary>Provides an extension method for <see cref="SliceDecoder" /> to decode a path encoded as an Ice
+/// identity.</summary>
 public static class IdentityPathSliceDecoderExtensions
 {
     /// <summary>Decodes a path encoded as an Ice identity.</summary>

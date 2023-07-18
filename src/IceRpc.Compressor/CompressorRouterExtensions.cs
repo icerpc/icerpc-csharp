@@ -5,7 +5,7 @@ using System.IO.Compression;
 
 namespace IceRpc;
 
-/// <summary>Provides an extension method to add the compressor middleware to a <see cref="Router" />.</summary>
+/// <summary>Provides an extension method for <see cref="Router" /> to add the compressor middleware.</summary>
 public static class CompressorRouterExtensions
 {
     /// <summary>Adds a <see cref="CompressorMiddleware" /> to this router.</summary>

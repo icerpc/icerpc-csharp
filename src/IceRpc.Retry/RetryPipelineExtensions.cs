@@ -6,8 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to add the retry interceptor to a <see cref="Pipeline" />.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="Pipeline" /> to add the retry interceptor.</summary>
 public static class RetryPipelineExtensions
 {
     /// <summary>Adds a <see cref="RetryInterceptor" /> that uses the default <see cref="RetryOptions" /> to the
