@@ -15,7 +15,7 @@ public class IncomingFrame
     /// <summary>Gets or sets the payload of this frame.</summary>
     /// <value>The payload of this frame. Defaults to a <see cref="PipeReader" /> that returns an empty sequence.
     /// </value>
-    /// <remarks>IceRPC and Slice complete the payload <see cref="PipeReader" /> with the <see
+    /// <remarks>IceRPC completes the payload <see cref="PipeReader" /> with the <see
     /// cref="PipeReader.Complete(Exception?)" /> method. They never call <see
     /// cref="PipeReader.CompleteAsync(Exception?)" />. The implementation of <see
     /// cref="PipeReader.Complete(Exception?)" /> should not block.</remarks>
