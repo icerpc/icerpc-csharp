@@ -44,10 +44,10 @@ public class LoggerMiddleware : IDispatcher
                     response.StatusCode);
                 return response;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 _logger.LogDispatchException(
-                    ex,
+                    exception,
                     request.Path,
                     request.Operation);
                 throw;

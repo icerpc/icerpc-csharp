@@ -113,9 +113,9 @@ public class SignTask : Task
             output = streamReader.Output;
             return process.ExitCode;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            error = ex.ToString();
+            error = exception.ToString();
             return 1;
         }
     }
