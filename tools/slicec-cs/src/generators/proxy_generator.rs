@@ -83,7 +83,7 @@ public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAdd
             .into(),
         );
 
-    if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+    if interface_def.supported_encodings().supports(Encoding::Slice1) {
         proxy_impl_builder.add_block(
             format!(
                 "\

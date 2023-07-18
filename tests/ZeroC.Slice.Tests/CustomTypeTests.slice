@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = Slice1
+mode = Slice1
 module ZeroC::Slice::Tests
 
 [cs::type("MyCustomType")]

@@ -20,7 +20,7 @@ interface MySessionManager {
     /// Retrieve the status of the given user.
     /// @param user: The user.
     /// @returns status: The status.
-    /// @returns lastSee: The time at what the user was last seen.
+    /// @returns lastSeen: The time at what the user was last seen.
     getStatus(user: string) -> (status: MyStatus, lastSeen: WellKnownTypes::TimeStamp)
 
     /// Retrieves the {@link UserList} containing the names of the active users.

@@ -34,7 +34,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
         .add_comments(exception_def.formatted_doc_comment_seealso())
         .add_obsolete_attribute(exception_def);
 
-    if supported_encodings.supports(&Encoding::Slice1) {
+    if supported_encodings.supports(Encoding::Slice1) {
         exception_class_builder.add_type_id_attribute(exception_def);
     }
 
@@ -53,7 +53,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
             .into(),
     );
 
-    if supported_encodings.supports(&Encoding::Slice1) {
+    if supported_encodings.supports(Encoding::Slice1) {
         exception_class_builder.add_block(
             format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;").into(),
         );
@@ -80,7 +80,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
         // generated code or the application.
         let mut builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
 
-        if supported_encodings.supports(&Encoding::Slice2) {
+        if supported_encodings.supports(Encoding::Slice2) {
             builder.add_comment(
                 "summary",
                 format!(
@@ -123,7 +123,7 @@ decoder.SkipTagged();",
                     .build(),
             );
 
-        if supported_encodings.supports(&Encoding::Slice2) && supported_encodings.supports(&Encoding::Slice1) {
+        if supported_encodings.supports(Encoding::Slice2) && supported_encodings.supports(Encoding::Slice1) {
             builder.add_comment(
                     "remarks",
                     r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
@@ -133,7 +133,7 @@ decoder.SkipTagged();",
         exception_class_builder.add_block(builder.build());
     }
 
-    if supported_encodings.supports(&Encoding::Slice1) {
+    if supported_encodings.supports(Encoding::Slice1) {
         exception_class_builder.add_block(
             FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
                 .add_parameter("ref SliceDecoder", "decoder", None, None)
