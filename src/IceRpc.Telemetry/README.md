@@ -73,10 +73,10 @@ var hostBuilder = Host.CreateDefaultBuilder(args);
 
 hostBuilder.ConfigureServices(services =>
     services
+        // The activity source used by the telemetry middleware.
+        .AddSingleton(_ => new ActivitySource("IceRpc"))
         .AddIceRpcServer(builder =>
             builder
-                // The activity source used by the telemetry middleware.
-                .AddSingleton(_ => new ActivitySource("IceRpc"))
                 // Add the telemetry middleware to the dispatch pipeline.
                 .UseTelemetry()
                 .Map<...>()));

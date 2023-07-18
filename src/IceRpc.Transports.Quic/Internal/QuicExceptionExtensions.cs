@@ -24,7 +24,7 @@ internal static class QuicExceptionExtensions
                         (long)MultiplexedConnectionCloseError.Aborted =>
                             new IceRpcException(
                                 IceRpcError.ConnectionAborted,
-                                $"The connection was aborted by the peer."),
+                                "The connection was aborted by the peer."),
                         _ => new IceRpcException(
                                 IceRpcError.ConnectionAborted,
                                 $"The connection was aborted by the peer with an unknown application error code: '{applicationErrorCode}'"),

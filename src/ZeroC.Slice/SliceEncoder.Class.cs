@@ -251,9 +251,9 @@ public ref partial struct SliceEncoder
                 {
                     compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
                 }
-                catch (FormatException ex)
+                catch (FormatException exception)
                 {
-                    throw new InvalidDataException($"Received invalid type ID {sliceInfo.TypeId}.", ex);
+                    throw new InvalidDataException($"Received invalid type ID {sliceInfo.TypeId}.", exception);
                 }
             }
 
