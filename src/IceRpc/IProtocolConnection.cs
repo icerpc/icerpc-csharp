@@ -5,14 +5,24 @@ using System.Security.Authentication;
 
 namespace IceRpc;
 
-/// <summary>Represents a connection for a <see cref="Protocol" />. It is the building block for <see
-/// cref="ClientConnection" />, <see cref="ConnectionCache" /> and the connections created by <see cref="Server" />.
-/// Applications can use this interface to build their own custom client connection and connection cache classes.
+/// <summary>A leaf <see cref="IInvoker" /> invoker that sends requests and receives responses from a connection that
+/// implements a <see cref="Protocol" />.
 /// </summary>
-/// <remarks>The disposal of the protocol connection aborts invocations, cancels dispatches and disposes the underlying
+/// <remarks><para>A protocol connection is the building block for <see cref="ClientConnection" />, <see
+/// cref="ConnectionCache" /> and the connections created by <see cref="Server" />. Applications can use this interface
+/// to build their own custom client connection and connection cache classes.</para>
+/// <para>The <see cref="IInvoker.InvokeAsync"/> implementation behaves as follow:
+/// <list type="bullet"><item><description>When the request is a two-way request, the returned task doesn't complete
+/// successfully until after the request's <see cref="OutgoingFrame.Payload" /> is fully sent and the response is
+/// received from the peer. When the request is a one-way request, the returned task completes successfully with an
+/// empty response when the request's <see cref="OutgoingFrame.Payload" /> is fully sent.</description></item>
+/// <item><description>For all requests (one-way and two-way), the sending of the request's <see
+/// cref="OutgoingFrame.PayloadContinuation" /> continues in a background task after the returned task has completed
+/// successfully.</description></item></list></para>
+/// <para>The disposal of the protocol connection aborts invocations, cancels dispatches and disposes the underlying
 /// transport connection without waiting for the peer. To wait for invocations and dispatches to complete, call <see
 /// cref="ShutdownAsync" /> first. If the configured dispatcher does not complete promptly when its cancellation token
-/// is canceled, the disposal can hang.</remarks>
+/// is canceled, the disposal can hang.</para></remarks>
 /// <seealso cref="ClientProtocolConnectionFactory" />
 public interface IProtocolConnection : IInvoker, IAsyncDisposable
 {
