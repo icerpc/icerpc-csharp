@@ -253,7 +253,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// </list>
     /// </returns>
     /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the server is disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the connection cache is disposed.</exception>
     public Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         lock (_mutex)

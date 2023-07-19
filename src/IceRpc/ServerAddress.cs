@@ -66,8 +66,8 @@ public readonly record struct ServerAddress
     }
 
     /// <summary>Gets or initializes transport-specific parameters.</summary>
-    /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty"
-    /// />.</value>
+    /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.
+    /// </value>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
