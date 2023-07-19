@@ -12,6 +12,7 @@
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(Version)" />
     <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
     <PackageReference Include="IceRpc.Transports.Quic" Version="$(Version)" />
