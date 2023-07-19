@@ -10,10 +10,10 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
 
-/// <summary>Represents an invoker that routes outgoing requests to connections it manages. The connection cache keeps
-/// at most one active connection per server address.</summary>
-/// <remarks>The connection cache routes requests based on the request's <see cref="IServerAddressFeature" /> feature
-/// and the server addresses of the request's target service.</remarks>
+/// <summary>Represents an invoker that routes outgoing requests to connections it manages.</summary>
+/// <remarks><para>The connection cache routes requests based on the request's <see cref="IServerAddressFeature" />
+/// feature or the server addresses of the request's target service.</para>
+/// <para>The connection cache keeps at most one active connection per server address.</para></remarks>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections.
@@ -136,21 +136,29 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The corresponding <see cref="IncomingResponse" />.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if no <see cref="IServerAddressFeature" /> feature is set and
+    /// the request's service address has no server addresses.</exception>
+    /// <exception cref="IceRpcException">Thrown with one of the following error:
+    /// <list type="bullet"><item><term><see cref="IceRpcError.InvocationRefused" /></term><description>This error
+    /// indicates that the connection cache is shutdown.</description></item>
+    /// <item><term><see cref="IceRpcError.NoConnection" /></term><description>This error indicates that the request
+    /// <see cref="IServerAddressFeature" /> feature has no server addresses.</description></item></list>.
+    /// </exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this connection cache is disposed.</exception>
     /// <remarks><para>If the request <see cref="IServerAddressFeature" /> feature is not set, the cache sets it from
     /// the server addresses of the target service.</para>
     /// <para>It then looks for an active connection. The <see cref="ConnectionCacheOptions.PreferExistingConnection" />
     /// property influences how the cache selects this active connection. If no active connection can be found, the
-    /// cache creates a new connection to one
-    /// of the request's server addresses from the <see cref="IServerAddressFeature" /> feature.</para>
-    /// <para>If the connection establishment to <see cref="IServerAddressFeature.ServerAddress" /> is unsuccessful,
-    /// the cache will try to establish a connection to one of the
-    /// <see cref="IServerAddressFeature.AltServerAddresses" /> addresses. Each connection attempt rotates the server
-    /// addresses of the server address feature, the main server address corresponding to the last attempt failure is
-    /// appended at the end of <see cref="IServerAddressFeature.AltServerAddresses" /> and the first address from
-    /// <see cref="IServerAddressFeature.AltServerAddresses" /> replaces
-    /// <see cref="IServerAddressFeature.ServerAddress" />. If the cache cannot find an active connection and all
-    /// the attempts to establish a new connection fail, this method throws the exception from the last attempt.</para>
-    /// </remarks>
+    /// cache creates a new connection to one of the server addresses from the <see cref="IServerAddressFeature" />
+    /// feature.</para>
+    /// <para>If the connection establishment to <see cref="IServerAddressFeature.ServerAddress" /> is unsuccessful, the
+    /// cache will try to establish a connection to one of the <see cref="IServerAddressFeature.AltServerAddresses" />
+    /// addresses. Each connection attempt rotates the server addresses of the server address feature, the main server
+    /// address corresponding to the last attempt failure is appended at the end of <see
+    /// cref="IServerAddressFeature.AltServerAddresses" /> and the first address from <see
+    /// cref="IServerAddressFeature.AltServerAddresses" /> replaces <see cref="IServerAddressFeature.ServerAddress" />.
+    /// If the cache cannot find an active connection and all the attempts to establish a new connection fail, this
+    /// method throws the exception from the last attempt.</para></remarks>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
@@ -166,9 +174,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
         {
             if (request.ServiceAddress.ServerAddress is null)
             {
-                throw new IceRpcException(
-                    IceRpcError.NoConnection,
-                    "Cannot send a request to a service without a server address.");
+                throw new InvalidOperationException("Cannot send a request to a service without a server address.");
             }
 
             serverAddressFeature = new ServerAddressFeature(request.ServiceAddress);
