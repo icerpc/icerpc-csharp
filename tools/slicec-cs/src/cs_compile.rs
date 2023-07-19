@@ -64,10 +64,12 @@ fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationSt
 
 #[cfg(test)]
 mod test {
-    use super::{cs_patcher, cs_validator};
+    use super::{check_for_unique_names, cs_patcher, cs_validator};
     use crate::cs_options::CsOptions;
     use crate::generators::generate_from_slice_file;
+    use slicec::compilation_state::CompilationState;
     use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
+    use slicec::slice_file::SliceFile;
     use slicec::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
     use slicec::utils::file_util::resolve_files_from;
     use std::io;
@@ -108,16 +110,19 @@ mod test {
     #[test]
     fn unique_filenames() {
         // Arrange
-        let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let slice1 = root_dir.join("tests/IceRpc.Slice.Tests/Pingable.slice");
-        let slice2 = root_dir.join("tests/IntegrationTests/Pingable.slice");
-
-        let mut options = CsOptions::default().slice_options;
-        options.sources.push(slice1.display().to_string());
-        options.sources.push(slice2.display().to_string());
+        let cs_options = CsOptions::default();
+        let mut compilation_state = CompilationState::create(&cs_options.slice_options);
+        compilation_state.files.insert(
+            "foo/Pingable.slice".to_owned(),
+            SliceFile::new("foo/Pingable.slice".to_owned(), "".to_owned(), true),
+        );
+        compilation_state.files.insert(
+            "bar/Pingable.slice".to_owned(),
+            SliceFile::new("bar/Pingable.slice".to_owned(), "".to_owned(), true),
+        );
 
         // Act
-        let compilation_state = slicec::compile_from_options(&options, cs_patcher, cs_validator);
+        check_for_unique_names(&mut compilation_state);
 
         // Assert
         let expected = Diagnostic::new(Error::IO {
