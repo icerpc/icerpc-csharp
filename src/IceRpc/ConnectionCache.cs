@@ -10,7 +10,7 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
 
-/// <summary>Represents an invoker that routes outgoing requests to cached connections.</summary>
+/// <summary>Represents an invoker that routes requests to cached connections.</summary>
 /// <remarks>The connection cache creates <see cref="IProtocolConnection" /> connections and keeps at most one active
 /// connection per server address. It routes requests on these connections based on the request's <see
 /// cref="IServerAddressFeature" /> feature and the server addresses of the request's target service.</remarks>
