@@ -200,13 +200,9 @@ public ref partial struct SliceDecoder
 
     /// <summary>Decodes a Slice string into a string.</summary>
     /// <returns>The string decoded by this decoder.</returns>
-    public string DecodeString() => DecodeStringBody(DecodeSize());
-
-    /// <summary>Decodes <paramref name="size" /> UTF-8 bytes into a string.</summary>
-    /// <param name="size">The number of UTF-8 bytes to read and decode.</param>
-    /// <returns>The string decoded by this decoder.</returns>
-    public string DecodeStringBody(int size)
+    public string DecodeString()
     {
+        int size = DecodeSize();
         if (size == 0)
         {
             return "";
