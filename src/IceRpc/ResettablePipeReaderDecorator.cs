@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -18,8 +17,9 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <summary>Gets or sets a value indicating whether this decorator can be reset.</summary>
     /// <value><see langword="true"/> if this decorator can be reset; otherwise, <see langword="false"/>. Defaults to
     /// <see langword="true"/>.</value>
-    /// <remarks>This property can only be set to <see langword="false" />. If <see cref="IsResettable"/> value is true
-    /// and <see cref="Complete" /> was called on the decorator, the decoratee will be completed.</remarks>
+    /// <remarks>This property can only be set to <see langword="false" />. If <see cref="IsResettable"/> is <see
+    /// langword="true" /> and <see cref="Complete" /> was called, setting this property to <see langword="false" />
+    /// completes the decoratee.</remarks>
     public bool IsResettable
     {
         get => _isResettable;
