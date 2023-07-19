@@ -1,5 +1,6 @@
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Slice;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,8 +34,8 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
                     .UseDeadline(hostContext.Configuration.GetValue<TimeSpan>("Deadline:DefaultTimeout"))
                     .UseLogger()
                     .Into<ClientConnection>())
-            // Add an IGreeter singleton using the invoker singleton registered above.
-            .AddIceRpcProxy<IGreeter, GreeterProxy>();
+            // Add an IGreeter singleton that uses the invoker singleton registered above.
+            .AddSingleton<IGreeter>(provider => provider.CreateSliceProxy<GreeterProxy>());
     });
 
 // Build the host.
