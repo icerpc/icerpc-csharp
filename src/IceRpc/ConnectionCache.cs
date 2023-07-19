@@ -11,9 +11,9 @@ using System.Runtime.ExceptionServices;
 namespace IceRpc;
 
 /// <summary>Represents an invoker that routes outgoing requests to connections it manages.</summary>
-/// <remarks>The connection cache routes requests based on the request's <see cref="IServerAddressFeature" /> feature or
-/// the server addresses of the request's target service. It keeps at most one active connection per server
-/// address.</remarks>
+/// <remarks><para>The connection cache routes requests based on the request's <see cref="IServerAddressFeature" />
+/// feature or the server addresses of the request's target service.</para>
+/// <para>The connection cache keeps at most one active connection per server address.</para></remarks>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections.
