@@ -13,9 +13,9 @@ namespace IceRpc;
 
 /// <summary>Represents a client connection used to send requests to a server and receive the corresponding responses.
 /// </summary>
-/// <remarks>This client connection can also dispatch requests ("callbacks") received from the server. The client
-/// connection's underlying connection is recreated and reconnected automatically when it's closed by any event other
-/// than a call to <see cref="ShutdownAsync" /> or <see cref="DisposeAsync" />.</remarks>
+/// <remarks>The client's underlying connection is an <see cref="IProtocolConnection" /> connection. It's recreated and
+/// reconnected automatically when it's closed by any event other than a call to <see cref="ShutdownAsync" /> or <see
+/// cref="DisposeAsync" />.</remarks>
 public sealed class ClientConnection : IInvoker, IAsyncDisposable
 {
     // The underlying protocol connection once successfully established.

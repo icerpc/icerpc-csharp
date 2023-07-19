@@ -10,10 +10,10 @@ using System.Runtime.ExceptionServices;
 
 namespace IceRpc;
 
-/// <summary>Represents an invoker that routes outgoing requests to connections it manages. The connection cache keeps
-/// at most one active connection per server address.</summary>
-/// <remarks>The connection cache routes requests based on the request's <see cref="IServerAddressFeature" /> feature
-/// and the server addresses of the request's target service.</remarks>
+/// <summary>Represents an invoker that routes outgoing requests to cached connections.</summary>
+/// <remarks>The connection cache creates <see cref="IProtocolConnection" /> connections and keeps at most one active
+/// connection per server address. It routes requests on these connections based on the request's <see
+/// cref="IServerAddressFeature" /> feature and the server addresses of the request's target service.</remarks>
 public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 {
     // Connected connections.

@@ -11,8 +11,8 @@ using System.Security.Authentication;
 
 namespace IceRpc;
 
-/// <summary>A server accepts connections from clients and dispatches the requests it receives over these connections.
-/// </summary>
+/// <summary>A server accepts <see cref="IProtocolConnection" /> connections from clients and dispatches the requests it
+/// receives over these connections.</summary>
 public sealed class Server : IAsyncDisposable
 {
     private readonly LinkedList<IProtocolConnection> _connections = new();
