@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Ice;
 using IceRpc.Locator;
+using IceRpc.Slice.Ice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc;
 
-/// <summary>This class provides extension methods to install the locator interceptor in a <see cref="Pipeline" />.
-/// </summary>
+/// <summary>Provides extension methods for <see cref="Pipeline" /> to add the locator interceptor.</summary>
 public static class LocatorPipelineExtensions
 {
     /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator.</summary>

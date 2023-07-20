@@ -66,8 +66,8 @@ public readonly record struct ServerAddress
     }
 
     /// <summary>Gets or initializes transport-specific parameters.</summary>
-    /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty"
-    /// />.</value>
+    /// <value>The server address parameters. Defaults to <see cref="ImmutableDictionary{TKey, TValue}.Empty" />.
+    /// </value>
     public ImmutableDictionary<string, string> Params
     {
         get => _params;
@@ -78,9 +78,9 @@ public readonly record struct ServerAddress
             {
                 ServiceAddress.CheckParams(value);
             }
-            catch (FormatException ex)
+            catch (FormatException exception)
             {
-                throw new ArgumentException("Invalid parameters.", nameof(value), ex);
+                throw new ArgumentException("Invalid parameters.", nameof(value), exception);
             }
             _params = value;
             OriginalUri = null; // new params invalidates OriginalUri

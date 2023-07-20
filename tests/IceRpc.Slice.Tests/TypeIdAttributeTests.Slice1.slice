@@ -1,0 +1,7 @@
+// Copyright (c) ZeroC, Inc.
+
+mode = Slice1
+
+module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace
+
+class MyClass {}

@@ -11,6 +11,7 @@
   <ItemGroup>
     <SliceFile Include="../slice/Uploader.slice" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
-    <PackageReference Include="icerpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
   </ItemGroup>
 </Project>

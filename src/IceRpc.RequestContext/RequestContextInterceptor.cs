@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
-using Slice;
+using ZeroC.Slice;
 
 namespace IceRpc.RequestContext;
 

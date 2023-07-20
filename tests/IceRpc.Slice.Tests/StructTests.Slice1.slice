@@ -1,0 +1,18 @@
+// Copyright (c) ZeroC, Inc.
+
+mode = Slice1
+
+module IceRpc::Tests::Slice
+
+compact struct MyCompactStructWithNullableProxy {
+    a: int32
+    i: Pingable?
+}
+
+compact struct MyCompactStructWithSequenceOfNullableProxies {
+    i: sequence<Pingable?>
+}
+
+compact struct MyCompactStructWithDictionaryOfNullableProxies {
+    i: dictionary<int32, Pingable?>
+}

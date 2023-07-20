@@ -41,7 +41,7 @@ pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
         .add_block(request_class(interface_def))
         .add_block(response_class(interface_def));
 
-    if interface_def.supported_encodings().supports(&Encoding::Slice1) {
+    if interface_def.supported_encodings().supports(Encoding::Slice1) {
         interface_builder.add_block(
             format!(
                 "\

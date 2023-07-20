@@ -5,16 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method that adds an invoker to an <see cref="IServiceCollection" />.</summary>
+/// <summary>Provides an extension method for <see cref="IServiceCollection" /> to add an invoker.</summary>
 public static class InvokerServiceCollectionExtensions
 {
     /// <summary>Adds an <see cref="IInvoker" /> to this service collection.</summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configure">The action to configure the new invoker.</param>
     /// <returns>The service collection.</returns>
-    /// <remarks>The new invoker singleton is typically used as the invocation pipeline of proxies added using
-    /// <see cref="ProxyServiceCollectionExtensions.AddIceRpcProxy{T, TProxy}(IServiceCollection, ServiceAddress?)" />.
-    /// </remarks>
     public static IServiceCollection AddIceRpcInvoker(
         this IServiceCollection services,
         Action<IInvokerBuilder> configure) =>

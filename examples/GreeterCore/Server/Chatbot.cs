@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
 using GreeterCore;
+using IceRpc;
 
 namespace GreeterCoreServer;
 

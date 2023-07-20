@@ -9,10 +9,10 @@ internal static class ExceptionUtil
 {
     /// <summary>Rethrows an exception while preserving its stack trace. This method does not return and
     /// is typically called as: <c>throw ExceptionUtil.Throw(ex);</c>.</summary>
-    internal static Exception Throw(Exception ex)
+    internal static Exception Throw(Exception exception)
     {
-        ExceptionDispatchInfo.Throw(ex);
+        ExceptionDispatchInfo.Throw(exception);
         Debug.Assert(false);
-        return ex;
+        return exception;
     }
 }

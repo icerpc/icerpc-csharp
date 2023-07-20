@@ -2,8 +2,8 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using IceRpc.Ice;
 using IceRpc.Slice;
+using IceRpc.Slice.Ice;
 using IceRpc.Tests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -19,7 +19,8 @@ public class IceObjectTests
     {
         await using ServiceProvider provider = new ServiceCollection()
             .AddClientServerColocTest(Protocol.Parse(protocol), new PingableService())
-            .AddIceRpcProxy<IIceObject, IceObjectProxy>(new Uri($"{protocol}:/service"))
+            .AddSingleton<IIceObject>(
+                provider => provider.CreateSliceProxy<IceObjectProxy>(new Uri($"{protocol}:/service")))
             .BuildServiceProvider(validateScopes: true);
         IIceObject proxy = provider.GetRequiredService<IIceObject>();
         Server server = provider.GetRequiredService<Server>();

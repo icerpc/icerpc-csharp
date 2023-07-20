@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
+using ZeroC.Slice;
 
 namespace IceRpc.Tests;
 

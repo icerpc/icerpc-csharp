@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-encoding = Slice1
+mode = Slice1
 
-[cs::namespace("IceRpc.Ice")]
+[cs::namespace("IceRpc.Slice.Ice")]
 module Ice
 
 /// The path of a service, encoded as an Ice identity. Use this type when converting an Ice::Identity parameter or field

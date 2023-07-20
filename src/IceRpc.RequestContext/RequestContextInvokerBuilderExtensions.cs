@@ -4,7 +4,7 @@ using IceRpc.RequestContext;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method to add a request context interceptor to an <see cref="IInvokerBuilder" />.
+/// <summary>Provides an extension method for <see cref="IInvokerBuilder" /> to add the request context interceptor.
 /// </summary>
 public static class RequestContextInvokerBuilderExtensions
 {

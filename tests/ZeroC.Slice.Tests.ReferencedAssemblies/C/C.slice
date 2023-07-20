@@ -1,0 +1,17 @@
+// Copyright (c) ZeroC, Inc.
+
+mode = Slice1
+
+module Slice::Tests::ReferencedAssemblies
+
+class ClassC : ClassA {
+    cValue: string
+}
+
+class CompactClassC(3) : CompactClassA {
+    cValue: string
+}
+
+exception ExceptionC : ExceptionA {
+    cValue: string
+}

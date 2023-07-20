@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <Description>IceRpc.Slice for C#.</Description>
+        <AssemblyTitle>$(Description)</AssemblyTitle>
+        <PackageTags>IceRPC;Slice;Binary;Serialization;Format</PackageTags>
+    </PropertyGroup>
+    <ItemGroup>
+      <SliceFile Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice" OutputDir="$(MSBuildProjectDirectory)/generated" Pack="true" PackagePath="slice/Ice" />
+      
+      <!-- Reference the built-in Slice files -->
+      <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
+      <ProjectReference Include="..\ZeroC.Slice\ZeroC.Slice.csproj" ExactVersion="true" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+        <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+    <!-- NuGet package contents-->
+    <ItemGroup>
+        <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+        <Content Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
+        <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="build" />
+    </ItemGroup>
+</Project>

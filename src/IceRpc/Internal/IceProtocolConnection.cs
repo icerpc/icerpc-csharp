@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Slice;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Security.Authentication;
+using ZeroC.Slice;
 
 namespace IceRpc.Internal;
 
@@ -737,8 +736,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             if (buffer.Length < headerSize)
             {
-                throw new InvalidDataException(
-                    $"Received invalid frame header for request with id '{requestId}'.");
+                throw new InvalidDataException($"Received invalid frame header for request with id '{requestId}'.");
             }
 
             EncapsulationHeader encapsulationHeader = SliceEncoding.Slice1.DecodeBuffer(
@@ -784,7 +782,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     var requestFailed = new RequestFailedExceptionData(ref decoder);
 
                     string target = requestFailed.Fragment.Length > 0 ?
-                        $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+                        $"{requestFailed.Identity.ToPath()}#{requestFailed.Fragment}" : requestFailed.Identity.ToPath();
 
                     message =
                         $"The dispatch failed with status code {statusCode} while dispatching '{requestFailed.Operation}' on '{target}'.";
@@ -793,7 +791,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     message = decoder.DecodeString();
                     break;
             }
-
             decoder.CheckEndOfBuffer();
             return (statusCode, message, buffer.End);
         }
@@ -821,7 +818,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         // Request header.
         var requestHeader = new IceRequestHeader(
-            request.ServiceAddress.Path,
+            Identity.Parse(request.ServiceAddress.Path),
             request.ServiceAddress.Fragment,
             request.Operation,
             request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent : OperationMode.Normal);
@@ -886,7 +883,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     encoder.EncodeReplyStatus(response.StatusCode == StatusCode.ServiceNotFound ?
                         ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
-                    new RequestFailedExceptionData(request.Path, request.Fragment, request.Operation)
+                    new RequestFailedExceptionData(Identity.Parse(request.Path), request.Fragment, request.Operation)
                         .Encode(ref encoder);
                     break;
                 case StatusCode.UnhandledException:
@@ -1482,7 +1479,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         Fragment = requestHeader.Fragment,
                         IsOneway = requestId == 0,
                         Operation = requestHeader.Operation,
-                        Path = requestHeader.Path,
+                        Path = requestHeader.Identity.ToPath(),
                         Payload = requestFrameReader,
                     };
 

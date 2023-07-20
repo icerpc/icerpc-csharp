@@ -5,24 +5,27 @@
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
     </PropertyGroup>
-   <ItemGroup>
-        <SliceFile
-            Include="../../slice/$(AssemblyName)/*.slice"
-            OutputDir="$(MSBuildProjectDirectory)/generated"
-            Pack="true"
-            PackagePath="slice/$(AssemblyName)"/>
-        <SliceFile
-            Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice"
-            OutputDir="$(MSBuildProjectDirectory)/generated"
-            Pack="true"
-            PackagePath="slice/Ice" />
-        <SliceFile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceFile Include="../../slice/$(AssemblyName)/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
-        <!-- Reference the built-in Slice files -->
-        <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
-    </ItemGroup>
+    <ItemDefinitionGroup>
+      <SliceFile>
+        <AdditionalOptions>--rpc none</AdditionalOptions>
+      </SliceFile>
+    </ItemDefinitionGroup>
     <ItemGroup>
-        <ProjectReference Include="..\Slice\Slice.csproj" ExactVersion="true" />
+        <SliceFile
+          Include="../../slice/IceRpc/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated"
+          Pack="true"
+          PackagePath="slice/$(AssemblyName)" />
+        <SliceFile
+          Include="../../slice/IceRpc/Internal/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+        <SliceFile
+          Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice"
+          OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
+       <SliceDirectory Include="../../slice/IceRpc/"/>
+      </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\ZeroC.Slice\ZeroC.Slice.csproj" ExactVersion="true" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
             <PrivateAssets>all</PrivateAssets>
@@ -35,7 +38,7 @@
     <ItemGroup>
         <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
         <Content Include="README.md" Pack="true" PackagePath="\" />
-        <None Include="..\..\build\logo.png" Pack="true" PackagePath="\" />
+        <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
         <Content Include="IceRpc.props" Pack="true" PackagePath="build" />
     </ItemGroup>
 </Project>

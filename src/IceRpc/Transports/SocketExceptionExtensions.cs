@@ -4,8 +4,8 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports;
 
-/// <summary>Provides an extension method to convert a <see cref="SocketException"/> into an
-/// <see cref="IceRpcException"/>.</summary>
+/// <summary>Provides an extension method for <see cref="SocketException"/> to convert it into an <see
+/// cref="IceRpcException"/>.</summary>
 public static class SocketExceptionExtensions
 {
     /// <summary>Converts a <see cref="SocketException"/> into an <see cref="IceRpcException" />.</summary>

@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
-using Slice;
+using ZeroC.Slice;
 
 namespace IceRpc.Transports.Slic.Internal;
 
-/// <summary>Provides an extension method for decoding a 64-bit opaque data value into a <see langword="long"/>.
-/// </summary>
+/// <summary>Provides an extension method for <see cref="SliceDecoder" /> to decode a 64-bit opaque data value into a
+/// <see langword="long"/>.</summary>
 internal static class OpaqueDataSliceDecoderExtensions
 {
     /// <summary>Decodes a 64-bit opaque data value.</summary>

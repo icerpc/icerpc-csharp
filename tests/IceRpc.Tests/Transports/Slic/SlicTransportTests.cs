@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice.Internal;
+using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
@@ -8,10 +8,10 @@ using IceRpc.Transports.Slic;
 using IceRpc.Transports.Slic.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using Slice;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Security.Authentication;
+using ZeroC.Slice;
 
 namespace IceRpc.Tests.Transports.Slic;
 
@@ -1136,24 +1136,24 @@ public class SlicTransportTests
         await using ServiceProvider provider = new ServiceCollection()
             .AddSlicTest()
             .AddTestDuplexTransportDecorator(clientOperationsOptions: new DuplexTransportOperationsOptions()
-                {
-                    ReadDecorator = async (connection, memory, cancellationToken) =>
+            {
+                ReadDecorator = async (connection, memory, cancellationToken) =>
+                    {
+                        if (allowedReadLength == 0)
                         {
-                            if (allowedReadLength == 0)
-                            {
-                                await readSemaphore.WaitAsync(-1, cancellationToken);
-                                allowedReadLength = int.MaxValue;
-                            }
-
-                            if (allowedReadLength < memory.Length)
-                            {
-                                memory = memory[0..allowedReadLength];
-                            }
-                            int length = await connection.ReadAsync(memory, cancellationToken);
-                            allowedReadLength -= length;
-                            return length;
+                            await readSemaphore.WaitAsync(-1, cancellationToken);
+                            allowedReadLength = int.MaxValue;
                         }
-                })
+
+                        if (allowedReadLength < memory.Length)
+                        {
+                            memory = memory[0..allowedReadLength];
+                        }
+                        int length = await connection.ReadAsync(memory, cancellationToken);
+                        allowedReadLength -= length;
+                        return length;
+                    }
+            })
             .BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();

@@ -5,7 +5,7 @@ using System.IO.Compression;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
-/// <summary>Provides an extension method to add the compressor interceptor to an <see cref="IInvokerBuilder" />.
+/// <summary>Provides an extension method for <see cref="IInvokerBuilder" /> to add the compressor interceptor.
 /// </summary>
 public static class CompressorInvokerBuilderExtensions
 {

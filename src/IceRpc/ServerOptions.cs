@@ -40,8 +40,7 @@ public sealed record class ServerOptions
 
     /// <summary>Gets or sets the SSL server authentication options.</summary>
     /// <value>The SSL server authentication options. When not <see langword="null" />, the server will accept only
-    /// secure connections.
-    /// </value>
+    /// secure connections.</value>
     public SslServerAuthenticationOptions? ServerAuthenticationOptions { get; set; }
 
     /// <summary>Gets or sets the shutdown timeout. This timeout is used when gracefully shutting down a connection

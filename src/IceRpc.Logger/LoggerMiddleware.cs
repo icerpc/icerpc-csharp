@@ -44,10 +44,10 @@ public class LoggerMiddleware : IDispatcher
                     response.StatusCode);
                 return response;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 _logger.LogDispatchException(
-                    ex,
+                    exception,
                     request.Path,
                     request.Operation);
                 throw;
@@ -56,7 +56,8 @@ public class LoggerMiddleware : IDispatcher
     }
 }
 
-/// <summary>This class contains the ILogger extension methods for logging LoggerMiddleware messages.</summary>
+/// <summary>Provides extension methods for <see cref="ILogger" />. They are used by <see cref="LoggerMiddleware" />.
+/// </summary>
 internal static partial class LoggerMiddlewareLoggerExtensions
 {
     [LoggerMessage(

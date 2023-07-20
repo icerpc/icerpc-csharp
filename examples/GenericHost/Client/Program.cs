@@ -3,6 +3,7 @@
 using GenericHostClient;
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
+using IceRpc.Slice;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -60,8 +61,8 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
             // Add an invoker singleton; this invoker corresponds to the invocation pipeline. This invocation pipeline
             // flows into the ClientConnection singleton.
             .AddIceRpcInvoker(builder => builder.UseTelemetry().UseLogger().Into<ClientConnection>())
-            // Add an IGreeter singleton using the invoker singleton registered above.
-            .AddIceRpcProxy<IGreeter, GreeterProxy>();
+            // Add an IGreeter singleton that uses the invoker singleton registered above.
+            .AddSingleton<IGreeter>(provider => provider.CreateSliceProxy<GreeterProxy>());
     });
 
 // Build the host.

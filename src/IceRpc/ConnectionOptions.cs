@@ -29,8 +29,8 @@ public record class ConnectionOptions
     /// <summary>Gets or sets the Ice idle timeout. This option is specific to the ice protocol. Once the connection is
     /// established, the runtime sends a heartbeat to the peer when there is no write on the connection for half this
     /// Ice idle timeout.</summary>
-    /// <value>The Ice idle timeout. Defaults to <c>60</c> seconds to match the default ACM configuration in Ice
-    /// 3.7.</value>
+    /// <value>The Ice idle timeout. Defaults to <c>60</c> seconds to match the default ACM configuration in Ice 3.7.
+    /// </value>
     /// <seealso cref="EnableIceIdleCheck" />
     public TimeSpan IceIdleTimeout
     {

@@ -1,0 +1,29 @@
+// Copyright (c) ZeroC, Inc.
+
+mode = Slice1
+
+module IceRpc::Tests::Slice
+
+class MyClassA {
+    theB: MyClassB?
+    theC: MyClassC?
+}
+
+class MyClassB : MyClassA {
+    theA: MyClassA?
+}
+
+class MyClassC {
+    theB: MyClassB?
+}
+
+// Tests for operations that accept and return class instances
+interface ClassOperations {
+    // Compact format
+    opAnyClassCompact(p1: AnyClass) -> AnyClass
+    opMyClassCompact(p1: MyClassA) -> MyClassA
+
+    // Sliced format
+    [slicedFormat(Args, Return)] opAnyClassSliced(p1: AnyClass) -> AnyClass
+    [slicedFormat(Args, Return)] opMyClassSliced(p1: MyClassA) -> MyClassA
+}

@@ -94,8 +94,8 @@ hostBuilder.ConfigureServices(services =>
                 // Add the compressor interceptor to the invocation pipeline.
                .UseCompressor(CompressionFormat.Brotli)
                .Into<ClientConnection>())
-        // Add an IGreeter singleton using the IInvoker singleton registered above.
-       .AddIceRpcProxy<IGreeter, GreeterProxy>());
+        // Add an IGreeter singleton that uses the IInvoker singleton registered above.
+       .AddSingleton<IGreeter>(provider => provider.CreateSliceProxy<GreeterProxy>());
 
 using var host = hostBuilder.Build();
 host.Run();

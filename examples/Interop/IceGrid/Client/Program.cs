@@ -2,8 +2,8 @@
 
 using Demo;
 using IceRpc;
-using IceRpc.Ice;
 using IceRpc.Retry;
+using IceRpc.Slice.Ice;
 using Microsoft.Extensions.Logging;
 
 // Create an invocation pipeline for all our proxies.

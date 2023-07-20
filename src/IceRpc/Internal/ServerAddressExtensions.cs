@@ -5,7 +5,7 @@ using System.Text;
 
 namespace IceRpc.Internal;
 
-/// <summary>This class provides extension methods for <see cref="ServerAddress" />.</summary>
+/// <summary>Provides extension methods for <see cref="ServerAddress" />.</summary>
 internal static class ServerAddressExtensions
 {
     /// <summary>Appends the server address and all its parameters (if any) to this string builder.</summary>
