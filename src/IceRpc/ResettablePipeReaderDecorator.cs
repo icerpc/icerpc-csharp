@@ -39,7 +39,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
             if (_isResettable)
             {
-                AdvanceReader();
+                AdvanceDecoratee();
 
                 // If Complete was called on this resettable decorator without an intervening Reset, we call Complete
                 // on the decoratee.
@@ -180,7 +180,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("Reading is already in progress.");
 
-        AdvanceReader();
+        AdvanceDecoratee();
 
         ReadResult readResult;
         try
@@ -250,7 +250,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("Reading is already in progress.");
 
-        AdvanceReader();
+        AdvanceDecoratee();
 
         try
         {
@@ -290,7 +290,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("Reading is already in progress.");
 
-        AdvanceReader();
+        AdvanceDecoratee();
 
         long size = (_consumed is null ? 0 : _sequence.GetOffset(_consumed.Value)) + minimumSize;
         if (size > int.MaxValue)
@@ -323,7 +323,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         return ProcessReadResult(readResult);
     }
 
-    private void AdvanceReader()
+    private void AdvanceDecoratee()
     {
         _isCanceled = false;
 
