@@ -12,7 +12,7 @@ namespace IceRpc;
 /// provided to <see cref="ResettablePipeReaderDecorator(PipeReader, int)" /> or if the reading from the decoratee fails
 /// with an exception other than <see cref="OperationCanceledException"/>.</para>
 /// <para>Calling <see cref="Complete" /> on the decorator doesn't complete the decoratee to allow reading again the
-/// data after the decorator is reset. It's therefore important to make the decorator non-resettable by calling <see
+/// data after the decorator is reset. It's therefore important to make the decorator non-resettable by setting <see
 /// cref="IsResettable" /> to <see langword="false" /> to complete the decoratee.</para></remarks>
 // The default CopyToAsync implementation is suitable for this reader implementation. It calls ReadAsync/AdvanceTo to
 // read the data. This ensures that the decorated pipe reader buffered data is not consumed.
@@ -22,8 +22,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <value><see langword="true"/> if this decorator can be reset; otherwise, <see langword="false"/>. Defaults to
     /// <see langword="true"/>.</value>
     /// <remarks>This property can only be set to <see langword="false" />. If <see cref="IsResettable"/> is <see
-    /// langword="true" /> and <see cref="Complete" /> was called, setting this property to <see langword="false" />
-    /// completes the decoratee.</remarks>
+    /// langword="true" /> and <see cref="Complete" /> was called, the decoratee is completed.</remarks>
     public bool IsResettable
     {
         get => _isResettable;
@@ -97,8 +96,9 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <seealso cref="PipeReader.AdvanceTo(SequencePosition, SequencePosition)"/>
     public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
-        // Calling (or not) AdvanceTo is valid even if ReadAsync returned a canceled result. In this case,
-        // _inReadingInProgress should already be false so we don't throw.
+        // If reading returns a canceled read result, _isReadInProgress is set to false since it's not required to call
+        // AdvanceTo. Calling AdvanceTo after getting a canceled read result is also valid so we don't check if reading
+        // is in progress in this case.
         if (!_isCanceled && !_isReadingInProgress)
         {
             throw new InvalidOperationException("Cannot call AdvanceTo before reading the PipeReader.");
@@ -114,7 +114,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
             // Don't call _decoratee.AdvanceTo just yet. It will be called on the next ReadAsync/TryRead call. This
             // way, if Reset is called next, it won't mark the data as examined and the following ReadAsync/TryRead
-            // call won't block. It will returned the buffered data.
+            // call won't block. It will return the buffered data.
             _examined = examined;
             _consumed = consumed;
         }
@@ -175,10 +175,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <seealso cref="PipeReader.ReadAsync(CancellationToken)"/>
     public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        ThrowIfCompleted();
-
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("Reading is already in progress.");
+
+        ThrowIfCompleted();
 
         AdvanceDecoratee();
 
@@ -245,10 +245,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     /// <seealso cref="PipeReader.TryRead(out ReadResult)"/>.
     public override bool TryRead(out ReadResult result)
     {
-        ThrowIfCompleted();
-
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("Reading is already in progress.");
+
+        ThrowIfCompleted();
 
         AdvanceDecoratee();
 
@@ -285,10 +285,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         int minimumSize,
         CancellationToken cancellationToken = default)
     {
-        ThrowIfCompleted();
-
         _isReadingInProgress = !_isReadingInProgress ? true :
             throw new InvalidOperationException("Reading is already in progress.");
+
+        ThrowIfCompleted();
 
         AdvanceDecoratee();
 
@@ -346,11 +346,11 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     {
         _sequence = readResult.Buffer;
 
-        if (_consumed is not null)
+        if (_consumed is SequencePosition consumed)
         {
             // Remove bytes marked as consumed
             readResult = new ReadResult(
-                readResult.Buffer.Slice(_consumed.Value),
+                readResult.Buffer.Slice(consumed),
                 readResult.IsCanceled,
                 readResult.IsCompleted);
         }
