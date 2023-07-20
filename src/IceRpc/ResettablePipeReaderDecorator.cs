@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -35,7 +36,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
             if (_isResettable)
             {
-                AdvanceReader(commitExamined: true);
+                AdvanceReader();
 
                 // If Complete was called on this resettable decorator without an intervening Reset, we call Complete
                 // on the decoratee.
@@ -51,13 +52,13 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     }
 
     // The latest consumed given by caller; reset by Reset.
-    private long _consumed;
+    private SequencePosition? _consumed;
     private readonly PipeReader _decoratee;
     // The latest examined given by caller.
-    private long _examined;
+    private SequencePosition? _examined;
 
     // The highest examined given to _decoratee; not affected by Reset.
-    private long _highestExamined;
+    private SequencePosition? _highestExamined;
 
     // True when the caller complete this reader; reset by Reset.
     private bool _isReaderCompleted;
@@ -66,7 +67,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
     private readonly int _maxBufferSize;
     private Exception? _readerCompleteException;
 
-    // The latest sequence returned by _decoratee; not affected by Reset.
+    // The latest ReadResult returned by _decoratee; not affected by Reset.
     private ReadResult _readResult;
 
     /// <summary>Constructs a resettable pipe reader decorator.</summary>
@@ -94,21 +95,24 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         _isReadingInProgress = _isReadingInProgress ? false :
             throw new InvalidOperationException("Cannot call AdvanceTo before reading the PipeReader.");
 
-        Debug.Assert(_examined == 0);
+        Debug.Assert(_examined is null);
 
         if (_isResettable)
         {
             ThrowIfCompleted();
-            _examined = _readResult.Buffer.GetOffset(examined);
-            _consumed = _readResult.Buffer.GetOffset(consumed);
+
+            // Don't call _decoratee.AdvanceTo just yet. It will be called on the next ReadAsync/TryRead call. This
+            // way, if Reset is called next it won't mark the data as examined and the following ReadAsync/TryRead
+            // call won't block, it will returned the buffered data.
+            _examined = examined;
+            _consumed = consumed;
         }
         else
         {
-            // the first time around, consumed is necessarily equals to or greater than the _sequence.Buffer.Start passed
-            // by the preceding call in the_isResettable=true block above
-            if (_readResult.Buffer.GetOffset(examined) <= _highestExamined)
+            if (_highestExamined is not null &&
+                _readResult.Buffer.GetOffset(examined) <= _readResult.Buffer.GetOffset(_highestExamined.Value))
             {
-                examined = _readResult.Buffer.GetPosition(_highestExamined);
+                examined = _highestExamined.Value;
             }
             _decoratee.AdvanceTo(consumed, examined);
         }
@@ -168,7 +172,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         ThrowIfCompleted();
 
-        AdvanceReader(commitExamined: true);
+        AdvanceReader();
 
         ReadResult readResult;
         try
@@ -206,11 +210,16 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
                     "The resettable pipe reader decorator cannot be reset while reading is in progress.");
             }
 
-            // Don't commit the caller's examined data on the decoratee to ensure that the ReadAsync call after Reset
-            // returns synchronously the decoratee's buffered data.
-            AdvanceReader(commitExamined: false);
+            if (_examined is not null)
+            {
+                // Don't commit the caller's examined data on the decoratee to ensure that the ReadAsync call after
+                // Reset returns synchronously the decoratee's buffered data.
+                _decoratee.AdvanceTo(_readResult.Buffer.Start, _highestExamined ?? _readResult.Buffer.Start);
+                _readResult = default;
+                _examined = null;
+            }
 
-            _consumed = 0;
+            _consumed = null;
             _isReaderCompleted = false;
             _readerCompleteException = null;
         }
@@ -239,7 +248,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         ThrowIfCompleted();
 
-        AdvanceReader(commitExamined: true);
+        AdvanceReader();
 
         try
         {
@@ -279,9 +288,9 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         ThrowIfCompleted();
 
-        AdvanceReader(commitExamined: true);
+        AdvanceReader();
 
-        long size = _consumed + minimumSize;
+        long size = (_consumed is null ? 0 : _readResult.Buffer.GetOffset(_consumed.Value)) + minimumSize;
         if (size > int.MaxValue)
         {
             // In theory this shouldn't happen if _maxBufferSize is set to a reasonable value.
@@ -302,31 +311,33 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         return ProcessReadResult(readResult);
     }
 
-    private void AdvanceReader(bool commitExamined)
+    private void AdvanceReader()
     {
-        if (_isResettable && (_readResult.Buffer.Length > 0 || _readResult.IsCompleted))
+        if (_isResettable && _examined is not null)
         {
             // The examined given to _decoratee must be ever-increasing.
-            if (commitExamined && _examined > _highestExamined)
+            if (_highestExamined is null ||
+                _readResult.Buffer.GetOffset(_examined.Value) > _readResult.Buffer.GetOffset(_highestExamined.Value))
             {
                 _highestExamined = _examined;
             }
 
-            _decoratee.AdvanceTo(_readResult.Buffer.Start, _readResult.Buffer.GetPosition(_highestExamined));
-            _readResult = default;
-            _examined = 0;
+            _decoratee.AdvanceTo(_readResult.Buffer.Start, _highestExamined ?? _readResult.Buffer.Start);
+
+            _examined = null;
         }
+        _readResult = default;
     }
 
     private ReadResult ProcessReadResult(ReadResult readResult)
     {
         _readResult = readResult;
 
-        if (_consumed > 0)
+        if (_consumed is not null)
         {
             // Remove bytes marked as consumed
             readResult = new ReadResult(
-                readResult.Buffer.Slice(_consumed),
+                readResult.Buffer.Slice(_consumed.Value),
                 readResult.IsCanceled,
                 readResult.IsCompleted);
         }

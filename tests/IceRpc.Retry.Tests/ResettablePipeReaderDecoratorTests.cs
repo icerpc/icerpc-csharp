@@ -188,8 +188,8 @@ public sealed class ResettablePipeReaderDecoratorTests
         ReadResult result = await readTask;
         if (advanceTo)
         {
-            // We test with both calling AdvanceTo because it's valid behavior to call or not call AdvanceTo before
-            // calling again ReadAsync after a CancelPendingRead.
+            // We test with both calling AdvanceTo or not because it's valid behavior to call or not call AdvanceTo
+            // before calling again ReadAsync after a CancelPendingRead.
             sut.AdvanceTo(result.Buffer.End);
         }
 
