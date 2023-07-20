@@ -61,7 +61,7 @@ fn encode_type(
 ) -> CodeBlock {
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
-            format!("{encoder_param}.EncodeNullableServiceAddress({param}?.ServiceAddress);")
+            format!("IceRpc.ServiceAddressSliceEncoderExtensions.EncodeNullableServiceAddress(ref {encoder_param}, {param}?.ServiceAddress);")
         }
         TypeRefs::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
@@ -107,7 +107,7 @@ fn encode_type(
                         encode_dictionary(dictionary_ref, namespace, param, encoder_param, encoding),
                     )
                 }
-                TypeRefs::Interface(_) => format!("{encoder_param}.EncodeServiceAddress({value}.ServiceAddress);"),
+                TypeRefs::Interface(_) => format!("IceRpc.ServiceAddressSliceEncoderExtensions.EncodeServiceAddress(ref {encoder_param}, {value}.ServiceAddress);"),
                 TypeRefs::Enum(enum_ref) => {
                     let encoder_extensions_class =
                         enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
@@ -366,9 +366,12 @@ fn encode_action_body(
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if is_optional && encoding == Encoding::Slice1 {
-                write!(code, "encoder.EncodeNullableServiceAddress(value?.ServiceAddress)");
+                write!(code, "IceRpc.ServiceAddressSliceEncoderExtensions.EncodeNullableServiceAddress(ref encoder, value?.ServiceAddress)");
             } else {
-                write!(code, "encoder.EncodeServiceAddress({value}.ServiceAddress)");
+                write!(
+                    code,
+                    "IceRpc.ServiceAddressSliceEncoderExtensions.EncodeServiceAddress(ref encoder, {value}.ServiceAddress)"
+                );
             }
         }
         TypeRefs::Class(_) => {
