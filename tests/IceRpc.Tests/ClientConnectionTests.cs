@@ -351,17 +351,12 @@ public class ClientConnectionTests
     [Test]
     public async Task Shutdown_can_be_canceled()
     {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddOptions<ClientConnectionOptions>().Configure(
-            options => options.ShutdownTimeout = TimeSpan.FromMilliseconds(300));
-
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
         var serverTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
         await using ServiceProvider provider =
-            services
+            new ServiceCollection()
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
                 .AddSingleton(colocTransport.ClientTransport) // overwrite
                 .AddSingleton<IDuplexServerTransport>(serverTransport)
@@ -375,8 +370,9 @@ public class ClientConnectionTests
         // Hold server reads after the connection is established to prevent shutdown to proceed.
         serverTransport.LastAcceptedConnection.Operations.Hold = DuplexTransportOperations.Read;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        using var cts = new CancellationTokenSource();
         Task shutdownTask = connection.ShutdownAsync(cts.Token);
+        cts.Cancel();
 
         // Act/Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
