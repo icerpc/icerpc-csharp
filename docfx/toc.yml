@@ -1,8 +1,8 @@
 - name: Getting Started
   href: https://docs.testing.zeroc.com/getting-started
 
-- name: IceRPC Core
-  href: https://docs.testing.zeroc.com/icerpc-core
+- name: IceRPC
+  href: https://docs.testing.zeroc.com/icerpc
 
 - name: Slice
   href: https://docs.testing.zeroc.com/slice
