@@ -151,14 +151,13 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// property influences how the cache selects this active connection. If no active connection can be found, the
     /// cache creates a new connection to one of the server addresses from the <see cref="IServerAddressFeature" />
     /// feature.</para>
-    /// <para>If the connection establishment to <see cref="IServerAddressFeature.ServerAddress" /> is unsuccessful, the
-    /// cache will try to establish a connection to one of the <see cref="IServerAddressFeature.AltServerAddresses" />
-    /// addresses. Each connection attempt rotates the server addresses of the server address feature, the main server
-    /// address corresponding to the last attempt failure is appended at the end of <see
+    /// <para>If the connection establishment to <see cref="IServerAddressFeature.ServerAddress" /> fails, <see
+    /// cref="IServerAddressFeature.ServerAddress" /> is appended at the end of <see
     /// cref="IServerAddressFeature.AltServerAddresses" /> and the first address from <see
     /// cref="IServerAddressFeature.AltServerAddresses" /> replaces <see cref="IServerAddressFeature.ServerAddress" />.
-    /// If the cache cannot find an active connection and all the attempts to establish a new connection fail, this
-    /// method throws the exception from the last attempt.</para></remarks>
+    /// The cache tries again to find or establish a connection to <see cref="IServerAddressFeature.ServerAddress" />.
+    /// If unsuccessful, it continues rotating the addresses until success or until it tried all the addresses. If all
+    /// the attempts fail, this method throws the exception from the last attempt.</para></remarks>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
