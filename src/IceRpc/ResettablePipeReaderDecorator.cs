@@ -293,12 +293,15 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         AdvanceDecoratee();
 
         long size = (_consumed is null ? 0 : _sequence.GetOffset(_consumed.Value)) + minimumSize;
-        if (size > int.MaxValue)
+        try
+        {
+            minimumSize = checked((int)size);
+        }
+        catch (OverflowException exception)
         {
             // In theory this shouldn't happen if _maxBufferSize is set to a reasonable value.
-            throw new InvalidOperationException("Can't buffer more data than int.MaxValue");
+            throw new InvalidOperationException("Can't buffer more data than int.MaxValue", exception);
         }
-        minimumSize = (int)size;
 
         ReadResult readResult;
         try
