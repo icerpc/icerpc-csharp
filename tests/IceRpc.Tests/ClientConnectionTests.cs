@@ -351,17 +351,12 @@ public class ClientConnectionTests
     [Test]
     public async Task Shutdown_can_be_canceled()
     {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddOptions<ClientConnectionOptions>().Configure(
-            options => options.ShutdownTimeout = TimeSpan.FromMilliseconds(300));
-
         // We use our own decorated server transport
         var colocTransport = new ColocTransport();
         var serverTransport = new TestDuplexServerTransportDecorator(colocTransport.ServerTransport);
 
         await using ServiceProvider provider =
-            services
+            new ServiceCollection()
                 .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
                 .AddSingleton(colocTransport.ClientTransport) // overwrite
                 .AddSingleton<IDuplexServerTransport>(serverTransport)
@@ -371,14 +366,24 @@ public class ClientConnectionTests
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
         await connection.ConnectAsync();
-        await serverTransport.LastAcceptedConnection.ConnectAsync(default);
-        // Hold server reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.Operations.Hold = DuplexTransportOperations.Read;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var serverConnection = serverTransport.LastAcceptedConnection;
+        await serverConnection.ConnectAsync(default);
+
+        // Hold server writes after the connection is established to prevent server shutdown to proceed.
+        serverConnection.Operations.Hold = DuplexTransportOperations.Write;
+        Task writeGoAwayCalledTask = serverConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
+
+        // Act
+        using var cts = new CancellationTokenSource();
         Task shutdownTask = connection.ShutdownAsync(cts.Token);
 
-        // Act/Assert
+        // Wait for the server connection shutdown to start writing the GoAway frame before to cancel client shutdown.
+        await writeGoAwayCalledTask.ConfigureAwait(false);
+
+        cts.Cancel(); // cancel client shutdown.
+
+        // Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
     }
 }
