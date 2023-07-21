@@ -374,13 +374,13 @@ public class ClientConnectionTests
         serverConnection.Operations.Hold = DuplexTransportOperations.Write;
         Task writeGoAwayCalledTask = serverConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
 
+        // Act
         using var cts = new CancellationTokenSource();
         Task shutdownTask = connection.ShutdownAsync(cts.Token);
 
         // Wait for the server connection shutdown to start writing the GoAway frame before to cancel client shutdown.
         await writeGoAwayCalledTask.ConfigureAwait(false);
 
-        // Act
         cts.Cancel(); // cancel client shutdown.
 
         // Assert
