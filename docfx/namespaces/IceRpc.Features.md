@@ -3,4 +3,4 @@ uid: IceRpc.Features
 summary: *content
 ---
 
-Provides the request feature framework and the core request features.
+Provides the feature collection API and the core request features.
