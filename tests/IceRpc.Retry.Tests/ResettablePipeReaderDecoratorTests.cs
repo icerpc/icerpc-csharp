@@ -20,8 +20,6 @@ public sealed class ResettablePipeReaderDecoratorTests
         var sut = new ResettablePipeReaderDecorator(mock, maxBufferSize: 100);
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.End);
-        // Ensure the read data is marked as examined on the decoratee (the Examined test bellow would fail otherwise).
-        sut.TryRead(out _);
         sut.Complete();
 
         // Act
@@ -32,7 +30,8 @@ public sealed class ResettablePipeReaderDecoratorTests
         Assert.That(mock.CompleteException, Is.Null);
         Assert.That(mock.Consumed, Is.EqualTo(readResult.Buffer.Start));
         Assert.That(mock.CancelPendingReadCalled, Is.False);
-        Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.End));
+        // AdvanceTo on the decoratee is only called on the next read.
+        Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.Start));
     }
 
     [Test]
@@ -174,6 +173,9 @@ public sealed class ResettablePipeReaderDecoratorTests
         await pipe.Writer.WriteAsync(new byte[1]);
         result = await sut.ReadAsync();
         Assert.That(result.Buffer.Length, Is.EqualTo(11));
+
+        pipe.Reader.Complete();
+        pipe.Writer.Complete();
     }
 
     [Test]
@@ -222,8 +224,6 @@ public sealed class ResettablePipeReaderDecoratorTests
 
         _ = await sut.ReadAsync();
         sut.AdvanceTo(readResult.Buffer.GetPosition(3), readResult.Buffer.GetPosition(4));
-        // Ensure the read data is marked as examined on the decoratee (the Examined test bellow would fail otherwise).
-        sut.TryRead(out _);
         sut.Complete();
         sut.Reset();
 
@@ -237,7 +237,8 @@ public sealed class ResettablePipeReaderDecoratorTests
         Assert.That(mock.CompleteException, Is.Null);
         Assert.That(mock.Consumed, Is.EqualTo(readResult.Buffer.Start));
         Assert.That(mock.CancelPendingReadCalled, Is.False);
-        Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.GetPosition(4)));
+        // AdvanceTo on the decoratee is only called on the next read.
+        Assert.That(mock.Examined, Is.EqualTo(readResult.Buffer.Start));
     }
 
     [Test]

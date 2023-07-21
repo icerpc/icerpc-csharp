@@ -220,6 +220,9 @@ public sealed class RetryInterceptorTests
 
         // Assert
         Assert.That(attempts, Is.EqualTo(2));
+
+        pipe.Reader.Complete();
+        pipe.Writer.Complete();
     }
 
     [Test, TestCaseSource(nameof(RetryWithOtherReplicaSource))]

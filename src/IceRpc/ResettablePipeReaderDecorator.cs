@@ -106,7 +106,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
 
         _isReadingInProgress = false;
 
-        Debug.Assert(!_isReadingInProgress && _examined is null);
+        Debug.Assert(_examined is null);
 
         if (_isResettable)
         {
@@ -122,7 +122,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         {
             // The examined position given to _decoratee.AdvanceTo must be ever-increasing.
             if (_highestExamined is not null &&
-                _sequence.GetOffset(examined) <= _sequence.GetOffset(_highestExamined.Value))
+                _sequence.GetOffset(examined) < _sequence.GetOffset(_highestExamined.Value))
             {
                 examined = _highestExamined.Value;
             }
@@ -323,6 +323,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         return ProcessReadResult(readResult);
     }
 
+    /// <summary>Advances the decoratee to the examined position saved by the AdvanceTo call on the decorator.</summary>
+    /// <remarks>Calling AdvanceTo on the decoratee commits the latest examined data and ensures the next read call will
+    /// read additional data if all the data was examined. If the decorator is reset, this ensures that the next read
+    /// call will immediately return the buffered data instead of blocking.</remarks>
     private void AdvanceDecoratee()
     {
         _isCanceled = false;
