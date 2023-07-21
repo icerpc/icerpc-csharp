@@ -323,6 +323,7 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         }
         catch
         {
+            _isReadingInProgress = false;
             _isResettable = false;
             throw;
         }
