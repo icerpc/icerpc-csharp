@@ -4,7 +4,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Retry.Tests;
+namespace IceRpc.Tests;
 
 public sealed class ResettablePipeReaderDecoratorTests
 {
