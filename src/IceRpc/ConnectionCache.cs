@@ -156,8 +156,8 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     /// cref="IServerAddressFeature.AltServerAddresses" /> and the first address from <see
     /// cref="IServerAddressFeature.AltServerAddresses" /> replaces <see cref="IServerAddressFeature.ServerAddress" />.
     /// The cache tries again to find or establish a connection to <see cref="IServerAddressFeature.ServerAddress" />.
-    /// If unsuccessful, it continues rotating the addresses until success or until it tried all the addresses. If all
-    /// the attempts fail, this method throws the exception from the last attempt.</para></remarks>
+    /// If unsuccessful, the cache repeats this process until success or until it tried all the addresses. If all the
+    /// attempts fail, this method throws the exception from the last attempt.</para></remarks>
     public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
         if (request.Features.Get<IServerAddressFeature>() is IServerAddressFeature serverAddressFeature)
