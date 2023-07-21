@@ -366,15 +366,24 @@ public class ClientConnectionTests
         ClientConnection connection = provider.GetRequiredService<ClientConnection>();
         server.Listen();
         await connection.ConnectAsync();
-        await serverTransport.LastAcceptedConnection.ConnectAsync(default);
-        // Hold server reads after the connection is established to prevent shutdown to proceed.
-        serverTransport.LastAcceptedConnection.Operations.Hold = DuplexTransportOperations.Read;
+
+        var serverConnection = serverTransport.LastAcceptedConnection;
+        await serverConnection.ConnectAsync(default);
+
+        // Hold server writes after the connection is established to prevent server shutdown to proceed.
+        serverConnection.Operations.Hold = DuplexTransportOperations.Write;
+        Task writeGoAwayCalledTask = serverConnection.Operations.GetCalledTask(DuplexTransportOperations.Write);
 
         using var cts = new CancellationTokenSource();
         Task shutdownTask = connection.ShutdownAsync(cts.Token);
-        cts.Cancel();
 
-        // Act/Assert
+        // Wait for the server connection shutdown to start writing the GoAway frame before to cancel client shutdown.
+        await writeGoAwayCalledTask.ConfigureAwait(false);
+
+        // Act
+        cts.Cancel(); // cancel client shutdown.
+
+        // Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
     }
 }
