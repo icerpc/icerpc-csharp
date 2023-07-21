@@ -300,7 +300,10 @@ public sealed class ResettablePipeReaderDecorator : PipeReader
         catch (OverflowException exception)
         {
             // In theory this shouldn't happen if _maxBufferSize is set to a reasonable value.
-            throw new InvalidOperationException("Can't buffer more data than int.MaxValue", exception);
+            throw new ArgumentException(
+                $"{minimumSize} is too large and would cause the buffered data to be larger than int.MaxValue",
+                nameof(minimumSize),
+                exception);
         }
 
         ReadResult readResult;
