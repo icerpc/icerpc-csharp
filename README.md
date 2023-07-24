@@ -115,7 +115,7 @@ The Slice language is RPC-centric: its focus is defining RPCs in a clear and con
 set.
 
 > The Slice language and serialization format are not tied to IceRPC, and you can use Slice with another RPC framework
-> or without any RPC framework. Nevertheless, the Slice compiler for C# ([slicec-cs][slicec-cs]) and the IceRPC + Slice
+> or without any RPC framework. Nevertheless, the Slice compiler for C# ([slicec-cs]) and the IceRPC + Slice
 > library code ([IceRpc.Slice][icerpc-slice]) provided by this repository are IceRPC-specific.
 
 Defining the customary `Greeter` interface in Slice is straightforward:
