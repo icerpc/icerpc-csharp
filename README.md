@@ -4,40 +4,32 @@
 
 [Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
 
-IceRPC is a new RPC framework that helps you build networked applications with minimal effort.
-
-Like any RPC framework, IceRPC provides two main components:
- - a runtime library that coordinates the sending and processing of requests and responses over network connections
-(the IceRPC core)
- - an [Interface Definition Language][idl] (IDL) that allows you to define a high-level "contract" for your services and a
-compiler that generates C# code from your contract's definitions (the Slice language and the Slice compiler)
-
-However, unlike other RPC frameworks, IceRPC does not force you to use its IDL. IceRPC provides a convenient core API
-that you can use to send and process requests and responses with the IDL and encoding of your choice, including
-[Protobuf][protobuf] and [JSON][json].
+IceRPC is a modular RPC framework that helps you build networked applications with minimal effort.
 
 ## Built for QUIC
 
 IceRPC was built from the ground up to take advantage of [QUIC][quic], the new multiplexed transport that underpins
 [HTTP/3][http3].
 
-QUIC is ideally suited for RPCs: an RPC consists of a request/response pair carried by a bidirectional QUIC stream.
+QUIC is ideally suited for RPCs: an RPC maps to a request/response pair carried by a bidirectional QUIC stream.
 Multiple request/response pairs can proceed in parallel inside the same QUIC connection without interfering with each
-other. QUIC also gives us bidirectional streaming for free: long-lived requests and responses that carry audio/video
-streams or streams of sensor data, stock quotes, etc. can share a network connection with small, short-lived RPCs.
+other.
 
 IceRPC uses its own application protocol, [`icerpc`][icerpc-protocol], to exchange connection settings, transmit
 requests and responses, and ensure an orderly shutdown. This new RPC-focused protocol is a thin layer over QUIC.
 
 ### Not only for QUIC
 
-While QUIC is the driving force for IceRPC's protocol, IceRPC is not limited to communications over QUIC. IceRPC also
-provides a multiplexing adapter that converts any traditional duplex transport into a QUIC-like multiplexed transport:
-[Slic][slic]. This allows you to use `icerpc` over duplex transports such as TCP, Bluetooth, and named pipes[^1].
+The primary transport for IceRPC is QUIC, but we're still in the early days of QUIC, so being QUIC-only is not
+practical.
+
+To bridge this gap, IceRPC provides a multiplexing adapter called [Slic][slic]. Slic implements a QUIC-like multiplexed
+transport over any duplex transport such as TCP. This way, you can use IceRPC with QUIC, with TCP (via Slic), and with
+various other traditional transports such as Bluetooth Bluetooth, and named pipes[^1].
 
 ## Modern C# and .NET
 
-IceRPC for C# takes full advantage of the latest C# syntax and .NET features and offers a truly modern C# API.
+IceRPC for C# takes full advantage of the latest C# syntax and .NET features to offer a truly modern C# API.
 
 Chief among these features is async/await. Async/await allows you to utilize threads efficiently when making calls that
 wait for I/O, and RPCs are all about network I/O. Async/await also makes your code easier to read and maintain: you can
@@ -103,21 +95,30 @@ transport and then plug it in IceRPC. All the transport interfaces are public an
 
 And you can use IceRPC with a [DI container][icerpc-with-di]—or not. It's all opt-in.
 
+## Choose your IDL
+
+IceRPC provides a first-rate byte-oriented API that allows you to make RPCs with the [IDL][idl] and serialization format
+of your choice. For example, you can easily send Protobuf messages over IceRPC as illustrated by the
+[GreeterProtobuf][protobuf] example.
+
+Another option—and the most common option—is to use [Slice][slice] to define the contract between your clients and
+servers.
+
 ## Slice
 
-[Slice][slice] is a completely revised version of [Ice][zeroc-ice]'s IDL (the [original Slice][ice-slice]), with a new
-syntax, a new file extension (.slice), a new compilation model, additional keywords and more. It just keeps the same
-terminology: modules, interfaces, operations, proxies, enums, etc. They have the same meaning in the new Slice language
-as in the original language[^2].
+Slice is a completely revised version of [Ice][zeroc-ice]'s IDL (the [original Slice][ice-slice]), with a new syntax, a
+new file extension (.slice), a new compilation model, a new encoding and more. The new Slice just keeps the same
+terminology: modules, interfaces, operations, proxies, enums, etc. have the same meaning in the new Slice language as in
+the original language[^2].
 
-The Slice language is RPC-centric: it's all about defining RPCs in a clear and concise manner, with just the right
-feature set.
+The Slice language is RPC-centric: its focus is defining RPCs in a clear and concise manner, with just the right feature
+set.
 
-> Slice as a language is not tied to IceRPC. You can use Slice and the supporting [slicec][slicec] parser library with
-> another RPC framework. However, the Slice compiler for C# ([slicec-cs][slicec-cs]) and the Slice library code
-> ([IceRpc.Slice][icerpc-slice]) provided by this repository are IceRPC-specific.
+> The Slice language and serialization format are not tied to IceRPC, and you can use Slice with another RPC framework
+> or without any RPC framework. Nevertheless, the Slice compiler for C# ([slicec-cs][slicec-cs]) and the IceRPC + Slice
+> library code ([IceRpc.Slice][icerpc-slice]) provided by this repository are IceRPC-specific.
 
-Defining the customary Greeter interface in Slice is straightforward:
+Defining the customary `Greeter` interface in Slice is straightforward:
 
 ```slice
 // Interface Greeter is implemented by a service hosted in a server.
@@ -131,7 +132,7 @@ interface Greeter {
 
 You don't need to craft special request and reply message types: you can specify all your parameters inline.
 
-The Slice compiler for C# then generates readable and succinct C# code from this Greeter interface:
+The Slice compiler for C# then generates readable and succinct C# code from this `Greeter`` interface:
  - a client-side `IGreeter` interface with a single `GreetAsync` method.
  - a client-side `GreeterProxy` that implements `IGreeter` by sending requests / receiving responses with the IceRPC
 core
@@ -195,18 +196,17 @@ in-memory transport for testing). Future releases may add additional transports.
 [examples]: examples
 [http3]: https://en.wikipedia.org/wiki/HTTP/3
 [icerpc-for-ice-users]: https://docs.testing.zeroc.com/icerpc-for-ice-users
-[icerpc-protocol]: https://docs.testing.zeroc.com/icerpc-core/icerpc-protocol/mapping-rpcs-to-streams
-[icerpc-with-di]: https://docs.testing.zeroc.com/icerpc-core/dependency-injection/di-and-icerpc-for-csharp
+[icerpc-protocol]: https://docs.testing.zeroc.com/icerpc/icerpc-protocol/mapping-rpcs-to-streams
+[icerpc-with-di]: https://docs.testing.zeroc.com/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
 [ice-slice]: https://doc.zeroc.com/ice/3.7/the-slice-language
 [icerpc-slice]: src/IceRpc/Slice
-[json]: examples/GreeterJson
 [license]: LICENSE
 [packages]: https://www.nuget.org/packages/IceRpc
 [pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
 [protobuf]: examples/GreeterProtobuf
 [quic]: https://en.wikipedia.org/wiki/QUIC
-[slic]: TBD
+[slic]: https://docs.testing.zeroc.com/icerpc/slic-protocol
 [slice]: https://docs.testing.zeroc.com/slice
 [slicec]: https://github.com/icerpc/slicec
 [slicec-cs]: tools/slicec-cs
