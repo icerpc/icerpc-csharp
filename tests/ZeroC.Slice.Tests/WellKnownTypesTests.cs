@@ -129,4 +129,44 @@ public class WellKnownTypesTests
 
         Assert.That(decodedUri, Is.EqualTo(uri));
     }
+
+    [TestCase("2463fecc-45c3-449e-95c7-bf3679dbb220")]
+    [TestCase("cfbe7458-6e8f-45c1-b1d1-404866a9d904")]
+    public void Decode_guid(string value)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var guid = Guid.Parse(value);
+        var span = encoder.GetPlaceholderSpan(16);
+        _ = guid.TryWriteBytes(span);
+
+        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+
+        // Act
+        Guid decodedGuid = decoder.DecodeGuid();
+
+        Assert.That(decodedGuid, Is.EqualTo(guid));
+    }
+
+    [TestCase("2463fecc-45c3-449e-95c7-bf3679dbb220")]
+    [TestCase("cfbe7458-6e8f-45c1-b1d1-404866a9d904")]
+    public void Encode_guid(string value)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+        var guid = Guid.Parse(value);
+
+        // Act
+        encoder.EncodeGuid(guid);
+
+        var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
+
+        Span<byte> data = new byte[16];
+        decoder.CopyTo(data);
+        var decodedGuid = new Guid(data);
+
+        Assert.That(decodedGuid, Is.EqualTo(guid));
+    }
 }
