@@ -132,7 +132,7 @@ interface Greeter {
 
 You don't need to craft special request and reply message types: you can specify all your parameters inline.
 
-The Slice compiler for C# then generates readable and succinct C# code from this `Greeter`` interface:
+The Slice compiler for C# then generates readable and succinct C# code from this `Greeter` interface:
  - a client-side `IGreeter` interface with a single `GreetAsync` method.
  - a client-side `GreeterProxy` that implements `IGreeter` by sending requests / receiving responses with the IceRPC
 core
