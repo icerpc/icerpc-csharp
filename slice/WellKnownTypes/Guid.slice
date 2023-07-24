@@ -1,6 +1,6 @@
 [cs::namespace("ZeroC.Slice")]
 module WellKnownTypes
 
-/// Represents a Global unique indentifier (GUID), encoded as a 128 blob.
+/// Represents a Global unique indentifier (GUID), encoded as a span of 16 bytes.
 [cs::type("System.Guid")]
 custom Guid
