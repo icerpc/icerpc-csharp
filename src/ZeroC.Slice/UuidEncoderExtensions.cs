@@ -6,7 +6,7 @@ namespace ZeroC.Slice;
 /// <c>WellKnownTypes::Uuid</c>.</summary>
 public static class UuidSliceEncoderExtensions
 {
-    /// <summary>Encodes a Guid as a span of 16 bytes.</summary>
+    /// <summary>Encodes a <see cref="Guid" /> as a <c>WellKnownTypes::Uuid</c>.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The value to encode.</param>
     public static void EncodeUuid(this ref SliceEncoder encoder, Guid value)

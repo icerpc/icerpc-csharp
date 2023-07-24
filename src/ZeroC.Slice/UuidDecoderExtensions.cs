@@ -8,7 +8,7 @@ namespace ZeroC.Slice;
 /// <c>WellKnownTypes::Uuid</c> into a <see cref="Guid" />.</summary>
 public static class UuidSliceDecoderExtensions
 {
-    /// <summary>Decodes a UUID.</summary>
+    /// <summary>Decodes a <c>WellKnownTypes::Uuid</c>.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The Uuid decoded as a <see cref="Guid"/>.</returns>
     public static Guid DecodeUuid(this ref SliceDecoder decoder)
