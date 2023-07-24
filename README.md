@@ -107,7 +107,7 @@ servers.
 ## Slice
 
 Slice is a completely revised version of [Ice][zeroc-ice]'s IDL (the [original Slice][ice-slice]), with a new syntax, a
-new file extension (.slice), a new compilation model, a new encoding and more. The new Slice just keeps the same
+new file extension (.slice), a new compilation model, a new encoding, and more. The new Slice just keeps the same
 terminology: modules, interfaces, operations, proxies, enums, etc. have the same meaning in the new Slice language as in
 the original language[^2].
 
