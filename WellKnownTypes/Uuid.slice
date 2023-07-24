@@ -1,0 +1,7 @@
+[cs::namespace("ZeroC.Slice")]
+module WellKnownTypes
+
+/// Represents a Universally unique identifier (UUID), encoded as a span of 16 bytes (128-bit).
+/// https://en.wikipedia.org/wiki/Universally_unique_identifier
+[cs::type("System.Guid")]
+custom Uuid
