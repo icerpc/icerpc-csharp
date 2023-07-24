@@ -101,7 +101,7 @@ IceRPC provides a first-rate byte-oriented API that allows you to make RPCs with
 of your choice. For example, you can easily send Protobuf messages over IceRPC as illustrated by the
 [GreeterProtobuf][protobuf] example.
 
-Another option—and the most common option—is to use [Slice][slice] to define the contract between your clients and
+Another option—and the most common choice—is to use [Slice][slice] to define the contract between your clients and
 servers.
 
 ## Slice
