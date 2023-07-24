@@ -25,7 +25,7 @@ practical.
 
 To bridge this gap, IceRPC provides a multiplexing adapter called [Slic][slic]. Slic implements a QUIC-like multiplexed
 transport over any duplex transport such as TCP. This way, you can use IceRPC with QUIC, with TCP (via Slic), and with
-various other traditional transports such as Bluetooth Bluetooth, and named pipes[^1].
+various other traditional transports such as Bluetooth and named pipes[^1].
 
 ## Modern C# and .NET
 
