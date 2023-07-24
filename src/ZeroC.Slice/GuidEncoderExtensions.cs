@@ -14,7 +14,7 @@ public static class GuidSliceEncoderExtensions
         Span<byte> span = encoder.GetPlaceholderSpan(16);
         if (!value.TryWriteBytes(span))
         {
-            throw new InvalidOperationException($"Failed to encode Guuid '{value}'.");
+            throw new InvalidOperationException($"Failed to encode Guid '{value}'.");
         }
     }
 }
