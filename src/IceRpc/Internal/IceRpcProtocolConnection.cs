@@ -48,7 +48,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // The GoAway frame received from the peer. Read it only after _goAwayCts is canceled.
     private IceRpcGoAway _goAwayFrame;
 
-    // The number of bytes we need to encode a size up to _maxRemoteHeaderSize. It's 2 for DefaultMaxHeaderSize.
+    // The number of bytes we need to encode a size up to _maxPeerHeaderSize. It's 2 for DefaultMaxIceRpcHeaderSize.
     private int _headerSizeLength = 2;
 
     private readonly TimeSpan _inactivityTimeout;
@@ -62,9 +62,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     // The ID of the last unidirectional stream accepted by this connection. It's null as long as no unidirectional
     // stream (other than _remoteControlStream) was accepted.
     private ulong? _lastRemoteUnidirectionalStreamId;
+
     private readonly int _maxLocalHeaderSize;
+    private int _maxPeerHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
+
     private readonly object _mutex = new();
-    private int _peerMaxHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
     private Task? _readGoAwayTask;
 
@@ -956,11 +958,11 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
     private void CheckPeerHeaderSize(int headerSize)
     {
-        if (headerSize > _peerMaxHeaderSize)
+        if (headerSize > _maxPeerHeaderSize)
         {
             throw new IceRpcException(
                 IceRpcError.LimitExceeded,
-                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_peerMaxHeaderSize}).");
+                $"The header size ({headerSize}) for an icerpc request or response is greater than the peer's max header size ({_maxPeerHeaderSize}).");
         }
     }
 
@@ -1426,7 +1428,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 // a varuint62 always fits in a long
                 try
                 {
-                    _peerMaxHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
+                    _maxPeerHeaderSize = ConnectionOptions.IceRpcCheckMaxHeaderSize((long)value);
                 }
                 catch (ArgumentOutOfRangeException exception)
                 {
