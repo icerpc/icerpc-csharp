@@ -623,7 +623,7 @@ public class OperationTests
         var proxy = new MyOperationsAProxy(invoker);
 
         // Act
-        await proxy.OpWithProxyParameterAsync(PingableProxy.FromPath("/hello"));
+        await proxy.OpWithProxyParameterAsync(new PingableProxy { ServiceAddress = new() { Path = "/hello" }});
 
         // Assert
         Assert.That(service.ReceivedProxy, Is.Not.Null);
@@ -794,7 +794,8 @@ public class OperationTests
 
         public ValueTask<PingableProxy> OpWithProxyReturnValueAsync(
             IFeatureCollection features,
-            CancellationToken cancellationToken) => new(PingableProxy.FromPath("/hello"));
+            CancellationToken cancellationToken) => new(
+                new PingableProxy { ServiceAddress = new() { Path = "/hello" }});
         public ValueTask OpWithTrailingOptionalValuesAsync(int p1, int? p2, int p3, int? p4, int? p5, IFeatureCollection features, CancellationToken cancellationToken) => default;
         public ValueTask OpWithTrailingOptionalValuesAndStreamAsync(int p1, int? p2, int p3, int? p4, int? p5, IAsyncEnumerable<byte?> p6, IFeatureCollection features, CancellationToken cancellationToken) => default;
     }

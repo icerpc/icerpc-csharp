@@ -123,12 +123,7 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
     format!(
-        r#"/// <summary>Creates a relative proxy from a path.</summary>
-/// <param name="path">The path.</param>
-/// <returns>The new relative proxy.</returns>
-public static {proxy_impl} FromPath(string path) => new() {{ ServiceAddress = new() {{ Path = path }} }};
-
-/// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
+        r#"/// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="serviceAddress">The service address. <see langword="null" /> is equivalent to <see cref="DefaultServiceAddress" />.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
