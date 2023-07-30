@@ -9,6 +9,12 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
+/// <summary>Represents a delegate that decodes a Slice exception from a Slice decoder.</summary>
+/// <param name="decoder">The Slice decoder.</param>
+/// <param name="message">The exception message.</param>
+/// <returns>The decoded Slice exception.</returns>
+public delegate SliceException DecodeExceptionFunc(ref SliceDecoder decoder, string? message);
+
 /// <summary>Provides extension methods for <see cref="IncomingResponse" /> to decode its Slice-encoded payload.
 /// </summary>
 public static class IncomingResponseExtensions
