@@ -7,9 +7,3 @@ namespace ZeroC.Slice;
 /// <param name="decoder">The Slice decoder.</param>
 /// <returns>The value.</returns>
 public delegate T DecodeFunc<T>(ref SliceDecoder decoder);
-
-/// <summary>Represents a delegate that decodes a Slice exception from a Slice decoder.</summary>
-/// <param name="decoder">The Slice decoder.</param>
-/// <param name="message">The exception message.</param>
-/// <returns>The decoded Slice exception.</returns>
-public delegate SliceException DecodeExceptionFunc(ref SliceDecoder decoder, string? message);
