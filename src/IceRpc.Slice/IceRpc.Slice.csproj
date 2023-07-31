@@ -25,6 +25,6 @@
         <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
         <Content Include="README.md" Pack="true" PackagePath="\" />
         <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
-        <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="build" />
+        <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="buildTransitive" />
     </ItemGroup>
 </Project>
