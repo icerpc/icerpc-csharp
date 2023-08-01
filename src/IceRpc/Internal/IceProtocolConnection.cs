@@ -1039,7 +1039,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            response = new OutgoingResponse(request, StatusCode.UnhandledException, exception);
+            response = new OutgoingResponse(
+                request,
+                StatusCode.UnhandledException,
+                "The dispatch failed with an exception.",
+                exception);
         }
         finally
         {
@@ -1074,7 +1078,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         // We "encode" the exception in the error message.
 
-                        response = new OutgoingResponse(request, StatusCode.UnhandledException, exception);
+                        response = new OutgoingResponse(
+                            request,
+                            StatusCode.UnhandledException,
+                            "The dispatch failed to read the response payload.",
+                            exception);
                     }
                 }
                 // else payload remains empty because the payload of a dispatch exception (if any) cannot be sent

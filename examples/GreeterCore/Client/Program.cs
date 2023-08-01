@@ -32,6 +32,6 @@ async Task<string> GreetAsync(string name)
     else
     {
         // Convert the response into a dispatch exception.
-        throw new DispatchException(response.StatusCode, response.ErrorMessage);
+        return new DispatchException(response.StatusCode, response.ErrorMessage);
     }
 }

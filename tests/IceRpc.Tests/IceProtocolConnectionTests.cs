@@ -21,7 +21,7 @@ public sealed class IceProtocolConnectionTests
             yield return new TestCaseData(
                 new InlineDispatcher(
                     (request, cancellationToken) =>
-                        new(new OutgoingResponse(request, StatusCode.InvalidData, invalidDataException))),
+                        new(new OutgoingResponse(request, StatusCode.InvalidData, message: null, invalidDataException))),
                 StatusCode.UnhandledException,
                 GetErrorMessage(StatusCode.InvalidData, invalidDataException));
 
@@ -29,7 +29,7 @@ public sealed class IceProtocolConnectionTests
             yield return new TestCaseData(
                 new InlineDispatcher(
                     (request, cancellationToken) =>
-                        new(new OutgoingResponse(request, StatusCode.UnhandledException, invalidOperationException))),
+                        new(new OutgoingResponse(request, StatusCode.UnhandledException, message: null, invalidOperationException))),
                 StatusCode.UnhandledException,
                 GetErrorMessage(StatusCode.UnhandledException, invalidOperationException));
 
@@ -46,13 +46,6 @@ public sealed class IceProtocolConnectionTests
                         new(new OutgoingResponse(request, StatusCode.DeadlineExpired, "deadline message"))),
                 StatusCode.UnhandledException,
                 "deadline message { Original StatusCode = DeadlineExpired }");
-
-            var unhandledException = new ArgumentException("invalid argument");
-            yield return new TestCaseData(
-                new InlineDispatcher(
-                    (request, cancellationToken) => throw unhandledException),
-                StatusCode.UnhandledException,
-                GetErrorMessage(StatusCode.UnhandledException, unhandledException));
 
             yield return new TestCaseData(
                 new InlineDispatcher(

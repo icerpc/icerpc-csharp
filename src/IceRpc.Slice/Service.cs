@@ -109,6 +109,10 @@ public class Service : IDispatcher, IIceObjectService
             }
             catch (DispatchException exception)
             {
+                if (exception.ConvertToUnhandled)
+                {
+                    return new OutgoingResponse(request, StatusCode.UnhandledException, message: null, exception);
+                }
                 return new OutgoingResponse(request, exception.StatusCode);
             }
         }

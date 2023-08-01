@@ -37,20 +37,15 @@ public sealed class OutgoingResponse : OutgoingFrame
     /// <summary>Constructs an outgoing response.</summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Success" />.</param>
+    /// <param name="message">The error message or null to use the default error message.</param>
+    /// <param name="exception">The exception that is the cause of this failure.</param>
     /// <remarks>The constructor also associates this response with the request. If another response is already set on
     /// the request, its payload and payload continuation are completed.</remarks>
-    public OutgoingResponse(IncomingRequest request, StatusCode statusCode)
-        : this(request, statusCode, $"The dispatch failed with status code {statusCode}.")
-    {
-    }
-
-    /// <summary>Constructs an outgoing response.</summary>
-    /// <param name="request">The incoming request.</param>
-    /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Success" />.</param>
-    /// <param name="errorMessage">The error message or null to use the default error message.</param>
-    /// <remarks>The constructor also associates this response with the request. If another response is already set on
-    /// the request, its payload and payload continuation are completed.</remarks>
-    public OutgoingResponse(IncomingRequest request, StatusCode statusCode, string errorMessage)
+    public OutgoingResponse(
+        IncomingRequest request,
+        StatusCode statusCode,
+        string? message = null,
+        Exception? exception = null)
         : base(request.Protocol)
     {
         request.Response = this;
@@ -58,22 +53,12 @@ public sealed class OutgoingResponse : OutgoingFrame
             throw new ArgumentException(
                 $"The status code for an exception must be greater than {nameof(StatusCode.Success)}.",
                 nameof(statusCode));
-        ErrorMessage = errorMessage;
-    }
-
-    /// <summary>Constructs an outgoing response for an unhandled exception.</summary>
-    /// <param name="request">The incoming request.</param>
-    /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Success" />.</param>
-    /// <param name="exception">The unhandled exception.</param>
-    /// <remarks>The constructor also associates this response with the request. If another response is already set on
-    /// the request, its payload and payload continuation are completed.</remarks>
-    public OutgoingResponse(IncomingRequest request, StatusCode statusCode, Exception exception)
-        : this(request, statusCode, GetErrorMessage(statusCode, exception))
-    {
+        ErrorMessage = GetErrorMessage(message, statusCode, exception);
     }
 
     // The error message includes the inner exception type and message because we don't transmit this inner exception
     // with the response.
-    private static string GetErrorMessage(StatusCode statusCode, Exception exception) =>
-        $"The dispatch failed with status code {statusCode}. The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}";
+    private static string GetErrorMessage(string? message, StatusCode statusCode, Exception? exception) =>
+        (message ?? $"The dispatch failed with status code {statusCode}.") +
+        (exception is not null ? $" The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}" : "");
 }

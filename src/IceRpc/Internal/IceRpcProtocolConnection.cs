@@ -1214,7 +1214,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                         StatusCode.TruncatedPayload,
                     _ => StatusCode.UnhandledException
                 };
-                response = new OutgoingResponse(request, statusCode, exception);
+                response = new OutgoingResponse(request, statusCode, message: null, exception);
             }
 
             return response;
