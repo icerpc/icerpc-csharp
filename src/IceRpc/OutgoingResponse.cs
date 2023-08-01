@@ -56,8 +56,6 @@ public sealed class OutgoingResponse : OutgoingFrame
         ErrorMessage = GetErrorMessage(message, statusCode, exception);
     }
 
-    // The error message includes the inner exception type and message because we don't transmit this inner exception
-    // with the response.
     private static string GetErrorMessage(string? message, StatusCode statusCode, Exception? exception) =>
         (message ?? $"The dispatch failed with status code {statusCode}.") +
         (exception is not null ? $" The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}" : "");
