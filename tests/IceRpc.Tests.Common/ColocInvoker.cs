@@ -35,7 +35,7 @@ public sealed class ColocInvoker : IInvoker
         }
         catch (Exception exception)
         {
-            outgoingResponse = new OutgoingResponse(incomingRequest, StatusCode.Unavailable, exception);
+            outgoingResponse = new OutgoingResponse(incomingRequest, StatusCode.UnhandledException, exception);
         }
 
         // Create the incoming response from the outgoing response returned by the dispatcher.
