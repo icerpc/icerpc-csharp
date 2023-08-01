@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc;
+namespace IceRpc.Slice;
 
 /// <summary>Represents an exception thrown while dispatching a request. It's encoded as a response with a status code
 /// greater than <see cref="StatusCode.Success" />.</summary>

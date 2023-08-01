@@ -14,7 +14,7 @@ public sealed class DeadlineMiddlewareTests
     /// <summary>Verifies that the dispatch throws DispatchException when the deadline expires.</summary>
     [Test]
     [NonParallelizable]
-    public void Dispatch_fails_after_the_deadline_expires()
+    public async Task Dispatch_fails_after_the_deadline_expires()
     {
         // Arrange
         CancellationToken? token = null;
@@ -43,11 +43,10 @@ public sealed class DeadlineMiddlewareTests
         };
 
         // Act
-        DispatchException? exception =
-            Assert.ThrowsAsync<DispatchException>(async () => await sut.DispatchAsync(request, CancellationToken.None));
+        OutgoingResponse response = await sut.DispatchAsync(request, CancellationToken.None);
 
         // Assert
-        Assert.That(exception!.StatusCode, Is.EqualTo(StatusCode.DeadlineExpired));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.DeadlineExpired));
         Assert.That(hasDeadline, Is.True);
         Assert.That(token, Is.Not.Null);
         Assert.That(token!.Value.CanBeCanceled, Is.True);

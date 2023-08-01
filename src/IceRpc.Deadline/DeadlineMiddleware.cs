@@ -7,7 +7,7 @@ using ZeroC.Slice;
 namespace IceRpc.Deadline;
 
 /// <summary>Represents a middleware that decodes deadline fields into deadline features. When the decoded deadline
-/// expires, this middleware cancels the dispatch and throws a <see cref="DispatchException" /> with status code
+/// expires, this middleware cancels the dispatch and returns an <see cref="OutgoingResponse" /> with status code
 /// <see cref="StatusCode.DeadlineExpired" />.</summary>
 /// <seealso cref="DeadlineRouterExtensions"/>
 /// <seealso cref="DeadlineDispatcherBuilderExtensions"/>
@@ -37,7 +37,10 @@ public class DeadlineMiddleware : IDispatcher
 
             if (timeout <= TimeSpan.Zero)
             {
-                throw new DispatchException(StatusCode.DeadlineExpired, "The request deadline has expired.");
+                return new(new OutgoingResponse(
+                    request,
+                    StatusCode.DeadlineExpired,
+                    "The request deadline has expired."));
             }
 
             request.Features = request.Features.With<IDeadlineFeature>(new DeadlineFeature(deadline));
@@ -57,7 +60,7 @@ public class DeadlineMiddleware : IDispatcher
             catch (OperationCanceledException exception) when (exception.CancellationToken == timeoutTokenSource.Token)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                throw new DispatchException(StatusCode.DeadlineExpired, "The request deadline has expired.");
+                return new OutgoingResponse(request, StatusCode.DeadlineExpired, "The request deadline has expired.");
             }
         }
     }

@@ -20,7 +20,7 @@ public sealed class ProtocolConnectionTests
         Server
     }
 
-    private static IEnumerable<TestCaseData> ExceptionIsEncodedAsADispatchExceptionSource
+    private static IEnumerable<TestCaseData> DispatcherThrowsExceptionSource
     {
         get
         {
@@ -34,6 +34,16 @@ public sealed class ProtocolConnectionTests
 
             yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);
             yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.UnhandledException);
+
+            yield return new(
+                Protocol.IceRpc,
+                new IceRpcException(IceRpcError.TruncatedData, "truncated data message"),
+                StatusCode.TruncatedPayload);
+
+            yield return new(
+                Protocol.Ice,
+                new IceRpcException(IceRpcError.TruncatedData, "truncated data message"),
+                StatusCode.UnhandledException);
         }
     }
 
@@ -308,10 +318,9 @@ public sealed class ProtocolConnectionTests
                     .With.Property("IceRpcError").EqualTo(IceRpcError.TruncatedData));
     }
 
-    /// <summary>Verifies that when a exception other than a DispatchException is thrown
-    /// during the dispatch, we encode a DispatchException with the expected status code.</summary>
-    [Test, TestCaseSource(nameof(ExceptionIsEncodedAsADispatchExceptionSource))]
-    public async Task Exception_is_encoded_as_a_dispatch_exception(
+    /// <summary>Verifies the handling of exceptions thrown from dispatch.</summary>
+    [Test, TestCaseSource(nameof(DispatcherThrowsExceptionSource))]
+    public async Task Dispatcher_throws_exception(
         Protocol protocol,
         Exception thrownException,
         StatusCode statusCode)

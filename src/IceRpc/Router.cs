@@ -23,8 +23,8 @@ namespace IceRpc;
 /// looks for dispatchers registered with a matching prefix, which corresponds to dispatchers installed using
 /// <see cref="Mount(string, IDispatcher)"/>. When searching for a matching prefix, the router starts with the request
 /// path and successively tries chopping segments from the end of the path until either the path is exhausted or a
-/// dispatcher matching the prefix is found. Finally, if the router cannot find any dispatcher, it throws a
-/// <see cref="DispatchException"/> with a <see cref="StatusCode.ServiceNotFound"/> status code.</para></remarks>
+/// dispatcher matching the prefix is found. Finally, if the router cannot find any dispatcher, it returns an
+/// <see cref="OutgoingResponse"/> with a <see cref="StatusCode.ServiceNotFound"/> status code.</para></remarks>
 public sealed class Router : IDispatcher
 {
     /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this
@@ -185,7 +185,7 @@ public sealed class Router : IDispatcher
 
                         if (prefix == "/")
                         {
-                            throw new DispatchException(StatusCode.ServiceNotFound);
+                            return new(new OutgoingResponse(request, StatusCode.ServiceNotFound));
                         }
 
                         // Cut last segment
@@ -193,7 +193,7 @@ public sealed class Router : IDispatcher
                         prefix = lastSlashPos > 0 ? NormalizePrefix(prefix[..lastSlashPos]) : "/";
                         // and try again with the new shorter prefix
                     }
-                    throw new DispatchException(StatusCode.InvalidData, "Too many segments in path.");
+                    return new(new OutgoingResponse(request, StatusCode.InvalidData, "Too many segments in path."));
                 }
             });
 
