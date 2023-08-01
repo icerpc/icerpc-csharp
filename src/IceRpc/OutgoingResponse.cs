@@ -53,10 +53,12 @@ public sealed class OutgoingResponse : OutgoingFrame
             throw new ArgumentException(
                 $"The status code for an exception must be greater than {nameof(StatusCode.Success)}.",
                 nameof(statusCode));
-        ErrorMessage = GetErrorMessage(message, statusCode, exception);
-    }
 
-    private static string GetErrorMessage(string? message, StatusCode statusCode, Exception? exception) =>
-        (message ?? $"The dispatch failed with status code {statusCode}.") +
-        (exception is not null ? $" The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}" : "");
+        string errorMessage = message ?? $"The dispatch failed with status code {statusCode}.";
+        if (exception is not null)
+        {
+            errorMessage += $" The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}";
+        }
+        ErrorMessage = errorMessage;
+    }
 }
