@@ -5,8 +5,9 @@ using ZeroC.Slice.Internal;
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides a method for reading a bit sequence.
-/// <see cref="SliceDecoder.GetBitSequenceReader(int)" />.</summary>
+/// <summary>Provides a method for reading a bit sequence.</summary>
+/// <remarks>This struct is typically returned by <see cref="SliceDecoder.GetBitSequenceReader(int)" />
+/// to read the bit sequence associated with a Slice type.</remarks>
 /// <seealso href="https://docs.testing.zeroc.com/slice2/encoding/encoding-only-constructs#bit-sequence"/>
 public ref struct BitSequenceReader
 {
@@ -44,8 +45,9 @@ public ref struct BitSequenceReader
     }
 }
 
-/// <summary>Provides a method for writing a bit sequence.
-/// <see cref="SliceEncoder.GetBitSequenceWriter(int)"/>.</summary>
+/// <summary>Provides a method for writing a bit sequence.</summary>
+/// <remarks>This struct is returned by <seealso cref="SliceEncoder.GetBitSequenceWriter(int)" />
+/// to write the bit sequence associated with a Slice type.</remarks>
 /// <seealso href="https://docs.testing.zeroc.com/slice2/encoding/encoding-only-constructs#bit-sequence"/>
 public ref struct BitSequenceWriter
 {
