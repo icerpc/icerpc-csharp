@@ -129,14 +129,14 @@ public class RouterTests
     /// <summary>Verifies that a path that doesn't match any of the registered routes throws a dispatch
     /// exception with status code <see cref="StatusCode.ServiceNotFound" />.</summary>
     [Test]
-    public void Path_not_found()
+    public async Task Path_not_found()
     {
         var router = new Router();
 
-        DispatchException? ex = Assert.ThrowsAsync<DispatchException>(
-            async () => await router.DispatchAsync(new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)));
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
+        OutgoingResponse response = await router.DispatchAsync(request);
 
-        Assert.That(ex!.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
     }
 
     /// <summary>Verifies that the router middleware are called in the expected order. That corresponds

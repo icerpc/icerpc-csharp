@@ -13,66 +13,63 @@ namespace IceRpc.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class IceProtocolConnectionTests
 {
-    private static IEnumerable<TestCaseData> DispatchExceptionSource
+    private static IEnumerable<TestCaseData> DispatchFailureSource
     {
         get
         {
-            var unhandledException = new DispatchException(StatusCode.UnhandledException);
-
             var invalidDataException = new InvalidDataException("invalid data");
             yield return new TestCaseData(
-                invalidDataException,
+                new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.InvalidData, message: null, invalidDataException))),
                 StatusCode.UnhandledException,
-                GetErrorMessage(unhandledException.Message, invalidDataException));
+                GetErrorMessage(StatusCode.InvalidData, invalidDataException));
 
             var invalidOperationException = new InvalidOperationException("invalid op message");
             yield return new TestCaseData(
-                invalidOperationException,
+                new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.UnhandledException, message: null, invalidOperationException))),
                 StatusCode.UnhandledException,
-                GetErrorMessage(unhandledException.Message, invalidOperationException));
+                GetErrorMessage(StatusCode.UnhandledException, invalidOperationException));
 
-            var applicationError = new DispatchException(StatusCode.ApplicationError, "application message");
             yield return new TestCaseData(
-                applicationError,
+                new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.ApplicationError, "application message"))),
                 StatusCode.UnhandledException,
-                GetErrorMessage(applicationError));
+                "application message { Original StatusCode = ApplicationError }");
 
-            var deadlineExpired = new DispatchException(StatusCode.DeadlineExpired, "deadline message");
             yield return new TestCaseData(
-                deadlineExpired,
+                new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.DeadlineExpired, "deadline message"))),
                 StatusCode.UnhandledException,
-                GetErrorMessage(deadlineExpired));
+                "deadline message { Original StatusCode = DeadlineExpired }");
 
-            var serviceNotFound = new DispatchException(StatusCode.ServiceNotFound);
             yield return new TestCaseData(
-                serviceNotFound,
-                StatusCode.ServiceNotFound,
-                "The dispatch failed with status code ServiceNotFound while dispatching 'op' on '/foo'.");
-
-            var operationNotFound = new DispatchException(StatusCode.OperationNotFound);
-            yield return new TestCaseData(
-                operationNotFound,
+                new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.OperationNotFound))),
                 StatusCode.OperationNotFound,
                 "The dispatch failed with status code OperationNotFound while dispatching 'op' on '/foo'.");
 
-            var convertToUnhandled = new DispatchException(StatusCode.ApplicationError, "convert to unhandled");
-            convertToUnhandled.ConvertToUnhandled = true;
             yield return new TestCaseData(
-                convertToUnhandled,
-                StatusCode.UnhandledException,
-                GetErrorMessage("The dispatch failed with status code UnhandledException.", convertToUnhandled));
+                new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.ServiceNotFound))),
+                StatusCode.ServiceNotFound,
+                "The dispatch failed with status code ServiceNotFound while dispatching 'op' on '/foo'.");
         }
     }
 
-    [Test, TestCaseSource(nameof(DispatchExceptionSource))]
-    public async Task Dispatcher_throws_exception(
-        Exception exception,
+    [Test, TestCaseSource(nameof(DispatchFailureSource))]
+    public async Task Dispatcher_failure(
+        InlineDispatcher dispatcher,
         StatusCode expectedStatusCode,
         string expectedErrorMessage)
     {
         // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw exception);
-
         await using ServiceProvider provider = new ServiceCollection()
             .AddProtocolTest(Protocol.Ice, dispatcher)
             .BuildServiceProvider(validateScopes: true);
@@ -843,9 +840,8 @@ public sealed class IceProtocolConnectionTests
         Assert.That(() => connectTask, Throws.InstanceOf<IceRpcException>());
     }
 
-    private static string GetErrorMessage(string Message, Exception innerException) =>
-        $"{Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
-
-    private static string GetErrorMessage(DispatchException dispatchException) =>
-        $"{dispatchException.Message} {{ Original StatusCode = {dispatchException.StatusCode} }}";
+    private static string GetErrorMessage(StatusCode statusCode, Exception innerException) =>
+        $"The dispatch failed with status code {statusCode}. " +
+        $"The failure was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" +
+        (statusCode == StatusCode.UnhandledException ? "" : $" {{ Original StatusCode = {statusCode} }}");
 }

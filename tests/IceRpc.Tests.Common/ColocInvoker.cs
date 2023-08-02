@@ -33,14 +33,13 @@ public sealed class ColocInvoker : IInvoker
         {
             outgoingResponse = await _dispatcher.DispatchAsync(incomingRequest, cancellationToken);
         }
-        catch (DispatchException exception) when (!exception.ConvertToUnhandled)
-        {
-            outgoingResponse = new OutgoingResponse(incomingRequest, exception);
-        }
         catch (Exception exception)
         {
-            var dispatchException = new DispatchException(StatusCode.UnhandledException, message: null, exception);
-            outgoingResponse = new OutgoingResponse(incomingRequest, dispatchException);
+            outgoingResponse = new OutgoingResponse(
+                incomingRequest,
+                StatusCode.UnhandledException,
+                message: null,
+                exception);
         }
 
         // Create the incoming response from the outgoing response returned by the dispatcher.

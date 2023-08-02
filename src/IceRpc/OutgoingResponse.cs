@@ -37,10 +37,15 @@ public sealed class OutgoingResponse : OutgoingFrame
     /// <summary>Constructs an outgoing response.</summary>
     /// <param name="request">The incoming request.</param>
     /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Success" />.</param>
-    /// <param name="errorMessage">The error message.</param>
+    /// <param name="message">The error message or null to use the default error message.</param>
+    /// <param name="exception">The exception that is the cause of this failure.</param>
     /// <remarks>The constructor also associates this response with the request. If another response is already set on
     /// the request, its payload and payload continuation are completed.</remarks>
-    public OutgoingResponse(IncomingRequest request, StatusCode statusCode, string errorMessage)
+    public OutgoingResponse(
+        IncomingRequest request,
+        StatusCode statusCode,
+        string? message = null,
+        Exception? exception = null)
         : base(request.Protocol)
     {
         request.Response = this;
@@ -48,23 +53,12 @@ public sealed class OutgoingResponse : OutgoingFrame
             throw new ArgumentException(
                 $"The status code for an exception must be greater than {nameof(StatusCode.Success)}.",
                 nameof(statusCode));
+
+        string errorMessage = message ?? $"The dispatch failed with status code {statusCode}.";
+        if (exception is not null)
+        {
+            errorMessage += $" The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}";
+        }
         ErrorMessage = errorMessage;
     }
-
-    /// <summary>Constructs an outgoing response for a dispatch exception.</summary>
-    /// <param name="request">The incoming request.</param>
-    /// <param name="dispatchException">The dispatchException.</param>
-    /// <remarks>The constructor also associates this response with the request. If another response is already set on
-    /// the request, its payload and payload continuation are completed.</remarks>
-    public OutgoingResponse(IncomingRequest request, DispatchException dispatchException)
-        : this(request, dispatchException.StatusCode, GetErrorMessage(dispatchException))
-    {
-    }
-
-    // The error message includes the inner exception type and message because we don't transmit this inner exception
-    // with the response.
-    private static string GetErrorMessage(DispatchException exception) =>
-        exception.InnerException is Exception innerException ?
-            $"{exception.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" :
-            exception.Message;
 }

@@ -2,6 +2,7 @@
 
 using GreeterCore;
 using IceRpc;
+using System.Diagnostics;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
@@ -31,7 +32,8 @@ async Task<string> GreetAsync(string name)
     }
     else
     {
-        // Convert the response into a dispatch exception.
+        // IceRPC guarantees the error message is non-null when StatusCode > Success.
+        Debug.Assert(response.ErrorMessage is not null);
         throw new DispatchException(response.StatusCode, response.ErrorMessage);
     }
 }

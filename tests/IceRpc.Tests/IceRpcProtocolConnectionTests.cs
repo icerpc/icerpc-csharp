@@ -93,88 +93,6 @@ public sealed class IceRpcProtocolConnectionTests
         }
     }
 
-    private static IEnumerable<TestCaseData> DispatchExceptionSource
-    {
-        get
-        {
-            var invalidDataException = new InvalidDataException("invalid data");
-            yield return new TestCaseData(
-                new InvalidDataException("invalid data"),
-                StatusCode.InvalidData,
-                GetErrorMessage(StatusCode.InvalidData, invalidDataException));
-
-            var invalidOperationException = new InvalidOperationException("invalid op message");
-            yield return new TestCaseData(
-                invalidOperationException,
-                StatusCode.UnhandledException,
-                GetErrorMessage(StatusCode.UnhandledException, invalidOperationException));
-
-            var truncatedData = new IceRpcException(IceRpcError.TruncatedData, "truncated data message");
-            yield return new TestCaseData(
-                truncatedData,
-                StatusCode.TruncatedPayload,
-                GetErrorMessage(StatusCode.TruncatedPayload, truncatedData));
-
-            var applicationError = new DispatchException(StatusCode.ApplicationError, "application message");
-            yield return new TestCaseData(
-                applicationError,
-                applicationError.StatusCode,
-                applicationError.Message);
-
-            var deadlineExpired = new DispatchException(StatusCode.DeadlineExpired, "deadline message");
-            yield return new TestCaseData(
-                deadlineExpired,
-                deadlineExpired.StatusCode,
-                deadlineExpired.Message);
-
-            var serviceNotFound = new DispatchException(StatusCode.ServiceNotFound);
-            yield return new TestCaseData(
-                serviceNotFound,
-                serviceNotFound.StatusCode,
-                serviceNotFound.Message);
-
-            var operationNotFound = new DispatchException(StatusCode.OperationNotFound, "op not found");
-            yield return new TestCaseData(
-                operationNotFound,
-                operationNotFound.StatusCode,
-                operationNotFound.Message);
-
-            var convertToUnhandled = new DispatchException(StatusCode.ApplicationError, "convert to unhandled");
-            convertToUnhandled.ConvertToUnhandled = true;
-            yield return new TestCaseData(
-                convertToUnhandled,
-                StatusCode.UnhandledException,
-                GetErrorMessage(StatusCode.UnhandledException, convertToUnhandled));
-        }
-    }
-
-    [Test, TestCaseSource(nameof(DispatchExceptionSource))]
-    public async Task Dispatcher_throws_exception(
-        Exception exception,
-        StatusCode expectedStatusCode,
-        string expectedErrorMessage)
-    {
-        // Arrange
-        var dispatcher = new InlineDispatcher((request, cancellationToken) => throw exception);
-
-        await using ServiceProvider provider = new ServiceCollection()
-            .AddProtocolTest(Protocol.IceRpc, dispatcher)
-            .BuildServiceProvider(validateScopes: true);
-        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
-        await sut.ConnectAsync();
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-
-        // Act
-        IncomingResponse response = await sut.Client.InvokeAsync(request);
-        ReadResult readResult = await response.Payload.ReadAsync();
-
-        // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
-        Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
-        Assert.That(readResult.IsCompleted, Is.True);
-        Assert.That(readResult.Buffer.IsEmpty, Is.True);
-    }
-
     [Test]
     public async Task Dispose_aborts_connect()
     {
@@ -1765,7 +1683,7 @@ public sealed class IceRpcProtocolConnectionTests
     private static string GetErrorMessage(StatusCode statusCode, Exception innerException)
     {
         var dispatchException = new DispatchException(statusCode);
-        return $"{dispatchException.Message} This exception was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
+        return $"{dispatchException.Message} The failure was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
     }
 
     private sealed class HoldPipeReader : PipeReader

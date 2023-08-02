@@ -1039,14 +1039,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            // If we catch an exception, we return a system exception.
-            if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
-            {
-                // We want the default error message for this new exception.
-                dispatchException = new DispatchException(StatusCode.UnhandledException, message: null, exception);
-            }
-
-            response = new OutgoingResponse(request, dispatchException);
+            response = new OutgoingResponse(
+                request,
+                StatusCode.UnhandledException,
+                "The dispatch failed with an exception.",
+                exception);
         }
         finally
         {
@@ -1080,12 +1077,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     catch (Exception exception)
                     {
                         // We "encode" the exception in the error message.
-                        var dispatchException = new DispatchException(
-                            StatusCode.UnhandledException,
-                            message: null,
-                            exception);
 
-                        response = new OutgoingResponse(request, dispatchException);
+                        response = new OutgoingResponse(
+                            request,
+                            StatusCode.UnhandledException,
+                            "The dispatch failed to read the response payload.",
+                            exception);
                     }
                 }
                 // else payload remains empty because the payload of a dispatch exception (if any) cannot be sent

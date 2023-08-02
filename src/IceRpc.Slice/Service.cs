@@ -99,15 +99,26 @@ public class Service : IDispatcher, IIceObjectService
     public virtual ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
     /// <inheritdoc/>
-    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
+    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
         {
-            return dispatchMethod(this, request, cancellationToken);
+            try
+            {
+                return await dispatchMethod(this, request, cancellationToken).ConfigureAwait(false);
+            }
+            catch (DispatchException exception)
+            {
+                if (exception.ConvertToUnhandled)
+                {
+                    return new OutgoingResponse(request, StatusCode.UnhandledException, message: null, exception);
+                }
+                return new OutgoingResponse(request, exception.StatusCode);
+            }
         }
         else
         {
-            throw new DispatchException(StatusCode.OperationNotFound);
+            return new OutgoingResponse(request, StatusCode.OperationNotFound);
         }
     }
 }

@@ -2,6 +2,7 @@
 
 using IceRpc;
 using IceRpc.Retry;
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using VisitorCenter;

@@ -1207,23 +1207,14 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (Exception exception)
             {
-                // We convert any exception into a dispatch exception if it's not already one.
-                if (exception is not DispatchException dispatchException || dispatchException.ConvertToUnhandled)
+                StatusCode statusCode = exception switch
                 {
-                    StatusCode statusCode = exception switch
-                    {
-                        InvalidDataException => StatusCode.InvalidData,
-                        IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
-                            StatusCode.TruncatedPayload,
-                        _ => StatusCode.UnhandledException
-                    };
-
-                    // We want the default error message for this new exception.
-                    dispatchException = new DispatchException(statusCode, message: null, exception);
-                }
-
-                // The payload of response below is always empty.
-                response = new OutgoingResponse(request, dispatchException);
+                    InvalidDataException => StatusCode.InvalidData,
+                    IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
+                        StatusCode.TruncatedPayload,
+                    _ => StatusCode.UnhandledException
+                };
+                response = new OutgoingResponse(request, statusCode, message: null, exception);
             }
 
             return response;
