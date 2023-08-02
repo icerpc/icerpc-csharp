@@ -5,9 +5,9 @@ using ZeroC.Slice.Internal;
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides a method for reading a bit sequence.</summary>
+/// <summary>Provides a method for reading a bit sequence.
+/// <see cref="SliceDecoder.GetBitSequenceReader(int)" /></summary>
 /// <seealso href="https://docs.testing.zeroc.com/slice2/encoding/encoding-only-constructs#bit-sequence"/>
-/// <seealso cref="SliceDecoder.GetBitSequenceReader(int)" />
 public ref struct BitSequenceReader
 {
     private byte _currentByte;
@@ -44,10 +44,9 @@ public ref struct BitSequenceReader
     }
 }
 
-/// <summary>Provides a method for writing a bit sequence to the underlying buffer writer of a <see cref="SliceEncoder"
-/// />.</summary>
+/// <summary>Provides a method for writing a bit sequence.
+/// <see cref="SliceEncoder.GetBitSequenceWriter(int)"/>.</summary>
 /// <seealso href="https://docs.testing.zeroc.com/slice2/encoding/encoding-only-constructs#bit-sequence"/>
-/// <seealso cref="SliceEncoder.GetBitSequenceWriter(int)" />
 public ref struct BitSequenceWriter
 {
     private int _index; // the bit index in _spanEnumerator.Current
