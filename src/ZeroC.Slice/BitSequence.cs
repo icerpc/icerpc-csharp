@@ -6,7 +6,7 @@ using ZeroC.Slice.Internal;
 namespace ZeroC.Slice;
 
 /// <summary>Provides a method for reading a bit sequence.
-/// <see cref="SliceDecoder.GetBitSequenceReader(int)" /></summary>
+/// <see cref="SliceDecoder.GetBitSequenceReader(int)" />.</summary>
 /// <seealso href="https://docs.testing.zeroc.com/slice2/encoding/encoding-only-constructs#bit-sequence"/>
 public ref struct BitSequenceReader
 {
