@@ -189,7 +189,7 @@ mod formatted_link_tests {
     // TODO we should add some actual testing infrastructure to this crate.
 
     fn compile_slice(slice: &str) -> CompilationState {
-        let options = CsOptions::default().slice_options;
+        let options = &CsOptions::default().slice_options;
         slicec::compile_from_strings(&[slice], Some(options), |_| {}, |_| {})
     }
 

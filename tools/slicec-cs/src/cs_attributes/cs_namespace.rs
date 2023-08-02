@@ -8,18 +8,18 @@ pub struct CsNamespace {
 }
 
 impl CsNamespace {
-    pub fn parse_from(Unparsed { directive, args }: &Unparsed, span: &Span, reporter: &mut DiagnosticReporter) -> Self {
+    pub fn parse_from(Unparsed { directive, args }: &Unparsed, span: &Span, diagnostics: &mut Diagnostics) -> Self {
         debug_assert_eq!(directive, Self::directive());
 
-        check_that_exactly_one_argument_was_provided(args, Self::directive(), span, reporter);
+        check_that_exactly_one_argument_was_provided(args, Self::directive(), span, diagnostics);
 
         let namespace = args.first().cloned().unwrap_or_default();
         CsNamespace { namespace }
     }
 
-    pub fn validate_on(&self, applied_on: Attributables, span: &Span, reporter: &mut DiagnosticReporter) {
+    pub fn validate_on(&self, applied_on: Attributables, span: &Span, diagnostics: &mut Diagnostics) {
         if !matches!(applied_on, Attributables::Module(_)) {
-            report_unexpected_attribute(self, span, None, reporter);
+            report_unexpected_attribute(self, span, None, diagnostics);
         }
     }
 }

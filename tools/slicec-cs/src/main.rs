@@ -33,7 +33,7 @@ pub fn main() {
 
     let mut compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
 
-    if !compilation_state.diagnostic_reporter.has_errors() && !slice_options.dry_run {
+    if !compilation_state.diagnostics.has_errors() && !slice_options.dry_run {
         for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
             let code = generate_from_slice_file(slice_file, &cs_options);
 
@@ -57,14 +57,14 @@ pub fn main() {
                         path: path.display().to_string(),
                         error,
                     })
-                    .report(&mut compilation_state.diagnostic_reporter);
+                    .push_into(&mut compilation_state.diagnostics);
                     continue;
                 }
             }
         }
     }
 
-    std::process::exit(compilation_state.into_exit_code())
+    std::process::exit(i32::from(compilation_state.emit_diagnostics(slice_options)))
 }
 
 fn write_file(path: &Path, contents: &str) -> Result<(), io::Error> {

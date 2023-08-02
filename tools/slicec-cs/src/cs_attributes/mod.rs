@@ -16,7 +16,7 @@ pub use cs_namespace::*;
 pub use cs_readonly::*;
 pub use cs_type::*;
 
-use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
+use slicec::diagnostics::{Diagnostic, Diagnostics, Error};
 use slicec::grammar::attributes::*;
 use slicec::grammar::Attributables;
 use slicec::slice_file::Span;

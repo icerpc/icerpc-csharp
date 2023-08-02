@@ -42,7 +42,7 @@ fn check_for_unique_names(compilation_state: &mut CompilationState) {
                 format!("Other file is '{old_path}'."),
                 None,
             )
-            .report(&mut compilation_state.diagnostic_reporter)
+            .push_into(&mut compilation_state.diagnostics)
         }
     }
 }
@@ -56,7 +56,7 @@ fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationSt
                     attribute: CsType::directive().to_owned(),
                 })
                 .set_span(custom_type.span())
-                .report(&mut compilation_state.diagnostic_reporter);
+                .push_into(&mut compilation_state.diagnostics);
             }
         }
     }
@@ -68,7 +68,7 @@ mod test {
     use crate::cs_options::CsOptions;
     use crate::generators::generate_from_slice_file;
     use slicec::compilation_state::CompilationState;
-    use slicec::diagnostics::{Diagnostic, DiagnosticReporter, Error};
+    use slicec::diagnostics::{Diagnostic, Diagnostics, Error};
     use slicec::slice_file::SliceFile;
     use slicec::test_helpers::{check_diagnostics, diagnostics_from_compilation_state};
     use slicec::utils::file_util::resolve_files_from;
@@ -89,7 +89,7 @@ mod test {
         slice_options.references.push(tests_dir.clone());
 
         // Use `resolve_files_from` to find all Slice files in the tests directory.
-        let test_slice_files = resolve_files_from(slice_options, &mut DiagnosticReporter::new(slice_options));
+        let test_slice_files = resolve_files_from(slice_options, &mut Diagnostics::new());
 
         // Compile and generate code for each test Slice file.
         for slice_file in test_slice_files {
@@ -98,8 +98,8 @@ mod test {
             slice_options.references.push(slice_dir.clone());
 
             let compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
-            if compilation_state.diagnostic_reporter.has_errors() {
-                compilation_state.into_exit_code(); // This prints the diagnostics
+            if compilation_state.diagnostics.has_errors() {
+                compilation_state.emit_diagnostics(slice_options);
                 panic!("Failed to compile IceRpc.Tests Slice files");
             }
 
@@ -111,7 +111,7 @@ mod test {
     fn unique_filenames() {
         // Arrange
         let cs_options = CsOptions::default();
-        let mut compilation_state = CompilationState::create(&cs_options.slice_options);
+        let mut compilation_state = CompilationState::create();
         compilation_state.files.insert(
             "foo/Pingable.slice".to_owned(),
             SliceFile::new("foo/Pingable.slice".to_owned(), "".to_owned(), true),
@@ -130,7 +130,7 @@ mod test {
             path: compilation_state.files.values().last().unwrap().relative_path.clone(),
             error: io::ErrorKind::InvalidInput.into(),
         });
-        let diagnostics = diagnostics_from_compilation_state(compilation_state);
+        let diagnostics = diagnostics_from_compilation_state(compilation_state, &cs_options.slice_options);
 
         check_diagnostics(diagnostics, [expected]);
     }

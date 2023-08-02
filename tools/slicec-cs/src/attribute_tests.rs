@@ -12,9 +12,9 @@ mod attributes {
     /// This function parses the provided Slice file and returns any Diagnostics that were emitted during parsing.
     #[must_use]
     pub fn parse_for_diagnostics(slice: impl Into<String>) -> Vec<Diagnostic> {
-        let options = CsOptions::default().slice_options;
+        let options = &CsOptions::default().slice_options;
         let state = slicec::compile_from_strings(&[&slice.into()], Some(options), cs_patcher, cs_validator);
-        diagnostics_from_compilation_state(state)
+        diagnostics_from_compilation_state(state, options)
     }
 
     /// Asserts that the provided slice parses okay, producing no errors.

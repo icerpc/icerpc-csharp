@@ -6,15 +6,15 @@ use super::*;
 pub struct CsEncodedReturn {}
 
 impl CsEncodedReturn {
-    pub fn parse_from(Unparsed { directive, args }: &Unparsed, span: &Span, reporter: &mut DiagnosticReporter) -> Self {
+    pub fn parse_from(Unparsed { directive, args }: &Unparsed, span: &Span, diagnostics: &mut Diagnostics) -> Self {
         debug_assert_eq!(directive, Self::directive());
 
-        check_that_no_arguments_were_provided(args, Self::directive(), span, reporter);
+        check_that_no_arguments_were_provided(args, Self::directive(), span, diagnostics);
 
         CsEncodedReturn {}
     }
 
-    pub fn validate_on(&self, applied_on: Attributables, span: &Span, reporter: &mut DiagnosticReporter) {
+    pub fn validate_on(&self, applied_on: Attributables, span: &Span, diagnostics: &mut Diagnostics) {
         if let Attributables::Operation(operation) = applied_on {
             if operation.non_streamed_return_members().is_empty() {
                 Diagnostic::new(Error::UnexpectedAttribute {
@@ -35,11 +35,11 @@ impl CsEncodedReturn {
                     },
                     None,
                 )
-                .report(reporter);
+                .push_into(diagnostics);
             }
         } else {
             // TODO Add a note explaining what this can be applied to.
-            report_unexpected_attribute(self, span, None, reporter);
+            report_unexpected_attribute(self, span, None, diagnostics);
         }
     }
 }
