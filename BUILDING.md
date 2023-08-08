@@ -195,7 +195,7 @@ dotnet build-server shutdown
 
 ## Updating Slice files
 
-The [slice](./slice) sub-directoriy is managed by a Git subtree, and contains the contents of [icerpc-slice] repository.
+The [slice](./slice) sub-directory is managed by a Git subtree and contains the contents of the [icerpc-slice] repository.
 Updates to the files in this sub-directory must be done in the icerpc-slice repository first, and then the changes can
 be pulled.
 
