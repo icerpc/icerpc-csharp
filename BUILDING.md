@@ -211,7 +211,7 @@ git checkout -b my-branch --track origin/main
 git subtree pull --prefix slice git@github.com:icerpc/icerpc-slice.git main
 git push <remote> my-branch
 ```
-3. Make the necessary C# updates, open the PR in icerpc-csharp and iterate until it's ready for merging. The "Check
+3. Make the necessary C# updates, open the PR in icerpc-csharp, and iterate until it's ready for merging. The "Check
    Slice Subtree Updates" workflow job is expected to fail at this point. This is the workflow ensuring that the
    contents of slice sub-directory are not updated with a PR.
 
