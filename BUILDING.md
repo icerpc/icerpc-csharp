@@ -215,7 +215,7 @@ git push <remote> my-branch
    Slice Subtree Updates" workflow job is expected to fail at this point. This is the workflow ensuring that the
    contents of slice sub-directory are not updated with a PR.
 
-4. Once you are ready for merging you need to first merge the icerpc-slice changes into icerpc-csharp's main branch
+4. Once you are ready to merge you need to first merge the icerpc-slice changes into the icerpc-csharp's main branch
 ``` shell
 git checkout -b main --track origin/main
 git pull
@@ -223,7 +223,7 @@ git subtree pull --prefix slice git@github.com:icerpc/icerpc-slice.git main
 git push origin main
 ```
 
-5. Then merge the main branch with your PR
+5. Then merge the main branch into your PR
 ``` shell
 git checkout my-branch
 git merge origin/main
