@@ -199,7 +199,7 @@ The [slice](./slice) sub-directory is managed by a Git subtree and contains the 
 Updates to the files in this sub-directory must be done in the icerpc-slice repository first and then the changes can
 be pulled.
 
-The procedure to upgrade this files is as follows:
+The procedure to upgrade these files is as follows:
 
 1. Open a PR (pull request) in the icerpc-slice repository with the desired changes. Once approved merge the
    PR in icerpc-slice repository.
