@@ -10,7 +10,7 @@ using static ZeroC.Slice.Internal.Slice1Definitions;
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides methods to decode data encoded with Slice1 or Slice2.</summary>
+/// <summary>Provides methods to decode data encoded with Slice.</summary>
 public ref partial struct SliceDecoder
 {
     /// <summary>Gets the number of bytes decoded in the underlying buffer.</summary>

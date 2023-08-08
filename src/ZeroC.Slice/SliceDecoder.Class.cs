@@ -10,7 +10,7 @@ using static ZeroC.Slice.Internal.Slice1Definitions;
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides methods to decode data encoded with Slice1 or Slice2.</summary>
+/// <summary>Provides methods to decode data encoded with Slice.</summary>
 public ref partial struct SliceDecoder
 {
     /// <summary>Decodes a class instance.</summary>
@@ -375,7 +375,7 @@ public ref partial struct SliceDecoder
         {
             throw new InvalidDataException($"Invalid Slice size: {size}.");
         }
-        // With Slice1, the encoded size includes the size length.
+        // The encoded size includes the size length.
         return size - 4;
     }
 
@@ -550,7 +550,7 @@ public ref partial struct SliceDecoder
         return (_classContext.Current.SliceFlags & SliceFlags.IsLastSlice) != 0;
     }
 
-    /// <summary>Holds various fields used for class and exception decoding with Slice1.</summary>
+    /// <summary>Holds various fields used for class and exception decoding.</summary>
     private struct ClassContext
     {
         // Data for the class or exception instance that is currently getting decoded.
