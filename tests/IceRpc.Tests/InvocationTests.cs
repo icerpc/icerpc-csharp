@@ -10,10 +10,10 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class InvocationTests
 {
-    /// <summary>Verifies that a callback on a connection without a dispatcher throws DispatchException(ServiceNotFound)
+    /// <summary>Verifies that a callback on a connection without a dispatcher throws DispatchException(NotFound)
     /// with the ice protocol.</summary>
     [Test]
-    public async Task Connection_without_dispatcher_throws_ServiceNotFound_with_ice()
+    public async Task Connection_without_dispatcher_throws_NotFound_with_ice()
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -33,7 +33,7 @@ public class InvocationTests
         IncomingResponse response = await incomingRequest.ConnectionContext.Invoker!.InvokeAsync(request);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.NotFound));
     }
 
     /// <summary>Verifies that a callback on a connection without dispatcher does not accept requests with the icerpc

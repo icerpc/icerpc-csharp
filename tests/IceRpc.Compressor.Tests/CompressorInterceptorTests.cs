@@ -135,7 +135,7 @@ public class CompressorInterceptorTests
         new(
             request,
             FakeConnectionContext.Instance,
-            StatusCode.Success,
+            StatusCode.Ok,
             errorMessage: null,
             new Dictionary<ResponseFieldKey, ReadOnlySequence<byte>>
             {

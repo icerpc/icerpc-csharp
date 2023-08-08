@@ -14,7 +14,7 @@ internal sealed class IceProtocol : Protocol
     /// <remarks>This check is more lenient than the check performed when encoding a service address with Slice1 because
     /// we want the default path (`/`) to be a valid path for all protocols. Sending a request to a null/empty identity
     /// is in itself ok and will most likely result in a dispatch exception with a
-    /// <see cref="StatusCode.ServiceNotFound" /> status code.</remarks>
+    /// <see cref="StatusCode.NotFound" /> status code.</remarks>
     internal override void CheckPath(string uriPath)
     {
         string workingPath = uriPath[1..]; // removes leading /.

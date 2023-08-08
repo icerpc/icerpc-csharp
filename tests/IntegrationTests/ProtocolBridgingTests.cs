@@ -101,9 +101,9 @@ public sealed class ProtocolBridgingTests
             Assert.ThrowsAsync<ProtocolBridgingException>(async () => await proxy.OpExceptionAsync());
 
             var dispatchException = Assert.ThrowsAsync<DispatchException>(
-                () => proxy.OpServiceNotFoundExceptionAsync());
+                () => proxy.OpNotFoundExceptionAsync());
 
-            Assert.That(dispatchException!.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
+            Assert.That(dispatchException!.StatusCode, Is.EqualTo(StatusCode.NotFound));
 
             ProtocolBridgingTestProxy newProxy = await proxy.OpNewProxyAsync();
             return newProxy;
@@ -145,8 +145,8 @@ public sealed class ProtocolBridgingTests
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) => default;
 
-        public ValueTask OpServiceNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
-            throw new DispatchException(StatusCode.ServiceNotFound);
+        public ValueTask OpNotFoundExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
+            throw new DispatchException(StatusCode.NotFound);
 
         public ValueTask OpVoidAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
@@ -184,7 +184,7 @@ public sealed class ProtocolBridgingTests
                             pair.Key,
                             new OutgoingFieldValue(pair.Value))));
 
-            if (incomingResponse.StatusCode == StatusCode.Success)
+            if (incomingResponse.StatusCode == StatusCode.Ok)
             {
                 return new OutgoingResponse(request)
                 {

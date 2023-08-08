@@ -25,14 +25,14 @@ async Task<string> GreetAsync(string name)
     // client connection is not connected yet, this call also connects it.
     IncomingResponse response = await connection.InvokeAsync(request);
 
-    // When the response's status code is Success, we decode its payload.
-    if (response.StatusCode == StatusCode.Success)
+    // When the response's status code is Ok, we decode its payload.
+    if (response.StatusCode == StatusCode.Ok)
     {
         return await StringCodec.DecodePayloadStringAsync(response.Payload);
     }
     else
     {
-        // IceRPC guarantees the error message is non-null when StatusCode > Success.
+        // IceRPC guarantees the error message is non-null when StatusCode > Ok.
         Debug.Assert(response.ErrorMessage is not null);
         throw new DispatchException(response.StatusCode, response.ErrorMessage);
     }

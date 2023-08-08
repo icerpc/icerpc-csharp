@@ -27,13 +27,13 @@ public sealed class ProtocolConnectionTests
             foreach (Protocol protocol in Protocols)
             {
                 // an unexpected OCE
-                yield return new(protocol, new OperationCanceledException(), StatusCode.UnhandledException);
-                yield return new(protocol, new InvalidOperationException(), StatusCode.UnhandledException);
-                yield return new(protocol, new MyException(), StatusCode.UnhandledException);
+                yield return new(protocol, new OperationCanceledException(), StatusCode.InternalError);
+                yield return new(protocol, new InvalidOperationException(), StatusCode.InternalError);
+                yield return new(protocol, new MyException(), StatusCode.InternalError);
             }
 
             yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);
-            yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.UnhandledException);
+            yield return new(Protocol.Ice, new InvalidDataException("invalid data"), StatusCode.InternalError);
 
             yield return new(
                 Protocol.IceRpc,
@@ -43,7 +43,7 @@ public sealed class ProtocolConnectionTests
             yield return new(
                 Protocol.Ice,
                 new IceRpcException(IceRpcError.TruncatedData, "truncated data message"),
-                StatusCode.UnhandledException);
+                StatusCode.InternalError);
         }
     }
 
@@ -408,7 +408,7 @@ public sealed class ProtocolConnectionTests
                 clientConnectionOptions: new ConnectionOptions
                 {
                     InactivityTimeout = TimeSpan.FromMilliseconds(500),
-                    Dispatcher = ServiceNotFoundDispatcher.Instance
+                    Dispatcher = NotFoundDispatcher.Instance
                 })
             .BuildServiceProvider(validateScopes: true);
 
@@ -573,7 +573,7 @@ public sealed class ProtocolConnectionTests
         IncomingResponse response = await sut.Client.InvokeAsync(request);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.UnhandledException));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.InternalError));
     }
 
     /// <summary>Verifies that disposing a server connection cancels dispatches even when shutdown is already in

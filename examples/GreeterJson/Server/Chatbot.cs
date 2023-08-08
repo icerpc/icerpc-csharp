@@ -27,7 +27,7 @@ internal class Chatbot : IDispatcher
         else
         {
             // We only implement Greet.
-            return new OutgoingResponse(request, StatusCode.OperationNotFound);
+            return new OutgoingResponse(request, StatusCode.NotImplemented);
         }
     }
 }

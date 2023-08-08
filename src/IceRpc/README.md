@@ -34,8 +34,8 @@ async Task<string> GreetAsync(string name)
     // client connection is not connected yet, this call also connects it.
     IncomingResponse response = await connection.InvokeAsync(request);
 
-    // When the response's status code is Success, we decode its payload.
-    if (response.StatusCode == StatusCode.Success)
+    // When the response's status code is Ok, we decode its payload.
+    if (response.StatusCode == StatusCode.Ok)
     {
         return await StringCodec.DecodePayloadStringAsync(response.Payload);
     }
@@ -75,7 +75,7 @@ internal class Chatbot : IDispatcher
         else
         {
             // We only implement greet.
-            throw new DispatchException(StatusCode.OperationNotFound);
+            throw new DispatchException(StatusCode.NotImplemented);
         }
     }
 }

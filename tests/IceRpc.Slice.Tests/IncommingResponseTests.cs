@@ -11,14 +11,14 @@ namespace IceRpc.Tests.Slice;
 public class IncomingResponseTests
 {
     [Test]
-    public void Decoded_dispatch_exception_from_incoming_void_response_has_convert_to_unhandled_set_to_true()
+    public void Decoded_dispatch_exception_from_incoming_void_response_has_convert_to_internal_error_set_to_true()
     {
         // Arrange
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(
             request,
             FakeConnectionContext.Instance,
-            StatusCode.DeadlineExpired,
+            StatusCode.DeadlineExceeded,
             "deadline expired");
 
         // Act/Assert
@@ -28,18 +28,18 @@ public class IncomingResponseTests
                 SliceEncoding.Slice2,
                 InvalidProxy.Instance));
         Assert.That(decodedException, Is.Not.Null);
-        Assert.That(decodedException!.ConvertToUnhandled, Is.True);
+        Assert.That(decodedException!.ConvertToInternalError, Is.True);
     }
 
     [Test]
-    public void Decoded_dispatch_exception_from_incoming_response_has_convert_to_unhandled_set_to_true()
+    public void Decoded_dispatch_exception_from_incoming_response_has_convert_to_internal_error_set_to_true()
     {
         // Arrange
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
         var response = new IncomingResponse(
             request,
             FakeConnectionContext.Instance,
-            StatusCode.DeadlineExpired,
+            StatusCode.DeadlineExceeded,
             "deadline expired");
 
         // Act/Assert
@@ -50,6 +50,6 @@ public class IncomingResponseTests
                 InvalidProxy.Instance,
                 (ref SliceDecoder decoder) => decoder.DecodeInt32()));
         Assert.That(decodedException, Is.Not.Null);
-        Assert.That(decodedException!.ConvertToUnhandled, Is.True);
+        Assert.That(decodedException!.ConvertToInternalError, Is.True);
     }
 }

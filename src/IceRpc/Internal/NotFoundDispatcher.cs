@@ -3,17 +3,17 @@
 namespace IceRpc.Internal;
 
 /// <summary>A trivial dispatcher that always returns an <see cref="OutgoingResponse"/> with
-/// <see cref="StatusCode.ServiceNotFound" />.</summary>
-internal class ServiceNotFoundDispatcher : IDispatcher
+/// <see cref="StatusCode.NotFound" />.</summary>
+internal class NotFoundDispatcher : IDispatcher
 {
     /// <summary>Gets the unique instance of this class.</summary>
-    internal static ServiceNotFoundDispatcher Instance { get; } = new();
+    internal static NotFoundDispatcher Instance { get; } = new();
 
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken = default) =>
-        new(new OutgoingResponse(request, StatusCode.ServiceNotFound));
+        new(new OutgoingResponse(request, StatusCode.NotFound));
 
-    private ServiceNotFoundDispatcher()
+    private NotFoundDispatcher()
     {
         // Ensures it's a singleton.
     }

@@ -29,11 +29,11 @@ public sealed class RetryInterceptorTests
     public static IEnumerable<StatusCode> NotRetryableStatusCodeSource { get; } = new StatusCode[]
     {
         StatusCode.ApplicationError,
-        StatusCode.OperationNotFound,
-        StatusCode.UnhandledException,
+        StatusCode.NotImplemented,
+        StatusCode.InternalError,
         StatusCode.InvalidData,
         StatusCode.TruncatedPayload,
-        StatusCode.DeadlineExpired,
+        StatusCode.DeadlineExceeded,
         StatusCode.Unauthorized,
     };
 
@@ -56,8 +56,8 @@ public sealed class RetryInterceptorTests
                     Task.FromResult(new IncomingResponse(
                         request,
                         FakeConnectionContext.Instance,
-                        StatusCode.ServiceNotFound,
-                        "error message")))).SetName("Retry_with_other_replica(ice, StatusCode.ServiceNotFound)");
+                        StatusCode.NotFound,
+                        "error message")))).SetName("Retry_with_other_replica(ice, StatusCode.NotFound)");
         }
     }
 
@@ -264,7 +264,7 @@ public sealed class RetryInterceptorTests
                     return new IncomingResponse(
                         request,
                         request.Protocol == Protocol.IceRpc ? FakeConnectionContext.Instance : FakeConnectionContext.Instance,
-                        StatusCode.Success);
+                        StatusCode.Ok);
                 }
             }
 
@@ -279,7 +279,7 @@ public sealed class RetryInterceptorTests
         var response = await sut.InvokeAsync(request, default);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Success));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.Ok));
         Assert.That(serverAddresses, Has.Count.EqualTo(3));
         Assert.That(serverAddresses[0], Is.EqualTo(serviceAddress.ServerAddress));
         Assert.That(serverAddresses[1], Is.EqualTo(serviceAddress.AltServerAddresses[0]));

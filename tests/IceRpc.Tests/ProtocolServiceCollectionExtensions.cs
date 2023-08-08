@@ -19,9 +19,9 @@ public static class ProtocolServiceCollectionExtensions
         ConnectionOptions? serverConnectionOptions = null)
     {
         clientConnectionOptions ??= new();
-        clientConnectionOptions.Dispatcher ??= ServiceNotFoundDispatcher.Instance;
+        clientConnectionOptions.Dispatcher ??= NotFoundDispatcher.Instance;
         serverConnectionOptions ??= new();
-        serverConnectionOptions.Dispatcher ??= dispatcher ?? ServiceNotFoundDispatcher.Instance;
+        serverConnectionOptions.Dispatcher ??= dispatcher ?? NotFoundDispatcher.Instance;
 
         if (protocol == Protocol.Ice)
         {

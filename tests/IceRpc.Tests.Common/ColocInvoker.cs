@@ -37,7 +37,7 @@ public sealed class ColocInvoker : IInvoker
         {
             outgoingResponse = new OutgoingResponse(
                 incomingRequest,
-                StatusCode.UnhandledException,
+                StatusCode.InternalError,
                 message: null,
                 exception);
         }

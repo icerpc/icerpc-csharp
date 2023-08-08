@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Internal; // ServiceNotFoundDispatcher
+using IceRpc.Internal; // NotFoundDispatcher
 using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Coloc;
@@ -27,7 +27,7 @@ public class ClientConnectionTests
             {
                 ConnectionOptions = new ConnectionOptions()
                 {
-                    Dispatcher = ServiceNotFoundDispatcher.Instance,
+                    Dispatcher = NotFoundDispatcher.Instance,
                 },
                 ServerAddress = new ServerAddress(new Uri($"{protocol}://127.0.0.1:0"))
             },
@@ -57,7 +57,7 @@ public class ClientConnectionTests
             options => options.ConnectTimeout = TimeSpan.FromMilliseconds(300));
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: NotFoundDispatcher.Instance)
                 .AddTestDuplexTransportDecorator(
                     serverOperationsOptions: new()
                     {
@@ -84,7 +84,7 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: NotFoundDispatcher.Instance)
                 .AddTestDuplexTransportDecorator(
                     serverOperationsOptions: new()
                     {
@@ -107,12 +107,12 @@ public class ClientConnectionTests
     public async Task Connection_can_reconnect_after_underlying_connection_shutdown()
     {
         // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        var server = new Server(NotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.DisposeAsync();
-        server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
+        server = new Server(NotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
         // Act/Assert
@@ -125,12 +125,12 @@ public class ClientConnectionTests
     public async Task Connection_can_reconnect_after_peer_abort()
     {
         // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        var server = new Server(NotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.DisposeAsync();
-        server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
+        server = new Server(NotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
         // Act/Assert
@@ -143,13 +143,13 @@ public class ClientConnectionTests
     public async Task Connection_invoke_reconnect_after_underlying_connection_shutdown(Protocol protocol)
     {
         // Arrange
-        var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri($"{protocol.Name}://127.0.0.1:0"));
+        var server = new Server(NotFoundDispatcher.Instance, new Uri($"{protocol.Name}://127.0.0.1:0"));
         ServerAddress serverAddress = server.Listen();
         await using var connection = new ClientConnection(serverAddress);
         await connection.ConnectAsync();
         await server.ShutdownAsync();
         await server.DisposeAsync();
-        server = new Server(ServiceNotFoundDispatcher.Instance, serverAddress);
+        server = new Server(NotFoundDispatcher.Instance, serverAddress);
         server.Listen();
 
         {
@@ -171,7 +171,7 @@ public class ClientConnectionTests
         var colocTransport = new ColocTransport();
         var serverAddress = new ServerAddress(protocol) { Host = "colochost" };
         await using var server = new Server(
-            ServiceNotFoundDispatcher.Instance,
+            NotFoundDispatcher.Instance,
             serverAddress,
             duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
@@ -298,7 +298,7 @@ public class ClientConnectionTests
         // Arrange
         await using ServiceProvider provider =
             new ServiceCollection()
-                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: NotFoundDispatcher.Instance)
                 .AddTestDuplexTransportDecorator(
                     clientOperationsOptions: new()
                     {
@@ -328,7 +328,7 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             services
-                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: NotFoundDispatcher.Instance)
                 .AddTestDuplexTransportDecorator()
                 .BuildServiceProvider(validateScopes: true);
 
@@ -357,7 +357,7 @@ public class ClientConnectionTests
 
         await using ServiceProvider provider =
             new ServiceCollection()
-                .AddClientServerColocTest(dispatcher: ServiceNotFoundDispatcher.Instance)
+                .AddClientServerColocTest(dispatcher: NotFoundDispatcher.Instance)
                 .AddSingleton(colocTransport.ClientTransport) // overwrite
                 .AddSingleton<IDuplexServerTransport>(serverTransport)
                 .BuildServiceProvider(validateScopes: true);

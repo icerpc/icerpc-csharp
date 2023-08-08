@@ -26,7 +26,7 @@ public sealed class ProtocolLoggerTests
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         await using var server = new Server(
-            dispatcher: ServiceNotFoundDispatcher.Instance,
+            dispatcher: NotFoundDispatcher.Instance,
             serverAddress,
             duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
@@ -95,7 +95,7 @@ public sealed class ProtocolLoggerTests
         using var clientLoggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         await using var server = new Server(
-            dispatcher: ServiceNotFoundDispatcher.Instance,
+            dispatcher: NotFoundDispatcher.Instance,
             serverAddress,
             duplexServerTransport: new ConnectFailDuplexServerTransportDecorator(
                 colocTransport.ServerTransport),
@@ -211,7 +211,7 @@ public sealed class ProtocolLoggerTests
         using var loggerFactory = new TestLoggerFactory();
         var colocTransport = new ColocTransport();
         var server = new Server(
-            dispatcher: ServiceNotFoundDispatcher.Instance,
+            dispatcher: NotFoundDispatcher.Instance,
             serverAddress,
             duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),
@@ -243,7 +243,7 @@ public sealed class ProtocolLoggerTests
         using var clientLoggerFactory = new TestLoggerFactory();
 
         await using var server = new Server(
-            dispatcher: ServiceNotFoundDispatcher.Instance,
+            dispatcher: NotFoundDispatcher.Instance,
             serverAddress,
             duplexServerTransport: colocTransport.ServerTransport,
             multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport),

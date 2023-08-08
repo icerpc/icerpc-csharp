@@ -28,7 +28,7 @@ public class RouterTests
         Router router = await CreateRouterAndCallDispatchAsync();
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => router.Map("/foo", ServiceNotFoundDispatcher.Instance));
+        Assert.Throws<InvalidOperationException>(() => router.Map("/foo", NotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that a dispatcher cannot be mounted after a request has been dispatched.</summary>
@@ -39,7 +39,7 @@ public class RouterTests
         Router router = await CreateRouterAndCallDispatchAsync();
 
         // Act/Assert
-        Assert.Throws<InvalidOperationException>(() => router.Mount("/foo", ServiceNotFoundDispatcher.Instance));
+        Assert.Throws<InvalidOperationException>(() => router.Mount("/foo", NotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that creating a <see cref="Router" /> with an invalid prefix fails.</summary>
@@ -84,7 +84,7 @@ public class RouterTests
     {
         var router = new Router();
 
-        Assert.Throws<FormatException>(() => router.Mount("foo", ServiceNotFoundDispatcher.Instance));
+        Assert.Throws<FormatException>(() => router.Mount("foo", NotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that a dispatcher mounted using <see cref="Router.Mount(string, IDispatcher)" />
@@ -123,11 +123,11 @@ public class RouterTests
     {
         var router = new Router();
 
-        Assert.Throws<FormatException>(() => router.Mount("foo", ServiceNotFoundDispatcher.Instance));
+        Assert.Throws<FormatException>(() => router.Mount("foo", NotFoundDispatcher.Instance));
     }
 
     /// <summary>Verifies that a path that doesn't match any of the registered routes throws a dispatch
-    /// exception with status code <see cref="StatusCode.ServiceNotFound" />.</summary>
+    /// exception with status code <see cref="StatusCode.NotFound" />.</summary>
     [Test]
     public async Task Path_not_found()
     {
@@ -136,7 +136,7 @@ public class RouterTests
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
         OutgoingResponse response = await router.DispatchAsync(request);
 
-        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.ServiceNotFound));
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.NotFound));
     }
 
     /// <summary>Verifies that the router middleware are called in the expected order. That corresponds
