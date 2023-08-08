@@ -26,7 +26,7 @@ async Task<string> GreetAsync(string name)
     // Make the invocation: we send the request using the connection and then wait for the response.
     IncomingResponse response = await connection.InvokeAsync(request);
 
-    if (response.StatusCode == StatusCode.Success)
+    if (response.StatusCode == StatusCode.Ok)
     {
         GreetResponse greeterResponse = await PipeReaderJsonSerializer.DeserializeAsync<GreetResponse>(
             response.Payload);
@@ -34,7 +34,7 @@ async Task<string> GreetAsync(string name)
     }
     else
     {
-        // IceRPC guarantees the error message is non-null when StatusCode > Success.
+        // IceRPC guarantees the error message is non-null when StatusCode > Ok.
         Debug.Assert(response.ErrorMessage is not null);
         throw new DispatchException(response.StatusCode, response.ErrorMessage);
     }

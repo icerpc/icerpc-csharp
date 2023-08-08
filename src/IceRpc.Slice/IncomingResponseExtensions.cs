@@ -52,7 +52,7 @@ public static class IncomingResponseExtensions
 
         return response.StatusCode switch
         {
-            StatusCode.Success => response.DecodeValueAsync(
+            StatusCode.Ok => response.DecodeValueAsync(
                 encoding,
                 feature,
                 feature.ProxyFactory ?? sender.With,
@@ -63,7 +63,10 @@ public static class IncomingResponseExtensions
             StatusCode.ApplicationError when decodeException is not null || encoding == SliceEncoding.Slice1 =>
                 DecodeAndThrowExceptionAsync(),
 
-            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage)
+                {
+                    ConvertToInternalError = true
+                }
         };
 
         async ValueTask<T> DecodeAndThrowExceptionAsync() =>
@@ -129,10 +132,13 @@ public static class IncomingResponseExtensions
 
         return response.StatusCode switch
         {
-            StatusCode.Success => response.DecodeVoidAsync(encoding, feature, cancellationToken),
+            StatusCode.Ok => response.DecodeVoidAsync(encoding, feature, cancellationToken),
             StatusCode.ApplicationError when decodeException is not null || encoding == SliceEncoding.Slice1 =>
                 DecodeAndThrowExceptionAsync(),
-            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage) { ConvertToUnhandled = true }
+            _ => throw new DispatchException(response.StatusCode, response.ErrorMessage)
+            {
+                ConvertToInternalError = true
+            }
         };
 
         async ValueTask DecodeAndThrowExceptionAsync() =>

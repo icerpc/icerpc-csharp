@@ -24,7 +24,7 @@ namespace IceRpc;
 /// <see cref="Mount(string, IDispatcher)"/>. When searching for a matching prefix, the router starts with the request
 /// path and successively tries chopping segments from the end of the path until either the path is exhausted or a
 /// dispatcher matching the prefix is found. Finally, if the router cannot find any dispatcher, it returns an
-/// <see cref="OutgoingResponse"/> with a <see cref="StatusCode.ServiceNotFound"/> status code.</para></remarks>
+/// <see cref="OutgoingResponse"/> with a <see cref="StatusCode.NotFound"/> status code.</para></remarks>
 public sealed class Router : IDispatcher
 {
     /// <summary>Gets the absolute path-prefix of this router. The absolute path of a service added to this
@@ -185,7 +185,7 @@ public sealed class Router : IDispatcher
 
                         if (prefix == "/")
                         {
-                            return new(new OutgoingResponse(request, StatusCode.ServiceNotFound));
+                            return new(new OutgoingResponse(request, StatusCode.NotFound));
                         }
 
                         // Cut last segment

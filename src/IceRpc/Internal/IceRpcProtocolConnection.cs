@@ -569,7 +569,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
 
                 StatusCode statusCode = decoder.DecodeStatusCode();
-                string? errorMessage = statusCode == StatusCode.Success ? null : decoder.DecodeString();
+                string? errorMessage = statusCode == StatusCode.Ok ? null : decoder.DecodeString();
 
                 (IDictionary<ResponseFieldKey, ReadOnlySequence<byte>> fields, PipeReader? pipeReader) =
                     DecodeFieldDictionary(
@@ -1212,7 +1212,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     InvalidDataException => StatusCode.InvalidData,
                     IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
                         StatusCode.TruncatedPayload,
-                    _ => StatusCode.UnhandledException
+                    _ => StatusCode.InternalError
                 };
                 response = new OutgoingResponse(request, statusCode, message: null, exception);
             }
@@ -1244,7 +1244,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             long headerStartPos = streamOutput.UnflushedBytes;
 
             encoder.EncodeStatusCode(response.StatusCode);
-            if (response.StatusCode > StatusCode.Success)
+            if (response.StatusCode > StatusCode.Ok)
             {
                 encoder.EncodeString(response.ErrorMessage!);
             }

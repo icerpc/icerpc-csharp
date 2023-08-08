@@ -9,7 +9,7 @@ public sealed class OutgoingResponse : OutgoingFrame
 {
     /// <summary>Gets the error message of this response.</summary>
     /// <value>The error message of this response if <see cref="StatusCode" /> is different from <see
-    /// cref="StatusCode.Success" />; otherwise, <see langword="null" />.</value>
+    /// cref="StatusCode.Ok" />; otherwise, <see langword="null" />.</value>
     public string? ErrorMessage { get; }
 
     /// <summary>Gets or sets the fields of this response.</summary>
@@ -22,7 +22,7 @@ public sealed class OutgoingResponse : OutgoingFrame
     /// <value>The <see cref="IceRpc.StatusCode" /> of this response.</value>
     public StatusCode StatusCode { get; }
 
-    /// <summary>Constructs an outgoing response with the <see cref="StatusCode.Success" /> status code and a <see
+    /// <summary>Constructs an outgoing response with the <see cref="StatusCode.Ok" /> status code and a <see
     /// langword="null" /> error message.</summary>
     /// <param name="request">The incoming request.</param>
     /// <remarks>The constructor also associates this response with the request. If another response is already set on
@@ -31,12 +31,12 @@ public sealed class OutgoingResponse : OutgoingFrame
         : base(request.Protocol)
     {
         request.Response = this;
-        StatusCode = StatusCode.Success;
+        StatusCode = StatusCode.Ok;
     }
 
     /// <summary>Constructs an outgoing response.</summary>
     /// <param name="request">The incoming request.</param>
-    /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Success" />.</param>
+    /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Ok" />.</param>
     /// <param name="message">The error message or null to use the default error message.</param>
     /// <param name="exception">The exception that is the cause of this failure.</param>
     /// <remarks>The constructor also associates this response with the request. If another response is already set on
@@ -49,9 +49,9 @@ public sealed class OutgoingResponse : OutgoingFrame
         : base(request.Protocol)
     {
         request.Response = this;
-        StatusCode = statusCode > StatusCode.Success ? statusCode :
+        StatusCode = statusCode > StatusCode.Ok ? statusCode :
             throw new ArgumentException(
-                $"The status code for an exception must be greater than {nameof(StatusCode.Success)}.",
+                $"The status code for an exception must be greater than {nameof(StatusCode.Ok)}.",
                 nameof(statusCode));
 
         string errorMessage = message ?? $"The dispatch failed with status code {statusCode}.";

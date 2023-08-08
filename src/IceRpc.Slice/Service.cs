@@ -109,16 +109,16 @@ public class Service : IDispatcher, IIceObjectService
             }
             catch (DispatchException exception)
             {
-                if (exception.ConvertToUnhandled)
+                if (exception.ConvertToInternalError)
                 {
-                    return new OutgoingResponse(request, StatusCode.UnhandledException, message: null, exception);
+                    return new OutgoingResponse(request, StatusCode.InternalError, message: null, exception);
                 }
                 return new OutgoingResponse(request, exception.StatusCode);
             }
         }
         else
         {
-            return new OutgoingResponse(request, StatusCode.OperationNotFound);
+            return new OutgoingResponse(request, StatusCode.NotImplemented);
         }
     }
 }

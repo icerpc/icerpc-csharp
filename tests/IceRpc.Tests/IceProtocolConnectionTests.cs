@@ -22,44 +22,44 @@ public sealed class IceProtocolConnectionTests
                 new InlineDispatcher(
                     (request, cancellationToken) =>
                         new(new OutgoingResponse(request, StatusCode.InvalidData, message: null, invalidDataException))),
-                StatusCode.UnhandledException,
+                StatusCode.InternalError,
                 GetErrorMessage(StatusCode.InvalidData, invalidDataException));
 
             var invalidOperationException = new InvalidOperationException("invalid op message");
             yield return new TestCaseData(
                 new InlineDispatcher(
                     (request, cancellationToken) =>
-                        new(new OutgoingResponse(request, StatusCode.UnhandledException, message: null, invalidOperationException))),
-                StatusCode.UnhandledException,
-                GetErrorMessage(StatusCode.UnhandledException, invalidOperationException));
+                        new(new OutgoingResponse(request, StatusCode.InternalError, message: null, invalidOperationException))),
+                StatusCode.InternalError,
+                GetErrorMessage(StatusCode.InternalError, invalidOperationException));
 
             yield return new TestCaseData(
                 new InlineDispatcher(
                     (request, cancellationToken) =>
                         new(new OutgoingResponse(request, StatusCode.ApplicationError, "application message"))),
-                StatusCode.UnhandledException,
+                StatusCode.InternalError,
                 "application message { Original StatusCode = ApplicationError }");
 
             yield return new TestCaseData(
                 new InlineDispatcher(
                     (request, cancellationToken) =>
-                        new(new OutgoingResponse(request, StatusCode.DeadlineExpired, "deadline message"))),
-                StatusCode.UnhandledException,
-                "deadline message { Original StatusCode = DeadlineExpired }");
+                        new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline message"))),
+                StatusCode.InternalError,
+                "deadline message { Original StatusCode = DeadlineExceeded }");
 
             yield return new TestCaseData(
                 new InlineDispatcher(
                     (request, cancellationToken) =>
-                        new(new OutgoingResponse(request, StatusCode.OperationNotFound))),
-                StatusCode.OperationNotFound,
-                "The dispatch failed with status code OperationNotFound while dispatching 'op' on '/foo'.");
+                        new(new OutgoingResponse(request, StatusCode.NotImplemented))),
+                StatusCode.NotImplemented,
+                "The dispatch failed with status code NotImplemented while dispatching 'op' on '/foo'.");
 
             yield return new TestCaseData(
                 new InlineDispatcher(
                     (request, cancellationToken) =>
-                        new(new OutgoingResponse(request, StatusCode.ServiceNotFound))),
-                StatusCode.ServiceNotFound,
-                "The dispatch failed with status code ServiceNotFound while dispatching 'op' on '/foo'.");
+                        new(new OutgoingResponse(request, StatusCode.NotFound))),
+                StatusCode.NotFound,
+                "The dispatch failed with status code NotFound while dispatching 'op' on '/foo'.");
         }
     }
 
@@ -665,7 +665,7 @@ public sealed class IceProtocolConnectionTests
         // Act
         Assert.That(
             async () => (await sut.Client.InvokeAsync(request)).StatusCode,
-            Is.EqualTo(StatusCode.UnhandledException));
+            Is.EqualTo(StatusCode.InternalError));
         Assert.That(async () => await payloadDecorator.Completed, Is.Null);
     }
 
@@ -843,5 +843,5 @@ public sealed class IceProtocolConnectionTests
     private static string GetErrorMessage(StatusCode statusCode, Exception innerException) =>
         $"The dispatch failed with status code {statusCode}. " +
         $"The failure was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" +
-        (statusCode == StatusCode.UnhandledException ? "" : $" {{ Original StatusCode = {statusCode} }}");
+        (statusCode == StatusCode.InternalError ? "" : $" {{ Original StatusCode = {statusCode} }}");
 }

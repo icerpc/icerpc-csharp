@@ -11,7 +11,7 @@ public sealed class IncomingResponse : IncomingFrame
 {
     /// <summary>Gets the error message of this response.</summary>
     /// <value>The error message of this response if <see cref="StatusCode" /> is different from <see
-    /// cref="StatusCode.Success" />; otherwise, <see langword="null"/>.</value>
+    /// cref="StatusCode.Ok" />; otherwise, <see langword="null"/>.</value>
     public string? ErrorMessage { get; }
 
     /// <summary>Gets the fields of this incoming response.</summary>
@@ -35,7 +35,7 @@ public sealed class IncomingResponse : IncomingFrame
     public IncomingResponse(
         OutgoingRequest request,
         IConnectionContext connectionContext,
-        StatusCode statusCode = StatusCode.Success,
+        StatusCode statusCode = StatusCode.Ok,
         string? errorMessage = null)
         : this(
             request,
@@ -84,19 +84,19 @@ public sealed class IncomingResponse : IncomingFrame
         PipeReader? fieldsPipeReader)
         : base(request.Protocol, connectionContext)
     {
-        if (statusCode == StatusCode.Success)
+        if (statusCode == StatusCode.Ok)
         {
             if (errorMessage is not null)
             {
                 throw new ArgumentException(
-                    $"The {nameof(errorMessage)} argument must be null when {nameof(statusCode)} is {nameof(StatusCode.Success)}.",
+                    $"The {nameof(errorMessage)} argument must be null when {nameof(statusCode)} is {nameof(StatusCode.Ok)}.",
                     nameof(errorMessage));
             }
         }
         else if (errorMessage is null)
         {
             throw new ArgumentException(
-                $"The {nameof(errorMessage)} argument must be non-null when {nameof(statusCode)} is greater than {nameof(StatusCode.Success)}.",
+                $"The {nameof(errorMessage)} argument must be non-null when {nameof(statusCode)} is greater than {nameof(StatusCode.Ok)}.",
                 nameof(errorMessage));
         }
 

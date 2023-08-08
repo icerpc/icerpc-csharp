@@ -17,7 +17,7 @@ namespace IceRpc.Compressor;
 /// <see cref="RequestFieldKey.CompressionFormat" /> field when this request has the <see cref="ICompressFeature" />
 /// feature set and the CompressionFormat field is unset.<br/>
 /// This interceptor decompresses the payload of a response when this response's status code is
-/// <see cref="StatusCode.Success" /> and the response carries a <see cref="ResponseFieldKey.CompressionFormat" /> field
+/// <see cref="StatusCode.Ok" /> and the response carries a <see cref="ResponseFieldKey.CompressionFormat" /> field
 /// with a supported compression format (currently <see cref="CompressionFormat.Brotli" /> or
 /// <see cref="CompressionFormat.Deflate" />).</remarks>
 /// <seealso cref="CompressorPipelineExtensions"/>
@@ -73,7 +73,7 @@ public class CompressorInterceptor : IInvoker
 
         IncomingResponse response = await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
 
-        if (request.Protocol.HasFields && response.StatusCode == StatusCode.Success)
+        if (request.Protocol.HasFields && response.StatusCode == StatusCode.Ok)
         {
             CompressionFormat compressionFormat = response.Fields.DecodeValue(
                ResponseFieldKey.CompressionFormat,

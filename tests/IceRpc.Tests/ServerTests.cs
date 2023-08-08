@@ -30,7 +30,7 @@ public class ServerTests
     [Test]
     public async Task Cannot_call_listen_twice()
     {
-        await using var server = new Server(ServiceNotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        await using var server = new Server(NotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
         server.Listen();
 
         Assert.Throws<InvalidOperationException>(() => server.Listen());
@@ -41,7 +41,7 @@ public class ServerTests
     [Test]
     public async Task Cannot_call_listen_on_a_disposed_server()
     {
-        var server = new Server(ServiceNotFoundDispatcher.Instance);
+        var server = new Server(NotFoundDispatcher.Instance);
         await server.DisposeAsync();
 
         Assert.Throws<ObjectDisposedException>(() => server.Listen());
@@ -299,7 +299,7 @@ public class ServerTests
         var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
-            dispatcher: ServiceNotFoundDispatcher.Instance,
+            dispatcher: NotFoundDispatcher.Instance,
             serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 
@@ -340,7 +340,7 @@ public class ServerTests
         var multiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport);
 
         await using var server = new Server(
-            dispatcher: ServiceNotFoundDispatcher.Instance,
+            dispatcher: NotFoundDispatcher.Instance,
             serverAddress: new ServerAddress(new Uri("icerpc://foo")),
             multiplexedServerTransport: multiplexedServerTransport);
 

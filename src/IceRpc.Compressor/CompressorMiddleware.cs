@@ -86,7 +86,7 @@ public class CompressorMiddleware : IDispatcher
         // The ICompressFeature is typically set through the Slice compress attribute.
 
         if (request.Protocol.HasFields &&
-            response.StatusCode == StatusCode.Success &&
+            response.StatusCode == StatusCode.Ok &&
             request.Features.Get<ICompressFeature>() is ICompressFeature compress &&
             compress.Value &&
             !response.Fields.ContainsKey(ResponseFieldKey.CompressionFormat))

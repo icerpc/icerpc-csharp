@@ -576,7 +576,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // With ice, we always listen for incoming frames (responses) so we need a dispatcher for incoming requests even
         // if we don't expect any. This dispatcher throws an ice ObjectNotExistException back to the client, which makes
         // more sense than throwing an UnknownException.
-        _dispatcher = options.Dispatcher ?? ServiceNotFoundDispatcher.Instance;
+        _dispatcher = options.Dispatcher ?? NotFoundDispatcher.Instance;
 
         _maxFrameSize = options.MaxIceFrameSize;
         _transportConnectionInformation = transportConnectionInformation;
@@ -753,7 +753,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             SequencePosition consumed = buffer.GetPosition(headerSize);
 
-            return replyStatus == ReplyStatus.Ok ? (StatusCode.Success, null, consumed) :
+            return replyStatus == ReplyStatus.Ok ? (StatusCode.Ok, null, consumed) :
                 // Set the error message to the empty string. We will convert this empty string to null when we
                 // decode the exception.
                 (StatusCode.ApplicationError, "", consumed);
@@ -764,10 +764,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             StatusCode statusCode = replyStatus switch
             {
-                ReplyStatus.ObjectNotExistException => StatusCode.ServiceNotFound,
-                ReplyStatus.FacetNotExistException => StatusCode.ServiceNotFound,
-                ReplyStatus.OperationNotExistException => StatusCode.OperationNotFound,
-                _ => StatusCode.UnhandledException
+                ReplyStatus.ObjectNotExistException => StatusCode.NotFound,
+                ReplyStatus.FacetNotExistException => StatusCode.NotFound,
+                ReplyStatus.OperationNotExistException => StatusCode.NotImplemented,
+                _ => StatusCode.InternalError
             };
 
             var decoder = new SliceDecoder(buffer.Slice(1), SliceEncoding.Slice1);
@@ -878,15 +878,15 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             // system exception
             switch (response.StatusCode)
             {
-                case StatusCode.ServiceNotFound:
-                case StatusCode.OperationNotFound:
-                    encoder.EncodeReplyStatus(response.StatusCode == StatusCode.ServiceNotFound ?
+                case StatusCode.NotFound:
+                case StatusCode.NotImplemented:
+                    encoder.EncodeReplyStatus(response.StatusCode == StatusCode.NotFound ?
                         ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
                     new RequestFailedExceptionData(Identity.Parse(request.Path), request.Fragment, request.Operation)
                         .Encode(ref encoder);
                     break;
-                case StatusCode.UnhandledException:
+                case StatusCode.InternalError:
                     encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
                     encoder.EncodeString(response.ErrorMessage!);
                     break;
@@ -1041,7 +1041,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         {
             response = new OutgoingResponse(
                 request,
-                StatusCode.UnhandledException,
+                StatusCode.InternalError,
                 "The dispatch failed with an exception.",
                 exception);
         }
@@ -1080,7 +1080,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                         response = new OutgoingResponse(
                             request,
-                            StatusCode.UnhandledException,
+                            StatusCode.InternalError,
                             "The dispatch failed to read the response payload.",
                             exception);
                     }

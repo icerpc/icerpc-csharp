@@ -24,7 +24,7 @@ public sealed class ExceptionTests
             // The generated code attempts to encode the exception and fails to do so since it's Slice2-only.
             yield return new TestCaseData(
                 new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.UnhandledException);
+                StatusCode.InternalError);
         }
     }
 
@@ -42,7 +42,7 @@ public sealed class ExceptionTests
             // The generated code does not attempt to encode this exception: it becomes a run-of-the-mill unhandled.
             yield return new TestCaseData(
                 new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.UnhandledException);
+                StatusCode.InternalError);
         }
     }
 
@@ -52,16 +52,16 @@ public sealed class ExceptionTests
         {
             // The generated code does not attempt to encode any of these exceptions.
 
-            yield return new TestCaseData(new MyException(5, 12), StatusCode.UnhandledException);
-            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.UnhandledException);
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.InternalError);
+            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.InternalError);
 
             yield return new TestCaseData(
                 new MyExceptionWithTaggedFields(5, 12, 13, 28),
-                StatusCode.UnhandledException);
+                StatusCode.InternalError);
 
             yield return new TestCaseData(
                 new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.UnhandledException);
+                StatusCode.InternalError);
         }
     }
 
@@ -73,11 +73,11 @@ public sealed class ExceptionTests
 
             yield return new TestCaseData(
                 new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.UnhandledException);
+                StatusCode.InternalError);
 
             // When there is an exception specification, we attempt and fail to encode the Slice1-only
             // MyDerivedException.
-            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.UnhandledException);
+            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.InternalError);
         }
     }
 
@@ -87,13 +87,13 @@ public sealed class ExceptionTests
         {
             // When there is no exception specification, we don't attempt to encode the Slice exception at all.
 
-            yield return new TestCaseData(new MyException(5, 12), StatusCode.UnhandledException);
+            yield return new TestCaseData(new MyException(5, 12), StatusCode.InternalError);
 
             yield return new TestCaseData(
                 new MyExceptionWithOptionalFields(5, 12, 13, 28),
-                StatusCode.UnhandledException);
+                StatusCode.InternalError);
 
-            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.UnhandledException);
+            yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.InternalError);
         }
     }
 

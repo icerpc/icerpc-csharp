@@ -17,8 +17,8 @@ interface ProtocolBridgingTest {
     // Operation that throws an exception
     opException() throws ProtocolBridgingException
 
-    // Operation that throws ServiceNotFoundException (one of the special ice system exceptions)
-    opServiceNotFoundException()
+    // Operation that throws NotFoundException (one of the special ice system exceptions)
+    opNotFoundException()
 
     // Check the context is correctly forwarded
     opContext()
