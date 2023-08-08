@@ -27,6 +27,7 @@ build.cmd -help
 - [Generating the API reference](#generating-the-api-reference)
 - [Generating the code coverage reports](#generating-the-code-coverage-reports)
 - [Shutting down background MSBuild servers](#shutting-down-background-msbuild-servers)
+- [Updating Slice files](#updating-slice-files)
 
 ## Prerequisites
 
@@ -191,3 +192,50 @@ You may occasionally encounter errors when cleaning and building because backgro
 ```shell
 dotnet build-server shutdown
 ```
+
+## Updating Slice files
+
+The [slice](./slice) sub-directory is managed by a Git subtree and contains the contents of the [icerpc-slice] repository.
+Updates to the files in this sub-directory must be done in the icerpc-slice repository first and then the changes can
+be pulled.
+
+The procedure to upgrade these files is as follows:
+
+1. Open a PR (pull request) in the icerpc-slice repository with the desired changes. Once approved merge the
+   PR in the icerpc-slice repository.
+
+2. Create a companion PR for the required changes in the icerpc-csharp repository. Start by creating a branch
+   for the PR and pulling the changes from icerpc-slice:
+```
+git checkout -b my-branch --track origin/main
+git subtree pull --prefix slice git@github.com:icerpc/icerpc-slice.git main
+git push <remote> my-branch
+```
+3. Make the necessary C# updates, open the PR in icerpc-csharp, and iterate until it's ready for merging. The "Check
+   Slice Subtree Updates" workflow job is expected to fail at this point. This is the workflow ensuring that the
+   contents of slice sub-directory are not updated with a PR.
+
+4. Once you are ready to merge you need to first merge the icerpc-slice changes into the icerpc-csharp's main branch
+``` shell
+git checkout -b main --track origin/main
+git pull
+git subtree pull --prefix slice git@github.com:icerpc/icerpc-slice.git main
+git push origin main
+```
+
+5. Then merge the main branch into your PR
+``` shell
+git checkout my-branch
+git merge origin/main
+git push <remote> my-branch
+```
+
+6. Ensure that "Check Slice Subtree Updates" workflow job passes, and that no files under slice sub-directory are modified
+   by the PR.
+
+7. Finally merge your PR as usual.
+
+Please ensure to replace `<remote>` with the appropriate remote repository name where you want to push your changes.
+Also, make sure to follow the instructions carefully, and adjust any repository and branch names as needed for your
+specific setup.
+[icerpc-slice]: https://github.com/icerpc/icerpc-slice
