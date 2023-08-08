@@ -204,7 +204,7 @@ The procedure to upgrade these files is as follows:
 1. Open a PR (pull request) in the icerpc-slice repository with the desired changes. Once approved merge the
    PR in the icerpc-slice repository.
 
-2. Create a companion PR for the required changes in icerpc-csharp repository. Start by creating a branch
+2. Create a companion PR for the required changes in the icerpc-csharp repository. Start by creating a branch
    for the PR and pulling the changes from icerpc-slice.
 ```
 git checkout -b my-branch --track origin/main
