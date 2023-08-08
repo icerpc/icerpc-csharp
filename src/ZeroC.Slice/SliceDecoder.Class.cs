@@ -33,14 +33,13 @@ public ref partial struct SliceDecoder
         Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
         _classContext.Current.InstanceType = InstanceType.Exception;
 
-        SliceException? sliceException;
-
         // We can decode the indirection table (if there is one) immediately after decoding each slice header
         // because the indirection table cannot reference the exception itself.
         // Each slice contains its type ID as a string.
 
         string? mostDerivedTypeId = null;
         IActivator activator = _activator ?? _defaultActivator;
+        SliceException? sliceException;
 
         do
         {
@@ -55,25 +54,18 @@ public ref partial struct SliceDecoder
             if (sliceException is null && SkipSlice(typeId))
             {
                 // Cannot decode this exception.
-                break;
+                throw new InvalidDataException(
+                    message is null ?
+                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find." :
+                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
             }
         }
         while (sliceException is null);
 
-        if (sliceException is null)
-        {
-            throw new InvalidDataException(
-                message is null ?
-                $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' and the local runtime cannot decode this exception." :
-                $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' and the local runtime cannot decode this exception. Error message = {message}");
-        }
-        else
-        {
-            _classContext.Current.FirstSlice = true;
-            sliceException.Decode(ref this);
-            _classContext.Current = default;
-            return sliceException;
-        }
+        _classContext.Current.FirstSlice = true;
+        sliceException.Decode(ref this);
+        _classContext.Current = default;
+        return sliceException;
     }
 
     /// <summary>Decodes a nullable class instance.</summary>
@@ -494,11 +486,8 @@ public ref partial struct SliceDecoder
 
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
         {
-            // If it's an exception in compact format, we just return true, and the caller (DecodeException) will
-            // throw a similar InvalidDataException.
-            return _classContext.Current.InstanceType == InstanceType.Exception ? true :
-                throw new InvalidDataException(
-                    $"No class found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead).");
+            throw new InvalidDataException(
+                $"The configured activator cannot find a class for type ID '{typeId}' and the compact format prevents slicing (the sender should use the sliced format instead).");
         }
 
         bool hasTaggedFields = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedFields) != 0;
@@ -519,7 +508,7 @@ public ref partial struct SliceDecoder
 
         bool hasIndirectionTable = (_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0;
 
-        // With Slice1, SkipSlice for a class skips the indirection table and preserves its position in
+        // SkipSlice for a class skips the indirection table and preserves its position in
         // _current.DeferredIndirectionTableList for later decoding.
         if (_classContext.Current.InstanceType == InstanceType.Class)
         {
