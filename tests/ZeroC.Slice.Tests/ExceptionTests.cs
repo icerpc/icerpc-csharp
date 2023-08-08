@@ -28,7 +28,7 @@ public sealed class ExceptionTests
             SliceEncoding.Slice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
-        var value = decoder.DecodeUserException() as MyDerivedException;
+        var value = decoder.DecodeException() as MyDerivedException;
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(10));
@@ -61,7 +61,7 @@ public sealed class ExceptionTests
             SliceEncoding.Slice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
-        var value = decoder.DecodeUserException() as MyException;
+        var value = decoder.DecodeException() as MyException;
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(10));
@@ -101,7 +101,7 @@ public sealed class ExceptionTests
             SliceEncoding.Slice1,
             activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
 
-        var value = decoder.DecodeUserException() as MyExceptionWithTaggedFields;
+        var value = decoder.DecodeException() as MyExceptionWithTaggedFields;
 
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(10));
@@ -224,7 +224,7 @@ public sealed class ExceptionTests
             SliceEncoding.Slice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
 
-        var decoded = decoder.DecodeUserException() as MyDerivedException;
+        var decoded = decoder.DecodeException() as MyDerivedException;
         Assert.That(decoded, Is.Not.Null);
         Assert.That(decoded!.I, Is.EqualTo(expected.I));
         Assert.That(decoded.J, Is.EqualTo(expected.J));
@@ -245,7 +245,7 @@ public sealed class ExceptionTests
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
             activator: IActivator.FromAssembly(typeof(MyException).Assembly));
-        var value = decoder.DecodeUserException() as MyException;
+        var value = decoder.DecodeException() as MyException;
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(expected.I));
         Assert.That(value.J, Is.EqualTo(expected.J));
@@ -267,7 +267,7 @@ public sealed class ExceptionTests
             buffer.WrittenMemory,
             SliceEncoding.Slice1,
             activator: IActivator.FromAssembly(typeof(MyExceptionWithTaggedFields).Assembly));
-        var value = decoder.DecodeUserException() as MyExceptionWithTaggedFields;
+        var value = decoder.DecodeException() as MyExceptionWithTaggedFields;
         Assert.That(value, Is.Not.Null);
         Assert.That(value!.I, Is.EqualTo(10));
         Assert.That(value.J, Is.EqualTo(20));

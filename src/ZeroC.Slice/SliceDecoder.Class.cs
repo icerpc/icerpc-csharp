@@ -20,38 +20,14 @@ public ref partial struct SliceDecoder
         DecodeNullableClass<T>() ??
            throw new InvalidDataException("Decoded a null class instance, but expected a non-null instance.");
 
-    /// <summary>Decodes a nullable class instance.</summary>
-    /// <typeparam name="T">The class type.</typeparam>
-    /// <returns>The class instance, or <see langword="null" />.</returns>
-    public T? DecodeNullableClass<T>() where T : class
-    {
-        if (Encoding != SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}.");
-        }
-
-        SliceClass? obj = DecodeClass();
-
-        if (obj is T result)
-        {
-            return result;
-        }
-        else if (obj is null)
-        {
-            return null;
-        }
-        throw new InvalidDataException(
-            $"Decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'.");
-    }
-
-    /// <summary>Decodes a Slice1 user exception.</summary>
+    /// <summary>Decodes a Slice exception.</summary>
     /// <param name="message">The error message.</param>
     /// <returns>The decoded Slice exception.</returns>
-    public SliceException DecodeUserException(string? message = null)
+    public SliceException DecodeException(string? message = null)
     {
         if (Encoding != SliceEncoding.Slice1)
         {
-            throw new InvalidOperationException($"{nameof(DecodeUserException)} is not compatible with {Encoding}.");
+            throw new InvalidOperationException($"{nameof(DecodeException)} is not compatible with {Encoding}.");
         }
 
         Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
@@ -86,10 +62,10 @@ public ref partial struct SliceDecoder
 
         if (sliceException is null)
         {
-            return new UnknownSliceException(
-                mostDerivedTypeId,
-                message ??
-                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' and the local runtime cannot decode this exception.");
+            throw new InvalidDataException(
+                message is null ?
+                $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' and the local runtime cannot decode this exception." :
+                $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' and the local runtime cannot decode this exception. Error message = {message}");
         }
         else
         {
@@ -98,6 +74,30 @@ public ref partial struct SliceDecoder
             _classContext.Current = default;
             return sliceException;
         }
+    }
+
+    /// <summary>Decodes a nullable class instance.</summary>
+    /// <typeparam name="T">The class type.</typeparam>
+    /// <returns>The class instance, or <see langword="null" />.</returns>
+    public T? DecodeNullableClass<T>() where T : class
+    {
+        if (Encoding != SliceEncoding.Slice1)
+        {
+            throw new InvalidOperationException($"{nameof(DecodeNullableClass)} is not compatible with {Encoding}.");
+        }
+
+        SliceClass? obj = DecodeClass();
+
+        if (obj is T result)
+        {
+            return result;
+        }
+        else if (obj is null)
+        {
+            return null;
+        }
+        throw new InvalidDataException(
+            $"Decoded instance of type '{obj.GetType()}' but expected instance of type '{typeof(T)}'.");
     }
 
     /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
@@ -494,8 +494,8 @@ public ref partial struct SliceDecoder
 
         if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
         {
-            // If it's an exception in compact format, we just return true, and the caller (DecodeUserException) will
-            // return an UnknownSliceException.
+            // If it's an exception in compact format, we just return true, and the caller (DecodeException) will
+            // throw a similar InvalidDataException.
             return _classContext.Current.InstanceType == InstanceType.Exception ? true :
                 throw new InvalidDataException(
                     $"No class found for type ID '{typeId}' and compact format prevents slicing (the sender should use the sliced format instead).");

@@ -194,11 +194,8 @@ public static class IncomingResponseExtensions
                     activator,
                     maxDepth: feature.MaxDepth);
 
-                SliceException exception = decoder.DecodeUserException(errorMessage);
-                if (exception is not UnknownSliceException)
-                {
-                    decoder.CheckEndOfBuffer();
-                }
+                SliceException exception = decoder.DecodeException(errorMessage);
+                decoder.CheckEndOfBuffer();
                 return exception;
             }
             else

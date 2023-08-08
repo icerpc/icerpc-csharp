@@ -181,7 +181,7 @@ public class SlicingTests
     }
 
     [Test]
-    public void Decoding_an_exception_skips_unknown_slices([Values] bool partialSlicing)
+    public void Decoding_an_exception_skips_unknown_slices()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
@@ -192,31 +192,41 @@ public class SlicingTests
 
         // Create an activator that exclude 'SlicingMostDerivedException' type ID and ensure that the class is decoded
         // as 'slicingDerivedException' which is the base type.
-        SlicingActivator? slicingActivator = null;
-        if (partialSlicing)
-        {
-            slicingActivator = new SlicingActivator(
-                IActivator.FromAssembly(typeof(SlicingMostDerivedException).Assembly),
-                excludeTypeId: typeof(SlicingMostDerivedException).GetSliceTypeId());
-        }
+        SlicingActivator slicingActivator = new SlicingActivator(
+            IActivator.FromAssembly(typeof(SlicingMostDerivedException).Assembly),
+            excludeTypeId: typeof(SlicingMostDerivedException).GetSliceTypeId());
+
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
 
         // Act
-        SliceException sliceException = decoder.DecodeUserException();
+        SliceException sliceException = decoder.DecodeException();
 
         // Assert
         Assert.That(decoder.End, Is.True);
-        if (partialSlicing)
+        Assert.That(sliceException, Is.TypeOf<SlicingDerivedException>());
+        var slicingDerivedException = (SlicingDerivedException)sliceException;
+        Assert.That(slicingDerivedException.M1, Is.EqualTo(p1.M1));
+        Assert.That(slicingDerivedException.M2, Is.EqualTo(p1.M2));
+    }
+
+    [Test]
+    public void Decoding_an_unknown_exception()
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1, classFormat: ClassFormat.Sliced);
+
+        var p1 = new SlicingMostDerivedException("most-derived-m1", "most-derived-m2", new SlicingBaseClass("base-m1"));
+        p1.Encode(ref encoder);
+
+        // Act/Assert
+
+        Assert.That(() =>
         {
-            Assert.That(sliceException, Is.TypeOf<SlicingDerivedException>());
-            var slicingDerivedException = (SlicingDerivedException)sliceException;
-            Assert.That(slicingDerivedException.M1, Is.EqualTo(p1.M1));
-            Assert.That(slicingDerivedException.M2, Is.EqualTo(p1.M2));
-        }
-        else
-        {
-            Assert.That(sliceException, Is.TypeOf<UnknownSliceException>());
-        }
+            var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1); // no activator
+            decoder.DecodeException();
+        },
+        Throws.InstanceOf<InvalidDataException>());
     }
 
     [Test]
