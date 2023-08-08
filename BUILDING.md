@@ -238,6 +238,4 @@ git push <remote> my-branch
 Please ensure to replace `<remote>` with the appropriate remote repository name where you want to push your changes.
 Also, make sure to follow the instructions carefully, and adjust any repository and branch names as needed for your
 specific setup.
-
-
 [icerpc-slice]: https://github.com/icerpc/icerpc-slice
