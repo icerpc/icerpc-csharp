@@ -13,9 +13,7 @@ interface MySessionManager {
     /// Creates a session. The {@link MySession::status} is always {@link MyStatus::Idle} after creation. To retrieve the
     /// status of a user call {@link getStatus}.
     /// @param authToken: The authentication token.
-    /// @throws MyAuthDeniedException: if the provided {@link authToken} is not valid or doesn't have permissions
-    /// for creating a session.
-    createSession(authToken: MyAuthToken) -> MySession throws MyAuthDeniedException
+    createSession(authToken: MyAuthToken) -> MySession
 
     /// Retrieve the status of the given user.
     /// @param user: The user.
@@ -38,8 +36,6 @@ struct MyAuthToken {
     /// The payload.
     payload: sequence<uint8>
 }
-
-exception MyAuthDeniedException {}
 
 /// The MySession struct represents a user session.
 struct MySession {

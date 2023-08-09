@@ -2,14 +2,6 @@
 
 module ZeroC::Slice::Tests::TypeIdAttributeTestNamespace
 
-exception MyException {}
 compact struct MyStruct {
-    b: bool // dummy field; a compact struct can't be empty.
-}
-
-// These constructs don't use the same case convention as their corresponding C# generated types,
-// but their type ID shouldn't be affected by case normalization of the generated types.
-exception myOtherException {}
-compact struct myOtherStruct {
     b: bool // dummy field; a compact struct can't be empty.
 }

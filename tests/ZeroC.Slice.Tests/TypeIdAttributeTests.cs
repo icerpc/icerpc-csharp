@@ -25,9 +25,8 @@ public sealed class TypeIdAttributeTests
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [TestCase(typeof(MyClass), "::ZeroC::Slice::Tests::TypeIdAttributeTestNamespace::MyClass")]
-    [TestCase(typeof(MyException), null)] // Slice2 exception
     [TestCase(typeof(MyOtherClass), "::ZeroC::Slice::Tests::TypeIdAttributeTestNamespace::myOtherClass")]
-    [TestCase(typeof(MyOtherException), null)] // Slice2 exception
+    [TestCase(typeof(MyStruct), null)] // Slice2 struct
     public void Get_slice_type_id(Type type, string? expected)
     {
         string? typeId = type.GetSliceTypeId();

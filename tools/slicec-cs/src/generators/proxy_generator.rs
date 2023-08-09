@@ -506,12 +506,10 @@ await response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     sender,
-    decodeException: {exception_decode_func},
     defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
                 encoding = operation.encoding.to_cs_encoding(),
-                exception_decode_func = exception_decode_func(operation),
             );
         } else {
             writeln!(
@@ -522,14 +520,12 @@ var {return_value} = await response.DecodeReturnValueAsync(
     {encoding},
     sender,
     {return_value_decode_func},
-    decodeException: {exception_decode_func},
     defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
                 return_value = non_streamed_members.to_argument_tuple("sliceP_"),
                 encoding = operation.encoding.to_cs_encoding(),
                 return_value_decode_func = return_value_decode_func(operation).indent(),
-                exception_decode_func = exception_decode_func(operation),
             );
         }
 
@@ -566,12 +562,10 @@ response.DecodeVoidReturnValueAsync(
     request,
     {encoding},
     sender,
-    decodeException: {exception_decode_func},
     defaultActivator: {default_activator},
     cancellationToken)
 ",
             encoding = operation.encoding.to_cs_encoding(),
-            exception_decode_func = exception_decode_func(operation),
             default_activator = default_activator(operation.encoding),
         );
     } else {
@@ -583,29 +577,15 @@ response.DecodeReturnValueAsync(
     {encoding},
     sender,
     {return_value_decode_func},
-    decodeException: {exception_decode_func},
     defaultActivator: {default_activator},
     cancellationToken)
 ",
             encoding = operation.encoding.to_cs_encoding(),
             return_value_decode_func = return_value_decode_func(operation).indent(),
-            exception_decode_func = exception_decode_func(operation),
             default_activator = default_activator(operation.encoding),
         );
     }
     code
-}
-
-fn exception_decode_func(operation: &Operation) -> String {
-    match &operation.throws {
-        Throws::Specific(exception) if operation.encoding != Encoding::Slice1 => {
-            format!(
-                "(ref SliceDecoder decoder, string? message) => new {}(ref decoder, message)",
-                exception.escape_scoped_identifier(&operation.namespace()),
-            )
-        }
-        _ => "null".to_owned(),
-    }
 }
 
 fn return_value_decode_func(operation: &Operation) -> CodeBlock {
