@@ -75,7 +75,7 @@ compact struct IceRequestHeader {
     operation: string
     operationMode: OperationMode
     // Manually encoded/decoded
-    // context: dictionary<string, string>
+    // context: Dictionary<string, string>
     // encapsulationHeader: EncapsulationHeader
 }
 
