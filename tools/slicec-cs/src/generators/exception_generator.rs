@@ -126,7 +126,7 @@ decoder.SkipTagged();",
         if supported_encodings.supports(Encoding::Slice2) && supported_encodings.supports(Encoding::Slice1) {
             builder.add_comment(
                     "remarks",
-                    r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeUserException" />; don't call this constructor directly."#,
+                    r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeException" />; don't call this constructor directly."#,
                 );
         }
 

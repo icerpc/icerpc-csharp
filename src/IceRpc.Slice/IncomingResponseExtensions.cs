@@ -59,11 +59,8 @@ public static class IncomingResponseExtensions
         };
 
         async ValueTask<T> DecodeAndThrowExceptionAsync() =>
-            throw await response.DecodeSliceExceptionAsync(
-                feature,
-                sender,
-                activator,
-                cancellationToken).ConfigureAwait(false);
+            throw await response.DecodeSliceExceptionAsync(feature, sender, activator, cancellationToken)
+                .ConfigureAwait(false);
     }
 
     /// <summary>Verifies that a Slice2 response payload carries no return value or only tagged return values.
@@ -124,11 +121,8 @@ public static class IncomingResponseExtensions
         };
 
         async ValueTask DecodeAndThrowExceptionAsync() =>
-            throw await response.DecodeSliceExceptionAsync(
-                feature,
-                sender,
-                activator,
-                cancellationToken).ConfigureAwait(false);
+            throw await response.DecodeSliceExceptionAsync(feature, sender, activator, cancellationToken)
+                .ConfigureAwait(false);
     }
 
     private static async ValueTask<SliceException> DecodeSliceExceptionAsync(
@@ -162,18 +156,15 @@ public static class IncomingResponseExtensions
             string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
 
             var decoder = new SliceDecoder(
-                    buffer,
-                    SliceEncoding.Slice1,
-                    feature.ProxyFactory ?? sender.With,
-                    maxCollectionAllocation: feature.MaxCollectionAllocation,
-                    activator,
-                    maxDepth: feature.MaxDepth);
+                buffer,
+                SliceEncoding.Slice1,
+                feature.ProxyFactory ?? sender.With,
+                maxCollectionAllocation: feature.MaxCollectionAllocation,
+                activator,
+                maxDepth: feature.MaxDepth);
 
-            SliceException exception = decoder.DecodeUserException(errorMessage);
-            if (exception is not UnknownSliceException)
-            {
-                decoder.CheckEndOfBuffer();
-            }
+            SliceException exception = decoder.DecodeException(errorMessage);
+            decoder.CheckEndOfBuffer();
             return exception;
         }
     }

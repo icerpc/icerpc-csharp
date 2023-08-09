@@ -8,7 +8,7 @@ using static ZeroC.Slice.Internal.Slice1Definitions;
 
 namespace ZeroC.Slice;
 
-/// <summary>Provides methods to encode data with Slice1 or Slice2.</summary>
+/// <summary>Provides methods to encode data with Slice.</summary>
 public ref partial struct SliceEncoder
 {
     /// <summary>Encodes a class instance.</summary>
