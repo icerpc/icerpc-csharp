@@ -71,7 +71,7 @@ unchecked enum ParameterKey : varuint62 {
     MaxStreamFrameSize = 4
 }
 
-typealias ParameterFields = dictionary<ParameterKey, sequence<uint8>>
+typealias ParameterFields = Dictionary<ParameterKey, Sequence<uint8>>
 
 /// The {@link FrameType::Initialize} frame body.
 [cs::internal]
@@ -94,7 +94,7 @@ compact struct InitializeAckBody {
 [cs::readonly]
 compact struct VersionBody {
     /// The supported versions.
-    versions: sequence<varuint62>
+    versions: Sequence<varuint62>
 }
 
 /// The {@link FrameType::Close} frame body.

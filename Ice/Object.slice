@@ -11,7 +11,7 @@ module Ice
 interface Object {
     /// Gets the Slice type IDs of all the interfaces implemented by the target service.
     /// @returns: The Slice type IDs of all these interfaces, sorted alphabetically.
-    idempotent ice_ids() -> sequence<string>
+    idempotent ice_ids() -> Sequence<string>
 
     /// Tests whether the target service implements the specified interface.
     /// @param id: The Slice type ID of the interface to test against.
