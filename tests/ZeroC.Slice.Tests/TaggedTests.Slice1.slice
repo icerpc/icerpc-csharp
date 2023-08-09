@@ -23,8 +23,8 @@ class ClassWithTaggedFields {
     tag(5) e: FixedLengthStruct?   // Uses VSize tag format
     tag(6) f: VarSizeStruct?       // Use FSize tag format
     tag(7) g: MyEnum?              // Uses Size tag format
-    tag(8) h: sequence<uint8>?     // Uses OptimizedVSize tag format
-    tag(9) i: sequence<int32>?     // Uses FSize tag format
+    tag(8) h: Sequence<uint8>?     // Uses OptimizedVSize tag format
+    tag(9) i: Sequence<int32>?     // Uses FSize tag format
     tag(10) j: string?             // Uses OptimizedVSize tag format
 }
 

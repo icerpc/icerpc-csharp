@@ -171,8 +171,8 @@ mod attributes {
         assert_parses(slice);
     }
 
-    #[test_case("sequence<int32>"; "sequence")]
-    #[test_case("dictionary<int32, int32>"; "dictionary")]
+    #[test_case("Sequence<int32>"; "sequence")]
+    #[test_case("Dictionary<int32, int32>"; "dictionary")]
     fn cs_type_on_valid_type_ref(slice_type: &str) {
         // Arrange
         let slice = format!(

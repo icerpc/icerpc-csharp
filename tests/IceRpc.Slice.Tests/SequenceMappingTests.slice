@@ -4,74 +4,74 @@ module IceRpc::Tests::Slice
 
 interface SequenceMappingOperations {
 
-    returnSequenceOfInt32() -> sequence<int32>
-    sendSequenceOfInt32(p: sequence<int32>)
+    returnSequenceOfInt32() -> Sequence<int32>
+    sendSequenceOfInt32(p: Sequence<int32>)
 
-    returnSequenceOfString() -> sequence<string>
-    sendSequenceOfString(p: sequence<string>)
+    returnSequenceOfString() -> Sequence<string>
+    sendSequenceOfString(p: Sequence<string>)
 
-    returnSequenceOfMyFixedLengthEnum() -> sequence<MyFixedLengthEnum>
-    sendSequenceOfMyFixedLengthEnum(p: sequence<MyFixedLengthEnum>)
+    returnSequenceOfMyFixedLengthEnum() -> Sequence<MyFixedLengthEnum>
+    sendSequenceOfMyFixedLengthEnum(p: Sequence<MyFixedLengthEnum>)
 
-    returnSequenceOfMyVarSizeEnum() -> sequence<MyVarSizeEnum>
-    sendSequenceOfMyVarSizeEnum(p: sequence<MyVarSizeEnum>)
+    returnSequenceOfMyVarSizeEnum() -> Sequence<MyVarSizeEnum>
+    sendSequenceOfMyVarSizeEnum(p: Sequence<MyVarSizeEnum>)
 
-    returnSequenceOfMyUncheckedEnum() -> sequence<MyUncheckedEnum>
-    sendSequenceOfMyUncheckedEnum(p: sequence<MyUncheckedEnum>)
+    returnSequenceOfMyUncheckedEnum() -> Sequence<MyUncheckedEnum>
+    sendSequenceOfMyUncheckedEnum(p: Sequence<MyUncheckedEnum>)
 
-    returnSequenceOfOptionalInt32() -> sequence<int32?>
-    sendSequenceOfOptionalInt32(p: sequence<int32?>)
+    returnSequenceOfOptionalInt32() -> Sequence<int32?>
+    sendSequenceOfOptionalInt32(p: Sequence<int32?>)
 
-    returnSequenceOfOptionalString() -> sequence<string?>
-    sendSequenceOfOptionalString(p: sequence<string?>)
+    returnSequenceOfOptionalString() -> Sequence<string?>
+    sendSequenceOfOptionalString(p: Sequence<string?>)
 
-    returnSequenceOfOptionalMyFixedLengthEnum() -> sequence<MyFixedLengthEnum?>
-    sendSequenceOfOptionalMyFixedLengthEnum(p: sequence<MyFixedLengthEnum?>)
+    returnSequenceOfOptionalMyFixedLengthEnum() -> Sequence<MyFixedLengthEnum?>
+    sendSequenceOfOptionalMyFixedLengthEnum(p: Sequence<MyFixedLengthEnum?>)
 
-    returnSequenceOfOptionalMyVarSizeEnum() -> sequence<MyVarSizeEnum?>
-    sendSequenceOfOptionalMyVarSizeEnum(p: sequence<MyVarSizeEnum?>)
+    returnSequenceOfOptionalMyVarSizeEnum() -> Sequence<MyVarSizeEnum?>
+    sendSequenceOfOptionalMyVarSizeEnum(p: Sequence<MyVarSizeEnum?>)
 
-    returnSequenceOfOptionalMyUncheckedEnum() -> sequence<MyUncheckedEnum?>
-    sendSequenceOfOptionalMyUncheckedEnum(p: sequence<MyUncheckedEnum?>)
+    returnSequenceOfOptionalMyUncheckedEnum() -> Sequence<MyUncheckedEnum?>
+    sendSequenceOfOptionalMyUncheckedEnum(p: Sequence<MyUncheckedEnum?>)
 
-    returnCustomSequenceOfInt32() -> [cs::type("CustomSequence<int>")] sequence<int32>
-    sendCustomSequenceOfInt32(p: [cs::type("CustomSequence<int>")] sequence<int32>)
+    returnCustomSequenceOfInt32() -> [cs::type("CustomSequence<int>")] Sequence<int32>
+    sendCustomSequenceOfInt32(p: [cs::type("CustomSequence<int>")] Sequence<int32>)
 
-    returnCustomSequenceOfString() -> [cs::type("CustomSequence<string>")] sequence<string>
-    sendCustomSequenceOfString(p: [cs::type("CustomSequence<string>")] sequence<string>)
+    returnCustomSequenceOfString() -> [cs::type("CustomSequence<string>")] Sequence<string>
+    sendCustomSequenceOfString(p: [cs::type("CustomSequence<string>")] Sequence<string>)
 
-    returnCustomSequenceOfMyFixedLengthEnum() -> [cs::type("CustomSequence<MyFixedLengthEnum>")] sequence<MyFixedLengthEnum>
-    sendCustomSequenceOfMyFixedLengthEnum(p: [cs::type("CustomSequence<MyFixedLengthEnum>")] sequence<MyFixedLengthEnum>)
+    returnCustomSequenceOfMyFixedLengthEnum() -> [cs::type("CustomSequence<MyFixedLengthEnum>")] Sequence<MyFixedLengthEnum>
+    sendCustomSequenceOfMyFixedLengthEnum(p: [cs::type("CustomSequence<MyFixedLengthEnum>")] Sequence<MyFixedLengthEnum>)
 
-    returnCustomSequenceOfMyVarSizeEnum() -> [cs::type("CustomSequence<MyVarSizeEnum>")] sequence<MyVarSizeEnum>
-    sendCustomSequenceOfMyVarSizeEnum(p: [cs::type("CustomSequence<MyVarSizeEnum>")] sequence<MyVarSizeEnum>)
+    returnCustomSequenceOfMyVarSizeEnum() -> [cs::type("CustomSequence<MyVarSizeEnum>")] Sequence<MyVarSizeEnum>
+    sendCustomSequenceOfMyVarSizeEnum(p: [cs::type("CustomSequence<MyVarSizeEnum>")] Sequence<MyVarSizeEnum>)
 
-    returnCustomSequenceOfMyUncheckedEnum() -> [cs::type("CustomSequence<MyUncheckedEnum>")] sequence<MyUncheckedEnum>
-    sendCustomSequenceOfMyUncheckedEnum(p: [cs::type("CustomSequence<MyUncheckedEnum>")] sequence<MyUncheckedEnum>)
+    returnCustomSequenceOfMyUncheckedEnum() -> [cs::type("CustomSequence<MyUncheckedEnum>")] Sequence<MyUncheckedEnum>
+    sendCustomSequenceOfMyUncheckedEnum(p: [cs::type("CustomSequence<MyUncheckedEnum>")] Sequence<MyUncheckedEnum>)
 
-    returnCustomSequenceOfOptionalInt32() -> [cs::type("CustomSequence<int?>")] sequence<int32?>
-    sendCustomSequenceOfOptionalInt32(p: [cs::type("CustomSequence<int?>")] sequence<int32?>)
+    returnCustomSequenceOfOptionalInt32() -> [cs::type("CustomSequence<int?>")] Sequence<int32?>
+    sendCustomSequenceOfOptionalInt32(p: [cs::type("CustomSequence<int?>")] Sequence<int32?>)
 
-    returnCustomSequenceOfOptionalString() -> [cs::type("CustomSequence<string?>")] sequence<string?>
-    sendCustomSequenceOfOptionalString(p: [cs::type("CustomSequence<string?>")] sequence<string?>)
+    returnCustomSequenceOfOptionalString() -> [cs::type("CustomSequence<string?>")] Sequence<string?>
+    sendCustomSequenceOfOptionalString(p: [cs::type("CustomSequence<string?>")] Sequence<string?>)
 
-    returnCustomSequenceOfOptionalMyFixedLengthEnum() -> [cs::type("CustomSequence<MyFixedLengthEnum?>")] sequence<MyFixedLengthEnum?>
-    sendCustomSequenceOfOptionalMyFixedLengthEnum(p: [cs::type("CustomSequence<MyFixedLengthEnum?>")] sequence<MyFixedLengthEnum?>)
+    returnCustomSequenceOfOptionalMyFixedLengthEnum() -> [cs::type("CustomSequence<MyFixedLengthEnum?>")] Sequence<MyFixedLengthEnum?>
+    sendCustomSequenceOfOptionalMyFixedLengthEnum(p: [cs::type("CustomSequence<MyFixedLengthEnum?>")] Sequence<MyFixedLengthEnum?>)
 
-    returnCustomSequenceOfOptionalMyVarSizeEnum() -> [cs::type("CustomSequence<MyVarSizeEnum?>")] sequence<MyVarSizeEnum?>
-    sendCustomSequenceOfOptionalMyVarSizeEnum(p: [cs::type("CustomSequence<MyVarSizeEnum?>")] sequence<MyVarSizeEnum?>)
+    returnCustomSequenceOfOptionalMyVarSizeEnum() -> [cs::type("CustomSequence<MyVarSizeEnum?>")] Sequence<MyVarSizeEnum?>
+    sendCustomSequenceOfOptionalMyVarSizeEnum(p: [cs::type("CustomSequence<MyVarSizeEnum?>")] Sequence<MyVarSizeEnum?>)
 
-    returnCustomSequenceOfOptionalMyUncheckedEnum() -> [cs::type("CustomSequence<MyUncheckedEnum?>")] sequence<MyUncheckedEnum?>
-    sendCustomSequenceOfOptionalMyUncheckedEnum(p: [cs::type("CustomSequence<MyUncheckedEnum?>")] sequence<MyUncheckedEnum?>)
+    returnCustomSequenceOfOptionalMyUncheckedEnum() -> [cs::type("CustomSequence<MyUncheckedEnum?>")] Sequence<MyUncheckedEnum?>
+    sendCustomSequenceOfOptionalMyUncheckedEnum(p: [cs::type("CustomSequence<MyUncheckedEnum?>")] Sequence<MyUncheckedEnum?>)
 
-    returnHashSetOfInt32() -> [cs::type("HashSet<int>")] sequence<int32>
-    sendHashSetOfInt32(p: [cs::type("HashSet<int>")] sequence<int32>)
+    returnHashSetOfInt32() -> [cs::type("HashSet<int>")] Sequence<int32>
+    sendHashSetOfInt32(p: [cs::type("HashSet<int>")] Sequence<int32>)
 
-    opNumericTypeNestedSequence(p1: sequence<sequence<sequence<uint8>>>) -> sequence<sequence<sequence<uint8>>>
-    opStructNestedSequence(p1: sequence<sequence<sequence<MyStruct>>>) -> sequence<sequence<sequence<MyStruct>>>
+    opNumericTypeNestedSequence(p1: Sequence<Sequence<Sequence<uint8>>>) -> Sequence<Sequence<Sequence<uint8>>>
+    opStructNestedSequence(p1: Sequence<Sequence<Sequence<MyStruct>>>) -> Sequence<Sequence<Sequence<MyStruct>>>
 
     opReturnTuple() -> (
-        r1: [cs::type("CustomSequence<int>")] sequence<int32>
-        r2: [cs::type("CustomSequence<int>")] sequence<int32>
+        r1: [cs::type("CustomSequence<int>")] Sequence<int32>
+        r2: [cs::type("CustomSequence<int>")] Sequence<int32>
     )
 }

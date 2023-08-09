@@ -45,13 +45,13 @@ public ref partial struct SliceDecoder
 
     private ClassContext _classContext;
 
-    // The number of bytes already allocated for strings, dictionaries and sequences.
+    // The number of bytes already allocated for strings, dictionaries, and sequences.
     private int _currentCollectionAllocation;
 
     // The current depth when decoding a class recursively.
     private int _currentDepth;
 
-    // The maximum number of bytes that can be allocated for strings, dictionaries and sequences.
+    // The maximum number of bytes that can be allocated for strings, dictionaries, and sequences.
     private readonly int _maxCollectionAllocation;
 
     // The maximum depth when decoding a class recursively.

@@ -4,7 +4,7 @@ module IceRpc::Tests::Slice
 
 // This file contains Slice definitions for testing the mapping of doc comments
 
-typealias UserList = sequence<string>
+typealias UserList = Sequence<string>
 
 /// This is the session manager interface summary. The caller must use the {@link MyAuthorizationManager::createAuthToken}
 /// operation to create an authentication token before creating a session.
@@ -34,7 +34,7 @@ interface MyAuthorizationManager {
 /// An authentication token, the {@link payload} contains the JWT authentication token.
 struct MyAuthToken {
     /// The payload.
-    payload: sequence<uint8>
+    payload: Sequence<uint8>
 }
 
 /// The MySession struct represents a user session.

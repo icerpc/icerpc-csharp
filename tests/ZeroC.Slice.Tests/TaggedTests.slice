@@ -6,7 +6,7 @@ struct MyStructWithTaggedFields {
     tag(1) a: uint8?
     tag(2) b: MyStruct?
     tag(3) c: MyEnum?
-    tag(4) d: sequence<uint8>?
+    tag(4) d: Sequence<uint8>?
     tag(5) e: string?
 }
 
