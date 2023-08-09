@@ -32,7 +32,7 @@ unchecked enum MyUncheckedEnum : uint32 {
 }
 
 interface EnumOperations {
-    opCheckedEnumSeq(p1: sequence<MyEnum>)
-    opCheckedEnumWithFixedLengthSeq(p1: sequence<MyFixedLengthEnum>)
-    opUncheckedEnumSeq(p1: sequence<MyUncheckedEnum>)
+    opCheckedEnumSeq(p1: Sequence<MyEnum>)
+    opCheckedEnumWithFixedLengthSeq(p1: Sequence<MyFixedLengthEnum>)
+    opUncheckedEnumSeq(p1: Sequence<MyUncheckedEnum>)
 }

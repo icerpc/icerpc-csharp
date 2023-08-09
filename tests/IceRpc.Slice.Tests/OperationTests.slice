@@ -34,21 +34,21 @@ interface MyOperationsA {
     opWithSpecialParameterNames(cancel: int32, features: int32)
 
     // Encoded result
-    [cs::encodedReturn] opWithSingleReturnValueAndEncodedReturnAttribute() -> sequence<int32>
-    [cs::encodedReturn] opWithMultipleReturnValuesAndEncodedReturnAttribute() -> (r1: sequence<int32>, r2: sequence<int32>)
-    [cs::encodedReturn] opWithStreamReturnAndEncodedReturnAttribute() -> (r1: sequence<int32>, r2: stream int32)
+    [cs::encodedReturn] opWithSingleReturnValueAndEncodedReturnAttribute() -> Sequence<int32>
+    [cs::encodedReturn] opWithMultipleReturnValuesAndEncodedReturnAttribute() -> (r1: Sequence<int32>, r2: Sequence<int32>)
+    [cs::encodedReturn] opWithStreamReturnAndEncodedReturnAttribute() -> (r1: Sequence<int32>, r2: stream int32)
 
     // C# keyword as operation name
     continue()
 
     // ReadOnlyMemory input parameters and return values
-    opReadOnlyMemory(p1: sequence<int32>) -> sequence<int32>
+    opReadOnlyMemory(p1: Sequence<int32>) -> Sequence<int32>
 
     // ReadOnlyMemory optional input parameters and return values
-    opReadOnlyMemoryOptional(p1: sequence<int32>?) -> sequence<int32>?
+    opReadOnlyMemoryOptional(p1: Sequence<int32>?) -> Sequence<int32>?
 
     // ReadOnlyMemory tagged input parameters and return values
-    opReadOnlyMemoryTagged(tag(1) p1: sequence<int32>?) -> tag(1) sequence<int32>?
+    opReadOnlyMemoryTagged(tag(1) p1: Sequence<int32>?) -> tag(1) Sequence<int32>?
 
     // Proxy parameter and return value
     opWithProxyParameter(service: Pingable)
@@ -76,5 +76,5 @@ interface MyTaggedOperationsV0 {
 }
 
 interface MyTaggedOperationsReadOnlyMemoryParams {
-    op(x: sequence<int32>, tag(1) y: sequence<int32>?, tag(2) z: sequence<int32>?)
+    op(x: Sequence<int32>, tag(1) y: Sequence<int32>?, tag(2) z: Sequence<int32>?)
 }

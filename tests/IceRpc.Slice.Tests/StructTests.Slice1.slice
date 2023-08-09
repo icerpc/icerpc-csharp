@@ -10,9 +10,9 @@ compact struct MyCompactStructWithNullableProxy {
 }
 
 compact struct MyCompactStructWithSequenceOfNullableProxies {
-    i: sequence<Pingable?>
+    i: Sequence<Pingable?>
 }
 
 compact struct MyCompactStructWithDictionaryOfNullableProxies {
-    i: dictionary<int32, Pingable?>
+    i: Dictionary<int32, Pingable?>
 }

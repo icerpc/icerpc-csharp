@@ -68,7 +68,7 @@ public class TelemetryInterceptor : IInvoker
         //    string key;
         //    string value;
         // }
-        // sequence<BaggageEntry> Baggage;
+        // Sequence<BaggageEntry> Baggage;
         //
         // struct ActivityContext
         // {
@@ -101,7 +101,7 @@ public class TelemetryInterceptor : IInvoker
         // TraceState encoded as an string
         encoder.EncodeString(activity.TraceStateString ?? "");
 
-        // Baggage encoded as a sequence<BaggageEntry>
+        // Baggage encoded as a Sequence<BaggageEntry>
         encoder.EncodeSequence(
             activity.Baggage,
             (ref SliceEncoder encoder, KeyValuePair<string, string?> entry) =>
