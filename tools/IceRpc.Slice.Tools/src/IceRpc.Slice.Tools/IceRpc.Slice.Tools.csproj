@@ -77,11 +77,6 @@
          <Pack>true</Pack>
          <PackagePath>\</PackagePath>
       </None>
-      <Content Include="../../../../slice/**/*.slice"
-               Exclude="../../../../slice/**/Internal/*.slice">
-         <Pack>true</Pack>
-         <PackagePath>slice/</PackagePath>
-      </Content>
       <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
    </ItemGroup>
    <Choose>
