@@ -109,6 +109,17 @@ public sealed class ExceptionTests
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
+    [Test]
+    public void Slice_operation_throws_invalid_data_when_exception_unlisted()
+    {
+        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new EmptyException()));
+        var proxy = new AltSliceExceptionOperationsProxy(invoker);
+
+        InvalidDataException? exception =
+            Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMultipleExceptionsAsync());
+        Assert.That(exception, Is.Not.Null);
+    }
+
     private sealed class SliceExceptionOperationsService : Service, ISliceExceptionOperationsService
     {
         private readonly Exception _exception;

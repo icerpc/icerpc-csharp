@@ -436,11 +436,12 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let members = operation.return_members();
 
-        let function_type = if operation.streamed_return_member().is_some() {
-            FunctionType::BlockBody
-        } else {
-            FunctionType::ExpressionBody
-        };
+        let function_type =
+            if operation.streamed_return_member().is_some() || !operation.exception_specification.is_empty() {
+                FunctionType::BlockBody
+            } else {
+                FunctionType::ExpressionBody
+            };
 
         let return_type = if members.is_empty() {
             "global::System.Threading.Tasks.ValueTask".to_owned()
@@ -580,7 +581,41 @@ response.DecodeReturnValueAsync(
             default_activator = default_activator(operation.encoding),
         );
     }
-    code
+
+    if operation.exception_specification.is_empty() {
+        code
+    } else {
+        let mut try_catch_block = CodeBlock::default();
+        let decode_response = code.indent();
+
+        let scoped_operation_name = operation.module_scoped_identifier();
+
+        let exception_expression = match operation.exception_specification.as_slice() {
+            [] => unreachable!(),
+            [single_exception] => single_exception.escape_scoped_identifier(&operation.namespace()),
+            multiple_exceptions => {
+                let exceptions = multiple_exceptions.iter();
+                let cs_exceptions = exceptions.map(|ex| ex.escape_scoped_identifier(&operation.namespace()));
+                let exception_list = cs_exceptions.collect::<Vec<_>>().join(" or ");
+                format!("({exception_list})")
+            }
+        };
+        writeln!(
+                        try_catch_block,
+                        "\
+try
+{{
+    {return_await} {decode_response}.ConfigureAwait(false);
+}}
+catch (SliceException ex) when (ex is not {exception_expression})
+{{
+    throw new InvalidDataException($\"Slice operation '{scoped_operation_name}' does not contain '{{ex.GetType()}}' in its exception specification .\", ex);
+}}",
+        return_await = if return_void { "await" } else { "return await" },
+        );
+
+        try_catch_block
+    }
 }
 
 fn return_value_decode_func(operation: &Operation) -> CodeBlock {
