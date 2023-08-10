@@ -76,19 +76,14 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     builder.add_block(main_constructor.build());
 
     // Decode constructor
-    let mut decode_body = EncodingBlockBuilder::new(
-        "decoder.Encoding",
-        &struct_def.escape_identifier(),
-        struct_def.supported_encodings(),
-        false, // No encoding check for structs
-    )
-    .add_encoding_block(Encoding::Slice1, || {
-        decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
-    })
-    .add_encoding_block(Encoding::Slice2, || {
-        decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
-    })
-    .build();
+    let mut decode_body = EncodingBlockBuilder::new("decoder.Encoding", struct_def.supported_encodings())
+        .add_encoding_block(Encoding::Slice1, || {
+            decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
+        })
+        .add_encoding_block(Encoding::Slice2, || {
+            decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
+        })
+        .build();
 
     if !struct_def.is_compact {
         writeln!(decode_body, "decoder.SkipTagged();");
@@ -115,19 +110,14 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
         );
 
     // Encode method
-    let mut encode_body = EncodingBlockBuilder::new(
-        "encoder.Encoding",
-        &struct_def.escape_identifier(),
-        struct_def.supported_encodings(),
-        false, // No encoding check for structs
-    )
-    .add_encoding_block(Encoding::Slice1, || {
-        encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
-    })
-    .add_encoding_block(Encoding::Slice2, || {
-        encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
-    })
-    .build();
+    let mut encode_body = EncodingBlockBuilder::new("encoder.Encoding", struct_def.supported_encodings())
+        .add_encoding_block(Encoding::Slice1, || {
+            encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
+        })
+        .add_encoding_block(Encoding::Slice2, || {
+            encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
+        })
+        .build();
 
     if !struct_def.is_compact {
         writeln!(encode_body, "encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");

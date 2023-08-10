@@ -97,7 +97,6 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
             }
         }
         TypeRefs::Struct(_) => write!(code, "new {type_string}(ref decoder)"),
-        TypeRefs::Exception(_) => write!(code, "new {type_string}(ref decoder)"),
         TypeRefs::Dictionary(dictionary_ref) => code.write(&decode_dictionary(dictionary_ref, namespace, encoding)),
         TypeRefs::Sequence(sequence_ref) => code.write(&decode_sequence(sequence_ref, namespace, encoding)),
         TypeRefs::Enum(enum_ref) => {
@@ -414,9 +413,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                 name = enum_ref.cs_identifier(Case::Pascal),
             )
         }
-        TypeRefs::Struct(_) | TypeRefs::Exception(_) => {
-            write!(code, "new {type_name}(ref decoder)")
-        }
+        TypeRefs::Struct(_) => write!(code, "new {type_name}(ref decoder)"),
         TypeRefs::CustomType(custom_type_ref) => {
             write!(
                 code,

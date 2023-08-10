@@ -21,8 +21,10 @@ exception MyDerivedException : MyException {
     l: int32
 }
 
+exception EmptyException {}
+
 interface SliceExceptionOperations {
-    opThrowsAnyException() throws AnyException
+    opThrowsMultipleExceptions() throws (MyException, EmptyException)
 
     opThrowsMyException() throws MyException
 

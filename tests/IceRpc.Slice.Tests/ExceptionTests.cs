@@ -10,12 +10,13 @@ namespace IceRpc.Tests.Slice;
 [Parallelizable(ParallelScope.All)]
 public sealed class ExceptionTests
 {
-    private static IEnumerable<TestCaseData> SliceDispatchThrowsAnyExceptionSource
+    private static IEnumerable<TestCaseData> SliceDispatchThrowsMultipleExceptionsSource
     {
         get
         {
             yield return new TestCaseData(new MyException(5, 12), StatusCode.ApplicationError);
             yield return new TestCaseData(new MyDerivedException(5, 12, 13, 18), StatusCode.ApplicationError);
+            yield return new TestCaseData(new EmptyException(), StatusCode.ApplicationError);
 
             yield return new TestCaseData(
                 new MyExceptionWithTaggedFields(5, 12, 13, 28),
@@ -51,20 +52,20 @@ public sealed class ExceptionTests
         }
     }
 
-    [Test, TestCaseSource(nameof(SliceDispatchThrowsAnyExceptionSource))]
-    public void Slice_operation_throws_exception_with_any_exception_specification(
+    [Test, TestCaseSource(nameof(SliceDispatchThrowsMultipleExceptionsSource))]
+    public void Slice_operation_throws_exception_with_multiple_exceptions_in_specification(
         Exception throwException,
         StatusCode expectedStatusCode)
     {
         var invoker = new ColocInvoker(new SliceExceptionOperationsService(throwException));
         var proxy = new SliceExceptionOperationsProxy(invoker);
 
-        Type expectedType = expectedStatusCode == StatusCode.ApplicationError ?
-            throwException.GetType() : typeof(DispatchException);
+        Type expectedType = (throwException is MyException or EmptyException) &&
+            expectedStatusCode == StatusCode.ApplicationError ? throwException.GetType() : typeof(DispatchException);
 
         var exception = Assert.ThrowsAsync(
             expectedType,
-            () => proxy.OpThrowsAnyExceptionAsync());
+            () => proxy.OpThrowsMultipleExceptionsAsync());
 
         Assert.That(exception, Is.Not.Null);
         if (expectedStatusCode != StatusCode.ApplicationError)
@@ -114,7 +115,7 @@ public sealed class ExceptionTests
 
         public SliceExceptionOperationsService(Exception exception) => _exception = exception;
 
-        public ValueTask OpThrowsAnyExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
+        public ValueTask OpThrowsMultipleExceptionsAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
 
         public ValueTask OpThrowsMyExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>

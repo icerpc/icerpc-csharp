@@ -478,34 +478,40 @@ return new IceRpc.OutgoingResponse(request)
         }
     }
 
-    if let Throws::None = &operation.throws {
-        format!(
-            "
-{check_and_decode}
-{dispatch_and_return}"
-        )
-    } else {
-        let exception_type = match &operation.throws {
-            Throws::Specific(exception) => exception.escape_scoped_identifier(&operation.namespace()),
-            Throws::AnyException => "SliceException".to_owned(),
-            Throws::None => unreachable!(),
-        };
+    let mut code = CodeBlock::default();
+    writeln!(code, "{check_and_decode}");
 
-        format!(
+    if operation.exception_specification.is_empty() {
+        writeln!(code, "{dispatch_and_return}");
+    } else {
+        let catch_expression = match operation.exception_specification.as_slice() {
+            [] => unreachable!(),
+            [single_exception] => {
+                let exception = single_exception.escape_scoped_identifier(&operation.namespace());
+                format!("{exception} sliceException")
+            }
+            multiple_exceptions => {
+                let exceptions = multiple_exceptions.iter();
+                let cs_exceptions = exceptions.map(|ex| ex.escape_scoped_identifier(&operation.namespace()));
+                let exception_list = cs_exceptions.collect::<Vec<_>>().join(" or ");
+                format!("SliceException sliceException) when (sliceException is {exception_list}")
+            }
+        };
+        write!(
+            code,
             "
-{check_and_decode}
 try
 {{
     {dispatch_and_return}
 }}
-catch ({exception_type} sliceException)
+catch ({catch_expression})
 {{
     return request.CreateSliceExceptionResponse(sliceException, {encoding});
 }}",
             dispatch_and_return = dispatch_and_return.indent(),
-        )
+        );
     }
-    .into()
+    code
 }
 
 // only called for non-void operations

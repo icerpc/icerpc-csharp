@@ -255,13 +255,9 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    // For Slice2 operations without return type, and without an exception specification, reuse the
-    // IncomingResponseExtensions.DecodeVoidReturnValueAsync method, otherwise call the generated decode
-    // method in the Response class.
-    if operation.return_members().is_empty()
-        && operation.encoding != Encoding::Slice1
-        && matches!(operation.throws, Throws::None)
-    {
+    // For Slice2 operations without a return type we use the IncomingResponseExtensions.DecodeVoidReturnValueAsync
+    // method, otherwise call the generated decode method in the Response class.
+    if operation.return_members().is_empty() && operation.encoding != Encoding::Slice1 {
         invocation_builder.add_argument("IceRpc.Slice.IncomingResponseExtensions.DecodeVoidReturnValueAsync");
     } else {
         invocation_builder.add_argument(format!("Response.Decode{async_operation_name}"));
@@ -418,10 +414,9 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
     let mut operations = interface_def.operations();
     operations.retain(|o| {
-        // We need to generate a method to decode the responses of any operations with return members, Slice2
-        // operations with an exception specification, or any Slice1 operations (to correctly setup the activator used
-        // for decoding Slice1 exceptions). We don't check Throws::AnyException because it is only valid in Slice1.
-        !o.return_members().is_empty() || o.encoding == Encoding::Slice1 || matches!(&o.throws, Throws::Specific(_))
+        // We need to generate a method to decode the responses of any operations with return members or any Slice1
+        // operations (to correctly setup the activator used for decoding Slice1 exceptions).
+        !o.return_members().is_empty() || o.encoding == Encoding::Slice1
     });
 
     if operations.is_empty() {
