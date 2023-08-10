@@ -609,7 +609,7 @@ try
 }}
 catch (SliceException ex) when (ex is not {exception_expression})
 {{
-    throw new InvalidDataException($\"Slice operation '{scoped_operation_name}' does not contain '{{ex.GetType()}}' in its exception specification .\", ex);
+    throw new InvalidDataException($\"Slice operation '{scoped_operation_name}' does not contain '{{ex.GetType()}}' in its exception specification.\", ex);
 }}",
             return_await = if return_void { "await" } else { "return await" },
         );
