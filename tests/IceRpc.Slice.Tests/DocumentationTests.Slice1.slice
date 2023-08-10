@@ -24,7 +24,8 @@ interface UserManager {
     /// @throws UserAlreadyExistsException: When a user with the same email address already exists.
     /// @throws InvalidEmailAddressException: When the provided email address is not a valid email address.
     /// @returns: the user object.
-    registerAccount(name: string, email: string) -> User throws AnyException
+    registerAccount(name: string, email: string) -> User
+        throws (UserAlreadyExistsException, InvalidEmailAddressException)
 }
 
 /// The exception that is thrown by {@link UserManager::registerAccount} when a user account

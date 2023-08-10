@@ -6,7 +6,7 @@ use crate::comments::CommentTag;
 use crate::cs_attributes::CsType;
 use crate::cs_util::format_comment_message;
 use crate::member_util::escape_parameter_name;
-use crate::slicec_ext::{EncodingExt, EntityExt, MemberExt, ParameterExt};
+use crate::slicec_ext::{EntityExt, MemberExt, ParameterExt};
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
 use slicec::supported_encodings::SupportedEncodings;
@@ -401,20 +401,15 @@ impl FunctionBuilder {
             // Generate documentation for any '@throws' tags on the operation.
             for throws_tag in &comment.throws {
                 let message = format_comment_message(&throws_tag.message, &operation.namespace());
-                // If an identifier was provided in the '@throws' tag, emit a link to the corresponding entity.
-                if let Some(exception_link) = throws_tag.thrown_type() {
-                    match exception_link {
-                        Ok(exception) => {
-                            let exception_name = exception.escape_scoped_identifier(&operation.namespace());
-                            self.add_comment_with_attribute("exception", "cref", &exception_name, message);
-                        }
-                        Err(identifier) => {
-                            // If there was an error resolving the link, print the identifier without any formatting.
-                            self.add_comment_with_attribute("exception", "cref", &identifier.value, message);
-                        }
+                match throws_tag.thrown_type() {
+                    Ok(exception) => {
+                        let exception_name = exception.escape_scoped_identifier(&operation.namespace());
+                        self.add_comment_with_attribute("exception", "cref", &exception_name, message);
                     }
-                } else {
-                    self.add_comment("exception", message);
+                    Err(identifier) => {
+                        // If there was an error resolving the link, print the identifier without any formatting.
+                        self.add_comment_with_attribute("exception", "cref", &identifier.value, message);
+                    }
                 }
             }
         }
@@ -592,23 +587,14 @@ pub struct EncodingBlockBuilder<'a> {
     encoding_blocks: HashMap<Encoding, Box<dyn Fn() -> CodeBlock + 'a>>,
     supported_encodings: SupportedEncodings,
     encoding_variable: String,
-    identifier: String,
-    encoding_check: bool,
 }
 
 impl<'a> EncodingBlockBuilder<'a> {
-    pub fn new(
-        encoding_variable: &str,
-        identifier: &str,
-        supported_encodings: SupportedEncodings,
-        encoding_check: bool,
-    ) -> Self {
+    pub fn new(encoding_variable: &str, supported_encodings: SupportedEncodings) -> Self {
         Self {
             encoding_blocks: HashMap::new(),
             supported_encodings,
             encoding_variable: encoding_variable.to_owned(),
-            identifier: identifier.to_owned(),
-            encoding_check,
         }
     }
 
@@ -625,28 +611,7 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
     fn build(&self) -> CodeBlock {
         match &self.supported_encodings[..] {
             [] => panic!("No supported encodings"),
-            [encoding] => format!(
-                "\
-{encoding_check}
-{encode_block}
-",
-                encoding_check = if self.encoding_check {
-                    format!(
-                        r#"if ({encoding_variable} != {cs_encoding})
-{{
-    throw new NotSupportedException("{identifier} can only be encoded with {encoding}.");
-}}
-"#,
-                        identifier = self.identifier,
-                        encoding_variable = self.encoding_variable,
-                        cs_encoding = encoding.to_cs_encoding(),
-                    )
-                } else {
-                    "".to_owned()
-                },
-                encode_block = self.encoding_blocks[encoding](),
-            )
-            .into(),
+            [encoding] => self.encoding_blocks[encoding](),
             _ => {
                 let mut slice1_blocks = self.encoding_blocks[&Encoding::Slice1]();
                 let mut slice2_blocks = self.encoding_blocks[&Encoding::Slice2]();

@@ -1,15 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::builders::{
-    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
-};
+use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_util::*;
 use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
-use slicec::grammar::{Encoding, Exception, Member, Type};
+use slicec::grammar::{Encoding, Exception, Member};
 use slicec::utils::code_gen_util::TypeContext;
 
 pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
@@ -18,11 +16,9 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
 
     let namespace = &exception_def.namespace();
 
-    let fields = exception_def.fields();
+    let fields = &exception_def.fields();
 
     let access = exception_def.access_modifier();
-
-    let supported_encodings = exception_def.supported_encodings();
 
     let mut exception_class_builder = ContainerBuilder::new(&format!("{access} partial class"), &exception_name);
 
@@ -32,11 +28,8 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
     exception_class_builder
         .add_generated_remark("class", exception_def)
         .add_comments(exception_def.formatted_doc_comment_seealso())
-        .add_obsolete_attribute(exception_def);
-
-    if supported_encodings.supports(Encoding::Slice1) {
-        exception_class_builder.add_type_id_attribute(exception_def);
-    }
+        .add_obsolete_attribute(exception_def)
+        .add_type_id_attribute(exception_def);
 
     if let Some(base) = exception_def.base_exception() {
         exception_class_builder.add_base(base.escape_scoped_identifier(namespace));
@@ -53,110 +46,50 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
             .into(),
     );
 
-    if supported_encodings.supports(Encoding::Slice1) {
-        exception_class_builder.add_block(
-            format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;").into(),
-        );
-    }
+    exception_class_builder.add_block(
+        format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;").into(),
+    );
 
     exception_class_builder.add_block(one_shot_constructor(exception_def));
 
-    if has_base {
-        exception_class_builder.add_block(
-            FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-                    .add_parameter("ref SliceDecoder", "decoder", None, None)
-                    .add_parameter("string?", "message", Some("null"), None)
-                    .add_base_parameter("ref decoder")
-                    .add_base_parameter("message")
-                    .set_body(initialize_required_fields(&fields, FieldType::Exception))
-                    // This is Slice1 only, there is no exception inheritance with Slice2. We hide this method because
-                    // this must be only called by the Activator.
-                    .add_never_editor_browsable_attribute()
-                    .build(),
-        );
-    } else {
-        // With Slice1, this constructor should be called only by the Activator and not directly by the application
-        // or generated code. With Slice2, it's a regular decoding constructor that can be called directly by the
-        // generated code or the application.
-        let mut builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
-
-        if supported_encodings.supports(Encoding::Slice2) {
-            builder.add_comment(
-                "summary",
-                format!(
-                    r#"Constructs a new instance of <see cref="{}" /> and decodes its fields from a Slice decoder."#,
-                    &exception_name
-                ),
-            );
-        } else {
-            builder.add_never_editor_browsable_attribute();
-        }
-
-        builder
-            .add_parameter(
-                "ref SliceDecoder",
-                "decoder",
-                None,
-                Some("The Slice decoder.".to_owned()),
-            )
-            .add_parameter(
-                "string?",
-                "message",
-                Some("null"),
-                Some("A message that describes the exception.".to_owned()),
-            )
+    // Hide this method because it must only be called by the Activator and not by the application or generated code.
+    exception_class_builder.add_block(if has_base {
+        FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
+            .add_never_editor_browsable_attribute()
+            .add_parameter("ref SliceDecoder", "decoder", None, None)
+            .add_parameter("string?", "message", Some("null"), None)
+            .add_base_parameter("ref decoder")
             .add_base_parameter("message")
+            .set_body(initialize_required_fields(fields, FieldType::Exception))
+            .build()
+    } else {
+        FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
+            .add_never_editor_browsable_attribute()
+            .add_parameter("ref SliceDecoder", "decoder", None, None)
+            .add_parameter("string?", "message", Some("null"), None)
+            .add_base_parameter("message")
+            .set_body(initialize_required_fields(fields, FieldType::Exception))
+            .build()
+    });
+
+    exception_class_builder.add_block(
+        FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
+            .add_never_editor_browsable_attribute()
+            .add_parameter("ref SliceDecoder", "decoder", None, None)
             .set_body(
-                EncodingBlockBuilder::new("decoder.Encoding", &exception_name, supported_encodings.clone(), false)
-                    .add_encoding_block(Encoding::Slice1, || {
-                        initialize_required_fields(&fields, FieldType::Exception)
-                    })
-                    .add_encoding_block(Encoding::Slice2, || {
-                        format!(
-                            "\
-{}
-decoder.SkipTagged();",
-                            decode_fields(&fields, namespace, FieldType::Exception, Encoding::Slice2),
-                        )
-                        .into()
-                    })
-                    .build(),
-            );
-
-        if supported_encodings.supports(Encoding::Slice2) && supported_encodings.supports(Encoding::Slice1) {
-            builder.add_comment(
-                    "remarks",
-                    r#"With Slice1, you should decode exceptions by calling <see cref="SliceDecoder.DecodeException" />; don't call this constructor directly."#,
-                );
-        }
-
-        exception_class_builder.add_block(builder.build());
-    }
-
-    if supported_encodings.supports(Encoding::Slice1) {
-        exception_class_builder.add_block(
-            FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
-                .add_parameter("ref SliceDecoder", "decoder", None, None)
-                .set_body({
-                    let mut code = CodeBlock::default();
-                    code.writeln("decoder.StartSlice();");
-                    code.writeln(&decode_fields(
-                        &fields,
-                        namespace,
-                        FieldType::Exception,
-                        Encoding::Slice1,
-                    ));
-                    code.writeln("decoder.EndSlice();");
-
-                    if has_base {
-                        code.writeln("base.DecodeCore(ref decoder);");
-                    }
-                    code
-                })
-                .add_never_editor_browsable_attribute()
-                .build(),
-        );
-    }
+                format!(
+                    "\
+decoder.StartSlice();
+{decode_fields}
+decoder.EndSlice();
+{decode_base}",
+                    decode_fields = decode_fields(fields, namespace, FieldType::Exception, Encoding::Slice1),
+                    decode_base = if has_base { "base.DecodeCore(ref decoder);" } else { "" },
+                )
+                .into(),
+            )
+            .build(),
+    );
 
     exception_class_builder.add_block(encode_core_method(exception_def));
 
@@ -168,40 +101,22 @@ fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
 
-    let body = EncodingBlockBuilder::new(
-        "encoder.Encoding",
-        &exception_def.escape_identifier(),
-        exception_def.supported_encodings(),
-        true,
-    )
-    .add_encoding_block(Encoding::Slice1, || {
-        format!(
-            "\
+    FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
+        .add_never_editor_browsable_attribute()
+        .add_parameter("ref SliceEncoder", "encoder", None, None)
+        .set_body(
+            format!(
+                "\
 encoder.StartSlice(SliceTypeId);
 {encode_fields}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-            encode_fields = &encode_fields(fields, namespace, FieldType::Exception, Encoding::Slice1),
-            is_last_slice = !has_base,
-            encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
+                encode_fields = encode_fields(fields, namespace, FieldType::Exception, Encoding::Slice1),
+                is_last_slice = !has_base,
+                encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
+            )
+            .into(),
         )
-        .into()
-    })
-    .add_encoding_block(Encoding::Slice2, || {
-        format!(
-            "\
-{encode_fields}
-encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);",
-            encode_fields = &encode_fields(fields, namespace, FieldType::Exception, Encoding::Slice2),
-        )
-        .into()
-    })
-    .build();
-
-    FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
-        .add_parameter("ref SliceEncoder", "encoder", None, None)
-        .set_body(body)
-        .add_never_editor_browsable_attribute()
         .build()
 }
 

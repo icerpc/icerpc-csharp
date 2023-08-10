@@ -90,7 +90,6 @@ fn encode_type(
                     format!("{encoder_param}.Encode{type_suffix}({value});")
                 }
                 TypeRefs::Struct(_) => format!("{value}.Encode(ref {encoder_param});"),
-                TypeRefs::Exception(_) => format!("{param}.Encode(ref {encoder_param});"),
                 TypeRefs::CustomType(custom_type_ref) => {
                     let encoder_extensions_class =
                         custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
@@ -192,7 +191,6 @@ fn encode_tagged_type(
             _ => (primitive_def.fixed_wire_size().map(|s| s.to_string()), None),
         },
         Types::Struct(struct_def) => (struct_def.fixed_wire_size().map(|s| s.to_string()), None),
-        Types::Exception(exception_def) => (exception_def.fixed_wire_size().map(|s| s.to_string()), None),
         Types::Enum(enum_def) => (enum_def.fixed_wire_size().map(|s| s.to_string()), None),
         Types::Sequence(sequence_def) => {
             if let Some(element_size) = sequence_def.element_type.fixed_wire_size() {
@@ -406,7 +404,6 @@ fn encode_action_body(
             )
         }
         TypeRefs::Struct(_) => write!(code, "{value}.Encode(ref encoder)"),
-        TypeRefs::Exception(_) => write!(code, "{value}.Encode(ref encoder)"),
         TypeRefs::CustomType(custom_type_ref) => {
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);

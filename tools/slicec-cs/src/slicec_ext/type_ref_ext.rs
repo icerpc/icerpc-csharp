@@ -25,7 +25,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     fn cs_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
         let type_str = match &self.concrete_typeref() {
             TypeRefs::Struct(struct_ref) => struct_ref.escape_scoped_identifier(namespace),
-            TypeRefs::Exception(exception_ref) => exception_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
             TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_name(namespace),
