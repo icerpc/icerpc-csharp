@@ -24,10 +24,12 @@ public static class IncomingResponseExtensions
     /// cref="ISliceFeature" /> is <see langword="null" />. Used only when <paramref name="encoding" /> is <see
     /// cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>The return value.</returns>
-    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than <see
-    /// cref="StatusCode.ApplicationError"/> (encoding = Slice1) or greater than or equal to <see
-    /// cref="StatusCode.ApplicationError"/> (encoding = Slice2).</exception>
+    /// <returns>A value task that holds the operation's return value. This value task is faulted and holds a <see
+    /// cref="SliceException" /> when encoding is Slice1 and the status code is
+    /// <see cref="StatusCode.ApplicationError"/>.</returns>
+    /// <exception cref="DispatchException">Thrown when the encoding is Slice1 and the status code of the response is
+    /// greater than <see cref="StatusCode.ApplicationError"/>, or when the encoding is Slice2 and the status code is
+    /// greater than <see cref="StatusCode.Ok"/>.</exception>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
         OutgoingRequest request,
@@ -63,30 +65,8 @@ public static class IncomingResponseExtensions
                 .ConfigureAwait(false);
     }
 
-    /// <summary>Verifies that a Slice2 response payload carries no return value or only tagged return values.
+    /// <summary>Verifies that a Slice-encoded response payload carries no return value or only tagged return values.
     /// </summary>
-    /// <param name="response">The incoming response.</param>
-    /// <param name="request">The outgoing request.</param>
-    /// <param name="sender">The proxy that sent the request.</param>
-    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A value task representing the asynchronous completion of the operation.</returns>
-    /// <exception cref="DispatchException">Thrown if the status code of the response is greater or equal than <see
-    /// cref="StatusCode.ApplicationError" />.</exception>
-    /// <remarks>Use this method only with an operation with no exception specification. This method is a
-    /// <see cref="ResponseDecodeFunc" />.</remarks>
-    public static ValueTask DecodeVoidReturnValueAsync(
-        IncomingResponse response,
-        OutgoingRequest request,
-        GenericProxy sender,
-        CancellationToken cancellationToken = default) =>
-        DecodeVoidReturnValueAsync(
-            response,
-            request,
-            SliceEncoding.Slice2,
-            sender,
-            cancellationToken: cancellationToken);
-
-    /// <summary>Verifies that a response payload carries no return value or only tagged return values.</summary>
     /// <param name="response">The incoming response.</param>
     /// <param name="request">The outgoing request.</param>
     /// <param name="encoding">The encoding of the response payload.</param>
@@ -95,10 +75,12 @@ public static class IncomingResponseExtensions
     /// cref="ISliceFeature" /> is <see langword="null" />. Used only when <paramref name="encoding" /> is <see
     /// cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A value task representing the asynchronous completion of the operation.</returns>
-    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than <see
-    /// cref="StatusCode.ApplicationError"/> (encoding = Slice1) or greater than or equal to <see
-    /// cref="StatusCode.ApplicationError"/> (encoding = Slice2).</exception>
+    /// <returns>A value task representing the asynchronous completion of the operation. This value task is faulted and
+    /// holds a <see cref="SliceException" /> when encoding is Slice1 and the status code is
+    /// <see cref="StatusCode.ApplicationError" />.</returns>
+    /// <exception cref="DispatchException">Thrown when the encoding is Slice1 and the status code of the response is
+    /// greater than <see cref="StatusCode.ApplicationError"/>, or when the encoding is Slice2 and the status code is
+    /// greater than <see cref="StatusCode.Ok"/>.</exception>
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
         OutgoingRequest request,
@@ -125,6 +107,24 @@ public static class IncomingResponseExtensions
                 .ConfigureAwait(false);
     }
 
+    /// <summary>Verifies that a Slice2-encoded response payload carries no return value or only tagged return values.
+    /// </summary>
+    /// <param name="response">The incoming response.</param>
+    /// <param name="request">The outgoing request.</param>
+    /// <param name="sender">The proxy that sent the request (not used by this method).</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A value task representing the asynchronous completion of the operation.</returns>
+    /// <exception cref="DispatchException">Thrown if the status code of the response is greater than <see
+    /// cref="StatusCode.Ok" />.</exception>
+    /// <remarks>This method is a <see cref="ResponseDecodeFunc" />.</remarks>
+    public static ValueTask DecodeVoidReturnValueAsync(
+        this IncomingResponse response,
+        OutgoingRequest request,
+        GenericProxy sender = default,
+        CancellationToken cancellationToken = default) =>
+        response.DecodeVoidReturnValueAsync(request, SliceEncoding.Slice2, sender, null, cancellationToken);
+
+    // Slice1-only
     private static async ValueTask<SliceException> DecodeSliceExceptionAsync(
         this IncomingResponse response,
         ISliceFeature feature,
