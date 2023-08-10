@@ -24,7 +24,7 @@ public static class IncomingResponseExtensions
     /// cref="ISliceFeature" /> is <see langword="null" />. Used only when <paramref name="encoding" /> is <see
     /// cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A value task that holds the operation's return value. This value tasks holds a <see
+    /// <returns>A value task that holds the operation's return value. This value task is faulted and holds a <see
     /// cref="SliceException" /> when encoding is Slice1 and the status code is
     /// <see cref="StatusCode.ApplicationError"/>.</returns>
     /// <exception cref="DispatchException">Thrown when the encoding is Slice1 and the status code of the response is
@@ -75,8 +75,8 @@ public static class IncomingResponseExtensions
     /// cref="ISliceFeature" /> is <see langword="null" />. Used only when <paramref name="encoding" /> is <see
     /// cref="SliceEncoding.Slice1" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A value task representing the asynchronous completion of the operation. This value tasks holds a <see
-    /// cref="SliceException" /> when encoding is Slice1 and the status code is
+    /// <returns>A value task representing the asynchronous completion of the operation. This value task is faulted and
+    /// holds a <see cref="SliceException" /> when encoding is Slice1 and the status code is
     /// <see cref="StatusCode.ApplicationError" />.</returns>
     /// <exception cref="DispatchException">Thrown when the encoding is Slice1 and the status code of the response is
     /// greater than <see cref="StatusCode.ApplicationError"/>, or when the encoding is Slice2 and the status code is
