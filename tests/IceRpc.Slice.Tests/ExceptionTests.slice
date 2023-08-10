@@ -34,8 +34,4 @@ interface SliceExceptionOperations {
 // Just like SliceExceptionOperations::opThrowsMultipleExceptions but with an exception missing from the throws list.
 interface AltSliceExceptionOperations {
     opThrowsMultipleExceptions() throws MyException
-
-    opThrowsMyException() throws MyException
-
-    opThrowsNothing()
 }
