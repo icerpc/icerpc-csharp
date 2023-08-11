@@ -593,10 +593,12 @@ response.DecodeReturnValueAsync(
             [] => None,
             [single_exception] => Some(single_exception.escape_scoped_identifier(&operation.namespace())),
             multiple_exceptions => {
-                let exceptions = multiple_exceptions.iter();
-                let cs_exceptions = exceptions.map(|ex| ex.escape_scoped_identifier(&operation.namespace()));
-                let exception_list = cs_exceptions.collect::<Vec<_>>().join(" or ");
-                Some(format!("({exception_list})"))
+                let exceptions = multiple_exceptions
+                    .iter()
+                    .map(|ex| ex.escape_scoped_identifier(&operation.namespace()))
+                    .collect::<Vec<_>>()
+                    .join(" or ");
+                Some(format!("({exceptions})"))
             }
         };
 
