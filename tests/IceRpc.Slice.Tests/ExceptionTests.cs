@@ -123,12 +123,12 @@ public sealed class ExceptionTests
     [Test]
     public void Slice_operation_throws_invalid_data_when_operation_has_no_exception_specification()
     {
-        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new EmptyException()));
+        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new MyException(1, 2)));
         var proxy = new AltSliceExceptionOperationsProxy(invoker);
 
         InvalidDataException? exception =
             Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMyExceptionAsync());
-        Assert.That(exception.InnerException, Is.InstanceOf<EmptyException>());
+        Assert.That(exception.InnerException, Is.InstanceOf<MyException>());
     }
 
     private sealed class SliceExceptionOperationsService : Service, ISliceExceptionOperationsService
