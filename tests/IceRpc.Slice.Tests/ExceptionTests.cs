@@ -109,6 +109,28 @@ public sealed class ExceptionTests
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
+    [Test]
+    public void Slice_operation_throws_invalid_data_when_exception_not_in_specification()
+    {
+        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new EmptyException()));
+        var proxy = new AltSliceExceptionOperationsProxy(invoker);
+
+        InvalidDataException? exception =
+            Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMultipleExceptionsAsync());
+        Assert.That(exception.InnerException, Is.InstanceOf<EmptyException>());
+    }
+
+    [Test]
+    public void Slice_operation_throws_invalid_data_when_operation_has_no_exception_specification()
+    {
+        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new MyException(1, 2)));
+        var proxy = new AltSliceExceptionOperationsProxy(invoker);
+
+        InvalidDataException? exception =
+            Assert.ThrowsAsync<InvalidDataException>(() => proxy.OpThrowsMyExceptionAsync());
+        Assert.That(exception.InnerException, Is.InstanceOf<MyException>());
+    }
+
     private sealed class SliceExceptionOperationsService : Service, ISliceExceptionOperationsService
     {
         private readonly Exception _exception;
