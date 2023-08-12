@@ -6,7 +6,7 @@ using System.Buffers;
 using System.IO.Pipelines;
 using ZeroC.Slice;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class PipeReaderTests

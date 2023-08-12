@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal; // For InvalidPipeReader
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
@@ -9,7 +8,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using ZeroC.Slice;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 public class StreamTests
 {

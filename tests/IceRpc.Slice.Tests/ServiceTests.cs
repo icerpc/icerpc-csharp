@@ -1,10 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using NUnit.Framework;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class ServiceTests

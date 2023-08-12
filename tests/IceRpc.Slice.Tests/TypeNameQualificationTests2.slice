@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice::Inner
+module IceRpc::Slice::Tests::Inner
 
 struct S {
     v: int32

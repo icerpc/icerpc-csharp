@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 [Parallelizable(ParallelScope.All)]
 public sealed class ExceptionTests

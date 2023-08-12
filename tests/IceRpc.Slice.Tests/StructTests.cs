@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using ZeroC.Slice;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 [Parallelizable(ParallelScope.All)]
 public sealed class StructTests
