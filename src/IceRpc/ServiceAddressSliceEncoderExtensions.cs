@@ -105,11 +105,10 @@ public static class ServiceAddressSliceEncoderExtensions
     /// <param name="serverAddress">The server address to encode.</param>
     private static void EncodeServerAddress(this ref SliceEncoder encoder, ServerAddress serverAddress)
     {
-        // If the server address does not specify a transport, we default to TCP.
+        // If the server address does not specify a transport, we default to TCP. We can't encode "default".
         string transport = serverAddress.Transport ?? TcpName;
 
-        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here. The preferred and
-        // fallback encoding for new transports is TransportCode.Uri.
+        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here.
 
         if (serverAddress.Protocol == Protocol.Ice && transport == OpaqueName)
         {
