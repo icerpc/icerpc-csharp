@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -8,7 +9,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using ZeroC.Slice;
 
-namespace IceRpc;
+namespace IceRpc.Slice;
 
 /// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode service addresses.</summary>
 public static class ServiceAddressSliceDecoderExtensions
