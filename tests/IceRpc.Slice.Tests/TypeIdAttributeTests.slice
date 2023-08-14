@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace
+module IceRpc::Slice::Tests::TypeIdAttributeTestNamespace
 
 interface MyInterface {}
 

@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 internal static class InvalidProxy
 {

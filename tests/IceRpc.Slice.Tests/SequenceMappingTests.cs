@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceMappingTests

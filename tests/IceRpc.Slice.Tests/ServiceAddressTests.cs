@@ -4,7 +4,7 @@ using IceRpc.Tests.Common;
 using NUnit.Framework;
 using ZeroC.Slice;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 /// <summary>Tests the encoding and decoding of service address.</summary>
 [Parallelizable(scope: ParallelScope.All)]

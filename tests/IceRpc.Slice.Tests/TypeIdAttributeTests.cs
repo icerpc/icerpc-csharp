@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Slice;
 using IceRpc.Slice.Ice;
 using NUnit.Framework;
 using ZeroC.Slice;
 
-namespace IceRpc.Tests.Slice.TypeIdAttributeTestNamespace;
+namespace IceRpc.Slice.Tests.TypeIdAttributeTestNamespace;
 
 public sealed class TypeIdAttributeTests
 {
@@ -24,12 +23,12 @@ public sealed class TypeIdAttributeTests
     private static readonly Dictionary<Type, string[]> _allTypeIds = new()
     {
         [typeof(IceObjectProxy)] = new string[] { "::Ice::Object" },
-        [typeof(PingableProxy)] = new string[] { "::IceRpc::Tests::Slice::Pingable" },
+        [typeof(PingableProxy)] = new string[] { "::IceRpc::Slice::Tests::Pingable" },
         [typeof(IMyDerivedInterface)] = new string[]
         {
-            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyDerivedInterface",
-            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface",
-            "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::myOtherInterface",
+            "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyDerivedInterface",
+            "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyInterface",
+            "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::myOtherInterface",
         },
         [typeof(ServerAddress)] = Array.Empty<string>(),
         [typeof(ServiceAddress)] = Array.Empty<string>(),
@@ -39,12 +38,12 @@ public sealed class TypeIdAttributeTests
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [TestCase(typeof(IceObjectProxy), "::Ice::Object")]
-    [TestCase(typeof(PingableProxy), "::IceRpc::Tests::Slice::Pingable")]
-    [TestCase(typeof(IMyInterface), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
-    [TestCase(typeof(MyInterfaceProxy), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
-    [TestCase(typeof(IMyInterfaceService), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::MyInterface")]
-    [TestCase(typeof(MyOtherInterfaceProxy), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::myOtherInterface")]
-    [TestCase(typeof(IMyOtherInterfaceService), "::IceRpc::Tests::Slice::TypeIdAttributeTestNamespace::myOtherInterface")]
+    [TestCase(typeof(PingableProxy), "::IceRpc::Slice::Tests::Pingable")]
+    [TestCase(typeof(IMyInterface), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyInterface")]
+    [TestCase(typeof(MyInterfaceProxy), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyInterface")]
+    [TestCase(typeof(IMyInterfaceService), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyInterface")]
+    [TestCase(typeof(MyOtherInterfaceProxy), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::myOtherInterface")]
+    [TestCase(typeof(IMyOtherInterfaceService), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::myOtherInterface")]
     public void Get_slice_type_id(Type type, string? expected)
     {
         string? typeId = type.GetSliceTypeId();
@@ -62,11 +61,11 @@ public sealed class TypeIdAttributeTests
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected type ID.</param>
     [TestCase(typeof(IceObjectProxy), "/Ice.Object")]
-    [TestCase(typeof(PingableProxy), "/IceRpc.Tests.Slice.Pingable")]
-    [TestCase(typeof(IMyInterface), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface")]
-    [TestCase(typeof(MyInterfaceProxy), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface")]
-    [TestCase(typeof(IMyInterfaceService), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.MyInterface")]
-    [TestCase(typeof(MyOtherInterfaceProxy), "/IceRpc.Tests.Slice.TypeIdAttributeTestNamespace.myOtherInterface")]
+    [TestCase(typeof(PingableProxy), "/IceRpc.Slice.Tests.Pingable")]
+    [TestCase(typeof(IMyInterface), "/IceRpc.Slice.Tests.TypeIdAttributeTestNamespace.MyInterface")]
+    [TestCase(typeof(MyInterfaceProxy), "/IceRpc.Slice.Tests.TypeIdAttributeTestNamespace.MyInterface")]
+    [TestCase(typeof(IMyInterfaceService), "/IceRpc.Slice.Tests.TypeIdAttributeTestNamespace.MyInterface")]
+    [TestCase(typeof(MyOtherInterfaceProxy), "/IceRpc.Slice.Tests.TypeIdAttributeTestNamespace.myOtherInterface")]
     public void Get_default_path(Type type, string expected)
     {
         string defaultPath = type.GetDefaultServicePath();

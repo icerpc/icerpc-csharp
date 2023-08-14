@@ -2,7 +2,7 @@
 
 mode = Slice1
 
-module IceRpc::Tests::Slice
+module IceRpc::Slice::Tests
 
 class MyClassA {
     theB: MyClassB?

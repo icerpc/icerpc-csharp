@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Tests::Slice
+module IceRpc::Slice::Tests
 
 interface DictionaryMappingOperations {
     returnDictionaryTuple() -> (r1: Dictionary<int32, int32> r2: Dictionary<int32, int32>)

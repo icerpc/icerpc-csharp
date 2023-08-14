@@ -1,13 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using IceRpc.Slice.Ice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using ZeroC.Slice;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 /// <summary>Test encoding and decoding proxies.</summary>
 [Parallelizable(scope: ParallelScope.All)]

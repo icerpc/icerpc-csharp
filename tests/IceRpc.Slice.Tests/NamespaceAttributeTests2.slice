@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("IceRpc.Tests.Slice.NamespaceAttribute.MappedNamespace")]
+[cs::namespace("IceRpc.Slice.Tests.NamespaceAttribute.MappedNamespace")]
 module WithNamespace
 
 struct S1 {
