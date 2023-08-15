@@ -1,15 +1,16 @@
-# IceRPC for C#
+![IceRPC for C#](https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg?sanitize=true)
 
 [![Continuous Integration][ci-badge]][ci-home]
 
-[Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api] | [Building from source][building]
+[Getting started] | [Examples] | [Documentation] | [API reference] | [Building from source]
+
+The C# implementation of IceRPC.
 
 IceRPC is a modular RPC framework that helps you build networked applications with minimal effort.
 
 ## Built for QUIC
 
-IceRPC was built from the ground up to take advantage of [QUIC][quic], the new multiplexed transport that underpins
-[HTTP/3][http3].
+IceRPC was built from the ground up to take advantage of [QUIC], the new multiplexed transport that underpins [HTTP/3].
 
 QUIC is ideally suited for RPCs: an RPC maps to a request/response pair carried by a bidirectional QUIC stream.
 Multiple request/response pairs can proceed in parallel inside the same QUIC connection without interfering with each
@@ -23,7 +24,7 @@ requests and responses, and ensure an orderly shutdown. This new RPC-focused pro
 The primary transport for IceRPC is QUIC, but we're still in the early days of QUIC, so being QUIC-only is not
 practical.
 
-To bridge this gap, IceRPC provides a multiplexing adapter called [Slic][slic]. Slic implements a QUIC-like multiplexed
+To bridge this gap, IceRPC provides a multiplexing adapter called [Slic]. Slic implements a QUIC-like multiplexed
 transport over any duplex transport such as TCP. This way, you can use IceRPC with QUIC, with TCP (via Slic), and with
 various other traditional transports such as Bluetooth and named pipes[^1].
 
@@ -57,8 +58,8 @@ string greeting = await greeterProxy.GreetAsync(name);
 > With IceRPC, all calls that make network I/O are Async and only Async. IceRPC does not provide a parallel blocking
 > synchronous API.
 
-IceRPC leverages [System.IO.Pipelines][pipelines] for maximum efficiency. This allows IceRPC to rent all its byte
-buffers from the same configurable memory pool.
+IceRPC leverages [System.IO.Pipelines] for maximum efficiency. This allows IceRPC to rent all its byte buffers from the
+same configurable memory pool.
 
 IceRPC naturally supports cancellation just like all modern C# libraries, with trailing cancellation token parameters.
 This cancellation works "across the wire": when you cancel an outstanding RPC invocation, the remote service is notified
@@ -71,22 +72,29 @@ and a dispatch pipeline (on the server side):
 
 ```mermaid
 ---
-title: Invocation and dispatch pipelines
+title: Invocation pipeline
 ---
 flowchart LR
-    client(client) -- request --> ip(invocation\npipeline) --> connection(connection) --> ip -- response --> client
-    connection --> dp(dispatch\npipeline) -- request --> service(service) -- response --> dp --> connection
+    client -- request --> ip(invocation\npipeline) --> connection(network\nconnection) --> ip -- response --> client
 ```
 
-These pipelines intercept your requests and responses and you decide what they do with them. If you want to log
-your requests and responses, add the Logger interceptor to your invocation pipeline or the Logger middleware to
-your dispatch pipeline. If you want to retry automatically failed requests that can be retried, add the Retry
-interceptor to your invocation pipeline. IceRPC provides a number of interceptors and middleware for compression,
-deadlines, logging, metrics, OpenTelemetry integration, and more. You can also easily create and install your own
-interceptors or middleware to customize these pipelines.
+```mermaid
+---
+title: Dispatch pipeline
+---
+flowchart LR
+    connection(network\nconnection) --> dp(dispatch\npipeline) -- request --> service -- response --> dp --> connection
+```
 
-Since all this functionality is optional and not hard-coded in the IceRPC core, you can choose exactly the behavior you
-want. For example, you don't need the Compress interceptor if you're not compressing anything: if you don't install this
+These pipelines intercept your requests and responses and you decide what they do with them. If you want to log your
+requests and responses, add the Logger interceptor to your invocation pipeline or the Logger middleware to your dispatch
+pipeline. If you want to retry automatically failed requests that can be retried, add the Retry interceptor to your
+invocation pipeline. IceRPC provides a number of interceptors and middleware for compression, deadlines, logging,
+metrics, OpenTelemetry integration, and more. You can also easily create and install your own interceptors or middleware
+to customize these pipelines.
+
+Since all this functionality is optional and not hard-coded inside IceRPC, you can choose exactly the behavior you want.
+For example, you don't need the Compress interceptor if you're not compressing anything: if you don't install this
 interceptor, there is no compression code at all. Less code means simpler logic, fewer dependencies, faster execution
 and fewer bugs.
 
@@ -97,26 +105,18 @@ And you can use IceRPC with a [DI container][icerpc-with-di]—or not. It's all 
 
 ## Choose your IDL
 
-IceRPC provides a first-rate byte-oriented API that allows you to make RPCs with the [IDL][idl] and serialization format
-of your choice. For example, you can easily send Protobuf messages over IceRPC as illustrated by the
-[GreeterProtobuf][protobuf] example.
+IceRPC provides a first-class byte-oriented API that allows you to make RPCs with the [IDL] and serialization format of
+your choice. For example, you can easily send Protobuf messages over IceRPC as illustrated by the [GreeterProtobuf]
+example.
 
-Another option—and the most common choice—is to use [Slice][slice] to define the contract between your clients and
-servers.
+Another option—and the most common choice—is to use Slice to define the contract between your clients and servers.
 
-## Slice
+### Slice
 
-Slice is a completely revised version of [Ice][zeroc-ice]'s IDL (the [original Slice][ice-slice]), with a new syntax, a
-new file extension (.slice), a new compilation model, a new encoding, and more. The new Slice just keeps the same
-terminology: modules, interfaces, operations, proxies, enums, etc. have the same meaning in the new Slice language as in
-the original language[^2].
+The [Slice] IDL and serialization format help you define RPCs in a clear and concise manner, with just the right feature
+set. Slice itself is not tied to IceRPC: you can use Slice without any RPC framework, or with a different RPC framework.
 
-The Slice language is RPC-centric: its focus is defining RPCs in a clear and concise manner, with just the right feature
-set.
-
-> The Slice language and serialization format are not tied to IceRPC, and you can use Slice with another RPC framework
-> or without any RPC framework. Nevertheless, the Slice compiler for C# ([slicec-cs]) and the IceRPC + Slice
-> library code ([IceRpc.Slice][icerpc-slice]) provided by this repository are IceRPC-specific.
+This repository provides an IceRPC + Slice integration that allows you to use IceRPC and Slice together seamlessly.
 
 Defining the customary `Greeter` interface in Slice is straightforward:
 
@@ -134,8 +134,7 @@ You don't need to craft special request and reply message types: you can specify
 
 The Slice compiler for C# then generates readable and succinct C# code from this `Greeter` interface:
  - a client-side `IGreeter` interface with a single `GreetAsync` method.
- - a client-side `GreeterProxy` that implements `IGreeter` by sending requests / receiving responses with the IceRPC
-core
+ - a client-side `GreeterProxy` that implements `IGreeter` by sending requests / receiving responses with IceRPC
  - a server-side `IGreeterService` interface that you use as a template when writing the service that implements Greeter
 
 Slice also supports streaming in both directions. For example:
@@ -162,17 +161,18 @@ Slice provides common primitives types with easy-to-understand names:
  - variable-size integral types (varint32, varint62, varuint32, varuint62)
  - floating point types (float32, float64)
 
-And Slice provides a few constructed types to help you design more advanced RPCs: enum, struct, exception, sequence,
-dictionary, and custom.
+You can define new types with `struct`, `enum` and `custom`. And you can construct collections with `Sequence<T>` and
+`Dictionary<Key, Value>`.
 
-The [custom type][custom-type] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of
-modularity and extensibility. You just need to provide methods to encode and decode instances of your custom type.
+[custom] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of modularity and
+extensibility. You just need to provide methods to encode and decode instances of your custom type.
 
 ## Ice interop
 
-IceRPC for C# provides a high level of interoperability with [Ice][zeroc-ice]. You can use IceRPC to write a new C#
-client for your Ice server, and you can call services hosted by an IceRPC server from an Ice client.
-[IceRPC for Ice users][icerpc-for-ice-users] provides all the details.
+IceRPC for C# provides a high level of interoperability with [Ice]. You can use IceRPC to write a new C# client for your
+Ice server, and you can call services hosted by an IceRPC server from an Ice client.
+
+[IceRPC for Ice users] provides all the details.
 
 ## License
 
@@ -184,30 +184,23 @@ to the license for the full terms and conditions.
 [^1]: IceRPC for C# currently provides two duplex transport implementations: TCP (with or without TLS), and Coloc (an
 in-memory transport for testing). Future releases may add additional transports.
 
-[^2]: You can easily and mostly mechanically convert original Slice definitions into the new syntax.
-
-[api]: https://api.testing.zeroc.com/csharp/
-[building]: BUILDING.md
+[API reference]: https://api.testing.zeroc.com/csharp/
+[Building from source]: BUILDING.md
 [ci-badge]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml
-[custom-type]: https://docs.testing.zeroc.com/slice/language-guide/custom-types
-[docs]: https://docs.testing.zeroc.com/docs
-[getting-started]: https://docs.testing.zeroc.com/getting-started
-[examples]: examples
-[http3]: https://en.wikipedia.org/wiki/HTTP/3
-[icerpc-for-ice-users]: https://docs.testing.zeroc.com/icerpc-for-ice-users
+[custom]: https://docs.testing.zeroc.com/slice/language-guide/custom-types
+[Documentation]: https://docs.testing.zeroc.com/docs
+[Getting started]: https://docs.testing.zeroc.com/getting-started
+[Examples]: examples
+[HTTP/3]: https://en.wikipedia.org/wiki/HTTP/3
+[Ice]: https://github.com/zeroc-ice/ice
+[IceRPC for Ice users]: https://docs.testing.zeroc.com/icerpc-for-ice-users
 [icerpc-protocol]: https://docs.testing.zeroc.com/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.testing.zeroc.com/icerpc/dependency-injection/di-and-icerpc-for-csharp
-[idl]: https://en.wikipedia.org/wiki/Interface_description_language
-[ice-slice]: https://doc.zeroc.com/ice/3.7/the-slice-language
-[icerpc-slice]: src/IceRpc/Slice
+[IDL]: https://en.wikipedia.org/wiki/Interface_description_language
 [license]: LICENSE
-[packages]: https://www.nuget.org/packages/IceRpc
-[pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
-[protobuf]: examples/GreeterProtobuf
-[quic]: https://en.wikipedia.org/wiki/QUIC
-[slic]: https://docs.testing.zeroc.com/icerpc/slic-protocol
-[slice]: https://docs.testing.zeroc.com/slice
-[slicec]: https://github.com/icerpc/slicec
-[slicec-cs]: tools/slicec-cs
-[zeroc-ice]: https://github.com/zeroc-ice/ice
+[GreeterProtobuf]: examples/GreeterProtobuf
+[QUIC]: https://en.wikipedia.org/wiki/QUIC
+[Slic]: https://docs.testing.zeroc.com/icerpc/slic-protocol
+[Slice]: https://docs.testing.zeroc.com/slice
+[System.IO.Pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines

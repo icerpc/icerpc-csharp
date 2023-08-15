@@ -45,6 +45,15 @@ async Task<string> GreetAsync(string name)
         throw new DispatchException(response.StatusCode, response.ErrorMessage);
     }
 }
+
+// Reports a remote dispatch error: the server or the service could not dispatch the request successfully.
+public class DispatchException : Exception
+{
+    public DispatchException(StatusCode statusCode, string message)
+        : base($"The dispatch failed with status code {statusCode} and message: {message}")
+    {
+    }
+}
 ```
 
 ```csharp
@@ -75,7 +84,7 @@ internal class Chatbot : IDispatcher
         else
         {
             // We only implement greet.
-            throw new DispatchException(StatusCode.NotImplemented);
+            return new OutgoingResponse(request, StatusCode.NotImplemented);
         }
     }
 }
