@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Internal;
+namespace IceRpc.Slice.Internal;
 
 /// <summary>TransportCode is used by Slice1 to encode a transport name (such as "tcp") as an int16 value.</summary>
 internal enum TransportCode
