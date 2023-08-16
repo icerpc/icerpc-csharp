@@ -172,7 +172,7 @@ Slice provides common primitives types with easy-to-understand names:
  - variable-size integral types (varint32, varint62, varuint32, varuint62)
  - floating point types (float32, float64)
 
-You can define new types with `struct`, `enum` and `custom`. And you can construct collections with `Sequence<T>` and
+You can define new types with `struct`, `enum`, and `custom`. And you can construct collections with `Sequence<T>` and
 `Dictionary<Key, Value>`.
 
 [custom] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of modularity and
