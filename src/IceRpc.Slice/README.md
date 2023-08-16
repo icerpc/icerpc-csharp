@@ -1,6 +1,6 @@
 # IceRPC + Slice integration
 
-The IceRPC framework allows you to make RPCs with the serialization format and [IDL][idl] of your choice.
+The IceRPC framework allows you to make RPCs with the serialization format and [IDL] of your choice.
 
 The IceRpc.Slice assembly is part of the IceRPC + Slice integration: it helps the [Slice compiler for C#][slice-tools]
 implement Slice interfaces and operations with IceRPC.
@@ -72,7 +72,7 @@ internal class Chatbot : Service, IGreeterService
 
 [api]: https://docs.testing.zeroc.com/api/csharp/api/IceRpc.Slice.html
 [docs]: https://docs.testing.zeroc.com/slice2
-[idl]: https://en.wikipedia.org/wiki/Interface_description_language
+[IDL]: https://en.wikipedia.org/wiki/Interface_description_language
 [examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
 [package]: https://www.nuget.org/packages/IceRpc.Slice
 [slice-tools]: https://www.nuget.org/packages/IceRpc.Slice.Tools

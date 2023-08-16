@@ -1,10 +1,10 @@
-![IceRPC for C#](https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg?sanitize=true)
+![](https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg?sanitize=true)
 
 [![Continuous Integration][ci-badge]][ci-home]
 
 [Getting started] | [Examples] | [Documentation] | [API reference] | [Building from source]
 
-The C# implementation of IceRPC.
+# IceRPC for C#
 
 IceRPC is a modular RPC framework that helps you build networked applications with minimal effort.
 
