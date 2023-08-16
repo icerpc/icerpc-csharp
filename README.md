@@ -72,18 +72,29 @@ and a dispatch pipeline (on the server side):
 
 ```mermaid
 ---
-title: Invocation pipeline
+title: Client-side
 ---
 flowchart LR
-    client -- request --> ip(invocation\npipeline) -- request --> connection(network\nconnection) -- response --> ip -- response --> client
+    subgraph pipeline[Invocation pipeline]
+        direction LR
+        di[Deadline\ninterceptor] --> ri[Retry\ninterceptor] --> connection[network\nconnection] --> ri --> di
+    end
+    client -- request --> di
+    client -- response --- di
 ```
 
 ```mermaid
 ---
-title: Dispatch pipeline
+title: Server-side
 ---
 flowchart LR
-    connection(network\nconnection) -- request --> dp(dispatch\npipeline) -- request --> service -- response --> dp -- response --> connection
+    subgraph pipeline [Dispatch pipeline]
+        direction LR
+        lm[Logger\nmiddleware] --> dm[Deadline\nmiddleware] --> service --> dm --> lm
+        
+    end
+    connection[network\nconnection] -- request --> lm
+    connection -- response --- lm
 ```
 
 These pipelines intercept your requests and responses and you decide what they do with them. If you want to log your
