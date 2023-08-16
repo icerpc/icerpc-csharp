@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
         <Description>Locator interceptor for IceRPC</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
@@ -8,11 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
         <ProjectReference Include="..\IceRpc.Slice\IceRpc.Slice.csproj" ExactVersion="true" />
-        <SliceFile
-            Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice"
-            OutputDir="$(MSBuildProjectDirectory)/generated"
-            Pack="true"
-            PackagePath="slice/Ice" />
+        <SliceFile Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice" OutputDir="$(MSBuildProjectDirectory)/generated" Pack="true" PackagePath="slice/Ice" />
         <!-- Reference the built-in Slice files -->
         <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">

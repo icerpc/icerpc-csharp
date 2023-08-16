@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
@@ -22,6 +23,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Slice\IceRpc.Slice.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" 
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
   </ItemGroup>
   <ItemGroup>

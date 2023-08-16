@@ -665,7 +665,8 @@ public class OperationTests
         }
     }
 
-    private class MyOperationsAService : Service, IMyOperationsAService
+    [SliceService]
+    private partial class MyOperationsAService : IMyOperationsAService
     {
         public PingableProxy? ReceivedProxy;
 

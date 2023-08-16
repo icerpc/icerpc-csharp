@@ -58,29 +58,32 @@ public class LoggerMiddleware : IDispatcher
 
 /// <summary>Provides extension methods for <see cref="ILogger" />. They are used by <see cref="LoggerMiddleware" />.
 /// </summary>
-internal static partial class LoggerMiddlewareLoggerExtensions
+internal partial record class IntermediateLoggerClass
 {
-    [LoggerMessage(
-        EventId = (int)LoggerMiddlewareEventId.Dispatch,
-        EventName = nameof(LoggerMiddlewareEventId.Dispatch),
-        Level = LogLevel.Information,
-        Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with status code {StatusCode}")]
-    internal static partial void LogDispatch(
-        this ILogger logger,
-        string path,
-        string operation,
-        EndPoint? localNetworkAddress,
-        EndPoint? remoteNetworkAddress,
-        StatusCode statusCode);
+    internal static partial class LoggerMiddlewareLoggerExtensions
+    {
+        [LoggerMessage(
+            EventId = (int)LoggerMiddlewareEventId.Dispatch,
+            EventName = nameof(LoggerMiddlewareEventId.Dispatch),
+            Level = LogLevel.Information,
+            Message = "Dispatch of {Operation} to {Path} over {LocalNetworkAddress}<->{RemoteNetworkAddress} returned a response with status code {StatusCode}")]
+        internal static partial void LogDispatch(
+            this ILogger logger,
+            string path,
+            string operation,
+            EndPoint? localNetworkAddress,
+            EndPoint? remoteNetworkAddress,
+            StatusCode statusCode);
 
-    [LoggerMessage(
-        EventId = (int)LoggerMiddlewareEventId.DispatchException,
-        EventName = nameof(LoggerMiddlewareEventId.DispatchException),
-        Level = LogLevel.Information,
-        Message = "Failed to dispatch {Operation} to {Path}")]
-    internal static partial void LogDispatchException(
-        this ILogger logger,
-        Exception exception,
-        string path,
-        string operation);
+        [LoggerMessage(
+            EventId = (int)LoggerMiddlewareEventId.DispatchException,
+            EventName = nameof(LoggerMiddlewareEventId.DispatchException),
+            Level = LogLevel.Information,
+            Message = "Failed to dispatch {Operation} to {Path}")]
+        internal static partial void LogDispatchException(
+            this ILogger logger,
+            Exception exception,
+            string path,
+            string operation);
+    }
 }

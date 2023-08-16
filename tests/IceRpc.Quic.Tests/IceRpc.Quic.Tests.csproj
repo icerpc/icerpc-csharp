@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <!-- CS1591: Missing XML comment for publicly visible type or member.
          CA2252: Opt in to preview features before using them. -->

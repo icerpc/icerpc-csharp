@@ -6,7 +6,6 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <WarningLevel>4</WarningLevel>
         <Nullable>enable</Nullable>
-        <TargetFramework>net7.0</TargetFramework>
         <LangVersion>11.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>

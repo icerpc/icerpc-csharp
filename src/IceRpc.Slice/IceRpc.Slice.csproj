@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
         <Description>IceRpc.Slice for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;Slice;Binary;Serialization;Format</PackageTags>
-        <DefaultItemExcludes>$(DefaultItemExcludes);gen</DefaultItemExcludes>
+        <DefaultItemExcludes>$(DefaultItemExcludes);gen/*.*</DefaultItemExcludes>
     </PropertyGroup>
     <ItemGroup>
       <SliceFile Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice" OutputDir="$(MSBuildProjectDirectory)/generated" Pack="true" PackagePath="slice/Ice" />
@@ -16,7 +17,7 @@
       <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
       <ProjectReference Include="..\ZeroC.Slice\ZeroC.Slice.csproj" ExactVersion="true" />
       <!-- Includes the analyzer in the package without consuming it. -->
-      <ProjectReference Include=".\gen\IceRpc.Slice.Generators.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
+      <ProjectReference Include="..\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
       <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
           <PrivateAssets>all</PrivateAssets>

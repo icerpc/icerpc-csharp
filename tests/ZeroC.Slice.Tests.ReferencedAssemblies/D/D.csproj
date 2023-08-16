@@ -1,4 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <SliceFile>
       <AdditionalOptions>--rpc none</AdditionalOptions>
