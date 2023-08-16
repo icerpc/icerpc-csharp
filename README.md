@@ -75,7 +75,7 @@ and a dispatch pipeline (on the server side):
 title: Invocation pipeline
 ---
 flowchart LR
-    client -- request --> ip(invocation\npipeline) --> connection(network\nconnection) --> ip -- response --> client
+    client -- request --> ip(invocation\npipeline) -- request --> connection(network\nconnection) -- response --> ip -- response --> client
 ```
 
 ```mermaid
@@ -83,7 +83,7 @@ flowchart LR
 title: Dispatch pipeline
 ---
 flowchart LR
-    connection(network\nconnection) --> dp(dispatch\npipeline) -- request --> service -- response --> dp --> connection
+    connection(network\nconnection) -- request --> dp(dispatch\npipeline) -- request --> service -- response --> dp -- response --> connection
 ```
 
 These pipelines intercept your requests and responses and you decide what they do with them. If you want to log your
@@ -111,7 +111,7 @@ example.
 
 Another option—and the most common choice—is to use Slice to define the contract between your clients and servers.
 
-### Slice
+## Slice
 
 The [Slice] IDL and serialization format help you define RPCs in a clear and concise manner, with just the right feature
 set. Slice itself is not tied to IceRPC: you can use Slice without any RPC framework, or with a different RPC framework.
@@ -184,7 +184,7 @@ to the license for the full terms and conditions.
 [^1]: IceRPC for C# currently provides two duplex transport implementations: TCP (with or without TLS), and Coloc (an
 in-memory transport for testing). Future releases may add additional transports.
 
-[API reference]: https://api.testing.zeroc.com/csharp/
+[API reference]: https://docs.testing.zeroc.com/api/csharp/api/IceRpc.html
 [Building from source]: BUILDING.md
 [ci-badge]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml
