@@ -3,7 +3,7 @@
 The IceRPC framework allows you to make RPCs with the serialization format and [IDL] of your choice.
 
 The IceRpc.Slice assembly is part of the IceRPC + Slice integration: it helps the [Slice compiler for C#][slice-tools]
-implement Slice interfaces and operations with IceRPC.
+implement Slice interfaces and operations for use with IceRPC.
 
 [Package][package] | [Source code][source] | [Documentation][docs] | [Examples][examples] | [API reference][api]
 
