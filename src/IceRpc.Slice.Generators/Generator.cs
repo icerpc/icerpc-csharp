@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace IceRpc.Slice.Generators;
@@ -80,17 +81,20 @@ public class ServiceGenerator : IIncrementalGenerator
     /// implements the <c>IceRpc.IDispatcher</c> interface.</summary>
     internal class ServiceDefinition : ContainerDefinition
     {
-        /// <summary>Gets whether or not the service has a base service definition.</summary>
+        /// <summary>Gets a value indicating whether the service has a base service definition.</summary>
         internal bool HasBaseServiceDefinition { get; }
 
         /// <summary>Gets the C# namespace containing this definition.</summary>
         internal string ContainingNamespace { get; }
 
-        /// <summary>Gets whether or not the service is a sealed type.</summary>
+        /// <summary>Gets a value indicating whether the service is a sealed type.</summary>
         internal bool IsSealed { get; }
 
-        /// <summary>The service methods implemented by the service. It doesn't include the service methods implemented
-        /// by the base service defintion if any.</summary>
+        /// <summary>Gets the service base types.</summary>
+        internal SortedSet<string> BaseTypes { get; }
+
+        /// <summary>Gets the service methods implemented by the service.</summary>
+        /// <remarks>It doesn't include the service methods implemented by the base service defintion if any.</remarks>
         internal IReadOnlyList<ServiceMethod> ServiceMethods { get; }
 
         internal ServiceDefinition(
@@ -99,19 +103,21 @@ public class ServiceGenerator : IIncrementalGenerator
             string keyword,
             IReadOnlyList<ServiceMethod> serviceMethods,
             bool hasBaseServiceDefinition,
-            bool isSealed)
+            bool isSealed,
+            SortedSet<string> baseTypes)
             : base(name, keyword)
         {
             ContainingNamespace = containingNamespace;
             ServiceMethods = serviceMethods;
             HasBaseServiceDefinition = hasBaseServiceDefinition;
             IsSealed = isSealed;
+            BaseTypes = baseTypes;
         }
     }
 
     /// <summary>Represents an RPC operation annotated with the IceRpc.Slice.SliceOperationAttribute attribute.
     /// </summary>
-    internal record struct ServiceMethod 
+    internal record struct ServiceMethod
     {
         // The fully qualified name of the generated dispatch helper method, for example:
         // "IceRpc.Slice.Ice.ILocatorService.SliceDFindObjectByIdAsync"
@@ -126,6 +132,8 @@ public class ServiceGenerator : IIncrementalGenerator
     {
         internal const string ServiceAttribute = "IceRpc.Slice.SliceServiceAttribute";
         internal const string OperationAttribute = "IceRpc.Slice.SliceOperationAttribute";
+        internal const string IceObjectService = "IceRpc.Slice.Ice.IIceObjectService";
+        internal const string SliceTypeIdAttribute = "ZeroC.Slice.SliceTypeIdAttribute";
 
         private readonly CancellationToken _cancellationToken;
         private readonly Compilation _compilation;
@@ -133,6 +141,8 @@ public class ServiceGenerator : IIncrementalGenerator
 
         private readonly INamedTypeSymbol? _serviceAttribute;
         private readonly INamedTypeSymbol? _operationAttribute;
+        private readonly INamedTypeSymbol? _iceObjectService;
+        private readonly INamedTypeSymbol? _sliceTypeIdAttribute;
 
         internal Parser(
             Compilation compilation,
@@ -145,13 +155,18 @@ public class ServiceGenerator : IIncrementalGenerator
 
             _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
             _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
+            _iceObjectService = _compilation.GetTypeByMetadataName(IceObjectService);
+            _sliceTypeIdAttribute = _compilation.GetTypeByMetadataName(SliceTypeIdAttribute);
         }
 
         internal IReadOnlyList<ServiceDefinition> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
         {
-            if (_operationAttribute is null)
+            if (_serviceAttribute is null ||
+                _operationAttribute is null ||
+                _iceObjectService is null ||
+                _sliceTypeIdAttribute is null)
             {
-                // nothing to do if this type isn't available
+                // nothing to do if these types aren't available
                 return Array.Empty<ServiceDefinition>();
             }
 
@@ -184,9 +199,11 @@ public class ServiceGenerator : IIncrementalGenerator
                         }
                     }
 
-                    IReadOnlyList<ServiceMethod> serviceMethods = GetServiceMethods(classSymbol);
+                    IReadOnlyList<ServiceMethod> serviceMethods =
+                        GetServiceMethods(classSymbol).Except(baseServiceMethods).Distinct().ToList();
+
                     var operationNames = new HashSet<string>();
-                    foreach(ServiceMethod method in serviceMethods)
+                    foreach (ServiceMethod method in serviceMethods)
                     {
                         if (!operationNames.Add(method.OperationName))
                         {
@@ -198,7 +215,6 @@ public class ServiceGenerator : IIncrementalGenerator
                                     classDeclaration.Identifier.Text));
                         }
                     }
-                    serviceMethods = serviceMethods.Except(baseServiceMethods).ToArray();
 
                     var serviceClass = new ServiceDefinition(
                         classSymbol.Name,
@@ -206,7 +222,8 @@ public class ServiceGenerator : IIncrementalGenerator
                         classDeclaration.Keyword.ValueText,
                         serviceMethods,
                         hasBaseServiceDefinition,
-                        isSealed: classSymbol.IsSealed);
+                        isSealed: classSymbol.IsSealed,
+                        baseTypes: GetIntefaces(classSymbol));
                     serviceDefinitions.Add(serviceClass);
 
                     static bool IsAllowedKind(SyntaxKind kind) =>
@@ -229,11 +246,42 @@ public class ServiceGenerator : IIncrementalGenerator
             return serviceDefinitions;
         }
 
-        public IReadOnlyList<ServiceMethod> GetServiceMethods(INamedTypeSymbol classSymbol)
+        private SortedSet<string> GetIntefaces(INamedTypeSymbol classSymbol)
+        {
+            var implementedIntefaces = new SortedSet<string>
+            {
+                GetFullName(_iceObjectService!)
+            };
+
+            foreach (INamedTypeSymbol interfaceSymbol in classSymbol.Interfaces)
+            {
+                implementedIntefaces.Add(GetFullName(interfaceSymbol));
+            }
+
+            if (classSymbol.BaseType is INamedTypeSymbol baseType && HasServiceAttribute(baseType))
+            {
+                foreach (INamedTypeSymbol interfaceSymbol in baseType.Interfaces)
+                {
+                    implementedIntefaces.Add(GetFullName(interfaceSymbol));
+                }
+            }
+            return implementedIntefaces;
+        }
+
+        private IReadOnlyList<ServiceMethod> GetServiceMethods(INamedTypeSymbol classSymbol)
         {
             Debug.Assert(_operationAttribute is not null);
             var allServiceMethods = new List<ServiceMethod>();
-            foreach (INamedTypeSymbol interfaceSymbol in classSymbol.AllInterfaces)
+
+            ImmutableArray<INamedTypeSymbol> allInterfaces = classSymbol.AllInterfaces;
+            Debug.Assert(_iceObjectService is not null);
+            INamedTypeSymbol iceObjectService = _iceObjectService!;
+            if (allInterfaces.Contains(iceObjectService))
+            {
+                allInterfaces = allInterfaces.Add(iceObjectService);
+            }
+
+            foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
             {
                 var serviceMethods = new List<ServiceMethod>();
                 foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
@@ -265,7 +313,7 @@ public class ServiceGenerator : IIncrementalGenerator
                             {
                                 case 1:
                                     Debug.Assert(items[0].Type?.SpecialType is SpecialType.System_String);
-                                    operationName = (string?)GetItem(items[0]);
+                                    operationName = (string?)items[0].Value;
                                     break;
                                 default:
                                     Debug.Assert(false, "Unexpected number of arguments in attribute constructor.");
@@ -317,12 +365,12 @@ public class ServiceGenerator : IIncrementalGenerator
                 return containingSymbolName.Length == 0 ? symbol.Name : $"{containingSymbolName}.{symbol.Name}";
             }
         }
-
-        private static object? GetItem(TypedConstant arg) => arg.Kind == TypedConstantKind.Array ? arg.Values : arg.Value;
     }
 
     internal class Emitter
     {
+        private static readonly string _newLine = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "\r\n" : "\n";
+
         internal string Emit(IReadOnlyList<ServiceDefinition> serviceClasses, CancellationToken cancellationToken)
         {
             string generated = "";
@@ -363,10 +411,35 @@ default:
                     }
                     dispatchBlocks = dispatchBlocks.Trim();
 
+                    string allBaseTypes = "";
+                    foreach (string baseType in serviceClass.BaseTypes)
+                    {
+                        allBaseTypes += @$"typeof({baseType}),{_newLine}";
+                    }
+                    allBaseTypes = allBaseTypes.TrimEnd(',', '\n', '\r', ' ');
+
                     dispatcherClass = $@"
-partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
+partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher, IceRpc.Slice.Ice.IIceObjectService
 {{
-    {dispatchModifier} async System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(IceRpc.IncomingRequest request, System.Threading.CancellationToken cancellationToken)
+    private static readonly global::System.Lazy<global::System.Collections.Generic.IReadOnlySet<string>> _typeIds =
+        new(() =>
+        {{
+            var interfaceTypes = new global::System.Type[]
+            {{
+                {allBaseTypes.WithIndent("                ")}
+            }};
+
+            var typeIds = new global::System.Collections.Generic.SortedSet<string>();
+            foreach (var interfaceType in interfaceTypes)
+            {{
+                typeIds.UnionWith(ZeroC.Slice.TypeExtensions.GetAllSliceTypeIds(interfaceType));
+            }}
+            return typeIds;
+        }});
+
+    {dispatchModifier} async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
+        IceRpc.IncomingRequest request,
+        global::System.Threading.CancellationToken cancellationToken)
     {{
         try
         {{
@@ -384,6 +457,24 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
             return new IceRpc.OutgoingResponse(request, exception.StatusCode);
         }}
     }}
+
+    /// <inheritdoc/>
+    {dispatchModifier} global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> IceIdsAsync(
+        IceRpc.Features.IFeatureCollection features,
+        global::System.Threading.CancellationToken cancellationToken) =>
+        new(_typeIds.Value);
+
+    /// <inheritdoc/>
+    {dispatchModifier} global::System.Threading.Tasks.ValueTask<bool> IceIsAAsync(
+        string id,
+        IceRpc.Features.IFeatureCollection features,
+        global::System.Threading.CancellationToken cancellationToken) =>
+        new(_typeIds.Value.Contains(id));
+
+    /// <inheritdoc/>
+    {dispatchModifier} global::System.Threading.Tasks.ValueTask IcePingAsync(
+        IceRpc.Features.IFeatureCollection features,
+        global::System.Threading.CancellationToken cancellationToken) => default;
 }}";
                 }
                 else
@@ -394,7 +485,9 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
                     dispatcherClass = $@"
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 {{
-    {dispatchModifier} System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(IceRpc.IncomingRequest request, System.Threading.CancellationToken cancellationToken)
+    {dispatchModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
+        IceRpc.IncomingRequest request,
+        global::System.Threading.CancellationToken cancellationToken)
     {{
         try
         {{
@@ -420,9 +513,9 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
                 }
 
                 generated += WriteContainer($"namespace {serviceClass.ContainingNamespace}", container);
-                generated += "\n";
+                generated += $"{_newLine}{_newLine}";
             }
-            return generated;
+            return generated.Trim();
         }
 
         private static string WriteContainer(string header, string body)
