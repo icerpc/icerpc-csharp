@@ -193,10 +193,7 @@ public class ServiceGenerator : IIncrementalGenerator
                     if (classSymbol.BaseType is INamedTypeSymbol baseType)
                     {
                         baseServiceMethods = GetServiceMethods(baseType);
-                        if (baseServiceMethods.Count > 0 || HasServiceAttribute(baseType))
-                        {
-                            hasBaseServiceDefinition = true;
-                        }
+                        hasBaseServiceDefinition = HasServiceAttribute(baseType);
                     }
 
                     IReadOnlyList<ServiceMethod> serviceMethods =
@@ -276,7 +273,7 @@ public class ServiceGenerator : IIncrementalGenerator
             ImmutableArray<INamedTypeSymbol> allInterfaces = classSymbol.AllInterfaces;
             Debug.Assert(_iceObjectService is not null);
             INamedTypeSymbol iceObjectService = _iceObjectService!;
-            if (allInterfaces.Contains(iceObjectService))
+            if (!allInterfaces.Contains(iceObjectService))
             {
                 allInterfaces = allInterfaces.Add(iceObjectService);
             }
