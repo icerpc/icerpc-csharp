@@ -2,10 +2,10 @@
 
 mode = Slice1
 
-module IceRpc::Internal
+module IceRpc::Slice::Internal
 
-/// A service address encoded with Slice1 includes an InvocationMode which specifies the behavior when sending requests to that service.
-/// When encoding a service address, IceRPC always uses Twoway.
+/// A proxy encoded with Slice1 includes an InvocationMode which specifies the behavior when sending requests using this
+/// proxy.
 [cs::internal]
 enum InvocationMode {
     /// This is the default invocation mode; a request using this mode always expects a response.

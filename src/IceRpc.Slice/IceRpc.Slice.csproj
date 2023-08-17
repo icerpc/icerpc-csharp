@@ -8,8 +8,22 @@
         <DefaultItemExcludes>$(DefaultItemExcludes);gen/*.*</DefaultItemExcludes>
     </PropertyGroup>
     <ItemGroup>
-      <SliceFile Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice" OutputDir="$(MSBuildProjectDirectory)/generated" Pack="true" PackagePath="slice/Ice" />
-      
+      <SliceFile
+        Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice"
+        OutputDir="$(MSBuildProjectDirectory)/generated"
+        Pack="true"
+        PackagePath="slice/Ice" />
+
+      <SliceFile
+        Include="../../slice/IceRpc/ServiceAddress.slice"
+        OutputDir="$(MSBuildProjectDirectory)/generated"
+        Pack="true"
+        PackagePath="slice/IceRpc" />
+
+      <SliceFile
+        Include="../../slice/IceRpc/Slice/Internal/*.slice"
+        OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+
       <!-- Reference the built-in Slice files -->
       <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
     </ItemGroup>

@@ -436,7 +436,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let members = operation.return_members();
 
-        let function_type = if operation.streamed_return_member().is_some() {
+        let function_type = if operation.streamed_return_member().is_some() || operation.encoding == Encoding::Slice1 {
             FunctionType::BlockBody
         } else {
             FunctionType::ExpressionBody
@@ -580,7 +580,52 @@ response.DecodeReturnValueAsync(
             default_activator = default_activator(operation.encoding),
         );
     }
-    code
+
+    if operation.encoding == Encoding::Slice1 {
+        let mut try_catch_block = CodeBlock::default();
+        let decode_response = code.indent();
+
+        let scoped_operation_name = operation.module_scoped_identifier();
+
+        let mut catch_expression = "(SliceException exception)".to_owned();
+
+        let when_expression = match operation.exception_specification.as_slice() {
+            [] => None,
+            [single_exception] => Some(single_exception.escape_scoped_identifier(&operation.namespace())),
+            multiple_exceptions => {
+                let exceptions = multiple_exceptions
+                    .iter()
+                    .map(|ex| ex.escape_scoped_identifier(&operation.namespace()))
+                    .collect::<Vec<_>>()
+                    .join(" or ");
+                Some(format!("({exceptions})"))
+            }
+        };
+
+        if let Some(when_expression) = when_expression {
+            catch_expression = format!("{catch_expression} when (exception is not {when_expression})");
+        }
+
+        writeln!(
+            try_catch_block,
+                        "\
+try
+{{
+    {return_await} {decode_response}.ConfigureAwait(false);
+}}
+catch {catch_expression}
+{{
+    throw new global::System.IO.InvalidDataException(
+        $\"Exception specification violation: response to '{scoped_operation_name}' request carries an exception of type '{{exception.GetType()}}'.\",
+        exception);
+}}",
+            return_await = if return_void { "await" } else { "return await" },
+        );
+
+        try_catch_block
+    } else {
+        code
+    }
 }
 
 fn return_value_decode_func(operation: &Operation) -> CodeBlock {

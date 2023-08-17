@@ -2,6 +2,6 @@
 
 mode = Slice1
 
-module IceRpc::Tests::Slice::TypeIdAttributeTestNamespace
+module IceRpc::Slice::Tests::TypeIdAttributeTestNamespace
 
 class MyClass {}

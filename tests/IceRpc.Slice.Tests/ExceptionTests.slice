@@ -2,7 +2,7 @@
 
 mode = Slice1
 
-module IceRpc::Tests::Slice
+module IceRpc::Slice::Tests
 
 exception MyException {
     i: int32
@@ -29,4 +29,10 @@ interface SliceExceptionOperations {
     opThrowsMyException() throws MyException
 
     opThrowsNothing()
+}
+
+// Just like SliceExceptionOperations, but with different exception specifications
+interface AltSliceExceptionOperations {
+    opThrowsMultipleExceptions() throws MyException
+    opThrowsMyException()
 }

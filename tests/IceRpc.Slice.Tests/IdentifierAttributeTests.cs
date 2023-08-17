@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 
-namespace IceRpc.Tests.Slice.Identifiers;
+namespace IceRpc.Slice.Tests.Identifiers;
 
 /// <summary>These tests verify that the cs::identifier attribute will cause slicec-cs to generate C# with the
 /// specified identifiers. As such, most of these tests cover trivial things. The purpose is mainly to ensure that the

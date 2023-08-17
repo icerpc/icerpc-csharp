@@ -3,7 +3,7 @@
 using IceRpc.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class IdentityTests

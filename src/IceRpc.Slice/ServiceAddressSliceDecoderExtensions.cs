@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -8,7 +9,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using ZeroC.Slice;
 
-namespace IceRpc;
+namespace IceRpc.Slice;
 
 /// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode service addresses.</summary>
 public static class ServiceAddressSliceDecoderExtensions
@@ -68,8 +69,7 @@ public static class ServiceAddressSliceDecoderExtensions
     {
         Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
 
-        // The Slice1 ice server addresses are transport-specific, and hard-coded here and in the
-        // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
+        // The Slice1 ice server addresses are transport-specific, with a transport-specific encoding.
 
         ServerAddress? serverAddress = null;
         var transportCode = (TransportCode)decoder.DecodeInt16();
@@ -179,7 +179,7 @@ public static class ServiceAddressSliceDecoderExtensions
         return serverAddress.Value;
     }
 
-    /// <summary>Helper method to decode a service address encoded with Slice1.</summary>
+    /// <summary>Decodes a service address encoded with Slice1.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <param name="path">The decoded path.</param>
     /// <returns>The decoded service address.</returns>
@@ -228,7 +228,7 @@ public static class ServiceAddressSliceDecoderExtensions
             serverAddress = decoder.DecodeServerAddress(protocol);
             if (count >= 2)
             {
-                // A slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
+                // A Slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
                 // bytes for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
                 decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
 

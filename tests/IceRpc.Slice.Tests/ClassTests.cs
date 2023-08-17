@@ -4,7 +4,7 @@ using NUnit.Framework;
 using System.IO.Pipelines;
 using ZeroC.Slice;
 
-namespace IceRpc.Tests.Slice;
+namespace IceRpc.Slice.Tests;
 
 [Parallelizable(ParallelScope.All)]
 public sealed class ClassTests

@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 using System.Diagnostics;
 using System.Globalization;
 using ZeroC.Slice;
 
-namespace IceRpc;
+namespace IceRpc.Slice;
 
 /// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode service addresses.</summary>
 public static class ServiceAddressSliceEncoderExtensions
@@ -105,11 +106,10 @@ public static class ServiceAddressSliceEncoderExtensions
     /// <param name="serverAddress">The server address to encode.</param>
     private static void EncodeServerAddress(this ref SliceEncoder encoder, ServerAddress serverAddress)
     {
-        // If the server address does not specify a transport, we default to TCP.
+        // If the server address does not specify a transport, we default to TCP. We can't encode "default".
         string transport = serverAddress.Transport ?? TcpName;
 
-        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here. The preferred and
-        // fallback encoding for new transports is TransportCode.Uri.
+        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here.
 
         if (serverAddress.Protocol == Protocol.Ice && transport == OpaqueName)
         {
