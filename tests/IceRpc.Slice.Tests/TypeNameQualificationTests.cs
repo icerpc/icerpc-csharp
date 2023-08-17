@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Slice;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class TypeNameQualificationTests
+public partial class TypeNameQualificationTests
 {
     /// <summary>Verifies that when a type is defined in multiple modules, the generated code doesn't mix up the
     /// type names, and use the correct qualified type names.</summary>
@@ -26,7 +26,8 @@ public class TypeNameQualificationTests
         Assert.That(r.V, Is.EqualTo("10"));
     }
 
-    private sealed class TypeNameQualificationOperationsService : Service, ITypeNameQualificationOperationsService
+    [SliceService]
+    private sealed partial class TypeNameQualificationOperationsService : ITypeNameQualificationOperationsService
     {
         public ValueTask<S> OpWithTypeNamesDefinedInMultipleModulesAsync(
             Inner.S s,

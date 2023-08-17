@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Slice;
 
 [Parallelizable(ParallelScope.All)]
-public sealed class ExceptionTests
+public sealed partial class ExceptionTests
 {
     private static IEnumerable<TestCaseData> SliceDispatchThrowsMultipleExceptionsSource
     {
@@ -109,7 +109,8 @@ public sealed class ExceptionTests
         Assert.That(exception!.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
-    private sealed class SliceExceptionOperationsService : Service, ISliceExceptionOperationsService
+    [SliceService]
+    private sealed partial class SliceExceptionOperationsService : ISliceExceptionOperationsService
     {
         private readonly Exception _exception;
 

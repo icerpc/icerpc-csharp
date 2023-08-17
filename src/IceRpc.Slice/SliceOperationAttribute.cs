@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace IceRpc.Slice;
 
 /// <summary>Represents an attribute that the Slice compiler uses to mark helper methods it generates on Service
-/// interfaces. This attribute is used by <see cref="Service.DispatchAsync" />.</summary>
+/// interfaces.</summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class SliceOperationAttribute : Attribute

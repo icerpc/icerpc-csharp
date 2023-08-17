@@ -92,3 +92,4 @@ docfx/api
 nuget.config
 NuGet.config
 *.nupkg
+*.Designer.cs

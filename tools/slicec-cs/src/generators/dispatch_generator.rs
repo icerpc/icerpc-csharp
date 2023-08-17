@@ -24,7 +24,7 @@ pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
     interface_builder
         .add_generated_remark_with_note(
             "server-side interface",
-            r#"Your service implementation must implement this interface and derive from <see cref="Service" />."#,
+            r#"Your service implementation must implement this interface."#,
             interface_def,
         )
         .add_comments(interface_def.formatted_doc_comment_seealso())

@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Slice.Identifiers;
 /// specified identifiers. As such, most of these tests cover trivial things. The purpose is mainly to ensure that the
 /// code generation worked correctly. </summary>
 [Parallelizable(scope: ParallelScope.All)]
-public class IdentifierAttributeTests
+public partial class IdentifierAttributeTests
 {
     [Test]
     public async Task Renamed_interface_and_operation()
@@ -24,7 +24,8 @@ public class IdentifierAttributeTests
         _ = await proxy.REnamedOpAsync(renamedParam: 1);
     }
 
-    private sealed class IdentifierOperationsService : Service, IREnamedInterfaceService
+    [SliceService]
+    private sealed partial class IdentifierOperationsService : IREnamedInterfaceService
     {
         public ValueTask<(int, int)> REnamedOpAsync(
             int renamedParam,

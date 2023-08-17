@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Slice;
 
 /// <summary>Test encoding and decoding proxies.</summary>
 [Parallelizable(scope: ParallelScope.All)]
-public class ProxyTests
+public partial class ProxyTests
 {
     /// <summary>Verifies that nullable proxies are correctly encoded with Slice1 encoding.</summary>
     /// <param name="expected">The nullable proxy to test with.</param>
@@ -223,15 +223,18 @@ public class ProxyTests
         Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
 
-    private class MyBaseInterfaceService : Service, IMyBaseInterfaceService
+    [SliceService]
+    private partial class MyBaseInterfaceService : IMyBaseInterfaceService
     {
     }
 
-    private sealed class MyDerivedInterfaceService : MyBaseInterfaceService, IMyDerivedInterfaceService
+    [SliceService]
+    private sealed partial class MyDerivedInterfaceService : MyBaseInterfaceService, IMyDerivedInterfaceService
     {
     }
 
-    private sealed class ReceiveProxyTestService : Service, IReceiveProxyTestService
+    [SliceService]
+    private sealed partial class ReceiveProxyTestService : IReceiveProxyTestService
     {
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(
             IFeatureCollection features,
@@ -239,7 +242,8 @@ public class ProxyTests
             new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
     }
 
-    private sealed class SendProxyTestService : Service, ISendProxyTestService
+    [SliceService]
+    private sealed partial class SendProxyTestService : ISendProxyTestService
     {
         public SendProxyTestProxy? ReceivedProxy { get; private set; }
 

@@ -69,7 +69,7 @@ public class CustomServerTransport : IMultiplexedServerTransport
     }
 }
 
-public class CustomTransportTests
+public partial class CustomTransportTests
 {
     [Test]
     public async Task CustomTransport_PingAsync()
@@ -133,7 +133,8 @@ public class CustomTransportTests
         }
     }
 
-    public class PingableService : Service, IPingableService
+    [SliceService]
+    public partial class PingableService : IPingableService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }

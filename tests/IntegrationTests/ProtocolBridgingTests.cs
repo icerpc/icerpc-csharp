@@ -12,7 +12,7 @@ namespace IceRpc.IntegrationTests;
 
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 [Parallelizable(ParallelScope.All)]
-public sealed class ProtocolBridgingTests
+public sealed partial class ProtocolBridgingTests
 {
     [Test]
     public async Task ProtocolBridging_Forward(
@@ -110,7 +110,8 @@ public sealed class ProtocolBridgingTests
         }
     }
 
-    internal sealed class ProtocolBridgingTestService : Service, IProtocolBridgingTestService
+    [SliceService]
+    internal sealed partial class ProtocolBridgingTestService : IProtocolBridgingTestService
     {
         public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
