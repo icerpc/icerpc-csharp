@@ -192,12 +192,15 @@ public class ServiceGenerator : IIncrementalGenerator
                     bool hasBaseServiceDefinition = false;
                     if (classSymbol.BaseType is INamedTypeSymbol baseType)
                     {
-                        baseServiceMethods = GetServiceMethods(baseType);
+                        baseServiceMethods = GetServiceMethods(baseType.AllInterfaces);
                         hasBaseServiceDefinition = HasServiceAttribute(baseType);
                     }
 
-                    IReadOnlyList<ServiceMethod> serviceMethods =
-                        GetServiceMethods(classSymbol).Except(baseServiceMethods).Distinct().ToList();
+                    IReadOnlyList<ServiceMethod> serviceMethods = GetServiceMethods(classSymbol.AllInterfaces)
+                        .Except(baseServiceMethods)
+                        .Union(GetServiceMethods(_iceObjectService))
+                        .Distinct()
+                        .ToList();
 
                     var operationNames = new HashSet<string>();
                     foreach (ServiceMethod method in serviceMethods)
@@ -265,71 +268,67 @@ public class ServiceGenerator : IIncrementalGenerator
             return implementedIntefaces;
         }
 
-        private IReadOnlyList<ServiceMethod> GetServiceMethods(INamedTypeSymbol classSymbol)
+        private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
         {
             Debug.Assert(_operationAttribute is not null);
             var allServiceMethods = new List<ServiceMethod>();
-
-            ImmutableArray<INamedTypeSymbol> allInterfaces = classSymbol.AllInterfaces;
-            Debug.Assert(_iceObjectService is not null);
-            INamedTypeSymbol iceObjectService = _iceObjectService!;
-            if (!allInterfaces.Contains(iceObjectService))
-            {
-                allInterfaces = allInterfaces.Add(iceObjectService);
-            }
-
             foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
             {
-                var serviceMethods = new List<ServiceMethod>();
-                foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
+                allServiceMethods.AddRange(GetServiceMethods(interfaceSymbol));
+            }
+            return allServiceMethods;
+        }
+
+        private IReadOnlyList<ServiceMethod> GetServiceMethods(INamedTypeSymbol interfaceSymbol)
+        {
+            var serviceMethods = new List<ServiceMethod>();
+            foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
+            {
+                string? operationName = null;
+                ImmutableArray<AttributeData> attributes = method.GetAttributes();
+                if (attributes.IsEmpty)
                 {
-                    string? operationName = null;
-                    ImmutableArray<AttributeData> attributes = method.GetAttributes();
-                    if (attributes.IsEmpty)
+                    continue;
+                }
+
+                foreach (AttributeData attribute in attributes)
+                {
+                    if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _operationAttribute))
                     {
                         continue;
                     }
 
-                    foreach (AttributeData attribute in attributes)
+                    foreach (TypedConstant typedConstant in attribute.ConstructorArguments)
                     {
-                        if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _operationAttribute))
+                        if (typedConstant.Kind == TypedConstantKind.Error)
                         {
-                            continue;
+                            // if a compilation error was found, no need to keep evaluating other args
+                            return serviceMethods;
                         }
 
-                        foreach (TypedConstant typedConstant in attribute.ConstructorArguments)
+                        ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
+                        switch (items.Length)
                         {
-                            if (typedConstant.Kind == TypedConstantKind.Error)
-                            {
-                                // if a compilation error was found, no need to keep evaluating other args
-                                return serviceMethods;
-                            }
-
-                            ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
-                            switch (items.Length)
-                            {
-                                case 1:
-                                    Debug.Assert(items[0].Type?.SpecialType is SpecialType.System_String);
-                                    operationName = (string?)items[0].Value;
-                                    break;
-                                default:
-                                    Debug.Assert(false, "Unexpected number of arguments in attribute constructor.");
-                                    break;
-                            }
+                            case 1:
+                                Debug.Assert(items[0].Type?.SpecialType is SpecialType.System_String);
+                                operationName = (string?)items[0].Value;
+                                break;
+                            default:
+                                Debug.Assert(false, "Unexpected number of arguments in attribute constructor.");
+                                break;
                         }
                     }
-
-                    Debug.Assert(operationName is not null);
-
-                    serviceMethods.Add(new ServiceMethod
-                    {
-                        OperationName = operationName!,
-                        DispatchMethodName = GetFullName(method)
-                    });
                 }
-                allServiceMethods.AddRange(serviceMethods);
+
+                Debug.Assert(operationName is not null);
+
+                serviceMethods.Add(new ServiceMethod
+                {
+                    OperationName = operationName!,
+                    DispatchMethodName = GetFullName(method)
+                });
             }
-            return allServiceMethods;
+            return serviceMethods;
         }
 
         private bool HasServiceAttribute(INamedTypeSymbol classSymbol)

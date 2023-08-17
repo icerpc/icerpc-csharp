@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace IceRpc.Compressor.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class OperationGeneratedCodeTests
+public partial class OperationGeneratedCodeTests
 {
     [Test]
     public async Task Operation_with_compress_args_and_return_attribute(
@@ -63,7 +63,7 @@ public class OperationGeneratedCodeTests
     }
 
     [SliceService]
-    public class MyOperationsAService : IMyOperationsAService
+    public partial class MyOperationsAService : IMyOperationsAService
     {
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,
