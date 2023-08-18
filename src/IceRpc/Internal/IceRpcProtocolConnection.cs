@@ -1207,7 +1207,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             }
             catch (Exception exception)
             {
-                if (exception is not DispatchException dispatchException || dispatchException.ConvertToInternalError)
+                if (exception is not DispatchException dispatchException)
                 {
                     StatusCode statusCode = exception switch
                     {
@@ -1218,7 +1218,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     };
                     dispatchException = new DispatchException(statusCode, message: null, exception);
                 }
-                response = new OutgoingResponse(request, dispatchException);
+                response = dispatchException.ToOutgoingResponse(request);
             }
 
             return response;

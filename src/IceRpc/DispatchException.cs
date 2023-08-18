@@ -36,6 +36,21 @@ public sealed class DispatchException : Exception
                 nameof(statusCode),
                 $"The status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Ok)}.");
 
+    /// <summary>Construct an outgoing respose from this dispatch exception.</summary>
+    /// <param name="request">The incoming request.</param>
+    /// <returns>The outgoing response.</returns>
+    public OutgoingResponse ToOutgoingResponse(IncomingRequest request)
+    {
+        if (ConvertToInternalError)
+        {
+            return new OutgoingResponse(request, StatusCode.InternalError, message: null, this);
+        }
+        else
+        {
+            return new OutgoingResponse(request, StatusCode, Message, InnerException);
+        }
+    }
+
     private static string? GetDefaultMessage(StatusCode statusCode) =>
         statusCode == StatusCode.ApplicationError ? null : $"The dispatch failed with status code {statusCode}.";
 }

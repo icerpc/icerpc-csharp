@@ -1039,11 +1039,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            if (exception is not DispatchException dispatchException || dispatchException.ConvertToInternalError)
+            if (exception is not DispatchException dispatchException)
             {
                 dispatchException = new DispatchException(StatusCode.InternalError, innerException: exception);
             }
-            response = new OutgoingResponse(request, dispatchException);
+            response = dispatchException.ToOutgoingResponse(request);
         }
         finally
         {
