@@ -5,7 +5,6 @@
         <Description>IceRpc.Slice for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;Slice;Binary;Serialization;Format</PackageTags>
-        <DefaultItemExcludes>$(DefaultItemExcludes);gen/*.*</DefaultItemExcludes>
     </PropertyGroup>
     <ItemGroup>
       <SliceFile
@@ -31,7 +30,8 @@
       <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
       <ProjectReference Include="..\ZeroC.Slice\ZeroC.Slice.csproj" ExactVersion="true" />
       <!-- Includes the analyzer in the package without consuming it. -->
-      <ProjectReference Include="..\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
+      <ProjectReference Include="..\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" 
+                        ReferenceOutputAssembly="false" />
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
       <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
           <PrivateAssets>all</PrivateAssets>
@@ -40,9 +40,12 @@
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
-        <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-        <Content Include="README.md" Pack="true" PackagePath="\" />
-        <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
-        <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="buildTransitive" />
+      <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+      <Content Include="README.md" Pack="true" PackagePath="\" />
+      <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
+      <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="buildTransitive" />
+      <Content Include="..\IceRpc.Slice.Generators\bin\$(Configuration)\netstandard2.0\IceRpc.Slice.Generators.dll"
+               Pack="true"
+               PackagePath="analyzers\dotnet\roslyn4.4\cs"/>
     </ItemGroup>
 </Project>
