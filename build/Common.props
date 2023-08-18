@@ -6,11 +6,11 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <WarningLevel>4</WarningLevel>
         <Nullable>enable</Nullable>
+        <TargetFramework>net7.0</TargetFramework>
         <LangVersion>11.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
         <ImplicitUsings>true</ImplicitUsings>
-        <TargetFramework>net7.0</TargetFramework>
         <NetRuntimeVersion>7.0.0</NetRuntimeVersion>
         <!-- TODO update to 1.2 stable release https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187#issuecomment-1043221630 -->
         <StyleCopAnalyzersVersion>1.2.0-beta.435</StyleCopAnalyzersVersion>
