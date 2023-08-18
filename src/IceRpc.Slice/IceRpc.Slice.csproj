@@ -29,8 +29,9 @@
       <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
       <ProjectReference Include="..\ZeroC.Slice\ZeroC.Slice.csproj" ExactVersion="true" />
       <!-- Includes the analyzer in the package without consuming it. -->
-      <ProjectReference Include="..\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" 
-                        ReferenceOutputAssembly="false" />
+      <ProjectReference
+        Include="..\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj"
+        ReferenceOutputAssembly="false" />
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
       <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
           <PrivateAssets>all</PrivateAssets>
