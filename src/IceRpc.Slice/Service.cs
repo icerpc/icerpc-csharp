@@ -99,15 +99,15 @@ public class Service : IDispatcher, IIceObjectService
     public virtual ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 
     /// <inheritdoc/>
-    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
+    public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
         if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
         {
-            return await dispatchMethod(this, request, cancellationToken).ConfigureAwait(false);
+            return dispatchMethod(this, request, cancellationToken);
         }
         else
         {
-            return new OutgoingResponse(request, StatusCode.NotImplemented);
+            return new(new OutgoingResponse(request, StatusCode.NotImplemented));
         }
     }
 }
