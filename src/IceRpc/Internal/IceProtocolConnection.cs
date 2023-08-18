@@ -1039,13 +1039,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            StatusCode statusCode = exception switch
+            if (exception is not DispatchException dispatchException)
             {
-                DispatchException dispatchException when !dispatchException.ConvertToInternalError =>
-                    dispatchException.StatusCode,
-                _ => StatusCode.InternalError
-            };
-            response = new OutgoingResponse(request, statusCode, message: null, exception);
+                dispatchException = new DispatchException(StatusCode.InternalError, innerException: exception);
+            }
+            response = dispatchException.ToOutgoingResponse(request);
         }
         finally
         {
