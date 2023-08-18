@@ -36,14 +36,6 @@ public sealed class OutgoingResponse : OutgoingFrame
 
     /// <summary>Constructs an outgoing response.</summary>
     /// <param name="request">The incoming request.</param>
-    /// <param name="dispatchException">The exception that is the cause of this failure.</param>
-    public OutgoingResponse(IncomingRequest request, DispatchException dispatchException)
-        : this(request, dispatchException.StatusCode, dispatchException.Message, dispatchException.InnerException)
-    {
-    }
-
-    /// <summary>Constructs an outgoing response.</summary>
-    /// <param name="request">The incoming request.</param>
     /// <param name="statusCode">The status code. It must be greater than <see cref="StatusCode.Ok" />.</param>
     /// <param name="message">The error message or null to use the default error message.</param>
     /// <param name="exception">The exception that is the cause of this failure.</param>
@@ -63,7 +55,6 @@ public sealed class OutgoingResponse : OutgoingFrame
                 nameof(statusCode));
 
         string errorMessage = message ?? $"The dispatch failed with status code {statusCode}.";
-
         if (exception is not null)
         {
             errorMessage += $" The failure was caused by an exception of type '{exception.GetType()}' with message: {exception.Message}";
