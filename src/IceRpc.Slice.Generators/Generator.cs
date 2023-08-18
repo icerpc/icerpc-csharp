@@ -90,8 +90,8 @@ public class ServiceGenerator : IIncrementalGenerator
         /// <summary>Gets a value indicating whether the service is a sealed type.</summary>
         internal bool IsSealed { get; }
 
-        /// <summary>Gets the service base types.</summary>
-        internal SortedSet<string> BaseTypes { get; }
+        /// <summary>Gets the service type IDs.</summary>
+        internal SortedSet<string> TypeIds { get; }
 
         /// <summary>Gets the service methods implemented by the service.</summary>
         /// <remarks>It doesn't include the service methods implemented by the base service defintion if any.</remarks>
@@ -104,14 +104,14 @@ public class ServiceGenerator : IIncrementalGenerator
             IReadOnlyList<ServiceMethod> serviceMethods,
             bool hasBaseServiceDefinition,
             bool isSealed,
-            SortedSet<string> baseTypes)
+            SortedSet<string> typeIds)
             : base(name, keyword)
         {
             ContainingNamespace = containingNamespace;
             ServiceMethods = serviceMethods;
             HasBaseServiceDefinition = hasBaseServiceDefinition;
             IsSealed = isSealed;
-            BaseTypes = baseTypes;
+            TypeIds = typeIds;
         }
     }
 
@@ -223,7 +223,7 @@ public class ServiceGenerator : IIncrementalGenerator
                         serviceMethods,
                         hasBaseServiceDefinition,
                         isSealed: classSymbol.IsSealed,
-                        baseTypes: GetIntefaces(classSymbol));
+                        typeIds: GetTypeIds(classSymbol));
                     serviceDefinitions.Add(serviceClass);
 
                     static bool IsAllowedKind(SyntaxKind kind) =>
@@ -246,26 +246,67 @@ public class ServiceGenerator : IIncrementalGenerator
             return serviceDefinitions;
         }
 
-        private SortedSet<string> GetIntefaces(INamedTypeSymbol classSymbol)
+        private SortedSet<string> GetTypeIds(INamedTypeSymbol classSymbol)
         {
-            var implementedIntefaces = new SortedSet<string>
-            {
-                GetFullName(_iceObjectService!)
-            };
+            var typeIds = new SortedSet<string>();
 
-            foreach (INamedTypeSymbol interfaceSymbol in classSymbol.Interfaces)
+            if (GetTypeId(_iceObjectService!) is string iceObjectTypeId)
             {
-                implementedIntefaces.Add(GetFullName(interfaceSymbol));
+                typeIds.Add(iceObjectTypeId);
             }
 
-            if (classSymbol.BaseType is INamedTypeSymbol baseType && HasServiceAttribute(baseType))
+            foreach (INamedTypeSymbol interfaceSymbol in classSymbol.AllInterfaces)
             {
-                foreach (INamedTypeSymbol interfaceSymbol in baseType.Interfaces)
+                if (GetTypeId(interfaceSymbol!) is string typeId)
                 {
-                    implementedIntefaces.Add(GetFullName(interfaceSymbol));
+                    typeIds.Add(typeId);
                 }
             }
-            return implementedIntefaces;
+
+            return typeIds;
+
+            string? GetTypeId(INamedTypeSymbol symbol)
+            {
+                if (GetAttribute(symbol, _sliceTypeIdAttribute!) is not AttributeData attribute)
+                {
+                    return null;
+                }
+
+                foreach (TypedConstant typedConstant in attribute.ConstructorArguments)
+                {
+                    if (typedConstant.Kind == TypedConstantKind.Error)
+                    {
+                        // if a compilation error was found, no need to keep evaluating other args
+                        return null;
+                    }
+                }
+
+                ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
+                switch (items.Length)
+                {
+                    case 1:
+                        Debug.Assert(items[0].Type?.SpecialType is SpecialType.System_String);
+                        return (string?)items[0].Value;
+                    default:
+                        Debug.Assert(false, "Unexpected number of arguments in attribute constructor.");
+                        break;
+                }
+
+                return null;
+            }
+        }
+
+        private AttributeData? GetAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)
+        {
+            ImmutableArray<AttributeData> attributes = symbol.GetAttributes();
+            foreach (AttributeData attribute in attributes)
+            {
+                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeSymbol))
+                {
+                    return attribute;
+                }
+            }
+            return null;
         }
 
         private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
@@ -284,40 +325,31 @@ public class ServiceGenerator : IIncrementalGenerator
             var serviceMethods = new List<ServiceMethod>();
             foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
             {
-                string? operationName = null;
-                ImmutableArray<AttributeData> attributes = method.GetAttributes();
-                if (attributes.IsEmpty)
+                if (GetAttribute(method, _operationAttribute!) is not AttributeData attribute)
                 {
                     continue;
                 }
 
-                foreach (AttributeData attribute in attributes)
+                foreach (TypedConstant typedConstant in attribute.ConstructorArguments)
                 {
-                    if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _operationAttribute))
+                    if (typedConstant.Kind == TypedConstantKind.Error)
                     {
-                        continue;
+                        // if a compilation error was found, no need to keep evaluating other args
+                        return serviceMethods;
                     }
+                }
 
-                    foreach (TypedConstant typedConstant in attribute.ConstructorArguments)
-                    {
-                        if (typedConstant.Kind == TypedConstantKind.Error)
-                        {
-                            // if a compilation error was found, no need to keep evaluating other args
-                            return serviceMethods;
-                        }
-
-                        ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
-                        switch (items.Length)
-                        {
-                            case 1:
-                                Debug.Assert(items[0].Type?.SpecialType is SpecialType.System_String);
-                                operationName = (string?)items[0].Value;
-                                break;
-                            default:
-                                Debug.Assert(false, "Unexpected number of arguments in attribute constructor.");
-                                break;
-                        }
-                    }
+                string? operationName = null;
+                ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
+                switch (items.Length)
+                {
+                    case 1:
+                        Debug.Assert(items[0].Type?.SpecialType is SpecialType.System_String);
+                        operationName = (string?)items[0].Value;
+                        break;
+                    default:
+                        Debug.Assert(false, "Unexpected number of arguments in attribute constructor.");
+                        break;
                 }
 
                 Debug.Assert(operationName is not null);
@@ -375,11 +407,11 @@ public class ServiceGenerator : IIncrementalGenerator
                 // stop if we're asked to.
                 cancellationToken.ThrowIfCancellationRequested();
 
-                string dispatcherClass;
                 string dispatchModifier =
                     serviceClass.HasBaseServiceDefinition ? "public override" :
                     serviceClass.IsSealed ? "public" : "public virtual";
 
+                string dispatcherBlock;
                 if (serviceClass.ServiceMethods.Count > 0)
                 {
                     string dispatchBlocks = "";
@@ -388,7 +420,7 @@ public class ServiceGenerator : IIncrementalGenerator
                         dispatchBlocks += @$"
 
 case ""{serviceMethod.OperationName}"":
-    return await {serviceMethod.DispatchMethodName}(this, request, cancellationToken).ConfigureAwait(false);";
+    return {serviceMethod.DispatchMethodName}(this, request, cancellationToken);";
                     }
 
                     if (serviceClass.HasBaseServiceDefinition)
@@ -396,110 +428,72 @@ case ""{serviceMethod.OperationName}"":
                         dispatchBlocks += @$"
 
 default:
-    return await base.DispatchAsync(request, cancellationToken).ConfigureAwait(false);";
+    return base.DispatchAsync(request, cancellationToken);";
                     }
                     else
                     {
                         dispatchBlocks += @$"
 
 default:
-    return new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented);";
+    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
                     }
                     dispatchBlocks = dispatchBlocks.Trim();
 
-                    string allBaseTypes = "";
-                    foreach (string baseType in serviceClass.BaseTypes)
-                    {
-                        allBaseTypes += @$"typeof({baseType}),{_newLine}";
-                    }
-                    allBaseTypes = allBaseTypes.TrimEnd(',', '\n', '\r', ' ');
+                    dispatcherBlock = @$"
+switch (request.Operation)
+{{
+    {dispatchBlocks.WithIndent("    ")}
+}}".Trim();
+                }
+                else
+                {
+                    dispatcherBlock = serviceClass.HasBaseServiceDefinition ?
+                        "base.DispatchAsync(request, cancellationToken);" :
+                        "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+                }
 
-                    dispatcherClass = $@"
+                string typeIds = "";
+                foreach (string typeId in serviceClass.TypeIds)
+                {
+                    typeIds += @$"""{typeId}"",{_newLine}";
+                }
+                typeIds = typeIds.TrimEnd(',', '\n', '\r', ' ');
+
+                string dispatcherClass = $@"
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher, IceRpc.Slice.Ice.IIceObjectService
 {{
-    private static readonly global::System.Lazy<global::System.Collections.Generic.IReadOnlySet<string>> _typeIds =
-        new(() =>
+    private static readonly global::System.Collections.Generic.IReadOnlySet<string> _typeIds =
+        new global::System.Collections.Generic.SortedSet<string>()
         {{
-            var interfaceTypes = new global::System.Type[]
-            {{
-                {allBaseTypes.WithIndent("                ")}
-            }};
+            {typeIds.WithIndent("            ")}
+        }};
 
-            var typeIds = new global::System.Collections.Generic.SortedSet<string>();
-            foreach (var interfaceType in interfaceTypes)
-            {{
-                typeIds.UnionWith(ZeroC.Slice.TypeExtensions.GetAllSliceTypeIds(interfaceType));
-            }}
-            return typeIds;
-        }});
-
-    {dispatchModifier} async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
+    {dispatchModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
         IceRpc.IncomingRequest request,
         global::System.Threading.CancellationToken cancellationToken)
     {{
-        try
-        {{
-            switch(request.Operation)
-            {{
-                {dispatchBlocks.WithIndent("                ")}
-            }}
-        }}
-        catch (IceRpc.Slice.DispatchException exception)
-        {{
-            if (exception.ConvertToInternalError)
-            {{
-                return new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.InternalError, message: null, exception);
-            }}
-            return new IceRpc.OutgoingResponse(request, exception.StatusCode);
-        }}
+        {dispatcherBlock.WithIndent("        ")}
     }}
 
     /// <inheritdoc/>
     {dispatchModifier} global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> IceIdsAsync(
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken) =>
-        new(_typeIds.Value);
+        new(_typeIds);
 
     /// <inheritdoc/>
     {dispatchModifier} global::System.Threading.Tasks.ValueTask<bool> IceIsAAsync(
         string id,
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken) =>
-        new(_typeIds.Value.Contains(id));
+        new(_typeIds.Contains(id));
 
     /// <inheritdoc/>
     {dispatchModifier} global::System.Threading.Tasks.ValueTask IcePingAsync(
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken) => default;
 }}";
-                }
-                else
-                {
-                    string dispatcherBlock = serviceClass.HasBaseServiceDefinition ?
-                        "base.DispatchAsync(request, cancellationToken);" :
-                        "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
-                    dispatcherClass = $@"
-partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
-{{
-    {dispatchModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
-        IceRpc.IncomingRequest request,
-        global::System.Threading.CancellationToken cancellationToken)
-    {{
-        try
-        {{
-            return {dispatcherBlock};
-        }}
-        catch (IceRpc.Slice.DispatchException exception)
-        {{
-            if (exception.ConvertToInternalError)
-            {{
-                return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.InternalError, message: null, exception));
-            }}
-            return new(new IceRpc.OutgoingResponse(request, exception.StatusCode));
-        }}
-    }}
-}}";
-                }
+
                 string container = dispatcherClass;
                 ContainerDefinition? containerDefinition = serviceClass;
                 while (containerDefinition.Parent is ContainerDefinition parent)
@@ -535,14 +529,8 @@ internal static class DiagnosticDescriptors
 {
     internal static DiagnosticDescriptor ShouldntReuseOperationNames { get; } = new DiagnosticDescriptor(
         id: "SLICE1001",
-        title: new LocalizableResourceString(
-            nameof(Messages.ShouldntReuseOperationNamesTitle),
-            Messages.ResourceManager,
-            typeof(Messages)),
-        messageFormat: new LocalizableResourceString(
-            nameof(Messages.ShouldntReuseOperationNamesMessage),
-            Messages.ResourceManager,
-            typeof(Messages)),
+        title: "Multiple RPC operatrions cannot use the same name within a service class",
+        messageFormat: "Multiple RPC operations are using name {0} in class {1}",
         category: "SliceServiceGenerator",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

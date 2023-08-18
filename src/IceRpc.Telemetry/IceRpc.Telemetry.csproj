@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
         <Description>Telemetry interceptor and middleware for IceRPC</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>

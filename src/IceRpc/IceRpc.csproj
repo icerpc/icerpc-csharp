@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
         <Description>IceRPC for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>IceRPC;RPC</PackageTags>
@@ -12,19 +11,10 @@
       </SliceFile>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <SliceFile
-          Include="../../slice/IceRpc/*.slice"
-          Exclude="../../slice/IceRpc/ServiceAddress.slice"
-          OutputDir="$(MSBuildProjectDirectory)/generated"
-          Pack="true"
-          PackagePath="slice/$(AssemblyName)" />
-        <SliceFile
-          Include="../../slice/IceRpc/Internal/*.slice"
-          OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceFile
-          Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice"
-          OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
-       <SliceDirectory Include="../../slice/IceRpc/"/>
+        <SliceFile Include="../../slice/IceRpc/*.slice" Exclude="../../slice/IceRpc/ServiceAddress.slice" OutputDir="$(MSBuildProjectDirectory)/generated" Pack="true" PackagePath="slice/$(AssemblyName)" />
+        <SliceFile Include="../../slice/IceRpc/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+        <SliceFile Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
+       <SliceDirectory Include="../../slice/IceRpc/" />
       </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\ZeroC.Slice\ZeroC.Slice.csproj" ExactVersion="true" />
@@ -34,7 +24,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="System.IO.Pipelines" Version="$(NetRuntimeVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(NetRuntimeVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
