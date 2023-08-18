@@ -7,7 +7,8 @@ using Repository;
 
 namespace UploadServer;
 
-internal class EarthImageStore : Service, IUploaderService
+[SliceService]
+internal partial class EarthImageStore : IUploaderService
 {
     public async ValueTask UploadImageAsync(
         PipeReader image,

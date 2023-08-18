@@ -7,7 +7,8 @@ using System.IO.Pipelines;
 
 namespace DownloadServer;
 
-internal class EarthImageServer : Service, IDownloaderService
+[SliceService]
+internal partial class EarthImageServer : IDownloaderService
 {
     public ValueTask<PipeReader> DownloadImageAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
