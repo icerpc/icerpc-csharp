@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice.Generators.Internal;
 
-/// <summary>Represents a C# definition that has the IceRpc.Slice.SliceServiceAttribute and for wich this generator
+/// <summary>Represents a C# definition that has the IceRpc.Slice.SliceServiceAttribute and for which this generator
 /// implements the <c>IceRpc.IDispatcher</c> interface.</summary>
 internal class ServiceDefinition : ContainerDefinition
 {
@@ -19,7 +19,7 @@ internal class ServiceDefinition : ContainerDefinition
     internal SortedSet<string> TypeIds { get; }
 
     /// <summary>Gets the service methods implemented by the service.</summary>
-    /// <remarks>It doesn't include the service methods implemented by the base service defintion if any.</remarks>
+    /// <remarks>It doesn't include the service methods implemented by the base service definition if any.</remarks>
     internal IReadOnlyList<ServiceMethod> ServiceMethods { get; }
 
     internal ServiceDefinition(

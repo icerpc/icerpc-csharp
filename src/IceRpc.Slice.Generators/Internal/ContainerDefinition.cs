@@ -7,7 +7,7 @@ namespace IceRpc.Slice.Generators.Internal;
 /// <summary>Represents a C# definition that is the parent of a service definition.</summary>
 internal class ContainerDefinition
 {
-    /// <summary>Gets the keyowrd definition (struct, class, or record).</summary>
+    /// <summary>Gets the keyword definition (struct, class, or record).</summary>
     internal string Keyword { get; }
 
     /// <summary>Gets the definition name.</summary>

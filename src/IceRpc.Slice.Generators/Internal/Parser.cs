@@ -88,7 +88,7 @@ internal sealed class Parser
                     {
                         _reportDiagnostic(
                             Diagnostic.Create(
-                                DiagnosticDescriptors.ShouldntReuseOperationNames,
+                                DiagnosticDescriptors.DuplicateOperationNames,
                                 classDeclaration.GetLocation(),
                                 method.OperationName,
                                 classDeclaration.Identifier.Text));
