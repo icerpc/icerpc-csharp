@@ -1212,6 +1212,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                     InvalidDataException => StatusCode.InvalidData,
                     IceRpcException iceRpcException when iceRpcException.IceRpcError == IceRpcError.TruncatedData =>
                         StatusCode.TruncatedPayload,
+                    DispatchException dispatchException when !dispatchException.ConvertToInternalError =>
+                        dispatchException.StatusCode,
                     _ => StatusCode.InternalError
                 };
                 response = new OutgoingResponse(request, statusCode, message: null, exception);

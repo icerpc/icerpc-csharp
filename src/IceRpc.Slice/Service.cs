@@ -103,18 +103,7 @@ public class Service : IDispatcher, IIceObjectService
     {
         if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
         {
-            try
-            {
-                return await dispatchMethod(this, request, cancellationToken).ConfigureAwait(false);
-            }
-            catch (DispatchException exception)
-            {
-                if (exception.ConvertToInternalError)
-                {
-                    return new OutgoingResponse(request, StatusCode.InternalError, message: null, exception);
-                }
-                return new OutgoingResponse(request, exception.StatusCode);
-            }
+            return await dispatchMethod(this, request, cancellationToken).ConfigureAwait(false);
         }
         else
         {
