@@ -20,7 +20,7 @@ public partial interface IIceObjectService
     /// <returns>The Slice type IDs of all these interfaces, sorted alphabetically.</returns>
     public ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
-        var sortedSet = new SortedSet<string>();
+        var sortedSet = new SortedSet<string>(StringComparer.Ordinal);
         foreach (Type type in GetType().GetInterfaces())
         {
             if (type.GetSliceTypeId() is string typeId)
