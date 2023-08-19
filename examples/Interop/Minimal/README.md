@@ -1,16 +1,15 @@
 # Minimal
 
 This example application illustrates how IceRPC can communicate with ZeroC Ice using the `ice` protocol and `Slice1`
-encoding. The server application uses ZeroC Ice and the client application uses IceRPC.
+encoding.
 
-You can build the client applications with:
+First, build the client and server applications for IceRPC with:
 
 ``` shell
 dotnet build
 ```
 
-First, start a hello server by following the instructions provided in any of the following `minimal` ZeroC Ice example
-applications:
+Then, build the client and/or server for any of the following `minimal` ZeroC Ice example applications:
 
 - [cpp11][1]
 - [cpp98][2]
@@ -20,10 +19,19 @@ applications:
 - [python][6]
 - [swift][7]
 
-In a separate window, start the Client program:
+You can then run any combination of Ice-based and IceRPC-based client and server applications.
+
+The commands below starts the IceRPC-based client application:
 
 ```shell
 cd Client
+dotnet run
+```
+
+The commands below starts the IceRPC-based server application:
+
+```shell
+cd Server
 dotnet run
 ```
 
