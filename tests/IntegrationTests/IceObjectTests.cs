@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Ice;
@@ -38,7 +37,7 @@ public class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    private class PingableService : Service, IPingableService
+    private class PingableService : Service, IPingableService, IIceObjectService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }

@@ -1,17 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Features;
-using IceRpc.Slice.Ice;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
-using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
 /// <summary>Represents the base class of all services that implement Slice-defined interfaces.</summary>
-public class Service : IDispatcher, IIceObjectService
+public class Service : IDispatcher
 {
     /// <summary>A delegate that matches the signature of the generated SliceDXxx methods. For the generated methods,
     /// the type of <c>target</c> is the type of the generated service interface, whereas for this delegate it's
