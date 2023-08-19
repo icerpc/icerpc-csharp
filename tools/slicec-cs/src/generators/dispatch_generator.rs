@@ -52,7 +52,7 @@ private static readonly IActivator _defaultActivator =
         );
     }
 
-    // TODO: add a Slice cs attribute to suppresses the generation of these methods.
+    // TODO: add a Slice cs attribute to conditionally suppress the generation of these methods.
     if interface_def.module_scoped_identifier() != "Ice::Object" {
         for operation in interface_def.operations() {
             interface_builder.add_block(operation_declaration(operation));
