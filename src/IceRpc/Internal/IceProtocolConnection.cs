@@ -1039,11 +1039,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         catch (Exception exception)
         {
-            response = new OutgoingResponse(
-                request,
-                StatusCode.InternalError,
-                "The dispatch failed with an exception.",
-                exception);
+            if (exception is not DispatchException dispatchException)
+            {
+                dispatchException = new DispatchException(StatusCode.InternalError, innerException: exception);
+            }
+            response = dispatchException.ToOutgoingResponse(request);
         }
         finally
         {

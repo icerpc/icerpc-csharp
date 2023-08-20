@@ -1,7 +1,7 @@
 # Minimal
 
 This example application illustrates how IceRPC can communicate with ZeroC Ice using the `ice` protocol and `Slice1`
-encoding.
+mode.
 
 First, build the client and server applications for IceRPC with:
 
@@ -21,14 +21,14 @@ Then, build the client and/or server for any of the following `minimal` ZeroC Ic
 
 You can then run any combination of Ice-based and IceRPC-based client and server applications.
 
-The commands below starts the IceRPC-based client application:
+The commands below start the IceRPC-based client application:
 
 ```shell
 cd Client
 dotnet run
 ```
 
-The commands below starts the IceRPC-based server application:
+The commands below start the IceRPC-based server application:
 
 ```shell
 cd Server
