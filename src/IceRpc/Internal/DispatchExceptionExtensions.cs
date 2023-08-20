@@ -5,7 +5,7 @@ namespace IceRpc.Internal;
 internal static class DispatchExceptionExtensions
 {
     /// <summary>Creates an outgoing response from this dispatch exception.</summary>
-    /// <param name="exception">The dispatch excpetion.</param>
+    /// <param name="exception">The dispatch exception.</param>
     /// <param name="request">The incoming request.</param>
     /// <returns>The outgoing response.</returns>
     internal static OutgoingResponse ToOutgoingResponse(this DispatchException exception, IncomingRequest request)
