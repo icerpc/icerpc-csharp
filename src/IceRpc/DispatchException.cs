@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-namespace IceRpc.Slice;
+namespace IceRpc;
 
 /// <summary>Represents an exception thrown while dispatching a request. It's encoded as a response with a status code
 /// greater than <see cref="StatusCode.Ok" />.</summary>
@@ -30,12 +30,9 @@ public sealed class DispatchException : Exception
         StatusCode statusCode,
         string? message = null,
         Exception? innerException = null)
-        : base(message ?? GetDefaultMessage(statusCode), innerException) =>
+        : base(message ?? $"The dispatch failed with status code {statusCode}.", innerException) =>
         StatusCode = statusCode > StatusCode.Ok ? statusCode :
             throw new ArgumentOutOfRangeException(
                 nameof(statusCode),
                 $"The status code of a {nameof(DispatchException)} must be greater than {nameof(StatusCode.Ok)}.");
-
-    private static string? GetDefaultMessage(StatusCode statusCode) =>
-        statusCode == StatusCode.ApplicationError ? null : $"The dispatch failed with status code {statusCode}.";
 }
