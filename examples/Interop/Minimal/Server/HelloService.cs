@@ -1,0 +1,20 @@
+// Copyright (c) ZeroC, Inc.
+
+using IceRpc.Features;
+using IceRpc.Slice;
+using IceRpc.Slice.Ice;
+using Demo;
+
+namespace MinimalServer;
+
+/// <summary>An HelloService is an IceRPC service that implements Slice interface 'Hello'.</summary>
+// We implement IIceObjectService as well but without actually implementing any method. Without this IIceObjectService,
+// the "checked cast" from the Ice client would fail.
+internal class HelloService : Service, IHelloService, IIceObjectService
+{
+    public ValueTask SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
+    {
+        Console.WriteLine("Hello, World!");
+        return default;
+    }
+}
