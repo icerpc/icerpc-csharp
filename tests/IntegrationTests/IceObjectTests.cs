@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Ice;
@@ -13,7 +12,7 @@ namespace IceRpc.IntegrationTests;
 [Parallelizable(ParallelScope.All)]
 public class IceObjectTests
 {
-    /// <summary>Verifies the operations of <see cref="IIceObject" />.</summary>
+    /// <summary>Verifies that the service implements <see cref="IIceObject" /> correctly.</summary>
     [Test]
     public async Task Ice_operations([Values("ice", "icerpc")] string protocol)
     {
@@ -38,7 +37,7 @@ public class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    private class PingableService : Service, IPingableService
+    private class PingableService : Service, IPingableService, IIceObjectService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }

@@ -222,7 +222,7 @@ public class ProxyTests
         Assert.That(received.Invoker, Is.EqualTo(invoker));
     }
 
-    private class MyBaseInterfaceService : Service, IMyBaseInterfaceService
+    private class MyBaseInterfaceService : Service, IMyBaseInterfaceService, IIceObjectService
     {
     }
 
