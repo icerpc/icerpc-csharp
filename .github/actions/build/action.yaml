@@ -47,7 +47,8 @@ runs:
         ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
     - name: 🔨 Build Slice Compiler
       uses: dtolnay/rust-toolchain@stable
-      run: cargo --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
+      run: |
+        cargo --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
     - name: 🔨 Build IceRPC Slice Tools
       working-directory: tools/IceRpc.Slice.Tools
       run: dotnet build ${{ inputs.dotnet-build-args }}
