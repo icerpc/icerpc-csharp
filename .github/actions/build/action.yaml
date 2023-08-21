@@ -49,7 +49,7 @@ runs:
       uses: dtolnay/rust-toolchain@stable
     - name: 🔨 Build Slice Compiler
       run: |
-        cargo --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
+        cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
       shell: bash
     - name: 🔨 Build IceRPC Slice Tools
       working-directory: tools/IceRpc.Slice.Tools
