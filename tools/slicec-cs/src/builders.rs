@@ -414,6 +414,18 @@ impl FunctionBuilder {
             }
         }
 
+        // Generate documentation for "void" returns. This is only done for void operations
+        // since they can't have '@returns' tags in their doc comments.
+        if operation.return_type.is_empty() {
+            let comment = match context {
+                TypeContext::Decode => "A value task that completes when this implementation completes.",
+                TypeContext::Encode => "A task that completes when this operation's RPC completes.",
+                _ => unreachable!("Unexpected context value"),
+            };
+            // A value task that completes when this implementation completes.
+            self.add_comment("returns", comment);
+        }
+
         self
     }
 }
