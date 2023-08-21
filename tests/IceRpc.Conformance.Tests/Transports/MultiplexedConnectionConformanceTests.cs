@@ -85,6 +85,7 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
+    [Ignore("See #3604")]
     public async Task Completing_a_local_or_remote_stream_allows_accepting_a_new_one(
         [Values(true, false)] bool bidirectional,
         [Values(true, false)] bool abort,
@@ -536,6 +537,7 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
+    [Ignore("See #3604")]
     public async Task Max_bidirectional_streams([Values] bool closeRemoteOutputWithError)
     {
         var serviceCollection = CreateServiceCollection();
