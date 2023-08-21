@@ -419,10 +419,9 @@ impl FunctionBuilder {
         if operation.return_type.is_empty() {
             let comment = match context {
                 TypeContext::Decode => "A value task that completes when this implementation completes.",
-                TypeContext::Encode => "A task that completes when this operation's RPC completes.",
+                TypeContext::Encode => "A task that completes when the response is received.",
                 _ => unreachable!("Unexpected context value"),
             };
-            // A value task that completes when this implementation completes.
             self.add_comment("returns", comment);
         }
 
