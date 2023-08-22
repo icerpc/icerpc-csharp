@@ -1,4 +1,4 @@
-[cs::namespace("IceRpc_DI_Server")]
+[cs::namespace("IceRpc_Slice_DI_Server")]
 module VisitorCenter
 
 /// Represents a simple greeter.
