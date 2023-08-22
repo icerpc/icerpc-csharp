@@ -3,6 +3,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -38,7 +39,7 @@ internal sealed class Parser
         _typeIdAttribute = _compilation.GetTypeByMetadataName(SliceTypeIdAttribute);
     }
 
-    internal IReadOnlyList<ServiceDefinition> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
+    internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
         if (_iceObjectService is null ||
             _operationAttribute is null ||
@@ -46,10 +47,10 @@ internal sealed class Parser
             _typeIdAttribute is null)
         {
             // nothing to do if these types aren't available
-            return Array.Empty<ServiceDefinition>();
+            return Array.Empty<ServiceClass>();
         }
 
-        var serviceDefinitions = new List<ServiceDefinition>();
+        var serviceDefinitions = new List<ServiceClass>();
         // we enumerate by syntax tree, to minimize the need to instantiate semantic models (since they're expensive)
         foreach (IGrouping<SyntaxTree, ClassDeclarationSyntax> group in classes.GroupBy(x => x.SyntaxTree))
         {
@@ -77,7 +78,6 @@ internal sealed class Parser
 
                 IReadOnlyList<ServiceMethod> serviceMethods = GetServiceMethods(classSymbol.AllInterfaces)
                     .Except(baseServiceMethods)
-                    .Union(GetServiceMethods(_iceObjectService))
                     .Distinct()
                     .ToList();
 
@@ -95,12 +95,13 @@ internal sealed class Parser
                     }
                 }
 
-                var serviceClass = new ServiceDefinition(
+                var serviceClass = new ServiceClass(
                     classSymbol.Name,
                     GetFullName(classSymbol.ContainingNamespace),
                     classDeclaration.Keyword.ValueText,
                     serviceMethods,
                     hasBaseServiceDefinition,
+                    implementIceObject: IsIceObject(classSymbol.AllInterfaces),
                     isSealed: classSymbol.IsSealed,
                     typeIds: GetTypeIds(classSymbol));
                 serviceDefinitions.Add(serviceClass);
@@ -240,6 +241,19 @@ internal sealed class Parser
             });
         }
         return serviceMethods;
+    }
+
+    private bool IsIceObject(ImmutableArray<INamedTypeSymbol> allInterfaces)
+    {
+        Debug.Assert(_iceObjectService is not null);
+        foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
+        {
+            if (SymbolEqualityComparer.Default.Equals(interfaceSymbol, _iceObjectService))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private bool HasServiceAttribute(INamedTypeSymbol classSymbol)

@@ -45,7 +45,7 @@ public class ServiceGenerator : IIncrementalGenerator
         IEnumerable<ClassDeclarationSyntax> distinctClasses = classes.Distinct();
 
         var parser = new Parser(compilation, context.ReportDiagnostic, context.CancellationToken);
-        IReadOnlyList<ServiceDefinition> serviceClasses = parser.GetServiceDefinitions(distinctClasses);
+        IReadOnlyList<ServiceClass> serviceClasses = parser.GetServiceDefinitions(distinctClasses);
         if (serviceClasses.Count > 0)
         {
             var emitter = new Emitter();

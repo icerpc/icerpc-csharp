@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace IceRpc.IntegrationTests;
 
 [Parallelizable(ParallelScope.All)]
-public class IceObjectTests
+public partial class IceObjectTests
 {
     /// <summary>Verifies that the service implements <see cref="IIceObject" /> correctly.</summary>
     [Test]
@@ -37,7 +37,8 @@ public class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    private class PingableService : Service, IPingableService, IIceObjectService
+    [SliceService]
+    private partial class PingableService : IPingableService, IIceObjectService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }

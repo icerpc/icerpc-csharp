@@ -8,16 +8,16 @@ internal class Emitter
 {
     private static readonly string _newLine = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "\r\n" : "\n";
 
-    internal string Emit(IReadOnlyList<ServiceDefinition> serviceClasses, CancellationToken cancellationToken)
+    internal string Emit(IReadOnlyList<ServiceClass> serviceClasses, CancellationToken cancellationToken)
     {
         string generated = "";
-        foreach (ServiceDefinition serviceClass in serviceClasses)
+        foreach (ServiceClass serviceClass in serviceClasses)
         {
             // stop if we're asked to.
             cancellationToken.ThrowIfCancellationRequested();
 
             string methodModifier =
-                serviceClass.HasBaseServiceDefinition ? "public override" :
+                serviceClass.HasBaseServiceClass ? "public override" :
                 serviceClass.IsSealed ? "public" : "public virtual";
 
             string dispatcherBlock;
@@ -32,7 +32,7 @@ case ""{serviceMethod.OperationName}"":
     return {serviceMethod.DispatchMethodName}(this, request, cancellationToken);";
                 }
 
-                if (serviceClass.HasBaseServiceDefinition)
+                if (serviceClass.HasBaseServiceClass)
                 {
                     dispatchBlocks += @$"
 
@@ -56,9 +56,9 @@ switch (request.Operation)
             }
             else
             {
-                dispatcherBlock = serviceClass.HasBaseServiceDefinition ?
-                    "base.DispatchAsync(request, cancellationToken);" :
-                    "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+                dispatcherBlock = serviceClass.HasBaseServiceClass ?
+                    "return base.DispatchAsync(request, cancellationToken);" :
+                    "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
 
             string typeIds = "";
@@ -68,7 +68,10 @@ switch (request.Operation)
             }
             typeIds = typeIds.TrimEnd(',', '\n', '\r', ' ');
 
-            string dispatcherClass = $@"
+            string dispatcherClass;
+            if (serviceClass.ImplementIceObject)
+            {
+                dispatcherClass = $@"
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher, IceRpc.Slice.Ice.IIceObjectService
 {{
     private static readonly global::System.Collections.Generic.IReadOnlySet<string> _typeIds =
@@ -102,6 +105,20 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher, IceRpc.
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken) => default;
 }}";
+            }
+            else
+            {
+                dispatcherClass = $@"
+partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
+{{
+    {methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
+        IceRpc.IncomingRequest request,
+        global::System.Threading.CancellationToken cancellationToken)
+    {{
+        {dispatcherBlock.WithIndent("        ")}
+    }}
+}}";
+            }
 
             string container = dispatcherClass;
             ContainerDefinition? containerDefinition = serviceClass;
