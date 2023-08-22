@@ -244,13 +244,13 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             let stream_type = stream_member.data_type();
             match stream_type.concrete_type() {
                 Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => {
-                    writeln!(code, "return request.DetachPayload();");
+                    writeln!(code, "return IceRpc.IncomingFrameExtensions.DetachPayload(request);");
                 }
                 _ => {
                     writeln!(
                         code,
                         "\
-var payloadContinuation = request.DetachPayload();
+var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(request);
 return {}",
                         decode_operation_stream(stream_member, namespace, operation.encoding, true)
                     )
@@ -274,14 +274,14 @@ var {args} = await request.DecodeArgsAsync(
                 Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => {
                     writeln!(
                         code,
-                        "var {} = request.DetachPayload();",
+                        "var {} = IceRpc.IncomingFrameExtensions.DetachPayload(request);",
                         stream_member.parameter_name_with_prefix("sliceP_"),
                     )
                 }
                 _ => writeln!(
                     code,
                     "\
-var payloadContinuation = request.DetachPayload();
+var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(request);
 var {stream_parameter_name} = {decode_operation_stream}
 ",
                     stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),

@@ -529,14 +529,14 @@ var {return_value} = await response.DecodeReturnValueAsync(
             Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => {
                 writeln!(
                     code,
-                    "var {} = response.DetachPayload();",
+                    "var {} = IceRpc.IncomingFrameExtensions.DetachPayload(response);",
                     stream_member.parameter_name_with_prefix("sliceP_"),
                 )
             }
             _ => writeln!(
                 code,
                 "\
-var payloadContinuation = response.DetachPayload();
+var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(response);
 var {stream_parameter_name} = {decode_operation_stream}
 ",
                 stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),

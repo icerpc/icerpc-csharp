@@ -3,7 +3,7 @@
 using IceRpc.Internal;
 using System.IO.Pipelines;
 
-namespace IceRpc.Slice;
+namespace IceRpc;
 
 /// <summary>Provides an extension method for <see cref="IncomingFrame" /> to detach its payload.</summary>
 public static class IncomingFrameExtensions

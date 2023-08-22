@@ -29,7 +29,6 @@ public sealed class ProtocolConnectionTests
                 // an unexpected OCE
                 yield return new(protocol, new OperationCanceledException(), StatusCode.InternalError);
                 yield return new(protocol, new InvalidOperationException(), StatusCode.InternalError);
-                yield return new(protocol, new MyException(), StatusCode.InternalError);
             }
 
             yield return new(Protocol.IceRpc, new InvalidDataException("invalid data"), StatusCode.InvalidData);
