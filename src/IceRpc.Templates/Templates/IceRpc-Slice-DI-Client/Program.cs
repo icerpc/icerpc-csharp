@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-using IceRpc_DI_Client;
+using IceRpc_Slice_DI_Client;
 
 // Configure the host.
 IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)

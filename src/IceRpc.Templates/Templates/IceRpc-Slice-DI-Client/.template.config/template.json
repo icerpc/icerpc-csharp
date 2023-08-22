@@ -7,7 +7,7 @@
         "Slice"
     ],
     "identity":"IceRpc.Slice.DI.Client.0.1",
-    "name":"IceRPC Slice DI Client",
+    "name":"IceRPC + Slice DI Client",
     "description":"A project template for creating an IceRPC + Slice client console application using Microsoft's DI container.",
     "shortName":"icerpc-slice-di-client",
     "tags":{
@@ -38,7 +38,7 @@
     ],
     "primaryOutputs":[
         {
-            "path":"IceRpc-DI-Client.csproj"
+            "path":"IceRpc-Slice-DI-Client.csproj"
         }
     ],
     "postActions":[

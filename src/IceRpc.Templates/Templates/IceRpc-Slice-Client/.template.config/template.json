@@ -7,14 +7,14 @@
         "Slice"
     ],
     "identity":"IceRpc.Slice.Client.0.1",
-    "name":"IceRPC Slice Client",
+    "name":"IceRPC + Slice Client",
     "description":"A project template for creating an IceRPC + Slice client console application.",
     "shortName":"icerpc-slice-client",
     "tags":{
         "language":"C#",
         "type":"project"
     },
-    "sourceName":"IceRpc-Client",
+    "sourceName":"IceRpc-Slice-Client",
     "preferNameDirectory":true,
     "defaultName":"Client",
     "symbols":{
@@ -38,7 +38,7 @@
     ],
     "primaryOutputs":[
         {
-            "path":"IceRpc-Client.csproj"
+            "path":"IceRpc-Slice-Client.csproj"
         }
     ],
     "postActions":[

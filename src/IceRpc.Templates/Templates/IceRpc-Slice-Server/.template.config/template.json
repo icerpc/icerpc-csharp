@@ -7,14 +7,14 @@
         "Slice"
     ],
     "identity":"IceRpc.Slice.Server.0.1",
-    "name":"IceRPC Slice Server",
+    "name":"IceRPC + Slice Server",
     "description":"A project template for creating an IceRPC + Slice server console application.",
     "shortName":"icerpc-slice-server",
     "tags":{
         "language":"C#",
         "type":"project"
     },
-    "sourceName":"IceRpc-Server",
+    "sourceName":"IceRpc-Slice-Server",
     "preferNameDirectory":true,
     "defaultName":"Server",
     "symbols":{
@@ -38,7 +38,7 @@
     ],
     "primaryOutputs":[
         {
-            "path":"IceRpc-Server.csproj"
+            "path":"IceRpc-Slice-Server.csproj"
         }
     ],
     "postActions":[

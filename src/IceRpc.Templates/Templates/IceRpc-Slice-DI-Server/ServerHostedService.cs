@@ -1,7 +1,7 @@
 using IceRpc;
 using Microsoft.Extensions.Hosting;
 
-namespace IceRpc_DI_Server;
+namespace IceRpc_Slice_DI_Server;
 
 /// <summary>The server hosted service is ran and managed by the .NET Generic Host.</summary>
 public class ServerHostedService : IHostedService
