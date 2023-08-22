@@ -9,7 +9,7 @@
     "identity":"IceRpc.Slice.DI.Server.0.1",
     "name":"IceRPC Slice DI Server",
     "description":"A project template for creating an IceRPC + Slice server console application using Microsoft's DI container.",
-    "shortName":"icerpc-di-server",
+    "shortName":"icerpc-slice-di-server",
     "tags":{
         "language":"C#",
         "type":"project"

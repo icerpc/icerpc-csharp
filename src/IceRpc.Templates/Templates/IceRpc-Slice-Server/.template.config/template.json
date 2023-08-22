@@ -6,10 +6,10 @@
         "Server",
         "Slice"
     ],
-    "identity":"IceRpc.Server.0.1",
+    "identity":"IceRpc.Slice.Server.0.1",
     "name":"IceRPC Slice Server",
     "description":"A project template for creating an IceRPC + Slice server console application.",
-    "shortName":"icerpc-server",
+    "shortName":"icerpc-slice-server",
     "tags":{
         "language":"C#",
         "type":"project"
