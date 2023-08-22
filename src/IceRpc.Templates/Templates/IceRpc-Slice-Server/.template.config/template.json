@@ -3,11 +3,12 @@
     "author":"ZeroC",
     "classifications":[
         "IceRPC",
-        "Server"
+        "Server",
+        "Slice"
     ],
     "identity":"IceRpc.Server.0.1",
-    "name":"IceRPC Server",
-    "description":"A project template for creating an IceRPC server console application.",
+    "name":"IceRPC Slice Server",
+    "description":"A project template for creating an IceRPC + Slice server console application.",
     "shortName":"icerpc-server",
     "tags":{
         "language":"C#",

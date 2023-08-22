@@ -3,12 +3,13 @@
     "author":"ZeroC",
     "classifications":[
         "IceRPC",
-        "Client"
+        "Client",
+        "Slice"
     ],
-    "identity":"IceRpc.Client.0.1",
-    "name":"IceRPC Client",
-    "description":"A project template for creating an IceRPC client console application.",
-    "shortName":"icerpc-client",
+    "identity":"IceRpc.Slice.Client.0.1",
+    "name":"IceRPC Slice Client",
+    "description":"A project template for creating an IceRPC + Slice client console application.",
+    "shortName":"icerpc-slice-client",
     "tags":{
         "language":"C#",
         "type":"project"

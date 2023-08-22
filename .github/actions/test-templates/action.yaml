@@ -7,15 +7,15 @@ runs:
     run: |
       dotnet new install src/IceRpc.Templates/bin/Debug/IceRpc.Templates.*.nupkg
     shell: bash
-  - name: 🧪 Test IceRpc Client Template
-    run: mkdir -p templates-test/client && cd templates-test/client && dotnet new icerpc-client && dotnet build
+  - name: 🧪 Test IceRpc Slice Client Template
+    run: mkdir -p templates-test/client && cd templates-test/client && dotnet new icerpc-slice-client && dotnet build
     shell: bash
-  - name: 🧪 Test IceRpc Server Template
-    run: mkdir -p templates-test/server && cd templates-test/server && dotnet new icerpc-server && dotnet build
+  - name: 🧪 Test IceRpc Slice Server Template
+    run: mkdir -p templates-test/server && cd templates-test/server && dotnet new icerpc-slice-server && dotnet build
     shell: bash
-  - name: 🧪 Test IceRpc DI  Client Template
-    run: mkdir -p templates-test/di-client && cd templates-test/di-client && dotnet new icerpc-di-client && dotnet build
+  - name: 🧪 Test IceRpc Slice DI Client Template
+    run: mkdir -p templates-test/di-client && cd templates-test/di-client && dotnet new icerpc-slice-di-client && dotnet build
     shell: bash
-  - name: 🧪 Test IceRpc DI Server Template
-    run: mkdir -p templates-test/di-server && cd templates-test/di-server && dotnet new icerpc-di-server && dotnet build
+  - name: 🧪 Test IceRpc Slice DI Server Template
+    run: mkdir -p templates-test/di-server && cd templates-test/di-server && dotnet new icerpc-slice-di-server && dotnet build
     shell: bash
