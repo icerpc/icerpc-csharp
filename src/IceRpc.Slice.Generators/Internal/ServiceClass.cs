@@ -12,7 +12,7 @@ internal class ServiceClass : ContainerDefinition
     /// <summary>Gets the C# namespace containing this definition.</summary>
     internal string ContainingNamespace { get; }
 
-    /// <summary>Gets a value indicating whether the service must implment <c>Ice::Object</c> interface.</summary>
+    /// <summary>Gets a value indicating whether the service must implement <c>Ice::Object</c> interface.</summary>
     internal bool ImplementIceObject { get; }
 
     /// <summary>Gets a value indicating whether the service is a sealed type.</summary>
