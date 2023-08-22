@@ -52,8 +52,11 @@ private static readonly IActivator _defaultActivator =
         );
     }
 
-    for operation in interface_def.operations() {
-        interface_builder.add_block(operation_declaration(operation));
+    // TODO: add a Slice cs attribute to conditionally suppress the generation of these methods.
+    if interface_def.module_scoped_identifier() != "Ice::Object" {
+        for operation in interface_def.operations() {
+            interface_builder.add_block(operation_declaration(operation));
+        }
     }
 
     for operation in interface_def.operations() {

@@ -86,7 +86,7 @@ mod test {
 
         let mut cs_options = CsOptions::default();
         let slice_options = &mut cs_options.slice_options;
-        slice_options.references.push(tests_dir.clone());
+        slice_options.references.push(tests_dir);
 
         // Use `resolve_files_from` to find all Slice files in the tests directory.
         let test_slice_files = resolve_files_from(slice_options, &mut Diagnostics::new());
