@@ -85,11 +85,9 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    [Ignore("See #3604")]
-    public async Task Completing_a_local_or_remote_stream_allows_accepting_a_new_one(
+    public async Task Completing_a_stream_allows_accepting_a_new_one(
         [Values(true, false)] bool bidirectional,
-        [Values(true, false)] bool abort,
-        [Values(true, false)] bool remote)
+        [Values(true, false)] bool abort)
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection();
@@ -119,21 +117,18 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Act
         bool stream2TaskIsCompleted = clientStream2Task.IsCompleted;
-        if (remote)
+        clientStream1.Output.Complete(abort ? new Exception() : null);
+
+        if (abort)
         {
             serverStream1.Input.Complete(abort ? new Exception() : null);
         }
         else
         {
-            clientStream1.Output.Complete(abort ? new Exception() : null);
-
-            if (!abort)
-            {
-                // Consume the last stream frame. This will trigger the serverStream1 reads completion and allow the
-                // second stream to be accepted.
-                readResult = await serverStream1.Input.ReadAsync();
-                serverStream1.Input.AdvanceTo(readResult.Buffer.End);
-            }
+            // Consume the last stream frame and complete the stream. This will allow the second stream to be accepted.
+            readResult = await serverStream1.Input.ReadAsync();
+            serverStream1.Input.AdvanceTo(readResult.Buffer.End);
+            serverStream1.Input.Complete();
         }
 
         // Assert
@@ -537,7 +532,6 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    [Ignore("See #3604")]
     public async Task Max_bidirectional_streams([Values] bool closeRemoteOutputWithError)
     {
         var serviceCollection = CreateServiceCollection();
@@ -562,6 +556,7 @@ public abstract class MultiplexedConnectionConformanceTests
         streams.Local.Output.Complete();
         ReadResult readResult = await streams.Remote.Input.ReadAsync();
         streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
+        streams.Remote.Input.Complete();
 
         Assert.That(
             async () => await newStreamsTask.WaitAsync(TimeSpan.FromMilliseconds(100)),
@@ -579,6 +574,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
             readResult = await streams.Local.Input.ReadAsync();
             streams.Local.Input.AdvanceTo(readResult.Buffer.End);
+            streams.Local.Input.Complete();
         }
 
         // At this point, the new stream should be accepted even if the local stream input is not completed yet.
