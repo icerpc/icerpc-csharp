@@ -1,7 +1,7 @@
 using IceRpc;
 using Microsoft.Extensions.Hosting;
 
-namespace IceRpc_DI_Client;
+namespace IceRpc_Slice_DI_Client;
 
 /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
 public class ClientHostedService : BackgroundService

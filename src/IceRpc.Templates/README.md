@@ -2,12 +2,12 @@
 
 IceRpc.Templates provides `dotnet new` project templates for [IceRPC][icerpc]. The following templates are included:
 
-| Template Name      | Description                                                                                          |
-|--------------------|------------------------------------------------------------------------------------------------------|
-| `icerpc-client`    | A project template for creating an IceRPC client console application.                                |
-| `icerpc-server`    | A project template for creating an IceRPC server console application.                                |
-| `icerpc-di-client` | A project template for creating an IceRPC client console application using Microsoft's DI container. |
-| `icerpc-di-server` | A project template for creating an IceRPC server console application using Microsoft's DI container. |
+| Template Name            | Description                                                                                                  |
+|--------------------------|--------------------------------------------------------------------------------------------------------------|
+| `icerpc-slice-client`    | A project template for creating an IceRPC + Slice client console application.                                |
+| `icerpc-slice-server`    | A project template for creating an IceRPC + Slice server console application.                                |
+| `icerpc-slice-di-client` | A project template for creating an IceRPC + Slice client console application using Microsoft's DI container. |
+| `icerpc-slice-di-server` | A project template for creating an IceRPC + Slice server console application using Microsoft's DI container. |
 
 ## Installation
 
@@ -20,7 +20,7 @@ dotnet new install IceRpc.Templates
 Create a command line server application:
 
 ``` shell
-dotnet new icerpc-server -o MyServer
+dotnet new icerpc-slice-server -o MyServer
 cd MyServer
 dotnet build
 dotnet run
@@ -29,7 +29,7 @@ dotnet run
 Create a command line client application:
 
 ``` shell
-dotnet new icerpc-client -o MyClient
+dotnet new icerpc-slice-client -o MyClient
 cd MyClient
 dotnet build
 dotnet run

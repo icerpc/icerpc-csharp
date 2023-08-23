@@ -3,19 +3,20 @@
     "author":"ZeroC",
     "classifications":[
         "IceRPC",
-        "Server"
+        "Client",
+        "Slice"
     ],
-    "identity":"IceRpc.Server.0.1",
-    "name":"IceRPC Server",
-    "description":"A project template for creating an IceRPC server console application.",
-    "shortName":"icerpc-server",
+    "identity":"IceRpc.Slice.Client.0.1",
+    "name":"IceRPC + Slice Client",
+    "description":"A project template for creating an IceRPC + Slice client console application.",
+    "shortName":"icerpc-slice-client",
     "tags":{
         "language":"C#",
         "type":"project"
     },
-    "sourceName":"IceRpc-Server",
+    "sourceName":"IceRpc-Slice-Client",
     "preferNameDirectory":true,
-    "defaultName":"Server",
+    "defaultName":"Client",
     "symbols":{
         "skipRestore":{
             "type":"parameter",
@@ -37,7 +38,7 @@
     ],
     "primaryOutputs":[
         {
-            "path":"IceRpc-Server.csproj"
+            "path":"IceRpc-Slice-Client.csproj"
         }
     ],
     "postActions":[

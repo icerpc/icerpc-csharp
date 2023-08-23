@@ -3,19 +3,20 @@
     "author":"ZeroC",
     "classifications":[
         "IceRPC",
-        "Server"
+        "Client",
+        "Slice"
     ],
-    "identity":"IceRpc.DI.Server.0.1",
-    "name":"IceRPC DI Server",
-    "description":"A project template for creating an IceRPC server console application using Microsoft's DI container.",
-    "shortName":"icerpc-di-server",
+    "identity":"IceRpc.Slice.DI.Client.0.1",
+    "name":"IceRPC + Slice DI Client",
+    "description":"A project template for creating an IceRPC + Slice client console application using Microsoft's DI container.",
+    "shortName":"icerpc-slice-di-client",
     "tags":{
         "language":"C#",
         "type":"project"
     },
-    "sourceName":"IceRpc-DI-Server",
+    "sourceName":"IceRpc-Slice-DI-Client",
     "preferNameDirectory":true,
-    "defaultName":"Server",
+    "defaultName":"Client",
     "symbols":{
         "skipRestore":{
             "type":"parameter",
@@ -37,7 +38,7 @@
     ],
     "primaryOutputs":[
         {
-            "path":"IceRpc-DI-Server.csproj"
+            "path":"IceRpc-Slice-DI-Client.csproj"
         }
     ],
     "postActions":[

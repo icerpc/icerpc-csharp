@@ -2,7 +2,7 @@ using IceRpc;
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 
-using IceRpc_Server;
+using IceRpc_Slice_Server;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
