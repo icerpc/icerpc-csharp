@@ -10,9 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Protobuf Include="../proto/greeter.proto" GrpcServices="None" OutputDir="obj/generated" />
-    <PackageReference Include="Google.Protobuf" Version="3.23.2" />
+    <PackageReference Include="Google.Protobuf" Version="3.24.1" />
     <!-- We use Grpc.Tools because Google.Protobuf.Tools does not provide MSBuild support -->
-    <PackageReference Include="Grpc.Tools" Version="2.54.0" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Tools" Version="2.57.0" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <Compile Include="../Common/MessageExtensions.cs" Link="MessageExtensions.cs" />
   </ItemGroup>
