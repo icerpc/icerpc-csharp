@@ -10,6 +10,5 @@
         <WarningLevel>4</WarningLevel>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
-        <NetRuntimeVersion>7.0.0</NetRuntimeVersion>
     </PropertyGroup>
 </Project>
