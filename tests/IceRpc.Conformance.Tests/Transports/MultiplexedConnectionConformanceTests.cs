@@ -101,8 +101,6 @@ public abstract class MultiplexedConnectionConformanceTests
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
 
         IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
-        ReadResult readResult = await serverStream1.Input.ReadAsync();
-        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
 
         ValueTask<IMultiplexedStream> clientStream2Task = sut.Client.CreateStreamAsync(bidirectional: false, default);
 
@@ -122,6 +120,7 @@ public abstract class MultiplexedConnectionConformanceTests
         // The second stream is accepted after the first stream completion.
         Assert.That(async () => await clientStream2Task, Throws.Nothing);
 
+        // Cleanup
         clientStream1.Output.Complete();
     }
 
@@ -132,7 +131,7 @@ public abstract class MultiplexedConnectionConformanceTests
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection();
         serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
-                options => options.MaxBidirectionalStreams = 1);
+            options => options.MaxBidirectionalStreams = 1);
 
         await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -142,19 +141,23 @@ public abstract class MultiplexedConnectionConformanceTests
         await clientStream1.Output.WriteAsync(_oneBytePayload, default);
 
         IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
-        ReadResult readResult = await serverStream1.Input.ReadAsync();
-        serverStream1.Input.AdvanceTo(readResult.Buffer.End);
 
         ValueTask<IMultiplexedStream> clientStream2Task = sut.Client.CreateStreamAsync(bidirectional: true, default);
-        serverStream1.Output.Complete();
-        clientStream1.Input.Complete();
 
         await Task.Delay(50);
 
         // Act
         bool stream2TaskIsCompleted = clientStream2Task.IsCompleted;
-        // Completing the remote input will allow a new stream to be accepted.
+        // Completing the remote input and output will allow a new stream to be accepted.
         serverStream1.Input.Complete(abort ? new Exception() : null);
+        serverStream1.Output.Complete(abort ? new Exception() : null);
+        if (!abort)
+        {
+            // With Slic the stream semaphore is not released until reads and writes are closed. Consuming all data
+            // here ensures reads are closed and the semaphore is released.
+            ReadResult readResult = await clientStream1.Input.ReadAsync();
+            clientStream1.Input.AdvanceTo(readResult.Buffer.End);
+        }
 
         // Assert
 
@@ -164,7 +167,9 @@ public abstract class MultiplexedConnectionConformanceTests
         // The second stream is accepted after the first stream completion.
         Assert.That(async () => await clientStream2Task, Throws.Nothing);
 
+        // Cleanup
         clientStream1.Output.Complete();
+        clientStream1.Input.Complete();
     }
 
     [Test]
@@ -579,21 +584,25 @@ public abstract class MultiplexedConnectionConformanceTests
             async () => await newStreamsTask.WaitAsync(TimeSpan.FromMilliseconds(100)),
             Throws.InstanceOf<TimeoutException>());
 
-        // Close the local output and consume the data on the remote input.
-        streams.Local.Output.Complete();
-        ReadResult readResult = await streams.Remote.Input.ReadAsync();
-        streams.Remote.Input.AdvanceTo(readResult.Buffer.End);
-        streams.Remote.Input.Complete();
-
         Assert.That(
             async () => await newStreamsTask.WaitAsync(TimeSpan.FromMilliseconds(100)),
             Throws.InstanceOf<TimeoutException>());
 
-        // Completing the remote input will allow a new stream to be accepted.
+        // Completing the remote output and input will allow a new stream to be accepted.
         streams.Remote.Output.Complete(abort ? new Exception() : null);
+        streams.Remote.Input.Complete(abort ? new Exception() : null);
+        if (!abort)
+        {
+            // With Slic the stream semaphore is not released until reads and writes are closed. Consuming all data
+            // here ensures reads are closed and the semaphore is released.
+            ReadResult readResult = await streams.Local.Input.ReadAsync();
+            streams.Local.Input.AdvanceTo(readResult.Buffer.End);
+        }
 
         using var _ = await newStreamsTask;
 
+        // Cleanup
+        streams.Local.Output.Complete();
         streams.Local.Input.Complete();
     }
 
