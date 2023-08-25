@@ -10,7 +10,6 @@ internal static class QuicExceptionExtensions
     internal static IceRpcException ToIceRpcException(this QuicException exception) =>
         exception.QuicError switch
         {
-            QuicError.AddressInUse => new IceRpcException(IceRpcError.AddressInUse, exception),
             QuicError.ConnectionAborted =>
                 exception.ApplicationErrorCode is long applicationErrorCode ?
                     applicationErrorCode switch
@@ -34,7 +33,6 @@ internal static class QuicExceptionExtensions
             QuicError.ConnectionRefused => new IceRpcException(IceRpcError.ConnectionRefused, exception),
             QuicError.ConnectionTimeout => new IceRpcException(IceRpcError.ConnectionAborted, exception),
             QuicError.ConnectionIdle => new IceRpcException(IceRpcError.ConnectionAborted, exception),
-            QuicError.HostUnreachable => new IceRpcException(IceRpcError.ServerUnreachable, exception),
             QuicError.OperationAborted => new IceRpcException(IceRpcError.OperationAborted, exception),
             QuicError.StreamAborted =>
                 exception.ApplicationErrorCode is long applicationErrorCode ?

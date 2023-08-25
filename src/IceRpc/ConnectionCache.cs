@@ -20,7 +20,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     private readonly Dictionary<ServerAddress, IProtocolConnection> _activeConnections =
         new(ServerAddressComparer.OptionalTransport);
 
-    private readonly IClientProtocolConnectionFactory _connectionFactory;
+    private readonly ClientProtocolConnectionFactory _connectionFactory;
 
     private readonly TimeSpan _connectTimeout;
 
