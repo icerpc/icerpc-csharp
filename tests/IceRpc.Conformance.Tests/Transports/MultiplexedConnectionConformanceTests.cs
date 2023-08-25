@@ -151,13 +151,6 @@ public abstract class MultiplexedConnectionConformanceTests
         // Completing the remote input and output will allow a new stream to be accepted.
         serverStream1.Input.Complete(abort ? new Exception() : null);
         serverStream1.Output.Complete(abort ? new Exception() : null);
-        if (!abort)
-        {
-            // With Slic the stream semaphore is not released until reads and writes are closed. Consuming all data
-            // here ensures reads are closed and the semaphore is released.
-            ReadResult readResult = await clientStream1.Input.ReadAsync();
-            clientStream1.Input.AdvanceTo(readResult.Buffer.End);
-        }
 
         // Assert
 
@@ -591,13 +584,6 @@ public abstract class MultiplexedConnectionConformanceTests
         // Completing the remote output and input will allow a new stream to be accepted.
         streams.Remote.Output.Complete(abort ? new Exception() : null);
         streams.Remote.Input.Complete(abort ? new Exception() : null);
-        if (!abort)
-        {
-            // With Slic the stream semaphore is not released until reads and writes are closed. Consuming all data
-            // here ensures reads are closed and the semaphore is released.
-            ReadResult readResult = await streams.Local.Input.ReadAsync();
-            streams.Local.Input.AdvanceTo(readResult.Buffer.End);
-        }
 
         using var _ = await newStreamsTask;
 
