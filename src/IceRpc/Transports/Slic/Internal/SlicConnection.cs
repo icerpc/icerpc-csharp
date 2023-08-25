@@ -55,7 +55,7 @@ internal class SlicConnection : IMultiplexedConnection
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly CancellationTokenSource _disposedCts = new();
     private Task? _disposeTask;
-    private readonly IDuplexConnection _duplexConnection;
+    private readonly IdleTimeoutDuplexConnectionDecorator _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly SlicDuplexConnectionWriter _duplexConnectionWriter;
     private readonly Action<TimeSpan, Action?> _enableIdleTimeoutAndKeepAlive;
