@@ -3,6 +3,7 @@
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
+using System.IO;
 using System.IO.Pipelines;
 using ZeroC.Slice;
 
@@ -289,10 +290,20 @@ internal class SlicStream : IMultiplexedStream
     internal ValueTask<bool> ReceivedDataFrameAsync(int size, bool endStream, CancellationToken cancellationToken)
     {
         Debug.Assert(_inputPipeReader is not null);
-
-        return _state.HasFlag(State.ReadsClosed) ?
-            new(false) :
-            _inputPipeReader.ReceivedDataFrameAsync(size, endStream, cancellationToken);
+        if (_state.HasFlag(State.ReadsClosed))
+        {
+            return new(false);
+        }
+        else
+        {
+            if (endStream && !IsRemote)
+            {
+                // For a local stream we can close reads after we have received the StreamLast frame. For remote
+                // streams reads are closed after the application has consumed all the data.
+                CloseReads(graceful: true);
+            }
+            return _inputPipeReader.ReceivedDataFrameAsync(size, endStream, cancellationToken);
+        }
     }
 
     /// <summary>Notifies the stream of the reception of a <see cref="FrameType.StreamReadsClosed" /> frame.</summary>

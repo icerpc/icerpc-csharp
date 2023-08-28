@@ -1502,13 +1502,6 @@ internal class SlicConnection : IMultiplexedConnection
                 size,
                 endStream,
                 cancellationToken).ConfigureAwait(false);
-            if (endStream && !stream.IsRemote)
-            {
-                // For a local stream we can close reads after we have received the StreamLast frame
-                // and copied its data to the input pipe reader. For remote streams reads are closed
-                // after the application has consumed all the data.
-                stream.CloseReads(graceful: true);
-            }
         }
 
         if (!isDataConsumed)
