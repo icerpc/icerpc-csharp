@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Net.Sockets;
 
 namespace IceRpc.Transports.Quic.Internal;
 
@@ -32,6 +33,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
                 "The QuicListener failed due to TLS handshake internal timeout.");
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
@@ -88,6 +93,10 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             ServerAddress = serverAddress with { Port = (ushort)_listener.LocalEndPoint.Port };
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
