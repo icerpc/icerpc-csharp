@@ -1,8 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports.Quic.Internal;
+using System.Diagnostics;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Net.Sockets;
+using System.Net;
 
 namespace IceRpc.Transports.Quic;
 
@@ -85,6 +88,9 @@ public class QuicServerTransport : IMultiplexedServerTransport
             }
         }
 
+        public ValueTask DisposeAsync() => _decoratee.DisposeAsync();
+
         internal BugFixQuicMultiplexedListener(IListener<IMultiplexedConnection> decoratee) => _decoratee = decoratee;
+     }
 #endif
 }
