@@ -1,11 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports.Quic.Internal;
-using System.Diagnostics;
+using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
-using System.Net.Sockets;
-using System.Net;
 
 namespace IceRpc.Transports.Quic;
 
@@ -56,12 +54,13 @@ public class QuicServerTransport : IMultiplexedServerTransport
         {
             serverAddress = serverAddress with { Transport = Name };
         }
-
 #if NET8_0_OR_GREATER
         return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions);
 #else
+    #pragma warning disable CA2000
         return new BugFixQuicMultiplexedListener(
             new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions));
+    #pragma warning restore CA2000
 #endif
     }
 
@@ -76,7 +75,7 @@ public class QuicServerTransport : IMultiplexedServerTransport
         {
             try
             {
-                return await _decoratee.AcceptAsync(cancelationToken);
+                return await _decoratee.AcceptAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
             {
