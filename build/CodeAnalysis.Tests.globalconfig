@@ -29,3 +29,6 @@ dotnet_diagnostic.NUnit2031.severity = none
 
 # NUnit2045: Use Assert.Multiple
 dotnet_diagnostic.NUnit2045.severity = none
+
+# CA1861: Prefer 'static readonly' fields over constant array arguments
+dotnet_diagnostic.CA1861.severity = none

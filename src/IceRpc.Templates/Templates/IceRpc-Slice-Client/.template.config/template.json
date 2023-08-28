@@ -1,0 +1,57 @@
+{
+    "$schema":"http://json.schemastore.org/template",
+    "author":"ZeroC",
+    "classifications":[
+        "IceRPC",
+        "Client",
+        "Slice"
+    ],
+    "identity":"IceRpc.Slice.Client.0.1",
+    "name":"IceRPC + Slice Client",
+    "description":"A project template for creating an IceRPC + Slice client console application.",
+    "shortName":"icerpc-slice-client",
+    "tags":{
+        "language":"C#",
+        "type":"project"
+    },
+    "sourceName":"IceRpc-Slice-Client",
+    "preferNameDirectory":true,
+    "defaultName":"Client",
+    "symbols":{
+        "skipRestore":{
+            "type":"parameter",
+            "datatype":"bool",
+            "description":"If specified, skips the automatic restore of the project on create.",
+            "defaultValue":"false"
+        }
+    },
+    "sources":[
+        {
+            "modifiers":[
+                {
+                    "rename":{
+                        "editorconfig":".editorconfig"
+                    }
+                }
+            ]
+        }
+    ],
+    "primaryOutputs":[
+        {
+            "path":"IceRpc-Slice-Client.csproj"
+        }
+    ],
+    "postActions":[
+        {
+            "condition":"(!skipRestore)",
+            "description":"Restore NuGet packages required by this project.",
+            "manualInstructions":[
+                {
+                    "text":"Run 'dotnet restore'"
+                }
+            ],
+            "actionId":"210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+            "continueOnError":true
+        }
+    ]
+}

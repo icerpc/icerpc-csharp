@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Quic;
+using System.Net.Sockets;
 
 namespace IceRpc.Transports.Quic.Internal;
 
@@ -154,6 +155,10 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             return new FlushResult(isCanceled: false, isCompleted: true);
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
