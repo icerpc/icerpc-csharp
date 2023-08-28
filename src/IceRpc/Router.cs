@@ -40,11 +40,11 @@ public sealed class Router : IDispatcher
     private const int MaxSegments = 10;
 
     private readonly Lazy<IDispatcher> _dispatcher;
-    private readonly IDictionary<string, IDispatcher> _exactMatchRoutes = new Dictionary<string, IDispatcher>();
+    private readonly Dictionary<string, IDispatcher> _exactMatchRoutes = new();
 
     private readonly Stack<Func<IDispatcher, IDispatcher>> _middlewareStack = new();
 
-    private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes = new Dictionary<string, IDispatcher>();
+    private readonly Dictionary<string, IDispatcher> _prefixMatchRoutes = new();
 
     /// <summary>Constructs a top-level router.</summary>
     public Router() => _dispatcher = new Lazy<IDispatcher>(CreateDispatchPipeline);

@@ -3,6 +3,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Quic;
+using System.Net.Sockets;
 
 namespace IceRpc.Transports.Quic.Internal;
 
@@ -50,6 +51,10 @@ internal class QuicPipeReader : PipeReader
         {
             throw exception.ToIceRpcException();
         }
+        catch (SocketException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
         // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
         // attempting to read while another read is in progress.
     }
@@ -62,6 +67,10 @@ internal class QuicPipeReader : PipeReader
             await _pipeReader.CopyToAsync(writer, cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }
@@ -87,6 +96,10 @@ internal class QuicPipeReader : PipeReader
         {
             throw exception.ToIceRpcException();
         }
+        catch (SocketException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
         // We don't catch and wrap other exceptions. It could be for example an InvalidOperationException when
         // attempting to read while another read is in progress.
     }
@@ -104,6 +117,10 @@ internal class QuicPipeReader : PipeReader
             return await _pipeReader.ReadAtLeastAsync(minimumSize, cancellationToken).ConfigureAwait(false);
         }
         catch (QuicException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
         }

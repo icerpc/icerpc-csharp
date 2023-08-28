@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.Globalization;
 
 namespace ZeroC.Slice.Tests;
 
@@ -86,7 +87,7 @@ public class SlicingTests
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
                 IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly),
-                excludeTypeId: typeof(SlicingMostDerivedClassWithCompactId).GetCompactSliceTypeId().ToString());
+                excludeTypeId: $"{typeof(SlicingMostDerivedClassWithCompactId).GetCompactSliceTypeId()}");
         }
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);
