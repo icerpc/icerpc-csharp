@@ -21,7 +21,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     // The underlying protocol connection once successfully established.
     private (IProtocolConnection Connection, TransportConnectionInformation ConnectionInformation)? _activeConnection;
 
-    private readonly ClientProtocolConnectionFactory _clientProtocolConnectionFactory;
+    private readonly IClientProtocolConnectionFactory _clientProtocolConnectionFactory;
 
     private readonly TimeSpan _connectTimeout;
 

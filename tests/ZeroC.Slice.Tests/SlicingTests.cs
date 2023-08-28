@@ -87,9 +87,7 @@ public class SlicingTests
             // sliced and the Slices are preserved.
             slicingActivator = new SlicingActivator(
                 IActivator.FromAssembly(typeof(SlicingMostDerivedClassWithCompactId).Assembly),
-                excludeTypeId: string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"{typeof(SlicingMostDerivedClassWithCompactId).GetCompactSliceTypeId()}"));
+                excludeTypeId: $"{typeof(SlicingMostDerivedClassWithCompactId).GetCompactSliceTypeId()}");
         }
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1, activator: slicingActivator);

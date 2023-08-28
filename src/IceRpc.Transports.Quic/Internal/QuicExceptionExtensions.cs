@@ -43,6 +43,11 @@ internal static class QuicExceptionExtensions
                             $"The stream was aborted by the peer with an unknown application error code: '{applicationErrorCode}'") :
                     // An application error code should always be set with QuicError.StreamAborted.
                     new IceRpcException(IceRpcError.IceRpcError, exception),
+#if !NET8_0_OR_GREATER
+            // These values were removed in .NET 8
+            QuicError.AddressInUse => new IceRpcException(IceRpcError.AddressInUse, exception),
+            QuicError.HostUnreachable => new IceRpcException(IceRpcError.ServerUnreachable, exception),
+#endif
             _ => new IceRpcException(IceRpcError.IceRpcError, exception)
         };
 }
