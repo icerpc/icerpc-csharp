@@ -54,6 +54,37 @@ public class QuicServerTransport : IMultiplexedServerTransport
             serverAddress = serverAddress with { Transport = Name };
         }
 
+#if NET8_0_OR_GREATER
         return new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions);
+#else
+        return new BugFixQuicMultiplexedListener(
+            new QuicMultiplexedListener(serverAddress, options, _quicOptions, serverAuthenticationOptions));
+#endif
     }
+
+#if !NET8_0_OR_GREATER
+    internal sealed class BugFixQuicMultiplexedListener : IListener<IMultiplexedConnection>
+    {
+        private readonly IListener<IMultiplexedConnection> _decoratee;
+
+        public ServerAddress ServerAddress => _decoratee.ServerAddress;
+
+        public async Task<(IMultiplexedConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await _decoratee.AcceptAsync(cancelationToken);
+            }
+            catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
+            {
+                // WORKAROUND QuicListener TLS handshake internal timeout.
+                // - https://github.com/dotnet/runtime/issues/78096
+                throw new IceRpcException(
+                    IceRpcError.IceRpcError,
+                    "The QuicListener failed due to TLS handshake internal timeout.");
+            }
+        }
+
+        internal BugFixQuicMultiplexedListener(IListener<IMultiplexedConnection> decoratee) => _decoratee = decoratee;
+#endif
 }
