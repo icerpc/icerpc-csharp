@@ -826,6 +826,46 @@ public abstract class MultiplexedConnectionConformanceTests
         stream1.Output.Complete();
     }
 
+    /// <summary>This test verifies that stream flow control prevents a new stream from being created under the
+    /// following conditions:
+    ///
+    /// - the max stream count is reached
+    /// - writes are closed on the remote streams
+    /// - data on the remote stream is not consumed</summary>
+    [Test]
+    public async Task Stream_count_is_not_decremented_until_remote_data_is_consumed()
+    {
+        // Arrange
+        IServiceCollection serviceCollection = CreateServiceCollection();
+        serviceCollection.AddOptions<MultiplexedConnectionOptions>().Configure(
+            options => options.MaxBidirectionalStreams = 1);
+
+        await using ServiceProvider provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        IMultiplexedStream clientStream1 = await sut.Client.CreateStreamAsync(bidirectional: true, default);
+        await clientStream1.Output.WriteAsync(_oneBytePayload, default);
+
+        IMultiplexedStream serverStream1 = await sut.Server.AcceptStreamAsync(default);
+        serverStream1.Output.Complete();
+
+        // At this point the server stream input is not completed. CreateStreamAsync should block because the data isn't
+        // consumed.
+
+        // Act/Assert
+        Assert.That(
+            async () =>
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
+                // This should throw OperationCanceledException because reads from the remote stream accepted above are
+                // not closed (the remote stream still has non-consumed buffered data).
+                _ = await sut.Client.CreateStreamAsync(bidirectional: true, cts.Token);
+            },
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
     /// <summary>Creates the service collection used for multiplexed transport conformance tests.</summary>
     protected abstract IServiceCollection CreateServiceCollection();
 }
