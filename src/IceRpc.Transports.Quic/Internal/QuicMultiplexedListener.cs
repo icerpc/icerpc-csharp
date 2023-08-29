@@ -23,15 +23,16 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             QuicConnection connection = await _listener.AcceptConnectionAsync(cancellationToken).ConfigureAwait(false);
             return (new QuicMultiplexedServerConnection(connection, _options), connection.RemoteEndPoint);
         }
+#if !NET8_0_OR_GREATER
         catch (OperationCanceledException exception) when (exception.CancellationToken != cancellationToken)
         {
             // WORKAROUND QuicListener TLS handshake internal timeout.
-            // TODO rework depending on the resolution of:
             // - https://github.com/dotnet/runtime/issues/78096
             throw new IceRpcException(
                 IceRpcError.IceRpcError,
                 "The QuicListener failed due to TLS handshake internal timeout.");
         }
+#endif
         catch (QuicException exception)
         {
             throw exception.ToIceRpcException();
