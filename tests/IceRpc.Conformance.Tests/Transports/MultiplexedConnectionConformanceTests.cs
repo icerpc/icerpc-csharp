@@ -833,7 +833,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// - writes are closed on the remote streams
     /// - data on the remote stream is not consumed</summary>
     [Test]
-    public async Task Stream_count_is_not_decremented_until_remote_data_is_consumed()
+    public async Task Stream_creation_hangs_until_remote_data_is_consumed()
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection();
