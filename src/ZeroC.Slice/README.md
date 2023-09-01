@@ -63,7 +63,7 @@ public partial record struct Person
 
 [api]: https://docs.testing.zeroc.com/api/csharp/api/ZeroC.Slice.html
 [cs-buffers]: https://learn.microsoft.com/en-us/dotnet/standard/io/buffers
-[docs]: https://docs.testing.zeroc.com/slice
+[docs]: https://docs.testing.zeroc.com/slice2
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
 [package]: https://www.nuget.org/packages/ZeroC.Slice
 [pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines

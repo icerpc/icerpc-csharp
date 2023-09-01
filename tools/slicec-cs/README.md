@@ -26,4 +26,4 @@ slicec-cs implicitly defines the `SLICEC_CS` preprocessor symbol.
 
 [package]:  https://www.nuget.org/packages/IceRpc.Slice.Tools
 [building]: ../../BUILDING.md
-[slice-documentation]: https://docs.testing.zeroc.com/slice
+[slice-documentation]: https://docs.testing.zeroc.com/slice2
