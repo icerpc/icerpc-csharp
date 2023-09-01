@@ -104,7 +104,7 @@ Referencing `IceRpc.Slice` makes your project reference transitively [ZeroC.Slic
 [icerpc-slice]: https://www.nuget.org/packages/IceRpc.Slice
 [zeroc-slice]: https://www.nuget.org/packages/ZeroC.Slice
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
-[slice]: https://docs.testing.zeroc.com/slice
+[slice]: https://docs.testing.zeroc.com/slice2
 [slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/slicec-cs
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
