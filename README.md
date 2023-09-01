@@ -14,9 +14,9 @@ expected to create its own read-only clone of these Slice files with `git subtre
 of the [icerpc-csharp] repository is a git subtree clone of icerpc-slice.
 
 [Ice]: https://github.com/zeroc-ice/ice
-[ice-protocol]: https://docs.testing.zeroc.com/docs/icerpc-core/ice-protocol/protocol-frames
+[ice-protocol]: https://docs.testing.zeroc.com/icerpc/ice-protocol/protocol-frames
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp/
-[icerpc-protocol]: https://docs.testing.zeroc.com/docs/icerpc-core/icerpc-protocol/mapping-rpcs-to-streams
+[icerpc-protocol]: https://docs.testing.zeroc.com/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-slice]: https://github.com/icerpc/icerpc-slice
-[Slic]: https://docs.testing.zeroc.com/icerpc-core/slic-protocol
-[Slice]: https://docs.testing.zeroc.com/docs/slice
+[Slic]: https://docs.testing.zeroc.com/icerpc/slic-transport/protocol-frames
+[Slice]: https://docs.testing.zeroc.com/slice2
