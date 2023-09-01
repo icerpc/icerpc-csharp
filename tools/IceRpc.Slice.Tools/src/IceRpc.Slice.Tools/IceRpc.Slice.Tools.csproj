@@ -15,7 +15,7 @@
       <Authors>ZeroC, Inc.</Authors>
       <PackageId>$(AssemblyName)</PackageId>
       <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-      <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+      <PackageProjectUrl>https://zeroc.com/icerpc</PackageProjectUrl>
       <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
       <RepositoryType>git</RepositoryType>
       <PackageIcon>icerpc-icon.png</PackageIcon>

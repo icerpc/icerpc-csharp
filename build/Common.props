@@ -31,7 +31,7 @@
         <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
         <PackageIcon>icerpc-icon.png</PackageIcon>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+        <PackageProjectUrl>https://zeroc.com/icerpc</PackageProjectUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageVersion>$(Version)</PackageVersion>
