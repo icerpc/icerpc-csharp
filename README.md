@@ -93,7 +93,7 @@ flowchart LR
     subgraph pipeline [Dispatch pipeline]
         direction LR
         lm[Logger\nmiddleware] --> dm[Deadline\nmiddleware] --> service --> dm --> lm
-        
+
     end
     connection[network\nconnection] -- request --> lm
     connection -- response --- lm

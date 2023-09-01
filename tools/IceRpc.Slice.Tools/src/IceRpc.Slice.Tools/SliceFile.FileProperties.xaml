@@ -36,7 +36,7 @@
         Category="Misc"
         Description="The item specified in the Include attribute.">
         <StringProperty.DataSource>
-            <DataSource 
+            <DataSource
                 Persistence="Intrinsic"
                 ItemType="SliceFile"
                 PersistedName="Identity"

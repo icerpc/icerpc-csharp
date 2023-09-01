@@ -24,7 +24,6 @@ public class TcpListenerConformanceTests : DuplexListenerConformanceTests
         new ServiceCollection().AddTcpTest(listenBacklog);
 }
 
-
 /// <summary>Conformance tests for the tcp transport using IPv6.</summary>
 [Parallelizable(ParallelScope.All)]
 public class Ipv6TcpConnectionConformanceTests : DuplexConnectionConformanceTests
