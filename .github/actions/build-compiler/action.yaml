@@ -26,9 +26,9 @@ runs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     - name: 🔗 Start SSH Agent
-      uses: webfactory/ssh-agent@v0.8.0
+      uses: webfactory/ssh-agent@v0.5.4
       with:
-          ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
+        ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
     - name: Install Cross Tools
       if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
       run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
