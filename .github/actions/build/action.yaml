@@ -50,8 +50,8 @@ runs:
     - name: 🔨 Build Slice Compiler
       run: |
         cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
-        env:
-          CARGO_NET_GIT_FETCH_WITH_CLI: true
+      env:
+        CARGO_NET_GIT_FETCH_WITH_CLI: true
       shell: bash
     - name: 🔨 Build IceRPC Slice Tools
       working-directory: tools/IceRpc.Slice.Tools
