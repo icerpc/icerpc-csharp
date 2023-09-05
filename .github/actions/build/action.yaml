@@ -42,7 +42,7 @@ runs:
       shell: bash
       if: runner.os == 'Linux'
     - name: 🔗 Start SSH Agent
-      uses: webfactory/ssh-agent@v0.8.0
+      uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
     - name: Rust toolchain
