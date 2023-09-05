@@ -6,7 +6,7 @@
 
 [![Continuous Integration][ci-badge]][ci-home]
 
-[Getting started] | [Examples] | [Documentation] | [API reference] | [Building from source]
+[Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
 
 IceRPC is a modular RPC framework that helps you build networked applications with minimal effort.
 
@@ -203,8 +203,9 @@ in-memory transport for testing). Future releases may add additional transports.
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml
 [custom]: https://docs.testing.zeroc.com/slice/language-guide/custom-types
 [Documentation]: https://docs.testing.zeroc.com
-[Getting started]: https://docs.testing.zeroc.com/getting-started
 [Examples]: examples
+[Getting started]: https://docs.testing.zeroc.com/getting-started
+[GreeterProtobuf]: examples/GreeterProtobuf
 [HTTP/3]: https://en.wikipedia.org/wiki/HTTP/3
 [Ice]: https://github.com/zeroc-ice/ice
 [IceRPC for Ice users]: https://docs.testing.zeroc.com/icerpc-for-ice-users
@@ -212,7 +213,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [icerpc-with-di]: https://docs.testing.zeroc.com/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
 [license]: LICENSE
-[GreeterProtobuf]: examples/GreeterProtobuf
+[NuGet packages]: https://www.nuget.org/profiles/IceRPC
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
 [Slic]: https://docs.testing.zeroc.com/icerpc/slic-protocol
 [Slice]: https://docs.testing.zeroc.com/slice
