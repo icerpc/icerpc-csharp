@@ -26,7 +26,8 @@ runs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     - name: 🔗 Start SSH Agent
-      uses: webfactory/ssh-agent@v0.8.0
+      # With v0.8.0 the clone of icerpc/slicec fails on Windows runners
+      uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
     - name: Install Cross Tools
