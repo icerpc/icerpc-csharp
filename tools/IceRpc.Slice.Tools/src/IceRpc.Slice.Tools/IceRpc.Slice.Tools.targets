@@ -68,8 +68,13 @@
                 -->
                 <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
             </SliceFile>
+            <!--
+                Create a Compile item for each SliceFile item, representing the generated C# file.
+                Use RemoveMetadata to avoid including SliceFile-specific metadata in the generated Compile item.
+            -->
             <Compile Include="@(SliceFile->'%(GeneratedPath)')"
-                     Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
+                     Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
+                     RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;PackagePath;Pack"/>
         </ItemGroup>
     </Target>
 
