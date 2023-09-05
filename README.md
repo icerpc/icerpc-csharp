@@ -4,7 +4,7 @@
 
 # IceRPC for C#
 
-[![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg)][ci-home]
+[![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
@@ -201,7 +201,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [Apache License version 2.0]: LICENSE
 [API reference]: https://docs.testing.zeroc.com/api/csharp/api/IceRpc.html
 [Building from source]: BUILDING.md
-[ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml
+[ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml
 [custom]: https://docs.testing.zeroc.com/slice/language-guide/custom-types
 [Documentation]: https://docs.testing.zeroc.com
 [Examples]: examples
