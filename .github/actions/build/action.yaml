@@ -42,7 +42,7 @@ runs:
       shell: bash
       if: runner.os == 'Linux'
     - name: 🔗 Start SSH Agent
-      uses: webfactory/ssh-agent@v0.8.0
+      uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
     - name: Rust toolchain
@@ -50,6 +50,8 @@ runs:
     - name: 🔨 Build Slice Compiler
       run: |
         cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
+      env:
+        CARGO_NET_GIT_FETCH_WITH_CLI: true
       shell: bash
     - name: 🔨 Build IceRPC Slice Tools
       working-directory: tools/IceRpc.Slice.Tools
