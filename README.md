@@ -4,7 +4,8 @@
 
 # IceRPC for C#
 
-[![Continuous Integration][ci-badge]][ci-home]
+[![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg)[ci-home]
+[![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
 
@@ -189,7 +190,7 @@ Ice server, and you can call services hosted by an IceRPC server from an Ice cli
 
 ## License
 
-IceRPC is licensed under the [Apache License version 2.0][license], a permissive open-source license.
+IceRPC is licensed under the [Apache License version 2.0], a permissive open-source license.
 
 This license allows you to use IceRPC in both open-source and closed source applications, free of charge. Please refer
 to the license for the full terms and conditions.
@@ -197,9 +198,9 @@ to the license for the full terms and conditions.
 [^1]: IceRPC for C# currently provides two duplex transport implementations: TCP (with or without TLS), and Coloc (an
 in-memory transport for testing). Future releases may add additional transports.
 
+[Apache License version 2.0]: LICENSE
 [API reference]: https://docs.testing.zeroc.com/api/csharp/api/IceRpc.html
 [Building from source]: BUILDING.md
-[ci-badge]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml/badge.svg
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/dotnet.yml
 [custom]: https://docs.testing.zeroc.com/slice/language-guide/custom-types
 [Documentation]: https://docs.testing.zeroc.com
@@ -212,7 +213,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [icerpc-protocol]: https://docs.testing.zeroc.com/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.testing.zeroc.com/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
-[license]: LICENSE
+[license]: https://github.com/icerpc/icerpc-csharp/blob/main/LICENSE
 [NuGet packages]: https://www.nuget.org/profiles/IceRPC
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
 [Slic]: https://docs.testing.zeroc.com/icerpc/slic-protocol
