@@ -1,4 +1,4 @@
-# The Slice compiler for C #
+# The Slice compiler for C#
 
 The Slice compiler for C#, `slicec-cs`, allows you to compile Slice definitions (in `.slice` files) into C# code (in
 `.cs` files). It provides support for RPCs with the IceRPC framework.
