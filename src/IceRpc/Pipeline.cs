@@ -16,7 +16,7 @@ namespace IceRpc;
 /// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="UseWithInlineInterceptor" lang="csharp" />
 /// </example>
 /// <seealso cref="Router"/>
-/// <seealso href="https://docs.testing.zeroc.com/icerpc/invocation/invocation-pipeline"/>
+/// <seealso href="https://docs.icerpc.dev/icerpc/invocation/invocation-pipeline"/>
 public sealed class Pipeline : IInvoker
 {
     private readonly Stack<Func<IInvoker, IInvoker>> _interceptorStack = new();

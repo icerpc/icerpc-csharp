@@ -42,9 +42,9 @@ using var host = hostBuilder.Build();
 host.Run();
 ```
 
-[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Retry.html
+[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Retry.html
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
-[interceptor]: https://docs.testing.zeroc.com/icerpc/invocation/interceptor
+[interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Retry
 [package]: https://www.nuget.org/packages/IceRpc.Retry
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Retry

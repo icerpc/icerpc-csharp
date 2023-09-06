@@ -17,8 +17,9 @@ automatically compiled into C# files every time you build this project.
 ## Slice files and Slice directories
 
 The Slice compiler for C# accepts two main inputs:
- - the Slice files to compile into C# code (the Slice files)
- - directories that contain reference Slice files (the Slice directories)
+
+- the Slice files to compile into C# code (the Slice files)
+- directories that contain reference Slice files (the Slice directories)
 
 The Slice compiler parses the reference Slice files found in the Slice directories but does not generate code for them.
 They typically contain definitions referenced by the source Slice files.
@@ -34,6 +35,7 @@ included in `SliceFile`. You can prevent this auto-inclusion of `.slice` files b
 is `true`.
 
 You can also add Slice files to your project explicitly. For example:
+
 ```xml
 <ItemGroup>
     <SliceFile Include="../Greeter.slice"/>
@@ -49,6 +51,7 @@ The Slice directories are an aggregate of the `SliceDirectory` defined in your p
 defined in NuGet packages referenced by your project.
 
 For example:
+
 ```xml
 <ItemGroup>
     <!-- My Slice files reference definitions in this common directory -->
@@ -64,6 +67,7 @@ your NuGet package to easily retrieve these Slice files.
 
 You can also define `SliceDirectory` in this NuGet package so that any project that references this package
 automatically sees these Slice files when compiling. For example:
+
 ```xml
 <!-- In the buildTransitive/<PackageName>.props file you pack into your NuGet package -->
 <ItemGroup>
@@ -104,7 +108,7 @@ Referencing `IceRpc.Slice` makes your project reference transitively [ZeroC.Slic
 [icerpc-slice]: https://www.nuget.org/packages/IceRpc.Slice
 [zeroc-slice]: https://www.nuget.org/packages/ZeroC.Slice
 [package]: https://www.nuget.org/packages/IceRpc.Slice.Tools
-[slice]: https://docs.testing.zeroc.com/slice2
+[slice]: https://docs.icerpc.dev/slice2
 [slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/slicec-cs
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines

@@ -54,10 +54,10 @@ using var host = hostBuilder.Build();
 host.Run();
 ```
 
-[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Extensions.DependencyInjection.html
+[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Extensions.DependencyInjection.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GenericHost
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [ms_di]: https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection
 [package]: https://www.nuget.org/packages/IceRpc.Extensions.DependencyInjection
-[product]: https://docs.testing.zeroc.com/icerpc/dependency-injection/di-and-icerpc-for-csharp
+[product]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Extensions.DependencyInjection
