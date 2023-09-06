@@ -25,11 +25,6 @@ runs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-
-    - name: 🔗 Start SSH Agent
-      # With v0.8.0 the clone of icerpc/slicec fails on Windows runners
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ env.SLICEC_DEPLOY_KEY }}
     - name: Install Cross Tools
       if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
       run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
@@ -41,7 +36,6 @@ runs:
         targets: ${{ inputs.target }}
     - name: Build Slice Compiler
       env:
-        CARGO_NET_GIT_FETCH_WITH_CLI: true
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
       run: |
         cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }} --target ${{ inputs.target }}

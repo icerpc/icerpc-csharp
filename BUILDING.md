@@ -82,21 +82,6 @@ This command builds slicec-cs, all the IceRpc assemblies, and the IceRpc tests w
 
 The -build/--build action is optional since it's the default build action.
 
-> **Note** TODO: remove once the repository is public
->
-> The build system for the slicec-cs compiler fetches the slicec library from the slicec repository. If the build fails
-> to fetch slicec with a permission denied error, set the following environment variable:
->
-> Linux or macOS
-> ```shell
-> export CARGO_NET_GIT_FETCH_WITH_CLI=true
-> ```
->
-> Windows
-> ```shell
-> set CARGO_NET_GIT_FETCH_WITH_CLI=true
-> ```
-
 ### Visual Studio Code
 
 Select `Tasks: Run Build Task...` from the command palette to run the build script from Visual Studio Code.
