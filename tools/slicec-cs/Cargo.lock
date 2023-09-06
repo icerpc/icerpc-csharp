@@ -641,7 +641,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/icerpc/slicec#49e98870745679a53b2be1f104c49467f8369c70"
+source = "git+ssh://git@github.com/icerpc/slicec#62422a3ef7fe2cbd040b980d4b3e014497390939"
 dependencies = [
  "clap",
  "console",
