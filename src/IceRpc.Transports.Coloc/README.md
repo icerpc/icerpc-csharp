@@ -38,5 +38,5 @@ await connection.ConnectAsync();
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Transports.Coloc.html
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [package]: https://www.nuget.org/packages/IceRpc.Transports.Coloc
-[product]: https://docs.testing.zeroc.com/icerpc
+[product]: https://docs.icerpc.dev/icerpc
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Transports.Coloc

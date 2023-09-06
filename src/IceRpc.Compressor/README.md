@@ -131,8 +131,8 @@ They work well with Slice but don't require Slice.
 
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Compressor.html
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
-[interceptor]: https://docs.testing.zeroc.com/icerpc/invocation/interceptor
+[interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress
-[middleware]: https://docs.testing.zeroc.com/icerpc/dispatch/middleware
+[middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Compressor
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Compressor

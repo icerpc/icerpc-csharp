@@ -31,7 +31,7 @@
       }
     ],
     "sitemap": {
-      "baseUrl": "https://docs.testing.zeroc.com"
+      "baseUrl": "https://docs.icerpc.dev"
     },
     "overwrite": [
       {
@@ -52,7 +52,7 @@
       "_appName": "API",
       "_appFaviconPath": "images/favicon.ico",
       "_appLogoPath": "images/logo.svg",
-      "_appLogoUrl": "https://docs.testing.zeroc.com/api/csharp/api/IceRpc.html",
+      "_appLogoUrl": "https://docs.icerpc.dev/api/csharp/api/IceRpc.html",
       "_appFooter": "© 2023 ZeroC",
       "_enableSearch": true,
       "_gitContribute": {

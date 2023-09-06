@@ -70,8 +70,8 @@ internal class Chatbot : Service, IGreeterService
 }
 ```
 
-[api]: https://docs.testing.zeroc.com/api/csharp/api/IceRpc.Slice.html
-[docs]: https://docs.testing.zeroc.com/slice2
+[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Slice.html
+[docs]: https://docs.icerpc.dev/slice2
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
 [examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
 [package]: https://www.nuget.org/packages/IceRpc.Slice

@@ -82,8 +82,8 @@ internal class Chatbot : IDispatcher
 ```
 
 [api]: https://api.icerpc.com/csharp/api/
-[docs]:https://docs.testing.zeroc.com
-[getting-started]: https://docs.testing.zeroc.com/getting-started
+[docs]:https://docs.icerpc.dev
+[getting-started]: https://docs.icerpc.dev/getting-started
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
 [package]: https://www.nuget.org/packages/IceRpc

@@ -88,8 +88,8 @@ host.Run();
 [api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Telemetry.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Telemetry
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
-[interceptor]: https://docs.testing.zeroc.com/icerpc/invocation/interceptor
-[middleware]: https://docs.testing.zeroc.com/icerpc/dispatch/middleware
+[interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
+[middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Telemetry
 [open-telemetry]: https://opentelemetry.io/
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Telemetry

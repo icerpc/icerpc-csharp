@@ -2,7 +2,7 @@
   <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" />
 </p>
 
-# IceRPC for C#
+# IceRPC for C #
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
@@ -147,9 +147,10 @@ interface Greeter {
 You don't need to craft special request and reply message types: you can specify all your parameters inline.
 
 The Slice compiler for C# then generates readable and succinct C# code from this `Greeter` interface:
- - a client-side `IGreeter` interface with a single `GreetAsync` method.
- - a client-side `GreeterProxy` that implements `IGreeter` by sending requests / receiving responses with IceRPC
- - a server-side `IGreeterService` interface that you use as a template when writing the service that implements Greeter
+
+- a client-side `IGreeter` interface with a single `GreetAsync` method.
+- a client-side `GreeterProxy` that implements `IGreeter` by sending requests / receiving responses with IceRPC
+- a server-side `IGreeterService` interface that you use as a template when writing the service that implements Greeter
 
 Slice also supports streaming in both directions. For example:
 
@@ -169,11 +170,12 @@ A stream of `uint8` is mapped to a C# `PipeReader` while a stream of any other t
 `IAsyncEnumerable<T>`.
 
 Slice provides common primitives types with easy-to-understand names:
- - string
- - bool
- - fixed-size integral types (int8, int16, int32, int64, uint8, uint16, uint32, uint64)
- - variable-size integral types (varint32, varint62, varuint32, varuint62)
- - floating point types (float32, float64)
+
+- string
+- bool
+- fixed-size integral types (int8, int16, int32, int64, uint8, uint16, uint32, uint64)
+- variable-size integral types (varint32, varint62, varuint32, varuint62)
+- floating point types (float32, float64)
 
 You can define new types with `struct`, `enum`, and `custom`. And you can construct collections with `Sequence<T>` and
 `Dictionary<Key, Value>`.
@@ -199,23 +201,23 @@ to the license for the full terms and conditions.
 in-memory transport for testing). Future releases may add additional transports.
 
 [Apache License version 2.0]: LICENSE
-[API reference]: https://docs.testing.zeroc.com/api/csharp/api/IceRpc.html
+[API reference]: https://docs.icerpc.dev/api/csharp/api/IceRpc.html
 [Building from source]: BUILDING.md
 [ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml
-[custom]: https://docs.testing.zeroc.com/slice/language-guide/custom-types
-[Documentation]: https://docs.testing.zeroc.com
+[custom]: https://docs.icerpc.dev/slice/language-guide/custom-types
+[Documentation]: https://docs.icerpc.dev
 [Examples]: examples
-[Getting started]: https://docs.testing.zeroc.com/getting-started
+[Getting started]: https://docs.icerpc.dev/getting-started
 [GreeterProtobuf]: examples/GreeterProtobuf
 [HTTP/3]: https://en.wikipedia.org/wiki/HTTP/3
 [Ice]: https://github.com/zeroc-ice/ice
-[IceRPC for Ice users]: https://docs.testing.zeroc.com/icerpc-for-ice-users
-[icerpc-protocol]: https://docs.testing.zeroc.com/icerpc/icerpc-protocol/mapping-rpcs-to-streams
-[icerpc-with-di]: https://docs.testing.zeroc.com/icerpc/dependency-injection/di-and-icerpc-for-csharp
+[IceRPC for Ice users]: https://docs.icerpc.dev/icerpc-for-ice-users
+[icerpc-protocol]: https://docs.icerpc.dev/icerpc/icerpc-protocol/mapping-rpcs-to-streams
+[icerpc-with-di]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
 [license]: https://github.com/icerpc/icerpc-csharp/blob/main/LICENSE
 [NuGet packages]: https://www.nuget.org/profiles/IceRPC
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
-[Slic]: https://docs.testing.zeroc.com/icerpc/slic-protocol
-[Slice]: https://docs.testing.zeroc.com/slice
+[Slic]: https://docs.icerpc.dev/icerpc/slic-protocol
+[Slice]: https://docs.icerpc.dev/slice
 [System.IO.Pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines

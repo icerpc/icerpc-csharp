@@ -5,6 +5,6 @@ This package contains the [IceRPC](https://icerpc.com) transport conformance tes
 ## Links
 
 - [Homepage](https://zeroc.com/icerpc)
-- [Documentation](https://docs.testing.zeroc.com)
+- [Documentation](https://docs.icerpc.dev)
 - [API Reference](https://api.icerpc.com/csharp/api/IceRpc.Transports.html)
 - [GitHub](https://github.com/icerpc/icerpc-csharp)

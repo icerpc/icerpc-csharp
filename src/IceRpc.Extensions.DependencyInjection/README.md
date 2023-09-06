@@ -59,5 +59,5 @@ host.Run();
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [ms_di]: https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection
 [package]: https://www.nuget.org/packages/IceRpc.Extensions.DependencyInjection
-[product]: https://docs.testing.zeroc.com/icerpc/dependency-injection/di-and-icerpc-for-csharp
+[product]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Extensions.DependencyInjection

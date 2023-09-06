@@ -1,14 +1,14 @@
 - name: Getting Started
-  href: https://docs.testing.zeroc.com/getting-started
+  href: https://docs.icerpc.dev/getting-started
 
 - name: IceRPC
-  href: https://docs.testing.zeroc.com/icerpc
+  href: https://docs.icerpc.dev/icerpc
 
 - name: Slice
-  href: https://docs.testing.zeroc.com/slice2
+  href: https://docs.icerpc.dev/slice2
 
 - name: IceRPC for Ice users
-  href: https://docs.testing.zeroc.com/icerpc-for-ice-users
+  href: https://docs.icerpc.dev/icerpc-for-ice-users
 
 - name: API Reference
   href: api/
