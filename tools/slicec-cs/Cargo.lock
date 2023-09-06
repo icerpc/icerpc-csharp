@@ -641,7 +641,8 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/icerpc/slicec#62422a3ef7fe2cbd040b980d4b3e014497390939"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "973b798d26b8f49a847fbca73c4d2722af48abcbe65a87a4c8084b3d1f991ab2"
 dependencies = [
  "clap",
  "console",
