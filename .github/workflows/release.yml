@@ -37,9 +37,6 @@ jobs:
         with:
           cargo-build-args: --release
           target: ${{ matrix.target }}
-        env:
-          # TODO remove once slicec repository is public
-          SLICEC_DEPLOY_KEY: ${{ secrets.SLICEC_DEPLOY_KEY }}
       - name: Archive Build
         uses: actions/upload-artifact@v3
         with:
