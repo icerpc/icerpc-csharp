@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" />
+  <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" height="100" width="100" />
 </p>
 
 # IceRPC for C#
