@@ -90,7 +90,7 @@ using var host = hostBuilder.Build();
 host.Run();
 ```
 
-[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Logger.html
+[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Logger.html
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterLog
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor

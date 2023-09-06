@@ -74,7 +74,7 @@ using var host = hostBuilder.Build();
 host.Run();
 ```
 
-[api]: https://api.testing.zeroc.com/csharp/api/IceRpc.Metrics.html
+[api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Metrics.html
 [dotnet_counters]: https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
