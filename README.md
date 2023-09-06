@@ -2,7 +2,7 @@
   <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" />
 </p>
 
-# IceRPC for C #
+# IceRPC for C#
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
