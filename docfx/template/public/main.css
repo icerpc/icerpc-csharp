@@ -33,3 +33,11 @@ nav img {
 .navbar #navbar form.icons {
   margin-left: 10px;
 }
+
+/* Change the dark mode background color of the body and navbar to match our documentation. */
+[data-bs-theme="dark"] {
+  --bs-body-bg: #000;
+  .navbar {
+    background-color: #000;
+  }
+}
