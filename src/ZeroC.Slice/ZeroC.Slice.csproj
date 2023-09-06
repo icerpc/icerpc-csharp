@@ -4,7 +4,7 @@
         <Description>Slice for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>Slice;Binary;Serialization;Format</PackageTags>
-        <PackageIcon>zeroc-icon.png</PackageIcon>
+        <PackageIcon>slice-icon.png</PackageIcon>
     </PropertyGroup>
     <ItemDefinitionGroup>
       <SliceFile>
@@ -23,7 +23,7 @@
     <ItemGroup>
         <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
         <Content Include="README.md" Pack="true" PackagePath="\" />
-        <None Include="..\..\build\zeroc-icon.png" Pack="true" PackagePath="\" />
+        <None Include="..\..\build\slice-icon.png" Pack="true" PackagePath="\" />
         <Content Include="ZeroC.Slice.props" Pack="true" PackagePath="buildTransitive" />
         <Content Include="../../slice/WellKnownTypes/*.slice" Pack="true" PackagePath="slice/WellKnownTypes" />
     </ItemGroup>
