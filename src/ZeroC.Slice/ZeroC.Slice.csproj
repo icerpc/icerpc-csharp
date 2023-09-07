@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Description>Slice for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>Slice;Binary;Serialization;Format</PackageTags>
+        <PackageTags>slice;binary;serialization;format</PackageTags>
         <PackageIcon>slice-icon.png</PackageIcon>
     </PropertyGroup>
     <ItemDefinitionGroup>

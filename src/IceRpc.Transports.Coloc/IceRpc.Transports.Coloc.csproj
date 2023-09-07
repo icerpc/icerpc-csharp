@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Description>Coloc transport for IceRPC</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>IceRPC;RPC</PackageTags>
+        <PackageTags>icerpc;rpc</PackageTags>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />

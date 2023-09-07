@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Description>IceRpc.Slice for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>IceRPC;Slice;Binary;Serialization;Format</PackageTags>
+        <PackageTags>icerpc;slice;binary;serialization;format</PackageTags>
     </PropertyGroup>
     <ItemGroup>
       <SliceFile

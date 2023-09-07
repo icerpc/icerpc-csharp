@@ -6,7 +6,7 @@
     <NoWarn>CS1591</NoWarn>
     <Description>IceRPC transport conformance tests.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
-    <PackageTags>IceRPC;RPC</PackageTags>
+    <PackageTags>icerpc;rpc</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
