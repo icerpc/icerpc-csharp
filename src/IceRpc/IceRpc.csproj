@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Description>IceRPC for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>IceRPC;RPC</PackageTags>
+        <PackageTags>icerpc;rpc;quic</PackageTags>
     </PropertyGroup>
     <ItemDefinitionGroup>
       <SliceFile>

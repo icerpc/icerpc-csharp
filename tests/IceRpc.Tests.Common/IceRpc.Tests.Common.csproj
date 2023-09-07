@@ -4,7 +4,7 @@
     <IsPackable>true</IsPackable>
     <Description>IceRPC test helper classes.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
-    <PackageTags>IceRPC;RPC</PackageTags>
+    <PackageTags>icerpc;rpc</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

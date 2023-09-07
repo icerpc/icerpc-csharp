@@ -7,7 +7,7 @@
         <IncludeContentInPack>true</IncludeContentInPack>
         <NoWarn>$(NoWarn);NU5128</NoWarn>
         <PackageId>IceRpc.Templates</PackageId>
-        <PackageTags>IceRPC;RPC;Templates</PackageTags>
+        <PackageTags>icerpc;rpc;templates</PackageTags>
         <PackageType>Template</PackageType>
         <TargetFramework>net7.0</TargetFramework>
         <PackageReadmeFile>README.md</PackageReadmeFile>

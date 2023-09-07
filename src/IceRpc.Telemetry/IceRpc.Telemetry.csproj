@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Description>Telemetry interceptor and middleware for IceRPC</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>IceRPC;RPC</PackageTags>
+        <PackageTags>icerpc;rpc;telemetry</PackageTags>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
