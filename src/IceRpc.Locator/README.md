@@ -30,7 +30,8 @@ pipeline = pipeline
     .UseLocator(locatorProxy)
     .Into(connectionCache);
 
-// A call on this proxy will use the locator to find the server address(es) associated with `/hello`.
+// A call on this proxy will use the locator to find the server address(es) associated with
+// `/hello`.
 // The locator interceptor caches successful resolutions.
 var wellKnownProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
 

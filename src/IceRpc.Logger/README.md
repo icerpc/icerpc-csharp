@@ -8,7 +8,7 @@ logs every dispatch.
 ## Sample code
 
 ```csharp
-// Client application
+// Client application (C#)
 
 using Microsoft.Extensions.Logging;
 using IceRpc;
@@ -29,7 +29,7 @@ Pipeline pipeline = new Pipeline()
 ```
 
 ```csharp
-// Server application
+// Server application (C#)
 
 using Microsoft.Extensions.Logging;
 using IceRpc;
@@ -50,7 +50,7 @@ Router router = new Router()
 ## Sample code with DI
 
 ```csharp
-// Client application
+// Client application (C#)
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
@@ -71,7 +71,7 @@ host.Run();
 ```
 
 ```csharp
-// Server application
+// Server application (C#)
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;

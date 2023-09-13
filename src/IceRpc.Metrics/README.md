@@ -12,7 +12,7 @@ You can display the collected measurements with [dotnet-counters][dotnet_counter
 ## Sample code
 
 ```csharp
-// Client application
+// Client application (C#)
 
 using IceRpc;
 
@@ -23,7 +23,7 @@ Pipeline pipeline = new Pipeline().UseMetrics().Into(connection);
 ```
 
 ```csharp
-// Server application
+// Server application (C#)
 
 using IceRpc;
 
@@ -34,7 +34,7 @@ Router router = new Router().UseMetrics().Map<...>(...);
 ## Sample code with DI
 
 ```csharp
-// Client application
+// Client application (C#)
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
@@ -55,7 +55,7 @@ host.Run();
 ```
 
 ```csharp
-// Server application
+// Server application (C#)
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;

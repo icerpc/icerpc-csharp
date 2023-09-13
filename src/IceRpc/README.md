@@ -8,7 +8,7 @@ and package represent the base assembly and package for the [C# implementation o
 ## Sample Code
 
 ```csharp
-// Client application
+// Client application (C#)
 
 using GreeterCore; // for the StringCodec helper class
 using IceRpc;
@@ -30,8 +30,8 @@ async Task<string> GreetAsync(string name)
         Payload = StringCodec.EncodeString(name)
     };
 
-    // Make the invocation: we send the request using the client connection and then wait for the response. Since the
-    // client connection is not connected yet, this call also connects it.
+    // Make the invocation: we send the request using the client connection and then wait for the
+    // response. Since the client connection is not connected yet, this call also connects it.
     IncomingResponse response = await connection.InvokeAsync(request);
 
     // When the response's status code is Ok, we decode its payload.
@@ -48,7 +48,7 @@ async Task<string> GreetAsync(string name)
 ```
 
 ```csharp
-// Server application
+// Server application (C#)
 
 using GreeterCore; // for the StringCodec helper class
 using IceRpc;
@@ -63,14 +63,19 @@ await server.ShutdownAsync();
 
 internal class Chatbot : IDispatcher
 {
-    public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancellationToken)
+    public async ValueTask<OutgoingResponse> DispatchAsync(
+        IncomingRequest request,
+        CancellationToken cancellationToken)
     {
         if (request.Operation == "greet")
         {
             string name = await StringCodec.DecodePayloadStringAsync(request.Payload);
             Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
 
-            return new OutgoingResponse(request) { Payload = StringCodec.EncodeString($"Hello, {name}!") };
+            return new OutgoingResponse(request)
+            {
+                Payload = StringCodec.EncodeString($"Hello, {name}!")
+            };
         }
         else
         {

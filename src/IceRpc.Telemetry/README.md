@@ -12,7 +12,7 @@ middleware restores the activity context and uses it to set the parent activity 
 ## Sample code
 
 ```csharp
-// Client application
+// Client application (C#)
 
 using IceRpc;
 
@@ -26,7 +26,7 @@ Pipeline pipeline = new Pipeline().UseTelemetry(activitySource).Into(connection)
 ```
 
 ```csharp
-// Server application
+// Server application (C#)
 
 using IceRpc;
 using VisitorCenter;
@@ -41,7 +41,7 @@ Router router = new Router().UseTelemetry(activitySource);
 ## Sample code with DI
 
 ```csharp
-// Client application
+// Client application (C#)
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
@@ -64,7 +64,7 @@ host.Run();
 ```
 
 ```csharp
-// Server application
+// Server application (C#)
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
