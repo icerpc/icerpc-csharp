@@ -17,6 +17,8 @@ Unlike older C# libraries, Slice relies on [System.Buffers][cs-buffers] (`IBuffe
 ## Sample Code
 
 ```slice
+// Slice definition
+
 struct Person {
     name: string
     id: int32
@@ -42,8 +44,8 @@ public partial record struct Person
         ...
     }
 
-    /// <summary>Constructs a new instance of <see cref="Person" /> and decodes its fields from a Slice decoder.
-    /// </summary>
+    /// <summary>Constructs a new instance of <see cref="Person" /> and decodes its fields from
+    /// a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     public Person(ref SliceDecoder decoder)
     {
