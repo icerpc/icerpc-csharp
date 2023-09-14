@@ -26,7 +26,7 @@ interface Greeter {
 ```
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 using VisitorCenter;
@@ -47,7 +47,7 @@ string greeting = await greeterProxy.GreetAsync(Environment.UserName);
 ```
 
 ```csharp
-// Server application (C#)
+// Server application
 
 using IceRpc;
 using IceRpc.Slice;
@@ -78,7 +78,7 @@ interface Greeter {
 ```
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
@@ -102,7 +102,7 @@ host.Run();
 ```
 
 ```csharp
-// Server application (C#)
+// Server application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;

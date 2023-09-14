@@ -8,7 +8,7 @@ and package represent the base assembly and package for the [C# implementation o
 ## Sample Code
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using GreeterCore; // for the StringCodec helper class
 using IceRpc;
@@ -48,7 +48,7 @@ async Task<string> GreetAsync(string name)
 ```
 
 ```csharp
-// Server application (C#)
+// Server application
 
 using GreeterCore; // for the StringCodec helper class
 using IceRpc;

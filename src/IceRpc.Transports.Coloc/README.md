@@ -13,7 +13,7 @@ This transport does not use network APIs. It is available on all platforms.
 ## Sample code
 
 ```csharp
-// Create an IceRPC server with Coloc (C#)
+// Create an IceRPC server with Coloc
 
 using IceRpc;
 using IceRpc.Transports.Coloc;
@@ -26,7 +26,7 @@ await using var server = new Server(
 
 server.Listen();
 
-// Create a client connection to this server (C#)
+// Create a client connection to this server
 
 await using var connection = new ClientConnection(
     new Uri("icerpc://host"), // you can use any host and port with coloc

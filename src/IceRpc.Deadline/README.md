@@ -10,7 +10,7 @@ fields received with incoming requests.
 ## Sample code
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 
@@ -23,7 +23,7 @@ Pipeline pipeline = new Pipeline()
 ```
 
 ```csharp
-// Server application (C#)
+// Server application
 
 using IceRpc;
 
@@ -39,7 +39,7 @@ server.Listen();
 ## Sample code with DI
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
@@ -60,7 +60,7 @@ host.Run();
 ```
 
 ```csharp
-// Server application (C#)
+// Server application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;

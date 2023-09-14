@@ -7,7 +7,7 @@ IceRpc.Retry provides an [IceRPC][icerpc-csharp] interceptor that retries failed
 ## Sample code
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 
@@ -22,7 +22,7 @@ Pipeline pipeline = new Pipeline()
 ## Sample code with DI
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;

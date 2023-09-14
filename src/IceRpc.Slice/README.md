@@ -24,7 +24,7 @@ interface Greeter {
 ```
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 using VisitorCenter;
@@ -41,7 +41,7 @@ await connection.ShutdownAsync();
 ```
 
 ```csharp
-// Server application (C#)
+// Server application
 
 using IceRpc;
 using IceRpc.Features;

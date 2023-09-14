@@ -8,7 +8,7 @@ IceRpc.Extensions.DependencyInjection helps you build applications with [IceRPC]
 ## Sample code
 
 ```csharp
-// Client application (C#)
+// Client application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
@@ -32,7 +32,7 @@ host.Run();
 ```
 
 ```csharp
-// Server application (C#)
+// Server application
 
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
