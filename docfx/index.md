@@ -4,9 +4,7 @@ layout: landing
 
 # IceRPC for C# API Reference
 
-Welcome to the IceRPC for C# API reference.
-
-| Name                                    | Description                                                                                                                                        |
+| Namespace                               | Description                                                                                                                                        |
 |-----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | [IceRpc]                                | The core of the IceRPC framework and various extensions for this core.                                                                             |
 | [IceRpc.Compressor]                     | Provides the compressor interceptor and middleware, for compressing and decompressing the payloads of requests and responses.                      |
@@ -28,22 +26,22 @@ Welcome to the IceRPC for C# API reference.
 | [IceRpc.Transports.Tcp]                 | Provides the TCP duplex transport. It implements the duplex transport abstractions using plain TCP and TCP + SSL.                                  |
 | [ZeroC.Slice]                           | Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler for C# generates code that relies on these APIs.  |
 
-[IceRpc]: https://docs.icerpc.dev/api/csharp/api/IceRpc.html
-[IceRpc.Compressor]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Compressor.html
-[IceRpc.Deadline]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Deadline.html
-[IceRpc.Extensions.DependencyInjection]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Extensions.DependencyInjection.html
-[IceRpc.Features]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Features.html
-[IceRpc.Locator]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Locator.html
-[IceRpc.Logger]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Logger.html
-[IceRpc.Metrics]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Metrics.html
-[IceRpc.RequestContext]: https://docs.icerpc.dev/api/csharp/api/IceRpc.RequestContext.html
-[IceRpc.Retry]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Retry.html
-[IceRpc.Slice]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Slice.html
-[IceRpc.Slice.Ice]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Slice.Ice.html
-[IceRpc.Telemetry]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Telemetry.html
-[IceRpc.Transports]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Transports.html
-[IceRpc.Transports.Coloc]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Transports.Coloc.html
-[IceRpc.Transports.Quic]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Transports.Quic.html
-[IceRpc.Transports.Slic]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Transports.Slic.html
-[IceRpc.Transports.Tcp]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Transports.Tcp.html
-[ZeroC.Slice]: https://docs.icerpc.dev/api/csharp/api/ZeroC.Slice.html
+[IceRpc]: api/IceRpc.yml
+[IceRpc.Compressor]: api/IceRpc.Compressor.yml
+[IceRpc.Deadline]: api/IceRpc.Deadline.yml
+[IceRpc.Extensions.DependencyInjection]: api/IceRpc.Extensions.DependencyInjection.yml
+[IceRpc.Features]: api/IceRpc.Features.yml
+[IceRpc.Locator]: api/IceRpc.Locator.yml
+[IceRpc.Logger]: api/IceRpc.Logger.yml
+[IceRpc.Metrics]: api/IceRpc.Metrics.yml
+[IceRpc.RequestContext]: api/IceRpc.RequestContext.yml
+[IceRpc.Retry]: api/IceRpc.Retry.yml
+[IceRpc.Slice]: api/IceRpc.Slice.yml
+[IceRpc.Slice.Ice]: api/IceRpc.Slice.Ice.yml
+[IceRpc.Telemetry]: api/IceRpc.Telemetry.yml
+[IceRpc.Transports]: api/IceRpc.Transports.yml
+[IceRpc.Transports.Coloc]: api/IceRpc.Transports.Coloc.yml
+[IceRpc.Transports.Quic]: api/IceRpc.Transports.Quic.yml
+[IceRpc.Transports.Slic]: api/IceRpc.Transports.Slic.yml
+[IceRpc.Transports.Tcp]: api/IceRpc.Transports.Tcp.yml
+[ZeroC.Slice]: api/ZeroC.Slice.yml
