@@ -36,8 +36,8 @@ nav img {
 
 /* Change the dark mode background color of the body and navbar to match our documentation. */
 [data-bs-theme="dark"] {
-  --bs-body-bg: #000;
+  --bs-body-bg: #1a1c21;
   .navbar {
-    background-color: #000;
+    background-color: #1a1c21;
   }
 }
