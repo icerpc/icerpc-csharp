@@ -53,7 +53,7 @@
       "_appName": "API",
       "_appFaviconPath": "images/favicon.ico",
       "_appLogoPath": "images/logo.svg",
-      "_appLogoUrl": "https://docs.icerpc.dev/api/csharp/api/IceRpc.html",
+      "_appLogoUrl": "https://docs.icerpc.dev/api/csharp/index.html",
       "_appFooter": "© 2023 ZeroC",
       "_enableSearch": true,
       "_gitContribute": {
