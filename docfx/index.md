@@ -2,7 +2,7 @@
 layout: landing
 ---
 
-# IceRPC for C# API Reference
+# C# API Reference
 
 | Namespace                               | Description                                                                                                                                        |
 |-----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -44,4 +44,5 @@ layout: landing
 [IceRpc.Transports.Quic]: api/IceRpc.Transports.Quic.yml
 [IceRpc.Transports.Slic]: api/IceRpc.Transports.Slic.yml
 [IceRpc.Transports.Tcp]: api/IceRpc.Transports.Tcp.yml
+[OpenTelemetry]: https://opentelemetry.io
 [ZeroC.Slice]: api/ZeroC.Slice.yml

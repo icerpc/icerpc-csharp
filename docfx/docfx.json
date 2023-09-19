@@ -50,10 +50,10 @@
     "disableGitFeatures": false,
     "globalMetadata": {
       "_appTitle": "IceRPC",
-      "_appName": "API",
+      "_appName": "Docs",
       "_appFaviconPath": "images/favicon.ico",
       "_appLogoPath": "images/logo.svg",
-      "_appLogoUrl": "https://docs.icerpc.dev/api/csharp/index.html",
+      "_appLogoUrl": "https://docs.icerpc.dev",
       "_appFooter": "© 2023 ZeroC",
       "_enableSearch": true,
       "_gitContribute": {
