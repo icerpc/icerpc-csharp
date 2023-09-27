@@ -1,0 +1,23 @@
+// Copyright (c) ZeroC, Inc.
+
+module Abode
+
+/// Monitors and controls a residential HVAC system.
+interface Thermostat {
+
+    /// Returns a new {@link Reading} immediately and then every 5 seconds.
+    monitor() -> stream Reading
+
+    changeCoolingSetPoint(setPoint: float32)
+    changeHeatingSetPoint(setPoint: float32)
+}
+
+struct Reading {
+    temperature: float32
+    heatStage: Stage?
+    heatSetPoint: float32
+    coolStage: Stage?
+    coolSetPoint: float32
+}
+
+enum Stage : uint8 { Stage1, Stage2 }
