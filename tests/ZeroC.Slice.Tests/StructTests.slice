@@ -12,6 +12,7 @@ struct MyStructWithOptionalFields {
     j: int32
     k: int32?
     l: int32?
+    e: MyEnum?
 }
 
 compact struct MyCompactStruct {
