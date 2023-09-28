@@ -1,0 +1,9 @@
+// Copyright (c) ZeroC, Inc.
+
+module Igloo
+
+/// Each device connects to the ThermoHome service to make itself available remotely and to report its status.
+/// With this simple example, we handle only a single ID-less device.
+interface ThermoHome {
+    report(readings: stream Reading)
+}

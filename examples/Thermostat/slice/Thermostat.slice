@@ -1,23 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
-module Abode
+module Igloo
 
-/// Monitors and controls a residential HVAC system.
+/// Monitors and controls a residential cool-only AC system.
+/// This interface corresponds to the public API used by client applications.
 interface Thermostat {
 
     /// Returns a new {@link Reading} immediately and then every 5 seconds.
     monitor() -> stream Reading
 
-    changeCoolingSetPoint(setPoint: float32)
-    changeHeatingSetPoint(setPoint: float32)
+    changeSetPoint(setPoint: float32)
 }
-
-struct Reading {
-    temperature: float32
-    heatStage: Stage?
-    heatSetPoint: float32
-    coolStage: Stage?
-    coolSetPoint: float32
-}
-
-enum Stage : uint8 { Stage1, Stage2 }

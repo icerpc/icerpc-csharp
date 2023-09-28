@@ -1,0 +1,9 @@
+// Copyright (c) ZeroC, Inc.
+
+module Igloo
+
+/// Controls the actual thermostat.
+/// This interface is implemented by the device and called by the cloud server.
+interface ThermoControl {
+    changeSetPoint(setPoint: float32)
+}

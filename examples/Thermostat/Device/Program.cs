@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using Abode;
 using IceRpc;
 using IceRpc.Slice;
+using Igloo;
 using Microsoft.Extensions.Logging;
 using ThermostatDevice;
 
@@ -11,14 +11,30 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Debug));
 
+var thermoCore = new ThermoCore();
+
 Router router = new Router()
     .UseLogger(loggerFactory)
-    .Map<IThermostatService>(new FakeDevice());
+    .Map<IThermoControlService>(thermoCore);
 
-await using var server = new Server(router, logger: loggerFactory.CreateLogger<Server>());
+// Create a client connection to the cloud server. It dispatches requests to router.
+await using var connection = new ClientConnection(
+    new ClientConnectionOptions
+    {
+        Dispatcher = router,
+        ServerAddress = new ServerAddress(new Uri("icerpc://localhost:10000"))
+    },
+    logger: loggerFactory.CreateLogger<ClientConnection>());
 
-server.Listen();
+Pipeline pipeline = new Pipeline()
+    .UseDeadline(TimeSpan.FromSeconds(3))
+    .UseLogger(loggerFactory)
+    .Into(connection);
 
-// Wait until the console receives a Ctrl+C.
-await CancelKeyPressed;
-await server.ShutdownAsync();
+var thermoHomeProxy = new ThermoHomeProxy(pipeline);
+
+// The client uses this ID for the thermostat path.
+await thermoHomeProxy.ReportAsync(thermoCore.ReadAsync());
+
+// Wait until the ThermoHome service stops reading, then exits.
+await thermoCore.ReadCompleted;
