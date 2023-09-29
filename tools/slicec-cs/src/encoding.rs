@@ -111,7 +111,7 @@ fn encode_type(
                     let encoder_extensions_class =
                         enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
                     let name = enum_ref.cs_identifier(Case::Pascal);
-                    format!("{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});")
+                    format!("{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {value});")
                 }
                 _ => panic!("class and proxy types are handled in the outer match"),
             };
