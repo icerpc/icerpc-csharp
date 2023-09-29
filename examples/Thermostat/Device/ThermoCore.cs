@@ -90,8 +90,6 @@ internal class ThermoCore : Service, IThermoControlService
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine("caught OCE");
-
                 // Cloud server doesn't want more data.
                 _readTcs.SetResult();
                 yield break;

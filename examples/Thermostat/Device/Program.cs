@@ -33,7 +33,7 @@ Pipeline pipeline = new Pipeline()
 
 var thermoHomeProxy = new ThermoHomeProxy(pipeline);
 
-// The client uses this ID for the thermostat path.
+// Connect and stream readings.
 await thermoHomeProxy.ReportAsync(thermoCore.ReadAsync());
 
 // Wait until the ThermoHome service stops reading, then exits.

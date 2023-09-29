@@ -10,6 +10,8 @@ namespace ThermostatServer;
 
 internal class ThermoFacade : Service, IThermostatService
 {
+    private CancellationTokenSource? _cts;
+
     private volatile IThermoControl? _thermoControl;
     private volatile TaskCompletionSource<(Reading, Task)> _tcs = new();
 
@@ -25,16 +27,22 @@ internal class ThermoFacade : Service, IThermostatService
             {
                 await thermoControl.ChangeSetPointAsync(setPoint, cancellationToken: cancellationToken);
             }
-            catch (DispatchException exception)
+            catch (DispatchException exception) when (exception.StatusCode == StatusCode.ApplicationError)
             {
-                // It could be because the device disconnected, or because the new setPoint is out of range.
+                // It could be because the new setPoint is out of range.
                 exception.ConvertToInternalError = false;
                 throw;
+            }
+            catch (ObjectDisposedException)
+            {
+                // The connection to the device was disposed.
+                _thermoControl = null;
+                throw new DispatchException(StatusCode.NotFound, "The device is not connected.");
             }
         }
         else
         {
-            throw new DispatchException(StatusCode.ApplicationError, "The device is not connected.");
+            throw new DispatchException(StatusCode.NotFound, "The device is not connected.");
         }
     }
 
@@ -67,18 +75,23 @@ internal class ThermoFacade : Service, IThermostatService
         }
     }
 
+    internal void Cancel() => Interlocked.Exchange(ref _cts, null)?.Cancel();
+
     internal async Task DeviceConnectedAsync(IThermoControl thermoControl, IAsyncEnumerable<Reading> readings)
     {
         _thermoControl = thermoControl;
 
-        await foreach (Reading reading in readings)
+        // If we are already reading from a previous connection, we stop reading from it.
+        var cts = new CancellationTokenSource();
+        Interlocked.Exchange(ref _cts, cts)?.Cancel();
+
+        await foreach (Reading reading in readings.WithCancellation(cts.Token))
         {
             Console.WriteLine(reading);
 
             var nextTcs = new TaskCompletionSource<(Reading, Task)>();
 
-            // In the unlikely event we get concurrent calls (= multiple concurrent re-connections), the first call
-            // wins.
+            // In the unlikely event we have multiple concurrent calls (from different connections) the first call wins.
             if (_tcs.TrySetResult((reading, nextTcs.Task)))
             {
                 _tcs = nextTcs;

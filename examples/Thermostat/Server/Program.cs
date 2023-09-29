@@ -35,5 +35,8 @@ frontEnd.Listen();
 
 // Wait until the console receives a Ctrl+C.
 await CancelKeyPressed;
+
+thermoFacade.Cancel(); // stop streaming
+
 await frontEnd.ShutdownAsync();
 await backEnd.ShutdownAsync();

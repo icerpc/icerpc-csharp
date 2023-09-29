@@ -21,7 +21,7 @@ internal class ThermoBridge : Service, IThermoHomeService
         IDispatchInformationFeature? dispatchInfo = features.Get<IDispatchInformationFeature>();
         Debug.Assert(dispatchInfo is not null);
 
-        // Notifies the (only) ThermoFacade its device is connected.
+        // Notifies the ThermoFacade its device is connected.
         // We let the async-iteration over readings execute in the background.
         _ = _thermoFacade.DeviceConnectedAsync(
             new ThermoControlProxy(dispatchInfo.ConnectionContext.Invoker),
