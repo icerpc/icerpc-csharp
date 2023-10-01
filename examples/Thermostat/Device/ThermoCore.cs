@@ -47,15 +47,13 @@ internal class ThermoCore : Service, IThermoControlService
     }
 
     /// <summary>Generates a new reading every 5 seconds.</summary>
-    internal async IAsyncEnumerable<Reading> ReadAsync(
+    internal async IAsyncEnumerable<Reading> ProduceReadingsAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         while (true)
         {
             lock (_mutex)
             {
-                // We can update _temperature and _stage here because we know this method is called only once (by
-                // Program).
                 if (_cooling != Stage.Off)
                 {
                     _temperature -= 0.1F * (byte)_cooling;
@@ -90,7 +88,7 @@ internal class ThermoCore : Service, IThermoControlService
             }
             catch (OperationCanceledException)
             {
-                // Cloud server doesn't want more data.
+                // Server doesn't want more data.
                 _readTcs.SetResult();
                 yield break;
             }

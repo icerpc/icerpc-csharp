@@ -34,7 +34,7 @@ Pipeline pipeline = new Pipeline()
 var thermoHomeProxy = new ThermoHomeProxy(pipeline);
 
 // Connect and stream readings.
-await thermoHomeProxy.ReportAsync(thermoCore.ReadAsync());
+await thermoHomeProxy.ReportAsync(thermoCore.ProduceReadingsAsync());
 
 // Wait until the ThermoHome service stops reading, then exits.
 await thermoCore.ReadCompleted;
