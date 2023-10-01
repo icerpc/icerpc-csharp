@@ -46,17 +46,17 @@ async Task ChangeSetPointAsync(float setPoint)
     {
         await proxy.ChangeSetPointAsync(setPoint);
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"Successfully changed set point to {setPoint}.");
+        Console.WriteLine($"Successfully changed set point to {setPoint}°F.");
     }
     catch (DispatchException exception)
     {
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"Failed to change set point to {setPoint}: StatusCode = {exception.StatusCode}, Message = {exception.Message}");
+        Console.WriteLine($"Failed to change set point to {setPoint}°F: StatusCode = {exception.StatusCode}, Message = {exception.Message}");
     }
     catch (Exception exception)
     {
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"Failed to change set point to {setPoint}: {exception}");
+        Console.WriteLine($"Failed to change set point to {setPoint}°F: {exception}");
     }
     Console.ResetColor();
 }

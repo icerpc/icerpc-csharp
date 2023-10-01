@@ -13,9 +13,9 @@ internal class ThermoCore : Service, IThermoControlService
 {
     internal Task ReadCompleted => _readTcs.Task;
 
+    private Stage _cooling;
     private readonly TaskCompletionSource _readTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private float _setPoint = 75.0F;
-    private Stage _stage;
     private float _temperature = 74.0F;
 
     private readonly object _mutex = new();
@@ -36,11 +36,11 @@ internal class ThermoCore : Service, IThermoControlService
             _setPoint = setPoint;
             if (_temperature > setPoint)
             {
-                _stage = _temperature - setPoint > 5.0F ? Stage.Stage2 : Stage.Stage1;
+                _cooling = _temperature - setPoint > 5.0F ? Stage.Stage2 : Stage.Stage1;
             }
             else
             {
-                _stage = Stage.Off;
+                _cooling = Stage.Off;
             }
         }
         return default;
@@ -56,13 +56,13 @@ internal class ThermoCore : Service, IThermoControlService
             {
                 // We can update _temperature and _stage here because we know this method is called only once (by
                 // Program).
-                if (_stage != Stage.Off)
+                if (_cooling != Stage.Off)
                 {
-                    _temperature -= 0.1F * (byte)_stage;
+                    _temperature -= 0.1F * (byte)_cooling;
 
                     if (_temperature <= _setPoint)
                     {
-                        _stage = Stage.Off;
+                        _cooling = Stage.Off;
                     }
                 }
                 else
@@ -71,7 +71,7 @@ internal class ThermoCore : Service, IThermoControlService
                     _temperature += 0.02F;
                     if (_temperature >= _setPoint)
                     {
-                        _stage = Stage.Stage1;
+                        _cooling = Stage.Stage1;
                     }
                 }
 
@@ -79,7 +79,7 @@ internal class ThermoCore : Service, IThermoControlService
                 {
                     TimeStamp = DateTime.UtcNow,
                     Temperature = _temperature,
-                    Stage = _stage,
+                    Cooling = _cooling,
                     SetPoint = _setPoint
                 };
             }

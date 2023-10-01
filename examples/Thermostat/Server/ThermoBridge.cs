@@ -9,8 +9,7 @@ namespace ThermostatServer;
 
 internal class ThermoBridge : Service, IThermoHomeService
 {
-    // With a more realistic service, the ThermoBridge singleton would manage multiple devices, each with an associated
-    // ThermoFacade instance.
+    private readonly DeviceConnection _deviceConnection;
     private readonly ThermoFacade _thermoFacade;
 
     public ValueTask ReportAsync(
@@ -20,15 +19,19 @@ internal class ThermoBridge : Service, IThermoHomeService
     {
         IDispatchInformationFeature? dispatchInfo = features.Get<IDispatchInformationFeature>();
         Debug.Assert(dispatchInfo is not null);
+        _deviceConnection.SetInvoker(dispatchInfo.ConnectionContext.Invoker);
 
         // Notifies the ThermoFacade its device is connected.
-        // We let the async-iteration over readings execute in the background.
-        _ = _thermoFacade.DeviceConnectedAsync(
-            new ThermoControlProxy(dispatchInfo.ConnectionContext.Invoker),
-            readings);
+        // We let the async-iteration over readings execute in the background. Note that it must complete to get a
+        // clean shutdown.
+        _ = _thermoFacade.PublishAsync(readings);
 
         return default;
     }
 
-    internal ThermoBridge(ThermoFacade thermoFacade) => _thermoFacade = thermoFacade;
+    internal ThermoBridge(ThermoFacade thermoFacade, DeviceConnection deviceConnection)
+    {
+        _deviceConnection = deviceConnection;
+        _thermoFacade = thermoFacade;
+    }
 }

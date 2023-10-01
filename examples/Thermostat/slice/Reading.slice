@@ -6,7 +6,7 @@ struct Reading {
     timeStamp: WellKnownTypes::TimeStamp
     temperature: float32
     setPoint: float32
-    stage: Stage
+    cooling: Stage
 }
 
 enum Stage : uint8 { Off, Stage1, Stage2 }

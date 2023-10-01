@@ -5,44 +5,40 @@ using IceRpc.Features;
 using IceRpc.Slice;
 using Igloo;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 
 namespace ThermostatServer;
 
-internal class ThermoFacade : Service, IThermostatService
+internal sealed class ThermoFacade : Service, IThermostatService
 {
-    private CancellationTokenSource? _cts;
+    private readonly LinkedList<ChannelWriter<Reading>> _channelWriters = new();
 
-    private volatile IThermoControl? _thermoControl;
-    private volatile TaskCompletionSource<(Reading, Task)> _tcs = new();
+    private Reading? _latestReading;
+
+    // Protects all read-write fields.
+    private readonly object _mutex = new();
+
+    private CancellationTokenSource? _publishCts;
+
+    private readonly CancellationToken _shutdownToken;
+
+    private readonly IThermoControl _thermoControl;
 
     public async ValueTask ChangeSetPointAsync(
         float setPoint,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        if (_thermoControl is IThermoControl thermoControl)
+        // Forwards call to device.
+        try
         {
-            // Forwards call to device.
-            try
-            {
-                await thermoControl.ChangeSetPointAsync(setPoint, cancellationToken: cancellationToken);
-            }
-            catch (DispatchException exception) when (exception.StatusCode == StatusCode.ApplicationError)
-            {
-                // It could be because the new setPoint is out of range.
-                exception.ConvertToInternalError = false;
-                throw;
-            }
-            catch (ObjectDisposedException)
-            {
-                // The connection to the device was disposed.
-                _thermoControl = null;
-                throw new DispatchException(StatusCode.NotFound, "The device is not connected.");
-            }
+            await _thermoControl.ChangeSetPointAsync(setPoint, cancellationToken: cancellationToken);
         }
-        else
+        catch (DispatchException exception) when (exception.StatusCode == StatusCode.ApplicationError)
         {
-            throw new DispatchException(StatusCode.NotFound, "The device is not connected.");
+            // It could be because the new setPoint is out of range.
+            exception.ConvertToInternalError = false;
+            throw;
         }
     }
 
@@ -52,19 +48,32 @@ internal class ThermoFacade : Service, IThermostatService
     {
         // Multiple MonitorAsync can execute concurrently on behalf of multiple client applications; as a result we
         // can't use a simple single producer / single consumer setup.
+
+        // Each MonitorAsync gets its own bounded channel with a single element.
+        var channel = Channel.CreateBounded<Reading>(
+            new BoundedChannelOptions(1)
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                FullMode = BoundedChannelFullMode.DropOldest
+            });
+
+        LinkedListNode<ChannelWriter<Reading>> node = AddChannelWriter(channel.Writer);
+
         return new(ReadAsync(CancellationToken.None));
 
+        // The injected cancellation token is canceled when the client disconnects.
         async IAsyncEnumerable<Reading> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            Task<(Reading, Task)> task = _tcs.Task;
+            // We stop streaming to the client when the server shuts down.
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownToken, cancellationToken);
 
-            while (!cancellationToken.IsCancellationRequested)
+            while (!cts.IsCancellationRequested)
             {
                 Reading reading;
                 try
                 {
-                    (reading, Task plainTask) = await task.WaitAsync(cancellationToken);
-                    task = (Task<(Reading, Task)>)plainTask;
+                    reading = await channel.Reader.ReadAsync(cts.Token);
                 }
                 catch
                 {
@@ -72,30 +81,88 @@ internal class ThermoFacade : Service, IThermostatService
                 }
                 yield return reading;
             }
+
+            RemoveChannelWriter(node);
         }
     }
 
-    internal void Cancel() => Interlocked.Exchange(ref _cts, null)?.Cancel();
-
-    internal async Task DeviceConnectedAsync(IThermoControl thermoControl, IAsyncEnumerable<Reading> readings)
+    internal ThermoFacade(IThermoControl thermoControl, CancellationToken shutdownToken)
     {
+        _shutdownToken = shutdownToken;
         _thermoControl = thermoControl;
+    }
 
-        // If we are already reading from a previous connection, we stop reading from it.
-        var cts = new CancellationTokenSource();
-        Interlocked.Exchange(ref _cts, cts)?.Cancel();
-
-        await foreach (Reading reading in readings.WithCancellation(cts.Token))
+    internal async Task PublishAsync(IAsyncEnumerable<Reading> readings)
+    {
+        if (_shutdownToken.IsCancellationRequested)
         {
-            Console.WriteLine(reading);
+            // Close the stream.
+            _ = readings.GetAsyncEnumerator().DisposeAsync().AsTask();
+            return;
+        }
 
-            var nextTcs = new TaskCompletionSource<(Reading, Task)>();
+        var publishCts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownToken);
+        CancellationToken cancellationToken = publishCts.Token;
 
-            // In the unlikely event we have multiple concurrent calls (from different connections) the first call wins.
-            if (_tcs.TrySetResult((reading, nextTcs.Task)))
+        CancellationTokenSource? oldPublishCts;
+        lock (_mutex)
+        {
+            oldPublishCts = _publishCts;
+            _publishCts = publishCts;
+        }
+
+        // Cancel previous publish task.
+        if (oldPublishCts is not null)
+        {
+            oldPublishCts.Cancel();
+            oldPublishCts.Dispose();
+        }
+
+        await foreach (Reading reading in readings.WithCancellation(cancellationToken))
+        {
+            Console.WriteLine($"Publishing: {reading}");
+
+            lock (_mutex)
             {
-                _tcs = nextTcs;
+                _latestReading = reading;
+
+                foreach (ChannelWriter<Reading> writer in _channelWriters)
+                {
+                    writer.TryWrite(reading);
+                }
             }
+        }
+
+        lock (_mutex)
+        {
+            // Cleanup unless a new publish task has already disposed publishCts.
+            if (_publishCts == publishCts)
+            {
+                publishCts.Dispose();
+                _publishCts = null;
+            }
+        }
+    }
+
+    private LinkedListNode<ChannelWriter<Reading>> AddChannelWriter(ChannelWriter<Reading> writer)
+    {
+        lock (_mutex)
+        {
+            // We return immediately the latest reading, then wait for the next one.
+            if (_latestReading is Reading reading)
+            {
+                writer.TryWrite(reading);
+            }
+            return _channelWriters.AddLast(writer);
+        }
+    }
+
+    private void RemoveChannelWriter(LinkedListNode<ChannelWriter<Reading>> node)
+    {
+        lock (_mutex)
+        {
+            _channelWriters.Remove(node);
+            node.Value.Complete();
         }
     }
 }
