@@ -9,6 +9,9 @@ using System.Threading.Channels;
 
 namespace ThermostatServer;
 
+/// <summary>Implements Slice interface `Thermostat` by forwarding calls to the device or by returning data collected
+/// from the device.</summary>
+/// <remarks>Most of the server-side logic is implemented in this class.</remarks>
 internal sealed class ThermoFacade : Service, IThermostatService
 {
     private readonly LinkedList<ChannelWriter<Reading>> _channelWriters = new();
@@ -24,12 +27,12 @@ internal sealed class ThermoFacade : Service, IThermostatService
 
     private readonly IThermoControl _thermoControl;
 
+    /// <summary>Changes the target temperature by forwarding the call to the device.</summary>
     public async ValueTask ChangeSetPointAsync(
         float setPoint,
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        // Forwards call to device.
         try
         {
             await _thermoControl.ChangeSetPointAsync(setPoint, cancellationToken: cancellationToken);
@@ -42,14 +45,12 @@ internal sealed class ThermoFacade : Service, IThermostatService
         }
     }
 
+    /// <summary>Returns the readings reported by the device.</summary>
     public ValueTask<IAsyncEnumerable<Reading>> MonitorAsync(
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        // Multiple MonitorAsync can execute concurrently on behalf of multiple client applications; as a result we
-        // can't use a simple single producer / single consumer setup.
-
-        // Each MonitorAsync gets its own bounded channel with a single element.
+        // Each call to MonitorAsync gets its own bounded channel with a single element.
         var channel = Channel.CreateBounded<Reading>(
             new BoundedChannelOptions(1)
             {

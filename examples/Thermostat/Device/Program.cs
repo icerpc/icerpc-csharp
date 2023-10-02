@@ -11,13 +11,11 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Debug));
 
-var thermoCore = new ThermoCore();
+var thermoBot = new ThermoBot();
 
-Router router = new Router()
-    .UseLogger(loggerFactory)
-    .Map<IThermoControlService>(thermoCore);
+Router router = new Router().UseLogger(loggerFactory).Map<IThermoControlService>(thermoBot);
 
-// Create a client connection to the cloud server. It dispatches requests to router.
+// Create a client connection to the server. It dispatches requests to router.
 await using var connection = new ClientConnection(
     new ClientConnectionOptions
     {
@@ -33,8 +31,8 @@ Pipeline pipeline = new Pipeline()
 
 var thermoHomeProxy = new ThermoHomeProxy(pipeline);
 
-// Connect and stream readings.
-await thermoHomeProxy.ReportAsync(thermoCore.ProduceReadingsAsync());
+// Call home and stream readings.
+await thermoHomeProxy.ReportAsync(thermoBot.ProduceReadingsAsync());
 
 // Wait until the ThermoHome service stops reading, then exits.
-await thermoCore.ReadCompleted;
+await thermoBot.ReadCompleted;

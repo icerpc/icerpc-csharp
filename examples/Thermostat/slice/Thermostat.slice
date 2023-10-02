@@ -9,5 +9,7 @@ interface Thermostat {
     /// Returns a new {@link Reading} immediately and then every 5 seconds.
     monitor() -> stream Reading
 
+    /// Changes the target temperature. If it's below the current temperature, the AC will start cooling.
+    /// @param setPoint: The target temperature in degrees Fahrenheit
     changeSetPoint(setPoint: float32)
 }

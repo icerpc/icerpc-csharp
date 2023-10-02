@@ -8,17 +8,20 @@ using System.Runtime.CompilerServices;
 
 namespace ThermostatDevice;
 
-/// <summary>Implements all the logic of our thermostat device.</summary>
-internal class ThermoCore : Service, IThermoControlService
+/// <summary>Implements all the logic of our thermostat device, without any actual electronics or a real AC unit.
+/// </summary>
+internal class ThermoBot : Service, IThermoControlService
 {
     internal Task ReadCompleted => _readTcs.Task;
 
     private Stage _cooling;
+
+    // Protects all read-write fields.
+    private readonly object _mutex = new();
+
     private readonly TaskCompletionSource _readTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private float _setPoint = 75.0F;
     private float _temperature = 74.0F;
-
-    private readonly object _mutex = new();
 
     public ValueTask ChangeSetPointAsync(
         float setPoint,
