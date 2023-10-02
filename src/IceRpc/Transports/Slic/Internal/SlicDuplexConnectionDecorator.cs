@@ -3,18 +3,16 @@
 using System.Buffers;
 using System.Diagnostics;
 
-namespace IceRpc.Transports.Internal;
+namespace IceRpc.Transports.Slic.Internal;
 
 /// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over readIdleTimeout. Also decorates
-/// <see cref="WriteAsync" /> to schedule a keep alive action (writeIdleTimeout / 2) after a successful write. Both
-/// sides of the connection are expected to use the same idle timeouts.</summary>
-internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
+/// <see cref="WriteAsync" /> to schedule a keep alive action (writeIdleTimeout / 2) after a successful write.</summary>
+internal class SlicDuplexConnectionDecorator : IDuplexConnection
 {
     private readonly IDuplexConnection _decoratee;
+    private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private Timer? _keepAliveTimer;
     private readonly CancellationTokenSource _readCts = new();
-    private TimeSpan _readIdleTimeout = Timeout.InfiniteTimeSpan;
-    private TimeSpan _writeIdleTimeout = Timeout.InfiniteTimeSpan;
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
         _decoratee.ConnectAsync(cancellationToken);
@@ -30,7 +28,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        return _readIdleTimeout == Timeout.InfiniteTimeSpan ?
+        return _idleTimeout == Timeout.InfiniteTimeSpan ?
             _decoratee.ReadAsync(buffer, cancellationToken) :
             PerformReadAsync();
 
@@ -41,7 +39,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
                 using CancellationTokenRegistration _ = cancellationToken.UnsafeRegister(
                     cts => ((CancellationTokenSource)cts!).Cancel(),
                     _readCts);
-                _readCts.CancelAfter(_readIdleTimeout); // enable idle timeout before reading
+                _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
                 return await _decoratee.ReadAsync(buffer, _readCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -50,7 +48,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
                 throw new IceRpcException(
                     IceRpcError.ConnectionIdle,
-                    $"The connection did not receive any bytes for over {_readIdleTimeout.TotalSeconds} s.");
+                    $"The connection did not receive any bytes for over {_idleTimeout.TotalSeconds} s.");
             }
             finally
             {
@@ -64,7 +62,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
     public ValueTask WriteAsync(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
     {
-        return _writeIdleTimeout == Timeout.InfiniteTimeSpan ?
+        return _idleTimeout == Timeout.InfiniteTimeSpan ?
             _decoratee.WriteAsync(buffer, cancellationToken) :
             PerformWriteAsync();
 
@@ -81,24 +79,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
 
     /// <summary>Constructs a decorator that does nothing until it is enabled by a call to <see cref="Enable" />.
     /// </summary>
-    internal IdleTimeoutDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
-
-    /// <summary>Constructs a decorator that ensures a call to <see cref="ReadAsync" /> will fail after readIdleTimeout.
-    /// This decorator also schedules a keepAliveAction after each write (see <see cref="ScheduleKeepAlive" />).
-    /// </summary>
-    /// <remarks>Do not call <see cref="Enable" /> on a decorator constructed with this constructor.</remarks>
-    internal IdleTimeoutDuplexConnectionDecorator(
-        IDuplexConnection decoratee,
-        TimeSpan readIdleTimeout,
-        TimeSpan writeIdleTimeout,
-        Action keepAliveAction)
-        : this(decoratee)
-    {
-        Debug.Assert(writeIdleTimeout != Timeout.InfiniteTimeSpan);
-        _readIdleTimeout = readIdleTimeout; // can be infinite i.e. disabled
-        _writeIdleTimeout = writeIdleTimeout;
-        _keepAliveTimer = new Timer(_ => keepAliveAction());
-    }
+    internal SlicDuplexConnectionDecorator(IDuplexConnection decoratee) => _decoratee = decoratee;
 
     /// <summary>Enables the read and write idle timeouts; also schedules one keep-alive.</summary>.
     internal void Enable(TimeSpan idleTimeout, Action? keepAliveAction)
@@ -106,8 +87,7 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
         Debug.Assert(_keepAliveTimer is null);
 
-        _readIdleTimeout = idleTimeout;
-        _writeIdleTimeout = idleTimeout;
+        _idleTimeout = idleTimeout;
 
         if (keepAliveAction is not null)
         {
@@ -116,6 +96,6 @@ internal class IdleTimeoutDuplexConnectionDecorator : IDuplexConnection
         }
     }
 
-    /// <summary>Schedules one keep alive in writeIdleTimeout / 2.</summary>
-    internal void ScheduleKeepAlive() => _keepAliveTimer?.Change(_writeIdleTimeout / 2, Timeout.InfiniteTimeSpan);
+    /// <summary>Schedules one keep alive in idleTimeout / 2.</summary>
+    private void ScheduleKeepAlive() => _keepAliveTimer?.Change(_idleTimeout / 2, Timeout.InfiniteTimeSpan);
 }

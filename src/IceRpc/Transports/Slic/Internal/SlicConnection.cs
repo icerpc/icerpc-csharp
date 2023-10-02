@@ -577,7 +577,7 @@ internal class SlicConnection : IMultiplexedConnection
 
         _closedCancellationToken = _closedCts.Token;
 
-        var duplexConnectionDecorator = new IdleTimeoutDuplexConnectionDecorator(duplexConnection);
+        var duplexConnectionDecorator = new SlicDuplexConnectionDecorator(duplexConnection);
         _enableIdleTimeoutAndKeepAlive = duplexConnectionDecorator.Enable;
 
         _duplexConnection = duplexConnectionDecorator;
