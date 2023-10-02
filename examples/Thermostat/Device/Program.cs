@@ -36,3 +36,6 @@ await thermoHomeProxy.ReportAsync(thermoBot.ProduceReadingsAsync());
 
 // Wait until the ThermoHome service stops reading, then exits.
 await thermoBot.ReadCompleted;
+
+// Graceful shutdown.
+await connection.ShutdownAsync();

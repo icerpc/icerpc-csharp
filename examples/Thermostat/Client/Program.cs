@@ -40,6 +40,9 @@ rootCommand.SetHandler(MonitorAsync);
 
 await rootCommand.InvokeAsync(args);
 
+// Graceful shutdown
+await connection.ShutdownAsync();
+
 async Task ChangeSetPointAsync(float setPoint)
 {
     try
