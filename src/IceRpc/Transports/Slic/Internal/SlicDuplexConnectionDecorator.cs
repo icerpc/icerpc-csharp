@@ -46,10 +46,10 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
                 _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
 
                 int bytesRead = await _decoratee.ReadAsync(buffer, _readCts.Token).ConfigureAwait(false);
-                // Debug.Assert(bytesRead > 0); // TODO: uncomment when bug is fixed
+                // Debug.Assert(bytesRead > 0); // TODO: uncomment when #3671 is fixed
 
                 // After each successful read, we schedule one ping some time in the future.
-                SchedulePingAfterRead();
+                ResetReadTimer();
                 return bytesRead;
             }
             catch (OperationCanceledException)
@@ -82,7 +82,7 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
 
             // After each successful write, we schedule one ping some time in the future. Since each ping is itself a
             // write, if there is no application activity at all, we'll send successive pings at regular intervals.
-            SchedulePingAfterWrite();
+            ResetWriteTimer();
         }
     }
 
@@ -99,19 +99,24 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
         _writeTimer = new Timer(_ => sendWritePing());
     }
 
-    /// <summary>Sets the idle timeout and schedules pings.</summary>.
+    /// <summary>Sets the idle timeout and schedules pings once the connection is established.</summary>.
     internal void Enable(TimeSpan idleTimeout)
     {
         Debug.Assert(idleTimeout != Timeout.InfiniteTimeSpan);
         _idleTimeout = idleTimeout;
 
-        SchedulePingAfterRead();
-        SchedulePingAfterWrite();
+        ResetReadTimer();
+        ResetWriteTimer();
     }
 
-    /// <summary>Schedules one ping in idleTimeout * 0.5.</summary>
-    private void SchedulePingAfterRead() => _readTimer?.Change(_idleTimeout * 0.5, Timeout.InfiniteTimeSpan);
+    /// <summary>Resets the read timer. We send a "read" ping when this timer expires.</summary>
+    /// <remarks>This method is no-op unless this decorator is constructed with send ping actions.</remarks>
+    private void ResetReadTimer() => _readTimer?.Change(_idleTimeout * 0.5, Timeout.InfiniteTimeSpan);
 
-    /// <summary>Schedules one ping in idleTimeout * 0.6.</summary>
-    private void SchedulePingAfterWrite() => _writeTimer?.Change(_idleTimeout * 0.6, Timeout.InfiniteTimeSpan);
+    /// <summary>Resets the write timer. We send a "write" ping when this timer expires.</summary>
+    /// <remarks>This method is no-op unless this decorator is constructed with send ping actions.</remarks>
+    // The write timer factor (0.6) was chosen to be greater than the read timer factor (0.5). This way, when the
+    // connection is completely idle, the read timer expires before the write timer and has time to send a ping that
+    // resets the write timer. This reduces the likelihood of duplicate "keep alive" pings.
+    private void ResetWriteTimer() => _writeTimer?.Change(_idleTimeout * 0.6, Timeout.InfiniteTimeSpan);
 }

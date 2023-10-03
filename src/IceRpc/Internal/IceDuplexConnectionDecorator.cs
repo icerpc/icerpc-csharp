@@ -12,7 +12,7 @@ namespace IceRpc.Internal;
 internal class IceDuplexConnectionDecorator : IDuplexConnection
 {
     private readonly IDuplexConnection _decoratee;
-    private readonly Timer _keepAliveTimer;
+    private readonly Timer _writerTimer;
     private readonly CancellationTokenSource _readCts = new();
     private readonly TimeSpan _readIdleTimeout;
     private readonly TimeSpan _writeIdleTimeout;
@@ -22,8 +22,8 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
         TransportConnectionInformation connectionInformation = await _decoratee.ConnectAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        // Schedules or reschedules a keep alive after a successful connection establishment.
-        ScheduleKeepAliveAfterWrite();
+        // Schedule or reschedule a keep alive after a successful connection establishment.
+        ResetWriteTimer();
         return connectionInformation;
     }
 
@@ -33,7 +33,7 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
         _readCts.Dispose();
 
         // Using Dispose is fine, there's no need to wait for the keep alive action to terminate if it's running.
-        _keepAliveTimer.Dispose();
+        _writerTimer.Dispose();
     }
 
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
@@ -83,13 +83,12 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
             // After each successful write, we (re)schedule one ping (heartbeat) at _writeIdleTimeout / 2 in the future.
             // Since each ping is itself a write, if there is no application activity at all, we'll send successive
             // pings at _writeIdleTimeout / 2 intervals.
-            ScheduleKeepAliveAfterWrite();
+            ResetWriteTimer();
         }
     }
 
     /// <summary>Constructs a decorator that ensures a call to <see cref="ReadAsync" /> will fail after readIdleTimeout.
-    /// This decorator also schedules a keepAliveAction after each write (see
-    /// <see cref="ScheduleKeepAliveAfterWrite" />).</summary>
+    /// This decorator also schedules a keepAliveAction after each write (see <see cref="ResetWriteTimer" />).</summary>
     internal IceDuplexConnectionDecorator(
         IDuplexConnection decoratee,
         TimeSpan readIdleTimeout,
@@ -100,12 +99,11 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
         _decoratee = decoratee;
         _readIdleTimeout = readIdleTimeout; // can be infinite i.e. disabled
         _writeIdleTimeout = writeIdleTimeout;
-        _keepAliveTimer = new Timer(_ => keepAliveAction());
+        _writerTimer = new Timer(_ => keepAliveAction());
 
         // We can't schedule a keep alive right away because the connection is not connected yet.
     }
 
-    /// <summary>Schedules one keep alive in writeIdleTimeout / 2.</summary>
-    private void ScheduleKeepAliveAfterWrite() =>
-        _keepAliveTimer.Change(_writeIdleTimeout / 2, Timeout.InfiniteTimeSpan);
+    /// <summary>Resets the write timer. We send a keep alive when this timer expires.</summary>
+    private void ResetWriteTimer() => _writerTimer.Change(_writeIdleTimeout / 2, Timeout.InfiniteTimeSpan);
 }

@@ -593,7 +593,6 @@ internal class SlicConnection : IMultiplexedConnection
         {
             // ReadKeepAlive is no-op unless _pendingPongCount == 0 before the Increment below: we send a Ping only if
             // there is no outstanding Pong.
-
             if (Interlocked.Increment(ref _pendingPongCount) == 1)
             {
                 SendPing(1L);
@@ -1205,7 +1204,7 @@ internal class SlicConnection : IMultiplexedConnection
                     (ref SliceDecoder decoder) => new PongBody(ref decoder),
                     cancellationToken).ConfigureAwait(false);
 
-                // For now, we only send a 0 and 1 payload value.
+                // For now, we only send a 0 or 1 payload value (0 for "write ping" and 1 for "read ping").
                 if (pongBody.Payload != 0L && pongBody.Payload != 1L)
                 {
                     throw new InvalidDataException($"Received {nameof(FrameType.Pong)} with unexpected payload.");
