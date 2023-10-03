@@ -14,8 +14,8 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
     private TimeSpan _idleTimeout = Timeout.InfiniteTimeSpan;
     private readonly CancellationTokenSource _readCts = new();
 
-    private Timer? _readTimer;
-    private Timer? _writeTimer;
+    private readonly Timer? _readTimer;
+    private readonly Timer? _writeTimer;
 
     public Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken) =>
         _decoratee.ConnectAsync(cancellationToken);
