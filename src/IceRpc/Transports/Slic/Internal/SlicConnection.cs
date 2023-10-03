@@ -584,7 +584,7 @@ internal class SlicConnection : IMultiplexedConnection
             }
             catch (Exception exception)
             {
-                Debug.Fail($"The Slic keep alive timer failed with an unexpected exception: {exception}");
+                Debug.Fail($"The sending of a Ping frame failed with an unexpected exception: {exception}");
                 throw;
             }
         }

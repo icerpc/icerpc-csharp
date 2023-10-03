@@ -44,7 +44,7 @@ public class SlicIdleTimeoutTests
     }
 
     [Test]
-    public async Task Slic_keep_alive_action_is_called()
+    public async Task Slic_send_pings_are_called()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -55,11 +55,13 @@ public class SlicIdleTimeoutTests
         var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
         await sut.AcceptAndConnectAsync();
 
-        using var semaphore = new SemaphoreSlim(0, 1);
+        using var readSemaphore = new SemaphoreSlim(0, 1);
+        using var writeSemaphore = new SemaphoreSlim(0, 1);
+
         using var clientConnection = new SlicDuplexConnectionDecorator(
             sut.Client,
-            sendReadPing: () => {},
-            sendWritePing: () => semaphore.Release());
+            sendReadPing: () => readSemaphore.Release(),
+            sendWritePing: () => writeSemaphore.Release());
         clientConnection.Enable(TimeSpan.FromMilliseconds(500));
 
         // Write and read data.
@@ -69,7 +71,8 @@ public class SlicIdleTimeoutTests
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         // Act/Assert
-        Assert.That(() => semaphore.WaitAsync(), Throws.Nothing);
+        Assert.That(readSemaphore.WaitAsync, Throws.Nothing);
+        Assert.That(writeSemaphore.WaitAsync, Throws.Nothing);
 
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime,
