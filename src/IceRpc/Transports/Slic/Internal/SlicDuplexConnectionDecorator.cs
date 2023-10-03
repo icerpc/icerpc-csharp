@@ -5,8 +5,9 @@ using System.Diagnostics;
 
 namespace IceRpc.Transports.Slic.Internal;
 
-/// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over readIdleTimeout. Also decorates
-/// <see cref="WriteAsync" /> to schedule a keep alive action (writeIdleTimeout / 2) after a successful write.</summary>
+/// <summary>Decorates <see cref="ReadAsync" /> to fail if no byte is received for over idle timeout. Also optionally
+/// decorates both <see cref="ReadAsync"/> and <see cref="WriteAsync" /> to schedule pings that prevent both the local
+/// and remote idle timers from expiring.</summary>
 internal class SlicDuplexConnectionDecorator : IDuplexConnection
 {
     private readonly IDuplexConnection _decoratee;
