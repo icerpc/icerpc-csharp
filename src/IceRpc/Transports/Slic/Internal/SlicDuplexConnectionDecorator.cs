@@ -46,10 +46,15 @@ internal class SlicDuplexConnectionDecorator : IDuplexConnection
                 _readCts.CancelAfter(_idleTimeout); // enable idle timeout before reading
 
                 int bytesRead = await _decoratee.ReadAsync(buffer, _readCts.Token).ConfigureAwait(false);
-                // Debug.Assert(bytesRead > 0); // TODO: uncomment when #3671 is fixed
 
                 // After each successful read, we schedule one ping some time in the future.
-                ResetReadTimer();
+                if (bytesRead > 0)
+                {
+                    ResetReadTimer();
+                }
+                // When 0, the other side called ShutdownWriteAsync, so there is no point to send a ping since we can't
+                // get back a pong.
+
                 return bytesRead;
             }
             catch (OperationCanceledException)
