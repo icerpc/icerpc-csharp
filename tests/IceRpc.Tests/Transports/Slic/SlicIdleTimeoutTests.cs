@@ -24,7 +24,7 @@ public class SlicIdleTimeoutTests
         await sut.AcceptAndConnectAsync();
 
         using var clientConnection = new SlicDuplexConnectionDecorator(sut.Client);
-        clientConnection.Enable(TimeSpan.FromMilliseconds(500), keepAliveAction: null);
+        clientConnection.Enable(TimeSpan.FromMilliseconds(500));
 
         // Write and read data to the connection
         await sut.Server.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
@@ -56,10 +56,11 @@ public class SlicIdleTimeoutTests
         await sut.AcceptAndConnectAsync();
 
         using var semaphore = new SemaphoreSlim(0, 1);
-        using var clientConnection = new SlicDuplexConnectionDecorator(sut.Client);
-        clientConnection.Enable(
-            TimeSpan.FromMilliseconds(500),
-            keepAliveAction: () => semaphore.Release());
+        using var clientConnection = new SlicDuplexConnectionDecorator(
+            sut.Client,
+            sendReadPing: () => {},
+            sendWritePing: () => semaphore.Release());
+        clientConnection.Enable(TimeSpan.FromMilliseconds(500));
 
         // Write and read data.
         await clientConnection.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
