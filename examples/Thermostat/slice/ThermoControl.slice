@@ -3,7 +3,8 @@
 module Igloo
 
 /// Controls the actual thermostat.
-/// This interface is implemented by the device and called by the server over the device to server connection.
 interface ThermoControl {
+    /// Sets a new target temperature (known as set point).
+    /// @param setPoint: The new target temperature.
     changeSetPoint(setPoint: float32)
 }

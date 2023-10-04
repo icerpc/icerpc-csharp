@@ -22,6 +22,10 @@ Pipeline pipeline = new Pipeline()
 
 var proxy = new ThermostatProxy(pipeline);
 
+// This client provides two commands: monitor and set.
+// monitor is the default and streams readings until your press Ctrl+C.
+// set <value> changes the set point and exits.
+
 var monitorCommand = new Command("monitor", "Monitor the thermostat (default)");
 monitorCommand.SetHandler(MonitorAsync);
 

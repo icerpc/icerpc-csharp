@@ -2,8 +2,8 @@
 
 module Igloo
 
-/// Each device "calls home" on start-up: it connects to the ThermoHome service to report a stream of readings.
-/// With this simple example, we handle only a single ID-less device.
+/// Each device "calls home" at start-up: it connects to the ThermoHome service to report a stream of readings.
 interface ThermoHome {
+    /// Reports the state of the thermostat.
     report(readings: stream Reading)
 }

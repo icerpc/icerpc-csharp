@@ -19,10 +19,13 @@ internal class ThermoBot : Service, IThermoControlService
     // Protects all read-write fields.
     private readonly object _mutex = new();
 
+    // Used to signal when the server has stopped reading.
     private readonly TaskCompletionSource _readTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private float _setPoint = 75.0F;
     private float _temperature = 74.0F;
 
+    /// <inheritdoc />
     public ValueTask ChangeSetPointAsync(
         float setPoint,
         IFeatureCollection features,
@@ -63,13 +66,14 @@ internal class ThermoBot : Service, IThermoControlService
 
                     if (_temperature <= _setPoint)
                     {
+                        // A real thermostat would turn off only after running for a while to avoid short-cycling.
                         _cooling = Stage.Off;
                     }
                 }
                 else
                 {
                     // The temperature slowly increases until it hits the set point.
-                    _temperature += 0.02F;
+                    _temperature += 0.04F;
                     if (_temperature >= _setPoint)
                     {
                         _cooling = Stage.Stage1;
@@ -78,7 +82,7 @@ internal class ThermoBot : Service, IThermoControlService
 
                 yield return new Reading
                 {
-                    TimeStamp = DateTime.UtcNow,
+                    TimeStamp = DateTime.Now, // encoded as UTC time stamp
                     Temperature = _temperature,
                     Cooling = _cooling,
                     SetPoint = _setPoint

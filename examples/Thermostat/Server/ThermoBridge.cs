@@ -20,7 +20,10 @@ internal class ThermoBridge : Service, IThermoHomeService
         CancellationToken cancellationToken)
     {
         IDispatchInformationFeature? dispatchInfo = features.Get<IDispatchInformationFeature>();
+
+        // We installed the dispatch middleware in Router to get this dispatch info:
         Debug.Assert(dispatchInfo is not null);
+
         _deviceConnection.SetInvoker(dispatchInfo.ConnectionContext.Invoker);
 
         // Notifies the ThermoFacade its device is connected.

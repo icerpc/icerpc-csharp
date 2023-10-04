@@ -28,5 +28,6 @@ internal class DeviceConnection : IInvoker
         throw new DispatchException(StatusCode.NotFound, "The device is not connected.");
     }
 
+    /// <summary>Sets the invoker that represents the latest connection from the device.</summary>
     internal void SetInvoker(IInvoker invoker) => _invoker = invoker;
 }

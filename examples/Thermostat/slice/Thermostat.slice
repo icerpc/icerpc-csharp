@@ -6,7 +6,7 @@ module Igloo
 /// This interface corresponds to the public API used by client applications.
 interface Thermostat {
 
-    /// Returns a new {@link Reading} immediately and then every 5 seconds.
+    /// Returns a new {@link Reading} immediately and then every time the actual device reports a value.
     monitor() -> stream Reading
 
     /// Changes the target temperature. If it's below the current temperature, the AC will start cooling.

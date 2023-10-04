@@ -13,15 +13,15 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 
 using var shutdownCts = new CancellationTokenSource();
 
-// In this simple example, we assume a single device is connected to the server. In a more realistic example, the
-// server would manage multiple devices, each with an associated ThermoFacade instance, device connection, device
-// pipeline and ThermoControlProxy instance.
+// In this simple example, the server manages a single device at a time. In a more realistic example, the server would
+// manage multiple devices, each with an associated ThermoFacade instance, device connection, device pipeline and
+// ThermoControlProxy instance.
 
 var deviceConnection = new DeviceConnection();
 Pipeline pipeline = new Pipeline().UseLogger(loggerFactory).Into(deviceConnection);
 var thermoControlProxy = new ThermoControlProxy(pipeline);
 
-// Front-end
+// Front-end, client-facing.
 
 var thermoFacade = new ThermoFacade(thermoControlProxy, shutdownCts.Token);
 
@@ -31,7 +31,7 @@ Router frontEndRouter = new Router()
 
 await using var frontEnd = new Server(frontEndRouter, logger: loggerFactory.CreateLogger<Server>());
 
-// Back-end
+// Back-end, device-facing.
 
 Router backEndRouter = new Router()
     .UseLogger(loggerFactory)

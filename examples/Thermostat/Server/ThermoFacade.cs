@@ -9,8 +9,8 @@ using System.Threading.Channels;
 
 namespace ThermostatServer;
 
-/// <summary>Implements Slice interface `Thermostat` by forwarding calls to the device or by returning data collected
-/// from the device.</summary>
+/// <summary>Implements Slice interface `Thermostat` by forwarding calls to the device or by returning data reported
+/// by the device.</summary>
 /// <remarks>Most of the server-side logic is implemented in this class.</remarks>
 internal sealed class ThermoFacade : Service, IThermostatService
 {
@@ -39,7 +39,7 @@ internal sealed class ThermoFacade : Service, IThermostatService
         }
         catch (DispatchException exception) when (exception.StatusCode == StatusCode.ApplicationError)
         {
-            // It could be because the new setPoint is out of range.
+            // It could be because the new setPoint is out of range. We want to keep this error as-is.
             exception.ConvertToInternalError = false;
             throw;
         }
@@ -63,10 +63,10 @@ internal sealed class ThermoFacade : Service, IThermostatService
 
         return new(ReadAsync(CancellationToken.None));
 
-        // The injected cancellation token is canceled when the client disconnects.
+        // The injected cancellation token is canceled when the client disconnects or stops reading.
         async IAsyncEnumerable<Reading> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            // We stop streaming to the client when the server shuts down.
+            // We stop yielding new values when the server shuts down or the client disconnects or stops reading.
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownToken, cancellationToken);
 
             while (!cts.IsCancellationRequested)
@@ -93,8 +93,14 @@ internal sealed class ThermoFacade : Service, IThermostatService
         _thermoControl = thermoControl;
     }
 
+    /// <summary>Publishes the readings to the clients currently monitoring the device.</summary>
     internal async Task PublishAsync(IAsyncEnumerable<Reading> readings)
     {
+        // This method "owns" readings and its underlying multiplexed transport stream. We must iterate over the
+        // readings at least partially to dispose the async enumerator and close this multiplexed transport stream. If
+        // we forget to do that, the multiplexed transport stream remains open and the connection won't shutdown
+        // gracefully.
+
         if (_shutdownToken.IsCancellationRequested)
         {
             // Close the stream.
@@ -129,6 +135,7 @@ internal sealed class ThermoFacade : Service, IThermostatService
 
                 foreach (ChannelWriter<Reading> writer in _channelWriters)
                 {
+                    // This always succeeds.
                     writer.TryWrite(reading);
                 }
             }
