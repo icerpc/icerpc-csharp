@@ -591,15 +591,10 @@ internal class SlicConnection : IMultiplexedConnection
 
         void SendReadPing()
         {
-            // SendReadPing is no-op unless _pendingPongCount == 0 before the Increment below: we send a Ping only if
-            // there is no pending Pong.
-            if (Interlocked.Increment(ref _pendingPongCount) == 1)
+            // This local function is no-op if there is already a pending Pong.
+            if (Interlocked.CompareExchange(ref _pendingPongCount, 1, 0) == 0)
             {
                 SendPing(1L);
-            }
-            else
-            {
-                Interlocked.Decrement(ref _pendingPongCount);
             }
         }
 
