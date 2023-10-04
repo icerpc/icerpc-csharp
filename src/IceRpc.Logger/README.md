@@ -40,8 +40,8 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Debug));
 
-// Create a router (dispatch pipeline) and install the logger middleware. This middleware logs
-// dispatches using category `IceRpc.Logger.LoggerMiddleware`.
+// Create a router (dispatch pipeline) and install the logger middleware. This middleware
+// logs dispatches using category `IceRpc.Logger.LoggerMiddleware`.
 Router router = new Router()
     .UseLogger(loggerFactory)
     .Map<...>(...);
