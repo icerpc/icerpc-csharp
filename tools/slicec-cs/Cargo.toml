@@ -8,6 +8,7 @@ The slicec-cs compiler, for compiling Slice files into C# code.
 keywords = ["slice", "ice", "icerpc"]
 license = "Apache-2.0"
 edition = "2021"
+rust-version = "1.70"
 
 [dependencies]
 clap = { version = "4.3.15", features = ["derive"] }
