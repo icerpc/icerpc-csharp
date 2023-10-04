@@ -587,6 +587,49 @@ public class SlicTransportTests
         Assert.That(async () => await acceptStreamTask, Throws.InstanceOf<IceRpcException>());
     }
 
+    /// <summary>Verifies that setting the idle timeout doesn't abort the connection when there is slow write activity
+    /// from client to server.</summary>
+    [Test]
+    public async Task Connection_with_idle_timeout_and_slow_write_is_not_aborted(
+        [Values(true, false)] bool serverIdleTimeout)
+    {
+        // Arrange
+        var services = new ServiceCollection().AddSlicTest();
+        var idleTimeout = TimeSpan.FromSeconds(1);
+        if (serverIdleTimeout)
+        {
+            services.AddOptions<SlicTransportOptions>("server").Configure(options => options.IdleTimeout = idleTimeout);
+        }
+        else
+        {
+            services.AddOptions<SlicTransportOptions>("client").Configure(options => options.IdleTimeout = idleTimeout);
+        }
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        ValueTask<IMultiplexedStream> acceptStreamTask = sut.Server.AcceptStreamAsync(default);
+        IMultiplexedStream stream = await sut.Client.CreateStreamAsync(bidirectional: false, default);
+
+        // Act
+        for (int i = 0; i < 4; ++i)
+        {
+            // Slow writes to the server (the server doesn't even read them).
+            _ = await stream.Output.WriteAsync(new byte[1], default);
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+        }
+        stream.Output.Complete();
+        ValueTask<IMultiplexedStream> nextAcceptStreamTask = sut.Server.AcceptStreamAsync(default);
+
+        // Assert
+        Assert.That(acceptStreamTask.IsCompleted, Is.True);
+        Assert.That(nextAcceptStreamTask.IsCompleted, Is.False);
+        await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
+        Assert.That(async () => await nextAcceptStreamTask, Throws.InstanceOf<IceRpcException>());
+    }
+
     /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server
     /// duplex connection hangs.</summary>
     [Test]

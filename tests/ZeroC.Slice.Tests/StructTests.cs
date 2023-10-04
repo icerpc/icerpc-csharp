@@ -44,7 +44,8 @@ public sealed class StructTests
     [Test]
     public void Decode_struct_with_optional_fields(
         [Values(10, null)] int? k,
-        [Values(20, null)] int? l)
+        [Values(20, null)] int? l,
+        [Values(MyEnum.Enum1, null)] MyEnum? e)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -64,6 +65,13 @@ public sealed class StructTests
         {
             encoder.EncodeInt32(l.Value);
         }
+
+        bitSequenceWriter.Write(e is not null);
+        if (e is not null)
+        {
+            encoder.EncodeMyEnum(e.Value);
+        }
+
         encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
 
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
@@ -76,6 +84,7 @@ public sealed class StructTests
         Assert.That(decoded.J, Is.EqualTo(20));
         Assert.That(decoded.K, Is.EqualTo(k));
         Assert.That(decoded.L, Is.EqualTo(l));
+        Assert.That(decoded.E, Is.EqualTo(e));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 
@@ -114,11 +123,12 @@ public sealed class StructTests
     [Test]
     public void Encode_struct_with_optional_fields(
         [Values(10, null)] int? k,
-        [Values(20, null)] int? l)
+        [Values(20, null)] int? l,
+        [Values(MyEnum.Enum2, null)] MyEnum? e)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
-        var expected = new MyStructWithOptionalFields(10, 20, k, l);
+        var expected = new MyStructWithOptionalFields(10, 20, k, l, e);
 
         expected.Encode(ref encoder);
 
@@ -147,6 +157,16 @@ public sealed class StructTests
         {
             Assert.That(bitSequenceReader.Read(), Is.False);
         }
+         if (e is not null)
+        {
+            Assert.That(bitSequenceReader.Read(), Is.True);
+            Assert.That(decoder.DecodeMyEnum(), Is.EqualTo(MyEnum.Enum2));
+        }
+        else
+        {
+            Assert.That(bitSequenceReader.Read(), Is.False);
+        }
+
         Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }

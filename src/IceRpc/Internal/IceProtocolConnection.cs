@@ -56,9 +56,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     // A connection refuses invocations when it's disposed, shut down, shutting down or merely "shutdown requested".
     private bool _refuseInvocations;
 
-    // When not null, schedules one keep-alive action in options.IdleTimeout / 2.
-    private readonly Action? _scheduleKeepAlive;
-
     // Does ShutdownAsync send a close connection frame?
     private bool _sendCloseConnectionFrame = true;
 
@@ -143,9 +140,6 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         throw new InvalidDataException(
                             $"Expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'.");
                     }
-
-                    // Schedules a keep-alive to keep the connection alive now that it's established.
-                    _scheduleKeepAlive?.Invoke();
                 }
             }
             catch (OperationCanceledException)
@@ -600,13 +594,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         if (options.IceIdleTimeout != Timeout.InfiniteTimeSpan)
         {
-            var duplexConnectionDecorator = new IdleTimeoutDuplexConnectionDecorator(
+            duplexConnection = new IceDuplexConnectionDecorator(
                 duplexConnection,
                 readIdleTimeout: options.EnableIceIdleCheck ? options.IceIdleTimeout : Timeout.InfiniteTimeSpan,
                 writeIdleTimeout: options.IceIdleTimeout,
                 KeepAlive);
-            duplexConnection = duplexConnectionDecorator;
-            _scheduleKeepAlive = duplexConnectionDecorator.ScheduleKeepAlive;
         }
 
         _duplexConnection = duplexConnection;

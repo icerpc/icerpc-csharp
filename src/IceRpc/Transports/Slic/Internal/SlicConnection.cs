@@ -55,10 +55,9 @@ internal class SlicConnection : IMultiplexedConnection
     private Task<TransportConnectionInformation>? _connectTask;
     private readonly CancellationTokenSource _disposedCts = new();
     private Task? _disposeTask;
-    private readonly IDuplexConnection _duplexConnection;
+    private readonly SlicDuplexConnectionDecorator _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly SlicDuplexConnectionWriter _duplexConnectionWriter;
-    private readonly Action<TimeSpan, Action?> _enableIdleTimeoutAndKeepAlive;
     private bool _isClosed;
     private ulong? _lastRemoteBidirectionalStreamId;
     private ulong? _lastRemoteUnidirectionalStreamId;
@@ -265,9 +264,7 @@ internal class SlicConnection : IMultiplexedConnection
 
             if (idleTimeout != Timeout.InfiniteTimeSpan)
             {
-                // Only client connections send ping frames when idle to keep the server connection alive. The server
-                // sends back a Pong frame in turn to keep alive the client connection.
-                _enableIdleTimeoutAndKeepAlive(idleTimeout, IsServer ? null : KeepAlive);
+                _duplexConnection.Enable(idleTimeout);
             }
 
             _readFramesTask = ReadFramesAsync(_disposedCts.Token);
@@ -316,31 +313,6 @@ internal class SlicConnection : IMultiplexedConnection
                         (ref SliceDecoder decoder) => new VersionBody(ref decoder))),
                 _ => throw new InvalidDataException($"Received unexpected Slic frame: '{frameType}'."),
             };
-
-        void KeepAlive()
-        {
-            // _pendingPongCount can be < 0 if an unexpected pong is received. If it's the case, the connection is being
-            // torn down and there's no point in sending a ping frame.
-            if (Interlocked.Increment(ref _pendingPongCount) > 0)
-            {
-                try
-                {
-                    // For now, the Ping frame payload is just a long which is always set to 0. In the future, it could
-                    // be a ping frame type value if the ping frame is used for different purpose (e.g: a KeepAlive or
-                    // RTT ping frame type).
-                    WriteConnectionFrame(FrameType.Ping, new PingBody(0L).Encode);
-                }
-                catch (IceRpcException)
-                {
-                    // Expected if the connection is closed.
-                }
-                catch (Exception exception)
-                {
-                    Debug.Fail($"The Slic keep alive timer failed with an unexpected exception: {exception}");
-                    throw;
-                }
-            }
-        }
 
         async ValueTask<T> ReadFrameAsync<T>(
             Func<FrameType?, ReadOnlySequence<byte>, T> decodeFunc,
@@ -577,10 +549,11 @@ internal class SlicConnection : IMultiplexedConnection
 
         _closedCancellationToken = _closedCts.Token;
 
-        var duplexConnectionDecorator = new IdleTimeoutDuplexConnectionDecorator(duplexConnection);
-        _enableIdleTimeoutAndKeepAlive = duplexConnectionDecorator.Enable;
+        // Only the client-side sends pings to keep the connection alive when idle timeout (set later) is not infinite.
+        _duplexConnection = IsServer ?
+            new SlicDuplexConnectionDecorator(duplexConnection) :
+            new SlicDuplexConnectionDecorator(duplexConnection, SendReadPing, SendWritePing);
 
-        _duplexConnection = duplexConnectionDecorator;
         _duplexConnectionReader = new DuplexConnectionReader(_duplexConnection, options.Pool, options.MinSegmentSize);
         _duplexConnectionWriter = new SlicDuplexConnectionWriter(
             _duplexConnection,
@@ -597,6 +570,42 @@ internal class SlicConnection : IMultiplexedConnection
         {
             _nextBidirectionalId = 0;
             _nextUnidirectionalId = 2;
+        }
+
+        void SendPing(long payload)
+        {
+            try
+            {
+                WriteConnectionFrame(FrameType.Ping, new PingBody(payload).Encode);
+            }
+            catch (IceRpcException)
+            {
+                // Expected if the connection is closed.
+            }
+            catch (Exception exception)
+            {
+                Debug.Fail($"The sending of a Ping frame failed with an unexpected exception: {exception}");
+                throw;
+            }
+        }
+
+        void SendReadPing()
+        {
+            // This local function is no-op if there is already a pending Pong.
+            if (Interlocked.CompareExchange(ref _pendingPongCount, 1, 0) == 0)
+            {
+                SendPing(1L);
+            }
+        }
+
+        void SendWritePing()
+        {
+            // _pendingPongCount can be <= 0 if an unexpected pong is received. If it's the case, the connection is
+            // being torn down and there's no point in sending a ping frame.
+            if (Interlocked.Increment(ref _pendingPongCount) > 0)
+            {
+                SendPing(0L);
+            }
         }
     }
 
@@ -1190,8 +1199,8 @@ internal class SlicConnection : IMultiplexedConnection
                     (ref SliceDecoder decoder) => new PongBody(ref decoder),
                     cancellationToken).ConfigureAwait(false);
 
-                // For now, we only send a 0 payload value.
-                if (pongBody.Payload != 0L)
+                // For now, we only send a 0 or 1 payload value (0 for "write ping" and 1 for "read ping").
+                if (pongBody.Payload != 0L && pongBody.Payload != 1L)
                 {
                     throw new InvalidDataException($"Received {nameof(FrameType.Pong)} with unexpected payload.");
                 }

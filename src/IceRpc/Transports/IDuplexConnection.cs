@@ -48,7 +48,8 @@ public interface IDuplexConnection : IDisposable
     /// <param name="buffer">A buffer that receives the data read from the connection.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that completes successfully with the number of bytes read into <paramref name="buffer" />.
-    /// This number is always greater than <c>0</c>. This value task can also complete with one of the following
+    /// This number is <c>0</c> when no data is available and the peer has called <see cref="ShutdownWriteAsync"/>;
+    /// otherwise, it is always greater than <c>0</c>. This value task can also complete with one of the following
     /// exceptions:
     /// <list type="bullet">
     /// <item><description><see cref="IceRpcException" /> if the transport reported an error.</description></item>
@@ -62,8 +63,8 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
     ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
-    /// <summary>Shuts down the write side of the connection to notify the peer that no more data will be
-    /// sent.</summary>
+    /// <summary>Shuts down the write side of the connection to notify the peer that no more data will be sent.
+    /// </summary>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes successfully when the shutdown completes successfully. This task can also
     /// complete with one of the following exceptions:
