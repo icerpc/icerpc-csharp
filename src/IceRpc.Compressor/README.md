@@ -18,9 +18,10 @@ of incoming requests these payloads are compressed.
 module VisitorCenter
 
 interface Greeter {
-    // The compress attribute instructs the compressor interceptor or middleware (if installed)
-    // to compress the payload of the outgoing request or response. The compressor interceptor
-    // or middleware does not compress the payloads of Slice operations without this attribute.
+    // The compress attribute instructs the compressor interceptor or middleware (if
+    // installed) to compress the payload of the outgoing request or response.
+    // The compressor interceptor or middleware does not compress the payloads of Slice
+    // operations without this attribute.
     [compress(Args, Return)] greet(name: string) -> string
 }
 ```
@@ -70,9 +71,10 @@ server.Listen();
 module VisitorCenter
 
 interface Greeter {
-    // The compress attribute instructs the compressor interceptor or middleware (if installed)
-    // to compress the payload of the outgoing request or response. The compressor interceptor
-    // or middleware does not compress the payloads of Slice operations without this attribute.
+    // The compress attribute instructs the compressor interceptor or middleware (if
+    // installed) to compress the payload of the outgoing request or response.
+    // The compressor interceptor or middleware does not compress the payloads of Slice
+    // operations without this attribute.
     [compress(Args, Return)] greet(name: string) -> string
 }
 ```
