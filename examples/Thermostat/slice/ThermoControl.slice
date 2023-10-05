@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+module Igloo
+
+/// Controls the thermostat device.
+interface ThermoControl {
+    /// Sets a new target temperature, known as the "set point".
+    /// @param setPoint: The new target temperature (in °F).
+    changeSetPoint(setPoint: float32)
+}

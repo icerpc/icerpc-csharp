@@ -1,0 +1,31 @@
+// Copyright (c) ZeroC, Inc.
+
+module Igloo
+
+/// Represents a snapshot of the thermostat's state at a point in time.
+struct Reading {
+    /// The point in time when this Reading was taken.
+    timeStamp: WellKnownTypes::TimeStamp
+
+    /// The current temperature (in °F).
+    temperature: float32
+
+    /// The target temperature (in °F).
+    setPoint: float32
+
+    /// The state of the AC unit.
+    cooling: Stage
+}
+
+/// Represents the possible states of the AC unit.
+enum Stage : uint8 {
+    /// The AC is not cooling.
+    Off
+
+    /// The AC is cooling at partial capacity - at around 70% capacity for a typical
+    /// 2-stage unit.
+    Stage1
+
+    /// The AC is cooling at full capacity.
+    Stage2
+}

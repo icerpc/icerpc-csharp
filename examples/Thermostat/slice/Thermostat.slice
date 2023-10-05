@@ -1,0 +1,16 @@
+// Copyright (c) ZeroC, Inc.
+
+module Igloo
+
+/// Monitors and controls a residential cool-only AC system.
+/// This interface corresponds to the public API used by client applications.
+interface Thermostat {
+
+    /// Monitors the state of the thermostat.
+    /// @returns: A new {@link Reading} immediately and then every time the actual device reports a value.
+    monitor() -> stream Reading
+
+    /// Changes the target temperature. If it's below the current temperature, the AC will start cooling.
+    /// @param setPoint: The target temperature (in °F).
+    changeSetPoint(setPoint: float32)
+}
