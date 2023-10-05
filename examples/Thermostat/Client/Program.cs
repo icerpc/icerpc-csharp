@@ -10,7 +10,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Information));
 
-// Create a client connection to the cloud server.
+// Create a client connection to Server.
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
     logger: loggerFactory.CreateLogger<ClientConnection>());
@@ -20,7 +20,7 @@ Pipeline pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connection);
 
-var proxy = new ThermostatProxy(pipeline);
+var thermostatProxy = new ThermostatProxy(pipeline);
 
 // This client provides two commands: monitor and set.
 // monitor is the default and streams readings until your press Ctrl+C.
@@ -51,7 +51,7 @@ async Task ChangeSetPointAsync(float setPoint)
 {
     try
     {
-        await proxy.ChangeSetPointAsync(setPoint);
+        await thermostatProxy.ChangeSetPointAsync(setPoint);
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"Successfully changed set point to {setPoint}°F.");
     }
@@ -78,7 +78,7 @@ async Task MonitorAsync()
         cts.Cancel();
     };
 
-    IAsyncEnumerable<Reading> readings = await proxy.MonitorAsync();
+    IAsyncEnumerable<Reading> readings = await thermostatProxy.MonitorAsync();
 
     // The iteration completes when cts is canceled.
     await foreach (Reading reading in readings.WithCancellation(cts.Token))

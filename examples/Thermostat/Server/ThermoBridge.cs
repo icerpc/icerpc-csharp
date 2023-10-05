@@ -8,7 +8,6 @@ using System.Diagnostics;
 namespace ThermostatServer;
 
 /// <summary>Implements Slice interface `ThermoHome`.</summary>
-
 internal class ThermoBridge : Service, IThermoHomeService
 {
     private readonly DeviceConnection _deviceConnection;
@@ -21,14 +20,15 @@ internal class ThermoBridge : Service, IThermoHomeService
     {
         IDispatchInformationFeature? dispatchInfo = features.Get<IDispatchInformationFeature>();
 
-        // We installed the dispatch middleware in Router to get this dispatch info:
+        // We installed the DispatchInformation middleware in Router to get this dispatch info.
         Debug.Assert(dispatchInfo is not null);
 
+        // The device connected or reconnected and we give the latest invoker to the DeviceConnection. This allows the
+        // thermoFacade to forward changeSetPoint calls over the correct device->server connection.
         _deviceConnection.SetInvoker(dispatchInfo.ConnectionContext.Invoker);
 
-        // Notifies the ThermoFacade its device is connected.
-        // We let the async-iteration over readings execute in the background. Note that it must complete to get a
-        // clean shutdown.
+        // Notify the ThermoFacade its device is connected. We let the async-iteration over readings execute in the
+        // background.
         _ = _thermoFacade.PublishAsync(readings);
 
         return default;
