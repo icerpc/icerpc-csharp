@@ -22,7 +22,9 @@ var pipeline = new Pipeline();
 await using var connectionCache = new ConnectionCache();
 
 // You can use the same invocation pipeline for all your proxies.
-var locatorProxy = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
+var locatorProxy = new LocatorProxy(
+    pipeline,
+    new Uri("ice://localhost/DemoIceGrid/Locator"));
 
 // If you install the retry interceptor, install it before the locator interceptor.
 pipeline = pipeline
@@ -30,13 +32,15 @@ pipeline = pipeline
     .UseLocator(locatorProxy)
     .Into(connectionCache);
 
-// A call on this proxy will use the locator to find the server address(es) associated with
-// `/hello`.
+// A call on this proxy will use the locator to find the server address(es) associated
+// with `/hello`.
 // The locator interceptor caches successful resolutions.
 var wellKnownProxy = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
 // The locator also resolves ice proxies with an adapter-id parameter.
-var indirectProxy = new HelloProxy(pipeline, new Uri("ice:/hello?adapter-id=HelloAdapter"));
+var indirectProxy = new HelloProxy(
+    pipeline,
+    new Uri("ice:/hello?adapter-id=HelloAdapter"));
 ```
 
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Locator.html
