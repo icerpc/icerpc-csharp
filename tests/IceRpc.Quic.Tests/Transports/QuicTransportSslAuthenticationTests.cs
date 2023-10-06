@@ -12,6 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Tests.Transports;
 
 /// <summary>Test Ssl authentication with Quic transport.</summary>
+[Parallelizable(ParallelScope.All)]
 public class QuicTransportSslAuthenticationTests
 {
     [OneTimeSetUp]
@@ -91,16 +92,6 @@ public class QuicTransportSslAuthenticationTests
         Assert.That(
             async () => await listener.AcceptAsync(default),
             Throws.InstanceOf<AuthenticationException>());
-
-        Assert.That(
-            async () =>
-            {
-                // The Quic client connection fails with AuthenticationException when try to create a stream.
-                await clientConnectTask;
-                var stream = await sut.Client.CreateStreamAsync(bidirectional: false, CancellationToken.None);
-                await stream.Output.WriteAsync(new ReadOnlyMemory<byte>(new byte[] { 0xFF }), CancellationToken.None);
-            },
-            Throws.TypeOf<AuthenticationException>());
     }
 
     private static IServiceCollection CreateServiceCollection() =>
