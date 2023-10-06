@@ -39,10 +39,21 @@ public class SlicTransportSslAuthenticationTests
         // Start the TLS handshake.
         Task clientConnectTask = sut.Client.ConnectAsync(default);
         (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(default);
-        _ = serverConnection.ConnectAsync(default);
+        var serverConnectTask = serverConnection.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+
+        // Dispose the client connection here to ensure the server connect task fails promptly.
+        await sut.Client.DisposeAsync();
+        try
+        {
+            await serverConnectTask;
+        }
+        catch
+        {
+            // Avoid UTE
+        }
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -76,13 +87,24 @@ public class SlicTransportSslAuthenticationTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
         // Start the TLS handshake.
-        _ = sut.Client.ConnectAsync(default);
+        var clientConnectTask = sut.Client.ConnectAsync(default);
 
         // Act/Assert
-        (IMultiplexedConnection? serverConnection, _) = await listener.AcceptAsync(default);
+        (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(default);
         Assert.That(
             async () => await serverConnection.ConnectAsync(default),
             Throws.TypeOf<AuthenticationException>());
+
+        // Dispose the server connection here to ensure the client connect task fails promptly.
+        await serverConnection.DisposeAsync();
+        try
+        {
+            await clientConnectTask;
+        }
+        catch
+        {
+            // Avoid UTE
+        }
     }
 
     private static IServiceCollection CreateServiceCollection() =>

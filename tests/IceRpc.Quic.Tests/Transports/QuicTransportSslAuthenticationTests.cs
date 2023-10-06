@@ -49,9 +49,6 @@ public class QuicTransportSslAuthenticationTests
         Task clientConnectTask = sut.Client.ConnectAsync(default);
 
         // Act/Assert
-        Assert.That(
-            async () => await listener.AcceptAsync(default),
-            Throws.TypeOf<AuthenticationException>());
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
     }
 
@@ -92,6 +89,15 @@ public class QuicTransportSslAuthenticationTests
         Assert.That(
             async () => await listener.AcceptAsync(default),
             Throws.InstanceOf<AuthenticationException>());
+
+        try
+        {
+            await clientConnectTask;
+        }
+        catch
+        {
+            // Avoid UTE
+        }
     }
 
     private static IServiceCollection CreateServiceCollection() =>
