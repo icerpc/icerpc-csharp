@@ -84,19 +84,13 @@ public class QuicTransportSslAuthenticationConformanceTests
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Start the TLS handshake by calling connect on the client and server connections and wait for the
-        // connection establishment.
+        // Start the TLS handshake.
         var clientConnectTask = sut.Client.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(
-            async () =>
-            {
-                // The Quic listener internally kill the client connection if it's not valid.
-                using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
-                _ = await listener.AcceptAsync(cts.Token);
-            },
-            Throws.InstanceOf<OperationCanceledException>());
+            async () => await listener.AcceptAsync(default),
+            Throws.InstanceOf<AuthenticationException>());
 
         Assert.That(
             async () =>

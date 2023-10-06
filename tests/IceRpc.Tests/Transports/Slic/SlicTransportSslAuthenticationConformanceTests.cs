@@ -84,8 +84,7 @@ public class SlicTransportSslAuthenticationConformanceTests
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Start the TLS handshake by calling connect on the client and server connections and wait for the
-        // connection establishment.
+        // Start the TLS handshake.
         var clientConnectTask = sut.Client.ConnectAsync(default);
 
         // Act/Assert
