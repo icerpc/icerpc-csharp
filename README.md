@@ -218,6 +218,6 @@ in-memory transport for testing). Future releases may add additional transports.
 [license]: https://github.com/icerpc/icerpc-csharp/blob/main/LICENSE
 [NuGet packages]: https://www.nuget.org/profiles/IceRPC
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
-[Slic]: https://docs.icerpc.dev/icerpc/slic-protocol
+[Slic]: https://docs.icerpc.dev/icerpc/slic-transport/overview
 [Slice]: https://docs.icerpc.dev/slice
 [System.IO.Pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
