@@ -12,7 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Tests.Transports;
 
 /// <summary>Test Ssl authentication with Quic transport.</summary>
-public class QuicTransportSslAuthenticationConformanceTests
+public class QuicTransportSslAuthenticationTests
 {
     [OneTimeSetUp]
     public void FixtureSetUp()
@@ -24,7 +24,7 @@ public class QuicTransportSslAuthenticationConformanceTests
     }
 
     [Test]
-    public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
+    public async Task Quic_client_connection_connect_fails_when_server_provides_untrusted_certificate()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -59,7 +59,7 @@ public class QuicTransportSslAuthenticationConformanceTests
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "The client doesn't need to validate the server certificate for this test")]
     [Test]
-    public async Task Ssl_server_connection_connect_fails_when_client_provides_untrusted_certificate()
+    public async Task Quic_server_connection_connect_fails_when_client_provides_untrusted_certificate()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()

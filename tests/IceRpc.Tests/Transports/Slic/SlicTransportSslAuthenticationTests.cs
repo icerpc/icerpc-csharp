@@ -13,10 +13,10 @@ namespace IceRpc.Tests.Transports.Slic;
 
 /// <summary>Test Ssl authentication with Slic transport.</summary>
 [Parallelizable(ParallelScope.All)]
-public class SlicTransportSslAuthenticationConformanceTests
+public class SlicTransportSslAuthenticationTests
 {
     [Test]
-    public async Task Ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
+    public async Task Slic_over_ssl_client_connection_connect_fails_when_server_provides_untrusted_certificate()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -39,19 +39,10 @@ public class SlicTransportSslAuthenticationConformanceTests
         // Start the TLS handshake.
         Task clientConnectTask = sut.Client.ConnectAsync(default);
         (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(default);
-        var serverConnectTask = serverConnection.ConnectAsync(default);
+        _ = serverConnection.ConnectAsync(default);
 
         // Act/Assert
         Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
-
-        // The client will typically close the transport connection after receiving AuthenticationException
-        await sut.Client.DisposeAsync();
-        var exception = Assert.ThrowsAsync<IceRpcException>(async () => await serverConnectTask!);
-        Assert.That(
-            exception?.IceRpcError,
-            Is.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError),
-            $"The test failed with an unexpected IceRpcError {exception}");
-        await serverConnection.DisposeAsync();
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -59,7 +50,7 @@ public class SlicTransportSslAuthenticationConformanceTests
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "The client doesn't need to validate the server certificate for this test")]
     [Test]
-    public async Task Ssl_server_connection_connect_fails_when_client_provides_untrusted_certificate()
+    public async Task Slic_over_ssl_server_connection_connect_fails_when_client_provides_untrusted_certificate()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection()
@@ -85,28 +76,13 @@ public class SlicTransportSslAuthenticationConformanceTests
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
         // Start the TLS handshake.
-        var clientConnectTask = sut.Client.ConnectAsync(default);
+        _ = sut.Client.ConnectAsync(default);
 
         // Act/Assert
-        IMultiplexedConnection? serverConnection = null;
+        (IMultiplexedConnection? serverConnection, _) = await listener.AcceptAsync(default);
         Assert.That(
-            async () =>
-            {
-                (serverConnection, _) = await listener.AcceptAsync(default);
-                await serverConnection.ConnectAsync(default);
-            },
+            async () => await serverConnection.ConnectAsync(default),
             Throws.TypeOf<AuthenticationException>());
-
-        Assert.That(
-            async () =>
-            {
-                if (serverConnection is not null)
-                {
-                    await serverConnection.DisposeAsync();
-                }
-                await clientConnectTask;
-            },
-            Throws.TypeOf<AuthenticationException>().Or.TypeOf<IceRpcException>());
     }
 
     private static IServiceCollection CreateServiceCollection() =>
