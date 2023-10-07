@@ -36,9 +36,10 @@ public class SlicTransportSslAuthenticationTests
 
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Start the TLS handshake.
+        // The connect attempt starts the TLS handshake.
         Task clientConnectTask = sut.Client.ConnectAsync(default);
-        (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(default);
+        await using IMultiplexedConnection serverConnection =
+            (await listener.AcceptAsync(default)).Connection;
         var serverConnectTask = serverConnection.ConnectAsync(default);
 
         // Act/Assert
@@ -86,11 +87,12 @@ public class SlicTransportSslAuthenticationTests
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Start the TLS handshake.
+        // The connect attempt starts the TLS handshake.
         var clientConnectTask = sut.Client.ConnectAsync(default);
 
         // Act/Assert
-        (IMultiplexedConnection serverConnection, _) = await listener.AcceptAsync(default);
+        await using IMultiplexedConnection serverConnection =
+            (await listener.AcceptAsync(default)).Connection;
         Assert.That(
             async () => await serverConnection.ConnectAsync(default),
             Throws.TypeOf<AuthenticationException>());

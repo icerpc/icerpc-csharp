@@ -45,11 +45,12 @@ public class QuicTransportSslAuthenticationTests
 
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Start the TLS handshake.
-        Task clientConnectTask = sut.Client.ConnectAsync(default);
-
         // Act/Assert
-        Assert.That(async () => await clientConnectTask, Throws.TypeOf<AuthenticationException>());
+
+        // The connect attempt starts the TLS handshake.
+        Assert.That(
+            async () => await sut.Client.ConnectAsync(default),
+            Throws.TypeOf<AuthenticationException>());
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -82,7 +83,7 @@ public class QuicTransportSslAuthenticationTests
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         var listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
 
-        // Start the TLS handshake.
+        // The connect attempt starts the TLS handshake.
         var clientConnectTask = sut.Client.ConnectAsync(default);
 
         // Act/Assert
