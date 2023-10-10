@@ -38,7 +38,7 @@ public ref partial struct SliceEncoder
     public static void EncodeInt32(int value, Span<byte> into)
     {
         Debug.Assert(into.Length == 4);
-        MemoryMarshal.Write(into, ref value);
+        MemoryMarshal.Write(into, in value);
     }
 
     /// <summary>Encodes a ulong as a Slice varuint62 into a span of bytes using a fixed number of bytes.</summary>
@@ -68,7 +68,7 @@ public ref partial struct SliceEncoder
         value <<= 2;
 
         value |= encodedSizeExponent;
-        MemoryMarshal.Write(ulongBuf, ref value);
+        MemoryMarshal.Write(ulongBuf, in value);
         ulongBuf[0..sizeLength].CopyTo(into);
     }
 
@@ -262,7 +262,7 @@ public ref partial struct SliceEncoder
         v |= (uint)encodedSizeExponent;
 
         Span<byte> data = _bufferWriter.GetSpan(sizeof(long));
-        MemoryMarshal.Write(data, ref v);
+        MemoryMarshal.Write(data, in v);
         Advance(1 << encodedSizeExponent);
     }
 
@@ -280,7 +280,7 @@ public ref partial struct SliceEncoder
         v |= (uint)encodedSizeExponent;
 
         Span<byte> data = _bufferWriter.GetSpan(sizeof(ulong));
-        MemoryMarshal.Write(data, ref v);
+        MemoryMarshal.Write(data, in v);
         Advance(1 << encodedSizeExponent);
     }
 
@@ -498,7 +498,7 @@ public ref partial struct SliceEncoder
     {
         int elementSize = Unsafe.SizeOf<T>();
         Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
-        MemoryMarshal.Write(data, ref v);
+        MemoryMarshal.Write(data, in v);
         Advance(elementSize);
     }
 

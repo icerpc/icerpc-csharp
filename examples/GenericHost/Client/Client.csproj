@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
@@ -23,8 +23,8 @@
   </ItemGroup>
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="7.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0-rc.1.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.0-rc.1.*" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(Version)" />

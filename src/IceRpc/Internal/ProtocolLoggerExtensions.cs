@@ -62,7 +62,7 @@ internal static partial class ProtocolLoggerExtensions
             remoteNetworkAddress);
 
     // Multiple logging methods are using same event id.
-#pragma warning disable SYSLIB1006
+#pragma warning disable SYSLIB1025
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionConnectFailed,
         EventName = nameof(ProtocolEventIds.ConnectionConnectFailed),
@@ -83,7 +83,7 @@ internal static partial class ProtocolLoggerExtensions
         ServerAddress serverAddress,
         EndPoint remoteNetworkAddress,
         Exception exception);
-#pragma warning restore SYSLIB1006
+#pragma warning restore SYSLIB1025
 
     [LoggerMessage(
         EventId = (int)ProtocolEventIds.ConnectionDisposed,

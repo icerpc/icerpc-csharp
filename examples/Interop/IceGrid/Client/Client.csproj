@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
@@ -10,8 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../Hello.slice" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0-rc.1.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0-rc.1.*" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
