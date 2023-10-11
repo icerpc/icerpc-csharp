@@ -110,16 +110,11 @@ public abstract class MultiplexedListenerConformanceTests
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
 
-        await using IMultiplexedConnection connection1 = clientTransport.CreateConnection(
-            listener.ServerAddress,
-            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-            provider.GetService<SslClientAuthenticationOptions>());
-
         // Ensure the listener is accepting connections
         var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
         await sut.AcceptAndConnectAsync();
 
-        await using IMultiplexedConnection connection2 = clientTransport.CreateConnection(
+        await using IMultiplexedConnection connection = clientTransport.CreateConnection(
             listener.ServerAddress,
             provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
             provider.GetService<SslClientAuthenticationOptions>());
@@ -127,12 +122,13 @@ public abstract class MultiplexedListenerConformanceTests
         // Act
         await listener.DisposeAsync();
 
+        // With QUIC, disposing of the first connection before the second connection attempt ensures a timely failure.
+        await sut.DisposeAsync();
+
         // Assert
-        // If using Quic and the listener is disposed during the ssl handshake this can fail with
-        // AuthenticationException otherwise it fails with IceRpcException.
         Assert.That(
-            async () => await connection2.ConnectAsync(default),
-            Throws.InstanceOf<IceRpcException>().Or.TypeOf<AuthenticationException>());
+            async () => await connection.ConnectAsync(default),
+            Throws.InstanceOf<IceRpcException>());
     }
 
     [Test]
