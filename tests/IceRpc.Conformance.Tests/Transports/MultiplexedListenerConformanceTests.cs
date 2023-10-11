@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -115,10 +116,8 @@ public abstract class MultiplexedListenerConformanceTests
             provider.GetService<SslClientAuthenticationOptions>());
 
         // Ensure the listener is accepting connections
-        var connectTask = connection1.ConnectAsync(default);
-        await using var serverConnection = (await listener.AcceptAsync(default)).Connection;
-        await serverConnection.ConnectAsync(default);
-        await connectTask;
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
 
         await using IMultiplexedConnection connection2 = clientTransport.CreateConnection(
             listener.ServerAddress,
