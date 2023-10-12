@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" height="100" width="100" />
+  <img src="https://github.com/icerpc/icerpc-csharp/raw/0.1.x/.github/assets/icerpc-banner.svg" height="100" width="100" />
 </p>
 
 # IceRPC for C#
 
-[![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
+[![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg?branch=0.1.x)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
