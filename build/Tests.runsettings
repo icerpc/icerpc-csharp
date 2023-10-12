@@ -2,5 +2,7 @@
 <RunSettings>
     <NUnit>
         <DisplayName>FullNameSep</DisplayName>
+        <!-- Limit the max number for NUnit workers to workaround failures when running with high number of workers -->
+        <NumberOfTestWorkers>8</NumberOfTestWorkers>
     </NUnit>
 </RunSettings>
