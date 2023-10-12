@@ -20,7 +20,7 @@ Pipeline pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connection);
 
-var thermostat = new thermostat(pipeline);
+var thermostat = new ThermostatProxy(pipeline);
 
 // This client provides two commands: monitor and set.
 // monitor is the default and streams readings until your press Ctrl+C.

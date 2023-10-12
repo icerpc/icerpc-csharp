@@ -29,7 +29,7 @@ Pipeline pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connection);
 
-var thermoHome = new thermoHome(pipeline);
+var thermoHome = new ThermoHomeProxy(pipeline);
 
 // Call home and stream readings.
 await thermoHome.ReportAsync(thermoBot.ProduceReadingsAsync());
