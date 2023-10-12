@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -109,43 +110,25 @@ public abstract class MultiplexedListenerConformanceTests
         IListener<IMultiplexedConnection> listener = provider.GetRequiredService<IListener<IMultiplexedConnection>>();
         var clientTransport = provider.GetRequiredService<IMultiplexedClientTransport>();
 
-        Task connectTask = ConnectAsync(clientTransport);
+        // Ensure the listener is accepting connections
+        var sut = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await sut.AcceptAndConnectAsync();
+
+        await using IMultiplexedConnection connection = clientTransport.CreateConnection(
+            listener.ServerAddress,
+            provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
+            provider.GetService<SslClientAuthenticationOptions>());
 
         // Act
         await listener.DisposeAsync();
 
+        // With QUIC, disposing of the first connection before the second connection attempt ensures a timely failure.
+        await sut.DisposeAsync();
+
         // Assert
-
-        // If using Quic and the listener is disposed during the ssl handshake this can fail with
-        // AuthenticationException otherwise it fails with IceRpcException.
         Assert.That(
-            async () => await connectTask,
-            Throws.InstanceOf<IceRpcException>().Or.TypeOf<AuthenticationException>());
-
-        async Task ConnectAsync(IMultiplexedClientTransport clientTransport)
-        {
-            // Establish connections until we get a failure.
-            var connections = new List<IMultiplexedConnection>();
-            try
-            {
-                while (true)
-                {
-                    IMultiplexedConnection connection = clientTransport.CreateConnection(
-                        listener.ServerAddress,
-                        provider.GetRequiredService<IOptions<MultiplexedConnectionOptions>>().Value,
-                        provider.GetService<SslClientAuthenticationOptions>());
-                    connections.Add(connection);
-
-                    await connection.ConnectAsync(default);
-
-                    // Continue until connect fails.
-                }
-            }
-            finally
-            {
-                await Task.WhenAll(connections.Select(c => c.DisposeAsync().AsTask()));
-            }
-        }
+            async () => await connection.ConnectAsync(default),
+            Throws.InstanceOf<IceRpcException>());
     }
 
     [Test]
