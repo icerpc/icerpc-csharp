@@ -15,6 +15,7 @@ is branch-specific:
 
 If you want to build the examples for a released version (such as 0.1.x), please checkout the corresponding release
 branch. For example:
+
 ```shell
 git checkout -b 0.1.x origin/0.1.x
 ```
