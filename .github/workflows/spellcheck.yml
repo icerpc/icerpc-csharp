@@ -2,9 +2,9 @@ name: 'Check spelling'
 
 on:
   push:
-    branches: ["main"]
+    branches: ["0.1.x"]
   pull_request:
-    branches: ["main"]
+    branches: ["0.1.x"]
 
 jobs:
   spellcheck:
