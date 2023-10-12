@@ -22,9 +22,9 @@ Pipeline pipeline = new Pipeline()
     .Into(connection);
 
 // Create a greeter proxy with this invocation pipeline.
-var greeterProxy = new GreeterProxy(pipeline);
+var greeter = new GreeterProxy(pipeline);
 
-string greeting = await greeterProxy.GreetAsync(Environment.UserName);
+string greeting = await greeter.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
 

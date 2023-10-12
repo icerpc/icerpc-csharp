@@ -11,13 +11,13 @@ Pipeline pipeline = new Pipeline()
     .UseDeadline(defaultTimeout: TimeSpan.FromMilliseconds(500))
     .Into(connection);
 
-var greeterProxy = new GreeterProxy(pipeline);
+var greeter = new GreeterProxy(pipeline);
 
 // In this example, the implementation of the greet operation takes about 1 second, and the deadline
 // interceptor makes sure the invocation throws TimeoutException after 500 ms.
 try
 {
-    _ = await greeterProxy.GreetAsync(Environment.UserName);
+    _ = await greeter.GreetAsync(Environment.UserName);
 }
 catch (TimeoutException exception)
 {
@@ -30,7 +30,7 @@ catch (TimeoutException exception)
 var features = new FeatureCollection();
 features.Set<IDeadlineFeature>(DeadlineFeature.FromTimeout(TimeSpan.FromSeconds(10)));
 
-string greeting = await greeterProxy.GreetAsync(Environment.UserName, features);
+string greeting = await greeter.GreetAsync(Environment.UserName, features);
 Console.WriteLine(greeting);
 
 await connection.ShutdownAsync();
