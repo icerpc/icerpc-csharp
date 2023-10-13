@@ -19,11 +19,11 @@ using var shutdownCts = new CancellationTokenSource();
 
 var deviceConnection = new DeviceConnection();
 Pipeline pipeline = new Pipeline().UseLogger(loggerFactory).Into(deviceConnection);
-var thermoControlProxy = new ThermoControlProxy(pipeline);
+var thermoControl = new ThermoControlProxy(pipeline);
 
 // Front-end, client-facing.
 
-var thermoFacade = new ThermoFacade(thermoControlProxy, shutdownCts.Token);
+var thermoFacade = new ThermoFacade(thermoControl, shutdownCts.Token);
 
 Router frontEndRouter = new Router()
     .UseLogger(loggerFactory)

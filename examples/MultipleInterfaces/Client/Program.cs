@@ -6,14 +6,14 @@ using VisitorCenter;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-var greeterProxy = new GreeterProxy(connection);
-var requestCounterProxy = new RequestCounterProxy(connection);
+var greeter = new GreeterProxy(connection);
+var requestCounter = new RequestCounterProxy(connection);
 
-string greeting = await greeterProxy.GreetAsync(Environment.UserName);
+string greeting = await greeter.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
 
-int requestCount = await requestCounterProxy.GetRequestCountAsync();
+int requestCount = await requestCounter.GetRequestCountAsync();
 
 Console.WriteLine($"requests count: {requestCount}");
 

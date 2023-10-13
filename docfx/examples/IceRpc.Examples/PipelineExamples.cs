@@ -25,7 +25,7 @@ public static class PipelineExamples
             .Into(connection);
 
         // Create a proxy that uses pipeline as its invocation pipeline.
-        var greeterProxy = new GreeterProxy(pipeline);
+        var greeter = new GreeterProxy(pipeline);
         #endregion
     }
 
