@@ -2,6 +2,6 @@
 
 module IceRpc::Slice::Derived::Tests
 
-interface MyDerivedOperations :  IceRpc::Slice::Tests::MyBaseOperations {
+interface MyDerivedOperations : IceRpc::Slice::Tests::MyBaseOperations {
     opDerived()
 }
