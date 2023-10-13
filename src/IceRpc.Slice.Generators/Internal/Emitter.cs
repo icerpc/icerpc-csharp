@@ -1,16 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Runtime.InteropServices;
-
 namespace IceRpc.Slice.Generators.Internal;
 
 internal class Emitter
 {
-    private static readonly string _newLine = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "\r\n" : "\n";
-
     internal string Emit(IReadOnlyList<ServiceClass> serviceClasses, CancellationToken cancellationToken)
     {
-        string generated = "";
+        var generatedClasses = new List<string>();
         foreach (ServiceClass serviceClass in serviceClasses)
         {
             // stop if we're asked to.
@@ -23,35 +19,31 @@ internal class Emitter
             string dispatcherBlock;
             if (serviceClass.ServiceMethods.Count > 0)
             {
-                string dispatchBlocks = "";
+                var dispatchBlocks = new List<string>();
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    dispatchBlocks += @$"
-
+                    dispatchBlocks.Add(@$"
 case ""{serviceMethod.OperationName}"":
-    return global::{serviceMethod.DispatchMethodName}(this, request, cancellationToken);";
+    return global::{serviceMethod.DispatchMethodName}(this, request, cancellationToken);".Trim());
                 }
 
                 if (serviceClass.HasBaseServiceClass)
                 {
-                    dispatchBlocks += @$"
-
+                    dispatchBlocks.Add(@$"
 default:
-    return base.DispatchAsync(request, cancellationToken);";
+    return base.DispatchAsync(request, cancellationToken);".Trim());
                 }
                 else
                 {
-                    dispatchBlocks += @$"
-
+                    dispatchBlocks.Add(@$"
 default:
-    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));".Trim());
                 }
-                dispatchBlocks = dispatchBlocks.Trim();
 
                 dispatcherBlock = @$"
 switch (request.Operation)
 {{
-    {dispatchBlocks.WithIndent("    ")}
+    {string.Join("\n\n", dispatchBlocks).Trim().WithIndent("    ")}
 }}".Trim();
             }
             else
@@ -76,17 +68,18 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
             ContainerDefinition? containerDefinition = serviceClass;
             while (containerDefinition.Parent is ContainerDefinition parent)
             {
-                container = WriteContainer($"partial {parent.Keyword} {parent.Name}", container);
+                container = GenerateContainer($"partial {parent.Keyword} {parent.Name}", container);
                 containerDefinition = parent;
             }
 
-            generated += WriteContainer($"namespace {serviceClass.ContainingNamespace}", container);
-            generated += $"{_newLine}{_newLine}";
+            generatedClasses.Add(GenerateContainer($"namespace {serviceClass.ContainingNamespace}", container));
         }
-        return generated.TrimTrailingWhiteSpaces();
+        string generated = string.Join("\n\n", generatedClasses).Trim();
+        generated += "\n";
+        return generated;
     }
 
-    private static string WriteContainer(string header, string body)
+    private static string GenerateContainer(string header, string body)
     {
         return $@"
 {header}
