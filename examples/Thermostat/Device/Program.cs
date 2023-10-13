@@ -29,10 +29,10 @@ Pipeline pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connection);
 
-var thermoHomeProxy = new ThermoHomeProxy(pipeline);
+var thermoHome = new ThermoHomeProxy(pipeline);
 
 // Call home and stream readings.
-await thermoHomeProxy.ReportAsync(thermoBot.ProduceReadingsAsync());
+await thermoHome.ReportAsync(thermoBot.ProduceReadingsAsync());
 
 // Wait until the ThermoHome service stops reading.
 await thermoBot.ReadCompleted;
