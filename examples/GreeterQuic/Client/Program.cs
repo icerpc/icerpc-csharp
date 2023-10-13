@@ -29,8 +29,8 @@ await using var connection = new ClientConnection(
     clientAuthenticationOptions,
     multiplexedClientTransport: new QuicClientTransport());
 
-var greeterProxy = new GreeterProxy(connection);
-string greeting = await greeterProxy.GreetAsync(Environment.UserName);
+var greeter = new GreeterProxy(connection);
+string greeting = await greeter.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
 

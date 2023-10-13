@@ -20,7 +20,7 @@ Pipeline pipeline = new Pipeline()
     .UseLogger(loggerFactory)
     .Into(connection);
 
-var thermostatProxy = new ThermostatProxy(pipeline);
+var thermostat = new ThermostatProxy(pipeline);
 
 // This client provides two commands: monitor and set.
 // monitor is the default and streams readings until your press Ctrl+C.
@@ -51,7 +51,7 @@ async Task ChangeSetPointAsync(float setPoint)
 {
     try
     {
-        await thermostatProxy.ChangeSetPointAsync(setPoint);
+        await thermostat.ChangeSetPointAsync(setPoint);
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"Successfully changed set point to {setPoint}°F.");
     }
@@ -78,7 +78,7 @@ async Task MonitorAsync()
         cts.Cancel();
     };
 
-    IAsyncEnumerable<Reading> readings = await thermostatProxy.MonitorAsync();
+    IAsyncEnumerable<Reading> readings = await thermostat.MonitorAsync();
 
     // The iteration completes when cts is canceled.
     await foreach (Reading reading in readings.WithCancellation(cts.Token))
