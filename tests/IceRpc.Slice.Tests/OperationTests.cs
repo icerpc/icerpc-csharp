@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Slice.Derived.Tests;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
@@ -642,6 +643,18 @@ public class OperationTests
     }
 
     [Test]
+    public void Call_operation_defined_in_base_interface_defined_in_non_parent_module()
+    {
+        // Arrange
+        var service = new MyDerivedOperationsService();
+        var invoker = new ColocInvoker(service);
+        var proxy = new MyDerivedOperationsProxy(invoker);
+
+        // Act/Assert
+        Assert.That(async () => await proxy.OpAsync(), Throws.Nothing);
+    }
+
+    [Test]
     public void Operation_with_trailing_optionals_and_stream_requires_all_parameters()
     {
         // Arrange
@@ -843,5 +856,11 @@ public class OperationTests
             Z = z;
             return default;
         }
+    }
+
+    private sealed class MyDerivedOperationsService : Service, IMyDerivedOperationsService
+    {
+        public ValueTask OpAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
+        public ValueTask OpDerivedAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 }
