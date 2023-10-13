@@ -29,7 +29,7 @@ internal class Emitter
                     dispatchBlocks += @$"
 
 case ""{serviceMethod.OperationName}"":
-    return {serviceMethod.DispatchMethodName}(this, request, cancellationToken);";
+    return global::{serviceMethod.DispatchMethodName}(this, request, cancellationToken);";
                 }
 
                 if (serviceClass.HasBaseServiceClass)
