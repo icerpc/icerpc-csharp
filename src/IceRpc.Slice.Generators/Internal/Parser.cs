@@ -10,17 +10,14 @@ namespace IceRpc.Slice.Generators.Internal;
 
 internal sealed class Parser
 {
-    internal const string IceObjectService = "IceRpc.Slice.Ice.IIceObjectService";
     internal const string OperationAttribute = "IceRpc.Slice.SliceOperationAttribute";
     internal const string ServiceAttribute = "IceRpc.Slice.SliceServiceAttribute";
-    internal const string SliceTypeIdAttribute = "ZeroC.Slice.SliceTypeIdAttribute";
 
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
     private readonly INamedTypeSymbol? _operationAttribute;
     private readonly Action<Diagnostic> _reportDiagnostic;
     private readonly INamedTypeSymbol? _serviceAttribute;
-    private readonly INamedTypeSymbol? _typeIdAttribute;
 
     internal Parser(
         Compilation compilation,
@@ -33,14 +30,11 @@ internal sealed class Parser
 
         _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
         _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
-        _typeIdAttribute = _compilation.GetTypeByMetadataName(SliceTypeIdAttribute);
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_operationAttribute is null ||
-            _serviceAttribute is null ||
-            _typeIdAttribute is null)
+        if (_operationAttribute is null || _serviceAttribute is null)
         {
             // nothing to do if these types aren't available
             return Array.Empty<ServiceClass>();
@@ -174,24 +168,14 @@ internal sealed class Parser
                 }
             }
 
-            string? operationName = null;
             ImmutableArray<TypedConstant> items = attribute.ConstructorArguments;
-            switch (items.Length)
-            {
-                case 1:
-                    Debug.Assert(items[0].Type?.SpecialType is SpecialType.System_String);
-                    operationName = (string?)items[0].Value;
-                    break;
-                default:
-                    Debug.Assert(false, "Unexpected number of arguments in attribute constructor.");
-                    break;
-            }
-
-            Debug.Assert(operationName is not null);
-
+            Debug.Assert(
+                items.Length == 1,
+                "Unexpected number of arguments in attribute constructor.");
+            string operationName = (string)items[0].Value!;
             serviceMethods.Add(new ServiceMethod
             {
-                OperationName = operationName!,
+                OperationName = operationName,
                 DispatchMethodName = GetFullName(method)
             });
         }
