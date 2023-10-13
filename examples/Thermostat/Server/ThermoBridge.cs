@@ -8,7 +8,8 @@ using System.Diagnostics;
 namespace ThermostatServer;
 
 /// <summary>Implements Slice interface `ThermoHome`.</summary>
-internal class ThermoBridge : Service, IThermoHomeService
+[SliceService]
+internal partial class ThermoBridge : IThermoHomeService
 {
     private readonly DeviceConnection _deviceConnection;
     private readonly ThermoFacade _thermoFacade;
