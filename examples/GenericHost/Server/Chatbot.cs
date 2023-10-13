@@ -7,7 +7,8 @@ using VisitorCenter;
 namespace GenericHostServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
-public class Chatbot : Service, IGreeterService
+[SliceService]
+public partial class Chatbot : IGreeterService
 {
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {

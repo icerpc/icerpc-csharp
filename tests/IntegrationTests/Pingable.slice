@@ -4,6 +4,6 @@ mode = Slice1
 
 module IceRpc::IntegrationTests
 
-interface Pingable {
+interface Pingable : Ice::Object {
     ping()
 }

@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class NamespaceAttributeTests
+public partial class NamespaceAttributeTests
 {
     [Test]
     public async Task Operation_with_types_using_cs_namespace_attribute()
@@ -24,7 +24,8 @@ public class NamespaceAttributeTests
         Assert.That(r.I, Is.EqualTo(10));
     }
 
-    private sealed class NamespaceOperationsService : Service, INamespaceOperationsService
+    [SliceService]
+    private sealed partial class NamespaceOperationsService : INamespaceOperationsService
     {
         public ValueTask<NamespaceAttribute.MappedNamespace.S1> Op1Async(
             NamespaceAttribute.MappedNamespace.S1 p,
