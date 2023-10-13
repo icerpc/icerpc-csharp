@@ -109,7 +109,7 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
     proxy_impl_builder.add_block(proxy_impl_static_methods(interface_def));
 
     for operation in interface_def.all_inherited_operations() {
-        proxy_impl_builder.add_block(proxy_base_operation_impl(operation));
+        proxy_impl_builder.add_block(proxy_base_operation_impl(operation, &namespace));
     }
 
     for operation in interface_def.operations() {
@@ -284,7 +284,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
     builder.build()
 }
 
-fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
+fn proxy_base_operation_impl(operation: &Operation, namespace: &str) -> CodeBlock {
     let async_name = operation.escape_identifier_with_suffix("Async");
     let return_task = operation.return_task(false);
     let mut operation_params = operation
@@ -304,7 +304,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
     builder.set_body(
         format!(
             "(({base_proxy_impl})this).{async_name}({operation_params})",
-            base_proxy_impl = operation.parent().proxy_name(),
+            base_proxy_impl = operation.parent().scoped_proxy_name(namespace),
             operation_params = operation_params.join(", "),
         )
         .into(),
