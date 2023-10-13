@@ -10,7 +10,8 @@ namespace MinimalServer;
 /// <summary>An HelloService is an IceRPC service that implements Slice interface 'Hello'.</summary>
 // We implement IIceObjectService as well but without actually implementing any method. Without this IIceObjectService,
 // the "checked cast" from the Ice client would fail.
-internal class HelloService : Service, IHelloService, IIceObjectService
+[SliceService]
+internal partial class HelloService : IHelloService, IIceObjectService
 {
     public ValueTask SayHelloAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
