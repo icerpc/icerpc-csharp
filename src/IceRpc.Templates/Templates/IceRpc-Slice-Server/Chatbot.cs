@@ -4,7 +4,8 @@ using IceRpc.Slice;
 namespace IceRpc_Slice_Server;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
-internal class Chatbot : Service, IGreeterService
+[SliceService]
+internal partial class Chatbot : IGreeterService
 {
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
