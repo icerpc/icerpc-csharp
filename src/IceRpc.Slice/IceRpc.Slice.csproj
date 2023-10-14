@@ -46,6 +46,6 @@
       <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="buildTransitive" />
       <Content Include="..\IceRpc.Slice.Generators\bin\$(Configuration)\netstandard2.0\IceRpc.Slice.Generators.dll"
                Pack="true"
-               PackagePath="analyzers\dotnet\roslyn4.4\cs"/>
+               PackagePath="analyzers\dotnet\cs"/>
     </ItemGroup>
 </Project>

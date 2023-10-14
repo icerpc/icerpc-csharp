@@ -9,8 +9,8 @@ internal class ServiceClass : ContainerDefinition
     /// <summary>Gets a value indicating whether the service has a base service class.</summary>
     internal bool HasBaseServiceClass { get; }
 
-    /// <summary>Gets the C# namespace containing this definition.</summary>
-    internal string ContainingNamespace { get; }
+    /// <summary>Gets the scope of this definition.</summary>
+    internal string Scope { get; }
 
     /// <summary>Gets a value indicating whether the service is a sealed type.</summary>
     internal bool IsSealed { get; }
@@ -21,14 +21,14 @@ internal class ServiceClass : ContainerDefinition
 
     internal ServiceClass(
         string name,
-        string containingNamespace,
+        string scope,
         string keyword,
         IReadOnlyList<ServiceMethod> serviceMethods,
         bool hasBaseServiceClass,
         bool isSealed)
         : base(name, keyword)
     {
-        ContainingNamespace = containingNamespace;
+        Scope = scope;
         ServiceMethods = serviceMethods;
         HasBaseServiceClass = hasBaseServiceClass;
         IsSealed = isSealed;

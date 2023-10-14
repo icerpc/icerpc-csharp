@@ -57,11 +57,10 @@ internal sealed class Parser
                 }
 
                 IReadOnlyList<ServiceMethod> baseServiceMethods = Array.Empty<ServiceMethod>();
-                bool hasBaseServiceDefinition = false;
-                if (classSymbol.BaseType is INamedTypeSymbol baseType)
+                INamedTypeSymbol? baseServiceClass = GetBaseServiceClass(classSymbol);
+                if (baseServiceClass is not null)
                 {
-                    baseServiceMethods = GetServiceMethods(baseType.AllInterfaces);
-                    hasBaseServiceDefinition = HasServiceAttribute(baseType);
+                    baseServiceMethods = GetServiceMethods(baseServiceClass.AllInterfaces);
                 }
 
                 IReadOnlyList<ServiceMethod> serviceMethods = GetServiceMethods(classSymbol.AllInterfaces)
@@ -88,7 +87,7 @@ internal sealed class Parser
                     GetFullName(classSymbol.ContainingNamespace),
                     classDeclaration.Keyword.ValueText,
                     serviceMethods,
-                    hasBaseServiceDefinition,
+                    hasBaseServiceClass: baseServiceClass is not null,
                     isSealed: classSymbol.IsSealed);
                 serviceDefinitions.Add(serviceClass);
 
@@ -101,10 +100,10 @@ internal sealed class Parser
                 ContainerDefinition? container = serviceClass;
                 if (parentNode is TypeDeclarationSyntax parentType && IsAllowedKind(parentType.Kind()))
                 {
-                    container.Parent = new ContainerDefinition(
+                    container.Enclosing = new ContainerDefinition(
                         parentType.Identifier.ToString(),
                         parentType.Keyword.ValueText);
-                    container = container.Parent;
+                    container = container.Enclosing;
                     parentNode = parentNode.Parent;
                 }
             }
@@ -121,6 +120,26 @@ internal sealed class Parser
             {
                 return attribute;
             }
+        }
+        return null;
+    }
+
+    /// <summary>Returns the nearest base class with the SliceService attribute.</summary>
+    /// <param name="classSymbol">The class symbol.</param>
+    /// <returns>The nearest base class with the SliceService attribute. null when there is no such base class.</returns>
+    private INamedTypeSymbol? GetBaseServiceClass(INamedTypeSymbol classSymbol)
+    {
+        if (classSymbol.BaseType is INamedTypeSymbol baseType)
+        {
+            foreach (AttributeData attribute in baseType.GetAttributes())
+            {
+                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _serviceAttribute))
+                {
+                    return baseType;
+                }
+            }
+
+            return GetBaseServiceClass(baseType);
         }
         return null;
     }
@@ -180,23 +199,5 @@ internal sealed class Parser
             });
         }
         return serviceMethods;
-    }
-
-    private bool HasServiceAttribute(INamedTypeSymbol classSymbol)
-    {
-        foreach (AttributeData attribute in classSymbol.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _serviceAttribute))
-            {
-                return true;
-            }
-        }
-
-        if (classSymbol.BaseType is INamedTypeSymbol baseType)
-        {
-            return HasServiceAttribute(baseType);
-        }
-
-        return false;
     }
 }

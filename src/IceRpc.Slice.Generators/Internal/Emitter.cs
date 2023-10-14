@@ -16,39 +16,37 @@ internal class Emitter
                 serviceClass.HasBaseServiceClass ? "public override" :
                 serviceClass.IsSealed ? "public" : "public virtual";
 
-            string dispatcherBlock;
+            string dispatchImplementation;
             if (serviceClass.ServiceMethods.Count > 0)
             {
-                var dispatchBlocks = new List<string>();
+                dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    dispatchBlocks.Add(@$"
-case ""{serviceMethod.OperationName}"":
-    return global::{serviceMethod.DispatchMethodName}(this, request, cancellationToken);".Trim());
+                    string operationName = serviceMethod.OperationName;
+                    string dispatchMethodName = serviceMethod.DispatchMethodName;
+                    dispatchImplementation +=
+                        $"\"{operationName}\" => global::{dispatchMethodName}(this, request, cancellationToken),\n";
                 }
 
                 if (serviceClass.HasBaseServiceClass)
                 {
-                    dispatchBlocks.Add(@$"
-default:
-    return base.DispatchAsync(request, cancellationToken);".Trim());
+                    dispatchImplementation += "_ => base.DispatchAsync(request, cancellationToken)";
                 }
                 else
                 {
-                    dispatchBlocks.Add(@$"
-default:
-    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));".Trim());
+                    dispatchImplementation +=
+                        "_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))";
                 }
 
-                dispatcherBlock = @$"
-switch (request.Operation)
+                dispatchImplementation = @$"
+return request.Operation switch
 {{
-    {string.Join("\n\n", dispatchBlocks).Trim().WithIndent("    ")}
-}}".Trim();
+    {dispatchImplementation.WithIndent("    ")}
+}};".Trim();
             }
             else
             {
-                dispatcherBlock = serviceClass.HasBaseServiceClass ?
+                dispatchImplementation = serviceClass.HasBaseServiceClass ?
                     "return base.DispatchAsync(request, cancellationToken);" :
                     "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
@@ -60,19 +58,19 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
         IceRpc.IncomingRequest request,
         global::System.Threading.CancellationToken cancellationToken)
     {{
-        {dispatcherBlock.WithIndent("        ")}
+        {dispatchImplementation.WithIndent("        ")}
     }}
 }}";
 
             string container = dispatcherClass;
             ContainerDefinition? containerDefinition = serviceClass;
-            while (containerDefinition.Parent is ContainerDefinition parent)
+            while (containerDefinition.Enclosing is ContainerDefinition parent)
             {
                 container = GenerateContainer($"partial {parent.Keyword} {parent.Name}", container);
                 containerDefinition = parent;
             }
 
-            generatedClasses.Add(GenerateContainer($"namespace {serviceClass.ContainingNamespace}", container));
+            generatedClasses.Add(GenerateContainer($"namespace {serviceClass.Scope}", container));
         }
         string generated = string.Join("\n\n", generatedClasses).Trim();
         generated += "\n";
