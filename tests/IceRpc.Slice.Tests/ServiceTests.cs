@@ -17,11 +17,11 @@ public partial class ServiceTests
         var proxy = new MoreDerivedProxy(invoker);
 
         // Act/Assert
-        Assert.That(async () => await proxy.Op2Async(), Throws.Nothing);
+        Assert.That(async () => await proxy.Op3Async(), Throws.Nothing);
     }
 }
 
-[SliceService]
+    [SliceService]
 internal partial class MyBaseService : IBaseService
 {
     public ValueTask Op1Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
@@ -29,7 +29,7 @@ internal partial class MyBaseService : IBaseService
 
 // This class doesn't use the SliceService attribute, and no dispatch method would be generated for it. It would
 // be possible to call `IDerivedService` using the code generated for the derived class `MyMoreDerivedService`.
-internal class MyDerivedService : MyBaseService, IDerivedService
+internal partial class MyDerivedService : MyBaseService, IDerivedService
 {
     public ValueTask Op2Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
 }
