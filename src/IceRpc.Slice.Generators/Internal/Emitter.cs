@@ -64,14 +64,19 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 
             string container = dispatcherClass;
             ContainerDefinition? containerDefinition = serviceClass;
-            while (containerDefinition.Enclosing is ContainerDefinition parent)
+            while (containerDefinition.Enclosing is ContainerDefinition enclosing)
             {
-                container = GenerateContainer($"partial {parent.Keyword} {parent.Name}", container);
-                containerDefinition = parent;
+                container = GenerateContainer($"partial {enclosing.Keyword} {enclosing.Name}", container);
+                containerDefinition = enclosing;
             }
 
-            generatedClasses.Add(GenerateContainer($"namespace {serviceClass.Scope}", container));
+            if (serviceClass.ContainingNamespace is not null)
+            {
+                container = GenerateContainer($"namespace {serviceClass.ContainingNamespace}", container);
+            }
+            generatedClasses.Add(container);
         }
+
         string generated = string.Join("\n\n", generatedClasses).Trim();
         generated += "\n";
         return generated;
