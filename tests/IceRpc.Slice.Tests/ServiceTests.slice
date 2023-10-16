@@ -20,6 +20,6 @@ interface Derived : Base {
     op2()
 }
 
-interface MoreDerived : Base {
+interface MoreDerived : Derived {
     op3()
 }

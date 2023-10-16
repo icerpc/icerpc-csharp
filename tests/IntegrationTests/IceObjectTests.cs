@@ -17,7 +17,7 @@ public partial class IceObjectTests
     public async Task Ice_operations([Values("ice", "icerpc")] string protocol)
     {
         await using ServiceProvider provider = new ServiceCollection()
-            .AddClientServerColocTest(Protocol.Parse(protocol), new PingableService())
+            .AddClientServerColocTest(Protocol.Parse(protocol), new MyService())
             .AddSingleton<IIceObject>(
                 provider => provider.CreateSliceProxy<IceObjectProxy>(new Uri($"{protocol}:/service")))
             .BuildServiceProvider(validateScopes: true);
@@ -27,19 +27,17 @@ public partial class IceObjectTests
 
         string[] ids =
         [
-            "::Ice::Object", "::IceRpc::IntegrationTests::Pingable"
+            "::Ice::Object"
         ];
 
         Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
         Assert.That(await proxy.IceIsAAsync("::Ice::Object"), Is.True);
-        Assert.That(await proxy.IceIsAAsync("::IceRpc::IntegrationTests::Pingable"), Is.True);
         Assert.That(await proxy.IceIsAAsync("::Foo"), Is.False);
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
     [SliceService]
-    private partial class PingableService : IPingableService
+    private partial class MyService : IIceObjectService
     {
-        public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }
 }
