@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace IceRpc.IntegrationTests;
 
 [Parallelizable(ParallelScope.All)]
-public class IceObjectTests
+public partial class IceObjectTests
 {
     /// <summary>Verifies that the service implements <see cref="IIceObject" /> correctly.</summary>
     [Test]
@@ -25,10 +25,10 @@ public class IceObjectTests
         Server server = provider.GetRequiredService<Server>();
         server.Listen();
 
-        string[] ids = new string[]
-        {
+        string[] ids =
+        [
             "::Ice::Object", "::IceRpc::IntegrationTests::Pingable"
-        };
+        ];
 
         Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
         Assert.That(await proxy.IceIsAAsync("::Ice::Object"), Is.True);
@@ -37,7 +37,8 @@ public class IceObjectTests
         Assert.DoesNotThrowAsync(() => proxy.IcePingAsync());
     }
 
-    private class PingableService : Service, IPingableService, IIceObjectService
+    [SliceService]
+    private partial class PingableService : IPingableService, IIceObjectService
     {
         public ValueTask PingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
     }

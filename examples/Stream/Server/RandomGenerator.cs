@@ -7,7 +7,8 @@ using System.Security.Cryptography;
 
 namespace StreamExample;
 
-internal class RandomGenerator : Service, IGeneratorService
+[SliceService]
+internal partial class RandomGenerator : IGeneratorService
 {
     public ValueTask<IAsyncEnumerable<int>> GenerateNumbersAsync(
         IFeatureCollection features,

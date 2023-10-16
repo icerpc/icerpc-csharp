@@ -1,26 +1,41 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class ServiceTests
+public partial class ServiceTests
 {
     [Test]
-    public void Service_with_duplicate_slice_operations_throws_invalid_operation_exception() =>
-        Assert.That(() => new ServiceWithDuplicateOps(), Throws.InvalidOperationException);
-
-    internal class ServiceWithDuplicateOps : Service, IService1Service, IService2Service
+    public void Operation_without_parameters_and_void_return()
     {
-        public ValueTask Op1Async(IFeatureCollection features, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+        // Arrange
+        var invoker = new ColocInvoker(new MyMoreDerivedService());
+        var proxy = new MoreDerivedProxy(invoker);
 
-        public ValueTask Op2Async(IFeatureCollection features, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
-
-        public ValueTask Op3Async(IFeatureCollection features, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+        // Act/Assert
+        Assert.That(async () => await proxy.Op3Async(), Throws.Nothing);
     }
+}
+
+    [SliceService]
+internal partial class MyBaseService : IBaseService
+{
+    public ValueTask Op1Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
+}
+
+// This class doesn't use the SliceService attribute, and no dispatch method would be generated for it. It would
+// be possible to call `IDerivedService` using the code generated for the derived class `MyMoreDerivedService`.
+internal partial class MyDerivedService : MyBaseService, IDerivedService
+{
+    public ValueTask Op2Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
+}
+
+[SliceService]
+internal partial class MyMoreDerivedService : MyDerivedService, IMoreDerivedService
+{
+    public ValueTask Op3Async(IFeatureCollection features, CancellationToken cancellationToken) => default;
 }

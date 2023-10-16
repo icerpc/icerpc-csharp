@@ -8,7 +8,8 @@ namespace DeadlineServer;
 
 /// <summary>A SlowChatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
 /// <remarks>The slow chatbot always delays its responses by 1 second.</remarks>
-internal class SlowChatbot : Service, IGreeterService
+[SliceService]
+internal partial class SlowChatbot : IGreeterService
 {
     public async ValueTask<string> GreetAsync(
         string name,

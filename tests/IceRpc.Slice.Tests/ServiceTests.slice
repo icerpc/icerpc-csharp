@@ -11,3 +11,15 @@ interface Service2 {
     op2()
     op3()
 }
+
+interface Base {
+    op1()
+}
+
+interface Derived : Base {
+    op2()
+}
+
+interface MoreDerived : Derived {
+    op3()
+}

@@ -12,7 +12,8 @@ namespace ThermostatServer;
 /// <summary>Implements Slice interface `Thermostat` by forwarding calls to the device or by returning data reported
 /// by the device.</summary>
 /// <remarks>Most of the server-side logic is implemented in this class.</remarks>
-internal sealed class ThermoFacade : Service, IThermostatService
+[SliceService]
+internal sealed partial class ThermoFacade : IThermostatService
 {
     private readonly LinkedList<ChannelWriter<Reading>> _channelWriters = new();
 
