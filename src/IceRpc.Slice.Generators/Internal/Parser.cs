@@ -188,11 +188,7 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
-            serviceMethods.Add(new ServiceMethod
-            {
-                OperationName = operationName,
-                DispatchMethodName = GetFullName(method)
-            });
+            serviceMethods.Add(new ServiceMethod(dispatchMethodName: GetFullName(method), operationName));
         }
         return serviceMethods;
     }
