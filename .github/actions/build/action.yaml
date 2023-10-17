@@ -55,6 +55,10 @@ runs:
       working-directory: tools/IceRpc.Slice.Tools
       run: dotnet build ${{ inputs.dotnet-build-args }}
       shell: bash
+    - name: 🔨 Build IceRPC Protobuf Tools
+      working-directory: tools/protobuf
+      run: dotnet build ${{ inputs.dotnet-build-args }}
+      shell: bash
     - name: 🔨 Build IceRPC
       run: dotnet build ${{ inputs.dotnet-build-args }}
       shell: bash
