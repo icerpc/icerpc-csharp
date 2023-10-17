@@ -41,31 +41,36 @@
             OutputDir="%(ProtoFile.OutputDir)"
             ImportPath="@(ProtoImportPath->'%(FullPath)');$(protoc_tools);$(MSBuildProjectDirectory)"
             ToolsPath="$(protoc_tools)$(IceRpcProtocPrefix)"
-            PluginPath="$(IceRpcProtobufPluginPath)"
-            Sources="@(ProtoFile)" />
+            PluginPath="$(IceRpcProtocGenPath)"
+            Sources="@(ProtoFile)">
+
+          <Output
+              ItemName          = "_ProtoFile"
+              TaskParameter     = "ComputedSources"/>
+        </ProtocTask>
         <!--
             Include all C# generated source items that have not been already included. We delay this until we are
             running the ProtoCompile target so that default includes are already processed.
         -->
         <ItemGroup>
-            <ProtoFile>
+            <_ProtoFile>
                 <!--
                     Add GeneratePath metadata with the normalized path, this is required for excludes below to work
                     with different path separators.
                 -->
-                <ProtoGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</ProtoGeneratedPath>
-                <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
-            </ProtoFile>
+                <ProtoGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(OutputFilename).cs'))</ProtoGeneratedPath>
+                <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(OutputFilename).IceRpc.cs'))</IceRpcGeneratedPath>
+            </_ProtoFile>
             <Compile
-                Include="@(ProtoFile->'%(ProtoGeneratedPath)')"
+                Include="@(_ProtoFile->'%(ProtoGeneratedPath)')"
                 Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
             <Compile
-                Include="@(ProtoFile->'%(IceRpcGeneratedPath)')"
+                Include="@(_ProtoFile->'%(IceRpcGeneratedPath)')"
                 Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
         </ItemGroup>
     </Target>
     <Target Name="ProtoClean" BeforeTargets="Clean">
-        <Delete Files="@(ProtoFile->'%(OutputDir)\%(Filename).cs')" />
-        <Delete Files="@(ProtoFile->'%(OutputDir)\%(Filename).IceRpc.cs')" />
+        <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).cs')" />
+        <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).IceRpc.cs')" />
     </Target>
 </Project>

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Protobuf.Plugin", "IceRpc.Protobuf.Plugin\IceRpc.Protobuf.Plugin.csproj", "{21809AD3-9EE4-44D0-ACA3-C288762A672C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.ProtocGen", "IceRpc.ProtocGen\IceRpc.ProtocGen.csproj", "{21809AD3-9EE4-44D0-ACA3-C288762A672C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Protobuf.Tools", "IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.csproj", "{3A6E40BC-82D3-4FD0-A87E-B1EEDCA9CC1C}"
 EndProject

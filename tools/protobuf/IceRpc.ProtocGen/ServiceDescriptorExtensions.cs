@@ -2,7 +2,7 @@
 
 using Google.Protobuf.Reflection;
 
-namespace IceRpc.Protoc;
+namespace IceRpc.ProtocGen;
 
 internal static class ServiceDescriptorExtensions
 {

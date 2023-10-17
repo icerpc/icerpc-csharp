@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CaseConverter" Version="2.0.1" />
+    <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
     <PackageReference Include="Google.Protobuf" Version="3.24.1" />
   </ItemGroup>
 

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.CaseConverter.Internal;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
@@ -37,6 +38,9 @@ public class ProtocTask : ToolTask
     [Required]
     public string WorkingDirectory { get; set; } = "";
 
+    [Output]
+    public ITaskItem[] ComputedSources { get; private set; } = Array.Empty<ITaskItem>();
+
     /// <inheritdoc/>
     protected override string ToolName =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "protoc.exe" : "protoc";
@@ -58,20 +62,28 @@ public class ProtocTask : ToolTask
         builder.AppendSwitch("--csharp_out");
         builder.AppendFileNameIfNotNull(OutputDir);
 
-        // Add --icerpc-csharp_out to generate IceRpc C# + Protobuf integration code
+        // Add --icerpc-csharp_out to generate IceRPC + Protobuf integration code
         builder.AppendSwitch("--icerpc-csharp_out");
         builder.AppendFileNameIfNotNull(OutputDir);
 
         var importPath = new List<string>(ImportPath);
         // Add the sources directories to the import path
+        var computedSources = new  List<ITaskItem>();
         foreach (ITaskItem source in Sources)
         {
-            string directory = Path.GetDirectoryName(source.GetMetadata("FullPath"));
+            string fullPath = source.GetMetadata("FullPath");
+            string directory = Path.GetDirectoryName(fullPath);
             if (!importPath.Contains(directory))
             {
                 importPath.Add(directory);
             }
+
+            ITaskItem computedSource = new TaskItem(source.ItemSpec);
+            source.CopyMetadataTo(computedSource);
+            computedSource.SetMetadata("OutputFileName", Path.GetFileNameWithoutExtension(fullPath).ToPascalCase());
+            computedSources.Add(computedSource);
         }
+        ComputedSources = computedSources.ToArray();
 
         // Add protoc import paths
         foreach (string import in importPath)

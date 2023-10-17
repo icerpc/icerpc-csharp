@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using CaseConverter;
 using Google.Protobuf.Reflection;
+using IceRpc.CaseConverter.Internal;
 
-namespace IceRpc.Protoc;
+namespace IceRpc.ProtocGen;
 
 internal class ServiceGenerator
 {
@@ -20,9 +20,8 @@ internal class ServiceGenerator
             methods += $@"
     global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
         {inputType} message,
-        IceRpc.Features.IFeatureCollection? features,
-        global::System.Threading.CancellationToken cancellationToken);
-";
+        IceRpc.Features.IFeatureCollection features,
+        global::System.Threading.CancellationToken cancellationToken);";
 
             // Add a static method for each service method, the implementation calls the
             // abstract method and creates the outgoing response.
@@ -39,12 +38,11 @@ internal class ServiceGenerator
         var returnParam = await target.{methodName}(inputParam, request.Features, cancellationToken).ConfigureAwait(false);
         return new IceRpc.OutgoingResponse(request)
         {{
-            Payload = IceRpc.Protobuf.MessageExtensions.ToPipeReader(returnParam),
-            PayloadContinuation = null
+            Payload = IceRpc.Protobuf.MessageExtensions.ToPipeReader(returnParam)
         }};
-    }}
-";
+    }}";
         }
+
         return @$"
 public partial interface I{service.Name.ToPascalCase()}Service
 {{

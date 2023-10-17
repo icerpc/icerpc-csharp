@@ -35,6 +35,7 @@
       <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.7.0" />
    </ItemGroup>
    <ItemGroup>
+      <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
       <Content Include="../../../LICENSE">
          <PackagePath />
          <Pack>true</Pack>
@@ -57,7 +58,7 @@
       </None>
       <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
       <!-- Use the compilers from this source build. -->
-      <Content Include="../IceRpc.Protobuf.Plugin/bin/$(Configuration)/net8.0/*">
+      <Content Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*">
         <PackagePath>tools/</PackagePath>
         <Pack>true</Pack>
       </Content>

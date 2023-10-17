@@ -3,25 +3,23 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <EnableDefaultProtoFileItems Condition="'$(EnableDefaultProtoFileItems)' == ''">true</EnableDefaultProtoFileItems>
-        <!-- Workaround for Omnisharp not setting $(Configuration) property when loading C# projects -->
-        <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
-        <!-- Internal properties used to compute the slicec-cs compiler location for the current platform. -->
+        <!-- Internal properties used to compute the protoc excutable location for the current platform. -->
         <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRpcOSName>
         <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
         <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
         <IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
     </PropertyGroup>
     <Choose>
-        <When Condition="Exists('$(MSBuildThisFileDirectory)..\IceRpc.Protobuf.Plugin')">
+        <When Condition="Exists('$(MSBuildThisFileDirectory)..\IceRpc.ProtocGen')">
             <!-- Use the protobuf plugin from this source build -->
             <PropertyGroup>
-                <IceRpcProtobufPluginPath>$(MSBuildThisFileDirectory)..\IceRpc.Protobuf.Plugin\bin\$(Configuration)\net8.0\</IceRpcProtobufPluginPath>
+                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)..\IceRpc.ProtocGen\bin\$(Configuration)\net8.0\</IceRpcProtocGenPath>
             </PropertyGroup>
         </When>
         <Otherwise>
             <!-- Use the Protobuf plug-in from this NuGet package -->
             <PropertyGroup>
-                <IceRpcProtobufPluginPath>$(MSBuildThisFileDirectory)..\tools\</IceRpcProtobufPluginPath>
+              <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)..\tools\</IceRpcProtocGenPath>
             </PropertyGroup>
         </Otherwise>
     </Choose>
@@ -40,7 +38,7 @@
     <Choose>
         <When Condition="'$(IceRpcOSName)' == 'macos'">
             <PropertyGroup>
-                <!-- Google.Protobuf.Tools doesn't include an arm64 native compiler, we hate to use the x64 one.-->
+                <!-- Google.Protobuf.Tools doesn't include an arm64 native compiler, we have to use the x64 one.-->
                 <IceRpcProtocPrefix>macosx_x64</IceRpcProtocPrefix>
             </PropertyGroup>
         </When>

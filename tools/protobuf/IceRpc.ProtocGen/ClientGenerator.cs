@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-using CaseConverter;
 using Google.Protobuf.Reflection;
+using IceRpc.CaseConverter.Internal;
 
-namespace IceRpc.Protoc;
+namespace IceRpc.ProtocGen;
 
 internal class ClientGenerator
 {
@@ -79,7 +79,7 @@ public partial interface I{service.Name.ToPascalCase()}
         return @$"
 /// <summary>Makes invocations on a remote IceRPC service. This remote service must implement Protobuf service
 /// <c>{service.Name}</c>.</summary>
-/// <remarks>The IceRPC protobuf plugin generated this client struct from the Protobuf service <c>{service.Name}</c>.</remarks>
+/// <remarks>The IceRpc.ProtocGen protoc plugin generated this client struct from the Protobuf service <c>{service.Name}</c>.</remarks>
 public partial struct {clientImplementationName} : I{service.Name.ToPascalCase()}
 {{
     /// <summary>Gets the default service address for services that implement Protobuf service {service.FullName}.
@@ -88,7 +88,7 @@ public partial struct {clientImplementationName} : I{service.Name.ToPascalCase()
     public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
         new(IceRpc.Protocol.IceRpc) {{ Path = ""/{service.Name}"" }};
 
-    // <summary>Gets or initializes the invocation pipeline of this client.</summary>
+    /// <summary>Gets or initializes the invocation pipeline of this client.</summary>
     public IceRpc.IInvoker Invoker {{ get; init; }}
 
     /// <summary>Gets or initializes the address of the remote service.</summary>
