@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Protobuf.Tools;
 
-/// <summary>A MSBuild task to compile Protuf files with <c>icerpc-csharp</c> protoc plug-in.</summary>
+/// <summary>A MSBuild task to compile Protobuf files with <c>icerpc-csharp</c> protoc plug-in.</summary>
 public class ProtocTask : ToolTask
 {
     /// <summary>The output directory for the generated code; corresponds to the <c>--icerpc-csharp_out=</c> option of the

@@ -2,7 +2,8 @@
 
 using CaseConverter;
 using Google.Protobuf.Reflection;
-using IceRpc.Protoc;
+
+namespace IceRpc.Protoc;
 
 internal class ServiceGenerator
 {
