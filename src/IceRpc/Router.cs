@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Collections.Frozen;
+
 namespace IceRpc;
 
 /// <summary>Provides methods for routing incoming requests to dispatchers.</summary>
@@ -149,6 +151,9 @@ public sealed class Router : IDispatcher
 
     private IDispatcher CreateDispatchPipeline()
     {
+        var exactMatchRoutes = _exactMatchRoutes.ToFrozenDictionary();
+        var prefixMatchRoutes = _prefixMatchRoutes.ToFrozenDictionary();
+
         // The last dispatcher of the pipeline:
         IDispatcher dispatchPipeline = new InlineDispatcher(
             (request, cancellationToken) =>
@@ -167,7 +172,7 @@ public sealed class Router : IDispatcher
                 // else there is nothing to remove
 
                 // First check for an exact match
-                if (_exactMatchRoutes.TryGetValue(path, out IDispatcher? dispatcher))
+                if (exactMatchRoutes.TryGetValue(path, out IDispatcher? dispatcher))
                 {
                     return dispatcher.DispatchAsync(request, cancellationToken);
                 }
@@ -178,7 +183,7 @@ public sealed class Router : IDispatcher
 
                     foreach (int _ in Enumerable.Range(0, MaxSegments))
                     {
-                        if (_prefixMatchRoutes.TryGetValue(prefix, out dispatcher))
+                        if (prefixMatchRoutes.TryGetValue(prefix, out dispatcher))
                         {
                             return dispatcher.DispatchAsync(request, cancellationToken);
                         }
