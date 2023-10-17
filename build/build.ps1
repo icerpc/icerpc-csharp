@@ -35,6 +35,10 @@ function Build($config) {
     RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 
+    Push-Location "tools\protobuf"
+    RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
+    Pop-Location
+
     RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
@@ -46,6 +50,10 @@ function Clean($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
 
     Push-Location "tools\IceRpc.Slice.Tools"
+    RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
+    Pop-Location
+
+    Push-Location "tools\protobuf"
     RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 
@@ -95,6 +103,9 @@ function Publish($config) {
     Build $config
     $dotnetConfiguration = DotnetConfiguration($config)
     Push-Location "tools\IceRpc.Slice.Tools"
+    RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
+    Pop-Location
+    Push-Location "tools\protobuf\IceRpc.Protobuf.Tools"
     RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
     RunCommand "dotnet"  @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)

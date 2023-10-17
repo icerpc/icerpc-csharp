@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) ZeroC, Inc. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- Import ProtocTask -->
+    <UsingTask TaskName="IceRpc.Protobuf.Tools.ProtocTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
+    <ItemGroup>
+        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
+        <AvailableItemName Include="ProtoFile" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
+        <ProtoFile Update="@(ProtoFile)">
+            <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+            <Link Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))">%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </ProtoFile>
+    </ItemGroup>
+
+    <!--
+        When EnableDefaultItems property is true, *.proto files are included as "None" items. We remove them here, to
+        include them as "ProtoFile" items later.
+    -->
+    <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
+        <None Remove="**\*.proto" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
+        <ProtoFile
+            Condition="'$(EnableDefaultProtoFileItems)' == 'true'"
+            Include="**\*.proto"
+            Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+    </ItemGroup>
+    <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
+        <MakeDir Directories="%(ProtoFile.OutputDir)" />
+        <!-- Compile the Proto files
+          The import path determines where protoc compiler locates import files, we add:
+          - $(protoc_tools) to import google well-known files from Google.Protobuf.Tools.
+          - $(MSBuildProjectDirectory) to import the project own files.
+          - @(ProtoImportPath) additional paths specified by the user.
+        -->
+        <ProtocTask
+            WorkingDirectory="$(MSBuildProjectDirectory)"
+            OutputDir="%(ProtoFile.OutputDir)"
+            ImportPath="@(ProtoImportPath->'%(FullPath)');$(protoc_tools);$(MSBuildProjectDirectory)"
+            ToolsPath="$(protoc_tools)$(IceRpcProtocPrefix)"
+            PluginPath="$(IceRpcProtobufPluginPath)"
+            Sources="@(ProtoFile)" />
+        <!--
+            Include all C# generated source items that have not been already included. We delay this until we are
+            running the ProtoCompile target so that default includes are already processed.
+        -->
+        <ItemGroup>
+            <ProtoFile>
+                <!--
+                    Add GeneratePath metadata with the normalized path, this is required for excludes below to work
+                    with different path separators.
+                -->
+                <ProtoGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</ProtoGeneratedPath>
+                <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
+            </ProtoFile>
+            <Compile
+                Include="@(ProtoFile->'%(ProtoGeneratedPath)')"
+                Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
+            <Compile
+                Include="@(ProtoFile->'%(IceRpcGeneratedPath)')"
+                Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
+        </ItemGroup>
+    </Target>
+    <Target Name="ProtoClean" BeforeTargets="Clean">
+        <Delete Files="@(ProtoFile->'%(OutputDir)\%(Filename).cs')" />
+        <Delete Files="@(ProtoFile->'%(OutputDir)\%(Filename).IceRpc.cs')" />
+    </Target>
+</Project>

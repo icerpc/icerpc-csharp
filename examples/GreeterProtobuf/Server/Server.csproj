@@ -9,12 +9,14 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <Protobuf Include="../proto/greeter.proto" GrpcServices="None" OutputDir="obj/generated" />
-    <PackageReference Include="Google.Protobuf" Version="3.24.1" />
-    <!-- We use Grpc.Tools because Google.Protobuf.Tools does not provide MSBuild support -->
-    <PackageReference Include="Grpc.Tools" Version="2.57.0" PrivateAssets="All" />
+    <ProtoFile Include="../proto/greeter.proto">
+      <ProtoImportPath>../proto</ProtoImportPath>
+    </ProtoFile>
+    <PackageReference Include="Google.Protobuf" Version="3.24.4" />
+    <PackageReference Include="Google.Protobuf.Tools" Version="3.24.4" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
-    <Compile Include="../Common/MessageExtensions.cs" Link="MessageExtensions.cs" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+  <Import Project="..\..\..\tools\IceRpc.Slice.Tools\src\IceRpc.Slice.Tools\IceRpc.Slice.Tools.props" />
   <ItemDefinitionGroup>
     <SliceFile>
       <AdditionalOptions>--rpc none</AdditionalOptions>
@@ -16,5 +16,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\ZeroC.Slice\ZeroC.Slice.csproj" />
   </ItemGroup>
-
+  <Import Project="..\..\..\tools\IceRpc.Slice.Tools\src\IceRpc.Slice.Tools\IceRpc.Slice.Tools.targets" />
 </Project>

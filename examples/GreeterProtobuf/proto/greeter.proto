@@ -3,20 +3,20 @@
 syntax = "proto3";
 
 package visitor_center;
+option csharp_namespace = "VisitorCenter";
 
 // The protobuf equivalent of Slice interface Greeter in the Greeter example.
-// Here, it's purely for documentation purposes since protoc for C# doesn't generate anything for service definitions.
 service Greeter {
-  // Creates a personalized greeting.
-  rpc Greet (GreetRequest) returns (GreetResponse);
+    // Creates a personalized greeting.
+    rpc Greet (GreetRequest) returns (GreetResponse);
 }
 
 // The request contains the name of the person to greet.
 message GreetRequest {
-  string name = 1;
+    string name = 1;
 }
 
 // The response contains the greeting.
 message GreetResponse {
-  string greeting = 1;
+    string greeting = 1;
 }
