@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Protobuf.Tools;
 
-/// <summary>A MSBuild task to compile Protobuf files with <c>icerpc-csharp</c> protoc plug-in.</summary>
+/// <summary>A MSBuild task to generate C# code from Protobuf files using <c>protoc</c>.</summary>
 public class ProtocTask : ToolTask
 {
     /// <summary>The output directory for the generated code; corresponds to the <c>--icerpc-csharp_out=</c> option of the
@@ -30,9 +30,9 @@ public class ProtocTask : ToolTask
     [Required]
     public string ToolsPath { get; set; } = "";
 
-    /// <summary>The directory containing the icerpc-csharp protoc plug-in.</summary>
+    /// <summary>The directory containing the protoc-gen-icerpc-csharp scripts.</summary>
     [Required]
-    public string PluginPath { get; set; } = "";
+    public string ScriptPath { get; set; } = "";
 
     /// <summary>The working directory for executing the protoc compiler from.</summary>
     [Required]
@@ -48,15 +48,15 @@ public class ProtocTask : ToolTask
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
-        string protocPluginExe =
+        string scriptName =
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
                 "protoc-gen-icerpc-csharp.bat" : "protoc-gen-icerpc-csharp.sh";
 
         var builder = new CommandLineBuilder(false);
 
-        // Pass the full path to the icerpc-csharp protoc plugin
+        // Specify the full path to the protoc-gen-icerpc-csharp script.
         builder.AppendSwitch("--plugin");
-        builder.AppendFileNameIfNotNull($"protoc-gen-icerpc-csharp={Path.Combine(PluginPath, protocPluginExe)}");
+        builder.AppendFileNameIfNotNull($"protoc-gen-icerpc-csharp={Path.Combine(ScriptPath, scriptName)}");
 
         // Add --csharp_out to generate Protobuf C# code
         builder.AppendSwitch("--csharp_out");

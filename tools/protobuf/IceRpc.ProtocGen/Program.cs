@@ -7,7 +7,8 @@ using IceRpc.CaseConverter.Internal;
 using IceRpc.ProtocGen;
 using System.Text;
 
-// The protoc compiler invokes this plug-in and writes the Protobuf serialized CodeGeneratorRequest to standard input.
+// The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
+
 // Read the input and deserialize it using the Protobuf CodeGeneratorRequest object.
 using Stream stdin = Console.OpenStandardInput();
 var request = new CodeGeneratorRequest();
