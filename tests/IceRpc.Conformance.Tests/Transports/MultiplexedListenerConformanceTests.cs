@@ -144,10 +144,9 @@ public abstract class MultiplexedListenerConformanceTests
                 listener.ServerAddress,
                 new MultiplexedConnectionOptions(),
                 provider.GetService<SslServerAuthenticationOptions>()));
-        // BUGFIX with Quic this throws an internal error https://github.com/dotnet/runtime/issues/78573
         Assert.That(
             exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.AddressInUse).Or.EqualTo(IceRpcError.IceRpcError),
+            Is.EqualTo(IceRpcError.AddressInUse),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
 
