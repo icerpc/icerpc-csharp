@@ -50,7 +50,7 @@ any of its subdirectories.
 The Slice directories are an aggregate of the `SliceDirectory` defined in your project (if any) and the `SliceDirectory`
 defined in NuGet packages referenced by your project.
 
-For example, if your project's Slice files reference definitions in directory `common/slice``:
+For example, if your project's Slice files reference definitions in directory `common/slice`:
 
 ```xml
 <ItemGroup>
