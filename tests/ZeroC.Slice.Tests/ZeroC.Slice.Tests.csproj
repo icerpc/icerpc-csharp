@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
@@ -33,5 +33,8 @@
     <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\C\C.csproj" />
     <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\D\D.csproj" />
     <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\DPrime\DPrime.csproj" />
+    <!-- Reference the built-in Slice files -->
+    <SliceDirectory Include="..\..\slice" />
   </ItemGroup>
+  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

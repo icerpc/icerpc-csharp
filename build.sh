@@ -44,6 +44,10 @@ build()
     run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 
+    pushd tools/protobuf
+    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
+    popd
+
     run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
 }
 
@@ -54,6 +58,10 @@ clean()
     popd
 
     pushd tools/IceRpc.Slice.Tools
+    run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config"
+    popd
+
+    pushd tools/protobuf
     run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 
@@ -76,6 +84,9 @@ publish()
 {
     build
     pushd tools/IceRpc.Slice.Tools
+    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
+    popd
+    pushd tools/protobuf
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"

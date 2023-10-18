@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="..\..\tools\protobuf\IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.props" />
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
@@ -10,8 +10,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.1" />
-    <PackageReference Include="NUnit.Analyzers" Version="3.6.1">
+    <PackageReference Include="Google.Protobuf.Tools" Version="3.24.4" />
+    <PackageReference Include="Google.Protobuf" Version="3.24.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+    <PackageReference Include="NUnit.Analyzers" Version="3.8.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -20,12 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\IceRpc.Protobuf\IceRpc.Protobuf.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Protobuf.Generators\IceRpc.Protobuf.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc.Slice\IceRpc.Slice.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\..\src\IceRpc.Transports.Coloc\IceRpc.Transports.Coloc.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc.RequestContext\IceRpc.RequestContext.csproj" />
   </ItemGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="..\..\tools\protobuf\IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.targets" />
 </Project>

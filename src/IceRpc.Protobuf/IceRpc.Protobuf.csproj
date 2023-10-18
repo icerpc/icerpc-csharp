@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>IceRPC Protobuf integration package</Description>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+    <PackageTags>IceRPC;RPC;Protobuf</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
+    <PackageReference Include="Google.Protobuf" Version="3.24.4" />
+  </ItemGroup>
+  <!-- NuGet package contents-->
+  <ItemGroup>
+    <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <Content Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
+    <Content Include="..\IceRpc.Protobuf.Generators\bin\$(Configuration)\netstandard2.0\IceRpc.Protobuf.Generators.dll"
+             Pack="true"
+             PackagePath="analyzers\dotnet\cs"/>
+  </ItemGroup>
+</Project>

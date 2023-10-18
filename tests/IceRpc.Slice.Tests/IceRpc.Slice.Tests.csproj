@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
@@ -24,10 +24,13 @@
     <ProjectReference Include="..\..\src\IceRpc.Slice\IceRpc.Slice.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
+    <!-- Reference the built-in Slice files -->
+    <SliceDirectory Include="..\..\slice" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\certs\*.p12">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

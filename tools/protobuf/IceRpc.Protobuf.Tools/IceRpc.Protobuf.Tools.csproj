@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+   <Import Project="$(MSBuildThisFileDirectory)../../../build/IceRpc.Version.props" />
+   <PropertyGroup>
+      <Nullable>enable</Nullable>
+      <AssemblyName>IceRpc.Protobuf.Tools</AssemblyName>
+      <!--
+        The target framework is netstandard2.0 to support Visual Studio
+        see https://learn.microsoft.com/en-us/visualstudio/msbuild/tutorial-custom-task-code-generation?view=vs-2022#create-the-appsettingstronglytyped-project.
+      -->
+      <TargetFramework>netstandard2.0</TargetFramework>
+      <LangVersion>10.0</LangVersion>
+      <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+      <Title>IceRPC Protobuf Tools</Title>
+      <Authors>ZeroC, Inc.</Authors>
+      <PackageId>$(AssemblyName)</PackageId>
+      <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+      <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
+      <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
+      <RepositoryType>git</RepositoryType>
+      <PackageIcon>icerpc-icon.png</PackageIcon>
+      <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
+      <Description>Provides tools to generate C# code from Protobuf definitions; includes support for MSBuild projects.</Description>
+      <DevelopmentDependency>true</DevelopmentDependency>
+      <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+      <PackageTags>IceRPC;RPC;MSBuild;Protobuf</PackageTags>
+      <PackageReadmeFile>README.md</PackageReadmeFile>
+      <PackageType>Dependency</PackageType>
+      <IncludeBuildOutput>false</IncludeBuildOutput>
+      <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+      <NoWarn>NU5100</NoWarn>
+   </PropertyGroup>
+   <ItemGroup>
+      <PackageReference Include="Microsoft.Build.Framework" Version="17.7.0" />
+      <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.7.0" />
+   </ItemGroup>
+   <ItemGroup>
+      <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
+      <Content Include="../../../LICENSE">
+         <PackagePath />
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="../../../README.md">
+         <PackagePath />
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="IceRpc.Protobuf.Tools.props">
+         <PackagePath>build/</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <Content Include="IceRpc.Protobuf.Tools.targets">
+         <PackagePath>build/</PackagePath>
+         <Pack>true</Pack>
+      </Content>
+      <None Include="../../../build/icerpc-icon.png">
+         <Pack>true</Pack>
+         <PackagePath>\</PackagePath>
+      </None>
+      <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <!-- Use the compilers from this source build. -->
+      <Content Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*"
+               Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe">
+        <PackagePath>tools/</PackagePath>
+        <Pack>true</Pack>
+      </Content>
+   </ItemGroup>
+</Project>

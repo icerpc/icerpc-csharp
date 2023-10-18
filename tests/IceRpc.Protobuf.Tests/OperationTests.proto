@@ -1,0 +1,12 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+option csharp_namespace = "IceRpc.Protobuf.Tests";
+
+import "google/protobuf/empty.proto";
+
+package IceRpc.Protobuf.Tests;
+
+service MyOperations {
+  rpc unaryOpWithEmptyParamAndReturn (google.protobuf.Empty) returns (google.protobuf.Empty);
+}
