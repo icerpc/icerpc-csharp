@@ -157,7 +157,7 @@ public sealed class StructTests
         {
             Assert.That(bitSequenceReader.Read(), Is.False);
         }
-         if (e is not null)
+        if (e is not null)
         {
             Assert.That(bitSequenceReader.Read(), Is.True);
             Assert.That(decoder.DecodeMyEnum(), Is.EqualTo(MyEnum.Enum2));

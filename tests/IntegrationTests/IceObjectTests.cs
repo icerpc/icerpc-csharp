@@ -27,7 +27,8 @@ public partial class IceObjectTests
 
         string[] ids =
         [
-            "::Ice::Object", "::IceRpc::IntegrationTests::Pingable"
+            "::Ice::Object",
+            "::IceRpc::IntegrationTests::Pingable"
         ];
 
         Assert.That(await proxy.IceIdsAsync(), Is.EqualTo(ids));
