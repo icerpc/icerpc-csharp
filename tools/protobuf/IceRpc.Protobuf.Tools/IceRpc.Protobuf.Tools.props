@@ -11,13 +11,13 @@
     </PropertyGroup>
     <Choose>
         <When Condition="Exists('$(MSBuildThisFileDirectory)..\IceRpc.ProtocGen')">
-            <!-- Use the protobuf plugin from this source build -->
+            <!-- Use the IceRpc.ProtocGen assembly from this source build -->
             <PropertyGroup>
                 <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)..\IceRpc.ProtocGen\bin\$(Configuration)\net8.0\</IceRpcProtocGenPath>
             </PropertyGroup>
         </When>
         <Otherwise>
-            <!-- Use the Protobuf plug-in from this NuGet package -->
+            <!-- Use the IceeRpc.ProtocGen assembly in this NuGet package -->
             <PropertyGroup>
               <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)..\tools\</IceRpcProtocGenPath>
             </PropertyGroup>

@@ -41,7 +41,7 @@
             OutputDir="%(ProtoFile.OutputDir)"
             ImportPath="@(ProtoImportPath->'%(FullPath)');$(protoc_tools);$(MSBuildProjectDirectory)"
             ToolsPath="$(protoc_tools)$(IceRpcProtocPrefix)"
-            PluginPath="$(IceRpcProtocGenPath)"
+            ScriptPath="$(IceRpcProtocGenPath)"
             Sources="@(ProtoFile)">
 
           <Output
