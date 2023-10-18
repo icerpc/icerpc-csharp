@@ -34,6 +34,7 @@ internal static class QuicExceptionExtensions
             QuicError.ConnectionTimeout => new IceRpcException(IceRpcError.ConnectionAborted, exception),
             QuicError.ConnectionIdle => new IceRpcException(IceRpcError.ConnectionAborted, exception),
             QuicError.OperationAborted => new IceRpcException(IceRpcError.OperationAborted, exception),
+            QuicError.AlpnInUse => new IceRpcException(IceRpcError.AddressInUse, exception),
             QuicError.StreamAborted =>
                 exception.ApplicationErrorCode is long applicationErrorCode ?
                     applicationErrorCode == 0 ?
