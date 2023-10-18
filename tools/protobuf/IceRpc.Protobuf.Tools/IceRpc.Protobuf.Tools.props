@@ -17,7 +17,7 @@
             </PropertyGroup>
         </When>
         <Otherwise>
-            <!-- Use the IceeRpc.ProtocGen assembly in this NuGet package -->
+            <!-- Use the IceRpc.ProtocGen assembly in this NuGet package -->
             <PropertyGroup>
               <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)..\tools\</IceRpcProtocGenPath>
             </PropertyGroup>
