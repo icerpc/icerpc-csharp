@@ -50,11 +50,10 @@ any of its subdirectories.
 The Slice directories are an aggregate of the `SliceDirectory` defined in your project (if any) and the `SliceDirectory`
 defined in NuGet packages referenced by your project.
 
-For example:
+For example, if your project's Slice files reference definitions from a common/slice directory:
 
 ```xml
 <ItemGroup>
-    <!-- My Slice files reference definitions in this common directory -->
     <SliceDirectory Include="$(MSBuildThisFileDirectory)../common/slice"/>
 </ItemGroup>
 ```
@@ -68,10 +67,10 @@ your NuGet package to easily retrieve these Slice files.
 You can also define `SliceDirectory` in this NuGet package so that any project that references this package
 automatically sees these Slice files when compiling. For example:
 
+### `buildTransitive/<PackageName>.props`
+
 ```xml
-<!-- In the buildTransitive/<PackageName>.props file you pack into your NuGet package -->
 <ItemGroup>
-    <!-- This NuGet package installs Slice files in its slice directory -->
     <SliceDirectory Include="$(MSBuildThisFileDirectory)../slice"/>
 </ItemGroup>
 ```
