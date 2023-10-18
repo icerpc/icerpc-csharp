@@ -9,7 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <ProtoFile Include="../proto/Greeter.proto">
+    <ProtoFile Include="../proto/greeter.proto">
       <ProtoImportPath>../proto</ProtoImportPath>
     </ProtoFile>
     <PackageReference Include="Google.Protobuf" Version="3.24.4" />
