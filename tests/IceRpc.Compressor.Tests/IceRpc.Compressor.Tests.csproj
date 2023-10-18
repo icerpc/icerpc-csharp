@@ -28,5 +28,5 @@
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools//IceRpc.Slice.Tools.targets" />
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>
