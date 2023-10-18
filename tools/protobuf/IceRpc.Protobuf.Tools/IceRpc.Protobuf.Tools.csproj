@@ -58,7 +58,8 @@
       </None>
       <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
       <!-- Use the compilers from this source build. -->
-      <Content Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*">
+      <Content Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*"
+               Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe">
         <PackagePath>tools/</PackagePath>
         <Pack>true</Pack>
       </Content>

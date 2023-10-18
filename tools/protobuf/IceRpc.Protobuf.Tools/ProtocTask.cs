@@ -50,7 +50,7 @@ public class ProtocTask : ToolTask
     {
         string protocPluginExe =
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
-                "protoc-gen-icerpc-csharp.exe" : "protoc-gen-icerpc-csharp";
+                "protoc-gen-icerpc-csharp.bat" : "protoc-gen-icerpc-csharp.sh";
 
         var builder = new CommandLineBuilder(false);
 
@@ -68,7 +68,7 @@ public class ProtocTask : ToolTask
 
         var importPath = new List<string>(ImportPath);
         // Add the sources directories to the import path
-        var computedSources = new  List<ITaskItem>();
+        var computedSources = new List<ITaskItem>();
         foreach (ITaskItem source in Sources)
         {
             string fullPath = source.GetMetadata("FullPath");

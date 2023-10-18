@@ -26,7 +26,7 @@ public static class InvokerExtensions
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    // <summary>Sends a request to a service and decodes the response.</summary>
+    /// <summary>Sends a request to a service and decodes the response.</summary>
     /// <typeparam name="T">The response type.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
