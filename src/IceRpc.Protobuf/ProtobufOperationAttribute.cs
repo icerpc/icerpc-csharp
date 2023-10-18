@@ -4,8 +4,8 @@ using System.ComponentModel;
 
 namespace IceRpc.Protobuf;
 
-/// <summary>Represents an attribute that the IceRPC protobuf plugin uses to mark helper methods it generates on
-/// Service definitions.</summary>
+/// <summary>Represents an attribute that protoc-gen-icerpc-csharp uses to mark helper methods it generates in Service
+/// interfaces.</summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class ProtobufOperationAttribute : Attribute
