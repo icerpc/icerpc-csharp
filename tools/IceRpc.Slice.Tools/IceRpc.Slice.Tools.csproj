@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-   <Import Project="$(MSBuildThisFileDirectory)../../../../build/IceRpc.Version.props" />
+   <Import Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props" />
    <PropertyGroup>
       <Nullable>enable</Nullable>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
@@ -45,11 +45,11 @@
       <PackageReference Include="System.Text.Json" Version="6.0.5" />
    </ItemGroup>
    <ItemGroup>
-      <Content Include="../../../../LICENSE">
+      <Content Include="../../LICENSE">
          <PackagePath />
          <Pack>true</Pack>
       </Content>
-      <Content Include="../../README.md">
+      <Content Include="README.md">
          <PackagePath />
          <Pack>true</Pack>
       </Content>
@@ -73,7 +73,7 @@
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
-      <None Include="../../../../build/icerpc-icon.png">
+      <None Include="../../build/icerpc-icon.png">
          <Pack>true</Pack>
          <PackagePath>\</PackagePath>
       </None>
@@ -108,7 +108,7 @@
       <Otherwise>
          <ItemGroup>
             <!-- Use the compilers from this source build. -->
-            <Content Include="../../../slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
+            <Content Include="../slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
                <PackagePath>tools/$(IceRPC_OSName)-$(IceRPC_OSArch)/</PackagePath>
                <Pack>true</Pack>
             </Content>
@@ -118,5 +118,5 @@
    <ItemGroup>
       <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
    </ItemGroup>
-   <Import Project="$(MSBuildThisFileDirectory)../../../../build/Sign.targets" />
+   <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
 </Project>

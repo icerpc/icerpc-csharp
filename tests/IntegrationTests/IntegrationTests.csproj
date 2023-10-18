@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
@@ -27,5 +27,5 @@
     <ProjectReference Include="..\..\src\IceRpc.Transports.Coloc\IceRpc.Transports.Coloc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.RequestContext\IceRpc.RequestContext.csproj" />
   </ItemGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

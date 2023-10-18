@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
     <PropertyGroup>
         <Description>IceRpc.Slice for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
@@ -48,4 +49,5 @@
                Pack="true"
                PackagePath="analyzers\dotnet\cs"/>
     </ItemGroup>
+    <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

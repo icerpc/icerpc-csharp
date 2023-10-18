@@ -10,11 +10,11 @@
         <IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
     </PropertyGroup>
     <Choose>
-        <When Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\slicec-cs')">
+        <When Condition="Exists('$(MSBuildThisFileDirectory)..\slicec-cs')">
             <!-- Use the Slice compiler from this source build -->
             <PropertyGroup>
-                <SliceCompilerPath Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)..\..\..\slicec-cs\target\debug</SliceCompilerPath>
-                <SliceCompilerPath Condition="'$(Configuration)' == 'Release'">$(MSBuildThisFileDirectory)..\..\..\slicec-cs\target\release</SliceCompilerPath>
+                <SliceCompilerPath Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)..\slicec-cs\target\debug</SliceCompilerPath>
+                <SliceCompilerPath Condition="'$(Configuration)' == 'Release'">$(MSBuildThisFileDirectory)..\slicec-cs\target\release</SliceCompilerPath>
             </PropertyGroup>
         </When>
         <Otherwise>

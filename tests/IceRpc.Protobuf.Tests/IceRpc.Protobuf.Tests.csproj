@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\tools\protobuf\IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.props" />
+  <Import Project="..\..\tools\IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.props" />
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
@@ -26,5 +26,5 @@
     <ProjectReference Include="..\..\src\IceRpc.Protobuf.Generators\IceRpc.Protobuf.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
   </ItemGroup>
-  <Import Project="..\..\tools\protobuf\IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.targets" />
+  <Import Project="..\..\tools\IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.targets" />
 </Project>

@@ -17,5 +17,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
+  <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
 </Project>
