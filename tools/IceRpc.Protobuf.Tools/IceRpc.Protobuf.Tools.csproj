@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-   <Import Project="$(MSBuildThisFileDirectory)../../../build/IceRpc.Version.props" />
+   <Import Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props" />
    <PropertyGroup>
       <Nullable>enable</Nullable>
       <AssemblyName>IceRpc.Protobuf.Tools</AssemblyName>
@@ -36,11 +36,11 @@
    </ItemGroup>
    <ItemGroup>
       <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
-      <Content Include="../../../LICENSE">
+      <Content Include="../../LICENSE">
          <PackagePath />
          <Pack>true</Pack>
       </Content>
-      <Content Include="../../../README.md">
+      <Content Include="README.md">
          <PackagePath />
          <Pack>true</Pack>
       </Content>
@@ -52,16 +52,16 @@
          <PackagePath>build/</PackagePath>
          <Pack>true</Pack>
       </Content>
-      <None Include="../../../build/icerpc-icon.png">
+      <None Include="../../build/icerpc-icon.png">
          <Pack>true</Pack>
          <PackagePath>\</PackagePath>
       </None>
       <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
       <!-- Use the compilers from this source build. -->
-      <Content Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*"
-               Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe">
+      <Content Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*" Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe">
         <PackagePath>tools/</PackagePath>
         <Pack>true</Pack>
       </Content>
    </ItemGroup>
+   <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
 </Project>

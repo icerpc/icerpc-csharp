@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.ProtocGen", "IceRpc.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Protobuf.Tools", "IceRpc.Protobuf.Tools\IceRpc.Protobuf.Tools.csproj", "{3A6E40BC-82D3-4FD0-A87E-B1EEDCA9CC1C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Slice.Tools", "IceRpc.Slice.Tools\IceRpc.Slice.Tools.csproj", "{5200BE11-0637-4C04-9F61-A93F213ADA03}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{3A6E40BC-82D3-4FD0-A87E-B1EEDCA9CC1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A6E40BC-82D3-4FD0-A87E-B1EEDCA9CC1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A6E40BC-82D3-4FD0-A87E-B1EEDCA9CC1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5200BE11-0637-4C04-9F61-A93F213ADA03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5200BE11-0637-4C04-9F61-A93F213ADA03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5200BE11-0637-4C04-9F61-A93F213ADA03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5200BE11-0637-4C04-9F61-A93F213ADA03}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

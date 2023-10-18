@@ -40,11 +40,7 @@ build()
     run_command cargo "${arguments[@]}"
     popd
 
-    pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
-    popd
-
-    pushd tools/protobuf
+    pushd tools
     run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 
@@ -57,11 +53,7 @@ clean()
     run_command cargo clean
     popd
 
-    pushd tools/IceRpc.Slice.Tools
-    run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config"
-    popd
-
-    pushd tools/protobuf
+    pushd tools
     run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 
@@ -83,13 +75,13 @@ doc()
 publish()
 {
     build
-    pushd tools/IceRpc.Slice.Tools
+
+    pushd tools
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
-    pushd tools/protobuf
+
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
-    popd
-    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
+
     pushd src/IceRpc.Templates
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
     popd

@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -28,5 +28,5 @@
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools/src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../../tools/IceRpc.Slice.Tools//IceRpc.Slice.Tools.targets" />
 </Project>
