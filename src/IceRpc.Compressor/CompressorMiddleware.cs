@@ -2,7 +2,6 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Compression;

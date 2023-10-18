@@ -21,7 +21,7 @@ public partial class ServiceTests
     }
 }
 
-    [SliceService]
+[SliceService]
 internal partial class MyBaseService : IBaseService
 {
     public ValueTask Op1Async(IFeatureCollection features, CancellationToken cancellationToken) => default;

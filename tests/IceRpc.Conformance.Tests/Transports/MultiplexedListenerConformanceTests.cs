@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using System.Net.Security;
-using System.Security.Authentication;
 
 namespace IceRpc.Conformance.Tests;
 

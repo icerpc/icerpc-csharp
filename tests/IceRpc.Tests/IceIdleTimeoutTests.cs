@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using IceRpc.Transports.Slic.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -27,7 +26,7 @@ public class IceIdleTimeoutTests
             sut.Client,
             readIdleTimeout: TimeSpan.FromMilliseconds(500),
             writeIdleTimeout: TimeSpan.FromMilliseconds(500),
-            keepAliveAction: () => {});
+            keepAliveAction: () => { });
 
         // Write and read data to the connection
         await sut.Server.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
