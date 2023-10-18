@@ -79,7 +79,7 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 
         string generated = string.Join("\n\n", generatedClasses).Trim();
         generated += "\n";
-        return generated;
+        return generated.ReplaceLineEndings();
     }
 
     private static string GenerateContainer(string header, string body)
