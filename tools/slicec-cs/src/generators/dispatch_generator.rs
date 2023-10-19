@@ -28,7 +28,8 @@ pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
             interface_def,
         )
         .add_comments(interface_def.formatted_doc_comment_seealso())
-        .add_type_id_attribute(interface_def);
+        .add_type_id_attribute(interface_def)
+        .add_default_service_path_attribute(interface_def);
 
     interface_builder.add_bases(
         &bases
