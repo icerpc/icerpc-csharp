@@ -86,9 +86,8 @@ public partial interface I{service.Name.ToPascalCase()}
 /// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.Name}</c>.</remarks>
 public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}
 {{
-    /// <summary>Gets the default service address for services that implement Protobuf service {service.FullName}.
-    /// Its protocol is <c>icerpc</c> and its path is the Protobuf service name.
-    /// </summary>
+    /// <summary>Gets the default service address for services that implement Protobuf service {service.FullName}:
+    /// <c>icerpc:/{service.Name}</c>.</summary>
     public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
         new(IceRpc.Protocol.IceRpc) {{ Path = ""/{service.Name}"" }};
 

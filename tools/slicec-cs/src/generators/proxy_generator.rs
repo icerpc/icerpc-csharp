@@ -40,7 +40,6 @@ pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
             interface_def,
         )
         .add_comments(interface_def.formatted_doc_comment_seealso())
-        .add_type_id_attribute(interface_def)
         .add_bases(&interface_bases)
         .add_block(proxy_interface_operations(interface_def));
     code.add_block(&proxy_interface_builder.build());
@@ -67,9 +66,8 @@ This remote service must implement Slice interface {slice_interface}."#
         .add_block(
             format!(
                 r#"
-/// <summary>Gets the default service address for services that implement Slice interface {slice_interface}.
-/// Its protocol is <see cref="IceRpc.Protocol.IceRpc" /> and its path is computed from the name of the Slice interface.
-/// </summary>
+/// <summary>Gets the default service address for services that implement Slice interface {slice_interface}:
+/// <c>icerpc:{default_service_path}</c>.</summary>
 public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
     new(IceRpc.Protocol.IceRpc) {{ Path = "{default_service_path}" }};
 
