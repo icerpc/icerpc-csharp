@@ -87,27 +87,29 @@ public partial interface I{service.Name.ToPascalCase()}
 /// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.FullName}</c>.</remarks>
 public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}
 {{
-    /// <summary>Gets the default service address for services that implement Protobuf service {service.FullName}:
-    /// <c>icerpc:/{service.FullName}</c>.</summary>
-    public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
-        new(IceRpc.Protocol.IceRpc) {{ Path = ""/{service.FullName}"" }};
+    /// <summary>Represents the default path for IceRPC services that implement Protobuf service
+    /// <c>{service.FullName}</c>.</summary>
+    public const string DefaultServicePath = ""/{service.FullName}"";
 
     /// <summary>Gets or initializes the invoker of this client.</summary>
     public IceRpc.IInvoker Invoker {{ get; init; }}
 
     /// <summary>Gets or initializes the address of the remote service.</summary>
-    IceRpc.ServiceAddress ServiceAddress {{ get; init; }}
+    public IceRpc.ServiceAddress ServiceAddress {{ get; init; }}
+
+    private static IceRpc.ServiceAddress _defaultServiceAddress =
+        new(IceRpc.Protocol.IceRpc) {{ Path = DefaultServicePath }};
 
     /// <summary>Constructs a client from an invoker and a service address.</summary>
     /// <param name=""invoker"">The invoker of this client.</param>
-    /// <param name=""serviceAddress"">The service address. <see langword=""null"" /> is equivalent to
-    /// <see cref=""DefaultServiceAddress"" />.</param>
+    /// <param name=""serviceAddress"">The service address. <see langword=""null"" /> is equivalent to an icerpc service
+    /// address with path <see cref=""DefaultServicePath"" />.</param>
     public {clientImplementationName}(
         IceRpc.IInvoker invoker,
         IceRpc.ServiceAddress? serviceAddress = null)
     {{
         Invoker = invoker;
-        ServiceAddress = serviceAddress ?? DefaultServiceAddress;
+        ServiceAddress = serviceAddress ?? _defaultServiceAddress;
     }}
 
     /// <summary>Constructs a client from an invoker and a service address URI.</summary>

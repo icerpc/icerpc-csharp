@@ -66,10 +66,9 @@ This remote service must implement Slice interface {slice_interface}."#
         .add_block(
             format!(
                 r#"
-/// <summary>Gets the default service address for services that implement Slice interface {slice_interface}:
-/// <c>icerpc:{default_service_path}</c>.</summary>
-public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
-    new(IceRpc.Protocol.IceRpc) {{ Path = "{default_service_path}" }};
+/// <summary>Represents the default path for IceRPC services that implement Slice interface
+/// <c>{slice_interface}</c>.</summary>
+public const string DefaultServicePath = "{default_service_path}";
 
 /// <inheritdoc/>
 public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;
@@ -78,7 +77,10 @@ public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;
 public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
 
 /// <inheritdoc/>
-public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = DefaultServiceAddress;"#
+public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = _defaultServiceAddress;
+
+private static IceRpc.ServiceAddress _defaultServiceAddress =
+    new(IceRpc.Protocol.IceRpc) {{ Path = DefaultServicePath }};"#
             )
             .into(),
         );
@@ -130,7 +132,8 @@ public static {proxy_impl} FromPath(string path) => new() {{ ServiceAddress = ne
 
 /// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
-/// <param name="serviceAddress">The service address. <see langword="null" /> is equivalent to <see cref="DefaultServiceAddress" />.</param>
+/// <param name="serviceAddress">The service address. <see langword="null" /> is equivalent to an icerpc service address
+/// with path <see cref="DefaultServicePath" />.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
 public {proxy_impl}(
     IceRpc.IInvoker invoker,
@@ -138,7 +141,7 @@ public {proxy_impl}(
     SliceEncodeOptions? encodeOptions = null)
 {{
     Invoker = invoker;
-    ServiceAddress = serviceAddress ?? DefaultServiceAddress;
+    ServiceAddress = serviceAddress ?? _defaultServiceAddress;
     EncodeOptions = encodeOptions;
 }}
 
