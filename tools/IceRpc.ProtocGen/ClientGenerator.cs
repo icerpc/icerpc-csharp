@@ -2,6 +2,7 @@
 
 using Google.Protobuf.Reflection;
 using IceRpc.CaseConverter.Internal;
+using System.Net.Security;
 
 namespace IceRpc.ProtocGen;
 
@@ -24,7 +25,7 @@ internal class ClientGenerator
         global::System.Threading.CancellationToken cancellationToken = default);";
         }
         return @$"
-/// <remarks>protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.Name}</c>.
+/// <remarks>protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.FullName}</c>.
 /// It's implemented by <c>{service.Name.ToPascalCase()}Client</c></remarks>
 public partial interface I{service.Name.ToPascalCase()}
 {{
@@ -82,14 +83,14 @@ public partial interface I{service.Name.ToPascalCase()}
 
         return @$"
 /// <summary>Makes invocations on a remote IceRPC service. This remote service must implement Protobuf service
-/// <c>{service.Name}</c>.</summary>
-/// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.Name}</c>.</remarks>
+/// <c>{service.FullName}</c>.</summary>
+/// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.FullName}</c>.</remarks>
 public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}
 {{
     /// <summary>Gets the default service address for services that implement Protobuf service {service.FullName}:
-    /// <c>icerpc:/{service.Name}</c>.</summary>
+    /// <c>icerpc:/{service.FullName}</c>.</summary>
     public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
-        new(IceRpc.Protocol.IceRpc) {{ Path = ""/{service.Name}"" }};
+        new(IceRpc.Protocol.IceRpc) {{ Path = ""/{service.FullName}"" }};
 
     /// <summary>Gets or initializes the invoker of this client.</summary>
     public IceRpc.IInvoker Invoker {{ get; init; }}
