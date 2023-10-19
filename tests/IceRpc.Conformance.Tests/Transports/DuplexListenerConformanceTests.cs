@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
+using System.Buffers;
 using System.Net;
 using System.Net.Security;
 
@@ -39,6 +40,26 @@ public abstract class DuplexListenerConformanceTests
         using IDuplexConnection serverConnection = (await acceptTask).Connection;
         var serverConnectTask = serverConnection.ConnectAsync(default);
         await Task.WhenAll(clientConnectTask, serverConnectTask);
+    }
+
+    /// <summary>Verifies that connections keep working after the listener is disposed.</summary>
+    [Test]
+    public async Task Disposing_the_listener_does_not_affect_existing_connections()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var sut = provider.GetRequiredService<ClientServerDuplexConnection>();
+
+        await sut.AcceptAndConnectAsync(default);
+
+        // Act
+        await sut.Listener.DisposeAsync();
+
+        var payload = new ReadOnlySequence<byte>(new byte[1024]);
+        await sut.Client.WriteAsync(payload, default);
+        var buffer = new byte[1024];
+        var size = await sut.Server.ReadAsync(buffer, default);
+        Assert.That(size, Is.EqualTo(1024));
     }
 
     [Test]
