@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using ZeroC.Slice;
-
 namespace IceRpc;
 
 /// <summary>Provides extension methods for <see cref="Type" />.</summary>
@@ -25,7 +23,7 @@ public static class TypeExtensions
             else
             {
                 throw new ArgumentException(
-                    $"The type '{type}' doesn't have a {nameof(DefaultServicePathAttribute)} attribute.",
+                    $"Interface '{type}' does not have a {nameof(DefaultServicePathAttribute)} attribute.",
                     nameof(type));
             }
         }
