@@ -48,6 +48,8 @@ pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let mut proxy_impl_builder =
         ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
 
+    let default_service_path = interface_def.default_service_path();
+
     proxy_impl_builder
         .add_bases(&proxy_impl_bases)
         .add_comment(
@@ -69,7 +71,7 @@ This remote service must implement Slice interface {slice_interface}."#
 /// Its protocol is <see cref="IceRpc.Protocol.IceRpc" /> and its path is computed from the name of the Slice interface.
 /// </summary>
 public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
-    new(IceRpc.Protocol.IceRpc) {{ Path = typeof({proxy_impl}).GetDefaultServicePath() }};
+    new(IceRpc.Protocol.IceRpc) {{ Path = "{default_service_path}" }};
 
 /// <inheritdoc/>
 public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;
