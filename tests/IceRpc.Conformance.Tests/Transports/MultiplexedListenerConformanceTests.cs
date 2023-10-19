@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
+using System.IO.Pipelines;
 using System.Net.Security;
 
 namespace IceRpc.Conformance.Tests;
@@ -48,6 +49,49 @@ public abstract class MultiplexedListenerConformanceTests
                 await clientConnectTask;
             },
             Throws.Nothing);
+    }
+
+    /// <summary>Verifies that connections keep working after the listener is disposed.</summary>
+    [Test]
+    public async Task Disposing_the_listener_does_not_affect_existing_connections()
+    {
+        // Arrange
+        await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync();
+        byte[] buffer = new byte[1024];
+
+        // Act
+        await clientServerConnection.Listener.DisposeAsync();
+
+        // Assert
+        Task writeTask = WriteDataAsync();
+        Assert.That(async () => await ReadDataAsync(), Is.EqualTo(buffer.Length));
+        Assert.That(() => writeTask, Throws.Nothing);
+
+        async Task<int> ReadDataAsync()
+        {
+            ReadResult readResult;
+            int readLength = 0;
+            do
+            {
+                readResult = await sut.Remote.Input.ReadAsync(default);
+                readLength += (int)readResult.Buffer.Length;
+                sut.Remote.Input.AdvanceTo(readResult.Buffer.End);
+            }
+            while (!readResult.IsCompleted);
+            return readLength;
+        }
+
+        async Task WriteDataAsync()
+        {
+            // Send a large buffer to ensure the transport (eventually) buffers the sending of the data.
+            await sut.Local.Output.WriteAsync(buffer);
+
+            // Act
+            sut.Local.Output.Complete();
+        }
     }
 
     [Test]

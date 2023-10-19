@@ -18,7 +18,9 @@ public sealed class ClientServerDuplexConnection : IAsyncDisposable
         private set => _server = value;
     }
 
-    private readonly IListener<IDuplexConnection> _listener;
+    /// <summary>Gets the listener used to accept server connections.</summary>
+    public IListener<IDuplexConnection> Listener { get; private set; }
+
     private IDuplexConnection? _server;
 
     /// <summary>Accepts and connects the server connection.</summary>
@@ -26,7 +28,7 @@ public sealed class ClientServerDuplexConnection : IAsyncDisposable
     /// <returns>The accepted server connection and connection information.</returns>
     public async Task<TransportConnectionInformation> AcceptAsync(CancellationToken cancellationToken = default)
     {
-        (_server, _) = await _listener.AcceptAsync(cancellationToken);
+        (_server, _) = await Listener.AcceptAsync(cancellationToken);
         return await _server.ConnectAsync(cancellationToken);
     }
 
@@ -41,7 +43,7 @@ public sealed class ClientServerDuplexConnection : IAsyncDisposable
     {
         Client.Dispose();
         _server?.Dispose();
-        return _listener.DisposeAsync();
+        return Listener.DisposeAsync();
     }
 
     /// <summary>Constructs a new <see cref="ClientServerDuplexConnection"/>.</summary>
@@ -49,7 +51,7 @@ public sealed class ClientServerDuplexConnection : IAsyncDisposable
     /// <param name="listener">The listener.</param>
     public ClientServerDuplexConnection(IDuplexConnection clientConnection, IListener<IDuplexConnection> listener)
     {
-        _listener = listener;
+        Listener = listener;
         Client = clientConnection;
     }
 }
