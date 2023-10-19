@@ -1,10 +1,8 @@
 # GreeterProtobuf
 
-The GreeterProtobuf example illustrates how to use [Protobuf][protobuf] to encode the payloads of IceRPC requests and
-responses.
-
-It's a variation of the [Greeter](Greeter) example that uses Protobuf instead of Slice. See also the
-[GreeterCore](GreeterCore) example that uses the same core APIs to create requests and responses.
+The GreeterProtobuf example is a variation of the [Greeter](Greeter) example. It sends the same request and receives
+the same response, except it uses [Protobuf][protobuf] instead of Slice to define the contract between the client and
+the server.
 
 You can build the client and server applications with:
 
