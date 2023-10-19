@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Slice::Tests::InterfaceTests
+module IceRpc::Slice::Tests
 
-interface MyInterface {}
+interface MyWidget {}
 
-interface MyDerivedInterface : MyInterface, myOtherInterface {}
+interface MyDerivedWidget : MyWidget, myOtherWidget {}
 
-// These constructs don't use the same case convention as their corresponding C# generated types,
-// but their type ID shouldn't be affected by case normalization of the generated types.
-interface myOtherInterface {}
+// Unusual casing.
+interface myOtherWidget {}

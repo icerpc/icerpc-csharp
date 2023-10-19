@@ -4,8 +4,9 @@ using IceRpc.Slice.Ice;
 using NUnit.Framework;
 using ZeroC.Slice;
 
-namespace IceRpc.Slice.Tests.InterfaceTests;
+namespace IceRpc.Slice.Tests;
 
+[Parallelizable(scope: ParallelScope.All)]
 public sealed class InterfaceTests
 {
     /// <summary>Verifies that service interfaces and proxy structs generated from Slice interfaces have the expected
@@ -16,10 +17,10 @@ public sealed class InterfaceTests
     [TestCase(typeof(IIceObjectService), "::Ice::Object")]
     [TestCase(typeof(PingableProxy), "::IceRpc::Slice::Tests::Pingable")]
     [TestCase(typeof(IPingableService), "::IceRpc::Slice::Tests::Pingable")]
-    [TestCase(typeof(MyInterfaceProxy), "::IceRpc::Slice::Tests::InterfaceTests::MyInterface")]
-    [TestCase(typeof(IMyInterfaceService), "::IceRpc::Slice::Tests::InterfaceTests::MyInterface")]
-    [TestCase(typeof(MyOtherInterfaceProxy), "::IceRpc::Slice::Tests::InterfaceTests::myOtherInterface")]
-    [TestCase(typeof(IMyOtherInterfaceService), "::IceRpc::Slice::Tests::InterfaceTests::myOtherInterface")]
+    [TestCase(typeof(MyWidgetProxy), "::IceRpc::Slice::Tests::MyWidget")]
+    [TestCase(typeof(IMyWidgetService), "::IceRpc::Slice::Tests::MyWidget")]
+    [TestCase(typeof(MyOtherWidgetProxy), "::IceRpc::Slice::Tests::myOtherWidget")]
+    [TestCase(typeof(IMyOtherWidgetService), "::IceRpc::Slice::Tests::myOtherWidget")]
     public void Get_slice_type_id(Type type, string? expected)
     {
         string? typeId = type.GetSliceTypeId();
@@ -31,8 +32,8 @@ public sealed class InterfaceTests
     /// <param name="expected">The expected default service path.</param>
     [TestCase(typeof(IIceObjectService), "/Ice.Object")]
     [TestCase(typeof(IPingableService), "/IceRpc.Slice.Tests.Pingable")]
-    [TestCase(typeof(IMyInterfaceService), "/IceRpc.Slice.Tests.InterfaceTests.MyInterface")]
-    [TestCase(typeof(IMyOtherInterfaceService), "/IceRpc.Slice.Tests.InterfaceTests.myOtherInterface")]
+    [TestCase(typeof(IMyWidgetService), "/IceRpc.Slice.Tests.MyWidget")]
+    [TestCase(typeof(IMyOtherWidgetService), "/IceRpc.Slice.Tests.myOtherWidget")]
     public void Get_interface_default_service_path(Type type, string? expected)
     {
         string? path = type.GetDefaultServicePath();
@@ -44,8 +45,8 @@ public sealed class InterfaceTests
     /// <param name="expected">The expected default service path.</param>
     [TestCase(IceObjectProxy.DefaultServicePath, "/Ice.Object")]
     [TestCase(PingableProxy.DefaultServicePath, "/IceRpc.Slice.Tests.Pingable")]
-    [TestCase(MyInterfaceProxy.DefaultServicePath, "/IceRpc.Slice.Tests.InterfaceTests.MyInterface")]
-    [TestCase(MyOtherInterfaceProxy.DefaultServicePath, "/IceRpc.Slice.Tests.InterfaceTests.myOtherInterface")]
+    [TestCase(MyWidgetProxy.DefaultServicePath, "/IceRpc.Slice.Tests.MyWidget")]
+    [TestCase(MyOtherWidgetProxy.DefaultServicePath, "/IceRpc.Slice.Tests.myOtherWidget")]
     public void Get_proxy_default_service_path(string path, string? expected) =>
         Assert.That(path, Is.EqualTo(expected));
 }
