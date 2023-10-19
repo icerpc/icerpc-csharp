@@ -35,11 +35,11 @@ internal class ServiceGenerator
         global::System.Threading.CancellationToken cancellationToken)
     {{
         var inputParam = new {inputType}();
-        await MessageExtensions.MergeFromAsync(inputParam, request.Payload).ConfigureAwait(false);
+        await inputParam.MergeFromAsync(request.Payload).ConfigureAwait(false);
         var returnParam = await target.{methodName}(inputParam, request.Features, cancellationToken).ConfigureAwait(false);
         return new IceRpc.OutgoingResponse(request)
         {{
-            Payload = MessageExtensions.ToPipeReader(returnParam)
+            Payload = returnParam.ToPipeReader()
         }};
     }}";
         }
