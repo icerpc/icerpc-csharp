@@ -10,10 +10,11 @@ internal class ServiceGenerator
     public static string GenerateInterface(ServiceDescriptor service)
     {
         string methods = "";
+        string scope = service.File.GetCsharpNamespace();
         foreach (MethodDescriptor method in service.Methods)
         {
-            string inputType = method.InputType.GetFullyQualifiedType();
-            string returnType = method.OutputType.GetFullyQualifiedType();
+            string inputType = method.InputType.GetType(scope);
+            string returnType = method.OutputType.GetType(scope);
             string methodName = $"{method.Name.ToPascalCase()}Async";
 
             // Add an abstract method to the interface for each service method.
@@ -34,11 +35,11 @@ internal class ServiceGenerator
         global::System.Threading.CancellationToken cancellationToken)
     {{
         var inputParam = new {inputType}();
-        await IceRpc.Protobuf.MessageExtensions.MergeFromAsync(inputParam, request.Payload).ConfigureAwait(false);
+        await MessageExtensions.MergeFromAsync(inputParam, request.Payload).ConfigureAwait(false);
         var returnParam = await target.{methodName}(inputParam, request.Features, cancellationToken).ConfigureAwait(false);
         return new IceRpc.OutgoingResponse(request)
         {{
-            Payload = IceRpc.Protobuf.MessageExtensions.ToPipeReader(returnParam)
+            Payload = MessageExtensions.ToPipeReader(returnParam)
         }};
     }}";
         }

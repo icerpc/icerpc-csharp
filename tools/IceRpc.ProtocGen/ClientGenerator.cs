@@ -10,10 +10,11 @@ internal class ClientGenerator
     internal static string GenerateInterface(ServiceDescriptor service)
     {
         string operations = "";
+        string scope = service.File.GetCsharpNamespace();
         foreach (MethodDescriptor method in service.Methods)
         {
-            string inputType = method.InputType.GetFullyQualifiedType();
-            string returnType = method.OutputType.GetFullyQualifiedType();
+            string inputType = method.InputType.GetType(scope);
+            string returnType = method.OutputType.GetType(scope);
             string methodName = $"{method.Name.ToPascalCase()}Async";
 
             operations += $@"
@@ -34,10 +35,11 @@ public partial interface I{service.Name.ToPascalCase()}
     internal static string GenerateImplementation(ServiceDescriptor service)
     {
         string operations = "";
+        string scope = service.File.GetCsharpNamespace();
         foreach (MethodDescriptor method in service.Methods)
         {
-            string inputType = method.InputType.GetFullyQualifiedType();
-            string returnType = method.OutputType.GetFullyQualifiedType();
+            string inputType = method.InputType.GetType(scope);
+            string returnType = method.OutputType.GetType(scope);
             string methodName = $"{method.Name.ToPascalCase()}Async";
 
             MethodOptions? methodOptions = method.GetOptions();
