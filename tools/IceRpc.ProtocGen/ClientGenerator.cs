@@ -2,7 +2,6 @@
 
 using Google.Protobuf.Reflection;
 using IceRpc.CaseConverter.Internal;
-using System.Net.Security;
 
 namespace IceRpc.ProtocGen;
 
