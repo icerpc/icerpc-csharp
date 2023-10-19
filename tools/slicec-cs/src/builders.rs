@@ -21,7 +21,7 @@ pub trait AttributeBuilder {
 
     fn add_default_service_path_attribute(&mut self, interface: &Interface) -> &mut Self {
         self.add_attribute(format!(
-            "global::IceRpc.DefaultServicePath(\"{}\")",
+            "IceRpc.DefaultServicePath(\"{}\")",
             interface.default_service_path()
         ))
     }
