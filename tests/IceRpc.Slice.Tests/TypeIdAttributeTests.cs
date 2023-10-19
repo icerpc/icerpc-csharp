@@ -13,7 +13,6 @@ public sealed class TypeIdAttributeTests
     /// <param name="expected">The expected type ID.</param>
     [TestCase(typeof(IceObjectProxy), "::Ice::Object")]
     [TestCase(typeof(PingableProxy), "::IceRpc::Slice::Tests::Pingable")]
-    [TestCase(typeof(IMyInterface), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyInterface")]
     [TestCase(typeof(MyInterfaceProxy), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyInterface")]
     [TestCase(typeof(IMyInterfaceService), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::MyInterface")]
     [TestCase(typeof(MyOtherInterfaceProxy), "::IceRpc::Slice::Tests::TypeIdAttributeTestNamespace::myOtherInterface")]
