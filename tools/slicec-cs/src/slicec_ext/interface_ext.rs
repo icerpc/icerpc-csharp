@@ -4,6 +4,10 @@ use super::{scoped_identifier, EntityExt};
 use slicec::grammar::Interface;
 
 pub trait InterfaceExt: EntityExt {
+    /// Returns the interface's default service path.
+    fn default_service_path(&self) -> String {
+        format!("/{}", self.module_scoped_identifier().replace("::", "."))
+    }
     /// Returns the interface name corresponding to this entity's identifier, without scoping.
     /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
     /// The name is always prefixed with 'I' and the first letter is always capitalized.

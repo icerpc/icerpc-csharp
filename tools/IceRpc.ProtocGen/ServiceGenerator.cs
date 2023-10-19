@@ -47,6 +47,7 @@ internal class ServiceGenerator
         return @$"
 /// <remarks>protoc-gen-icerpc-csharp generated this server-side interface from Protobuf service <c>{service.Name}</c>.
 /// </remarks>
+[IceRpc.DefaultServicePath(""/{service.Name}"")]
 public partial interface I{service.Name.ToPascalCase()}Service
 {{
     {methods.Trim()}

@@ -6,7 +6,7 @@ use crate::comments::CommentTag;
 use crate::cs_attributes::CsType;
 use crate::cs_util::format_comment_message;
 use crate::member_util::escape_parameter_name;
-use crate::slicec_ext::{EntityExt, MemberExt, ParameterExt};
+use crate::slicec_ext::{EntityExt, InterfaceExt, MemberExt, ParameterExt};
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
 use slicec::supported_encodings::SupportedEncodings;
@@ -18,6 +18,13 @@ pub trait Builder {
 
 pub trait AttributeBuilder {
     fn add_attribute(&mut self, attributes: impl Into<String>) -> &mut Self;
+
+    fn add_default_service_path_attribute(&mut self, interface: &Interface) -> &mut Self {
+        self.add_attribute(format!(
+            "IceRpc.DefaultServicePath(\"{}\")",
+            interface.default_service_path()
+        ))
+    }
 
     fn add_type_id_attribute(&mut self, entity: &dyn Entity) -> &mut Self {
         self.add_attribute(entity.type_id_attribute());
