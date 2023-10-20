@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+option csharp_namespace = "IceRpc.Protobuf.Tests";
+
+package icerpc.protobuf.tests;
+
+service MyWidget {}
+
+// Test with unusual name casing.
+service myOtherWidget {}
