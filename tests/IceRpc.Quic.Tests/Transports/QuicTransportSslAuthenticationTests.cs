@@ -12,7 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Tests.Transports;
 
 /// <summary>Test Ssl authentication with Quic transport.</summary>
-[Parallelizable(ParallelScope.All)]
+[NonParallelizable]
 public class QuicTransportSslAuthenticationTests
 {
     [OneTimeSetUp]
