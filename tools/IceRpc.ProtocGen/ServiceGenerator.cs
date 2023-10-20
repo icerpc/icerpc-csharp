@@ -34,12 +34,16 @@ internal class ServiceGenerator
         IceRpc.IncomingRequest request,
         global::System.Threading.CancellationToken cancellationToken)
     {{
-        var inputParam = new {inputType}();
-        await inputParam.MergeFromAsync(request.Payload).ConfigureAwait(false);
+        var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
+        var inputParam = await {inputType}.Parser.DecodeFromLengthPrefixedMessageAsync(
+            request.Payload,
+            protobufFeature.MaxMessageLength,
+            cancellationToken).ConfigureAwait(false);
         var returnParam = await target.{methodName}(inputParam, request.Features, cancellationToken).ConfigureAwait(false);
         return new IceRpc.OutgoingResponse(request)
         {{
-            Payload = returnParam.ToPipeReader()
+            Payload = returnParam.EncodeAsLengthPrefixedMessage(
+                protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)
         }};
     }}";
         }
