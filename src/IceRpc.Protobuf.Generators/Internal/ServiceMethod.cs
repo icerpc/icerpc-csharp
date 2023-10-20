@@ -2,21 +2,28 @@
 
 namespace IceRpc.Protobuf.Generators.Internal;
 
-/// <summary>Represents an RPC operation annotated with the <c>IceRpc.Protobuf.ProtobufOperationAttribute</c>
-/// attribute.</summary>
+/// <summary>Represents a RPC method on a Protobuf Service.</summary>
 internal readonly record struct ServiceMethod
 {
-    // The fully qualified name of the generated dispatch helper method, for example:
-    // "VisitorCenter.GreetAsync"
-    internal string DispatchMethodName { get; }
-
-    // The name of the service operation as defined in the Protobuf service, for example:
-    // "Greet"
+    // The name of the Protobuf rpc method as specified in the Protobuf file. It's also used as the IceRPC operation
+    // name. For example: "Greet".
     internal string OperationName { get; }
 
-    internal ServiceMethod(string dispatchMethodName, string operationName)
+    // The fully qualified name of the mapped C# Service interface. For example:
+    // "global::VisitorCenter.IGreeterService".
+    internal string InterfaceName { get; }
+
+    // The name of the mapped C# method on the Service interface. For example: "GreetAsync".
+    internal string MethodName { get; }
+
+    // The fully qualified input type name (in C#). For example: "global::Google.Protobuf.WellKnownTypes.Empty".
+    internal string InputTypeName { get; }
+
+    internal ServiceMethod(string operationName, string interfaceName, string methodName, string inputTypeName)
     {
-        DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
+        InterfaceName = interfaceName;
+        MethodName = methodName;
+        InputTypeName = inputTypeName;
     }
 }

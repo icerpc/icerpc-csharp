@@ -10,7 +10,7 @@ namespace IceRpc.Protobuf.Generators.Internal;
 
 internal sealed class Parser
 {
-    internal const string OperationAttribute = "IceRpc.Protobuf.ProtobufOperationAttribute";
+    internal const string RpcAttribute = "IceRpc.Protobuf.ProtobufOperationAttribute";
     internal const string ServiceAttribute = "IceRpc.Protobuf.ProtobufServiceAttribute";
 
     private readonly CancellationToken _cancellationToken;
@@ -28,7 +28,7 @@ internal sealed class Parser
         _reportDiagnostic = reportDiagnostic;
         _cancellationToken = cancellationToken;
 
-        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
+        _operationAttribute = _compilation.GetTypeByMetadataName(RpcAttribute);
         _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
     }
 
@@ -77,7 +77,7 @@ internal sealed class Parser
                     {
                         _reportDiagnostic(
                             Diagnostic.Create(
-                                DiagnosticDescriptors.DuplicateOperationNames,
+                                DiagnosticDescriptors.DuplicateRpcName,
                                 classDeclaration.GetLocation(),
                                 method.OperationName,
                                 classDeclaration.Identifier.Text));
@@ -190,7 +190,12 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
-            serviceMethods.Add(new ServiceMethod(dispatchMethodName: GetFullName(method), operationName));
+            serviceMethods.Add(
+                new ServiceMethod(
+                    operationName,
+                    interfaceName: $"global::{GetFullName(interfaceSymbol)}",
+                    methodName: method.Name,
+                    inputTypeName: $"global::{GetFullName(method.Parameters[0].Type)}"));
         }
         return serviceMethods;
     }
