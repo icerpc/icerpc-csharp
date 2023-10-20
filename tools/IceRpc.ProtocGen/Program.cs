@@ -51,8 +51,11 @@ namespace {descriptor.GetCsharpNamespace()};".Trim();
     foreach (ServiceDescriptor service in descriptor.Services)
     {
         builder.Append(ClientGenerator.GenerateInterface(service));
+        builder.AppendLine();
         builder.Append(ClientGenerator.GenerateImplementation(service));
+        builder.AppendLine();
         builder.Append(ServiceGenerator.GenerateInterface(service));
+        builder.AppendLine();
     }
 
     response.File.Add(
