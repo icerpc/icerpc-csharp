@@ -11,7 +11,7 @@ public interface IProtobufFeature
     int MaxMessageLength { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
-    /// <value>The Protobuf encode options. <see langword="null" /> is equivalent to <see cref="ProtobufEncodeOptions.Default"
-    /// />.</value>
+    /// <value>The Protobuf encode options. <see langword="null" /> is equivalent to
+    /// <see cref="ProtobufEncodeOptions.Default" />.</value>
     ProtobufEncodeOptions? EncodeOptions { get; }
 }

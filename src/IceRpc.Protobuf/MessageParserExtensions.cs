@@ -24,9 +24,14 @@ public static class MessageParserExtensions
         CancellationToken cancellationToken) where T : IMessage<T>
     {
         ReadResult readResult = await reader.ReadAtLeastAsync(5, cancellationToken).ConfigureAwait(false);
+        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+        if (readResult.IsCanceled)
+        {
+            throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+        }
+
         if (readResult.Buffer.Length < 5)
         {
-            reader.AdvanceTo(readResult.Buffer.End);
             throw new InvalidDataException(
                 $"The payload has {readResult.Buffer.Length} bytes, but 5 bytes were expected.");
         }
@@ -44,6 +49,12 @@ public static class MessageParserExtensions
         }
 
         readResult = await reader.ReadAtLeastAsync(messageLength, cancellationToken).ConfigureAwait(false);
+        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
+        if (readResult.IsCanceled)
+        {
+            throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
+        }
+
         if (readResult.Buffer.Length < messageLength)
         {
             reader.AdvanceTo(readResult.Buffer.End);
@@ -58,15 +69,9 @@ public static class MessageParserExtensions
         static int DecodeMessageLength(ReadOnlySequence<byte> buffer)
         {
             Debug.Assert(buffer.Length == 4);
-            if (buffer.IsSingleSegment)
-            {
-                return BinaryPrimitives.ReadInt32BigEndian(buffer.FirstSpan);
-            }
-            else
-            {
-                var span = new Span<byte>(buffer.ToArray());
-                return BinaryPrimitives.ReadInt32BigEndian(span);
-            }
+            Span<byte> spanBuffer = stackalloc byte[4];
+            buffer.CopyTo(spanBuffer);
+            return BinaryPrimitives.ReadInt32BigEndian(spanBuffer);
         }
     }
 }

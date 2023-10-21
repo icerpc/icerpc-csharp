@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using Google.Protobuf;
 using IceRpc.Features;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
@@ -34,7 +35,7 @@ public static class InvokerExtensions
     /// <param name="payload">The payload of the request. <see langword="null" /> is equivalent to an empty
     /// payload.</param>
     /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
-    /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
+    /// <param name="responseMessageParser">The decode function for the response payload. It decodes and throws an
     /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
@@ -46,10 +47,10 @@ public static class InvokerExtensions
         string operation,
         PipeReader payload,
         PipeReader? payloadContinuation,
-        ResponseDecodeFunc<T> responseDecodeFunc,
+        MessageParser<T> responseMessageParser,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) where T : IMessage<T>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -80,10 +81,20 @@ public static class InvokerExtensions
             try
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
-                return await responseDecodeFunc(
-                    response,
-                    request,
-                    cancellationToken).ConfigureAwait(false);
+
+                if (response.StatusCode == StatusCode.Ok)
+                {
+                    var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
+                    return await responseMessageParser.DecodeFromLengthPrefixedMessageAsync(
+                        response.Payload,
+                        protobufFeature.MaxMessageLength,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    // IceRPC guarantees the error message is non-null when StatusCode > Ok.
+                    throw new IceRpc.DispatchException(response.StatusCode, response.ErrorMessage!);
+                }
             }
             finally
             {

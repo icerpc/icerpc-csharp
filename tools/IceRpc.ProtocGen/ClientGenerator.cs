@@ -59,22 +59,7 @@ public partial interface I{service.Name.ToPascalCase()}
             ""{method.Name}"",
             message.EncodeAsLengthPrefixedMessage(EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions),
             payloadContinuation: null,
-            async (response, request, cancellationToken) =>
-            {{
-                if (response.StatusCode == IceRpc.StatusCode.Ok)
-                {{
-                    var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-                    return await {returnType}.Parser.DecodeFromLengthPrefixedMessageAsync(
-                        response.Payload,
-                        protobufFeature.MaxMessageLength,
-                        cancellationToken).ConfigureAwait(false);
-                }}
-                else
-                {{
-                    // IceRPC guarantees the error message is non-null when StatusCode > Ok.
-                    throw new IceRpc.DispatchException(response.StatusCode, response.ErrorMessage!);
-                }}
-            }},
+            {returnType}.Parser,
             features,
             idempotent: {idempotent.ToString().ToLowerInvariant()},
             cancellationToken: cancellationToken);";

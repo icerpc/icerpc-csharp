@@ -11,9 +11,9 @@ public sealed class ProtobufEncodeOptions
     /// <summary>Gets the default instance of <see cref="ProtobufEncodeOptions" />.</summary>
     public static ProtobufEncodeOptions Default { get; } = new();
 
-    /// <summary>Gets the pipe options that the Slice engine uses when creating pipes. The Slice engine creates a pipe
-    /// when encoding a request or response payload, and when encoding an async enumerable into a
-    /// <see cref="PipeReader" />.</summary>
+    /// <summary>Gets the pipe options that the IceRPC + Protobuf uses when creating pipes. The IceRPC + Protobuf
+    /// integration creates a pipe when encoding a request or response payload, and when encoding an async enumerable
+    /// into a <see cref="PipeReader" />.</summary>
     public PipeOptions PipeOptions { get; }
 
     /// <summary>Constructs a new instance.</summary>

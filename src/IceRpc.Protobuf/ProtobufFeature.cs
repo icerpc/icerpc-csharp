@@ -12,7 +12,7 @@ public sealed class ProtobufFeature : IProtobufFeature
     public int MaxMessageLength { get; init; }
 
     /// <inheritdoc/>
-    public ProtobufEncodeOptions? EncodeOptions {  get; init; }
+    public ProtobufEncodeOptions? EncodeOptions { get; init; }
 
     /// <summary>Constructs a Protobuf feature.</summary>
     /// <param name="maxMessageLength">The maximum message length. Use <c>-1</c> to get the default value.</param>
