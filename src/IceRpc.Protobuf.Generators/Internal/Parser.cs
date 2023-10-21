@@ -10,7 +10,7 @@ namespace IceRpc.Protobuf.Generators.Internal;
 
 internal sealed class Parser
 {
-    internal const string RpcAttribute = "IceRpc.Protobuf.ProtobufOperationAttribute";
+    internal const string OperationAttribute = "IceRpc.Protobuf.ProtobufOperationAttribute";
     internal const string ServiceAttribute = "IceRpc.Protobuf.ProtobufServiceAttribute";
 
     private readonly CancellationToken _cancellationToken;
@@ -28,7 +28,7 @@ internal sealed class Parser
         _reportDiagnostic = reportDiagnostic;
         _cancellationToken = cancellationToken;
 
-        _operationAttribute = _compilation.GetTypeByMetadataName(RpcAttribute);
+        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
         _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
     }
 
