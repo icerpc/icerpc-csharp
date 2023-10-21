@@ -25,8 +25,8 @@ internal class ServiceGenerator
     /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task holding the output message.</returns>
     [ProtobufOperation(""{method.Name}"")]
-    global::System.Threading.Tasks.ValueTask<global::{returnType}> {methodName}(
-        global::{inputType} message,
+    global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
+        {inputType} message,
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken);";
         }
