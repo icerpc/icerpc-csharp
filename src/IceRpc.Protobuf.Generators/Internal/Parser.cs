@@ -77,7 +77,7 @@ internal sealed class Parser
                     {
                         _reportDiagnostic(
                             Diagnostic.Create(
-                                DiagnosticDescriptors.DuplicateOperationNames,
+                                DiagnosticDescriptors.DuplicateRpcName,
                                 classDeclaration.GetLocation(),
                                 method.OperationName,
                                 classDeclaration.Identifier.Text));
@@ -190,7 +190,12 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
-            serviceMethods.Add(new ServiceMethod(dispatchMethodName: GetFullName(method), operationName));
+            serviceMethods.Add(
+                new ServiceMethod(
+                    operationName,
+                    interfaceName: $"global::{GetFullName(interfaceSymbol)}",
+                    methodName: method.Name,
+                    inputTypeName: $"global::{GetFullName(method.Parameters[0].Type)}"));
         }
         return serviceMethods;
     }

@@ -19,34 +19,23 @@ internal class ServiceGenerator
 
             // Add an abstract method to the interface for each service method.
             methods += $@"
+    /// <summary>Implements rpc method <c>{method.Name}</c>.</summary>
+    /// <param name=""message"">The input message.</param>
+    /// <param name=""features"">The dispatch features.</param>
+    /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>A value task holding the output message.</returns>
+    [ProtobufOperation(""{method.Name}"")]
     global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
         {inputType} message,
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken);";
-
-            // Add a static method for each service method, the implementation calls the abstract method and creates
-            // the outgoing response.
-            methods += $@"
-    [ProtobufOperation(""{method.Name}"")]
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> ProtobufD{methodName}(
-        I{service.Name.ToPascalCase()}Service target,
-        IceRpc.IncomingRequest request,
-        global::System.Threading.CancellationToken cancellationToken)
-    {{
-        var inputParam = new {inputType}();
-        await inputParam.MergeFromAsync(request.Payload).ConfigureAwait(false);
-        var returnParam = await target.{methodName}(inputParam, request.Features, cancellationToken).ConfigureAwait(false);
-        return new IceRpc.OutgoingResponse(request)
-        {{
-            Payload = returnParam.ToPipeReader()
-        }};
-    }}";
         }
 
         return @$"
-/// <remarks>protoc-gen-icerpc-csharp generated this server-side interface from Protobuf service <c>{service.FullName}</c>.
-/// </remarks>
+/// <summary>Represents a template that you use to implement Protobuf service <c>{service.FullName}</c>
+/// with IceRPC.</summary>
+/// <remarks>protoc-gen-icerpc-csharp generated this server-side interface.</remarks>
+/// <seealso cref=""IceRpc.Protobuf.ProtobufServiceAttribute"" />
 [IceRpc.DefaultServicePath(""/{service.FullName}"")]
 public partial interface I{service.Name.ToPascalCase()}Service
 {{
