@@ -29,7 +29,7 @@ case ""{serviceMethod.OperationName}"":
 {{
     var inputParam = new {serviceMethod.InputTypeName}();
     await inputParam.MergeFromAsync(request.Payload).ConfigureAwait(false);
-    var outputParam = await (this as {serviceMethod.InterfaceName}).{serviceMethod.MethodName}(
+    var outputParam = await (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName}(
         inputParam,
         request.Features,
         cancellationToken).ConfigureAwait(false);
@@ -43,7 +43,7 @@ case ""{serviceMethod.OperationName}"":
                 {
                     dispatchImplementation += @$"
 default:
-    return base.DispatchAsync(request, cancellationToken);";
+    return await base.DispatchAsync(request, cancellationToken).ConfigureAwait(false);";
                 }
                 else
                 {
