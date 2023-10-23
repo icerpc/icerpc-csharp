@@ -8,18 +8,18 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf;
 
-/// <summary>Provides an extension method for <see cref="MessageParser{T}" />.</summary>
+/// <summary>Provides an extension method for <see cref="PipeReader" />.</summary>
 public static class MessageParserExtensions
 {
     /// <summary>Decodes a Protobuf length prefixed message from a <see cref="PipeReader" />.</summary>
-    /// <param name="parser">The <see cref="MessageParser{T}" /> used to parse the message data.</param>
     /// <param name="reader">The <see cref="PipeReader" /> containing the Protobuf length prefixed message.</param>
+    /// <param name="parser">The <see cref="MessageParser{T}" /> used to parse the message data.</param>
     /// <param name="maxMessageLength">The maximum allowed length.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The decoded message object.</returns>
-    public static async ValueTask<T> DecodeFromLengthPrefixedMessageAsync<T>(
-        this MessageParser<T> parser,
-        PipeReader reader,
+    public static async ValueTask<T> DecodeProtobufMessageAsync<T>(
+        this PipeReader reader,
+        MessageParser<T> parser,
         int maxMessageLength,
         CancellationToken cancellationToken) where T : IMessage<T>
     {
@@ -62,6 +62,7 @@ public static class MessageParserExtensions
                 $"The payload has {readResult.Buffer.Length} bytes, but {messageLength} bytes were expected.");
         }
 
+        // TODO: Does ParseFrom check it read all the bytes?
         T message = parser.ParseFrom(readResult.Buffer.Slice(messageLength));
         reader.AdvanceTo(readResult.Buffer.GetPosition(messageLength));
         return message;

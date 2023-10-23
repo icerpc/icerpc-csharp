@@ -85,15 +85,15 @@ public static class InvokerExtensions
                 if (response.StatusCode == StatusCode.Ok)
                 {
                     var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-                    return await responseMessageParser.DecodeFromLengthPrefixedMessageAsync(
-                        response.Payload,
+                    return await response.Payload.DecodeProtobufMessageAsync(
+                        responseMessageParser,
                         protobufFeature.MaxMessageLength,
                         cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
                     // IceRPC guarantees the error message is non-null when StatusCode > Ok.
-                    throw new IceRpc.DispatchException(response.StatusCode, response.ErrorMessage!);
+                    throw new DispatchException(response.StatusCode, response.ErrorMessage!);
                 }
             }
             finally
