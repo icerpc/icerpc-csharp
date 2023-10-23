@@ -33,6 +33,7 @@
    <ItemGroup>
       <PackageReference Include="Microsoft.Build.Framework" Version="17.7.0" />
       <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.7.0" />
+      <PackageReference Include="Google.Protobuf.Tools" Version="3.24.4" />
    </ItemGroup>
    <ItemGroup>
       <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
@@ -54,14 +55,42 @@
       </Content>
       <None Include="../../build/icerpc-icon.png">
          <Pack>true</Pack>
-         <PackagePath>\</PackagePath>
+         <PackagePath />
       </None>
       <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
       <!-- Use the compilers from this source build. -->
-      <Content Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*" Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe">
+      <None Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*" Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe">
         <PackagePath>tools/</PackagePath>
         <Pack>true</Pack>
-      </Content>
+      </None>
+      <None Include="$(MSBuildThisFileDirectory)obj/tools/**">
+        <PackagePath>tools/</PackagePath>
+        <Pack>true</Pack>
+      </None>
    </ItemGroup>
+   <Target Name="CopyGoogleProtobufTools" BeforeTargets="CoreCompile">
+      <ItemGroup>
+         <GoogleProtobufFiles Include="$(protoc_tools)/google/protobuf/*.*"/>
+         <GoogleLinuxProtoc Include="$(protoc_tools)/linux_x64/*.*" />
+         <GoogleWindowsProtoc Include="$(protoc_tools)/windows_x64/*.*" />
+         <GoogleMacOsxProtoc Include="$(protoc_tools)/macosx_x64/*.*" />
+      </ItemGroup>
+      <Copy
+            SourceFiles="@(GoogleProtobufFiles)"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/google/protobuf"
+            SkipUnchangedFiles="true" />
+      <Copy
+            SourceFiles="@(GoogleLinuxProtoc)"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/linux_x64"
+            SkipUnchangedFiles="true" />
+      <Copy
+            SourceFiles="@(GoogleWindowsProtoc)"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/windows_x64"
+            SkipUnchangedFiles="true" />
+      <Copy
+            SourceFiles="@(GoogleMacOsxProtoc)"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/macosx_x64"
+            SkipUnchangedFiles="true" />
+   </Target>
    <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
 </Project>

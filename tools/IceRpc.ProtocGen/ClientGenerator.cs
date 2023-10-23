@@ -24,7 +24,7 @@ internal class ClientGenerator
         global::System.Threading.CancellationToken cancellationToken = default);";
         }
         return @$"
-/// <remarks>protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.Name}</c>.
+/// <remarks>protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.FullName}</c>.
 /// It's implemented by <c>{service.Name.ToPascalCase()}Client</c></remarks>
 public partial interface I{service.Name.ToPascalCase()}
 {{
@@ -69,14 +69,13 @@ public partial interface I{service.Name.ToPascalCase()}
 
         return @$"
 /// <summary>Makes invocations on a remote IceRPC service. This remote service must implement Protobuf service
-/// <c>{service.Name}</c>.</summary>
-/// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.Name}</c>.</remarks>
+/// <c>{service.FullName}</c>.</summary>
+/// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.FullName}</c>.</remarks>
 public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}
 {{
-    /// <summary>Gets the default service address for services that implement Protobuf service {service.FullName}:
-    /// <c>icerpc:/{service.Name}</c>.</summary>
-    public static IceRpc.ServiceAddress DefaultServiceAddress {{ get; }} =
-        new(IceRpc.Protocol.IceRpc) {{ Path = ""/{service.Name}"" }};
+    /// <summary>Represents the default path for IceRPC services that implement Protobuf service
+    /// <c>{service.FullName}</c>.</summary>
+    public const string DefaultServicePath = ""/{service.FullName}"";
 
     /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from this
     /// client.</summary>
@@ -86,18 +85,21 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
     public IceRpc.IInvoker Invoker {{ get; init; }}
 
     /// <summary>Gets or initializes the address of the remote service.</summary>
-    IceRpc.ServiceAddress ServiceAddress {{ get; init; }}
+    public IceRpc.ServiceAddress ServiceAddress {{ get; init; }}
+
+    private static IceRpc.ServiceAddress _defaultServiceAddress =
+        new(IceRpc.Protocol.IceRpc) {{ Path = DefaultServicePath }};
 
     /// <summary>Constructs a client from an invoker and a service address.</summary>
     /// <param name=""invoker"">The invoker of this client.</param>
-    /// <param name=""serviceAddress"">The service address. <see langword=""null"" /> is equivalent to
-    /// <see cref=""DefaultServiceAddress"" />.</param>
+    /// <param name=""serviceAddress"">The service address. <see langword=""null"" /> is equivalent to an icerpc service
+    /// address with path <see cref=""DefaultServicePath"" />.</param>
     public {clientImplementationName}(
         IceRpc.IInvoker invoker,
         IceRpc.ServiceAddress? serviceAddress = null)
     {{
         Invoker = invoker;
-        ServiceAddress = serviceAddress ?? DefaultServiceAddress;
+        ServiceAddress = serviceAddress ?? _defaultServiceAddress;
     }}
 
     /// <summary>Constructs a client from an invoker and a service address URI.</summary>

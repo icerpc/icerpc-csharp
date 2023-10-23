@@ -2,11 +2,9 @@
 
 namespace IceRpc.Protobuf;
 
-/// <summary>Represents an attribute used to mark classes implementing Protobuf services.</summary>
-/// <remarks>The Protobuf source generator implements <see cref="IDispatcher"/> for classes marked with this attribute.
-/// The <see cref="AttributeUsageAttribute.Inherited"/> is set to <see langword="false"/> because we only need to
-/// generate the <see cref="IDispatcher"/> implementation for classes including the attribute, and not for derived
-/// classes.</remarks>
+/// <summary>Represents an attribute applied on classes implementing Protobuf services with IceRPC.</summary>
+/// <remarks>The Protobuf Service source generator implements <see cref="IDispatcher"/> for classes with this
+/// attribute - and not in derived classes unless they also carry this attribute.</remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class ProtobufServiceAttribute : Attribute
 {

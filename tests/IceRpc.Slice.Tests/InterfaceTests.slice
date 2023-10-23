@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::Tests
+
+interface MyWidget {}
+
+interface MyDerivedWidget : MyWidget, myOtherWidget {}
+
+// Unusual casing.
+interface myOtherWidget {}

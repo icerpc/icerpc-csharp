@@ -11,7 +11,7 @@ namespace IceRpc.Protobuf.Tests;
 public partial class OperationTests
 {
     [Test]
-    public void Unary_operation_with_empty_param_and_return()
+    public void Unary_rpc_with_empty_param_and_return()
     {
         // Arrange
         var invoker = new ColocInvoker(new MyOperationsService());
@@ -26,7 +26,7 @@ public partial class OperationTests
     {
         ValueTask<Empty> IMyOperationsService.UnaryOpWithEmptyParamAndReturnAsync(
             Empty message,
-            IFeatureCollection? features,
+            IFeatureCollection features,
             CancellationToken cancellationToken) => new(new Empty());
     }
 }

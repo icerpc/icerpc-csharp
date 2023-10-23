@@ -12,7 +12,6 @@
     <ProtoFile Include="../proto/greeter.proto">
       <ProtoImportPath>../proto</ProtoImportPath>
     </ProtoFile>
-    <PackageReference Include="Google.Protobuf.Tools" Version="3.24.4" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
     <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />

@@ -12,7 +12,7 @@ using System.Security.Authentication;
 
 namespace IceRpc.Tests.Transports;
 
-[Parallelizable(ParallelScope.All)]
+[NonParallelizable]
 public class QuicTransportTests
 {
     [OneTimeSetUp]
