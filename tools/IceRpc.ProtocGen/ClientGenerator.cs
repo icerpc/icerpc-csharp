@@ -57,22 +57,9 @@ public partial interface I{service.Name.ToPascalCase()}
             Invoker,
             ServiceAddress,
             ""{method.Name}"",
-            message.ToPipeReader(),
+            message.EncodeAsLengthPrefixedMessage(EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions),
             payloadContinuation: null,
-            async (response, request, cancellationToken) =>
-            {{
-                if (response.StatusCode == IceRpc.StatusCode.Ok)
-                {{
-                    var returnValue = new {returnType}();
-                    await returnValue.MergeFromAsync(response.Payload).ConfigureAwait(false);
-                    return returnValue;
-                }}
-                else
-                {{
-                    // IceRPC guarantees the error message is non-null when StatusCode > Ok.
-                    throw new IceRpc.DispatchException(response.StatusCode, response.ErrorMessage!);
-                }}
-            }},
+            {returnType}.Parser,
             features,
             idempotent: {idempotent.ToString().ToLowerInvariant()},
             cancellationToken: cancellationToken);";
@@ -89,6 +76,10 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
     /// <summary>Represents the default path for IceRPC services that implement Protobuf service
     /// <c>{service.FullName}</c>.</summary>
     public const string DefaultServicePath = ""/{service.FullName}"";
+
+    /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from this
+    /// client.</summary>
+    ProtobufEncodeOptions? EncodeOptions {{ get; init; }}
 
     /// <summary>Gets or initializes the invoker of this client.</summary>
     public IceRpc.IInvoker Invoker {{ get; init; }}

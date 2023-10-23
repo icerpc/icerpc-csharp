@@ -2,28 +2,28 @@
 
 using Google.Protobuf;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf;
 
-/// <summary>Provides extension methods for <see cref="IMessage" />.</summary>
+/// <summary>Provides an extension method for <see cref="IMessage" />.</summary>
 public static class MessageExtensions
 {
-    /// <summary>Merges data from a <see cref="PipeReader" /> into an existing <see cref="IMessage" />.</summary>
-    /// <param name="message">The <see cref="IMessage" /> to merge the data into.</param>
-    /// <param name="reader">The <see cref="PipeReader" /> containing the protobuf-encoded binary data to merge.</param>
-    public static async Task MergeFromAsync(this IMessage message, PipeReader reader)
-    {
-        using var stream = new MemoryStream();
-        await reader.CopyToAsync(stream).ConfigureAwait(false);
-        stream.Seek(0, SeekOrigin.Begin);
-        message.MergeFrom(stream);
-    }
-
-    /// <summary>Converts an <see cref="IMessage" /> into a <see cref="PipeReader" /> containing the protobuf-encoded
-    /// binary data.</summary>
+    /// <summary>Encodes an <see cref="IMessage"/> as a length-prefixed message, using the Protobuf encoding.</summary>
     /// <param name="message">The <see cref="IMessage" /> to encode.</param>
-    /// <returns>The <see cref="PipeReader" /> containing the protobuf-encoded data.</returns>
-    public static PipeReader ToPipeReader(this IMessage message) =>
-        PipeReader.Create(new ReadOnlySequence<byte>(message.ToByteArray()));
+    /// <param name="pipeOptions">The options used to create the pipe.</param>
+    /// <returns>A <see cref="PipeReader" /> containing the length-prefixed message.</returns>
+    public static PipeReader EncodeAsLengthPrefixedMessage(this IMessage message, PipeOptions pipeOptions)
+    {
+        var pipe = new Pipe(pipeOptions);
+        pipe.Writer.Write(new Span<byte>([0])); // Not compressed
+        Span<byte> lengthPlaceholder = pipe.Writer.GetSpan(4);
+        pipe.Writer.Advance(4);
+        message.WriteTo(pipe.Writer);
+        int length = checked((int)pipe.Writer.UnflushedBytes);
+        BinaryPrimitives.WriteInt32BigEndian(lengthPlaceholder, length - 5);
+        pipe.Writer.Complete();
+        return pipe.Reader;
+    }
 }

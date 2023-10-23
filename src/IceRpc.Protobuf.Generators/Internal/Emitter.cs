@@ -27,15 +27,19 @@ internal class Emitter
                     dispatchImplementation += @$"
 case ""{serviceMethod.OperationName}"":
 {{
-    var inputParam = new {serviceMethod.InputTypeName}();
-    await inputParam.MergeFromAsync(request.Payload).ConfigureAwait(false);
+    var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
+    var inputParam = await request.Payload.DecodeProtobufMessageAsync(
+        {serviceMethod.InputTypeName}.Parser,
+        protobufFeature.MaxMessageLength,
+        cancellationToken).ConfigureAwait(false);
     var outputParam = await (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName}(
         inputParam,
         request.Features,
         cancellationToken).ConfigureAwait(false);
     return new IceRpc.OutgoingResponse(request)
     {{
-        Payload = outputParam.ToPipeReader()
+        Payload = outputParam.EncodeAsLengthPrefixedMessage(
+            protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)
     }};
 }}".Trim();
                 }
