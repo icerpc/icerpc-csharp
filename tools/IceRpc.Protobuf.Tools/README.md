@@ -65,9 +65,15 @@ You need to reference the `IceRpc.Protobuf` NuGet package to compile the generat
 `IceRpc.Protobuf` makes your project reference transitively [IceRpc][icerpc], [Google.Protobuf][google-protobuf] and
 [System.IO.Pipelines][system-io-pipelines].
 
+## Protobuf compiler
+
+This package includes the `protoc` compiler binaries, and the Protobuf well-known type definitions from the
+[Google.Protobuf.Tools][google-protobuf-tools] package.
+
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Protobuf.Tools
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Protobuf.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
 [google-protobuf]: https://www.nuget.org/packages/Google.Protobuf
+[google-protobuf-tools]: https://www.nuget.org/packages/Google.Protobuf.Tools
