@@ -4,7 +4,7 @@ IceRpc.Protobuf.Tools allows you to compile Protobuf definitions (in `.proto` fi
 within MSBuild projects.
 
 This package includes the Protobuf compiler, `protoc`, and the `protoc-gen-icerpc-csharp` generator. The `protoc`
-compiler is a native tool with binaries for Linux x64, macOS x64 and Windows (x64). The `protoc-gen-icerpc-chsarp`
+compiler is a native tool with binaries for Linux x64, macOS x64 and Windows (x64). The `protoc-gen-icerpc-csharp`
 generator is a .NET program and requires .NET 8 or later.
 
 Once you've added the IceRpc.Protobuf.Tools NuGet package to your project, the Protobuf files of your project are
