@@ -190,12 +190,29 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
+            string inputTypeName = GetFullName(method.Parameters[0].Type);
+            bool isClientStreaming = inputTypeName == "System.Collections.Generic.IAsyncEnumerable";
+            if (isClientStreaming)
+            {
+                INamedTypeSymbol genericType = (INamedTypeSymbol)method.Parameters[0].Type;
+                Debug.Assert(genericType.TypeArguments.Length == 1);
+                inputTypeName = GetFullName(genericType.TypeArguments[0]);
+            }
+
+            // Methods with the ProtobufOperationAttribute always have a generic ValueTask return type.
+            // For server-streaming, the return type's generic argument is IAsyncEnumerable.
+            INamedTypeSymbol genericReturnType = (INamedTypeSymbol)method.ReturnType;
+            Debug.Assert(genericReturnType.TypeArguments.Length == 1);
+            string outputTypeName = GetFullName(genericReturnType.TypeArguments[0]);
+            bool isServerStreaming = outputTypeName == "System.Collections.Generic.IAsyncEnumerable";
             serviceMethods.Add(
                 new ServiceMethod(
                     operationName,
                     interfaceName: $"global::{GetFullName(interfaceSymbol)}",
                     methodName: method.Name,
-                    inputTypeName: $"global::{GetFullName(method.Parameters[0].Type)}"));
+                    inputTypeName,
+                    isClientStreaming,
+                    isServerStreaming));
         }
         return serviceMethods;
     }

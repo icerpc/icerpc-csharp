@@ -13,22 +13,37 @@ internal class ServiceGenerator
         string scope = service.File.GetCsharpNamespace();
         foreach (MethodDescriptor method in service.Methods)
         {
-            string inputType = method.InputType.GetType(scope);
-            string returnType = method.OutputType.GetType(scope);
+            string inputType = method.InputType.GetType(scope, method.IsClientStreaming);
+            string inputParam;
+            string inputParamDocComment;
+            if (method.IsClientStreaming)
+            {
+                inputParam = "stream";
+                inputParamDocComment = "The stream of input messages.";
+            }
+            else
+            {
+                inputParam = "message";
+                inputParamDocComment = "The input message.";
+            }
+            string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
+            string returnTypeDocComment = method.IsServerStreaming ?
+                "A value task holding the stream of output message." : "A value task holding the output message.";
             string methodName = $"{method.Name.ToPascalCase()}Async";
 
             // Add an abstract method to the interface for each service method.
             methods += $@"
     /// <summary>Implements rpc method <c>{method.Name}</c>.</summary>
-    /// <param name=""message"">The input message.</param>
+    /// <param name=""{inputParam}"">{inputParamDocComment}</param>
     /// <param name=""features"">The dispatch features.</param>
     /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>A value task holding the output message.</returns>
+    /// <returns>{returnTypeDocComment}</returns>
     [ProtobufOperation(""{method.Name}"")]
     global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
-        {inputType} message,
+        {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken);";
+            methods += "\n";
         }
 
         return @$"

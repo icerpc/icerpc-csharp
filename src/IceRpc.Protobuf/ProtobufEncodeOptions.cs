@@ -16,14 +16,23 @@ public sealed class ProtobufEncodeOptions
     /// into a <see cref="PipeReader" />.</summary>
     public PipeOptions PipeOptions { get; }
 
+    /// <summary>Gets the stream flush threshold. When encoding a Protobuf stream (async enumerable), the
+    /// IceRpc + Protobuf encodes the values provided by the source async enumerable into a pipe writer. The
+    /// IceRpc + Protobuf integration flushes this pipe writer when no new value is available synchronously, or when
+    /// it has written StreamFlushThreshold bytes to this pipe writer.</summary>
+    public int StreamFlushThreshold { get; }
+
     /// <summary>Constructs a new instance.</summary>
     /// <param name="pool">The pool parameter for the constructor of <see cref="System.IO.Pipelines.PipeOptions" />.
     /// </param>
     /// <param name="minimumSegmentSize">The minimum segment size for the constructor of
     /// <see cref="System.IO.Pipelines.PipeOptions" />.</param>
+    /// <param name="streamFlushThreshold">The value of <see cref="StreamFlushThreshold" />. The default value (-1) is
+    /// equivalent to 16 KB.</param>
     public ProtobufEncodeOptions(
         MemoryPool<byte>? pool = default,
-        int minimumSegmentSize = -1)
+        int minimumSegmentSize = -1,
+        int streamFlushThreshold = -1)
     {
         // We keep the default readerScheduler (ThreadPool) because pipes created from these PipeOptions are never
         // ReadAsync concurrently with a FlushAsync/Complete on the pipe writer. The writerScheduler does not matter
@@ -33,5 +42,6 @@ public sealed class ProtobufEncodeOptions
             minimumSegmentSize: minimumSegmentSize,
             pauseWriterThreshold: 0,
             useSynchronizationContext: false);
+        StreamFlushThreshold = streamFlushThreshold == -1 ? 16 * 1024 : streamFlushThreshold;
     }
 }

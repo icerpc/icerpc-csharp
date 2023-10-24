@@ -9,4 +9,10 @@ package IceRpc.Protobuf.Tests;
 
 service MyOperations {
   rpc unaryOpWithEmptyParamAndReturn (google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  rpc clientStreamingOp(stream google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  rpc serverStreamingOp(google.protobuf.Empty) returns (stream google.protobuf.Empty);
+
+  rpc bidirectionalStreamingOp(stream google.protobuf.Empty) returns (stream google.protobuf.Empty);
 }

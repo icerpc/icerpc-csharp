@@ -3,7 +3,6 @@
 using Google.Protobuf;
 using IceRpc.Features;
 using System.Collections.Immutable;
-using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf;
 
@@ -32,11 +31,9 @@ public static class InvokerExtensions
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
-    /// <param name="payload">The payload of the request. <see langword="null" /> is equivalent to an empty
-    /// payload.</param>
-    /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
-    /// <param name="responseMessageParser">The decode function for the response payload. It decodes and throws an
-    /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
+    /// <param name="inputMessage">The input message to encode in thee request payload.</param>
+    /// <param name="encodeOptions">The options to customize the encoding.</param>
+    /// <param name="responseDecodeFunc">The <see cref="ResponseDecodeFunc{T}"/> used to decode the response.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -45,12 +42,12 @@ public static class InvokerExtensions
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
-        PipeReader payload,
-        PipeReader? payloadContinuation,
-        MessageParser<T> responseMessageParser,
+        IMessage inputMessage,
+        ProtobufEncodeOptions? encodeOptions,
+        ResponseDecodeFunc<T> responseDecodeFunc,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where T : IMessage<T>
+        CancellationToken cancellationToken = default)
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -58,8 +55,8 @@ public static class InvokerExtensions
             Fields = idempotent ?
                 _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
-            Payload = payload,
-            PayloadContinuation = payloadContinuation
+            Payload = inputMessage.EncodeAsLengthPrefixedMessage(
+                encodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions),
         };
 
         Task<IncomingResponse> responseTask;
@@ -85,10 +82,79 @@ public static class InvokerExtensions
                 if (response.StatusCode == StatusCode.Ok)
                 {
                     var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-                    return await response.Payload.DecodeProtobufMessageAsync(
-                        responseMessageParser,
-                        protobufFeature.MaxMessageLength,
-                        cancellationToken).ConfigureAwait(false);
+                    return await responseDecodeFunc(response, request, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    // IceRPC guarantees the error message is non-null when StatusCode > Ok.
+                    throw new DispatchException(response.StatusCode, response.ErrorMessage!);
+                }
+            }
+            finally
+            {
+                request.Dispose();
+            }
+        }
+    }
+
+    /// <summary>Sends a request to a service and decodes the response.</summary>
+    /// <typeparam name="TOutputParam">The response type.</typeparam>
+    /// <typeparam name="TInputParam">The input type.</typeparam>
+    /// <param name="invoker">The invoker used to send the request.</param>
+    /// <param name="serviceAddress">The address of the target service.</param>
+    /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
+    /// <param name="stream">The stream of input message to encode in the request payload continuation.</param>
+    /// <param name="encodeOptions">The options to customize the encoding.</param>
+    /// <param name="responseDecodeFunc">The <see cref="ResponseDecodeFunc{TOutputParam}"/> used to decode the
+    /// response.</param>
+    /// <param name="features">The invocation features.</param>
+    /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
+    /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The operation's return value.</returns>
+    public static Task<TOutputParam> InvokeAsync<TOutputParam, TInputParam>(
+        this IInvoker invoker,
+        ServiceAddress serviceAddress,
+        string operation,
+        IAsyncEnumerable<TInputParam> stream,
+        ProtobufEncodeOptions? encodeOptions,
+        ResponseDecodeFunc<TOutputParam> responseDecodeFunc,
+        IFeatureCollection? features = null,
+        bool idempotent = false,
+        CancellationToken cancellationToken = default)
+        where TInputParam : IMessage<TInputParam>
+    {
+        var request = new OutgoingRequest(serviceAddress)
+        {
+            Features = features ?? FeatureCollection.Empty,
+            Fields = idempotent ?
+                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Operation = operation,
+            PayloadContinuation = stream.ToPipeReader(encodeOptions),
+        };
+
+        Task<IncomingResponse> responseTask;
+        try
+        {
+            responseTask = invoker.InvokeAsync(request, cancellationToken);
+        }
+        catch
+        {
+            request.Dispose();
+            throw;
+        }
+
+        // ReadResponseAsync is responsible for disposing the request
+        return ReadResponseAsync(responseTask, request);
+
+        async Task<TOutputParam> ReadResponseAsync(Task<IncomingResponse> responseTask, OutgoingRequest request)
+        {
+            try
+            {
+                IncomingResponse response = await responseTask.ConfigureAwait(false);
+
+                if (response.StatusCode == StatusCode.Ok)
+                {
+                    return await responseDecodeFunc(response, request, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {

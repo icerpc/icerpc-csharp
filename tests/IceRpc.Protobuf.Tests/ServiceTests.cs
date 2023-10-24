@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using Google.Protobuf.WellKnownTypes;
-using IceRpc.Features;
-using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Protobuf.Tests;

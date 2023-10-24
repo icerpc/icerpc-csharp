@@ -9,37 +9,41 @@ internal class ClientGenerator
 {
     internal static string GenerateInterface(ServiceDescriptor service)
     {
-        string operations = "";
+        string methods = "";
         string scope = service.File.GetCsharpNamespace();
         foreach (MethodDescriptor method in service.Methods)
         {
-            string inputType = method.InputType.GetType(scope);
-            string returnType = method.OutputType.GetType(scope);
+            string inputType = method.InputType.GetType(scope, method.IsClientStreaming);
+            string inputParam = method.IsClientStreaming ? "stream" : "message";
+            string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
             string methodName = $"{method.Name.ToPascalCase()}Async";
 
-            operations += $@"
+            methods += $@"
     global::System.Threading.Tasks.Task<{returnType}> {methodName}(
-        {inputType} message,
+        {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection? features = null,
         global::System.Threading.CancellationToken cancellationToken = default);";
+            methods += "\n";
         }
         return @$"
 /// <remarks>protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.FullName}</c>.
 /// It's implemented by <c>{service.Name.ToPascalCase()}Client</c></remarks>
 public partial interface I{service.Name.ToPascalCase()}
 {{
-    {operations.Trim()}
+    {methods.Trim()}
 }}";
     }
 
     internal static string GenerateImplementation(ServiceDescriptor service)
     {
-        string operations = "";
+        string methods = "";
         string scope = service.File.GetCsharpNamespace();
         foreach (MethodDescriptor method in service.Methods)
         {
-            string inputType = method.InputType.GetType(scope);
-            string returnType = method.OutputType.GetType(scope);
+            string inputType = method.InputType.GetType(scope, method.IsClientStreaming);
+            string inputParam = method.IsClientStreaming ? "stream" : "message";
+            string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
+            string returnTypeParser = method.OutputType.GetParserType(scope);
             string methodName = $"{method.Name.ToPascalCase()}Async";
 
             MethodOptions? methodOptions = method.GetOptions();
@@ -48,21 +52,59 @@ public partial interface I{service.Name.ToPascalCase()}
                 (methodOptions.IdempotencyLevel == MethodOptions.Types.IdempotencyLevel.NoSideEffects ||
                  methodOptions.IdempotencyLevel == MethodOptions.Types.IdempotencyLevel.Idempotent);
 
-            operations += $@"
+            string responseDecodeFunc;
+            string genericArg;
+            if (method.IsServerStreaming)
+            {
+                if (method.IsClientStreaming)
+                {
+                    genericArg = $"<{returnType}, {method.InputType.GetType(scope, false)}>";
+                }
+                else
+                {
+                    genericArg = $"<{returnType}>";
+                }
+                responseDecodeFunc = $@"
+            (response, request, cancellationToken) =>
+            {{
+                IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
+                var payload = response.DetachPayload();
+                return new(payload.ToAsyncEnumerable(
+                    {returnTypeParser},
+                    protobufFeature.MaxMessageLength,
+                    cancellationToken));
+            }}".Trim();
+            }
+            else
+            {
+                genericArg = ""; // Deduced by the compiler
+                responseDecodeFunc = $@"
+            async (response, request, cancellationToken) =>
+            {{
+                IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
+                return await response.Payload.DecodeProtobufMessageAsync(
+                    {returnType}.Parser,
+                    protobufFeature.MaxMessageLength,
+                    cancellationToken).ConfigureAwait(false);
+            }}".Trim();
+            }
+
+            methods += $@"
     public global::System.Threading.Tasks.Task<{returnType}> {methodName}(
-        {inputType} message,
+        {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection? features = null,
         global::System.Threading.CancellationToken cancellationToken = default) =>
-        InvokerExtensions.InvokeAsync(
+        InvokerExtensions.InvokeAsync{genericArg}(
             Invoker,
             ServiceAddress,
             ""{method.Name}"",
-            message.EncodeAsLengthPrefixedMessage(EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions),
-            payloadContinuation: null,
-            {returnType}.Parser,
+            {inputParam},
+            EncodeOptions,
+            {responseDecodeFunc},
             features,
             idempotent: {idempotent.ToString().ToLowerInvariant()},
             cancellationToken: cancellationToken);";
+            methods += "\n";
         }
 
         string clientImplementationName = $"{service.Name.ToPascalCase()}Client";
@@ -110,7 +152,7 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
     {{
     }}
 
-    {operations.Trim()}
+    {methods.Trim()}
 }}";
     }
 }
