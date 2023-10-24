@@ -34,12 +34,12 @@
           The import path determines where protoc compiler locates import files, we add:
           - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
           - $(MSBuildProjectDirectory) to import the project own files.
-          - @(ProtoDirectory) additional import paths specified by the user.
+          - @(ProtoImportPath) additional import paths specified by the user.
         -->
         <ProtocTask
             WorkingDirectory="$(MSBuildProjectDirectory)"
             OutputDir="%(ProtoFile.OutputDir)"
-            ImportPath="@(ProtoDirectory->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
+            ImportPath="@(ProtoImportPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
             ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
             ScriptPath="$(IceRpcProtocGenPath)"
             Sources="@(ProtoFile)">

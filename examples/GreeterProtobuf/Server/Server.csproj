@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto">
-      <ProtoDirectory>../proto</ProtoDirectory>
+      <ProtoImportPath>../proto</ProtoImportPath>
     </ProtoFile>
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
