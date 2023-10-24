@@ -24,21 +24,20 @@ public static class PipeReaderExtensions
         int maxMessageLength,
         CancellationToken cancellationToken) where T : IMessage<T>
     {
-        (int messageLength, ReadResult readResult) = await ReadMessageAsync(
+        T? message = await ReadMessageAsync(
             reader,
+            parser,
             maxMessageLength,
             cancellationToken).ConfigureAwait(false);
 
-        // TODO: Does ParseFrom check it read all the bytes?
-        T message = parser.ParseFrom(readResult.Buffer.Slice(0, messageLength));
-        reader.AdvanceTo(readResult.Buffer.GetPosition(messageLength));
+        Debug.Assert(message != null);
         return message;
     }
 
     /// <summary>Decodes an async enumerable from a pipe reader.</summary>
     /// <param name="reader">The pipe reader.</param>
-    /// <param name="messageParser">The function used to decode an element.</param>
-    /// <param name="maxMessageLength"></param>
+    /// <param name="messageParser">The <see cref="MessageParser{T}" /> used to parse the message data.</param>
+    /// <param name="maxMessageLength">The maximum allowed length.</param>
     /// <param name="cancellationToken">The cancellation token which is provided to <see
     /// cref="IAsyncEnumerable{T}.GetAsyncEnumerator(CancellationToken)" />.</param>
     public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -56,26 +55,14 @@ public static class PipeReaderExtensions
                     yield break;
                 }
 
-                ReadResult readResult;
-                int messageLength;
-
+                T? message;
                 try
                 {
-                    (messageLength, readResult) = await ReadMessageAsync(
+                    message = await ReadMessageAsync(
                         reader,
+                        messageParser,
                         maxMessageLength,
                         cancellationToken).ConfigureAwait(false);
-
-                    if (readResult.IsCanceled)
-                    {
-                        // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
-                        throw new InvalidOperationException("Unexpected call to CancelPendingRead.");
-                    }
-                    if (messageLength == -1)
-                    {
-                        Debug.Assert(readResult.IsCompleted);
-                        yield break;
-                    }
                 }
                 catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
                 {
@@ -83,9 +70,11 @@ public static class PipeReaderExtensions
                     yield break;
                 }
 
-                // TODO: Does ParseFrom check it read all the bytes?
-                yield return messageParser.ParseFrom(readResult.Buffer.Slice(0, messageLength));
-                reader.AdvanceTo(readResult.Buffer.GetPosition(messageLength));
+                if (message == null)
+                {
+                    yield break;
+                }
+                yield return message;
             }
         }
         finally
@@ -94,10 +83,11 @@ public static class PipeReaderExtensions
         }
     }
 
-    private static async ValueTask<(int MessageLength, ReadResult ReadResult)> ReadMessageAsync(
+    private static async ValueTask<T?> ReadMessageAsync<T>(
         PipeReader reader,
+        MessageParser<T> messageParser,
         int maxMessageLength,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken) where T : IMessage<T>
     {
         ReadResult readResult = await reader.ReadAtLeastAsync(5, cancellationToken).ConfigureAwait(false);
         // We never call CancelPendingRead; an interceptor or middleware can but it's not correct.
@@ -108,7 +98,7 @@ public static class PipeReaderExtensions
 
         if (readResult.Buffer.IsEmpty)
         {
-            return (-1, readResult);
+            return default;
         }
 
         if (readResult.Buffer.Length < 5)
@@ -141,7 +131,11 @@ public static class PipeReaderExtensions
             throw new InvalidDataException(
                 $"The payload has {readResult.Buffer.Length} bytes, but {messageLength} bytes were expected.");
         }
-        return (messageLength, readResult);
+
+        // TODO: Does ParseFrom check it read all the bytes?
+        T message = messageParser.ParseFrom(readResult.Buffer.Slice(0, messageLength));
+        reader.AdvanceTo(readResult.Buffer.GetPosition(messageLength));
+        return message;
 
         static int DecodeMessageLength(ReadOnlySequence<byte> buffer)
         {

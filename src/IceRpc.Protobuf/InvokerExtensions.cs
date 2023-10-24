@@ -17,7 +17,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
     OutgoingRequest request,
     CancellationToken cancellationToken);
 
-/// <summary>Provides an extension method for <see cref="IInvoker" />.</summary>
+/// <summary>Provides extension methods for <see cref="IInvoker" />.</summary>
 public static class InvokerExtensions
 {
     private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
@@ -31,9 +31,9 @@ public static class InvokerExtensions
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
-    /// <param name="inputMessage">The input message to encode in thee request payload.</param>
-    /// <param name="encodeOptions">The options to customize the encoding.</param>
-    /// <param name="responseDecodeFunc">The <see cref="ResponseDecodeFunc{T}"/> used to decode the response.</param>
+    /// <param name="inputMessage">The input message to encode in the request payload.</param>
+    /// <param name="encodeOptions">The options to customize the encoding of the request payload.</param>
+    /// <param name="responseDecodeFunc">The <see cref="ResponseDecodeFunc{T}"/> used to decode the response payload.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -104,9 +104,9 @@ public static class InvokerExtensions
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="stream">The stream of input message to encode in the request payload continuation.</param>
-    /// <param name="encodeOptions">The options to customize the encoding.</param>
-    /// <param name="responseDecodeFunc">The <see cref="ResponseDecodeFunc{TOutputParam}"/> used to decode the
-    /// response.</param>
+    /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>
+    /// <param name="responseDecodeFunc">The <see cref="ResponseDecodeFunc{T}"/> used to decode the response payload.
+    /// </param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>

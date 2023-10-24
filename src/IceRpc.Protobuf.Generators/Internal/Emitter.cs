@@ -24,7 +24,7 @@ internal class Emitter
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    string inputParamDecodeMethod = serviceMethod.IsClientStreaming ?
+                    string inputParamDecodeCode = serviceMethod.IsClientStreaming ?
                         @$"
 var payload = request.DetachPayload();
 var inputParam = payload.ToAsyncEnumerable(
@@ -49,7 +49,7 @@ Payload = outputParam.EncodeAsLengthPrefixedMessage(
 case ""{serviceMethod.OperationName}"":
 {{
     var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-    {inputParamDecodeMethod};
+    {inputParamDecodeCode};
     var outputParam = await (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName}(
         inputParam,
         request.Features,
@@ -58,7 +58,7 @@ case ""{serviceMethod.OperationName}"":
     {{
         {outputParamEncode.WithIndent("        ").Trim()}
     }};
-}}".TrimStart();
+}}".Trim();
                     dispatchImplementation += "\n\n";
                 }
                 if (serviceClass.HasBaseServiceClass)

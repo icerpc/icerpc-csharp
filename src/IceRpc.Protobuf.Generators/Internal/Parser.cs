@@ -190,6 +190,7 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
+            // An IAsyncEnumerable input parameter denotes a client streaming RPC.
             string inputTypeName = GetFullName(method.Parameters[0].Type);
             bool isClientStreaming = inputTypeName == "System.Collections.Generic.IAsyncEnumerable";
             if (isClientStreaming)

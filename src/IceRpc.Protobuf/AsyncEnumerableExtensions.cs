@@ -8,17 +8,16 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf;
 
-/// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a
-/// <see cref="PipeReader"/>.</summary>
+/// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a <see
+/// cref="PipeReader"/>.</summary>
 public static class AsyncEnumerableExtensions
 {
     /// <summary>Encodes an async enumerable into a stream of bytes represented by a <see cref="PipeReader"/>.</summary>
     /// <typeparam name="T">The async enumerable element type.</typeparam>
     /// <param name="asyncEnumerable">The async enumerable to encode into a stream of bytes.</param>
-    /// <param name="encodeOptions">The Slice encode options.</param>
+    /// <param name="encodeOptions">The Protobuf encode options.</param>
     /// <returns>A pipe reader that represents the encoded stream of bytes.</returns>
-    /// <remarks>This extension method is used to encode streaming parameters and streaming return values with the
-    /// Slice2 encoding.</remarks>
+    /// <remarks>This extension method is used to encode streaming parameters and streaming return values.</remarks>
     public static PipeReader ToPipeReader<T>(
         this IAsyncEnumerable<T> asyncEnumerable,
         ProtobufEncodeOptions? encodeOptions = null) where T : IMessage<T> =>
@@ -159,7 +158,7 @@ public static class AsyncEnumerableExtensions
                 do
                 {
                     _pipe.Writer.Write(new Span<byte>([0])); // Not compressed
-                    Span<byte> lengthPlaceholder = _pipe.Writer.GetSpan(4);
+                    Span<byte> lengthPlaceholder = _pipe.Writer.GetSpan(4)[..4];
                     _pipe.Writer.Advance(4);
                     _asyncEnumerator.Current.WriteTo(_pipe.Writer);
                     int length = checked((int)_pipe.Writer.UnflushedBytes - written);
