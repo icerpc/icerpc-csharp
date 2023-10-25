@@ -10,9 +10,7 @@ namespace IceRpc.Protobuf.Generators.Internal;
 
 internal sealed class Parser
 {
-    internal const string OperationAttribute = "IceRpc.Protobuf.ProtobufOperationAttribute";
-    internal const string ServiceAttribute = "IceRpc.Protobuf.ProtobufServiceAttribute";
-
+    private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
     private readonly INamedTypeSymbol? _operationAttribute;
@@ -28,13 +26,14 @@ internal sealed class Parser
         _reportDiagnostic = reportDiagnostic;
         _cancellationToken = cancellationToken;
 
-        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
-        _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
+        _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
+        _operationAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufOperationAttribute");
+        _serviceAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufServiceAttribute");
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_operationAttribute is null || _serviceAttribute is null)
+        if (_operationAttribute is null || _serviceAttribute is null || _asyncEnumerableSymbol == null)
         {
             // nothing to do if these types aren't available
             return Array.Empty<ServiceClass>();
@@ -190,12 +189,40 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
+
+            string inputTypeName;
+            ITypeSymbol inputType = method.Parameters[0].Type;
+            // An IAsyncEnumerable input parameter denotes a client streaming RPC.
+            bool isClientStreaming;
+            if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, _asyncEnumerableSymbol))
+            {
+                isClientStreaming = true;
+                var genericType = (INamedTypeSymbol)inputType;
+                Debug.Assert(genericType.TypeArguments.Length == 1);
+                inputTypeName = GetFullName(genericType.TypeArguments[0]);
+            }
+            else
+            {
+                isClientStreaming = false;
+                inputTypeName = GetFullName(inputType);
+            }
+
+            // Methods with the ProtobufOperationAttribute always have a generic ValueTask return type.
+            // For server-streaming, the return type's generic argument is IAsyncEnumerable.
+            Debug.Assert(method.ReturnType is INamedTypeSymbol);
+            var genericReturnType = (INamedTypeSymbol)method.ReturnType;
+            Debug.Assert(genericReturnType.TypeArguments.Length == 1);
+            bool isServerStreaming = SymbolEqualityComparer.Default.Equals(
+                genericReturnType.TypeArguments[0].OriginalDefinition,
+                _asyncEnumerableSymbol);
             serviceMethods.Add(
                 new ServiceMethod(
                     operationName,
                     interfaceName: $"global::{GetFullName(interfaceSymbol)}",
                     methodName: method.Name,
-                    inputTypeName: $"global::{GetFullName(method.Parameters[0].Type)}"));
+                    inputTypeName: $"global::{inputTypeName}",
+                    isClientStreaming,
+                    isServerStreaming));
         }
         return serviceMethods;
     }

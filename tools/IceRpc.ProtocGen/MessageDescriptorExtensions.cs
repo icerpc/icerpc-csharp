@@ -9,16 +9,23 @@ internal static class MessageDescriptorExtensions
     internal static string GetFullyQualifiedType(this MessageDescriptor messageDescriptor) =>
         $"{messageDescriptor.File.GetCsharpNamespace()}.{messageDescriptor.Name}";
 
-    internal static string GetType(this MessageDescriptor messageDescriptor, string scope)
+    internal static string GetType(this MessageDescriptor messageDescriptor, string scope, bool streaming)
     {
         string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
-        if (scope == csharpNamespace)
+        string csharpType = scope == csharpNamespace ?
+            messageDescriptor.Name : $"{csharpNamespace}.{messageDescriptor.Name}";
+        if (streaming)
         {
-            return messageDescriptor.Name;
+            csharpType = $"global::System.Collections.Generic.IAsyncEnumerable<{csharpType}>";
         }
-        else
-        {
-            return $"{csharpNamespace}.{messageDescriptor.Name}";
-        }
+        return csharpType;
+    }
+
+    internal static string GetParserType(this MessageDescriptor messageDescriptor, string scope)
+    {
+        string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
+        string csharpType = scope == csharpNamespace ?
+            messageDescriptor.Name : $"{csharpNamespace}.{messageDescriptor.Name}";
+        return $"{csharpType}.Parser";
     }
 }

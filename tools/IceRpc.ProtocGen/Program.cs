@@ -62,7 +62,7 @@ namespace {descriptor.GetCsharpNamespace()};".Trim();
         new CodeGeneratorResponse.Types.File
         {
             Name = $"{Path.GetFileNameWithoutExtension(descriptor.Name).ToPascalCase()}.IceRpc.cs",
-            Content = builder.ToString()
+            Content = builder.ToString().ReplaceLineEndings()
         });
 }
 

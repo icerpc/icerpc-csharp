@@ -24,36 +24,54 @@ internal class Emitter
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
+                    string inputParamDecodeCode = serviceMethod.IsClientStreaming ?
+                        @$"
+    var payload = request.DetachPayload();
+    var inputParam = payload.ToAsyncEnumerable(
+        {serviceMethod.InputTypeName}.Parser,
+        protobufFeature.MaxMessageLength,
+        cancellationToken)".Trim() :
+                        @$"
+    var inputParam = await request.Payload.DecodeProtobufMessageAsync(
+        {serviceMethod.InputTypeName}.Parser,
+        protobufFeature.MaxMessageLength,
+        cancellationToken).ConfigureAwait(false)".Trim();
+
+                    string outputParamEncode = serviceMethod.IsServerStreaming ?
+                        $@"
+        PayloadContinuation = outputParam.ToPipeReader(
+            protobufFeature.EncodeOptions)".Trim() :
+                        $@"
+        Payload = outputParam.EncodeAsLengthPrefixedMessage(
+            protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)";
+
                     dispatchImplementation += @$"
 case ""{serviceMethod.OperationName}"":
 {{
     var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-    var inputParam = await request.Payload.DecodeProtobufMessageAsync(
-        {serviceMethod.InputTypeName}.Parser,
-        protobufFeature.MaxMessageLength,
-        cancellationToken).ConfigureAwait(false);
+    {inputParamDecodeCode};
     var outputParam = await (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName}(
         inputParam,
         request.Features,
         cancellationToken).ConfigureAwait(false);
     return new IceRpc.OutgoingResponse(request)
     {{
-        Payload = outputParam.EncodeAsLengthPrefixedMessage(
-            protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)
+        {outputParamEncode.Trim()}
     }};
 }}".Trim();
+                    dispatchImplementation += "\n\n";
                 }
                 if (serviceClass.HasBaseServiceClass)
                 {
                     dispatchImplementation += @$"
 default:
-    return await base.DispatchAsync(request, cancellationToken).ConfigureAwait(false);";
+    return await base.DispatchAsync(request, cancellationToken).ConfigureAwait(false);".Trim();
                 }
                 else
                 {
                     dispatchImplementation += @$"
 default:
-    return new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented);";
+    return new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented);".Trim();
                 }
                 dispatchImplementation = @$"
 switch (request.Operation)
