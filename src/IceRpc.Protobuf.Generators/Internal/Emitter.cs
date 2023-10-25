@@ -26,24 +26,24 @@ internal class Emitter
                 {
                     string inputParamDecodeCode = serviceMethod.IsClientStreaming ?
                         @$"
-var payload = request.DetachPayload();
-var inputParam = payload.ToAsyncEnumerable(
-    {serviceMethod.InputTypeName}.Parser,
-    protobufFeature.MaxMessageLength,
-    cancellationToken)".Trim() :
+    var payload = request.DetachPayload();
+    var inputParam = payload.ToAsyncEnumerable(
+        {serviceMethod.InputTypeName}.Parser,
+        protobufFeature.MaxMessageLength,
+        cancellationToken)".Trim() :
                         @$"
-var inputParam = await request.Payload.DecodeProtobufMessageAsync(
-    {serviceMethod.InputTypeName}.Parser,
-    protobufFeature.MaxMessageLength,
-    cancellationToken).ConfigureAwait(false)".Trim();
+    var inputParam = await request.Payload.DecodeProtobufMessageAsync(
+        {serviceMethod.InputTypeName}.Parser,
+        protobufFeature.MaxMessageLength,
+        cancellationToken).ConfigureAwait(false)".Trim();
 
                     string outputParamEncode = serviceMethod.IsServerStreaming ?
                         $@"
-PayloadContinuation = outputParam.ToPipeReader(
-    protobufFeature.EncodeOptions)".Trim() :
+        PayloadContinuation = outputParam.ToPipeReader(
+            protobufFeature.EncodeOptions)".Trim() :
                         $@"
-Payload = outputParam.EncodeAsLengthPrefixedMessage(
-    protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)";
+        Payload = outputParam.EncodeAsLengthPrefixedMessage(
+            protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)";
 
                     dispatchImplementation += @$"
 case ""{serviceMethod.OperationName}"":
@@ -56,7 +56,7 @@ case ""{serviceMethod.OperationName}"":
         cancellationToken).ConfigureAwait(false);
     return new IceRpc.OutgoingResponse(request)
     {{
-        {outputParamEncode.WithIndent("        ").Trim()}
+        {outputParamEncode.Trim()}
     }};
 }}".Trim();
                     dispatchImplementation += "\n\n";

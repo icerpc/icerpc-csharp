@@ -10,9 +10,11 @@ namespace IceRpc.Protobuf.Generators.Internal;
 
 internal sealed class Parser
 {
-    internal const string OperationAttribute = "IceRpc.Protobuf.ProtobufOperationAttribute";
-    internal const string ServiceAttribute = "IceRpc.Protobuf.ProtobufServiceAttribute";
+    private const string IAsyncEnumerableName = "System.Collections.Generic.IAsyncEnumerable`1";
+    private const string OperationAttributeName = "IceRpc.Protobuf.ProtobufOperationAttribute";
+    private const string ServiceAttributeName = "IceRpc.Protobuf.ProtobufServiceAttribute";
 
+    private readonly INamedTypeSymbol? _iasyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
     private readonly INamedTypeSymbol? _operationAttribute;
@@ -28,13 +30,14 @@ internal sealed class Parser
         _reportDiagnostic = reportDiagnostic;
         _cancellationToken = cancellationToken;
 
-        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
-        _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
+        _iasyncEnumerableSymbol = _compilation.GetTypeByMetadataName(IAsyncEnumerableName);
+        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttributeName);
+        _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttributeName);
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_operationAttribute is null || _serviceAttribute is null)
+        if (_operationAttribute is null || _serviceAttribute is null || _iasyncEnumerableSymbol == null)
         {
             // nothing to do if these types aren't available
             return Array.Empty<ServiceClass>();
@@ -190,22 +193,32 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
+
+            string inputTypeName;
+            ITypeSymbol inputType = method.Parameters[0].Type;
             // An IAsyncEnumerable input parameter denotes a client streaming RPC.
-            string inputTypeName = GetFullName(method.Parameters[0].Type);
-            bool isClientStreaming = inputTypeName == "System.Collections.Generic.IAsyncEnumerable";
-            if (isClientStreaming)
+            bool isClientStreaming;
+            if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, _iasyncEnumerableSymbol))
             {
-                INamedTypeSymbol genericType = (INamedTypeSymbol)method.Parameters[0].Type;
+                isClientStreaming = true;
+                var genericType = (INamedTypeSymbol)inputType;
                 Debug.Assert(genericType.TypeArguments.Length == 1);
                 inputTypeName = GetFullName(genericType.TypeArguments[0]);
+            }
+            else
+            {
+                isClientStreaming = false;
+                inputTypeName = GetFullName(inputType);
             }
 
             // Methods with the ProtobufOperationAttribute always have a generic ValueTask return type.
             // For server-streaming, the return type's generic argument is IAsyncEnumerable.
-            INamedTypeSymbol genericReturnType = (INamedTypeSymbol)method.ReturnType;
+            Debug.Assert(method.ReturnType is INamedTypeSymbol);
+            var genericReturnType = (INamedTypeSymbol)method.ReturnType;
             Debug.Assert(genericReturnType.TypeArguments.Length == 1);
-            string outputTypeName = GetFullName(genericReturnType.TypeArguments[0]);
-            bool isServerStreaming = outputTypeName == "System.Collections.Generic.IAsyncEnumerable";
+            bool isServerStreaming = SymbolEqualityComparer.Default.Equals(
+                genericReturnType.TypeArguments[0].OriginalDefinition,
+                _iasyncEnumerableSymbol);
             serviceMethods.Add(
                 new ServiceMethod(
                     operationName,
