@@ -54,10 +54,10 @@ public partial interface I{service.Name.ToPascalCase()}
 
             string invokeAsyncMethod = (method.IsClientStreaming, method.IsServerStreaming) switch
             {
-                (false, false) => "UnaryInvokeAsync",
-                (true, false) => "ClientStreamingInvokeAsync",
-                (false, true) => "ServerStreamingInvokeAsync",
-                (true, true) => "BidirectionalStreamingInvokeAsync",
+                (false, false) => "InvokeUnaryAsync",
+                (true, false) => "InvokeClientStreamingAsync",
+                (false, true) => "InvokeServerStreamingAsync",
+                (true, true) => "InvokeBidiStreamingAsync",
             };
 
             methods += $@"

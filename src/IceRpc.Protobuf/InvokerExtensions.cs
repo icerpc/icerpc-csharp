@@ -16,7 +16,8 @@ public static class InvokerExtensions
             [RequestFieldKey.Idempotent] = default
         }.ToImmutableDictionary();
 
-    /// <summary>Sends a request to a service and decodes the response.</summary>
+    /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf unary RPCs.
+    /// </summary>
     /// <typeparam name="T">The response type.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
@@ -29,7 +30,7 @@ public static class InvokerExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<T> UnaryInvokeAsync<T>(
+    public static Task<T> InvokeUnaryAsync<T>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
@@ -65,7 +66,8 @@ public static class InvokerExtensions
         return ReceiveResponseAsync(messageParser, responseTask, request, cancellationToken);
     }
 
-    /// <summary>Sends a request to a service and decodes the response.</summary>
+    /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf client-streaming
+    /// RPCs. </summary>
     /// <typeparam name="TOutputParam">The response type.</typeparam>
     /// <typeparam name="TInputParam">The input type.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
@@ -79,7 +81,7 @@ public static class InvokerExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<TOutputParam> ClientStreamingInvokeAsync<TOutputParam, TInputParam>(
+    public static Task<TOutputParam> InvokeClientStreamingAsync<TOutputParam, TInputParam>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
@@ -116,7 +118,8 @@ public static class InvokerExtensions
         return ReceiveResponseAsync(messageParser, responseTask, request, cancellationToken);
     }
 
-    /// <summary>Sends a request to a service and decodes the response.</summary>
+    /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf server-streaming
+    /// RPCs.</summary>
     /// <typeparam name="T">The response type.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
@@ -129,7 +132,7 @@ public static class InvokerExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<IAsyncEnumerable<T>> ServerStreamingInvokeAsync<T>(
+    public static Task<IAsyncEnumerable<T>> InvokeServerStreamingAsync<T>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
@@ -165,7 +168,8 @@ public static class InvokerExtensions
         return ReceiveStreamingResponseAsync(messageParser, responseTask, request, cancellationToken);
     }
 
-    /// <summary>Sends a request to a service and decodes the response.</summary>
+    /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf bidi-streaming
+    /// RPCs.</summary>
     /// <typeparam name="TOutputParam">The response type.</typeparam>
     /// <typeparam name="TInputParam">The input type.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
@@ -179,7 +183,7 @@ public static class InvokerExtensions
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<IAsyncEnumerable<TOutputParam>> BidirectionalStreamingInvokeAsync<TOutputParam, TInputParam>(
+    public static Task<IAsyncEnumerable<TOutputParam>> InvokeBidiStreamingAsync<TOutputParam, TInputParam>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
