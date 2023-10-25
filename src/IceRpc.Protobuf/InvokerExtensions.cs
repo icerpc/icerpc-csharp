@@ -3,6 +3,7 @@
 using Google.Protobuf;
 using IceRpc.Features;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf;
 
@@ -256,7 +257,8 @@ public static class InvokerExtensions
             if (response.StatusCode == StatusCode.Ok)
             {
                 IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-                return response.Payload.ToAsyncEnumerable(
+                PipeReader payload = response.DetachPayload();
+                return payload.ToAsyncEnumerable(
                     messageParser,
                     protobufFeature.MaxMessageLength,
                     cancellationToken);
