@@ -10,11 +10,7 @@ namespace IceRpc.Protobuf.Generators.Internal;
 
 internal sealed class Parser
 {
-    private const string IAsyncEnumerableName = "System.Collections.Generic.IAsyncEnumerable`1";
-    private const string OperationAttributeName = "IceRpc.Protobuf.ProtobufOperationAttribute";
-    private const string ServiceAttributeName = "IceRpc.Protobuf.ProtobufServiceAttribute";
-
-    private readonly INamedTypeSymbol? _iasyncEnumerableSymbol;
+    private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
     private readonly INamedTypeSymbol? _operationAttribute;
@@ -30,14 +26,14 @@ internal sealed class Parser
         _reportDiagnostic = reportDiagnostic;
         _cancellationToken = cancellationToken;
 
-        _iasyncEnumerableSymbol = _compilation.GetTypeByMetadataName(IAsyncEnumerableName);
-        _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttributeName);
-        _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttributeName);
+        _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
+        _operationAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufOperationAttribute");
+        _serviceAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufServiceAttribute");
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_operationAttribute is null || _serviceAttribute is null || _iasyncEnumerableSymbol == null)
+        if (_operationAttribute is null || _serviceAttribute is null || _asyncEnumerableSymbol == null)
         {
             // nothing to do if these types aren't available
             return Array.Empty<ServiceClass>();
@@ -198,7 +194,7 @@ internal sealed class Parser
             ITypeSymbol inputType = method.Parameters[0].Type;
             // An IAsyncEnumerable input parameter denotes a client streaming RPC.
             bool isClientStreaming;
-            if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, _iasyncEnumerableSymbol))
+            if (SymbolEqualityComparer.Default.Equals(inputType.OriginalDefinition, _asyncEnumerableSymbol))
             {
                 isClientStreaming = true;
                 var genericType = (INamedTypeSymbol)inputType;
@@ -218,7 +214,7 @@ internal sealed class Parser
             Debug.Assert(genericReturnType.TypeArguments.Length == 1);
             bool isServerStreaming = SymbolEqualityComparer.Default.Equals(
                 genericReturnType.TypeArguments[0].OriginalDefinition,
-                _iasyncEnumerableSymbol);
+                _asyncEnumerableSymbol);
             serviceMethods.Add(
                 new ServiceMethod(
                     operationName,
