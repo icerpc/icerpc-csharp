@@ -52,55 +52,26 @@ public partial interface I{service.Name.ToPascalCase()}
                 (methodOptions.IdempotencyLevel == MethodOptions.Types.IdempotencyLevel.NoSideEffects ||
                  methodOptions.IdempotencyLevel == MethodOptions.Types.IdempotencyLevel.Idempotent);
 
-            string responseDecodeFunc;
-            string genericArg;
-            if (method.IsServerStreaming)
+            string invokeAsyncMethod = (method.IsClientStreaming, method.IsServerStreaming) switch
             {
-                if (method.IsClientStreaming)
-                {
-                    genericArg = $"<{returnType}, {method.InputType.GetType(scope, false)}>";
-                }
-                else
-                {
-                    genericArg = $"<{returnType}>";
-                }
-                responseDecodeFunc = $@"
-            (response, request, cancellationToken) =>
-            {{
-                IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-                var payload = response.DetachPayload();
-                return new(payload.ToAsyncEnumerable(
-                    {returnTypeParser},
-                    protobufFeature.MaxMessageLength,
-                    cancellationToken));
-            }}".Trim();
-            }
-            else
-            {
-                genericArg = ""; // Deduced by the compiler
-                responseDecodeFunc = $@"
-            async (response, request, cancellationToken) =>
-            {{
-                IProtobufFeature protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-                return await response.Payload.DecodeProtobufMessageAsync(
-                    {returnType}.Parser,
-                    protobufFeature.MaxMessageLength,
-                    cancellationToken).ConfigureAwait(false);
-            }}".Trim();
-            }
+                (false, false) => "UnaryInvokeAsync",
+                (true, false) => "ClientStreamingInvokeAsync",
+                (false, true) => "ServerStreamingInvokeAsync",
+                (true, true) => "BidirectionalStreamingInvokeAsync",
+            };
 
             methods += $@"
     public global::System.Threading.Tasks.Task<{returnType}> {methodName}(
         {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection? features = null,
         global::System.Threading.CancellationToken cancellationToken = default) =>
-        InvokerExtensions.InvokeAsync{genericArg}(
+        InvokerExtensions.{invokeAsyncMethod}(
             Invoker,
             ServiceAddress,
             ""{method.Name}"",
             {inputParam},
             EncodeOptions,
-            {responseDecodeFunc},
+            {returnTypeParser},
             features,
             idempotent: {idempotent.ToString().ToLowerInvariant()},
             cancellationToken: cancellationToken);";
