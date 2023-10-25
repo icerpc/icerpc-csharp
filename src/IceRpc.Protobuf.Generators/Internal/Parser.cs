@@ -224,7 +224,7 @@ internal sealed class Parser
                     operationName,
                     interfaceName: $"global::{GetFullName(interfaceSymbol)}",
                     methodName: method.Name,
-                    inputTypeName,
+                    inputTypeName: $"global::{inputTypeName}",
                     isClientStreaming,
                     isServerStreaming));
         }
