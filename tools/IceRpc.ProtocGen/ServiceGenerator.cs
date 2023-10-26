@@ -38,7 +38,7 @@ internal class ServiceGenerator
     /// <param name=""features"">The dispatch features.</param>
     /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
     /// <returns>{returnTypeDocComment}</returns>
-    [ProtobufOperation(""{method.Name}"")]
+    [ProtobufMethod(""{method.Name}"")]
     global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
         {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection features,
