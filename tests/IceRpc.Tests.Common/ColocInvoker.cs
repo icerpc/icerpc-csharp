@@ -66,7 +66,9 @@ public sealed class ColocInvoker : IInvoker
             }
             else
             {
-                var pipe = new Pipe();
+                // Set pauseWriterThreshold to 0 prevents it from ever blocking. This prevents potential hangs in tests
+                // using the ColocInvoker when attempting to send more data than allowed by the threshold.
+                var pipe = new Pipe(new PipeOptions(pauseWriterThreshold: 0));
                 await outgoingFrame.Payload.CopyToAsync(pipe.Writer, cancellationToken);
                 await outgoingFrame.PayloadContinuation.CopyToAsync(pipe.Writer, cancellationToken);
                 pipe.Writer.Complete();
