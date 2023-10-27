@@ -13,7 +13,7 @@ internal sealed class Parser
     private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
-    private readonly INamedTypeSymbol? _operationAttribute;
+    private readonly INamedTypeSymbol? _methodAttribute;
     private readonly Action<Diagnostic> _reportDiagnostic;
     private readonly INamedTypeSymbol? _serviceAttribute;
 
@@ -27,13 +27,13 @@ internal sealed class Parser
         _cancellationToken = cancellationToken;
 
         _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
-        _operationAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufOperationAttribute");
+        _methodAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufMethodAttribute");
         _serviceAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufServiceAttribute");
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_operationAttribute is null || _serviceAttribute is null || _asyncEnumerableSymbol == null)
+        if (_methodAttribute is null || _serviceAttribute is null || _asyncEnumerableSymbol == null)
         {
             // nothing to do if these types aren't available
             return Array.Empty<ServiceClass>();
@@ -156,7 +156,7 @@ internal sealed class Parser
 
     private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
     {
-        Debug.Assert(_operationAttribute is not null);
+        Debug.Assert(_methodAttribute is not null);
         var allServiceMethods = new List<ServiceMethod>();
         foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
         {
@@ -170,7 +170,7 @@ internal sealed class Parser
         var serviceMethods = new List<ServiceMethod>();
         foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
-            if (GetAttribute(method, _operationAttribute!) is not AttributeData attribute)
+            if (GetAttribute(method, _methodAttribute!) is not AttributeData attribute)
             {
                 continue;
             }
@@ -207,7 +207,7 @@ internal sealed class Parser
                 inputTypeName = GetFullName(inputType);
             }
 
-            // Methods with the ProtobufOperationAttribute always have a generic ValueTask return type.
+            // Methods with the ProtobufMethodAttribute always have a generic ValueTask return type.
             // For server-streaming, the return type's generic argument is IAsyncEnumerable.
             Debug.Assert(method.ReturnType is INamedTypeSymbol);
             var genericReturnType = (INamedTypeSymbol)method.ReturnType;
