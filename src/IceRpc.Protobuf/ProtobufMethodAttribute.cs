@@ -16,6 +16,6 @@ public sealed class ProtobufMethodAttribute : Attribute
     public string Value { get; }
 
     /// <summary>Constructs a Protobuf method attribute.</summary>
-    /// <param name="value">The operation name.</param>>
+    /// <param name="value">The method name.</param>>
     public ProtobufMethodAttribute(string value) => Value = value;
 }
