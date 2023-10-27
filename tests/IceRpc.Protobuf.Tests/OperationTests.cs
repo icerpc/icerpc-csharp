@@ -17,18 +17,18 @@ public partial class OperationTests
         var invoker = new ColocInvoker(new MyOperationsService());
         var client = new MyOperationsClient(invoker);
 
-        var m = new InputMessage()
+        var message = new InputMessage()
         {
             P1 = "P1",
             P2 = 2,
         };
 
         // Act
-        var r = await client.UnaryOpAsync(m);
+        var response = await client.UnaryOpAsync(message);
 
         // Assert
-        Assert.That(r.P1, Is.EqualTo(m.P1));
-        Assert.That(r.P2, Is.EqualTo(m.P2));
+        Assert.That(response.P1, Is.EqualTo(message.P1));
+        Assert.That(response.P2, Is.EqualTo(message.P2));
     }
 
     [Test]
