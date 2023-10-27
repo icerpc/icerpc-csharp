@@ -9,7 +9,7 @@ on:
 jobs:
   build_and_test:
 
-    runs-on: ubuntu22.04-8x
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
