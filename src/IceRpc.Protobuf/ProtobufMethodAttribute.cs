@@ -12,7 +12,7 @@ public sealed class ProtobufMethodAttribute : Attribute
 {
     /// <summary>Gets the method name. It corresponds to the name of the rpc method in the Protobuf file, with the
     /// same spelling and the same case.</summary>
-    /// <value>The operation name.</value>
+    /// <value>The method name.</value>
     public string Value { get; }
 
     /// <summary>Constructs a Protobuf method attribute.</summary>
