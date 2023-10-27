@@ -109,7 +109,6 @@ public static class PipeReaderExtensions
 
         if (readResult.Buffer.FirstSpan[0] == 1)
         {
-            reader.AdvanceTo(readResult.Buffer.GetPosition(5));
             throw new NotSupportedException("IceRPC does not support Protobuf compressed messages");
         }
         int messageLength = DecodeMessageLength(readResult.Buffer.Slice(1, 4));

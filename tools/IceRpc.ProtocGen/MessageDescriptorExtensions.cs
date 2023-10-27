@@ -6,14 +6,11 @@ namespace IceRpc.ProtocGen;
 
 internal static class MessageDescriptorExtensions
 {
-    internal static string GetFullyQualifiedType(this MessageDescriptor messageDescriptor) =>
-        $"{messageDescriptor.File.GetCsharpNamespace()}.{messageDescriptor.Name}";
-
     internal static string GetType(this MessageDescriptor messageDescriptor, string scope, bool streaming)
     {
         string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
         string csharpType = scope == csharpNamespace ?
-            messageDescriptor.Name : $"{csharpNamespace}.{messageDescriptor.Name}";
+            messageDescriptor.Name : $"global::{csharpNamespace}.{messageDescriptor.Name}";
         if (streaming)
         {
             csharpType = $"global::System.Collections.Generic.IAsyncEnumerable<{csharpType}>";
@@ -25,7 +22,7 @@ internal static class MessageDescriptorExtensions
     {
         string csharpNamespace = messageDescriptor.File.GetCsharpNamespace();
         string csharpType = scope == csharpNamespace ?
-            messageDescriptor.Name : $"{csharpNamespace}.{messageDescriptor.Name}";
+            messageDescriptor.Name : $"global::{csharpNamespace}.{messageDescriptor.Name}";
         return $"{csharpType}.Parser";
     }
 }

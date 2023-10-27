@@ -66,7 +66,7 @@ public sealed class ColocInvoker : IInvoker
             }
             else
             {
-                var pipe = new Pipe();
+                var pipe = new Pipe(new PipeOptions(pauseWriterThreshold: 0));
                 await outgoingFrame.Payload.CopyToAsync(pipe.Writer, cancellationToken);
                 await outgoingFrame.PayloadContinuation.CopyToAsync(pipe.Writer, cancellationToken);
                 pipe.Writer.Complete();
