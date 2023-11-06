@@ -108,9 +108,9 @@ public sealed class IncomingResponse : IncomingFrame
     }
 
     /// <summary>Completes the payload and releases the fields memory.</summary>
-    /// <remarks>Dispose is internal because application code (including the Slice engine) must dispose the
-    /// outgoing request that owns this incoming response or create a different incoming response that disposes the
-    /// previous response held by this outgoing request.</remarks>
+    /// <remarks>Dispose is internal because application code must dispose the outgoing request that owns this incoming
+    /// response or create a different incoming response that disposes the previous response held by this outgoing
+    /// request.</remarks>
     internal void Dispose()
     {
         Payload.Complete();
