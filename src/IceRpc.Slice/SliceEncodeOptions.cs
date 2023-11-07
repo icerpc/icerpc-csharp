@@ -11,15 +11,15 @@ public sealed class SliceEncodeOptions
     /// <summary>Gets the default instance of <see cref="SliceEncodeOptions" />.</summary>
     public static SliceEncodeOptions Default { get; } = new();
 
-    /// <summary>Gets the pipe options that the Slice engine uses when creating pipes. The Slice engine creates a pipe
-    /// when encoding a request or response payload, and when encoding an async enumerable into a
-    /// <see cref="PipeReader" />.</summary>
+    /// <summary>Gets the pipe options that the IceRPC + Slice integration uses when creating pipes. The IceRPC + Slice
+    /// integration creates a pipe when encoding a request or response payload, and when encoding an async enumerable
+    /// into a <see cref="PipeReader" />.</summary>
     public PipeOptions PipeOptions { get; }
 
-    /// <summary>Gets the stream flush threshold. When encoding a Slice stream (async enumerable), the Slice engine
-    /// encodes the values provided by the source async enumerable into a pipe writer. The Slice engine flushes this
-    /// pipe writer when no new value is available synchronously, or when it has written StreamFlushThreshold bytes to
-    /// this pipe writer.</summary>
+    /// <summary>Gets the stream flush threshold. When encoding a Slice stream (async enumerable), the IceRPC + Slice
+    /// integration encodes the values provided by the source async enumerable into a pipe writer. The IceRPC + Slice
+    /// integration flushes this pipe writer when no new value is available synchronously, or when it has written
+    /// <c>StreamFlushThreshold</c> bytes to this pipe writer.</summary>
     public int StreamFlushThreshold { get; }
 
     /// <summary>Constructs a new instance.</summary>

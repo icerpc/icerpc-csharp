@@ -985,7 +985,7 @@ internal class SlicConnection : IMultiplexedConnection
         // all parameter values are currently integers in the range 0..Int32Max encoded as varuint62.
         static int DecodeParamValue(IList<byte> buffer)
         {
-            // The IList<byte> decoded by the Slice engine is backed by an array
+            // The IList<byte> decoded by the IceRPC + Slice integration is backed by an array
             ulong value = SliceEncoding.Slice2.DecodeBuffer(
                 new ReadOnlySequence<byte>((byte[])buffer),
                 (ref SliceDecoder decoder) => decoder.DecodeVarUInt62());
