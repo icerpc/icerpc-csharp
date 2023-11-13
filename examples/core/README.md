@@ -9,7 +9,7 @@ This folder contains example applications for using IceRPC core APIs.
 | [Download](./Download/)             | Shows how to download a file from a server by streaming this file.                                                                  |
 | [GenericHost](./GenericHost/)       | Shows how to create client and server applications using Microsoft's Dependency Injection container.                                |
 | [Greeter](./Greeter/)               | Shows how to call and implement a canonical Greeter service.                                                                        |
-| [Json](./Json/)                     | Shows how to use JSON to encode the request and response paylaods.                                                                  |
+| [Json](./Json/)                     | Shows how to use JSON to encode the request and response payloads.                                                                  |
 | [Logger](./Loggger/)                | Shows how to enable logging.                                                                                                        |
 | [Metrics](./Metrics/)               | Shows how to use the metrics interceptor and middleware.                                                                            |
 | [Quic](./Quic/)                     | Shows how to use the QUIC transport.                                                                                                |
