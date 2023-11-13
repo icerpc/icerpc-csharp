@@ -31,7 +31,7 @@ of the NuGet packages, as described in [BUILDING].
 |-------------------------|----------------------------------------------------------------------------|
 | [core](./core/)         | Contains examples that show how to use the IceRPC core APIs.              |
 | [ice](./ice/)           | Contains examples that show how IceRPC interoperates with [ZeroC Ice].    |
-| [slice](./slice/)       | Contains examples that shows how to use the IceRPC + Slice integration.    |
+| [slice](./slice/)       | Contains examples that show how to use the IceRPC + Slice integration.    |
 | [protobuf](./protobuf/) | Contains examples that shows how to use the IceRPC + Protobuf integration. |
 
 [BUILDING]: ../BUILDING.md
