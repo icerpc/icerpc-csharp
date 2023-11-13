@@ -122,6 +122,58 @@ public partial class OperationTests
         }
     }
 
+    [Test]
+    public async Task Idempotent_rpc()
+    {
+        // Arrange
+        IDictionary<RequestFieldKey, OutgoingFieldValue>? fields = null;
+        var pipeline = new Pipeline();
+        pipeline
+            .Use(next => new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    fields = request.Fields;
+                    return response;
+                }))
+            .Into(new ColocInvoker(new MyOperationsService()));
+
+        var client = new MyOperationsClient(pipeline);
+
+        // Act
+        var response = await client.IdempotentOpAsync(new Empty());
+
+        // Assert
+        Assert.That(fields, Is.Not.Null);
+        Assert.That(fields, Contains.Key(RequestFieldKey.Idempotent));
+    }
+
+    [Test]
+    public async Task NoSideEffects_rpc()
+    {
+        // Arrange
+        IDictionary<RequestFieldKey, OutgoingFieldValue>? fields = null;
+        var pipeline = new Pipeline();
+        pipeline
+            .Use(next => new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    fields = request.Fields;
+                    return response;
+                }))
+            .Into(new ColocInvoker(new MyOperationsService()));
+
+        var client = new MyOperationsClient(pipeline);
+
+        // Act
+        var response = await client.NoSideEffectsOpAsync(new Empty());
+
+        // Assert
+        Assert.That(fields, Is.Not.Null);
+        Assert.That(fields, Contains.Key(RequestFieldKey.Idempotent));
+    }
+
     [ProtobufService]
     internal partial class MyOperationsService : IMyOperationsService
     {
@@ -193,5 +245,15 @@ public partial class OperationTests
                 }
             }
         }
+
+        public ValueTask<Empty> IdempotentOpAsync(
+            Empty message,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(new Empty());
+
+        public ValueTask<Empty> NoSideEffectsOpAsync(
+            Empty message,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(new Empty());
     }
 }

@@ -15,6 +15,14 @@ service MyOperations {
   rpc serverStreamingOp(google.protobuf.Empty) returns (stream OutputMessage);
 
   rpc bidirectionalStreamingOp(stream InputMessage) returns (stream OutputMessage);
+
+  rpc idempotentOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
+    option idempotency_level = IDEMPOTENT;
+  }
+
+  rpc noSideEffectsOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 message InputMessage {
