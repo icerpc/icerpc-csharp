@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
+    <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProtoFile Include="../proto/greeter.proto">
+      <ProtoImportPath>../proto</ProtoImportPath>
+    </ProtoFile>
+    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
+    <Compile Include="../../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+  </ItemGroup>
+</Project>

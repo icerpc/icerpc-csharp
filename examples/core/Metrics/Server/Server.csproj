@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
+    <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
+  </PropertyGroup>
+  <ItemGroup>
+    <SliceFile Include="../slice/Greeter.slice" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Metrics" Version="$(Version)" />
+    <Compile Include="../../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+  </ItemGroup>
+</Project>
