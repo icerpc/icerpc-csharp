@@ -71,6 +71,8 @@ unique set of options results in a separate execution of `protoc`.
 |-------------------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------|
 | AdditionalOptions |           | Specifies additional options to pass to [`protoc`] compiler.                                                                                     |
 | OutputDir         | generated | Sets the output directory for the generated code. This metadata corresponds to the `--csharp_out` and `--icerpc-csharp_out` options of `protoc`. |
+| Pack              | `false`   | Specifies whether or not to include the items (Proto files) in the NuGet package.                                                                |
+| PackagePath       | protobuf  | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                        |
 
 ## Generated code and NuGet packages
 

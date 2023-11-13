@@ -55,6 +55,8 @@
     <ItemDefinitionGroup>
         <ProtoFile>
             <OutputDir>$(MSBuildProjectDirectory)\generated</OutputDir>
+            <Pack>false</Pack>
+            <PackagePath>protobuf</PackagePath>
         </ProtoFile>
     </ItemDefinitionGroup>
 </Project>
