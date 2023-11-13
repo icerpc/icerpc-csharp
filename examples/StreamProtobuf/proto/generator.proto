@@ -1,0 +1,18 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package stream_example;
+option csharp_namespace = "StreamExample";
+
+import "google/protobuf/empty.proto";
+
+// Represents a number generator.
+service Generator {
+    // Generates a stream of numbers
+    rpc generateNumbers(google.protobuf.Empty) returns(stream GenerateResponse);
+}
+
+message GenerateResponse {
+    int32 value = 1;
+}
