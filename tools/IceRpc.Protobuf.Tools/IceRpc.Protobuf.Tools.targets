@@ -73,4 +73,16 @@
         <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).cs')" />
         <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).IceRpc.cs')" />
     </Target>
+
+     <!-- Package ProtoFile items -->
+    <Target Name="PackProtoFileItems" BeforeTargets="GenerateNuspec">
+        <CreateItem
+            Include="@(ProtoFile)"
+            Condition="'%(ProtoFile.Pack)' == 'true'"
+            AdditionalMetadata="PackagePath=%(ProtoFile.PackagePath)">
+            <Output
+                TaskParameter="Include"
+                ItemName="_PackageFiles"/>
+        </CreateItem>
+    </Target>
 </Project>
