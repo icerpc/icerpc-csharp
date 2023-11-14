@@ -3,8 +3,7 @@
     // Use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
     "build": {
         "dockerfile": "Dockerfile"
-    }
-
+    },
     // Configure tool-specific properties
     "customization": {
         "vscode": {
