@@ -8,10 +8,11 @@
     "customization": {
         "vscode": {
             "extensions": [
+                "EditorConfig.EditorConfig",
+                "davidanson.vscode-markdownlint",
                 "ms-dotnettools.csdevkit",
                 "rust-lang.rust-analyzer",
-                "streetsidesoftware.code-spell-checker",
-                "davidanson.vscode-markdownlint",
+                "streetsidesoftware.code-spell-checker"
             ]
         }
     }
