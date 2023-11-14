@@ -10,8 +10,9 @@ RUN set -eux \
     && wget -q https://dotnet.microsoft.com/download/dotnet/scripts/v1/dotnet-install.sh \
     && bash dotnet-install.sh --channel 8.0.1xx --quality preview --install-dir ~/.dotnet8.0 \
     && rm -rf /var/lib/apt/lists/* \
-    && sudo apt-get clean
+    && sudo apt-get clean \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Set environment variables
-ENV DOTNET_ROOT=$HOME/.dotnet8.0 \
-    PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
+ENV DOTNET_ROOT=/home/vscode/.dotnet8.0 \
+    PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools:/home/vscode/.cargo/bin

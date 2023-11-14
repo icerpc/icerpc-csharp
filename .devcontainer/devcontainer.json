@@ -4,4 +4,16 @@
     "build": {
         "dockerfile": "Dockerfile"
     }
+
+    // Configure tool-specific properties
+    "customization": {
+        "vscode": {
+            "extensions": [
+                "ms-dotnettools.csdevkit",
+                "rust-lang.rust-analyzer",
+                "streetsidesoftware.code-spell-checker",
+                "davidanson.vscode-markdownlint",
+            ]
+        }
+    }
 }
