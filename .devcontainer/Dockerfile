@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/vscode/devcontainers/dotnet:1-7.0-jammy
 
+USER vscode
 # Install necessary packages
 RUN set -eux \
     && wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
@@ -15,4 +16,4 @@ RUN set -eux \
 
 # Set environment variables
 ENV DOTNET_ROOT=/home/vscode/.dotnet8.0 \
-    PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools:/home/vscode/.cargo/bin
+    PATH=/home/vscode/.dotnet8.0:/home/vscode/.dotnet8.0/tools:/home/vscode/.cargo/bin:$PATH
