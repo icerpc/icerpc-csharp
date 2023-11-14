@@ -11,7 +11,7 @@ RUN set -eux \
     && sudo apt update \
     && sudo apt-get install -y libmsquic \
     && wget -q https://dotnet.microsoft.com/download/dotnet/scripts/v1/dotnet-install.sh \
-    && bash dotnet-install.sh --channel 8.0.1xx --quality preview --install-dir ~/.dotnet8.0 \
+    && bash dotnet-install.sh --channel 8.0 --install-dir ~/.dotnet8.0 \
     && sudo rm -rf /var/lib/apt/lists/* \
     && sudo apt-get clean \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
