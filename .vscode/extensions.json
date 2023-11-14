@@ -1,7 +1,7 @@
 {
     "recommendations": [
-        "EditorConfig.EditorConfig",
         "davidanson.vscode-markdownlint",
+        "editorconfig.editorconfig",
         "ms-dotnettools.csdevkit",
         "rust-lang.rust-analyzer",
         "streetsidesoftware.code-spell-checker",
