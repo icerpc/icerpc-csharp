@@ -1,6 +1,8 @@
 FROM mcr.microsoft.com/vscode/devcontainers/dotnet:1-7.0-jammy
 
 USER vscode
+WORKDIR /home/vscode
+
 # Install necessary packages
 RUN set -eux \
     && wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
