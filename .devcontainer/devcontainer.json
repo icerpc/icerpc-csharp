@@ -1,0 +1,7 @@
+{
+    "name": "C# (.NET)",
+    // Use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+    "build": {
+        "dockerfile": "Dockerfile"
+    }
+}
