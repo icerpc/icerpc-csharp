@@ -1,11 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using IceRpc.Features;
-using IceRpc.Tests.Common;
 using NUnit.Framework;
-using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf.Tests;
@@ -14,7 +10,7 @@ namespace IceRpc.Protobuf.Tests;
 public partial class PipeReaderExtensionsTests
 {
     [Test]
-    public void Read_message_throws_invalid_data_exception_when_max_message_lenght_is_exceeded()
+    public void Read_message_throws_invalid_data_exception_when_max_message_length_is_exceeded()
     {
         // Arrange
         var stringValue = new StringValue();
