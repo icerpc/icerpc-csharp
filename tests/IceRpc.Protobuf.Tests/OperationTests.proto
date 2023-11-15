@@ -8,19 +8,19 @@ import "google/protobuf/empty.proto";
 package IceRpc.Protobuf.Tests;
 
 service MyOperations {
-  rpc unaryOp (InputMessage) returns (OutputMessage);
+  rpc UnaryOp (InputMessage) returns (OutputMessage);
 
-  rpc clientStreamingOp(stream InputMessage) returns (google.protobuf.Empty);
+  rpc ClientStreamingOp(stream InputMessage) returns (google.protobuf.Empty);
 
-  rpc serverStreamingOp(google.protobuf.Empty) returns (stream OutputMessage);
+  rpc ServerStreamingOp(google.protobuf.Empty) returns (stream OutputMessage);
 
-  rpc bidirectionalStreamingOp(stream InputMessage) returns (stream OutputMessage);
+  rpc BidirectionalStreamingOp(stream InputMessage) returns (stream OutputMessage);
 
-  rpc idempotentOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
+  rpc IdempotentOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
     option idempotency_level = IDEMPOTENT;
   }
 
-  rpc noSideEffectsOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
+  rpc NoSideEffectsOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 }
