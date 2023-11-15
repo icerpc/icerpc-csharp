@@ -7,8 +7,9 @@
     // Configure tool-specific properties
     "customizations": {
         "vscode": {
+            /* spell-checker:disable */
             "extensions": [
-                "davidanson.vscode-markdownlint",
+                "davidson.vscode-markdownlint",
                 "editorconfig.editorconfig",
                 "ms-azuretools.vscode-docker",
                 "ms-dotnettools.csdevkit",
@@ -16,6 +17,7 @@
                 "streetsidesoftware.code-spell-checker",
                 "zerocinc.slice"
             ]
+            /* spell-checker:enable */
         }
     }
 }
