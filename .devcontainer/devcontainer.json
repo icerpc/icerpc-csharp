@@ -5,7 +5,7 @@
         "dockerfile": "Dockerfile"
     },
     // Configure tool-specific properties
-    "customization": {
+    "customizations": {
         "vscode": {
             "extensions": [
                 "davidanson.vscode-markdownlint",
