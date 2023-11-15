@@ -1679,12 +1679,6 @@ public sealed class IceRpcProtocolConnectionTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
-    private static string GetErrorMessage(StatusCode statusCode, Exception innerException)
-    {
-        var dispatchException = new DispatchException(statusCode);
-        return $"{dispatchException.Message} The failure was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}";
-    }
-
     private sealed class HoldPipeReader : PipeReader
     {
         private byte[] _initialData;
