@@ -11,6 +11,6 @@
   <ItemGroup>
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <Compile Include="../StringCodec.cs" Link="StringCodec.cs" />
-    <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+    <Compile Include="../../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>
