@@ -5,7 +5,7 @@ option csharp_namespace = "IceRpc.Protobuf.Tests";
 
 import "google/protobuf/empty.proto";
 
-package IceRpc.Protobuf.Tests;
+package icerpc.protobuf.tests;
 
 service MyOperations {
   rpc UnaryOp (InputMessage) returns (OutputMessage);
