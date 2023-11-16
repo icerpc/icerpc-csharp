@@ -13,3 +13,6 @@ RUN set -eux \
     && sudo rm -rf /var/lib/apt/lists/* \
     && sudo apt-get clean \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Set environment variables
+ENV PATH=/home/vscode/.cargo/bin:$PATH
