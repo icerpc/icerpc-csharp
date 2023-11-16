@@ -27,28 +27,12 @@ of the NuGet packages, as described in [BUILDING].
 
 ## Examples
 
-|                                       |                                                                                                                                     |
-|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| [Compress](./Compress/)               | Shows how to use the compress interceptor and middleware.                                                                           |
-| [Deadline](./Deadline/)               | Shows how to use the deadline interceptor to set the invocation deadline.                                                           |
-| [Download](./Download/)               | Shows how to download a file from a server by streaming this file.                                                                  |
-| [GenericHost](./GenericHost/)         | Shows how to create client and server applications using Microsoft's Dependency Injection container.                                |
-| [Greeter](./Greeter/)                 | Shows how to call and implement a canonical Greeter service.                                                                        |
-| [GreeterCore](./GreeterCore/)         | The Greeter example updated to use IceRPC's core API—without Slice definitions or generated code.                                   |
-| [GreeterJson](./GreeterJson/)         | The Greeter example updated to use JSON instead of Slice.                                                                           |
-| [GreeterLog](./GreeterLog/)           | The Greeter example updated to include logging.                                                                                     |
-| [GreeterProtobuf](./GreeterProtobuf/) | The Greeter example updated to use Protobuf instead of Slice.                                                                       |
-| [GreeterQuic](./GreeterQuic/)         | The Greeter example updated to use the QUIC transport.                                                                              |
-| [Interop](./Interop/)                 | Contains examples that shows how IceRPC interoperates with [ZeroC Ice].                                                             |
-| [Metrics](./Metrics/)                 | Shows how to use the metrics interceptor and middleware.                                                                            |
-| [RequestContext](./RequestContext/)   | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server.                     |
-| [Retry](./Retry/)                     | Shows how to use the retry interceptor to retry failed requests.                                                                    |
-| [Secure](./Secure/)                   | Shows how to secure TCP connections with TLS.                                                                                       |
-| [Stream](./Stream/)                   | Shows how to stream data from a client to a server.                                                                                 |
-| [StreamProtobuf](./StreamProtobuf/)   | The Stream example updated to use Protobuf instead of Slice.                                                                        |
-| [Telemetry](./Telemetry/)             | Shows how to use the telemetry interceptor and middleware.                                                                          |
-| [Thermostat](./Thermostat/)           | Shows how to send requests via an intermediary server; includes sending requests the "other way around", from a server to a client. |
-| [Upload](./Upload/)                   | Shows how to upload a file from a client to a server by streaming this file.                                                        |
+|                         |                                                                           |
+|-------------------------|---------------------------------------------------------------------------|
+| [icerpc](./icerpc/)     | Contains examples that show how to use the IceRPC core APIs.              |
+| [interop](./interop/)   | Contains examples that show how IceRPC interoperates with [ZeroC Ice].    |
+| [slice](./slice/)       | Contains examples that show how to use the IceRPC + Slice integration.    |
+| [protobuf](./protobuf/) | Contains examples that show how to use the IceRPC + Protobuf integration. |
 
 [BUILDING]: ../BUILDING.md
 [ZeroC Ice]: https://github.com/zeroc-ice/ice
