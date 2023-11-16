@@ -9,7 +9,7 @@ internal static class StringExtensions
     /// <param name="value">The string to be processed.</param>
     /// <returns>The processed string without consecutive empty lines, and without empty lines that are between an open
     /// and a close brace '{', '}' or between consecutive close '}'.</returns>
-    internal static string RemoveSuperflousEmptyLines(this string value)
+    internal static string RemoveSuperfluousEmptyLines(this string value)
     {
         string[] lines = value.Split('\n');
         var processedLines = new List<string>();
