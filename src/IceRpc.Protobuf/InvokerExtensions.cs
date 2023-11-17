@@ -220,7 +220,7 @@ public static class InvokerExtensions
         return ReceiveStreamingResponseAsync(messageParser, responseTask, request, cancellationToken);
     }
 
-    internal static async Task<T> ReceiveResponseAsync<T>(
+    private static async Task<T> ReceiveResponseAsync<T>(
         MessageParser<T> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
@@ -252,7 +252,7 @@ public static class InvokerExtensions
         }
     }
 
-    internal static async Task<IAsyncEnumerable<T>> ReceiveStreamingResponseAsync<T>(
+    private static async Task<IAsyncEnumerable<T>> ReceiveStreamingResponseAsync<T>(
         MessageParser<T> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
