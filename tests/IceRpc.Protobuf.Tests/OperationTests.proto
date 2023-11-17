@@ -8,29 +8,29 @@ import "google/protobuf/empty.proto";
 package icerpc.protobuf.tests;
 
 service MyOperations {
-  rpc UnaryOp (InputMessage) returns (OutputMessage);
+    rpc UnaryOp (InputMessage) returns (OutputMessage);
 
-  rpc ClientStreamingOp(stream InputMessage) returns (google.protobuf.Empty);
+    rpc ClientStreamingOp(stream InputMessage) returns (google.protobuf.Empty);
 
-  rpc ServerStreamingOp(google.protobuf.Empty) returns (stream OutputMessage);
+    rpc ServerStreamingOp(google.protobuf.Empty) returns (stream OutputMessage);
 
-  rpc BidirectionalStreamingOp(stream InputMessage) returns (stream OutputMessage);
+    rpc BidirectionalStreamingOp(stream InputMessage) returns (stream OutputMessage);
 
-  rpc IdempotentOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
-    option idempotency_level = IDEMPOTENT;
-  }
+    rpc IdempotentOp(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option idempotency_level = IDEMPOTENT;
+    }
 
-  rpc NoSideEffectsOp(google.protobuf.Empty) returns(google.protobuf.Empty) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-  }
+    rpc NoSideEffectsOp(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option idempotency_level = NO_SIDE_EFFECTS;
+    }
 }
 
 message InputMessage {
-  string p1 = 1;
-  int32 p2 = 2;
+    string p1 = 1;
+    int32 p2 = 2;
 }
 
 message OutputMessage {
-  string p1 = 1;
-  int32 p2 = 2;
+    string p1 = 1;
+    int32 p2 = 2;
 }

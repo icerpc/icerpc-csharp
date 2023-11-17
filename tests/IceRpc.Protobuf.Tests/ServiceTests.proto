@@ -14,9 +14,9 @@ service myOtherWidget {}
 
 
 service MyFirstWidget {
-	rpc OpFirst(google.protobuf.Empty) returns(google.protobuf.Empty);
+	rpc OpFirst(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 service MySecondWidget {
-	rpc OpSecond(google.protobuf.Empty) returns(google.protobuf.Empty);
+	rpc OpSecond(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
