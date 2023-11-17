@@ -10,7 +10,7 @@ import "google/protobuf/empty.proto";
 // Represents a number generator.
 service Generator {
     // Generates a stream of numbers
-    rpc GenerateNumbers(google.protobuf.Empty) returns(stream GenerateResponse);
+    rpc GenerateNumbers(google.protobuf.Empty) returns (stream GenerateResponse);
 }
 
 message GenerateResponse {

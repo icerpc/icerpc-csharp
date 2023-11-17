@@ -3,9 +3,20 @@
 syntax = "proto3";
 option csharp_namespace = "IceRpc.Protobuf.Tests";
 
+import "google/protobuf/empty.proto";
+
 package icerpc.protobuf.tests;
 
 service MyWidget {}
 
 // Test with unusual name casing.
 service myOtherWidget {}
+
+
+service MyFirstWidget {
+    rpc OpFirst(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+service MySecondWidget {
+    rpc OpSecond(google.protobuf.Empty) returns (google.protobuf.Empty);
+}

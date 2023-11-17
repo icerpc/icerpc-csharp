@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
+using Google.Protobuf.WellKnownTypes;
+using IceRpc.Features;
+using IceRpc.Tests.Common;
 using NUnit.Framework;
 
 namespace IceRpc.Protobuf.Tests;
@@ -25,4 +28,61 @@ public partial class ServiceTests
     [TestCase(MyOtherWidgetClient.DefaultServicePath, "/icerpc.protobuf.tests.myOtherWidget")]
     public void Get_client_default_service_path(string path, string? expected) =>
         Assert.That(path, Is.EqualTo(expected));
+
+    [Test]
+    public void Class_can_implement_multiple_services()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MultipleServices());
+        var myFirstWidgetClient = new MyFirstWidgetClient(invoker);
+        var mySecondWidgetClient = new MySecondWidgetClient(invoker);
+
+        // Act/Assert
+        Assert.That(async () => await myFirstWidgetClient.OpFirstAsync(new Empty()), Throws.Nothing);
+        Assert.That(async () => await mySecondWidgetClient.OpSecondAsync(new Empty()), Throws.Nothing);
+    }
+
+    [Test]
+    public void Base_class_implements_multiple_services()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MultipleServices2());
+        var myFirstWidgetClient = new MyFirstWidgetClient(invoker);
+        var mySecondWidgetClient = new MySecondWidgetClient(invoker);
+
+        // Act/Assert
+        Assert.That(async () => await myFirstWidgetClient.OpFirstAsync(new Empty()), Throws.Nothing);
+        Assert.That(async () => await mySecondWidgetClient.OpSecondAsync(new Empty()), Throws.Nothing);
+    }
+
+
+    [ProtobufService]
+    internal partial class MultipleServices : IMyFirstWidgetService, IMySecondWidgetService
+    {
+        public ValueTask<Empty> OpFirstAsync(
+            Empty message,
+            IFeatureCollection? features,
+            CancellationToken cancellationToken) => new(message);
+
+        public ValueTask<Empty> OpSecondAsync(
+            Empty message,
+            IFeatureCollection? features,
+            CancellationToken cancellationToken) => new(message);
+    }
+
+    internal class BaseImplementsMultipleServices : IMyFirstWidgetService, IMySecondWidgetService
+    {
+        public ValueTask<Empty> OpFirstAsync(
+            Empty message,
+            IFeatureCollection? features,
+            CancellationToken cancellationToken) => new(message);
+
+        public ValueTask<Empty> OpSecondAsync(
+            Empty message,
+            IFeatureCollection? features,
+            CancellationToken cancellationToken) => new(message);
+    }
+
+    [ProtobufService]
+    internal partial class MultipleServices2 : BaseImplementsMultipleServices { }
 }
