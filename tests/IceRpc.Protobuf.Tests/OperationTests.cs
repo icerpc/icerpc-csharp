@@ -179,7 +179,7 @@ public partial class OperationTests
     {
         // Arrange
         var invoker = new ColocInvoker(new InlineDispatcher(
-            (request, cancelationToken) =>
+            (request, cancellationToken) =>
                 new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired"))));
         var client = new MyOperationsClient(invoker);
 
@@ -201,7 +201,7 @@ public partial class OperationTests
     {
         // Arrange
         var invoker = new ColocInvoker(new InlineDispatcher(
-            (request, cancelationToken) =>
+            (request, cancellationToken) =>
                 new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired"))));
         var client = new MyOperationsClient(invoker);
 
