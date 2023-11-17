@@ -220,7 +220,7 @@ public static class InvokerExtensions
         return ReceiveStreamingResponseAsync(messageParser, responseTask, request, cancellationToken);
     }
 
-    private static async Task<T> ReceiveResponseAsync<T>(
+    internal static async Task<T> ReceiveResponseAsync<T>(
         MessageParser<T> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
@@ -240,7 +240,10 @@ public static class InvokerExtensions
             else
             {
                 // IceRPC guarantees the error message is non-null when StatusCode > Ok.
-                throw new DispatchException(response.StatusCode, response.ErrorMessage!);
+                throw new DispatchException(response.StatusCode, response.ErrorMessage!)
+                {
+                    ConvertToInternalError = true
+                };
             }
         }
         finally
@@ -249,7 +252,7 @@ public static class InvokerExtensions
         }
     }
 
-    private static async Task<IAsyncEnumerable<T>> ReceiveStreamingResponseAsync<T>(
+    internal static async Task<IAsyncEnumerable<T>> ReceiveStreamingResponseAsync<T>(
         MessageParser<T> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
@@ -270,7 +273,10 @@ public static class InvokerExtensions
             else
             {
                 // IceRPC guarantees the error message is non-null when StatusCode > Ok.
-                throw new DispatchException(response.StatusCode, response.ErrorMessage!);
+                throw new DispatchException(response.StatusCode, response.ErrorMessage!)
+                {
+                    ConvertToInternalError = true
+                };
             }
         }
         finally
