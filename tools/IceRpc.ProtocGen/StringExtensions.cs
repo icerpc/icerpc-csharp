@@ -1,48 +1,33 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Text;
+
 namespace IceRpc.ProtocGen;
 
 internal static class StringExtensions
 {
-    /// <summary>Removes consecutive empty lines, and empty lines that are between an open and a close brace '{', '}'
-    /// or between consecutive close '}'.</summary>
+    /// <summary>Removes consecutive empty lines, and empty lines that are before a close brace '}'.</summary>
     /// <param name="value">The string to be processed.</param>
-    /// <returns>The processed string without consecutive empty lines, and without empty lines that are between an open
-    /// and a close brace '{', '}' or between consecutive close '}'.</returns>
+    /// <returns>The processed string without consecutive empty lines, and empty lines that are before a close
+    /// brace '}'.</returns>
     internal static string RemoveSuperfluousEmptyLines(this string value)
     {
-        string[] lines = value.Split('\n');
-        var processedLines = new List<string>();
-        string? previous = null;
+        string[] lines = value.Split(Environment.NewLine, StringSplitOptions.None);
+        var builder = new StringBuilder();
 
         for (int i = 0; i < lines.Length; i++)
         {
             string current = lines[i];
             string? next = (i + 1 < lines.Length) ? lines[i + 1].Trim() : null;
 
-            if (ShouldKeepLine(previous, current, next))
+            if (ShouldKeepLine(current, next))
             {
-                processedLines.Add(current);
-                previous = current.Trim();
+                builder.AppendLine(current);
             }
         }
-        return string.Join("\n", processedLines);
+        return builder.ToString();
 
-        static bool ShouldKeepLine(string? previous, string current, string? next)
-        {
-            if (!string.IsNullOrWhiteSpace(current.Trim()))
-            {
-                return true;
-            }
-            else if (string.IsNullOrWhiteSpace(next))
-            {
-                return false;
-            }
-            else if (next == "}" && (previous == "{" || previous == "}"))
-            {
-                return false;
-            }
-            return true;
-        }
+        static bool ShouldKeepLine(string current, string? next) =>
+            !(string.IsNullOrWhiteSpace(current) && (string.IsNullOrWhiteSpace(next) || next == "}"));
     }
 }
