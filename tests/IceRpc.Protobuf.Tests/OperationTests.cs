@@ -174,6 +174,44 @@ public partial class OperationTests
         Assert.That(fields, Contains.Key(RequestFieldKey.Idempotent));
     }
 
+    [Test]
+    public void Unary_rpc_throws_dispatch_exception()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new InlineDispatcher(
+            (request, cancellationToken) =>
+                new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired"))));
+        var client = new MyOperationsClient(invoker);
+
+        var message = new InputMessage()
+        {
+            P1 = "P1",
+            P2 = 2,
+        };
+
+        // Act//Assert
+        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
+            async () => await client.UnaryOpAsync(message));
+        Assert.That(decodedException.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
+        Assert.That(decodedException.ConvertToInternalError, Is.True);
+    }
+
+    [Test]
+    public void Server_streaming_rpc_throws_dispatch_exception()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new InlineDispatcher(
+            (request, cancellationToken) =>
+                new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired"))));
+        var client = new MyOperationsClient(invoker);
+
+        // Act//Assert
+        DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
+            async () => await client.ServerStreamingOpAsync(new Empty()));
+        Assert.That(decodedException.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
+        Assert.That(decodedException.ConvertToInternalError, Is.True);
+    }
+
     [ProtobufService]
     internal partial class MyOperationsService : IMyOperationsService
     {

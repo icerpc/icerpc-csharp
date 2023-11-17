@@ -240,7 +240,10 @@ public static class InvokerExtensions
             else
             {
                 // IceRPC guarantees the error message is non-null when StatusCode > Ok.
-                throw new DispatchException(response.StatusCode, response.ErrorMessage!);
+                throw new DispatchException(response.StatusCode, response.ErrorMessage!)
+                {
+                    ConvertToInternalError = true
+                };
             }
         }
         finally
@@ -270,7 +273,10 @@ public static class InvokerExtensions
             else
             {
                 // IceRPC guarantees the error message is non-null when StatusCode > Ok.
-                throw new DispatchException(response.StatusCode, response.ErrorMessage!);
+                throw new DispatchException(response.StatusCode, response.ErrorMessage!)
+                {
+                    ConvertToInternalError = true
+                };
             }
         }
         finally
