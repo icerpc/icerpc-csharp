@@ -112,8 +112,23 @@ public class ProtocTask : ToolTask
 
     /// <summary> Process the diagnostics emitted by the protoc compiler and log them with the MSBuild logger.
     /// </summary>
-    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance) =>
-        Log.LogError(singleLine, messageImportance);
+    protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
+    {
+        try
+        {
+            string[] parts = singleLine.Split(new char[] { ':' }, 4);
+            string fileName = parts[0];
+            int lineNumber = int.Parse(parts[1]);
+            int columnNumber = int.Parse(parts[2]);
+            string errorMessage = parts[3];
+
+            Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
+        }
+        catch (Exception)
+        {
+            Log.LogError(singleLine, messageImportance);
+        }
+    }
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
