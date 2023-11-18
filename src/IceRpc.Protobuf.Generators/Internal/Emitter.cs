@@ -19,11 +19,13 @@ internal class Emitter
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
                     dispatchImplementation += @$"
-""{serviceMethod.OperationName}"" =>
-    request.Dispatch{serviceMethod.MethodKind}Async(
-        {serviceMethod.InputTypeName}.Parser,
-        (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName},
-        cancellationToken),".Trim();
+    ""{serviceMethod.OperationName}"" =>
+        request.Dispatch{serviceMethod.MethodKind}Async(
+            {serviceMethod.InputTypeName}.Parser,
+            ({serviceMethod.InterfaceName})this,
+            static (service, input, features, cancellationToken) =>
+                service.{serviceMethod.MethodName}(input, features, cancellationToken),
+            cancellationToken),".Trim();
 
                     dispatchImplementation += "\n\n";
                 }
