@@ -19,53 +19,38 @@ internal class Emitter
             string dispatchImplementation;
             if (serviceClass.ServiceMethods.Count > 0)
             {
-                methodModifier += " async";
-
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    string methodType;
-                    if (serviceMethod.IsClientStreaming && serviceMethod.IsServerStreaming)
+                    string methodType = (serviceMethod.IsClientStreaming, serviceMethod.IsServerStreaming) switch
                     {
-                        methodType = "BidiStreaming";
-                    }
-                    else if (serviceMethod.IsClientStreaming)
-                    {
-                        methodType = "ClientStreaming";
-                    }
-                    else if (serviceMethod.IsServerStreaming)
-                    {
-                        methodType = "ServerStreaming";
-                    }
-                    else
-                    {
-                        methodType = "Unary";
-                    }
+                        (false, false) => "Unary",
+                        (true, false) => "ClientStreaming",
+                        (false, true) => "ServerStreaming",
+                        (true, true) => "BidiStreaming",
+                    };
 
                     dispatchImplementation += @$"
-case ""{serviceMethod.OperationName}"":
-{{
-    return await request.Dispatch{methodType}Async(
+""{serviceMethod.OperationName}"" =>
+    request.Dispatch{methodType}Async(
         {serviceMethod.InputTypeName}.Parser,
         (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName},
-        cancellationToken).ConfigureAwait(false);
-}}".Trim();
+        cancellationToken),".Trim();
+
                     dispatchImplementation += "\n\n";
                 }
                 if (serviceClass.HasBaseServiceClass)
                 {
                     dispatchImplementation += @$"
-default:
-    return await base.DispatchAsync(request, cancellationToken).ConfigureAwait(false);".Trim();
+_ => base.DispatchAsync(request, cancellationToken)".Trim();
                 }
                 else
                 {
                     dispatchImplementation += @$"
-default:
-    return new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented);".Trim();
+_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))".Trim();
                 }
                 dispatchImplementation = @$"
-switch (request.Operation)
+request.Operation switch
 {{
     {dispatchImplementation.WithIndent("    ")}
 }};".Trim();
@@ -73,8 +58,8 @@ switch (request.Operation)
             else
             {
                 dispatchImplementation = serviceClass.HasBaseServiceClass ?
-                    "return base.DispatchAsync(request, cancellationToken);" :
-                    "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+                    "base.DispatchAsync(request, cancellationToken);" :
+                    "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
 
             string dispatcherClass = $@"
@@ -82,10 +67,8 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 {{
     {methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
         IceRpc.IncomingRequest request,
-        global::System.Threading.CancellationToken cancellationToken)
-    {{
+        global::System.Threading.CancellationToken cancellationToken) =>
         {dispatchImplementation.WithIndent("        ")}
-    }}
 }}";
 
             string container = dispatcherClass;

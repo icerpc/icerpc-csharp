@@ -55,7 +55,6 @@ public partial class ServiceTests
         Assert.That(async () => await mySecondWidgetClient.OpSecondAsync(new Empty()), Throws.Nothing);
     }
 
-
     [ProtobufService]
     internal partial class MultipleServices : IMyFirstWidgetService, IMySecondWidgetService
     {
@@ -85,4 +84,14 @@ public partial class ServiceTests
 
     [ProtobufService]
     internal partial class MultipleServices2 : BaseImplementsMultipleServices { }
+
+    // Avoid un-instantiated internal classes
+    // TODO: we should actually test dispatching to these services
+    #pragma warning disable CA1812
+    [ProtobufService]
+    internal partial class TrivialService { }
+
+    [ProtobufService]
+    internal partial class DerivedMultipleServices : MultipleServices { }
+    #pragma warning restore CA1812
 }
