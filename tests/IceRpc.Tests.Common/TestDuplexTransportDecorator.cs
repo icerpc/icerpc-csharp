@@ -228,7 +228,7 @@ public sealed class TestDuplexConnectionDecorator : IDuplexConnection
     public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken) =>
         Operations.CallAsync(
             DuplexTransportOperations.Read,
-            () => _readDecorator == null ?
+            () => _readDecorator is null ?
                 _decoratee.ReadAsync(buffer, cancellationToken) :
                 _readDecorator(_decoratee, buffer, cancellationToken),
             cancellationToken);

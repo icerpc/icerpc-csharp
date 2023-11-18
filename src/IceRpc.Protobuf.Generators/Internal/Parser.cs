@@ -33,7 +33,7 @@ internal sealed class Parser
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_methodAttribute is null || _serviceAttribute is null || _asyncEnumerableSymbol == null)
+        if (_methodAttribute is null || _serviceAttribute is null || _asyncEnumerableSymbol is null)
         {
             // nothing to do if these types aren't available
             return Array.Empty<ServiceClass>();
