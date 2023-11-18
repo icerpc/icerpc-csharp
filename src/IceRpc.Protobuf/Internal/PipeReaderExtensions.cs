@@ -30,7 +30,7 @@ internal static class PipeReaderExtensions
             maxMessageLength,
             cancellationToken).ConfigureAwait(false);
 
-        Debug.Assert(message != null);
+        Debug.Assert(message is not null);
         return message;
     }
 
@@ -70,7 +70,7 @@ internal static class PipeReaderExtensions
                     yield break;
                 }
 
-                if (message == null)
+                if (message is null)
                 {
                     yield break;
                 }
