@@ -39,6 +39,7 @@ internal class Emitter
 
                     dispatchImplementation += "\n\n";
                 }
+
                 if (serviceClass.HasBaseServiceClass)
                 {
                     dispatchImplementation += @$"
@@ -49,6 +50,7 @@ _ => base.DispatchAsync(request, cancellationToken)".Trim();
                     dispatchImplementation += @$"
 _ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))".Trim();
                 }
+
                 dispatchImplementation = @$"
 request.Operation switch
 {{
