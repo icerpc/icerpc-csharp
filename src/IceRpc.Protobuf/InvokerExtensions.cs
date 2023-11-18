@@ -23,8 +23,8 @@ public static class InvokerExtensions
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="inputMessage">The input message to encode in the request payload.</param>
-    /// <param name="encodeOptions">The options to customize the encoding of the request payload.</param>
     /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
+    /// <param name="encodeOptions">The options to customize the encoding of the request payload.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -34,8 +34,8 @@ public static class InvokerExtensions
         ServiceAddress serviceAddress,
         string operation,
         IMessage inputMessage,
-        ProtobufEncodeOptions? encodeOptions,
         MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
         CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
@@ -66,15 +66,15 @@ public static class InvokerExtensions
     }
 
     /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf client-streaming
-    /// RPCs. </summary>
+    /// RPCs.</summary>
     /// <typeparam name="TInput">The type of the input message.</typeparam>
     /// <typeparam name="TOutput">The type of the output message.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="stream">The stream of input message to encode in the request payload continuation.</param>
-    /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>
     /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
+    /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -84,8 +84,8 @@ public static class InvokerExtensions
         ServiceAddress serviceAddress,
         string operation,
         IAsyncEnumerable<TInput> stream,
-        ProtobufEncodeOptions? encodeOptions,
         MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
         CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
@@ -122,8 +122,8 @@ public static class InvokerExtensions
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="inputMessage">The input message to encode in the request payload.</param>
-    /// <param name="encodeOptions">The options to customize the encoding of the request payload.</param>
     /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
+    /// <param name="encodeOptions">The options to customize the encoding of the request payload.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -133,8 +133,8 @@ public static class InvokerExtensions
         ServiceAddress serviceAddress,
         string operation,
         IMessage inputMessage,
-        ProtobufEncodeOptions? encodeOptions,
         MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
         CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
@@ -172,8 +172,8 @@ public static class InvokerExtensions
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="stream">The stream of input message to encode in the request payload continuation.</param>
-    /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>
     /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
+    /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>///
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -183,13 +183,13 @@ public static class InvokerExtensions
         ServiceAddress serviceAddress,
         string operation,
         IAsyncEnumerable<TInput> stream,
-        ProtobufEncodeOptions? encodeOptions,
         MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default)
-        where TOutput : IMessage<TOutput>
-        where TInput : IMessage<TInput>
+        CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
+                                                       where TOutput : IMessage<TOutput>
+
     {
         var request = new OutgoingRequest(serviceAddress)
         {

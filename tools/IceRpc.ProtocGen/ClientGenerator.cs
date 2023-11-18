@@ -65,13 +65,12 @@ public partial interface I{service.Name.ToPascalCase()}
         {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection? features = null,
         global::System.Threading.CancellationToken cancellationToken = default) =>
-        InvokerExtensions.{invokeAsyncMethod}(
-            Invoker,
+        Invoker.{invokeAsyncMethod}(
             ServiceAddress,
             ""{method.Name}"",
             {inputParam},
-            EncodeOptions,
             {returnTypeParser},
+            EncodeOptions,
             features,
             idempotent: {idempotent.ToString().ToLowerInvariant()},
             cancellationToken: cancellationToken);";
