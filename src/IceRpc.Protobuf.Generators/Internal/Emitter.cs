@@ -12,10 +12,6 @@ internal class Emitter
             // stop if we're asked to.
             cancellationToken.ThrowIfCancellationRequested();
 
-            string methodModifier =
-                serviceClass.HasBaseServiceClass ? "public override" :
-                serviceClass.IsSealed ? "public" : "public virtual";
-
             string dispatchImplementation;
             if (serviceClass.ServiceMethods.Count > 0)
             {
@@ -55,6 +51,10 @@ request.Operation switch
                     "base.DispatchAsync(request, cancellationToken);" :
                     "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
+
+            string methodModifier =
+                serviceClass.HasBaseServiceClass ? "public override" :
+                serviceClass.IsSealed ? "public" : "public virtual";
 
             string dispatcherClass = $@"
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher

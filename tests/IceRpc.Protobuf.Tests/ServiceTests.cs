@@ -55,6 +55,33 @@ public partial class ServiceTests
         Assert.That(async () => await mySecondWidgetClient.OpSecondAsync(new Empty()), Throws.Nothing);
     }
 
+    [Test]
+    public void Derived_class_does_not_implement_more_rpc_methods()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new DerivedMultipleServices());
+        var myFirstWidgetClient = new MyFirstWidgetClient(invoker);
+        var mySecondWidgetClient = new MySecondWidgetClient(invoker);
+
+        // Act/Assert
+        Assert.That(async () => await myFirstWidgetClient.OpFirstAsync(new Empty()), Throws.Nothing);
+        Assert.That(async () => await mySecondWidgetClient.OpSecondAsync(new Empty()), Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Proto_less_service_returns_not_implemented()
+    {
+        // Arrange
+        var service = new ProtoLessService();
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance);
+
+        // Act
+        OutgoingResponse response = await service.DispatchAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(StatusCode.NotImplemented));
+    }
+
     [ProtobufService]
     internal partial class MultipleServices : IMyFirstWidgetService, IMySecondWidgetService
     {
@@ -85,13 +112,9 @@ public partial class ServiceTests
     [ProtobufService]
     internal partial class MultipleServices2 : BaseImplementsMultipleServices { }
 
-    // Avoid un-instantiated internal classes
-    // TODO: we should actually test dispatching to these services
-    #pragma warning disable CA1812
     [ProtobufService]
-    internal partial class TrivialService { }
+    internal partial class ProtoLessService { }
 
     [ProtobufService]
     internal partial class DerivedMultipleServices : MultipleServices { }
-    #pragma warning restore CA1812
 }
