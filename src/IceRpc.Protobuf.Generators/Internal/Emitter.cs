@@ -24,40 +24,31 @@ internal class Emitter
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    string inputParamDecodeCode = serviceMethod.IsClientStreaming ?
-                        @$"
-    var payload = request.DetachPayload();
-    var inputParam = payload.ToAsyncEnumerable(
-        {serviceMethod.InputTypeName}.Parser,
-        protobufFeature.MaxMessageLength,
-        cancellationToken)".Trim() :
-                        @$"
-    var inputParam = await request.Payload.DecodeProtobufMessageAsync(
-        {serviceMethod.InputTypeName}.Parser,
-        protobufFeature.MaxMessageLength,
-        cancellationToken).ConfigureAwait(false)".Trim();
-
-                    string outputParamEncode = serviceMethod.IsServerStreaming ?
-                        $@"
-        PayloadContinuation = outputParam.ToPipeReader(
-            protobufFeature.EncodeOptions)".Trim() :
-                        $@"
-        Payload = outputParam.EncodeAsLengthPrefixedMessage(
-            protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)";
+                    string methodType;
+                    if (serviceMethod.IsClientStreaming && serviceMethod.IsServerStreaming)
+                    {
+                        methodType = "BidiStreaming";
+                    }
+                    else if (serviceMethod.IsClientStreaming)
+                    {
+                        methodType = "ClientStreaming";
+                    }
+                    else if (serviceMethod.IsServerStreaming)
+                    {
+                        methodType = "ServerStreaming";
+                    }
+                    else
+                    {
+                        methodType = "Unary";
+                    }
 
                     dispatchImplementation += @$"
 case ""{serviceMethod.OperationName}"":
 {{
-    var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-    {inputParamDecodeCode};
-    var outputParam = await (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName}(
-        inputParam,
-        request.Features,
+    return await request.Dispatch{methodType}Async(
+        {serviceMethod.InputTypeName}.Parser,
+        (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName},
         cancellationToken).ConfigureAwait(false);
-    return new IceRpc.OutgoingResponse(request)
-    {{
-        {outputParamEncode.Trim()}
-    }};
 }}".Trim();
                     dispatchImplementation += "\n\n";
                 }
