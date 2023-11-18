@@ -12,11 +12,8 @@ internal readonly record struct ServiceMethod
     // "global::VisitorCenter.IGreeterService".
     internal string InterfaceName { get; }
 
-    // Indicates if the client streams multiple requests.
-    internal bool IsClientStreaming { get; }
-
-    // Indicates if the server streams multiple responses.
-    internal bool IsServerStreaming { get; }
+    // The kind of the RPC method: "Unary", "ClientStreaming", "ServerStreaming", or "BidiStreaming".
+    internal string MethodKind { get; }
 
     // The name of the mapped C# method on the Service interface. For example: "GreetAsync".
     internal string MethodName { get; }
@@ -29,15 +26,13 @@ internal readonly record struct ServiceMethod
         string operationName,
         string interfaceName,
         string methodName,
-        string inputTypeName,
-        bool isClientStreaming,
-        bool isServerStreaming)
+        string methodKind,
+        string inputTypeName)
     {
         OperationName = operationName;
         InterfaceName = interfaceName;
         MethodName = methodName;
+        MethodKind = methodKind;
         InputTypeName = inputTypeName;
-        IsClientStreaming = isClientStreaming;
-        IsServerStreaming = isServerStreaming;
     }
 }

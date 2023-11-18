@@ -22,17 +22,9 @@ internal class Emitter
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    string methodType = (serviceMethod.IsClientStreaming, serviceMethod.IsServerStreaming) switch
-                    {
-                        (false, false) => "Unary",
-                        (true, false) => "ClientStreaming",
-                        (false, true) => "ServerStreaming",
-                        (true, true) => "BidiStreaming",
-                    };
-
                     dispatchImplementation += @$"
 ""{serviceMethod.OperationName}"" =>
-    request.Dispatch{methodType}Async(
+    request.Dispatch{serviceMethod.MethodKind}Async(
         {serviceMethod.InputTypeName}.Parser,
         (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName},
         cancellationToken),".Trim();

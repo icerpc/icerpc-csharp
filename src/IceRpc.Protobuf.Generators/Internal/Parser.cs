@@ -215,14 +215,22 @@ internal sealed class Parser
             bool isServerStreaming = SymbolEqualityComparer.Default.Equals(
                 genericReturnType.TypeArguments[0].OriginalDefinition,
                 _asyncEnumerableSymbol);
+
+            string methodKind = (isClientStreaming, isServerStreaming) switch
+            {
+                (false, false) => "Unary",
+                (true, false) => "ClientStreaming",
+                (false, true) => "ServerStreaming",
+                (true, true) => "BidiStreaming",
+            };
+
             serviceMethods.Add(
                 new ServiceMethod(
                     operationName,
                     interfaceName: $"global::{GetFullName(interfaceSymbol)}",
                     methodName: method.Name,
-                    inputTypeName: $"global::{inputTypeName}",
-                    isClientStreaming,
-                    isServerStreaming));
+                    methodKind,
+                    inputTypeName: $"global::{inputTypeName}"));
         }
         return serviceMethods;
     }
