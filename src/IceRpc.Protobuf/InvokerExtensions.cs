@@ -166,8 +166,8 @@ public static class InvokerExtensions
 
     /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf bidi-streaming
     /// RPCs.</summary>
-    /// <typeparam name="TInput">The input type.</typeparam>
-    /// <typeparam name="TOutput">The response type.</typeparam>
+    /// <typeparam name="TInput">The type of the input message.</typeparam>
+    /// <typeparam name="TOutput">The type of the output message.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
