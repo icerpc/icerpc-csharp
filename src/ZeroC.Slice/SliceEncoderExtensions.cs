@@ -102,15 +102,12 @@ public static class SliceEncoderExtensions
     }
 
     /// <summary>Encodes a sequence.</summary>
-    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class and
-    /// proxy types.</typeparam>
+    /// <typeparam name="T">The type of the sequence elements. It is non-nullable except for nullable class and nullable
+    /// custom types with Slice1.</typeparam>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="v">The sequence to encode.</param>
     /// <param name="encodeAction">The encode action for an element.</param>
-    public static void EncodeSequence<T>(
-        this ref SliceEncoder encoder,
-        IEnumerable<T> v,
-        EncodeAction<T> encodeAction)
+    public static void EncodeSequence<T>(this ref SliceEncoder encoder, IEnumerable<T> v, EncodeAction<T> encodeAction)
     {
         encoder.EncodeSize(v.Count()); // potentially slow Linq Count()
         foreach (T item in v)
