@@ -2,6 +2,7 @@
 
 using Google.Protobuf;
 using IceRpc.Features;
+using IceRpc.Protobuf.Internal;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 

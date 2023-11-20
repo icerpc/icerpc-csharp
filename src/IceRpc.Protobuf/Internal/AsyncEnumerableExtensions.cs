@@ -6,11 +6,11 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
-namespace IceRpc.Protobuf;
+namespace IceRpc.Protobuf.Internal;
 
 /// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a <see
 /// cref="PipeReader"/>.</summary>
-public static class AsyncEnumerableExtensions
+internal static class AsyncEnumerableExtensions
 {
     /// <summary>Encodes an async enumerable into a stream of bytes represented by a <see cref="PipeReader"/>.</summary>
     /// <typeparam name="T">The async enumerable element type.</typeparam>
@@ -18,7 +18,7 @@ public static class AsyncEnumerableExtensions
     /// <param name="encodeOptions">The Protobuf encode options.</param>
     /// <returns>A pipe reader that represents the encoded stream of bytes.</returns>
     /// <remarks>This extension method is used to encode streaming parameters and streaming return values.</remarks>
-    public static PipeReader ToPipeReader<T>(
+    internal static PipeReader ToPipeReader<T>(
         this IAsyncEnumerable<T> asyncEnumerable,
         ProtobufEncodeOptions? encodeOptions = null) where T : IMessage<T> =>
         new AsyncEnumerablePipeReader<T>(asyncEnumerable, encodeOptions);

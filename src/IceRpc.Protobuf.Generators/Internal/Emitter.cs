@@ -12,69 +12,37 @@ internal class Emitter
             // stop if we're asked to.
             cancellationToken.ThrowIfCancellationRequested();
 
-            string methodModifier =
-                serviceClass.HasBaseServiceClass ? "public override" :
-                serviceClass.IsSealed ? "public" : "public virtual";
-
             string dispatchImplementation;
             if (serviceClass.ServiceMethods.Count > 0)
             {
-                methodModifier += " async";
-
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    string inputParamDecodeCode = serviceMethod.IsClientStreaming ?
-                        @$"
-    var payload = request.DetachPayload();
-    var inputParam = payload.ToAsyncEnumerable(
-        {serviceMethod.InputTypeName}.Parser,
-        protobufFeature.MaxMessageLength,
-        cancellationToken)".Trim() :
-                        @$"
-    var inputParam = await request.Payload.DecodeProtobufMessageAsync(
-        {serviceMethod.InputTypeName}.Parser,
-        protobufFeature.MaxMessageLength,
-        cancellationToken).ConfigureAwait(false)".Trim();
-
-                    string outputParamEncode = serviceMethod.IsServerStreaming ?
-                        $@"
-        PayloadContinuation = outputParam.ToPipeReader(
-            protobufFeature.EncodeOptions)".Trim() :
-                        $@"
-        Payload = outputParam.EncodeAsLengthPrefixedMessage(
-            protobufFeature.EncodeOptions?.PipeOptions ?? ProtobufEncodeOptions.Default.PipeOptions)";
-
                     dispatchImplementation += @$"
-case ""{serviceMethod.OperationName}"":
-{{
-    var protobufFeature = request.Features.Get<IProtobufFeature>() ?? ProtobufFeature.Default;
-    {inputParamDecodeCode};
-    var outputParam = await (({serviceMethod.InterfaceName})this).{serviceMethod.MethodName}(
-        inputParam,
-        request.Features,
-        cancellationToken).ConfigureAwait(false);
-    return new IceRpc.OutgoingResponse(request)
-    {{
-        {outputParamEncode.Trim()}
-    }};
-}}".Trim();
+    ""{serviceMethod.OperationName}"" =>
+        request.Dispatch{serviceMethod.MethodKind}Async(
+            {serviceMethod.InputTypeName}.Parser,
+            ({serviceMethod.InterfaceName})this,
+            static (service, input, features, cancellationToken) =>
+                service.{serviceMethod.MethodName}(input, features, cancellationToken),
+            cancellationToken),".Trim();
+
                     dispatchImplementation += "\n\n";
                 }
+
                 if (serviceClass.HasBaseServiceClass)
                 {
                     dispatchImplementation += @$"
-default:
-    return await base.DispatchAsync(request, cancellationToken).ConfigureAwait(false);".Trim();
+_ => base.DispatchAsync(request, cancellationToken)".Trim();
                 }
                 else
                 {
                     dispatchImplementation += @$"
-default:
-    return new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented);".Trim();
+_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))".Trim();
                 }
+
                 dispatchImplementation = @$"
-switch (request.Operation)
+request.Operation switch
 {{
     {dispatchImplementation.WithIndent("    ")}
 }};".Trim();
@@ -82,19 +50,21 @@ switch (request.Operation)
             else
             {
                 dispatchImplementation = serviceClass.HasBaseServiceClass ?
-                    "return base.DispatchAsync(request, cancellationToken);" :
-                    "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+                    "base.DispatchAsync(request, cancellationToken);" :
+                    "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
+
+            string methodModifier =
+                serviceClass.HasBaseServiceClass ? "public override" :
+                serviceClass.IsSealed ? "public" : "public virtual";
 
             string dispatcherClass = $@"
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 {{
     {methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
         IceRpc.IncomingRequest request,
-        global::System.Threading.CancellationToken cancellationToken)
-    {{
+        global::System.Threading.CancellationToken cancellationToken) =>
         {dispatchImplementation.WithIndent("        ")}
-    }}
 }}";
 
             string container = dispatcherClass;

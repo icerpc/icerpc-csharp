@@ -7,10 +7,10 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 
-namespace IceRpc.Protobuf;
+namespace IceRpc.Protobuf.Internal;
 
 /// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
-public static class PipeReaderExtensions
+internal static class PipeReaderExtensions
 {
     /// <summary>Decodes a Protobuf length prefixed message from a <see cref="PipeReader" />.</summary>
     /// <param name="reader">The <see cref="PipeReader" /> containing the Protobuf length prefixed message.</param>
@@ -18,7 +18,7 @@ public static class PipeReaderExtensions
     /// <param name="maxMessageLength">The maximum allowed length.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The decoded message object.</returns>
-    public static async ValueTask<T> DecodeProtobufMessageAsync<T>(
+    internal static async ValueTask<T> DecodeProtobufMessageAsync<T>(
         this PipeReader reader,
         MessageParser<T> parser,
         int maxMessageLength,
@@ -40,7 +40,7 @@ public static class PipeReaderExtensions
     /// <param name="maxMessageLength">The maximum allowed length.</param>
     /// <param name="cancellationToken">The cancellation token which is provided to <see
     /// cref="IAsyncEnumerable{T}.GetAsyncEnumerator(CancellationToken)" />.</param>
-    public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+    internal static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this PipeReader reader,
         MessageParser<T> messageParser,
         int maxMessageLength,
