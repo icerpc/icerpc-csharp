@@ -5,7 +5,7 @@ layout: landing
 # C# API Reference
 
 | Namespace                               | Description                                                                                                                                        |
-|-----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [IceRpc]                                | The core of the IceRPC framework and various extensions for this core.                                                                             |
 | [IceRpc.Compressor]                     | Provides the compressor interceptor and middleware, for compressing and decompressing the payloads of requests and responses.                      |
 | [IceRpc.Deadline]                       | Provides the deadline interceptor and middleware.                                                                                                  |
@@ -14,6 +14,8 @@ layout: landing
 | [IceRpc.Locator]                        | Provides the locator interceptor. This interceptor enables interop with Ice servers registered with a locator such as IceGrid.                     |
 | [IceRpc.Logger]                         | Provides the logger interceptor and middleware, for logging requests and responses to an ILogger.                                                  |
 | [IceRpc.Metrics]                        | Provides the metrics interceptor and middleware.                                                                                                   |
+| [IceRpc.Protobuf]                       | Provides support for the IceRPC + Protobuf integration.                                                                                            |
+| [IceRpc.Protobuf.Generators]            | Provides the Protobuf code generators for the IceRPC + Protobuf integration.                                                                       |
 | [IceRpc.RequestContext]                 | Provides the request context interceptor and middleware.                                                                                           |
 | [IceRpc.Retry]                          | Provides the retry interceptor.                                                                                                                    |
 | [IceRpc.Slice]                          | Provides support for the IceRPC + Slice integration. The Slice compiler for C# generates code for Slice interfaces that relies on these APIs.      |
@@ -34,6 +36,8 @@ layout: landing
 [IceRpc.Locator]: api/IceRpc.Locator.yml
 [IceRpc.Logger]: api/IceRpc.Logger.yml
 [IceRpc.Metrics]: api/IceRpc.Metrics.yml
+[IceRpc.Protobuf]: api/IceRpc.Protobuf.yml
+[IceRpc.Protobuf.Generators]: api/IceRpc.Protobuf.Generators.yml
 [IceRpc.RequestContext]: api/IceRpc.RequestContext.yml
 [IceRpc.Retry]: api/IceRpc.Retry.yml
 [IceRpc.Slice]: api/IceRpc.Slice.yml
