@@ -15,7 +15,6 @@ layout: landing
 | [IceRpc.Logger]                         | Provides the logger interceptor and middleware, for logging requests and responses to an ILogger.                                                  |
 | [IceRpc.Metrics]                        | Provides the metrics interceptor and middleware.                                                                                                   |
 | [IceRpc.Protobuf]                       | Provides support for the IceRPC + Protobuf integration.                                                                                            |
-| [IceRpc.Protobuf.Generators]            | Provides the Protobuf code generators for the IceRPC + Protobuf integration.                                                                       |
 | [IceRpc.RequestContext]                 | Provides the request context interceptor and middleware.                                                                                           |
 | [IceRpc.Retry]                          | Provides the retry interceptor.                                                                                                                    |
 | [IceRpc.Slice]                          | Provides support for the IceRPC + Slice integration. The Slice compiler for C# generates code for Slice interfaces that relies on these APIs.      |
@@ -37,7 +36,6 @@ layout: landing
 [IceRpc.Logger]: api/IceRpc.Logger.yml
 [IceRpc.Metrics]: api/IceRpc.Metrics.yml
 [IceRpc.Protobuf]: api/IceRpc.Protobuf.yml
-[IceRpc.Protobuf.Generators]: api/IceRpc.Protobuf.Generators.yml
 [IceRpc.RequestContext]: api/IceRpc.RequestContext.yml
 [IceRpc.Retry]: api/IceRpc.Retry.yml
 [IceRpc.Slice]: api/IceRpc.Slice.yml
