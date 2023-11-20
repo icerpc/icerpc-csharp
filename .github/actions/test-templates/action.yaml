@@ -7,15 +7,27 @@ runs:
     run: |
       dotnet new install src/IceRpc.Templates/bin/Debug/IceRpc.Templates.*.nupkg
     shell: bash
+  - name: 🧪 Test IceRpc + Protobuf Client Template
+    run: mkdir -p templates-test/protobuf-client && cd templates-test/protobuf-client && dotnet new icerpc-protobuf-client && dotnet build
+    shell: bash
+  - name: 🧪 Test IceRpc + Protobuf Server Template
+    run: mkdir -p templates-test/protobuf-server && cd templates-test/protobuf-server && dotnet new icerpc-protobuf-server && dotnet build
+    shell: bash
+  - name: 🧪 Test IceRpc + Protobuf DI Client Template
+    run: mkdir -p templates-test/protobuf-di-client && cd templates-test/protobuf-di-client && dotnet new icerpc-protobuf-di-client && dotnet build
+    shell: bash
+  - name: 🧪 Test IceRpc + Protobuf DI Server Template
+    run: mkdir -p templates-test/protobuf-di-server && cd templates-test/protobuf-di-server && dotnet new icerpc-slice-di-server && dotnet build
+    shell: bash
   - name: 🧪 Test IceRpc + Slice Client Template
-    run: mkdir -p templates-test/client && cd templates-test/client && dotnet new icerpc-slice-client && dotnet build
+    run: mkdir -p templates-test/slice-client && cd templates-test/slice-client && dotnet new icerpc-slice-client && dotnet build
     shell: bash
   - name: 🧪 Test IceRpc + Slice Server Template
-    run: mkdir -p templates-test/server && cd templates-test/server && dotnet new icerpc-slice-server && dotnet build
+    run: mkdir -p templates-test/slice-server && cd templates-test/slice-server && dotnet new icerpc-slice-server && dotnet build
     shell: bash
   - name: 🧪 Test IceRpc + Slice DI Client Template
-    run: mkdir -p templates-test/di-client && cd templates-test/di-client && dotnet new icerpc-slice-di-client && dotnet build
+    run: mkdir -p templates-test/slice-di-client && cd templates-test/slice-di-client && dotnet new icerpc-slice-di-client && dotnet build
     shell: bash
   - name: 🧪 Test IceRpc + Slice DI Server Template
-    run: mkdir -p templates-test/di-server && cd templates-test/di-server && dotnet new icerpc-slice-di-server && dotnet build
+    run: mkdir -p templates-test/slice-di-server && cd templates-test/slice-di-server && dotnet new icerpc-slice-di-server && dotnet build
     shell: bash
