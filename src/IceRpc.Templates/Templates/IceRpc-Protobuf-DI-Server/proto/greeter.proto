@@ -1,0 +1,22 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package visitor_center;
+option csharp_namespace = "IceRpc_Protobuf_DI_Server";
+
+// The protobuf equivalent of Slice interface Greeter in the Greeter example.
+service Greeter {
+    // Creates a personalized greeting.
+    rpc Greet (GreetRequest) returns (GreetResponse);
+}
+
+// The request contains the name of the person to greet.
+message GreetRequest {
+    string name = 1;
+}
+
+// The response contains the greeting.
+message GreetResponse {
+    string greeting = 1;
+}
