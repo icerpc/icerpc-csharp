@@ -10,6 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="IceRpc" Version="$(Version)" />
-    <Compile Include="../StringCodec.cs" Link="StringCodec.cs" />
+    <Compile Include="../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+    <Compile Include="../GreetRequest.cs" />
+    <Compile Include="../GreetResponse.cs" />
+    <Compile Include="../Common/PipeReaderJsonSerializer.cs" Link="PipeReaderJsonSerializer.cs" />
   </ItemGroup>
 </Project>
