@@ -18,28 +18,27 @@ public static class InvokerExtensions
 
     /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf unary RPCs.
     /// </summary>
-    /// <typeparam name="T">The response type.</typeparam>
+    /// <typeparam name="TOutput">The type of the output message.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="inputMessage">The input message to encode in the request payload.</param>
+    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
     /// <param name="encodeOptions">The options to customize the encoding of the request payload.</param>
-    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.
-    /// </param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<T> InvokeUnaryAsync<T>(
+    public static Task<TOutput> InvokeUnaryAsync<TOutput>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
         IMessage inputMessage,
-        ProtobufEncodeOptions? encodeOptions,
-        MessageParser<T> messageParser,
+        MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where T : IMessage<T>
+        CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -67,32 +66,30 @@ public static class InvokerExtensions
     }
 
     /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf client-streaming
-    /// RPCs. </summary>
-    /// <typeparam name="TOutputParam">The response type.</typeparam>
-    /// <typeparam name="TInputParam">The input type.</typeparam>
+    /// RPCs.</summary>
+    /// <typeparam name="TInput">The type of the input message.</typeparam>
+    /// <typeparam name="TOutput">The type of the output message.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="stream">The stream of input message to encode in the request payload continuation.</param>
+    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
     /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>
-    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.
-    /// </param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<TOutputParam> InvokeClientStreamingAsync<TOutputParam, TInputParam>(
+    public static Task<TOutput> InvokeClientStreamingAsync<TInput, TOutput>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
-        IAsyncEnumerable<TInputParam> stream,
-        ProtobufEncodeOptions? encodeOptions,
-        MessageParser<TOutputParam> messageParser,
+        IAsyncEnumerable<TInput> stream,
+        MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default)
-        where TOutputParam : IMessage<TOutputParam>
-        where TInputParam : IMessage<TInputParam>
+        CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
+                                                       where TOutput : IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -120,28 +117,27 @@ public static class InvokerExtensions
 
     /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf server-streaming
     /// RPCs.</summary>
-    /// <typeparam name="T">The response type.</typeparam>
+    /// <typeparam name="TOutput">The type of the output message.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="inputMessage">The input message to encode in the request payload.</param>
+    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
     /// <param name="encodeOptions">The options to customize the encoding of the request payload.</param>
-    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.
-    /// </param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<IAsyncEnumerable<T>> InvokeServerStreamingAsync<T>(
+    public static Task<IAsyncEnumerable<TOutput>> InvokeServerStreamingAsync<TOutput>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
         IMessage inputMessage,
-        ProtobufEncodeOptions? encodeOptions,
-        MessageParser<T> messageParser,
+        MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where T : IMessage<T>
+        CancellationToken cancellationToken = default) where TOutput : IMessage<TOutput>
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -170,31 +166,30 @@ public static class InvokerExtensions
 
     /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf bidi-streaming
     /// RPCs.</summary>
-    /// <typeparam name="TOutputParam">The response type.</typeparam>
-    /// <typeparam name="TInputParam">The input type.</typeparam>
+    /// <typeparam name="TInput">The type of the input message.</typeparam>
+    /// <typeparam name="TOutput">The type of the output message.</typeparam>
     /// <param name="invoker">The invoker used to send the request.</param>
     /// <param name="serviceAddress">The address of the target service.</param>
     /// <param name="operation">The name of the operation, as specified in Protobuf.</param>
     /// <param name="stream">The stream of input message to encode in the request payload continuation.</param>
-    /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>
-    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.
-    /// </param>
+    /// <param name="messageParser">The <see cref="MessageParser{T}"/> used to decode the response payload.</param>
+    /// <param name="encodeOptions">The options to customize the encoding of the request payload continuation.</param>///
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    public static Task<IAsyncEnumerable<TOutputParam>> InvokeBidiStreamingAsync<TOutputParam, TInputParam>(
+    public static Task<IAsyncEnumerable<TOutput>> InvokeBidiStreamingAsync<TInput, TOutput>(
         this IInvoker invoker,
         ServiceAddress serviceAddress,
         string operation,
-        IAsyncEnumerable<TInputParam> stream,
-        ProtobufEncodeOptions? encodeOptions,
-        MessageParser<TOutputParam> messageParser,
+        IAsyncEnumerable<TInput> stream,
+        MessageParser<TOutput> messageParser,
+        ProtobufEncodeOptions? encodeOptions = null,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default)
-        where TOutputParam : IMessage<TOutputParam>
-        where TInputParam : IMessage<TInputParam>
+        CancellationToken cancellationToken = default) where TInput : IMessage<TInput>
+                                                       where TOutput : IMessage<TOutput>
+
     {
         var request = new OutgoingRequest(serviceAddress)
         {
@@ -220,11 +215,11 @@ public static class InvokerExtensions
         return ReceiveStreamingResponseAsync(messageParser, responseTask, request, cancellationToken);
     }
 
-    private static async Task<T> ReceiveResponseAsync<T>(
-        MessageParser<T> messageParser,
+    private static async Task<TOutput> ReceiveResponseAsync<TOutput>(
+        MessageParser<TOutput> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
-        CancellationToken cancellationToken) where T : IMessage<T>
+        CancellationToken cancellationToken) where TOutput : IMessage<TOutput>
     {
         try
         {
@@ -252,11 +247,11 @@ public static class InvokerExtensions
         }
     }
 
-    private static async Task<IAsyncEnumerable<T>> ReceiveStreamingResponseAsync<T>(
-        MessageParser<T> messageParser,
+    private static async Task<IAsyncEnumerable<TOutput>> ReceiveStreamingResponseAsync<TOutput>(
+        MessageParser<TOutput> messageParser,
         Task<IncomingResponse> responseTask,
         OutgoingRequest request,
-        CancellationToken cancellationToken) where T : IMessage<T>
+        CancellationToken cancellationToken) where TOutput : IMessage<TOutput>
     {
         try
         {
