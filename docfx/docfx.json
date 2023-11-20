@@ -4,7 +4,7 @@
       "src": [
         {
           "files": ["src/*/*.csproj"],
-          "exclude": ["src/IceRpc.Templates/**"],
+          "exclude": ["src/IceRpc.Templates/**", "src/IceRpc.Slice.Generators/**", "src/IceRpc.Protobuf.Generators/**"],
           "src": "../"
         }
       ],
