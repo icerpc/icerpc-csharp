@@ -4,6 +4,8 @@ using Google.Protobuf.WellKnownTypes;
 using IceRpc.Features;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
+using System.IO.Pipelines;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace IceRpc.Protobuf.Tests;
 
@@ -70,17 +72,13 @@ public partial class OperationTests
         IAsyncEnumerable<OutputMessage> stream = await client.ServerStreamingOpAsync(new Empty());
 
         // Assert
-        Assert.That(async () => await ReadDataAsync(stream), Has.Count.EqualTo(10));
-
-        static async Task<IList<OutputMessage>> ReadDataAsync(IAsyncEnumerable<OutputMessage> stream)
+        var result = new List<OutputMessage>();
+        await foreach (OutputMessage empty in stream)
         {
-            var result = new List<OutputMessage>();
-            await foreach(OutputMessage empty in stream)
-            {
-                result.Add(empty);
-            }
-            return result;
+            result.Add(empty);
         }
+
+        Assert.That(result, Has.Count.EqualTo(10));
     }
 
     [Test]
@@ -210,6 +208,331 @@ public partial class OperationTests
             async () => await client.ServerStreamingOpAsync(new Empty()));
         Assert.That(decodedException.StatusCode, Is.EqualTo(StatusCode.DeadlineExceeded));
         Assert.That(decodedException.ConvertToInternalError, Is.True);
+    }
+
+    [Test]
+    public async Task Unary_rpc_completes_request_and_response_payloads()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.Payload = requestPayload;
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new MyOperationsService()));
+
+        var client = new MyOperationsClient(pipeline);
+
+        var message = new InputMessage()
+        {
+            P1 = "P1",
+            P2 = 2,
+        };
+
+        // Act//Assert
+        await client.UnaryOpAsync(message);
+
+        // Assert
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+    }
+
+    [Test]
+    public void Unary_rpc_completes_request_and_response_payloads_upon_failure()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.Payload = requestPayload;
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired")))));
+
+        var client = new MyOperationsClient(pipeline);
+
+        var message = new InputMessage()
+        {
+            P1 = "P1",
+            P2 = 2,
+        };
+
+        // Act//Assert
+        Assert.ThrowsAsync<DispatchException>(async () => await client.UnaryOpAsync(message));
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Client_streaming_rpc_completes_request_and_response_payloads()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.PayloadContinuation = requestPayload;
+                    var response = await  next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new MyOperationsService()));
+
+        var client = new MyOperationsClient(pipeline);
+
+        var message = new InputMessage()
+        {
+            P1 = "P1",
+            P2 = 2,
+        };
+
+        // Act
+        await client.ClientStreamingOpAsync(GetDataAsync());
+
+        // Assert
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+
+        static async IAsyncEnumerable<InputMessage> GetDataAsync()
+        {
+            await Task.Yield();
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Yield();
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+    }
+
+    [Test]
+    public void Client_streaming_rpc_completes_request_and_response_payloads_upon_failure()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.PayloadContinuation = requestPayload;
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired")))));
+
+        var client = new MyOperationsClient(pipeline);
+
+        var message = new InputMessage()
+        {
+            P1 = "P1",
+            P2 = 2,
+        };
+
+        // Act/Assert
+        Assert.ThrowsAsync<DispatchException>(async () => await client.ClientStreamingOpAsync(GetDataAsync()));
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+
+        static async IAsyncEnumerable<InputMessage> GetDataAsync()
+        {
+            await Task.Yield();
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+    }
+
+    [Test]
+    public async Task Server_streaming_rpc_completes_request_and_response_payloads()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.Payload = requestPayload;
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new MyOperationsService()));
+
+        var client = new MyOperationsClient(pipeline);
+
+        // Act
+        IAsyncEnumerable<OutputMessage> stream = await client.ServerStreamingOpAsync(new Empty());
+
+        // Assert
+        var messages = new List<OutputMessage>();
+        await foreach (var message in stream)
+        {
+            messages.Add(message);
+        }
+
+        Assert.That(messages, Has.Count.EqualTo(10));
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+    }
+
+    [Test]
+    public void Server_streaming_rpc_completes_request_and_response_payloads_upon_failure()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.Payload = requestPayload;
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired")))));
+
+        var client = new MyOperationsClient(pipeline);
+
+        // Act
+        Assert.ThrowsAsync<DispatchException>(async () => await client.ServerStreamingOpAsync(new Empty()));
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+    }
+
+    [Test]
+    public async Task Bidi_streaming_rpc_completes_request_and_response_payloads()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.PayloadContinuation = requestPayload;
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new MyOperationsService()));
+
+        var client = new MyOperationsClient(pipeline);
+
+        // Act
+        IAsyncEnumerable<OutputMessage> stream = await client.BidirectionalStreamingOpAsync(GetDataAsync());
+
+        // Assert
+        var messages = new List<OutputMessage>();
+        await foreach (var message in stream)
+        {
+            messages.Add(message);
+        }
+
+        Assert.That(messages.Count, Is.EqualTo(10));
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+
+        static async IAsyncEnumerable<InputMessage> GetDataAsync()
+        {
+            await Task.Yield();
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Yield();
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+    }
+
+    [Test]
+    public void Bidi_streaming_rpc_completes_request_and_response_payloads_upon_failure()
+    {
+        // Arrange
+        PayloadPipeReaderDecorator? requestPayload = null;
+        PayloadPipeReaderDecorator? responsePayload = null;
+
+        var pipeline = new Pipeline().Use(next =>
+            new InlineInvoker(
+                async (request, cancellationToken) =>
+                {
+                    requestPayload = new PayloadPipeReaderDecorator(request.Payload);
+                    request.PayloadContinuation = requestPayload;
+                    var response = await next.InvokeAsync(request, cancellationToken);
+                    responsePayload = new PayloadPipeReaderDecorator(response.Payload);
+                    response.Payload = responsePayload;
+                    return response;
+                })).Into(new ColocInvoker(new InlineDispatcher(
+                    (request, cancellationToken) =>
+                        new(new OutgoingResponse(request, StatusCode.DeadlineExceeded, "deadline expired")))));
+
+        var client = new MyOperationsClient(pipeline);
+
+        // Act
+        Assert.ThrowsAsync<DispatchException>(async () => await client.BidirectionalStreamingOpAsync(GetDataAsync()));
+        Assert.That(() => requestPayload!.Completed, Throws.Nothing);
+        Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+
+        static async IAsyncEnumerable<InputMessage> GetDataAsync()
+        {
+            await Task.Yield();
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Yield();
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
     }
 
     [ProtobufService]
