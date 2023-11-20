@@ -4,12 +4,16 @@
 
 IceRpc.Templates provides `dotnet new` project templates for [IceRPC][icerpc]. The following templates are included:
 
-| Template Name            | Description                                                                                                  |
-|--------------------------|--------------------------------------------------------------------------------------------------------------|
-| `icerpc-slice-client`    | A project template for creating an IceRPC + Slice client console application.                                |
-| `icerpc-slice-server`    | A project template for creating an IceRPC + Slice server console application.                                |
-| `icerpc-slice-di-client` | A project template for creating an IceRPC + Slice client console application using Microsoft's DI container. |
-| `icerpc-slice-di-server` | A project template for creating an IceRPC + Slice server console application using Microsoft's DI container. |
+| Template Name               | Description                                                                                                     |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------|
+| `icerpc-protobuf-client`    | A project template for creating an IceRPC + Protobuf client console application.                                |
+| `icerpc-protobuf-server`    | A project template for creating an IceRPC + Protobuf server console application.                                |
+| `icerpc-protobuf-di-client` | A project template for creating an IceRPC + Protobuf client console application using Microsoft's DI container. |
+| `icerpc-protobuf-di-server` | A project template for creating an IceRPC + Protobuf server console application using Microsoft's DI container. |
+| `icerpc-slice-client`       | A project template for creating an IceRPC + Slice client console application.                                   |
+| `icerpc-slice-server`       | A project template for creating an IceRPC + Slice server console application.                                   |
+| `icerpc-slice-di-client`    | A project template for creating an IceRPC + Slice client console application using Microsoft's DI container.    |
+| `icerpc-slice-di-server`    | A project template for creating an IceRPC + Slice server console application using Microsoft's DI container.    |
 
 ## Installation
 
@@ -19,7 +23,7 @@ dotnet new install IceRpc.Templates
 
 ## Sample Code
 
-Create a command line server application:
+Create an IceRPC + Slice command line server application:
 
 ``` shell
 dotnet new icerpc-slice-server -o MyServer
@@ -28,7 +32,7 @@ dotnet build
 dotnet run
 ```
 
-Create a command line client application:
+Create an IceRPC + Slice command line client application:
 
 ``` shell
 dotnet new icerpc-slice-client -o MyClient
