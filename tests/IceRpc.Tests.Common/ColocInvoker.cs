@@ -70,7 +70,9 @@ public sealed class ColocInvoker : IInvoker
                 // using the ColocInvoker when attempting to send more data than allowed by the threshold.
                 var pipe = new Pipe(new PipeOptions(pauseWriterThreshold: 0));
                 await outgoingFrame.Payload.CopyToAsync(pipe.Writer, cancellationToken);
+                outgoingFrame.Payload.Complete();
                 await outgoingFrame.PayloadContinuation.CopyToAsync(pipe.Writer, cancellationToken);
+                outgoingFrame.PayloadContinuation.Complete();
                 pipe.Writer.Complete();
                 payload = pipe.Reader;
             }
