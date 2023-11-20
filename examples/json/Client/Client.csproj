@@ -9,7 +9,9 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../GreetRequest.cs" />
+    <Compile Include="../GreetResponse.cs" />
+    <Compile Include="../common/PipeReaderJsonSerializer.cs" Link="PipeReaderJsonSerializer.cs" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
-    <Compile Include="../StringCodec.cs" Link="StringCodec.cs" />
   </ItemGroup>
 </Project>

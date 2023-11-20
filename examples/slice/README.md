@@ -8,7 +8,9 @@ This folder contains example applications for using IceRPC + Slice integration.
 | [Deadline](./Deadline/)                    | Shows how to use the deadline interceptor to set the invocation deadline.                                                           |
 | [Download](./Download/)                    | Shows how to download a file from a server by streaming this file.                                                                  |
 | [GenericHost](./GenericHost/)              | Shows how to create client and server applications using Microsoft's Dependency Injection container.                                |
-| [Greeter](./Greeter/)                      | The Greeter example updated to use IceRPC + Slice integration.                                                                      |
+| [Greeter](./Greeter/)                      | Shows how to call and implement a canonical Greeter service using the IceRPC + Slice integration.                                   |
+| [InteropIceGrid](./InteropIceGrid/)        | Shows how an IceRPC client can call services hosted by servers managed by [IceGrid].                                                |
+| [InteropMinimal](./InteropMinimal/)        | shows how an IceRPC client can call a service hosted by an [Ice] server.                                                            |
 | [Logger](./Loggger/)                       | Shows how to enable logging.                                                                                                        |
 | [Metrics](./Metrics/)                      | Shows how to use the metrics interceptor and middleware.                                                                            |
 | [MultipleInterfaces](./MultipleInterfaces) | Shows how a service can implement multiple interfaces.                                                                              |
@@ -20,3 +22,6 @@ This folder contains example applications for using IceRPC + Slice integration.
 | [Telemetry](./Telemetry/)                  | Shows how to use the telemetry interceptor and middleware.                                                                          |
 | [Thermostat](./Thermostat/)                | Shows how to send requests via an intermediary server; includes sending requests the "other way around", from a server to a client. |
 | [Upload](./Upload/)                        | Shows how to upload a file from a client to a server by streaming this file.                                                        |
+
+[Ice]: https://zeroc.com/products/ice
+[IceGrid]: https://zeroc.com/products/ice/services/icegrid
