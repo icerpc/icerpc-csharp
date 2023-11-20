@@ -14,6 +14,6 @@
     </ProtoFile>
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
-    <Compile Include="../../../Common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+    <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>
