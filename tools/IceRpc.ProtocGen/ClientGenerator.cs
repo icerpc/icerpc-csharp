@@ -36,7 +36,8 @@ internal class ClientGenerator
 /// It's implemented by <c>{service.Name.ToPascalCase()}Client</c></remarks>";
         if (service.GetOptions()?.Deprecated ?? false)
         {
-            clientInterface += "[global::System.Obsolete]";
+            clientInterface += @"
+[global::System.Obsolete]";
         }
         clientInterface += @$"
 public partial interface I{service.Name.ToPascalCase()}
@@ -75,7 +76,7 @@ public partial interface I{service.Name.ToPascalCase()}
             if (method.GetOptions()?.Deprecated ?? false)
             {
                 methods += @"
-    [global::System.Obsolete]".Trim();
+    [global::System.Obsolete]";
             }
             methods += @$"
     public global::System.Threading.Tasks.Task<{returnType}> {methodName}(
@@ -102,7 +103,8 @@ public partial interface I{service.Name.ToPascalCase()}
 /// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.FullName}</c>.</remarks>";
         if (service.GetOptions()?.Deprecated ?? false)
         {
-            clientImplementation += "[global::System.Obsolete]";
+            clientImplementation += @"
+[global::System.Obsolete]";
         }
         clientImplementation += @$"
 public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}

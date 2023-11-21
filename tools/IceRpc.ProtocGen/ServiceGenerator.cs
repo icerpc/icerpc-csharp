@@ -41,7 +41,7 @@ internal class ServiceGenerator
             if (method.GetOptions()?.Deprecated ?? false)
             {
                 methods += @"
-    [global::System.Obsolete]".Trim();
+    [global::System.Obsolete]";
             }
             methods += $@"
     [ProtobufMethod(""{method.Name}"")]
@@ -59,7 +59,8 @@ internal class ServiceGenerator
 /// <seealso cref=""IceRpc.Protobuf.ProtobufServiceAttribute"" />";
         if (service.GetOptions()?.Deprecated ?? false)
         {
-            serviceInterface += "[global::System.Obsolete]";
+            serviceInterface += @"
+[global::System.Obsolete]";
         }
         serviceInterface += @$"
 [IceRpc.DefaultServicePath(""/{service.FullName}"")]
