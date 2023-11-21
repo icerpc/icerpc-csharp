@@ -27,10 +27,10 @@ of the NuGet packages, as described in [BUILDING].
 
 ## Examples
 
-|                         |                                                                           |
-|-------------------------|---------------------------------------------------------------------------|
-| [json](./json/)         | Contains examples that show how to use the IceRPC core APIs.              |
-| [slice](./slice/)       | Contains examples that show how to use the IceRPC + Slice integration.    |
-| [protobuf](./protobuf/) | Contains examples that show how to use the IceRPC + Protobuf integration. |
+|                         |                                                                                                          |
+|-------------------------|----------------------------------------------------------------------------------------------------------|
+| [json](./json/)         | Contains examples that use the IceRPC core APIs to send and receive JSON-encoded requests and responses. |
+| [slice](./slice/)       | Contains examples that use the IceRPC + Slice integration.    |
+| [protobuf](./protobuf/) | Contains examples that use the IceRPC + Protobuf integration. |
 
 [BUILDING]: ../BUILDING.md
