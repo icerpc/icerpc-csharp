@@ -8,6 +8,30 @@ namespace ZeroC.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class NumericTypesDecodingTests
 {
+    /// <summary>Tests the decoding of boolean types.</summary>
+    /// <param name="encodedBytes">An encoded byte array to decode.</param>
+    /// <param name="expected">The expected value to be decoded.</param>
+    [TestCase(new byte[] { 0x00 }, false)]
+    [TestCase(new byte[] { 0x01 }, true)]
+    public void Decode_bool_value(byte[] encodedBytes, bool expected)
+    {
+        var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
+
+        bool r1 = sut.DecodeBool();
+
+        Assert.That(r1, Is.EqualTo(expected));
+        Assert.That(sut.Consumed, Is.EqualTo(encodedBytes.Length));
+    }
+
+    [TestCase(new byte[] { })]
+    [TestCase(new byte[] { 0x03 })]
+    public void Decode_invalid_bool_value(byte[] encodedBytes) =>
+        Assert.Throws<InvalidDataException>(() =>
+        {
+            var sut = new SliceDecoder(encodedBytes, SliceEncoding.Slice2);
+            sut.DecodeBool();
+        });
+
     /// <summary>Tests the decoding of long. Decoding any fixed size numeric is handled the same way by the
     /// SliceDecoder, as such it is sufficient to just test decoding a long.</summary>
     /// <param name="encodedBytes">An encoded byte array to decode.</param>
