@@ -18,20 +18,33 @@ internal class ClientGenerator
             string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
             string methodName = $"{method.Name.ToPascalCase()}Async";
 
-            methods += $@"
+            if (method.GetOptions()?.Deprecated ?? false)
+            {
+                methods += @$"
+    [global::System.Obsolete]".Trim();
+            }
+            methods += @$"
     global::System.Threading.Tasks.Task<{returnType}> {methodName}(
         {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection? features = null,
         global::System.Threading.CancellationToken cancellationToken = default);";
             methods += "\n";
         }
-        return @$"
+
+        string clientInterface = @$"
 /// <remarks>protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.FullName}</c>.
-/// It's implemented by <c>{service.Name.ToPascalCase()}Client</c></remarks>
+/// It's implemented by <c>{service.Name.ToPascalCase()}Client</c></remarks>";
+        if (service.GetOptions()?.Deprecated ?? false)
+        {
+            clientInterface += @"
+[global::System.Obsolete]";
+        }
+        clientInterface += @$"
 public partial interface I{service.Name.ToPascalCase()}
 {{
     {methods.Trim()}
 }}";
+        return clientInterface;
     }
 
     internal static string GenerateImplementation(ServiceDescriptor service)
@@ -60,7 +73,12 @@ public partial interface I{service.Name.ToPascalCase()}
                 (true, true) => "InvokeBidiStreamingAsync",
             };
 
-            methods += $@"
+            if (method.GetOptions()?.Deprecated ?? false)
+            {
+                methods += @"
+    [global::System.Obsolete]";
+            }
+            methods += @$"
     public global::System.Threading.Tasks.Task<{returnType}> {methodName}(
         {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection? features = null,
@@ -79,10 +97,16 @@ public partial interface I{service.Name.ToPascalCase()}
 
         string clientImplementationName = $"{service.Name.ToPascalCase()}Client";
 
-        return @$"
+        string clientImplementation = @$"
 /// <summary>Makes invocations on a remote IceRPC service. This remote service must implement Protobuf service
 /// <c>{service.FullName}</c>.</summary>
-/// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.FullName}</c>.</remarks>
+/// <remarks>protoc-gen-icerpc-csharp generated this record struct from Protobuf service <c>{service.FullName}</c>.</remarks>";
+        if (service.GetOptions()?.Deprecated ?? false)
+        {
+            clientImplementation += @"
+[global::System.Obsolete]";
+        }
+        clientImplementation += @$"
 public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}
 {{
     /// <summary>Represents the default path for IceRPC services that implement Protobuf service
@@ -131,5 +155,6 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
 
     {methods.Trim()}
 }}";
+        return clientImplementation;
     }
 }

@@ -616,5 +616,10 @@ public partial class OperationTests
             Empty message,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new(new Empty());
+
+        public ValueTask<Empty> DeprecatedOpAsync(
+            Empty message,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }
