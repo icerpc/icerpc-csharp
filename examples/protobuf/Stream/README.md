@@ -1,7 +1,6 @@
 # StreamProtobuf
 
-This example application illustrates how to stream random numbers from a server to a client. This is a variation
-of the [Stream] example but using [Protobuf] instead of Slice to define the contract between the client and the server.
+This example application illustrates how to stream random numbers from a server to a client.
 
 You can build the client and server applications with:
 
@@ -22,6 +21,3 @@ In a separate window, start the Client program:
 cd Client
 dotnet run
 ```
-
-[Stream]: ./Stream
-[Protobuf]: https://protobuf.dev/getting-started/csharptutorial/
