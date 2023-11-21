@@ -92,7 +92,9 @@ fn preamble(slice_file: &SliceFile, rpc_provider: RpcProvider) -> CodeBlock {
 
 #pragma warning disable CS1591 // Missing XML Comment
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment
+#pragma warning disable CS0612 // Type or member is obsolete
 #pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable CS0619 // Type or member is obsolete
 
 {rpc_usings}using ZeroC.Slice;
 
