@@ -23,6 +23,15 @@ service MyOperations {
     rpc NoSideEffectsOp(google.protobuf.Empty) returns (google.protobuf.Empty) {
         option idempotency_level = NO_SIDE_EFFECTS;
     }
+
+    rpc DeprecatedOp(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option deprecated = true;
+    }
+}
+
+service MyDeprecatedOperations {
+    option deprecated = true;
+    rpc DeprecatedOp(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 message InputMessage {

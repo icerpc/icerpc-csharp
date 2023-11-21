@@ -42,6 +42,7 @@ foreach (FileDescriptor descriptor in descriptors)
 
 #pragma warning disable CS1591 // Missing XML Comment
 #pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment
+#pragma warning disable CS0618 // Type or member is obsolete
 
 using IceRpc.Protobuf;
 

@@ -37,24 +37,36 @@ internal class ServiceGenerator
     /// <param name=""{inputParam}"">{inputParamDocComment}</param>
     /// <param name=""features"">The dispatch features.</param>
     /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>{returnTypeDocComment}</returns>
+    /// <returns>{returnTypeDocComment}</returns>";
+            if (method.GetOptions()?.Deprecated ?? false)
+            {
+                methods += @"
+    [global::System.Obsolete]".Trim();
+            }
+            methods += $@"
     [ProtobufMethod(""{method.Name}"")]
     global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
         {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection features,
         global::System.Threading.CancellationToken cancellationToken);";
-            methods += "\n";
+            methods += "\n\n";
         }
 
-        return @$"
+        string serviceInterface = @"
 /// <summary>Represents a template that you use to implement Protobuf service <c>{service.FullName}</c>
 /// with IceRPC.</summary>
 /// <remarks>protoc-gen-icerpc-csharp generated this server-side interface.</remarks>
-/// <seealso cref=""IceRpc.Protobuf.ProtobufServiceAttribute"" />
+/// <seealso cref=""IceRpc.Protobuf.ProtobufServiceAttribute"" />";
+        if (service.GetOptions()?.Deprecated ?? false)
+        {
+            serviceInterface += "[global::System.Obsolete]";
+        }
+        serviceInterface += @$"
 [IceRpc.DefaultServicePath(""/{service.FullName}"")]
 public partial interface I{service.Name.ToPascalCase()}Service
 {{
     {methods.Trim()}
 }}";
+        return serviceInterface;
     }
 }
