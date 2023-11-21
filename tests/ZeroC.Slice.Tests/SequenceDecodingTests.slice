@@ -1,0 +1,9 @@
+// Copyright (c) ZeroC, Inc.
+
+mode = Slice1
+
+module ZeroC::Slice::Tests
+
+compact struct BoolS {
+    values: Sequence<bool>
+}
