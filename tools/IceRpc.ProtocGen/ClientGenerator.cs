@@ -106,19 +106,26 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
     /// <param name=""invoker"">The invoker of this client.</param>
     /// <param name=""serviceAddress"">The service address. <see langword=""null"" /> is equivalent to an icerpc service
     /// address with path <see cref=""DefaultServicePath"" />.</param>
+    /// <param name=""encodeOptions"">The encode options, used to customize the encoding of request payloads.</param>
     public {clientImplementationName}(
         IceRpc.IInvoker invoker,
-        IceRpc.ServiceAddress? serviceAddress = null)
+        IceRpc.ServiceAddress? serviceAddress = null,
+        ProtobufEncodeOptions? encodeOptions = null)
     {{
         Invoker = invoker;
         ServiceAddress = serviceAddress ?? _defaultServiceAddress;
+        EncodeOptions = encodeOptions;
     }}
 
     /// <summary>Constructs a client from an invoker and a service address URI.</summary>
     /// <param name=""invoker"">The invocation pipeline of the proxy.</param>
     /// <param name=""serviceAddressUri"">A URI that represents a service address.</param>
-    public {clientImplementationName}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri)
-        : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri))
+    /// <param name=""encodeOptions"">The encode options, used to customize the encoding of request payloads.</param>
+    public {clientImplementationName}(
+        IceRpc.IInvoker invoker,
+        System.Uri serviceAddressUri,
+        ProtobufEncodeOptions? encodeOptions = null)
+        : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
     {{
     }}
 
