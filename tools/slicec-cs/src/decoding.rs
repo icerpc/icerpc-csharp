@@ -213,33 +213,19 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
 
     if has_cs_type_attribute {
         let arg: Option<String> = match element_type.concrete_type() {
-            Types::Primitive(primitive)
-                if primitive.is_numeric_or_bool()
-                    && primitive.fixed_wire_size().is_some()
-                    && !element_type.is_optional =>
-            {
+            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !element_type.is_optional => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than decoding the collection elements one by one.
                 Some(format!(
                     "decoder.DecodeSequence<{}>({})",
                     element_type.cs_type_string(namespace, TypeContext::Decode, true),
                     if matches!(primitive, Primitive::Bool) {
-                        r#"checkElement: element =>
-    {
-        if (System.Runtime.CompilerServices.Unsafe.As<bool, byte>(ref element) > 1)
-        {
-            throw new InvalidDataException("The value is out of the bool type accepted range.");
-        }
-    }"#
+                        "checkElement: SliceDecoder.CheckBoolValue"
                     } else {
                         ""
                     }
                 ))
             }
-            Types::Primitive(primitive) if matches!(primitive, Primitive::Bool) => Some(format!(
-                "decoder.DecodeSequence<{}>()",
-                element_type.cs_type_string(namespace, TypeContext::Decode, true),
-            )),
             Types::Enum(enum_def)
                 if enum_def.underlying.is_some()
                     && enum_def.fixed_wire_size().is_some()
@@ -316,19 +302,13 @@ decoder.DecodeSequenceOfOptionals(
         )
     } else {
         match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.is_numeric_or_bool() && primitive.fixed_wire_size().is_some() => {
+            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() => {
                 write!(
                     code,
                     "decoder.DecodeSequence<{}>({})",
                     element_type.cs_type_string(namespace, TypeContext::Decode, true),
                     if matches!(primitive, Primitive::Bool) {
-                        r#"checkElement: element =>
-    {
-        if (System.Runtime.CompilerServices.Unsafe.As<bool, byte>(ref element) > 1)
-        {
-            throw new InvalidDataException("The value is out of the bool type accepted range.");
-        }
-    }"#
+                        "checkElement: SliceDecoder.CheckBoolValue"
                     } else {
                         ""
                     }
