@@ -125,10 +125,35 @@ public ref partial struct SliceDecoder
 
     // Decode methods for basic types
 
+    /// <summary>Checks if the in memory representation of the bool value is valid according to the Slice encoding.</summary>
+    /// <param name="value">The value to check.</param>
+    /// <exception cref="InvalidDataException">If the value is out of the bool type accepted range.</exception>
+    public static void CheckBoolValue(bool value)
+    {
+        if (Unsafe.As<bool, byte>(ref value) > 1)
+        {
+            throw new InvalidDataException("The value is out of the bool type accepted range.");
+        }
+    }
+
     /// <summary>Decodes a slice bool into a bool.</summary>
     /// <returns>The bool decoded by this decoder.</returns>
-    public bool DecodeBool() =>
-        _reader.TryRead(out byte value) ? value != 0 : throw new InvalidDataException(EndOfBufferMessage);
+    public bool DecodeBool()
+    {
+        if (_reader.TryRead(out byte value))
+        {
+            return value switch
+            {
+                0 => false,
+                1 => true,
+                _ => throw new InvalidDataException("The value is out of the bool type accepted range.")
+            };
+        }
+        else
+        {
+            throw new InvalidDataException(EndOfBufferMessage);
+        }
+    }
 
     /// <summary>Decodes a Slice float32 into a float.</summary>
     /// <returns>The float decoded by this decoder.</returns>

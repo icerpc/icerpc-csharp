@@ -9,6 +9,45 @@ namespace ZeroC.Slice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class SequenceDecodingTests
 {
+    [Test]
+    public void Decode_bool_sequence_data_member(
+        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    {
+        // Arrange
+        bool[] expected = [false, true, false];
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, encoding);
+        encoder.EncodeSize(3);
+        encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x00 });
+        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+
+        // Act
+        var sut = new BoolS(ref decoder);
+
+        // Assert
+        Assert.That(sut.Values, Is.EqualTo(expected));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Decode_bool_sequence_data_member_with_invalid_values(
+        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, encoding);
+        encoder.EncodeSize(3);
+        encoder.WriteByteSpan(new byte[] { 0x00, 0x01, 0x02 });
+
+        // Act/Assert
+        Assert.Throws<InvalidDataException>(
+            () =>
+            {
+                var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+                var sut = new BoolS(ref decoder);
+            });
+    }
+
     /// <summary>Tests <see cref="SliceDecoderExtensions.DecodeSequence{T}(ref SliceDecoder, Action{T}?)" /> with a
     /// fixed-size numeric value type.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the decoding.</param>
