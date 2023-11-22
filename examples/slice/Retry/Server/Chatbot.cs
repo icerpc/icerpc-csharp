@@ -18,7 +18,7 @@ internal partial class Chatbot : IGreeterService
 
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching Greet request {{ name = '{name}' }}");
         // 50% failure/success ratio
         if (RandomNumberGenerator.GetInt32(10) < 5)
         {

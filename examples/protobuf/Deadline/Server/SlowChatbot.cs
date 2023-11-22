@@ -16,7 +16,7 @@ internal partial class SlowChatbot : IGreeterService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching greet request {{ name = '{message.Name}' }}");
+        Console.WriteLine($"Dispatching Greet request {{ name = '{message.Name}' }}");
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);

@@ -15,7 +15,7 @@ internal partial class Chatbot : IGreeterService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching greet request {{ name = '{message.Name}' }}");
+        Console.WriteLine($"Dispatching Greet request {{ name = '{message.Name}' }}");
         return new(new GreetResponse { Greeting = $"Hello, {message.Name}!" });
     }
 }

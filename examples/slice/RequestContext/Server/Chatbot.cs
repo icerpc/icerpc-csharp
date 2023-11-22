@@ -12,7 +12,7 @@ internal partial class Chatbot : IGreeterService
 {
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching Greet request {{ name = '{name}' }}");
         // The request context middleware decoded the request context field sent by the client (as an
         // IRequestContextFeature) and inserted this feature in features.
         if (features.Get<IRequestContextFeature>() is IRequestContextFeature contextFeature)

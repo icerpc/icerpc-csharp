@@ -19,7 +19,7 @@ internal partial class Chatbot : IGreeterService, IRequestCounterService
 
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching Greet request {{ name = '{name}' }}");
         Interlocked.Increment(ref _requestCount);
         return new($"Hello, {name}!");
     }
