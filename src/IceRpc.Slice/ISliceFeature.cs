@@ -13,6 +13,10 @@ public interface ISliceFeature
     /// the Slice generated code.</value>
     IActivator? Activator { get; }
 
+    /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
+    /// <value>The base proxy.</value>
+    IProxy? BaseProxy { get; }
+
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
     /// <value>The Slice encode options. <see langword="null" /> is equivalent to <see cref="SliceEncodeOptions.Default"
     /// />.</value>
@@ -31,8 +35,4 @@ public interface ISliceFeature
     /// variable-size elements.</summary>
     /// <value>The maximum size of a Slice payload segment, in bytes.</value>
     int MaxSegmentSize { get; }
-
-    /// <summary>Gets the proxy factory to customize the decoding of proxies in request or response payloads.</summary>
-    /// <value>The proxy factory used when decoding proxies.</value>
-    Func<ServiceAddress, GenericProxy>? ProxyFactory { get; }
 }

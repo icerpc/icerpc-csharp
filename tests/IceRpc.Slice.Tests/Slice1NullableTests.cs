@@ -20,7 +20,7 @@ public class Slice1NullableTests
             () =>
             {
                 var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
-                _ = decoder.DecodeProxy<GenericProxy>();
+                _ = decoder.DecodeProxy<Ice.IceObjectProxy>();
             },
             Throws.TypeOf<InvalidDataException>());
     }

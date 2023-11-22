@@ -25,23 +25,27 @@ public static class ProxySliceDecoderExtensions
                 throw new InvalidDataException("Decoded null for a non-nullable proxy.") :
            CreateProxy<TProxy>(decoder.DecodeServiceAddress(), decoder.DecodingContext);
 
-    private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? proxyDecodingContext)
+    private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
         where TProxy : struct, IProxy
     {
-        if (proxyDecodingContext is null)
+        if (decodingContext is null)
         {
             return new TProxy { ServiceAddress = serviceAddress };
         }
         else
         {
-            var proxyFactory = (Func<ServiceAddress, GenericProxy>)proxyDecodingContext;
+            var baseProxy = (IProxy)decodingContext;
+            if (serviceAddress.Protocol is null && baseProxy.ServiceAddress is not null)
+            {
+                // Convert the relative service address to an absolute service address:
+                serviceAddress = baseProxy.ServiceAddress with { Path = serviceAddress.Path };
+            }
 
-            GenericProxy proxy = proxyFactory(serviceAddress);
             return new TProxy
             {
-                EncodeOptions = proxy.EncodeOptions,
-                Invoker = proxy.Invoker,
-                ServiceAddress = proxy.ServiceAddress
+                EncodeOptions = baseProxy.EncodeOptions,
+                Invoker = baseProxy.Invoker,
+                ServiceAddress = serviceAddress
             };
         }
     }

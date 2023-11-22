@@ -96,22 +96,17 @@ public static class PipeReaderExtensions
         this PipeReader reader,
         SliceEncoding encoding,
         DecodeFunc<T> decodeFunc,
-        GenericProxy? sender = null,
+        IProxy? sender = null,
         ISliceFeature? sliceFeature = null)
     {
         sliceFeature ??= SliceFeature.Default;
-
-        Func<ServiceAddress, GenericProxy>? proxyFactory = sliceFeature.ProxyFactory;
-        if (proxyFactory is null && sender is GenericProxy proxy)
-        {
-            proxyFactory = proxy.With;
-        }
+        IProxy? baseProxy = sliceFeature.BaseProxy ?? sender;
         return reader.ToAsyncEnumerable(ReadAsync, DecodeBuffer);
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
             // No activator or max depth since streams are Slice2+.
-            var decoder = new SliceDecoder(buffer, encoding, proxyFactory, sliceFeature.MaxCollectionAllocation);
+            var decoder = new SliceDecoder(buffer, encoding, baseProxy, sliceFeature.MaxCollectionAllocation);
 
             var items = new List<T>();
             do

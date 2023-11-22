@@ -83,7 +83,7 @@ public partial class ProxyTests
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
         // Act
-        var decoded = sut.DecodeProxy<GenericProxy>();
+        var decoded = sut.DecodeProxy<IceObjectProxy>();
 
         // Assert
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
@@ -100,11 +100,8 @@ public partial class ProxyTests
             var bufferWriter = new MemoryBufferWriter(new byte[256]);
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
-            var decoder = new SliceDecoder(
-                bufferWriter.WrittenMemory,
-                encoding: SliceEncoding.Slice2);
-
-            return decoder.DecodeProxy<GenericProxy>().Invoker;
+            var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2);
+            return decoder.DecodeProxy<IceObjectProxy>().Invoker;
         },
         Is.Null);
     }
@@ -189,13 +186,8 @@ public partial class ProxyTests
         var pipeline = new Pipeline();
         var router = new Router();
         router.Map<ISendProxyTestService>(service);
-        router.UseFeature<ISliceFeature>(
-            new SliceFeature(proxyFactory: serviceAddress =>
-                new GenericProxy
-                {
-                    Invoker = pipeline,
-                    ServiceAddress = serviceAddress
-                }));
+        var baseProxy = new SendProxyTestProxy(pipeline);
+        router.UseFeature<ISliceFeature>(new SliceFeature(baseProxy: baseProxy));
 
         var proxy = new SendProxyTestProxy(new ColocInvoker(router));
 

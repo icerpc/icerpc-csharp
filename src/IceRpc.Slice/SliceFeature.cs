@@ -14,6 +14,9 @@ public sealed class SliceFeature : ISliceFeature
     public IActivator? Activator { get; }
 
     /// <inheritdoc/>
+    public IProxy? BaseProxy { get; }
+
+    /// <inheritdoc/>
     public SliceEncodeOptions? EncodeOptions { get; }
 
     /// <inheritdoc/>
@@ -29,9 +32,6 @@ public sealed class SliceFeature : ISliceFeature
     /// <value>The maximum segment size. Defaults to <c>1</c> MB.</value>
     public int MaxSegmentSize { get; }
 
-    /// <inheritdoc/>
-    public Func<ServiceAddress, GenericProxy>? ProxyFactory { get; }
-
     /// <summary>Constructs a Slice feature.</summary>
     /// <param name="activator">The activator.</param>
     /// <param name="encodeOptions">The encode options.</param>
@@ -40,7 +40,7 @@ public sealed class SliceFeature : ISliceFeature
     /// name="defaultFeature" />.</param>
     /// <param name="maxDepth">The maximum depth. Use <c>-1</c> to get the default value.</param>
     /// <param name="maxSegmentSize">The maximum segment size. Use <c>-1</c> to get the default value.</param>
-    /// <param name="proxyFactory">The proxy factory.</param>
+    /// <param name="baseProxy">The base proxy, used when decoding service addresses into proxies.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. <see langword="null" />
     /// is equivalent to <see cref="Default" />.</param>
     public SliceFeature(
@@ -49,7 +49,7 @@ public sealed class SliceFeature : ISliceFeature
         int maxCollectionAllocation = -1,
         int maxDepth = -1,
         int maxSegmentSize = -1,
-        Func<ServiceAddress, GenericProxy>? proxyFactory = null,
+        IProxy? baseProxy = null,
         ISliceFeature? defaultFeature = null)
     {
         defaultFeature ??= Default;
@@ -64,12 +64,14 @@ public sealed class SliceFeature : ISliceFeature
 
         MaxSegmentSize = maxSegmentSize >= 0 ? maxSegmentSize : defaultFeature.MaxSegmentSize;
 
-        ProxyFactory = proxyFactory ?? defaultFeature.ProxyFactory;
+        BaseProxy = baseProxy ?? defaultFeature.BaseProxy;
     }
 
     private class DefaultSliceFeature : ISliceFeature
     {
         public IActivator? Activator => null;
+
+        public IProxy? BaseProxy => null;
 
         public SliceEncodeOptions? EncodeOptions => null;
 
@@ -78,7 +80,5 @@ public sealed class SliceFeature : ISliceFeature
         public int MaxDepth => 100;
 
         public int MaxSegmentSize => 1024 * 1024;
-
-        public Func<ServiceAddress, GenericProxy>? ProxyFactory => null;
     }
 }
