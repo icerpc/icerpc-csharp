@@ -122,7 +122,7 @@ And you can use IceRPC with a [DI container][icerpc-with-di]—or not. It's all 
 IceRPC provides a first-class byte-oriented API that allows you to make RPCs with the [IDL] and serialization format of
 your choice.
 
-IceRPC comes with full support for two IDLs: Slice (described below) and [Protobuf]. You can select either Slice or
+IceRPC comes with full support for two IDLs: Slice (described below) and [Protobuf]. You can use either Slice or
 Protobuf to define the contract between your clients and servers.
 
 ## Slice
