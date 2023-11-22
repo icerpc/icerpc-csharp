@@ -97,7 +97,7 @@ public static class IncomingRequestExtensions
         return request.DecodeValueAsync(
             encoding,
             feature,
-            feature.ProxyFactory,
+            feature.BaseProxy,
             decodeFunc,
             feature.Activator ?? defaultActivator,
             cancellationToken);

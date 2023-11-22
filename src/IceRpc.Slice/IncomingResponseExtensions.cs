@@ -34,7 +34,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        GenericProxy sender,
+        IProxy sender,
         DecodeFunc<T> decodeReturnValue,
         IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
@@ -47,7 +47,7 @@ public static class IncomingResponseExtensions
             StatusCode.Ok => response.DecodeValueAsync(
                 encoding,
                 feature,
-                feature.ProxyFactory ?? sender.With,
+                feature.BaseProxy ?? sender,
                 decodeReturnValue,
                 activator,
                 cancellationToken),
@@ -85,7 +85,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         SliceEncoding encoding,
-        GenericProxy sender,
+        IProxy sender,
         IActivator? defaultActivator = null,
         CancellationToken cancellationToken = default)
     {
@@ -120,7 +120,7 @@ public static class IncomingResponseExtensions
     public static ValueTask DecodeVoidReturnValueAsync(
         this IncomingResponse response,
         OutgoingRequest request,
-        GenericProxy sender = default,
+        IProxy sender,
         CancellationToken cancellationToken = default) =>
         response.DecodeVoidReturnValueAsync(request, SliceEncoding.Slice2, sender, null, cancellationToken);
 
@@ -128,7 +128,7 @@ public static class IncomingResponseExtensions
     private static async ValueTask<SliceException> DecodeSliceExceptionAsync(
         this IncomingResponse response,
         ISliceFeature feature,
-        GenericProxy sender,
+        IProxy sender,
         IActivator? activator,
         CancellationToken cancellationToken)
     {
@@ -158,7 +158,7 @@ public static class IncomingResponseExtensions
             var decoder = new SliceDecoder(
                 buffer,
                 SliceEncoding.Slice1,
-                feature.ProxyFactory ?? sender.With,
+                feature.BaseProxy ?? sender,
                 maxCollectionAllocation: feature.MaxCollectionAllocation,
                 activator,
                 maxDepth: feature.MaxDepth);

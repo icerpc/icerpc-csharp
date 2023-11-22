@@ -19,7 +19,7 @@ namespace IceRpc.Slice;
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
-    GenericProxy sender,
+    IProxy sender,
     CancellationToken cancellationToken);
 
 /// <summary>Represents a delegate that decodes the "void" return value from a Slice-encoded response.</summary>
@@ -32,7 +32,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 public delegate ValueTask ResponseDecodeFunc(
     IncomingResponse response,
     OutgoingRequest request,
-    GenericProxy sender,
+    IProxy sender,
     CancellationToken cancellationToken);
 
 /// <summary>Provides extension methods for <see cref="IProxy" /> and generated proxy structs that implement this
@@ -114,7 +114,7 @@ public static class ProxyExtensions
                 return await responseDecodeFunc(
                     response,
                     request,
-                    GenericProxy.FromProxy(proxy),
+                    proxy,
                     cancellationToken).ConfigureAwait(false);
             }
             finally
@@ -196,7 +196,7 @@ public static class ProxyExtensions
                 await responseDecodeFunc(
                     response,
                     request,
-                    GenericProxy.FromProxy(proxy),
+                    proxy,
                     cancellationToken).ConfigureAwait(false);
             }
             finally

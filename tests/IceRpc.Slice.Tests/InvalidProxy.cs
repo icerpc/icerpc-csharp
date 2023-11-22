@@ -1,14 +1,28 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Tests.Common;
-
 namespace IceRpc.Slice.Tests;
 
-internal static class InvalidProxy
+internal class InvalidProxy : IProxy
 {
-    internal static GenericProxy Instance { get; } = new()
+    internal static InvalidProxy Instance { get; } = new InvalidProxy();
+
+    public SliceEncodeOptions? EncodeOptions
     {
-        Invoker = NotImplementedInvoker.Instance,
-        ServiceAddress = null!
-    };
+        get => throw new NotImplementedException();
+        init { }
+    }
+
+    public IInvoker? Invoker
+    {
+        get => throw new NotImplementedException();
+        init { }
+    }
+
+    public ServiceAddress ServiceAddress
+    {
+        get => throw new NotImplementedException();
+        init { }
+    }
+
+    private InvalidProxy() { }
 }
