@@ -12,7 +12,7 @@ internal partial class Chatbot : IGreeterService
 {
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Dispatching Greet request {{ name = '{name}' }}");
+        Console.WriteLine($"Dispatching greet request {{ name = '{name}' }}");
         return new($"Hello, {name}!");
     }
 }

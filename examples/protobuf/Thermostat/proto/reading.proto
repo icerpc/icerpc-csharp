@@ -1,0 +1,36 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package igloo;
+option csharp_namespace = "Igloo";
+
+import "google/protobuf/timestamp.proto";
+
+// Represents a snapshot of the thermostat's state at a point in time.
+message Reading {
+    // The point in time when this Reading was taken.
+    google.protobuf.Timestamp Timestamp = 1;
+
+    // The current temperature (in °F).
+    float Temperature = 2;
+
+    // The target temperature (in °F).
+    float SetPoint = 3;
+
+    // The state of the AC unit.
+    Stage Cooling = 4;
+}
+
+// Represents the possible states of the AC unit.
+enum Stage {
+    // The AC is not cooling.
+    STAGE_OFF = 0;
+
+    // The AC is cooling at partial capacity - at around 70% capacity for a typical
+    // 2-stage unit.
+    STAGE_STAGE_1 = 1;
+
+    // The AC is cooling at full capacity.
+    STAGE_STAGE_2 = 2;
+}

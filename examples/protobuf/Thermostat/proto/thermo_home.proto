@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package igloo;
+option csharp_namespace = "Igloo";
+
+import "google/protobuf/empty.proto";
+import "reading.proto";
+
+// Each device "calls home" at start-up: it connects to the ThermoHome service to report a stream of readings.
+service ThermoHome {
+    // Reports the state of the thermostat.
+    rpc Report (stream Reading) returns (google.protobuf.Empty);
+}
