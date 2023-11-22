@@ -20,7 +20,7 @@ public class ProtocTask : ToolTask
     public string OutputDir { get; set; } = "";
 
     /// <summary>The directories in which to search for imports, corresponds to <c>-I</c> protoc compiler option.</summary>
-    public string[] ImportPath { get; set; } = Array.Empty<string>();
+    public string[] SearchPath { get; set; } = Array.Empty<string>();
 
     /// <summary>The Protobuf files to compile, these are the input files pass to the protoc compiler.</summary>
     [Required]
@@ -66,16 +66,16 @@ public class ProtocTask : ToolTask
         builder.AppendSwitch("--icerpc-csharp_out");
         builder.AppendFileNameIfNotNull(OutputDir);
 
-        var importPath = new List<string>(ImportPath);
-        // Add the sources directories to the import path
+        var searchPath = new List<string>(SearchPath);
+        // Add the sources directories to the import search path
         var computedSources = new List<ITaskItem>();
         foreach (ITaskItem source in Sources)
         {
             string fullPath = source.GetMetadata("FullPath");
             string directory = Path.GetDirectoryName(fullPath);
-            if (!importPath.Contains(directory))
+            if (!searchPath.Contains(directory))
             {
-                importPath.Add(directory);
+                searchPath.Add(directory);
             }
 
             ITaskItem computedSource = new TaskItem(source.ItemSpec);
@@ -85,11 +85,11 @@ public class ProtocTask : ToolTask
         }
         ComputedSources = computedSources.ToArray();
 
-        // Add protoc import paths
-        foreach (string import in importPath)
+        // Add protoc searchPath paths
+        foreach (string path in searchPath)
         {
             builder.AppendSwitch("-I");
-            builder.AppendFileNameIfNotNull(import);
+            builder.AppendFileNameIfNotNull(path);
         }
         builder.AppendFileNamesIfNotNull(Sources.Select(item => item.GetMetadata("FullPath")).ToArray(), " ");
 

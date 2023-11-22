@@ -9,9 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <ProtoFile Include="../proto/greeter.proto">
-      <ProtoImportPath>../proto</ProtoImportPath>
-    </ProtoFile>
+    <ProtoFile Include="../proto/greeter.proto" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
     <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
