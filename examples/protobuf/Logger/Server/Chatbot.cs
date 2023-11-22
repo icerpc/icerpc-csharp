@@ -6,7 +6,7 @@ using VisitorCenter;
 
 namespace GreeterLogServer;
 
-/// <summary>A Chatbot is an IceRPC service that implements Protobuf interface 'Greeter'.</summary>
+/// <summary>A Chatbot is an IceRPC service that implements Protobuf service 'Greeter'.</summary>
 [ProtobufService]
 internal partial class Chatbot : IGreeterService
 {

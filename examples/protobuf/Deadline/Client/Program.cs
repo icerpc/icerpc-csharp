@@ -13,7 +13,7 @@ Pipeline pipeline = new Pipeline()
 
 var greeter = new GreeterClient(pipeline);
 
-// In this example, the implementation of the greet operation takes about 1 second, and the deadline
+// In this example, the implementation of the Greet operation takes about 1 second, and the deadline
 // interceptor makes sure the invocation throws TimeoutException after 500 ms.
 try
 {
