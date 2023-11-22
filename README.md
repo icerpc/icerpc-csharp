@@ -185,7 +185,7 @@ extensibility. You just need to provide methods to encode and decode instances o
 
 ## Protobuf
 
-Protocol Buffers or Protobuf for short is a popular IDL and serialization format developed by Google. It's the preferred
+Protocol Buffers, or Protobuf for short, is a popular IDL and serialization format developed by Google. It's the preferred
 IDL for a number of RPC frameworks, including [gRPC].
 
 The IceRPC + Protobuf integration allows you to call and implement Protobuf services using IceRPC with only a few lines
