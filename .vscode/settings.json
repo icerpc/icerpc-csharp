@@ -1,8 +1,6 @@
 {
-  "cSpell.showStatus": true,
+  "dotnet.defaultSolution": "IceRpc.sln",
   "rust-analyzer.linkedProjects": ["tools/slicec-cs/Cargo.toml"],
-  "rust-analyzer.rustfmt.extraArgs": [
-    "+nightly"
-  ],
-  "dotnet.defaultSolution": "IceRpc.sln"
+  "rust-analyzer.rustfmt.extraArgs": ["+nightly"],
+  "slice.referenceDirectories": ["slice"]
 }
