@@ -3,7 +3,6 @@
 using GenericHostServer;
 using IceRpc;
 using IceRpc.Extensions.DependencyInjection;
-using IceRpc.Slice;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -1,0 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package igloo;
+option csharp_namespace = "Igloo";
+
+message ChangeSetPointRequest {
+    float SetPoint = 1;
+}

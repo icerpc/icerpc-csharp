@@ -1,8 +1,6 @@
-# GreeterProtobuf
+# Greeter
 
-The GreeterProtobuf example is a variation of the [Greeter](Greeter) example. It sends the same request and receives
-the same response, except it uses [Protobuf][protobuf] instead of Slice to define the contract between the client and
-the server.
+The Greeter example illustrates how to send a request and wait for the response.
 
 You can build the client and server applications with:
 
@@ -24,4 +22,5 @@ cd Client
 dotnet run
 ```
 
-[protobuf]: https://protobuf.dev/getting-started/csharptutorial/
+> This is a concise example with minimal code. If you are looking for a more realistic example, see the
+> [Logger](../Logger/README.md) example.

@@ -1,0 +1,21 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package igloo;
+option csharp_namespace = "Igloo";
+
+import "google/protobuf/empty.proto";
+import "reading.proto";
+import "set_point.proto";
+
+// Monitors and controls a residential cool-only AC system.
+// This interface corresponds to the public API used by client applications.
+service Thermostat {
+    // Monitors the state of the thermostat.
+    // returns a new 'Reading' immediately and then every time the actual device reports a value.
+    rpc Monitor (google.protobuf.Empty) returns (stream Reading);
+
+    // Changes the target temperature. If it's below the current temperature, the AC will start cooling.
+    rpc ChangeSetPoint(ChangeSetPointRequest) returns (google.protobuf.Empty);
+}

@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package igloo;
+option csharp_namespace = "Igloo";
+
+import "google/protobuf/empty.proto";
+import "set_point.proto";
+
+// Controls the thermostat device.
+service ThermoControl {
+    // Sets a new target temperature, known as the "set point".
+    rpc ChangeSetPoint (ChangeSetPointRequest) returns (google.protobuf.Empty);
+}

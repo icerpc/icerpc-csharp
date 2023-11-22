@@ -1,0 +1,18 @@
+// Copyright (c) ZeroC, Inc.
+
+syntax = "proto3";
+
+package metrics;
+option csharp_namespace = "Metrics";
+
+import "google/protobuf/empty.proto";
+
+// Represents a simple request counter.
+service RequestCounter {
+    // Provides the number of requests that have been dispatched, not including getRequestCount requests.
+    rpc GetRequestCount (google.protobuf.Empty) returns (GetRequestCountResponse);
+}
+
+message GetRequestCountResponse {
+    int32 count = 1;
+}

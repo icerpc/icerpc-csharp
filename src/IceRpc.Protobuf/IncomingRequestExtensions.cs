@@ -70,7 +70,7 @@ public static class IncomingRequestExtensions
         IAsyncEnumerable<TInput> input = request.DetachPayload().ToAsyncEnumerable(
             inputParser,
             protobufFeature.MaxMessageLength,
-            cancellationToken);
+            CancellationToken.None);
 
         TOutput output = await method(service, input, request.Features, cancellationToken).ConfigureAwait(false);
 
@@ -140,7 +140,7 @@ public static class IncomingRequestExtensions
         IAsyncEnumerable<TInput> input = request.DetachPayload().ToAsyncEnumerable(
             inputParser,
             protobufFeature.MaxMessageLength,
-            cancellationToken);
+            CancellationToken.None);
 
         IAsyncEnumerable<TOutput> output = await method(service, input, request.Features, cancellationToken)
             .ConfigureAwait(false);

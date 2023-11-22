@@ -23,4 +23,4 @@ dotnet run
 ```
 
 > This is a concise example with minimal code. If you are looking for a more realistic example, see the
-> [GreeterLog](../GreeterLog/README.md) example.
+> [Logger](../Logger/README.md) example.
