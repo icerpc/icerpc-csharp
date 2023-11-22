@@ -25,7 +25,7 @@ catch (TimeoutException exception)
 }
 
 // The next invocation utilizes the deadline feature to customize the invocation deadline. This ensures that the
-// is not canceled before the SlowChatbot sends a response.
+// invocation is not canceled before the SlowChatbot sends a response.
 var features = new FeatureCollection();
 features.Set<IDeadlineFeature>(DeadlineFeature.FromTimeout(TimeSpan.FromSeconds(10)));
 

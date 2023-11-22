@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Slice;
 using Igloo;
 using Microsoft.Extensions.Logging;
 using ThermostatServer;
