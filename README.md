@@ -215,7 +215,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [custom]: https://docs.icerpc.dev/slice2/language-guide/custom-types
 [Documentation]: https://docs.icerpc.dev
 [Examples]: examples
-[Getting started]: https://docs.icerpc.dev/getting-
+[Getting started]: https://docs.icerpc.dev/getting-started
 [gRPC]: https://grpc.io/
 [HTTP/3]: https://en.wikipedia.org/wiki/HTTP/3
 [Ice]: https://github.com/zeroc-ice/ice
