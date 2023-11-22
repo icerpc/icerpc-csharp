@@ -851,7 +851,7 @@ public class SequenceMappingTests
             await SequenceMappingOperationsProxy.Response.DecodeOpReturnTupleAsync(
                 response,
                 request,
-                new SequenceMappingOperationsProxy(NotImplementedInvoker.Instance),
+                InvalidProxy.Instance,
                 default);
 
         Assert.That(r1, Is.EqualTo(new CustomSequence<int>(new int[] { 1, 2, 3 })));
