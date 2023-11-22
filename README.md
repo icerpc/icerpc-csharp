@@ -120,10 +120,10 @@ And you can use IceRPC with a [DI container][icerpc-with-di]—or not. It's all 
 ## Choose your IDL
 
 IceRPC provides a first-class byte-oriented API that allows you to make RPCs with the [IDL] and serialization format of
-your choice. For example, you can easily send Protobuf messages over IceRPC as illustrated by the [GreeterProtobuf]
-example.
+your choice.
 
-Another option—and the most common choice—is to use Slice to define the contract between your clients and servers.
+IceRPC comes with full support for two IDLs: Slice (described below) and [Protobuf]. You can use either Slice or
+Protobuf to define the contract between your clients and servers.
 
 ## Slice
 
@@ -183,6 +183,14 @@ You can define new types with `struct`, `enum`, and `custom`. And you can constr
 [custom] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of modularity and
 extensibility. You just need to provide methods to encode and decode instances of your custom type.
 
+## Protobuf
+
+Protocol Buffers, or Protobuf for short, is a popular IDL and serialization format developed by Google. It's the preferred
+IDL for a number of RPC frameworks, including [gRPC].
+
+The IceRPC + Protobuf integration allows you to call and implement Protobuf services using IceRPC with only a few lines
+of code.
+
 ## Ice interop
 
 IceRPC for C# provides a high level of interoperability with [Ice]. You can use IceRPC to write a new C# client for your
@@ -208,7 +216,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [Documentation]: https://docs.icerpc.dev
 [Examples]: examples
 [Getting started]: https://docs.icerpc.dev/getting-started
-[GreeterProtobuf]: examples/GreeterProtobuf
+[gRPC]: https://grpc.io/
 [HTTP/3]: https://en.wikipedia.org/wiki/HTTP/3
 [Ice]: https://github.com/zeroc-ice/ice
 [IceRPC for Ice users]: https://docs.icerpc.dev/icerpc-for-ice-users
@@ -217,6 +225,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
 [license]: https://github.com/icerpc/icerpc-csharp/blob/main/LICENSE
 [NuGet packages]: https://www.nuget.org/profiles/IceRPC
+[Protobuf]: https://en.wikipedia.org/wiki/Protocol_Buffers
 [QUIC]: https://en.wikipedia.org/wiki/QUIC
 [Slic]: https://docs.icerpc.dev/icerpc/slic-transport/overview
 [Slice]: https://docs.icerpc.dev/slice2

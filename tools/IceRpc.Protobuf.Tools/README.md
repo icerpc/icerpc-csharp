@@ -10,27 +10,27 @@ generator is a .NET program and requires .NET 8 or later.
 Once you've added the IceRpc.Protobuf.Tools NuGet package to your project, the Protobuf files of your project are
 automatically compiled into C# files every time you build this project.
 
-The `protoc` compiler contains several built-in generators, including the C# generator, which is responsible for
+The `protoc` compiler contains several built-in generators, including the C# generator which is responsible for
 generating the Protobuf serialization and deserialization code for C#. In addition to these built-in generators,
 `protoc` also executes the external `protoc-gen-icerpc-csharp` generator which is responsible for generating the
-IceRpc + Protobuf integration code.
+IceRPC + Protobuf integration code.
 
 The `protoc` C# generator generates a `.cs` file for each `.proto` file. The generated C# file has the same name
-as the corresponding `.proto` file, but with the name converted to camel case. For example, `greeter.proto` is compiled
+as the corresponding `.proto` file, but with the name converted to Pascal case. For example, `greeter.proto` is compiled
 into `Greeter.cs`.
 
 The `protoc-gen-icerpc-csharp` generator generates a `.IceRpc.cs` file for each `.proto` file. The generated C# file
-has the same name as the corresponding `.proto` file, but with the name converted to camel case. For example,
-`greeter.proto` is compiled into `Greeter.cs`.
+has the same name as the corresponding `.proto` file, but with the name converted to Pascal case. For example,
+`greeter.proto` is compiled into `Greeter.IceRpc.cs`.
 
 [Source code][source] | [Package][package]
 
-## Protobuf files and Protobuf directories
+## Protobuf files and Protobuf import path
 
 The Protobuf compiler accepts two main inputs:
 
 - the Protobuf files to compile into C# code (the Protobuf files)
-- directories that contain reference Protobuf files (the Protobuf directories)
+- directories that contain imported Protobuf files (the Protobuf import path)
 
 You select which files to include in your project's Protobuf files with the `ProtoFile` item type. And you select which
 paths to include in your project's Protobuf import path with the `ProtoImportPath` item type.
@@ -54,7 +54,8 @@ or any of its subdirectories.
 The Protobuf import path is an aggregate of the `ProtoImportPath` defined in your project (if any) and the
 `ProtoImportPath` defined in NuGet packages referenced by your project.
 
-For example, if your project's Protobuf files reference definitions in directory `common/proto`:
+For example, if your project's Protobuf files import files in directory `common/proto`, set your `ProtoImportPath` as
+follows:
 
 ```xml
 <ItemGroup>
