@@ -393,7 +393,7 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable provided to DispatchClientStreamingAsync can be consumed
+    /// <summary>Ensure that the async enumerable stream provided to DispatchClientStreamingAsync can be consumed
     /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
     [Test]
     public async Task Dispatch_client_streaming_rpc_continues_on_background()
@@ -404,7 +404,7 @@ public class StreamTests
             Payload = GetDataAsync().ToPipeReader()
         };
 
-        using var cancelationTokenSource = new CancellationTokenSource();
+        using var cancellationTokenSource = new CancellationTokenSource();
         var completionSource = new TaskCompletionSource();
         var messages = new List<InputMessage>();
         Task? streamTask = null;
@@ -413,7 +413,7 @@ public class StreamTests
         await request.DispatchClientStreamingAsync(
             InputMessage.Parser,
             this,
-            (self, stream, features, cancelationToken) =>
+            (self, stream, features, cancellationToken) =>
             {
                 streamTask = Task.Run(
                     async () =>
@@ -427,8 +427,8 @@ public class StreamTests
                     CancellationToken.None);
                 return new ValueTask<Empty>(new Empty());
             },
-            cancelationTokenSource.Token);
-        cancelationTokenSource.Cancel();
+            cancellationTokenSource.Token);
+        cancellationTokenSource.Cancel();
 
         // Assert
         Assert.That(messages, Is.Empty);
@@ -452,7 +452,7 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable returned by DispatchServerStreamingAsync can be consumed
+    /// <summary>Ensure that the async enumerable stream returned by DispatchServerStreamingAsync can be consumed
     /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
     [Test]
     public async Task Dispatch_server_streaming_continues_on_background()
@@ -463,7 +463,7 @@ public class StreamTests
             Payload = new Empty().EncodeAsLengthPrefixedMessage(new PipeOptions())
         };
 
-        using var cancelationTokenSource = new CancellationTokenSource();
+        using var cancellationTokenSource = new CancellationTokenSource();
         var completionSource = new TaskCompletionSource();
         var messages = new List<OutputMessage>();
         Task? streamTask = null;
@@ -472,12 +472,12 @@ public class StreamTests
         var response = await request.DispatchServerStreamingAsync(
             Empty.Parser,
             this,
-            (self, empty, features, cancelationToken) =>
+            (self, empty, features, cancellationToken) =>
             {
                 return new ValueTask<IAsyncEnumerable<OutputMessage>>(GetDataAsync());
             },
-            cancelationTokenSource.Token);
-        cancelationTokenSource.Cancel();
+            cancellationTokenSource.Token);
+        cancellationTokenSource.Cancel();
 
         // Assert
         Assert.That(response.PayloadContinuation, Is.Not.Null);
@@ -515,8 +515,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerables provided to and returned by DispatchBidiStreamingAsync can be consumed
-    /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
+    /// <summary>Ensure that the async enumerable streams provided to and returned by DispatchBidiStreamingAsync can be
+    /// consumed after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
     [Test]
     public async Task Dispatch_bidi_streaming_continues_on_background()
     {
@@ -527,7 +527,7 @@ public class StreamTests
             Payload = GetInputDataAsync().ToPipeReader()
         };
 
-        using var cancelationTokenSource = new CancellationTokenSource();
+        using var cancellationTokenSource = new CancellationTokenSource();
         var inputMessages = new List<InputMessage>();
         var outputMessages = new List<OutputMessage>();
         Task? clientStreamTask = null;
@@ -537,7 +537,7 @@ public class StreamTests
         var response = await request.DispatchBidiStreamingAsync(
             InputMessage.Parser,
             this,
-            (self, stream, features, cancelationToken) =>
+            (self, stream, features, cancellationToken) =>
             {
                 clientStreamTask = Task.Run(
                     async () =>
@@ -551,8 +551,8 @@ public class StreamTests
                     CancellationToken.None);
                 return new ValueTask<IAsyncEnumerable<OutputMessage>>(GetOutputDataAsync());
             },
-            cancelationTokenSource.Token);
-        cancelationTokenSource.Cancel();
+            cancellationTokenSource.Token);
+        cancellationTokenSource.Cancel();
 
         // Assert
         Assert.That(response.PayloadContinuation, Is.Not.Null);
@@ -607,8 +607,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable provided to InvokeClientStreamingAsync can be consumed after the
-    /// invocatontion returns and the cancellation token provided to the invocation has been canceled.</summary>
+    /// <summary>Ensure that the async enumerable stream provided to InvokeClientStreamingAsync can be consumed after
+    /// the invocation returns and the cancellation token provided to the invocation has been canceled.</summary>
     [Test]
     public async Task Invoke_client_streaming_rpc_continues_on_background()
     {
@@ -616,7 +616,7 @@ public class StreamTests
         PipeReader? payloadContinuation = null;
         using var cancellationTokenSource = new CancellationTokenSource();
         var completionSource = new TaskCompletionSource();
-        
+
         // Act
         _ = await InvokerExtensions.InvokeClientStreamingAsync(
             new InlineInvoker((request, cancellationToken) =>
@@ -673,8 +673,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable returned by InvokeServerStreamingAsync can be consumed after the
-    /// invocatontion returns and the cancellation token provided to the invocation has been canceled.</summary>
+    /// <summary>Ensure that the async enumerable stream returned by InvokeServerStreamingAsync can be consumed after
+    /// the invocation returns and the cancellation token provided to the invocation has been canceled.</summary>
     [Test]
     public async Task Invoke_server_streaming_rpc_continues_on_background()
     {
@@ -733,8 +733,8 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerables provided to and returned by InvokeBidiStreamingAsync can be consumed
-    /// after the invocatontion returns and the cancellation token provided to the invocation has been canceled.
+    /// <summary>Ensure that the async enumerable streams provided to and returned by InvokeBidiStreamingAsync can be
+    /// consumed after the invocation returns and the cancellation token provided to the invocation has been canceled.
     /// </summary>
     [Test]
     public async Task Invoke_bidi_streaming_rpc_continues_on_background()
