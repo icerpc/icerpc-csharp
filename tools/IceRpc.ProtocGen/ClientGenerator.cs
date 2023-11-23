@@ -21,7 +21,7 @@ internal class ClientGenerator
             if (method.GetOptions()?.Deprecated ?? false)
             {
                 methods += @$"
-    [global::System.Obsolete]".Trim();
+    [global::System.Obsolete]";
             }
             methods += @$"
     global::System.Threading.Tasks.Task<{returnType}> {methodName}(
