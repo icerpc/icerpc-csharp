@@ -1,11 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
+using Google.Protobuf.WellKnownTypes;
 using IceRpc.Protobuf.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace IceRpc.Protobuf.Tests;
 
@@ -386,6 +390,426 @@ public class StreamTests
                 await payload.CopyToAsync(writer);
             }
             await writer.FlushAsync();
+        }
+    }
+
+    /// <summary>Ensure that the async enumerable provided to DispatchClientStreamingAsync can be consumed
+    /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
+    [Test]
+    public async Task Dispatch_client_streaming_rpc_continues_on_background()
+    {
+        // Arrange
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = GetDataAsync().ToPipeReader()
+        };
+
+        using var cancelationTokenSource = new CancellationTokenSource();
+        var completionSource = new TaskCompletionSource();
+        var messages = new List<InputMessage>();
+        Task? streamTask = null;
+
+        // Act
+        await request.DispatchClientStreamingAsync(
+            InputMessage.Parser,
+            this,
+            (self, stream, features, cancelationToken) =>
+            {
+                streamTask = Task.Run(
+                    async () =>
+                    {
+                        await completionSource.Task;
+                        await foreach (var message in stream)
+                        {
+                            messages.Add(message);
+                        }
+                    },
+                    CancellationToken.None);
+                return new ValueTask<Empty>(new Empty());
+            },
+            cancelationTokenSource.Token);
+        cancelationTokenSource.Cancel();
+
+        // Assert
+        Assert.That(messages, Is.Empty);
+        Assert.That(streamTask!.IsCompleted, Is.False);
+        completionSource.SetResult();
+        await streamTask;
+        Assert.That(messages, Has.Count.EqualTo(10));
+
+        static async IAsyncEnumerable<InputMessage> GetDataAsync()
+        {
+            await Task.Yield();
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Yield();
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+    }
+
+    /// <summary>Ensure that the async enumerable returned by DispatchServerStreamingAsync can be consumed
+    /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
+    [Test]
+    public async Task Dispatch_server_streaming_continues_on_background()
+    {
+        // Arrange
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = new Empty().EncodeAsLengthPrefixedMessage(new PipeOptions())
+        };
+
+        using var cancelationTokenSource = new CancellationTokenSource();
+        var completionSource = new TaskCompletionSource();
+        var messages = new List<OutputMessage>();
+        Task? streamTask = null;
+
+        // Act
+        var response = await request.DispatchServerStreamingAsync(
+            Empty.Parser,
+            this,
+            (self, empty, features, cancelationToken) =>
+            {
+                return new ValueTask<IAsyncEnumerable<OutputMessage>>(GetDataAsync());
+            },
+            cancelationTokenSource.Token);
+        cancelationTokenSource.Cancel();
+
+        // Assert
+        Assert.That(response.PayloadContinuation, Is.Not.Null);
+        streamTask = ConsumeDataAsync(response.PayloadContinuation);
+        Assert.That(messages, Is.Empty);
+        Assert.That(streamTask!.IsCompleted, Is.False);
+        completionSource.SetResult();
+        await streamTask;
+        Assert.That(messages, Has.Count.EqualTo(10));
+
+        async IAsyncEnumerable<OutputMessage> GetDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+
+        async Task ConsumeDataAsync(PipeReader payload)
+        {
+            IAsyncEnumerable<OutputMessage> stream = payload.ToAsyncEnumerable(
+                OutputMessage.Parser,
+                ProtobufFeature.Default.MaxMessageLength,
+                default);
+
+            await foreach (var message in stream)
+            {
+                messages.Add(message);
+            }
+        }
+    }
+
+    /// <summary>Ensure that the async enumerables provided to and returned by DispatchBidiStreamingAsync can be consumed
+    /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
+    [Test]
+    public async Task Dispatch_bidi_streaming_continues_on_background()
+    {
+        // Arrange
+        var completionSource = new TaskCompletionSource();
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = GetInputDataAsync().ToPipeReader()
+        };
+
+        using var cancelationTokenSource = new CancellationTokenSource();
+        var inputMessages = new List<InputMessage>();
+        var outputMessages = new List<OutputMessage>();
+        Task? clientStreamTask = null;
+        Task? serverStreamTask = null;
+
+        // Act
+        var response = await request.DispatchBidiStreamingAsync(
+            InputMessage.Parser,
+            this,
+            (self, stream, features, cancelationToken) =>
+            {
+                clientStreamTask = Task.Run(
+                    async () =>
+                    {
+                        await completionSource.Task;
+                        await foreach (var message in stream)
+                        {
+                            inputMessages.Add(message);
+                        }
+                    },
+                    CancellationToken.None);
+                return new ValueTask<IAsyncEnumerable<OutputMessage>>(GetOutputDataAsync());
+            },
+            cancelationTokenSource.Token);
+        cancelationTokenSource.Cancel();
+
+        // Assert
+        Assert.That(response.PayloadContinuation, Is.Not.Null);
+        serverStreamTask = ConsumeDataAsync(response.PayloadContinuation);
+        Assert.That(inputMessages, Is.Empty);
+        Assert.That(outputMessages, Is.Empty);
+        Assert.That(clientStreamTask!.IsCompleted, Is.False);
+        Assert.That(serverStreamTask!.IsCompleted, Is.False);
+        completionSource.SetResult();
+        await clientStreamTask;
+        Assert.That(inputMessages, Has.Count.EqualTo(10));
+        await serverStreamTask;
+        Assert.That(outputMessages, Has.Count.EqualTo(10));
+
+        async IAsyncEnumerable<OutputMessage> GetInputDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+
+        async IAsyncEnumerable<OutputMessage> GetOutputDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+
+        async Task ConsumeDataAsync(PipeReader payload)
+        {
+            IAsyncEnumerable<OutputMessage> stream = payload.ToAsyncEnumerable(
+                OutputMessage.Parser,
+                ProtobufFeature.Default.MaxMessageLength,
+                default);
+
+            await foreach (var message in stream)
+            {
+                outputMessages.Add(message);
+            }
+        }
+    }
+
+    /// <summary>Ensure that the async enumerable provided to InvokeClientStreamingAsync can be consumed after the
+    /// invocatontion returns and the cancellation token provided to the invocation has been canceled.</summary>
+    [Test]
+    public async Task Invoke_client_streaming_rpc_continues_on_background()
+    {
+        // Arrange
+        PipeReader? payloadContinuation = null;
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var completionSource = new TaskCompletionSource();
+        
+        // Act
+        _ = await InvokerExtensions.InvokeClientStreamingAsync(
+            new InlineInvoker((request, cancellationToken) =>
+            {
+                var response = new IncomingResponse(
+                    new OutgoingRequest(request.ServiceAddress),
+                    FakeConnectionContext.Instance)
+                {
+                    Payload = new Empty().EncodeAsLengthPrefixedMessage(new PipeOptions())
+                };
+                payloadContinuation = request.PayloadContinuation;
+                request.PayloadContinuation = null;
+                return Task.FromResult(response);
+            }),
+            new ServiceAddress(Protocol.IceRpc),
+            "Op",
+            GetDataAsync(),
+            Empty.Parser,
+            cancellationToken: cancellationTokenSource.Token);
+        cancellationTokenSource.Cancel();
+
+        // Assert
+        completionSource.SetResult(); // Let streaming start
+        Assert.That(payloadContinuation, Is.Not.Null);
+        var messages = await ConsumeDataAsync(payloadContinuation);
+        Assert.That(messages, Has.Count.EqualTo(10));
+
+        static async Task<List<InputMessage>> ConsumeDataAsync(PipeReader payload)
+        {
+            IAsyncEnumerable<InputMessage> stream = payload.ToAsyncEnumerable(
+                InputMessage.Parser,
+                ProtobufFeature.Default.MaxMessageLength,
+                CancellationToken.None);
+
+            var messages = new List<InputMessage>();
+            await foreach (var message in stream)
+            {
+                messages.Add(message);
+            }
+            return messages;
+        }
+
+        async IAsyncEnumerable<InputMessage> GetDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+    }
+
+    /// <summary>Ensure that the async enumerable returned by InvokeServerStreamingAsync can be consumed after the
+    /// invocatontion returns and the cancellation token provided to the invocation has been canceled.</summary>
+    [Test]
+    public async Task Invoke_server_streaming_rpc_continues_on_background()
+    {
+        // Arrange
+        PipeReader? payloadContinuation = null;
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var completionSource = new TaskCompletionSource();
+
+        // Act
+        IAsyncEnumerable<OutputMessage> stream = await InvokerExtensions.InvokeServerStreamingAsync(
+            new InlineInvoker((request, cancellationToken) =>
+            {
+                var response = new IncomingResponse(
+                    new OutgoingRequest(request.ServiceAddress),
+                    FakeConnectionContext.Instance)
+                {
+                    Payload = GetDataAsync().ToPipeReader()
+                };
+                payloadContinuation = request.PayloadContinuation;
+                request.PayloadContinuation = null;
+                return Task.FromResult(response);
+            }),
+            new ServiceAddress(Protocol.IceRpc),
+            "Op",
+            new Empty(),
+            OutputMessage.Parser,
+            cancellationToken: cancellationTokenSource.Token);
+        cancellationTokenSource.Cancel();
+
+        // Assert
+        completionSource.SetResult(); // Let streaming start
+        var messages = await ConsumeDataAsync(stream);
+        Assert.That(messages, Has.Count.EqualTo(10));
+
+        static async Task<List<OutputMessage>> ConsumeDataAsync(IAsyncEnumerable<OutputMessage> stream)
+        {
+            var messages = new List<OutputMessage>();
+            await foreach (var message in stream)
+            {
+                messages.Add(message);
+            }
+            return messages;
+        }
+
+        async IAsyncEnumerable<OutputMessage> GetDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+    }
+
+    /// <summary>Ensure that the async enumerables provided to and returned by InvokeBidiStreamingAsync can be consumed
+    /// after the invocatontion returns and the cancellation token provided to the invocation has been canceled.
+    /// </summary>
+    [Test]
+    public async Task Invoke_bidi_streaming_rpc_continues_on_background()
+    {
+        // Arrange
+        PipeReader? payloadContinuation = null;
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var completionSource = new TaskCompletionSource();
+
+        // Act
+        IAsyncEnumerable<OutputMessage> stream = await InvokerExtensions.InvokeBidiStreamingAsync(
+            new InlineInvoker((request, cancellationToken) =>
+            {
+                var response = new IncomingResponse(
+                    new OutgoingRequest(request.ServiceAddress),
+                    FakeConnectionContext.Instance)
+                {
+                    Payload = GetOutputDataAsync().ToPipeReader()
+                };
+                payloadContinuation = request.PayloadContinuation;
+                request.PayloadContinuation = null;
+                return Task.FromResult(response);
+            }),
+            new ServiceAddress(Protocol.IceRpc),
+            "Op",
+            GetInputDataAsync(),
+            OutputMessage.Parser,
+            cancellationToken: cancellationTokenSource.Token);
+        cancellationTokenSource.Cancel();
+
+        // Assert
+        completionSource.SetResult(); // Let streaming start
+        var outputMessages = await ConsumeDataAsync(stream);
+        Assert.That(outputMessages, Has.Count.EqualTo(10));
+        Assert.That(payloadContinuation, Is.Not.Null);
+        var inputMessages = await ConsumeDataAsync(
+            payloadContinuation.ToAsyncEnumerable(
+                InputMessage.Parser,
+                ProtobufFeature.Default.MaxMessageLength));
+        Assert.That(inputMessages, Has.Count.EqualTo(10));
+
+        static async Task<List<T>> ConsumeDataAsync<T>(IAsyncEnumerable<T> stream)
+        {
+            var messages = new List<T>();
+            await foreach (var message in stream)
+            {
+                messages.Add(message);
+            }
+            return messages;
+        }
+
+        async IAsyncEnumerable<OutputMessage> GetOutputDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+
+        async IAsyncEnumerable<InputMessage> GetInputDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
         }
     }
 

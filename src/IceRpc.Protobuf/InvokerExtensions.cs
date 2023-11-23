@@ -162,7 +162,7 @@ public static class InvokerExtensions
         }
 
         // ReceiveStreamingResponseAsync is responsible for disposing the request
-        return ReceiveStreamingResponseAsync(messageParser, responseTask, request, cancellationToken);
+        return ReceiveStreamingResponseAsync(messageParser, responseTask, request);
     }
 
     /// <summary>Sends a request to a service and decodes the response. This method is for Protobuf bidi-streaming
@@ -213,7 +213,7 @@ public static class InvokerExtensions
         }
 
         // ReceiveStreamingResponseAsync is responsible for disposing the request
-        return ReceiveStreamingResponseAsync(messageParser, responseTask, request, cancellationToken);
+        return ReceiveStreamingResponseAsync(messageParser, responseTask, request);
     }
 
     private static async Task<TOutput> ReceiveResponseAsync<TOutput>(
@@ -251,8 +251,7 @@ public static class InvokerExtensions
     private static async Task<IAsyncEnumerable<TOutput>> ReceiveStreamingResponseAsync<TOutput>(
         MessageParser<TOutput> messageParser,
         Task<IncomingResponse> responseTask,
-        OutgoingRequest request,
-        CancellationToken cancellationToken) where TOutput : IMessage<TOutput>
+        OutgoingRequest request) where TOutput : IMessage<TOutput>
     {
         try
         {
@@ -264,7 +263,7 @@ public static class InvokerExtensions
                 return payload.ToAsyncEnumerable(
                     messageParser,
                     protobufFeature.MaxMessageLength,
-                    cancellationToken);
+                    CancellationToken.None);
             }
             else
             {
