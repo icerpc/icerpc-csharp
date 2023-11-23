@@ -13,7 +13,7 @@
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
-    <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="1.5.1" />
+    <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="1.6.0" />
     <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>

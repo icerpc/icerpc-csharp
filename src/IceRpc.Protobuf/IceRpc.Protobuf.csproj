@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
-    <PackageReference Include="Google.Protobuf" Version="3.25.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.25.1" />
   </ItemGroup>
   <!-- NuGet package contents-->
   <ItemGroup>
