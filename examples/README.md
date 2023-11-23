@@ -30,7 +30,7 @@ of the NuGet packages, as described in [BUILDING].
 |                         |                                                                                                          |
 |-------------------------|----------------------------------------------------------------------------------------------------------|
 | [json](./json/)         | Contains examples that use the IceRPC core APIs to send and receive JSON-encoded requests and responses. |
-| [slice](./slice/)       | Contains examples that use the IceRPC + Slice integration.    |
-| [protobuf](./protobuf/) | Contains examples that use the IceRPC + Protobuf integration. |
+| [slice](./slice/)       | Contains examples that use the IceRPC + Slice integration.                                               |
+| [protobuf](./protobuf/) | Contains examples that use the IceRPC + Protobuf integration.                                            |
 
 [BUILDING]: ../BUILDING.md
