@@ -2,10 +2,10 @@
 
 using Google.Protobuf.WellKnownTypes;
 using IceRpc.Features;
+using IceRpc.Protobuf.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace IceRpc.Protobuf.Tests;
 
@@ -280,6 +280,65 @@ public partial class OperationTests
         Assert.That(() => responsePayload!.Completed, Throws.Nothing);
     }
 
+    /// <summary>Ensure that client streaming can continue on background after the dispatch method returns and the
+    /// cancellation token given to the dispatch has been canceled.</summary>
+    [Test]
+    public async Task Client_streaming_continues_on_background()
+    {
+        // Arrange
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = GetDataAsync().ToPipeReader()
+        };
+
+        using var cancelationTokenSource = new CancellationTokenSource();
+        var completionSource = new TaskCompletionSource();
+        var messages = new List<InputMessage>();
+        Task? streamTask = null;
+
+        // Act
+        await request.DispatchClientStreamingAsync(
+            InputMessage.Parser,
+            this,
+            (self, stream, features, cancelationToken) =>
+            {
+                streamTask = Task.Run(
+                    async () =>
+                    {
+                        await completionSource.Task;
+                        await foreach (var message in stream)
+                        {
+                            messages.Add(message);
+                        }
+                    },
+                    CancellationToken.None);
+                return new ValueTask<Empty>(new Empty());
+            },
+            cancelationTokenSource.Token);
+        cancelationTokenSource.Cancel();
+
+        // Assert
+        Assert.That(messages, Is.Empty);
+        Assert.That(streamTask!.IsCompleted, Is.False);
+        completionSource.SetResult();
+        await streamTask;
+        Assert.That(messages, Has.Count.EqualTo(10));
+
+        static async IAsyncEnumerable<InputMessage> GetDataAsync()
+        {
+            await Task.Yield();
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Yield();
+                yield return new InputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+    }
+
     [Test]
     public async Task Client_streaming_rpc_completes_request_and_response_payloads()
     {
@@ -377,6 +436,69 @@ public partial class OperationTests
         }
     }
 
+    /// <summary>Ensure that server streaming can continue on background after the dispatch method returns and the
+    /// cancellation token given to the dispatch has been canceled.</summary>
+    [Test]
+    public async Task Server_streaming_continues_on_background()
+    {
+        // Arrange
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = new Empty().EncodeAsLengthPrefixedMessage(new PipeOptions())
+        };
+
+        using var cancelationTokenSource = new CancellationTokenSource();
+        var completionSource = new TaskCompletionSource();
+        var messages = new List<OutputMessage>();
+        Task? streamTask = null;
+
+        // Act
+        var response = await request.DispatchServerStreamingAsync(
+            Empty.Parser,
+            this,
+            (self, empty, features, cancelationToken) =>
+            {
+                return new ValueTask<IAsyncEnumerable<OutputMessage>>(GetDataAsync());
+            },
+            cancelationTokenSource.Token);
+        cancelationTokenSource.Cancel();
+
+        // Assert
+        Assert.That(response.PayloadContinuation, Is.Not.Null);
+        streamTask = ConsumeDataAsync(response.PayloadContinuation);
+        Assert.That(messages, Is.Empty);
+        Assert.That(streamTask!.IsCompleted, Is.False);
+        completionSource.SetResult();
+        await streamTask;
+        Assert.That(messages, Has.Count.EqualTo(10));
+
+        async IAsyncEnumerable<OutputMessage> GetDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+
+        async Task ConsumeDataAsync(PipeReader payload)
+        {
+            IAsyncEnumerable<OutputMessage> stream = payload.ToAsyncEnumerable(
+                OutputMessage.Parser,
+                ProtobufFeature.Default.MaxMessageLength,
+                default);
+
+            await foreach (var message in stream)
+            {
+                messages.Add(message);
+            }
+        }
+    }
+
     [Test]
     public async Task Server_streaming_rpc_completes_request_and_response_payloads()
     {
@@ -436,10 +558,102 @@ public partial class OperationTests
 
         var client = new MyOperationsClient(pipeline);
 
-        // Act
+        // Act/Assert
         Assert.ThrowsAsync<DispatchException>(async () => await client.ServerStreamingOpAsync(new Empty()));
         Assert.That(() => requestPayload!.Completed, Throws.Nothing);
         Assert.That(() => responsePayload!.Completed, Throws.Nothing);
+    }
+
+    /// <summary>Ensure that bidi streaming can continue on background after the dispatch method returns and the
+    /// cancellation token given to the dispatch has been canceled.</summary>
+    [Test]
+    public async Task Bidi_streaming_continues_on_background()
+    {
+        // Arrange
+        var completionSource = new TaskCompletionSource();
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = GetInputDataAsync().ToPipeReader()
+        };
+
+        using var cancelationTokenSource = new CancellationTokenSource();
+        var inputMessages = new List<InputMessage>();
+        var outputMessages = new List<OutputMessage>();
+        Task? clientStreamTask = null;
+        Task? serverStreamTask = null;
+
+        // Act
+        var response = await request.DispatchBidiStreamingAsync(
+            InputMessage.Parser,
+            this,
+            (self, stream, features, cancelationToken) =>
+            {
+                clientStreamTask = Task.Run(
+                    async () =>
+                    {
+                        await completionSource.Task;
+                        await foreach (var message in stream)
+                        {
+                            inputMessages.Add(message);
+                        }
+                    },
+                    CancellationToken.None);
+                return new ValueTask<IAsyncEnumerable<OutputMessage>>(GetOutputDataAsync());
+            },
+            cancelationTokenSource.Token);
+        cancelationTokenSource.Cancel();
+
+        // Assert
+        Assert.That(response.PayloadContinuation, Is.Not.Null);
+        serverStreamTask = ConsumeDataAsync(response.PayloadContinuation);
+        Assert.That(inputMessages, Is.Empty);
+        Assert.That(outputMessages, Is.Empty);
+        Assert.That(clientStreamTask!.IsCompleted, Is.False);
+        Assert.That(serverStreamTask!.IsCompleted, Is.False);
+        completionSource.SetResult();
+        await clientStreamTask;
+        Assert.That(inputMessages, Has.Count.EqualTo(10));
+        await serverStreamTask;
+        Assert.That(outputMessages, Has.Count.EqualTo(10));
+
+        async IAsyncEnumerable<OutputMessage> GetInputDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+
+        async IAsyncEnumerable<OutputMessage> GetOutputDataAsync()
+        {
+            await completionSource.Task;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return new OutputMessage()
+                {
+                    P1 = $"P{i}",
+                    P2 = i,
+                };
+            }
+        }
+
+        async Task ConsumeDataAsync(PipeReader payload)
+        {
+            IAsyncEnumerable<OutputMessage> stream = payload.ToAsyncEnumerable(
+                OutputMessage.Parser,
+                ProtobufFeature.Default.MaxMessageLength,
+                default);
+
+            await foreach (var message in stream)
+            {
+                outputMessages.Add(message);
+            }
+        }
     }
 
     [Test]
