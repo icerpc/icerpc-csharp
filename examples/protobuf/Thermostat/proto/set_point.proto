@@ -6,5 +6,5 @@ package igloo;
 option csharp_namespace = "Igloo";
 
 message ChangeSetPointRequest {
-    float SetPoint = 1;
+    float set_point = 1;
 }

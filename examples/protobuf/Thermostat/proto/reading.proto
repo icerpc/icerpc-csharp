@@ -13,13 +13,13 @@ message Reading {
     google.protobuf.Timestamp Timestamp = 1;
 
     // The current temperature (in °F).
-    float Temperature = 2;
+    float temperature = 2;
 
     // The target temperature (in °F).
-    float SetPoint = 3;
+    float set_point = 3;
 
     // The state of the AC unit.
-    Stage Cooling = 4;
+    Stage cooling = 4;
 }
 
 // Represents the possible states of the AC unit.
