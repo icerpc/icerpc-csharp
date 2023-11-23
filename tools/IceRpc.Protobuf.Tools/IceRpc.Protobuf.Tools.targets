@@ -31,15 +31,15 @@
     <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
         <MakeDir Directories="%(ProtoFile.OutputDir)" />
         <!-- Compile the Proto files
-          The import path determines where protoc compiler locates import files, we add:
+          The search path determines where protoc compiler locates import files, we add:
           - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
           - $(MSBuildProjectDirectory) to import the project own files.
-          - @(ProtoImportPath) additional import paths specified by the user.
+          - @(ProtoSearchPath) additional search paths specified by the user.
         -->
         <ProtocTask
             WorkingDirectory="$(MSBuildProjectDirectory)"
             OutputDir="%(ProtoFile.OutputDir)"
-            ImportPath="@(ProtoImportPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
+            SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
             ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
             ScriptPath="$(IceRpcProtocGenPath)"
             Sources="@(ProtoFile)">

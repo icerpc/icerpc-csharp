@@ -25,15 +25,15 @@ has the same name as the corresponding `.proto` file, but with the name converte
 
 [Source code][source] | [Package][package]
 
-## Protobuf files and Protobuf import path
+## Protobuf files and Protobuf search path
 
 The Protobuf compiler accepts two main inputs:
 
 - the Protobuf files to compile into C# code (the Protobuf files)
-- directories that contain imported Protobuf files (the Protobuf import path)
+- directories that contain imported Protobuf files (the Protobuf search path)
 
 You select which files to include in your project's Protobuf files with the `ProtoFile` item type. And you select which
-paths to include in your project's Protobuf import path with the `ProtoImportPath` item type.
+paths to include in your project's Protobuf search path with the `ProtoSearchPath` item type.
 
 By default, all `.proto` files located in your project's home directory and any of its subdirectories, recursively, are
 included in `ProtoFile`. You can prevent this auto-inclusion of `.proto` files by setting either
@@ -51,15 +51,15 @@ You can also add Protobuf files to your project explicitly. For example:
 This adds `greeter.proto` to your project's Protobuf files even though this file is not in the project's home directory
 or any of its subdirectories.
 
-The Protobuf import path is an aggregate of the `ProtoImportPath` defined in your project (if any) and the
-`ProtoImportPath` defined in NuGet packages referenced by your project.
+The Protobuf search path is an aggregate of the `ProtoSearchPath` defined in your project (if any) and the
+`ProtoSearchPath` defined in NuGet packages referenced by your project.
 
-For example, if your project's Protobuf files import files in directory `common/proto`, set your `ProtoImportPath` as
+For example, if your project's Protobuf files import files in directory `common/proto`, set your `ProtoSearchPath` as
 follows:
 
 ```xml
 <ItemGroup>
-    <ProtoImportPath Include="$(MSBuildThisFileDirectory)../common/proto"/>
+    <ProtoSearchPath Include="$(MSBuildThisFileDirectory)../common/proto"/>
 </ItemGroup>
 ```
 
