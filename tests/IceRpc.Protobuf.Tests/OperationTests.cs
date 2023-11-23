@@ -82,7 +82,7 @@ public partial class OperationTests
     }
 
     [Test]
-    public async Task Bidirectional_streaming_rpc()
+    public async Task Bidi_streaming_rpc()
     {
         // Arrange
         var service = new MyOperationsService();
@@ -90,7 +90,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(invoker);
 
         // Act
-        IAsyncEnumerable<OutputMessage> stream = await client.BidirectionalStreamingOpAsync(GetDataAsync());
+        IAsyncEnumerable<OutputMessage> stream = await client.BidiStreamingOpAsync(GetDataAsync());
 
         // Assert
         Assert.That(service.Messages, Has.Count.EqualTo(10));
@@ -464,7 +464,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(pipeline);
 
         // Act
-        IAsyncEnumerable<OutputMessage> stream = await client.BidirectionalStreamingOpAsync(GetDataAsync());
+        IAsyncEnumerable<OutputMessage> stream = await client.BidiStreamingOpAsync(GetDataAsync());
 
         // Assert
         var messages = new List<OutputMessage>();
@@ -516,7 +516,7 @@ public partial class OperationTests
         var client = new MyOperationsClient(pipeline);
 
         // Act
-        Assert.ThrowsAsync<DispatchException>(async () => await client.BidirectionalStreamingOpAsync(GetDataAsync()));
+        Assert.ThrowsAsync<DispatchException>(async () => await client.BidiStreamingOpAsync(GetDataAsync()));
         Assert.That(() => requestPayload!.Completed, Throws.Nothing);
         Assert.That(() => responsePayload!.Completed, Throws.Nothing);
 
@@ -581,7 +581,7 @@ public partial class OperationTests
                 }
             }
         }
-        public async ValueTask<IAsyncEnumerable<OutputMessage>> BidirectionalStreamingOpAsync(
+        public async ValueTask<IAsyncEnumerable<OutputMessage>> BidiStreamingOpAsync(
             IAsyncEnumerable<InputMessage> stream,
             IFeatureCollection features,
             CancellationToken cancellationToken)

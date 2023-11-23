@@ -14,7 +14,7 @@ service MyOperations {
 
     rpc ServerStreamingOp(google.protobuf.Empty) returns (stream OutputMessage);
 
-    rpc BidirectionalStreamingOp(stream InputMessage) returns (stream OutputMessage);
+    rpc BidiStreamingOp(stream InputMessage) returns (stream OutputMessage);
 
     rpc IdempotentOp(google.protobuf.Empty) returns (google.protobuf.Empty) {
         option idempotency_level = IDEMPOTENT;
