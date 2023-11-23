@@ -5,11 +5,8 @@ using IceRpc.Protobuf.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
-using System.Collections.Specialized;
-using System.ComponentModel;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace IceRpc.Protobuf.Tests;
 

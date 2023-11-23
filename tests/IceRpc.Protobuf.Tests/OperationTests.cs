@@ -2,10 +2,8 @@
 
 using Google.Protobuf.WellKnownTypes;
 using IceRpc.Features;
-using IceRpc.Protobuf.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf.Tests;
 
