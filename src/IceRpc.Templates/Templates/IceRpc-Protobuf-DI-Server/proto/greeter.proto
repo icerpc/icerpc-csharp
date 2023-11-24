@@ -1,5 +1,3 @@
-// Copyright (c) ZeroC, Inc.
-
 syntax = "proto3";
 
 package visitor_center;
