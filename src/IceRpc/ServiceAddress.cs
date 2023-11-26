@@ -192,7 +192,7 @@ public sealed record class ServiceAddress
 
     // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in path,
     // fragment, etc. in addition to the invalid characters in the _notValidInXXX search values.
-    private const char FirsValidChar = '\x21';
+    private const char FirstValidChar = '\x21';
     private const char LastValidChar = '\x7E';
 
     private static readonly SearchValues<char> _notValidInFragment = SearchValues.Create("\"<>\\^`{|}");
@@ -536,7 +536,7 @@ public sealed record class ServiceAddress
     private static bool IsValid(string s, SearchValues<char> invalidChars)
     {
         ReadOnlySpan<char> span = s.AsSpan();
-        return span.IndexOfAnyExceptInRange(FirsValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
+        return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
     }
 
     /// <summary>Checks if <paramref name="name" /> is not empty, not equal to <c>alt-server</c> nor equal to
