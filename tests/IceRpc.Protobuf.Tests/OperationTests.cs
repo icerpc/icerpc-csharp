@@ -4,8 +4,6 @@ using Google.Protobuf.WellKnownTypes;
 using IceRpc.Features;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using System.IO.Pipelines;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace IceRpc.Protobuf.Tests;
 
@@ -436,7 +434,7 @@ public partial class OperationTests
 
         var client = new MyOperationsClient(pipeline);
 
-        // Act
+        // Act/Assert
         Assert.ThrowsAsync<DispatchException>(async () => await client.ServerStreamingOpAsync(new Empty()));
         Assert.That(() => requestPayload!.Completed, Throws.Nothing);
         Assert.That(() => responsePayload!.Completed, Throws.Nothing);
