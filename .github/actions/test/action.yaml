@@ -4,8 +4,8 @@ runs:
   using: "composite"
   steps:
   - name: 🧪 Test Slice Compiler
-    uses: dtolnay/rust-toolchain@stable
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
+    shell: bash
   - name: 🧪 Test
     run: dotnet test --no-build --verbosity normal
     shell: bash
