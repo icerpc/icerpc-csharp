@@ -3,11 +3,13 @@
 Use the `build` shell script to build the source code in this repository:
 
 Linux or macOS
+
 ```shell
 ./build.sh --help
 ```
 
 Windows
+
 ```shell
 build.cmd -help
 ```
@@ -34,7 +36,7 @@ build.cmd -help
 1. Rust\
 Install Rust using [rustup](https://rustup.rs/).
 
-2. .NET SDK 7 or 8\
+2. .NET SDK 8\
 Download the .NET SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download/dotnet).
 
 3. docfx (optional)\
@@ -66,14 +68,17 @@ flowchart LR
 The Slice compiler for C# (slicec-cs) is written in Rust. Everything else is written in C#.
 
 ## Building IceRpc
+
 ### Command line
 
 Linux or macOS
+
 ```shell
 ./build.sh --build
 ```
 
 Windows
+
 ```shell
 build.cmd -build
 ```
@@ -109,11 +114,13 @@ This command runs the test suite for `slicec-cs`.
 ## Creating and publishing NuGet packages
 
 Linux or macOS
+
 ```shell
 ./build.sh --publish
 ```
 
 Windows
+
 ```shell
 build.cmd -publish
 ```
@@ -130,6 +137,7 @@ By default, the NuGet package `IceRpc.Slice.Tools` includes only the `slice-cs` 
 If you set the MSBuild property `SLICEC_CS_STAGING_PATH`, `IceRpc.Slice.Tools` instead includes the `slicec-cs` compiler
 for all supported platforms. The expected layout of the staging directory is
 `<os-name>-<os-arch>/<compiler-executable>`, with the following subdirectories:
+
 - `linux-x64`: Linux x86_64
 - `linux-arm64`: Linux ARM64
 - `macos-x64`: macOS x86_64
@@ -141,11 +149,13 @@ Make sure that all these compilers are available when you set `SLICEC_CS_STAGING
 ## Generating the API reference
 
 Linux or macOS
+
 ```shell
 ./build.sh --doc
 ```
 
 Windows
+
 ```shell
 build.cmd -doc
 ```
@@ -160,11 +170,13 @@ docfx serve docfx/_site
 ## Generating the code coverage reports
 
 Linux or macOS
+
 ```shell
 ./build.sh --coverage
 ```
 
 Windows
+
 ```shell
 build.cmd -coverage
 ```
@@ -191,16 +203,19 @@ The procedure to upgrade these files is as follows:
 
 2. Create a companion PR for the required changes in the icerpc-csharp repository. Start by creating a branch
    for the PR and pulling the changes from icerpc-slice:
+
 ```
 git checkout -b my-branch --track origin/main
 git subtree pull --prefix slice git@github.com:icerpc/icerpc-slice.git main
 git push <remote> my-branch
 ```
+
 3. Make the necessary C# updates, open the PR in icerpc-csharp, and iterate until it's ready for merging. The "Check
    Slice Subtree Updates" workflow job is expected to fail at this point. This is the workflow ensuring that the
    contents of slice sub-directory are not updated with a PR.
 
 4. Once you are ready to merge you need to first merge the icerpc-slice changes into the icerpc-csharp's main branch
+
 ``` shell
 git checkout -b main --track origin/main
 git pull
@@ -209,6 +224,7 @@ git push origin main
 ```
 
 5. Then merge the main branch into your PR
+
 ``` shell
 git checkout my-branch
 git merge origin/main
@@ -223,4 +239,5 @@ git push <remote> my-branch
 Please ensure to replace `<remote>` with the appropriate remote repository name where you want to push your changes.
 Also, make sure to follow the instructions carefully, and adjust any repository and branch names as needed for your
 specific setup.
+
 [icerpc-slice]: https://github.com/icerpc/icerpc-slice
