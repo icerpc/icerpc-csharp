@@ -40,12 +40,12 @@ flowchart LR
 The arrows on the diagram indicate the client and server sides of the connection, not the flow of requests and
 responses.
 
-Server implements two Slice interfaces using two separate services:
+Server implements two Protobuf services using two separate services:
 
 - `Thermostat`, the client-facing interface
 - `ThermoHome`, the device-facing interface
 
-Server also calls a service on the device that implements Slice interface `ThermoControl`.
+Server also calls a service on the device that implements Protobuf service `ThermoControl`.
 
 ## Build and run
 

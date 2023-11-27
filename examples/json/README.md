@@ -1,10 +1,7 @@
-# GreeterJson
+# Json
 
-The GreeterJson example illustrates how to use JSON to encode the payloads of IceRPC requests and
+The Json example illustrates how to use JSON to encode the payloads of IceRPC requests and
 responses.
-
-It's a variation of the [Greeter](Greeter) example that uses JSON instead of Slice. See also the
-[GreeterCore](GreeterCore) example that uses the same core APIs to create requests and responses.
 
 You can build the client and server applications with:
 
