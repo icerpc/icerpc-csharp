@@ -29,7 +29,7 @@ runs:
       if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
       run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
       shell: bash
-    - name: Toolchain
+    - name: Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
