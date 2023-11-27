@@ -390,10 +390,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable stream provided to DispatchClientStreamingAsync can be consumed
+    /// <summary>Ensures that the async enumerable stream provided to DispatchClientStreamingAsync can be consumed
     /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
     [Test]
-    public async Task Dispatch_client_streaming_rpc_continues_on_background()
+    public async Task Dispatch_client_streaming_rpc_continues_in_the_background()
     {
         // Arrange
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
@@ -449,10 +449,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable stream returned by DispatchServerStreamingAsync can be consumed
+    /// <summary>Ensures that the async enumerable stream returned by DispatchServerStreamingAsync can be consumed
     /// after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
     [Test]
-    public async Task Dispatch_server_streaming_continues_on_background()
+    public async Task Dispatch_server_streaming_continues_in_the_background()
     {
         // Arrange
         using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
@@ -510,10 +510,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable streams provided to and returned by DispatchBidiStreamingAsync can be
+    /// <summary>Ensures that the async enumerable streams provided to and returned by DispatchBidiStreamingAsync can be
     /// consumed after the dispatch returns and the cancellation token provided to dispatch has been canceled.</summary>
     [Test]
-    public async Task Dispatch_bidi_streaming_continues_on_background()
+    public async Task Dispatch_bidi_streaming_continues_in_the_background()
     {
         // Arrange
         var completionSource = new TaskCompletionSource();
@@ -602,10 +602,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable stream provided to InvokeClientStreamingAsync can be consumed after
+    /// <summary>Ensures that the async enumerable stream provided to InvokeClientStreamingAsync can be consumed after
     /// the invocation returns and the cancellation token provided to the invocation has been canceled.</summary>
     [Test]
-    public async Task Invoke_client_streaming_rpc_continues_on_background()
+    public async Task Invoke_client_streaming_rpc_continues_in_the_background()
     {
         // Arrange
         PipeReader? payloadContinuation = null;
@@ -668,10 +668,10 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable stream returned by InvokeServerStreamingAsync can be consumed after
+    /// <summary>Ensures that the async enumerable stream returned by InvokeServerStreamingAsync can be consumed after
     /// the invocation returns and the cancellation token provided to the invocation has been canceled.</summary>
     [Test]
-    public async Task Invoke_server_streaming_rpc_continues_on_background()
+    public async Task Invoke_server_streaming_rpc_continues_in_the_background()
     {
         // Arrange
         PipeReader? payloadContinuation = null;
@@ -728,11 +728,11 @@ public class StreamTests
         }
     }
 
-    /// <summary>Ensure that the async enumerable streams provided to and returned by InvokeBidiStreamingAsync can be
+    /// <summary>Ensures that the async enumerable streams provided to and returned by InvokeBidiStreamingAsync can be
     /// consumed after the invocation returns and the cancellation token provided to the invocation has been canceled.
     /// </summary>
     [Test]
-    public async Task Invoke_bidi_streaming_rpc_continues_on_background()
+    public async Task Invoke_bidi_streaming_rpc_continues_in_the_background()
     {
         // Arrange
         PipeReader? payloadContinuation = null;
