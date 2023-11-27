@@ -470,9 +470,7 @@ public class StreamTests
             Empty.Parser,
             this,
             (self, empty, features, cancellationToken) =>
-            {
-                return new ValueTask<IAsyncEnumerable<OutputMessage>>(GetDataAsync());
-            },
+                new ValueTask<IAsyncEnumerable<OutputMessage>>(GetDataAsync()),
             cancellationTokenSource.Token);
         cancellationTokenSource.Cancel();
 
