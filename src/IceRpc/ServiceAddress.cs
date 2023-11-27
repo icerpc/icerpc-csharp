@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -188,6 +189,16 @@ public sealed record class ServiceAddress
     /// properties have not been updated. The setting of a URI-derived property such as <see cref="ServerAddress" />
     /// sets <see cref="OriginalUri" /> to <see langword="null"/>.</value>
     public Uri? OriginalUri { get; private set; }
+
+    // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in path,
+    // fragment, etc. in addition to the invalid characters in the _notValidInXXX search values.
+    private const char FirstValidChar = '\x21';
+    private const char LastValidChar = '\x7E';
+
+    private static readonly SearchValues<char> _notValidInFragment = SearchValues.Create("\"<>\\^`{|}");
+    private static readonly SearchValues<char> _notValidInParamName = SearchValues.Create("\"<>#&=\\^`{|}");
+    private static readonly SearchValues<char> _notValidInParamValue = SearchValues.Create("\"<>#&\\^`{|}");
+    private static readonly SearchValues<char> _notValidInPath = SearchValues.Create("\"<>#?\\^`{|}");
 
     private ImmutableList<ServerAddress> _altServerAddresses = ImmutableList<ServerAddress>.Empty;
     private string _fragment = "";
@@ -476,7 +487,7 @@ public sealed record class ServiceAddress
     /// <remarks>The absolute path of a URI with a supported protocol satisfies these requirements.</remarks>
     internal static void CheckPath(string path)
     {
-        if (path.Length == 0 || path[0] != '/' || !IsValid(path, "\"<>#?\\^`{|}"))
+        if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
         {
             throw new FormatException(
                 $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'.");
@@ -488,7 +499,7 @@ public sealed record class ServiceAddress
     /// <param name="value">The value to check.</param>
     /// <returns><see langword="true" /> if <paramref name="value" /> is a valid parameter value; otherwise,
     /// <see langword="false" />.</returns>
-    internal static bool IsValidParamValue(string value) => IsValid(value, "\"<>#&\\^`{|}");
+    internal static bool IsValidParamValue(string value) => IsValid(value, _notValidInParamValue);
 
     /// <summary>"unchecked" constructor used by the Slice decoder when decoding a Slice1 encoded service address.
     /// </summary>
@@ -515,27 +526,17 @@ public sealed record class ServiceAddress
     /// <remarks>The fragment of a URI with a supported protocol satisfies these requirements.</remarks>
     private static void CheckFragment(string fragment)
     {
-        if (!IsValid(fragment, "\"<>\\^`{|}"))
+        if (!IsValid(fragment, _notValidInFragment))
         {
             throw new FormatException(
                 $"Invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'.");
         }
     }
 
-    private static bool IsValid(string s, string invalidChars)
+    private static bool IsValid(string s, SearchValues<char> invalidChars)
     {
-        // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in
-        // addition to the invalid characters in the invalidChars string.
-        foreach (char c in s)
-        {
-            if (c.CompareTo('\x20') <= 0 ||
-                c.CompareTo('\x7F') >= 0 ||
-                invalidChars.Contains(c, StringComparison.InvariantCulture))
-            {
-                return false;
-            }
-        }
-        return true;
+        ReadOnlySpan<char> span = s.AsSpan();
+        return span.IndexOfAnyExceptInRange(FirstValidChar, LastValidChar) == -1 && span.IndexOfAny(invalidChars) == -1;
     }
 
     /// <summary>Checks if <paramref name="name" /> is not empty, not equal to <c>alt-server</c> nor equal to
@@ -548,7 +549,7 @@ public sealed record class ServiceAddress
     /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid
     /// in a name.</remarks>
     private static bool IsValidParamName(string name) =>
-        name.Length > 0 && name != "alt-server" && name != "transport" && IsValid(name, "\"<>#&=\\^`{|}");
+        name.Length > 0 && name != "alt-server" && name != "transport" && IsValid(name, _notValidInParamName);
 }
 
 /// <summary>The service address type converter specifies how to convert a string to a service address. It's used by
