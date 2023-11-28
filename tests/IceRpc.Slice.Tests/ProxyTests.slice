@@ -7,9 +7,15 @@ interface MyBaseInterface {}
 interface MyDerivedInterface : MyBaseInterface {}
 
 interface ReceiveProxyTest {
-    receiveProxy() -> ReceiveProxyTest
+    receiveProxy() -> ReceiveProxyTestProxy
 }
 
+[cs::type("IceRpc.Slice.Tests.ReceiveProxyTestProxy")]
+custom ReceiveProxyTestProxy
+
 interface SendProxyTest {
-    sendProxy(proxy: SendProxyTest)
+    sendProxy(proxy: SendProxyTestProxy)
 }
+
+[cs::type("IceRpc.Slice.Tests.SendProxyTestProxy")]
+custom SendProxyTestProxy
