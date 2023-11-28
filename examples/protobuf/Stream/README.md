@@ -1,4 +1,4 @@
-# StreamProtobuf
+# Stream
 
 This example application illustrates how to stream random numbers from a server to a client.
 

@@ -1,4 +1,4 @@
-# GreeterQuic
+# Quic
 
 This example application illustrates how to use the QUIC multiplexed transport.
 

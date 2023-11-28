@@ -7,6 +7,9 @@
 - name: Slice
   href: https://docs.icerpc.dev/slice2
 
+- name: Protobuf
+  href: https://docs.icerpc.dev/protobuf
+
 - name: IceRPC for Ice users
   href: https://docs.icerpc.dev/icerpc-for-ice-users
 
