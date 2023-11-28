@@ -1,6 +1,6 @@
 # Greeter
 
-The Greeter example illustrates how to use JSON to encode the payloads of IceRPC requests and responses.
+A simple Greeter that uses the core IceRPC APIs - and encodes request/response payloads with JSON.
 
 You can build the client and server applications with:
 
