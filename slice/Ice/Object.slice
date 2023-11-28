@@ -23,6 +23,6 @@ interface Object {
 }
 
 /// The ObjectProxy data type, encoded as a service address.
-// TODO: add cs::identifier + test, see #3805
+[cs::identifier("IceObjectProxy")]
 [cs::type("IceRpc.Slice.Ice.IceObjectProxy")]
 custom ObjectProxy
