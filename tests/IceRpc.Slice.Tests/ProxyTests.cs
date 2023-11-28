@@ -8,7 +8,7 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice.Tests;
 
-/// <summary>Test encoding and decoding proxies.</summary>
+/// <summary>Test encoding and decoding service addresses and proxies.</summary>
 [Parallelizable(scope: ParallelScope.All)]
 public partial class ProxyTests
 {
@@ -25,7 +25,7 @@ public partial class ProxyTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         // Act
-        PingableProxy? decoded = decoder.DecodeNullableProxy<PingableProxy>();
+        PingableProxy? decoded = decoder.DecodeNullablePingableProxy();
 
         // Assert
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
@@ -83,14 +83,13 @@ public partial class ProxyTests
         var sut = new SliceDecoder(bufferWriter.WrittenMemory, encoding: encoding);
 
         // Act
-        var decoded = sut.DecodeProxy<IceObjectProxy>();
+        var decoded = sut.DecodePingableProxy();
 
         // Assert
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that a relative proxy decoded with the default service proxy factory gets a null invoker.
-    /// </summary>
+    /// <summary>Verifies that a relative proxy gets a null invoker by default.</summary>
     [Test]
     public void Decode_relative_proxy()
     {
@@ -101,7 +100,7 @@ public partial class ProxyTests
             var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
             encoder.EncodeServiceAddress(new ServiceAddress { Path = "/foo" });
             var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2);
-            return decoder.DecodeProxy<IceObjectProxy>().Invoker;
+            return decoder.DecodePingableProxy().Invoker;
         },
         Is.Null);
     }
@@ -176,7 +175,7 @@ public partial class ProxyTests
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
     }
 
-    /// <summary>Verifies that the invoker of a proxy decoded from an incoming request can be set using a Slice
+    /// <summary>Verifies that the invoker of a proxy decoded from an incoming request can be set using the Slice
     /// feature.</summary>
     [Test]
     public async Task Proxy_decoded_from_an_incoming_request_can_have_invoker_set_through_a_slice_feature()
@@ -199,7 +198,7 @@ public partial class ProxyTests
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(pipeline));
     }
 
-    /// <summary>Verifies that a proxy decoded from an incoming response inherits the callers invoker.</summary>
+    /// <summary>Verifies that a proxy decoded from an incoming response inherits the caller's invoker.</summary>
     [Test]
     public async Task Proxy_decoded_from_an_incoming_response_inherits_the_callers_invoker()
     {

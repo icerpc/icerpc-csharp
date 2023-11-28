@@ -16,3 +16,7 @@ interface Process {
     /// @param fd: '1' for stdout, '2' for stderr.
     writeMessage(message: string, fd: int32)
 }
+
+/// The ProcessProxy data type, encoded as a service address.
+[cs::type("IceRpc.Slice.Ice.ProcessProxy")]
+custom ProcessProxy
