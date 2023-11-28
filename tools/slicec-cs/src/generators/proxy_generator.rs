@@ -128,12 +128,18 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
     if interface_def.supported_encodings().supports(Encoding::Slice1) {
         proxy_encoder_builder.add_comment(
             "summary",
-            "Provides extension methods for <see cref=\"SliceEncoder\" />.",
+            format!(
+                r#"
+Provides extension methods for <see cref="SliceEncoder" /> to encode a <see cref="{proxy_impl}" />."#
+            ),
         );
     } else {
         proxy_encoder_builder.add_comment(
             "summary",
-            "Provides an extension method for <see cref=\"SliceEncoder\" />.",
+            format!(
+                r#"
+Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cref="{proxy_impl}" />."#
+            ),
         );
     }
 
@@ -174,12 +180,18 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
     if interface_def.supported_encodings().supports(Encoding::Slice1) {
         proxy_decoder_builder.add_comment(
             "summary",
-            "Provides extension methods for <see cref=\"SliceDecoder\" />.",
+            format!(
+                r#"
+Provides extension methods for <see cref="SliceDecoder" /> to decode a <see cref="{proxy_impl}" />."#
+            ),
         );
     } else {
         proxy_decoder_builder.add_comment(
             "summary",
-            "Provides an extension method for <see cref=\"SliceDecoder\" />.",
+            format!(
+                r#"
+Provides an extension method for <see cref="SliceDecoder" /> to decode a <see cref="{proxy_impl}" />."#
+            ),
         );
     }
 
