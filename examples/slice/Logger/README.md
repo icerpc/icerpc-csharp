@@ -1,4 +1,4 @@
-# GreeterLog
+# Logger
 
 This example augments [Greeter](../Greeter/README.md) with logging.
 

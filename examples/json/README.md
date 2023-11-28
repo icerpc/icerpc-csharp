@@ -1,27 +1,7 @@
-# GreeterJson
+# Examples
 
-The GreeterJson example illustrates how to use JSON to encode the payloads of IceRPC requests and
-responses.
+This folder contains example applications for using IceRPC core API.
 
-It's a variation of the [Greeter](Greeter) example that uses JSON instead of Slice. See also the
-[GreeterCore](GreeterCore) example that uses the same core APIs to create requests and responses.
-
-You can build the client and server applications with:
-
-``` shell
-dotnet build
-```
-
-First start the Server program:
-
-```shell
-cd Server
-dotnet run
-```
-
-In a separate window, start the Client program:
-
-```shell
-cd Client
-dotnet run
-```
+|                       |                                                                                    |
+|-----------------------|------------------------------------------------------------------------------------|
+| [Greeter](./Greeter/) | Shows how to call and implement a canonical Greeter service using the IceRPC core. |
