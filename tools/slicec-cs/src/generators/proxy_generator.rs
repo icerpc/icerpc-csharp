@@ -120,6 +120,31 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
 
     code.add_block(&proxy_impl_builder.build());
 
+    let mut proxy_decoder_builder = ContainerBuilder::new(
+        &format!("{access} static class"),
+        &format!("{proxy_impl}DecoderExtensions"),
+    );
+
+    proxy_decoder_builder
+        .add_comment(
+            "summary",
+            format!(
+                r#"
+Provides extension method(s) for <see cref="SliceDecoder" />."#
+            ),
+        )
+        .add_block(
+            format!(
+                r#"
+/// <summary>Decodes an <see cref="IceRpc.ServiceAddress" /> into a <see cref="{proxy_impl}" />.</summary>
+{access} static {proxy_impl} Decode{proxy_impl}(this ref SliceDecoder decoder) =>
+    decoder.DecodeProxy<{proxy_impl}>();"#
+            )
+            .into(),
+        );
+
+    code.add_block(&proxy_decoder_builder.build());
+
     code
 }
 
