@@ -51,8 +51,8 @@ interface MyOperationsA {
     opReadOnlyMemoryTagged(tag(1) p1: Sequence<int32>?) -> tag(1) Sequence<int32>?
 
     // Proxy parameter and return value
-    opWithProxyParameter(service: Pingable)
-    opWithProxyReturnValue() -> Pingable
+    opWithProxyParameter(service: PingableProxy)
+    opWithProxyReturnValue() -> PingableProxy
 
     opWithTrailingOptionalValues(p1: int32, p2: int32?, p3: int32, p4: int32?, p5: int32?)
     opWithTrailingOptionalValuesAndStream(p1: int32, p2: int32?, p3: int32, p4: int32?, p5: int32?, p6: stream uint8?)

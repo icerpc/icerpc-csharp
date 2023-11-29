@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::{EntityExt, InterfaceExt, PrimitiveExt};
+use super::{EntityExt, PrimitiveExt};
 use crate::cs_attributes::CsType;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::TypeContext;
@@ -17,7 +17,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     fn is_value_type(&self) -> bool {
         match self.concrete_type() {
             Types::Primitive(primitive) => !matches!(primitive, Primitive::String | Primitive::AnyClass),
-            Types::Enum(_) | Types::Struct(_) | Types::Interface(_) => true,
+            Types::Enum(_) | Types::Struct(_) => true,
             _ => false,
         }
     }
@@ -27,7 +27,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Struct(struct_ref) => struct_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
-            TypeRefs::Interface(interface_ref) => interface_ref.scoped_proxy_name(namespace),
             TypeRefs::CustomType(custom_type_ref) => {
                 let attribute = custom_type_ref.definition().find_attribute::<CsType>();
                 attribute.unwrap().type_string.clone()
@@ -36,7 +35,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 // For readonly sequences of fixed size numeric elements the mapping is the
                 // same for optional an non optional types.
                 if context == TypeContext::Encode
-                    && sequence_ref.has_fixed_size_numeric_elements()
+                    && sequence_ref.has_fixed_size_primitive_elements()
                     && !self.has_attribute::<CsType>()
                 {
                     ignore_optional = true;
@@ -73,7 +72,7 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
         },
         TypeContext::Encode => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
-            if sequence_ref.has_fixed_size_numeric_elements() && cs_type_attribute.is_none() {
+            if sequence_ref.has_fixed_size_primitive_elements() && cs_type_attribute.is_none() {
                 format!("global::System.ReadOnlyMemory<{element_type}>")
             } else {
                 format!("global::System.Collections.Generic.IEnumerable<{element_type}>")

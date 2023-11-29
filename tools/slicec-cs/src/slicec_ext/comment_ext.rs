@@ -13,7 +13,7 @@ pub trait CommentExt: Commentable {
             comment
                 .overview
                 .as_ref()
-                .map(|overview| format_comment_message(&overview.message, &self.namespace()))
+                .map(|overview| format_comment_message(overview, &self.namespace()))
         })
     }
 
