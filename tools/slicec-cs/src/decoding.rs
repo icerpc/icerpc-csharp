@@ -365,17 +365,14 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
 }
 
 fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
-    // For value types the type declaration includes ? at the end, but the type name does not.
-    let type_name = if type_ref.is_optional && type_ref.is_value_type() {
-        type_ref.cs_type_string(namespace, TypeContext::Decode, true)
-    } else {
-        type_ref.cs_type_string(namespace, TypeContext::Decode, false)
-    };
-
     let mut code = CodeBlock::default();
-    if type_ref.is_optional && !type_ref.is_value_type() {
-        write!(code, "({type_name})");
+
+    // When we decode the type, we decode it as a non-optional.
+    // If the type is supposed to be optional, we cast it after decoding.
+    if type_ref.is_optional {
+        write!(code, "({})", type_ref.cs_type_string(namespace, TypeContext::Decode, false));
     }
+
     match &type_ref.concrete_typeref() {
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
@@ -387,6 +384,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                     type_ref.cs_type_string(namespace, TypeContext::Decode, true),
                 )
             } else {
+                let type_name = type_ref.cs_type_string(namespace, TypeContext::Decode, false);
                 write!(code, "decoder.DecodeClass<{type_name}>()")
             }
         }
@@ -405,7 +403,11 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                 name = enum_ref.cs_identifier(Case::Pascal),
             )
         }
-        TypeRefs::Struct(_) => write!(code, "new {type_name}(ref decoder)"),
+        TypeRefs::Struct(_) => {
+            // For value types the type declaration end with ?, but the type name does not, so we set `ignore_optional`.
+            let type_name = type_ref.cs_type_string(namespace, TypeContext::Decode, true);
+            write!(code, "new {type_name}(ref decoder)")
+        }
         TypeRefs::CustomType(custom_type_ref) => {
             write!(
                 code,
@@ -421,10 +423,6 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
             )
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
-    }
-
-    if type_ref.is_optional && type_ref.is_value_type() {
-        write!(code, " as {type_name}?");
     }
     code
 }
