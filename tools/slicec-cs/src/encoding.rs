@@ -60,9 +60,6 @@ fn encode_type(
     encoding: Encoding,
 ) -> CodeBlock {
     match &type_ref.concrete_typeref() {
-        TypeRefs::Interface(_) if type_ref.is_optional && encoding == Encoding::Slice1 => {
-            format!("IceRpc.Slice.ServiceAddressSliceEncoderExtensions.EncodeNullableServiceAddress(ref {encoder_param}, {param}?.ServiceAddress);")
-        }
         TypeRefs::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
             let nullable = if type_ref.is_optional { "Nullable" } else { "" };
@@ -106,7 +103,6 @@ fn encode_type(
                         encode_dictionary(dictionary_ref, namespace, param, encoder_param, encoding),
                     )
                 }
-                TypeRefs::Interface(_) => format!("IceRpc.Slice.ServiceAddressSliceEncoderExtensions.EncodeServiceAddress(ref {encoder_param}, {value}.ServiceAddress);"),
                 TypeRefs::Enum(enum_ref) => {
                     let encoder_extensions_class =
                         enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
@@ -133,7 +129,7 @@ if ({param} != null)
 ",
                     param = match concrete_typeref {
                         TypeRefs::Sequence(sequence_ref)
-                            if sequence_ref.has_fixed_size_numeric_elements()
+                            if sequence_ref.has_fixed_size_primitive_elements()
                                 && !sequence_ref.has_attribute::<CsType>()
                                 && type_context == TypeContext::Encode =>
                             format!("{param}.Span"),
@@ -166,7 +162,7 @@ fn encode_tagged_type(
 
     let read_only_memory = matches!(
         data_type.concrete_type(),
-        Types::Sequence(sequence_def) if sequence_def.has_fixed_size_numeric_elements()
+        Types::Sequence(sequence_def) if sequence_def.has_fixed_size_primitive_elements()
             && type_context == TypeContext::Encode
             && !data_type.has_attribute::<CsType>()
     );
@@ -281,7 +277,7 @@ fn encode_sequence(
     encoder_param: &str,
     encoding: Encoding,
 ) -> CodeBlock {
-    if sequence_ref.has_fixed_size_numeric_elements() && !sequence_ref.has_attribute::<CsType>() {
+    if sequence_ref.has_fixed_size_primitive_elements() && !sequence_ref.has_attribute::<CsType>() {
         if type_context == TypeContext::Encode {
             format!("{encoder_param}.EncodeSpan({value}.Span)")
         } else {
@@ -362,16 +358,6 @@ fn encode_action_body(
     };
 
     match &type_ref.concrete_typeref() {
-        TypeRefs::Interface(_) => {
-            if is_optional && encoding == Encoding::Slice1 {
-                write!(code, "IceRpc.Slice.ServiceAddressSliceEncoderExtensions.EncodeNullableServiceAddress(ref encoder, value?.ServiceAddress)");
-            } else {
-                write!(
-                    code,
-                    "IceRpc.Slice.ServiceAddressSliceEncoderExtensions.EncodeServiceAddress(ref encoder, {value}.ServiceAddress)"
-                );
-            }
-        }
         TypeRefs::Class(_) => {
             assert!(encoding == Encoding::Slice1);
             if is_optional {

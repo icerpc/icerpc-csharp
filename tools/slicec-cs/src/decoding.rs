@@ -55,10 +55,6 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
 
     if data_type.is_optional {
         match data_type.concrete_type() {
-            Types::Interface(_) if encoding == Encoding::Slice1 => {
-                writeln!(code, "decoder.DecodeNullableProxy<{type_string}>();");
-                return code;
-            }
             Types::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
                 write!(
                     code,
@@ -82,9 +78,6 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
     }
 
     match &data_type.concrete_typeref() {
-        TypeRefs::Interface(_) => {
-            write!(code, "decoder.DecodeProxy<{type_string}>()");
-        }
         TypeRefs::Class(_) => {
             assert!(!data_type.is_optional);
             write!(code, "decoder.DecodeClass<{type_string}>()");
@@ -384,13 +377,6 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
         write!(code, "({type_name})");
     }
     match &type_ref.concrete_typeref() {
-        TypeRefs::Interface(_) => {
-            if encoding == Encoding::Slice1 && type_ref.is_optional {
-                write!(code, "decoder.DecodeNullableProxy<{type_name}>()")
-            } else {
-                write!(code, "decoder.DecodeProxy<{type_name}>()")
-            }
-        }
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             assert!(encoding == Encoding::Slice1);
