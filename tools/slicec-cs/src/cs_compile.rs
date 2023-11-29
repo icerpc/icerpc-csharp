@@ -75,7 +75,7 @@ fn disallow_enums_with_associated_fields(compilation_state: &mut CompilationStat
                     message: "enums with associated fields are not supported by slicec-cs".to_owned(),
                 })
                 .add_note(
-                    format!("Try specifying an underlying type on your enum: `enum {identifier}: varint32`"),
+                    format!("Try specifying an underlying type on your enum: `enum {identifier} : varint32`"),
                     None,
                 )
                 .set_span(enum_def.span())

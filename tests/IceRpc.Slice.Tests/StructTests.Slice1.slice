@@ -5,7 +5,7 @@ mode = Slice1
 module IceRpc::Slice::Tests
 
 /*
-TODO: re-enable these tests when 'https://github.com/icerpc/icerpc-csharp/issues/3812' is fixed.
+TODO: re-enable these tests when '#3812' is fixed.
 
 compact struct MyCompactStructWithNullableProxy {
     a: int32
