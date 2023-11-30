@@ -399,10 +399,18 @@ fn encode_action_body(
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
-            write!(
-                code,
-                "{encoder_extensions_class}.Encode{identifier}(ref encoder, {value})",
-            )
+
+            if type_ref.is_optional && encoding == Encoding::Slice1 {
+                write!(
+                    code,
+                    "{encoder_extensions_class}.EncodeNullable{identifier}(ref encoder, value)",
+                )
+            } else {
+                write!(
+                    code,
+                    "{encoder_extensions_class}.Encode{identifier}(ref encoder, {value})",
+                )
+            }
         }
     }
 
