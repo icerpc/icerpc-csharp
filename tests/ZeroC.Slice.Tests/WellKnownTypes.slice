@@ -8,3 +8,10 @@ struct WellKnown {
     uri: WellKnownTypes::Uri
     id: WellKnownTypes::Uuid
 }
+
+struct WellKnownWithOptionals {
+    duration: WellKnownTypes::Duration?
+    timeStamp: WellKnownTypes::TimeStamp?
+    uri: WellKnownTypes::Uri?
+    id: WellKnownTypes::Uuid?
+}

@@ -29,6 +29,24 @@ public class WellKnownTypesTests
         }
     }
 
+    private static IEnumerable<TestCaseData> WellKnownWithOptionalsSource
+    {
+        get
+        {
+            yield return new(
+                null,
+                DateTime.UnixEpoch,
+                new Uri("icerpc://localhost/VisitorCenter"),
+                null);
+
+            yield return new(
+                TimeSpan.FromSeconds(10),
+                null,
+                null,
+                new Guid("cfbe7458-6e8f-45c1-b1d1-404866a9d904"));
+        }
+    }
+
     [Test, TestCaseSource(nameof(DurationSource))]
     public void Decode_duration(TimeSpan duration)
     {
@@ -168,5 +186,169 @@ public class WellKnownTypesTests
         var decodedGuid = new Guid(data);
 
         Assert.That(decodedGuid, Is.EqualTo(guid));
+    }
+
+    [Test]
+    public void Decode_struct_with_custom_fields()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var expected = new WellKnown(
+            TimeSpan.FromSeconds(10),
+            DateTime.UnixEpoch,
+            new Uri("icerpc://localhost/VisitorCenter"),
+            new Guid("cfbe7458-6e8f-45c1-b1d1-404866a9d904"));
+
+        encoder.EncodeDuration(expected.Duration);
+        encoder.EncodeTimeStamp(expected.TimeStamp);
+        encoder.EncodeUri(expected.Uri);
+        encoder.EncodeUuid(expected.Id);
+        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        var decoded = new WellKnown(ref decoder);
+
+        Assert.That(decoded.Duration, Is.EqualTo(expected.Duration));
+        Assert.That(decoded.TimeStamp, Is.EqualTo(expected.TimeStamp));
+        Assert.That(decoded.Uri, Is.EqualTo(expected.Uri));
+        Assert.That(decoded.Id, Is.EqualTo(expected.Id));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test, TestCaseSource(nameof(WellKnownWithOptionalsSource))]
+    public void Decode_struct_with_optional_custom_fields(
+        TimeSpan? durationValue,
+        DateTime? timeStampValue,
+        Uri? uriValue,
+        Guid? uuidValue)
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var expected = new WellKnownWithOptionals(
+            durationValue,
+            timeStampValue,
+            uriValue,
+            uuidValue);
+        var bitSequenceWriter = encoder.GetBitSequenceWriter(4);
+
+        bitSequenceWriter.Write(durationValue is not null);
+        if (durationValue is not null)
+        {
+            encoder.EncodeDuration(durationValue.Value);
+        }
+
+        bitSequenceWriter.Write(timeStampValue is not null);
+        if (timeStampValue is not null)
+        {
+            encoder.EncodeTimeStamp(timeStampValue.Value);
+        }
+
+        bitSequenceWriter.Write(uriValue is not null);
+        if (uriValue is not null)
+        {
+            encoder.EncodeUri(uriValue);
+        }
+
+        bitSequenceWriter.Write(uuidValue is not null);
+        if (uuidValue is not null)
+        {
+            encoder.EncodeUuid(uuidValue.Value);
+        }
+        encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        var decoded = new WellKnownWithOptionals(ref decoder);
+
+        Assert.That(decoded.Duration, Is.EqualTo(expected.Duration));
+        Assert.That(decoded.TimeStamp, Is.EqualTo(expected.TimeStamp));
+        Assert.That(decoded.Uri, Is.EqualTo(expected.Uri));
+        Assert.That(decoded.Id, Is.EqualTo(expected.Id));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test]
+    public void Encode_struct_with_custom_fields()
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var expected = new WellKnown(
+            TimeSpan.FromSeconds(10),
+            DateTime.UnixEpoch,
+            new Uri("icerpc://localhost/VisitorCenter"),
+            new Guid("cfbe7458-6e8f-45c1-b1d1-404866a9d904"));
+
+        expected.Encode(ref encoder);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        Assert.That(decoder.DecodeDuration(), Is.EqualTo(expected.Duration));
+        Assert.That(decoder.DecodeTimeStamp(), Is.EqualTo(expected.TimeStamp));
+        Assert.That(decoder.DecodeUri(), Is.EqualTo(expected.Uri));
+        Assert.That(decoder.DecodeUuid(), Is.EqualTo(expected.Id));
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
+    }
+
+    [Test, TestCaseSource(nameof(WellKnownWithOptionalsSource))]
+    public void Encode_struct_with_optional_custom_fields(
+        TimeSpan? durationValue,
+        DateTime? timeStampValue,
+        Uri? uriValue,
+        Guid? uuidValue)
+    {
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var expected = new WellKnownWithOptionals(
+            durationValue,
+            timeStampValue,
+            uriValue,
+            uuidValue);
+
+        expected.Encode(ref encoder);
+
+        // Assert
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+        var bitSequenceReader = decoder.GetBitSequenceReader(4);
+        if (durationValue is not null)
+        {
+            Assert.That(bitSequenceReader.Read(), Is.True);
+            Assert.That(decoder.DecodeDuration(), Is.EqualTo(expected.Duration));
+        }
+        else
+        {
+            Assert.That(bitSequenceReader.Read(), Is.False);
+        }
+
+        if (timeStampValue is not null)
+        {
+            Assert.That(bitSequenceReader.Read(), Is.True);
+            Assert.That(decoder.DecodeTimeStamp(), Is.EqualTo(timeStampValue));
+        }
+        else
+        {
+            Assert.That(bitSequenceReader.Read(), Is.False);
+        }
+
+        if (uriValue is not null)
+        {
+            Assert.That(bitSequenceReader.Read(), Is.True);
+            Assert.That(decoder.DecodeUri(), Is.EqualTo(uriValue));
+        }
+        else
+        {
+            Assert.That(bitSequenceReader.Read(), Is.False);
+        }
+
+        if (uuidValue is not null)
+        {
+            Assert.That(bitSequenceReader.Read(), Is.True);
+            Assert.That(decoder.DecodeUuid(), Is.EqualTo(uuidValue));
+        }
+        else
+        {
+            Assert.That(bitSequenceReader.Read(), Is.False);
+        }
+
+        Assert.That(decoder.DecodeVarInt32(), Is.EqualTo(Slice2Definitions.TagEndMarker));
+        Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
 }

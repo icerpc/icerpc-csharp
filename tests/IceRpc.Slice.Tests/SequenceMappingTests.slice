@@ -16,6 +16,12 @@ interface SequenceMappingOperations {
     returnSequenceOfMyStruct() -> Sequence<MyStruct>
     sendSequenceOfMyStruct(p: Sequence<MyStruct>)
 
+    returnSequenceOfCustomValueType() -> Sequence<WellKnownTypes::TimeStamp>
+    sendSequenceOfCustomValueType(p: Sequence<WellKnownTypes::TimeStamp>)
+
+    returnSequenceOfCustomReferenceType() -> Sequence<WellKnownTypes::Uri>
+    sendSequenceOfCustomReferenceType(p: Sequence<WellKnownTypes::Uri>)
+
     returnSequenceOfOptionalInt32() -> Sequence<int32?>
     sendSequenceOfOptionalInt32(p: Sequence<int32?>)
 
@@ -27,6 +33,12 @@ interface SequenceMappingOperations {
 
     returnSequenceOfOptionalMyStruct() -> Sequence<MyStruct?>
     sendSequenceOfOptionalMyStruct(p: Sequence<MyStruct?>)
+
+    returnSequenceOfOptionalCustomValueType() -> Sequence<WellKnownTypes::TimeStamp?>
+    sendSequenceOfOptionalCustomValueType(p: Sequence<WellKnownTypes::TimeStamp?>)
+
+    returnSequenceOfOptionalCustomReferenceType() -> Sequence<WellKnownTypes::Uri?>
+    sendSequenceOfOptionalCustomReferenceType(p: Sequence<WellKnownTypes::Uri?>)
 
     returnCustomSequenceOfInt32() -> [cs::type("CustomSequence<int>")] Sequence<int32>
     sendCustomSequenceOfInt32(p: [cs::type("CustomSequence<int>")] Sequence<int32>)
