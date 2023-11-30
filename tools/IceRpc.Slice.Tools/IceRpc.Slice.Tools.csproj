@@ -78,10 +78,10 @@
          <Pack>true</Pack>
          <PackagePath>\</PackagePath>
       </None>
-     <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-     <None Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="tasks/" Visible="false" />
-     <None Include="$(OutputPath)/System.Text.Encodings.Web.dll" Pack="true" PackagePath="tasks/" Visible="false" />
-     <None Include="$(OutputPath)/System.Text.Json.dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/System.Text.Encodings.Web.dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/System.Text.Json.dll" Pack="true" PackagePath="tasks/" Visible="false" />
    </ItemGroup>
    <Choose>
       <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
