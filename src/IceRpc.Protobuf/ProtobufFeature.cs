@@ -8,11 +8,12 @@ public sealed class ProtobufFeature : IProtobufFeature
     /// <summary>Gets a <see cref="IProtobufFeature" /> with default values for all properties.</summary>
     public static IProtobufFeature Default { get; } = new DefaultProtobufFeature();
 
-    /// <inheritdoc/>
-    public int MaxMessageLength { get; init; }
+    /// <summary>Gets the maximum length of an encoded Protobuf message, in bytes.</summary>
+    /// <value>The maximum length of a Protobuf message. Defaults to <c>1</c> MB.</value>
+    public int MaxMessageLength { get; }
 
     /// <inheritdoc/>
-    public ProtobufEncodeOptions? EncodeOptions { get; init; }
+    public ProtobufEncodeOptions? EncodeOptions { get; }
 
     /// <summary>Constructs a Protobuf feature.</summary>
     /// <param name="maxMessageLength">The maximum message length. Use <c>-1</c> to get the default value.</param>
