@@ -13,12 +13,6 @@ interface SequenceMappingOperations {
     returnSequenceOfMyFixedSizeEnum() -> Sequence<MyFixedSizeEnum>
     sendSequenceOfMyFixedSizeEnum(p: Sequence<MyFixedSizeEnum>)
 
-    returnSequenceOfMyVarSizeEnum() -> Sequence<MyVarSizeEnum>
-    sendSequenceOfMyVarSizeEnum(p: Sequence<MyVarSizeEnum>)
-
-    returnSequenceOfMyUncheckedEnum() -> Sequence<MyUncheckedEnum>
-    sendSequenceOfMyUncheckedEnum(p: Sequence<MyUncheckedEnum>)
-
     returnSequenceOfMyStruct() -> Sequence<MyStruct>
     sendSequenceOfMyStruct(p: Sequence<MyStruct>)
 
@@ -30,12 +24,6 @@ interface SequenceMappingOperations {
 
     returnSequenceOfOptionalMyFixedSizeEnum() -> Sequence<MyFixedSizeEnum?>
     sendSequenceOfOptionalMyFixedSizeEnum(p: Sequence<MyFixedSizeEnum?>)
-
-    returnSequenceOfOptionalMyVarSizeEnum() -> Sequence<MyVarSizeEnum?>
-    sendSequenceOfOptionalMyVarSizeEnum(p: Sequence<MyVarSizeEnum?>)
-
-    returnSequenceOfOptionalMyUncheckedEnum() -> Sequence<MyUncheckedEnum?>
-    sendSequenceOfOptionalMyUncheckedEnum(p: Sequence<MyUncheckedEnum?>)
 
     returnSequenceOfOptionalMyStruct() -> Sequence<MyStruct?>
     sendSequenceOfOptionalMyStruct(p: Sequence<MyStruct?>)

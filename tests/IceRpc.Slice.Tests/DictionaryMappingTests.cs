@@ -151,66 +151,6 @@ public class DictionaryMappingTests
     }
 
     [Test]
-    public async Task Operation_returning_a_dictionary_of_var_size_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyVarSizeEnum, MyVarSizeEnum>
-        {
-            [MyVarSizeEnum.Enum1] = MyVarSizeEnum.Enum1,
-            [MyVarSizeEnum.Enum2] = MyVarSizeEnum.Enum2,
-            [MyVarSizeEnum.Enum3] = MyVarSizeEnum.Enum3
-        };
-        PipeReader responsePayload =
-            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfMyVarSizeEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
-        {
-            Payload = responsePayload
-        };
-
-        // Act
-        Dictionary<MyVarSizeEnum, MyVarSizeEnum> r =
-            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfMyVarSizeEnumAsync(
-                response,
-                request,
-                InvalidProxy.Instance,
-                default);
-
-        // Assert
-        Assert.That(r, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_returning_a_dictionary_of_unchecked_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyUncheckedEnum, MyUncheckedEnum>
-        {
-            [MyUncheckedEnum.E1] = MyUncheckedEnum.E1,
-            [MyUncheckedEnum.E2] = MyUncheckedEnum.E2,
-            [MyUncheckedEnum.E3] = (MyUncheckedEnum)20
-        };
-        PipeReader responsePayload =
-            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfMyUncheckedEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
-        {
-            Payload = responsePayload
-        };
-
-        // Act
-        Dictionary<MyUncheckedEnum, MyUncheckedEnum> r =
-            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfMyUncheckedEnumAsync(
-                response,
-                request,
-                InvalidProxy.Instance,
-                default);
-
-        // Assert
-        Assert.That(r, Is.EqualTo(value));
-    }
-
-    [Test]
     public async Task Operation_returning_a_dictionary_of_compact_struct()
     {
         // Arrange
@@ -231,36 +171,6 @@ public class DictionaryMappingTests
         // Act
         Dictionary<MyCompactStruct, MyCompactStruct> r =
             await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfMyCompactStructAsync(
-                response,
-                request,
-                InvalidProxy.Instance,
-                default);
-
-        // Assert
-        Assert.That(r, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_returning_a_dictionary_of_struct()
-    {
-        // Arrange
-        var value = new Dictionary<string, MyStruct>
-        {
-            ["0"] = new MyStruct(0, 0),
-            ["1"] = new MyStruct(1, 1),
-            ["2"] = new MyStruct(2, 2)
-        };
-        PipeReader responsePayload =
-            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfMyStruct(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
-        {
-            Payload = responsePayload
-        };
-
-        // Act
-        Dictionary<string, MyStruct> r =
-            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfMyStructAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -356,66 +266,6 @@ public class DictionaryMappingTests
     }
 
     [Test]
-    public async Task Operation_returning_a_dictionary_of_optional_var_size_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyVarSizeEnum, MyVarSizeEnum?>
-        {
-            [MyVarSizeEnum.Enum1] = MyVarSizeEnum.Enum1,
-            [MyVarSizeEnum.Enum2] = null,
-            [MyVarSizeEnum.Enum3] = MyVarSizeEnum.Enum3
-        };
-        PipeReader responsePayload =
-            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfOptionalMyVarSizeEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
-        {
-            Payload = responsePayload
-        };
-
-        // Act
-        Dictionary<MyVarSizeEnum, MyVarSizeEnum?> r =
-            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfOptionalMyVarSizeEnumAsync(
-                response,
-                request,
-                InvalidProxy.Instance,
-                default);
-
-        // Assert
-        Assert.That(r, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_returning_a_dictionary_of_optional_unchecked_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyUncheckedEnum, MyUncheckedEnum?>
-        {
-            [MyUncheckedEnum.E1] = MyUncheckedEnum.E1,
-            [MyUncheckedEnum.E2] = null,
-            [MyUncheckedEnum.E3] = (MyUncheckedEnum)20
-        };
-        PipeReader responsePayload =
-            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfOptionalMyUncheckedEnum(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
-        {
-            Payload = responsePayload
-        };
-
-        // Act
-        Dictionary<MyUncheckedEnum, MyUncheckedEnum?> r =
-            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfOptionalMyUncheckedEnumAsync(
-                response,
-                request,
-                InvalidProxy.Instance,
-                default);
-
-        // Assert
-        Assert.That(r, Is.EqualTo(value));
-    }
-
-    [Test]
     public async Task Operation_returning_a_dictionary_of_optional_compact_struct()
     {
         // Arrange
@@ -436,36 +286,6 @@ public class DictionaryMappingTests
         // Act
         Dictionary<MyCompactStruct, MyCompactStruct?> r =
             await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfOptionalMyCompactStructAsync(
-                response,
-                request,
-                InvalidProxy.Instance,
-                default);
-
-        // Assert
-        Assert.That(r, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_returning_a_dictionary_of_optional_struct()
-    {
-        // Arrange
-        var value = new Dictionary<string, MyStruct?>
-        {
-            ["0"] = new MyStruct(0, 0),
-            ["1"] = null,
-            ["2"] = new MyStruct(2, 2)
-        };
-        PipeReader responsePayload =
-            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfOptionalMyStruct(value);
-        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
-        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
-        {
-            Payload = responsePayload
-        };
-
-        // Act
-        Dictionary<string, MyStruct?> r =
-            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfOptionalMyStructAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -602,58 +422,6 @@ public class DictionaryMappingTests
     }
 
     [Test]
-    public async Task Operation_sending_a_dictionary_of_var_size_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyVarSizeEnum, MyVarSizeEnum>
-        {
-            [MyVarSizeEnum.Enum1] = MyVarSizeEnum.Enum1,
-            [MyVarSizeEnum.Enum2] = MyVarSizeEnum.Enum2,
-            [MyVarSizeEnum.Enum3] = MyVarSizeEnum.Enum3
-        };
-
-        // Act
-        var requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfMyVarSizeEnum(value);
-
-        // Assert
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Payload = requestPayload
-        };
-        Dictionary<MyVarSizeEnum, MyVarSizeEnum> decodedValue =
-            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfMyVarSizeEnumAsync(
-                request,
-                default);
-        Assert.That(decodedValue, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_sending_a_dictionary_of_unchecked_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyUncheckedEnum, MyUncheckedEnum>
-        {
-            [MyUncheckedEnum.E1] = MyUncheckedEnum.E1,
-            [MyUncheckedEnum.E2] = MyUncheckedEnum.E2,
-            [MyUncheckedEnum.E3] = (MyUncheckedEnum)20
-        };
-
-        // Act
-        var requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfMyUncheckedEnum(value);
-
-        // Assert
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Payload = requestPayload
-        };
-        Dictionary<MyUncheckedEnum, MyUncheckedEnum> decodedValue =
-            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfMyUncheckedEnumAsync(
-                request,
-                default);
-        Assert.That(decodedValue, Is.EqualTo(value));
-    }
-
-    [Test]
     public async Task Operation_sending_a_dictionary_of_compact_structs()
     {
         // Arrange
@@ -674,32 +442,6 @@ public class DictionaryMappingTests
         };
         Dictionary<MyCompactStruct, MyCompactStruct> decodedValue =
             await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfMyCompactStructAsync(
-                request,
-                default);
-        Assert.That(decodedValue, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_sending_a_dictionary_of_structs()
-    {
-        // Arrange
-        var value = new Dictionary<string, MyStruct>
-        {
-            ["0"] = new MyStruct(0, 0),
-            ["1"] = new MyStruct(1, 1),
-            ["2"] = new MyStruct(2, 2)
-        };
-
-        // Act
-        var requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfMyStruct(value);
-
-        // Assert
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Payload = requestPayload
-        };
-        Dictionary<string, MyStruct> decodedValue =
-            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfMyStructAsync(
                 request,
                 default);
         Assert.That(decodedValue, Is.EqualTo(value));
@@ -780,60 +522,6 @@ public class DictionaryMappingTests
     }
 
     [Test]
-    public async Task Operation_sending_a_dictionary_of_optional_var_size_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyVarSizeEnum, MyVarSizeEnum?>
-        {
-            [MyVarSizeEnum.Enum1] = MyVarSizeEnum.Enum1,
-            [MyVarSizeEnum.Enum2] = null,
-            [MyVarSizeEnum.Enum3] = MyVarSizeEnum.Enum3
-        };
-
-        // Act
-        var requestPayload =
-            DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfOptionalMyVarSizeEnum(value);
-
-        // Assert
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Payload = requestPayload
-        };
-        Dictionary<MyVarSizeEnum, MyVarSizeEnum?> decodedValue =
-            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalMyVarSizeEnumAsync(
-                request,
-                default);
-        Assert.That(decodedValue, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_sending_a_dictionary_of_optional_unchecked_enum()
-    {
-        // Arrange
-        var value = new Dictionary<MyUncheckedEnum, MyUncheckedEnum?>
-        {
-            [MyUncheckedEnum.E1] = MyUncheckedEnum.E1,
-            [MyUncheckedEnum.E2] = null,
-            [MyUncheckedEnum.E3] = (MyUncheckedEnum)20
-        };
-
-        // Act
-        var requestPayload =
-            DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfOptionalMyUncheckedEnum(value);
-
-        // Assert
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Payload = requestPayload
-        };
-        Dictionary<MyUncheckedEnum, MyUncheckedEnum?> decodedValue =
-            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalMyUncheckedEnumAsync(
-                request,
-                default);
-        Assert.That(decodedValue, Is.EqualTo(value));
-    }
-
-    [Test]
     public async Task Operation_sending_a_dictionary_of_optional_compact_structs()
     {
         // Arrange
@@ -855,32 +543,6 @@ public class DictionaryMappingTests
         };
         Dictionary<MyCompactStruct, MyCompactStruct?> decodedValue =
             await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalMyCompactStructAsync(
-                request,
-                default);
-        Assert.That(decodedValue, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task Operation_sending_a_dictionary_of_optional_structs()
-    {
-        // Arrange
-        var value = new Dictionary<string, MyStruct?>
-        {
-            ["0"] = new MyStruct(0, 0),
-            ["1"] = null,
-            ["2"] = new MyStruct(2, 2)
-        };
-
-        // Act
-        var requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfOptionalMyStruct(value);
-
-        // Assert
-        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
-        {
-            Payload = requestPayload
-        };
-        Dictionary<string, MyStruct?> decodedValue =
-            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalMyStructAsync(
                 request,
                 default);
         Assert.That(decodedValue, Is.EqualTo(value));
