@@ -114,7 +114,7 @@ public class TaggedTests
             20,
             30,
             40,
-            new FixedLengthStruct(1, 1),
+            new FixedSizeStruct(1, 1),
             new VarSizeStruct("hello world!"),
             Slice1.MyEnum.Two,
             new byte[] { 1, 2, 3 },
@@ -126,7 +126,7 @@ public class TaggedTests
             null,
             30,
             null,
-            new FixedLengthStruct(1, 1),
+            new FixedSizeStruct(1, 1),
             null,
             Slice1.MyEnum.Two,
             null,
@@ -219,7 +219,7 @@ public class TaggedTests
                 5,
                 size: 8,
                 expected.E.Value,
-                (ref SliceEncoder encoder, FixedLengthStruct value) => value.Encode(ref encoder));
+                (ref SliceEncoder encoder, FixedSizeStruct value) => value.Encode(ref encoder));
         }
 
         if (expected.F is not null)
@@ -403,7 +403,7 @@ public class TaggedTests
             decoder.DecodeTagged(
                 5,
                 TagFormat.VSize,
-                (ref SliceDecoder decoder) => new FixedLengthStruct(ref decoder) as FixedLengthStruct?,
+                (ref SliceDecoder decoder) => new FixedSizeStruct(ref decoder) as FixedSizeStruct?,
                 useTagEndMarker: false),
             Is.EqualTo(c.E));
 

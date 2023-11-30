@@ -2,6 +2,11 @@
 
 module IceRpc::Slice::Tests
 
+compact struct MyCompactStruct {
+    i: int32
+    j: int32
+}
+
 struct MyStruct {
     i: int32
     j: int32

@@ -10,8 +10,8 @@ interface SequenceMappingOperations {
     returnSequenceOfString() -> Sequence<string>
     sendSequenceOfString(p: Sequence<string>)
 
-    returnSequenceOfMyFixedLengthEnum() -> Sequence<MyFixedLengthEnum>
-    sendSequenceOfMyFixedLengthEnum(p: Sequence<MyFixedLengthEnum>)
+    returnSequenceOfMyFixedSizeEnum() -> Sequence<MyFixedSizeEnum>
+    sendSequenceOfMyFixedSizeEnum(p: Sequence<MyFixedSizeEnum>)
 
     returnSequenceOfMyVarSizeEnum() -> Sequence<MyVarSizeEnum>
     sendSequenceOfMyVarSizeEnum(p: Sequence<MyVarSizeEnum>)
@@ -19,14 +19,17 @@ interface SequenceMappingOperations {
     returnSequenceOfMyUncheckedEnum() -> Sequence<MyUncheckedEnum>
     sendSequenceOfMyUncheckedEnum(p: Sequence<MyUncheckedEnum>)
 
+    returnSequenceOfMyStruct() -> Sequence<MyStruct>
+    sendSequenceOfMyStruct(p: Sequence<MyStruct>)
+
     returnSequenceOfOptionalInt32() -> Sequence<int32?>
     sendSequenceOfOptionalInt32(p: Sequence<int32?>)
 
     returnSequenceOfOptionalString() -> Sequence<string?>
     sendSequenceOfOptionalString(p: Sequence<string?>)
 
-    returnSequenceOfOptionalMyFixedLengthEnum() -> Sequence<MyFixedLengthEnum?>
-    sendSequenceOfOptionalMyFixedLengthEnum(p: Sequence<MyFixedLengthEnum?>)
+    returnSequenceOfOptionalMyFixedSizeEnum() -> Sequence<MyFixedSizeEnum?>
+    sendSequenceOfOptionalMyFixedSizeEnum(p: Sequence<MyFixedSizeEnum?>)
 
     returnSequenceOfOptionalMyVarSizeEnum() -> Sequence<MyVarSizeEnum?>
     sendSequenceOfOptionalMyVarSizeEnum(p: Sequence<MyVarSizeEnum?>)
@@ -34,14 +37,17 @@ interface SequenceMappingOperations {
     returnSequenceOfOptionalMyUncheckedEnum() -> Sequence<MyUncheckedEnum?>
     sendSequenceOfOptionalMyUncheckedEnum(p: Sequence<MyUncheckedEnum?>)
 
+    returnSequenceOfOptionalMyStruct() -> Sequence<MyStruct?>
+    sendSequenceOfOptionalMyStruct(p: Sequence<MyStruct?>)
+
     returnCustomSequenceOfInt32() -> [cs::type("CustomSequence<int>")] Sequence<int32>
     sendCustomSequenceOfInt32(p: [cs::type("CustomSequence<int>")] Sequence<int32>)
 
     returnCustomSequenceOfString() -> [cs::type("CustomSequence<string>")] Sequence<string>
     sendCustomSequenceOfString(p: [cs::type("CustomSequence<string>")] Sequence<string>)
 
-    returnCustomSequenceOfMyFixedLengthEnum() -> [cs::type("CustomSequence<MyFixedLengthEnum>")] Sequence<MyFixedLengthEnum>
-    sendCustomSequenceOfMyFixedLengthEnum(p: [cs::type("CustomSequence<MyFixedLengthEnum>")] Sequence<MyFixedLengthEnum>)
+    returnCustomSequenceOfMyFixedSizeEnum() -> [cs::type("CustomSequence<MyFixedSizeEnum>")] Sequence<MyFixedSizeEnum>
+    sendCustomSequenceOfMyFixedSizeEnum(p: [cs::type("CustomSequence<MyFixedSizeEnum>")] Sequence<MyFixedSizeEnum>)
 
     returnCustomSequenceOfMyVarSizeEnum() -> [cs::type("CustomSequence<MyVarSizeEnum>")] Sequence<MyVarSizeEnum>
     sendCustomSequenceOfMyVarSizeEnum(p: [cs::type("CustomSequence<MyVarSizeEnum>")] Sequence<MyVarSizeEnum>)
@@ -55,8 +61,8 @@ interface SequenceMappingOperations {
     returnCustomSequenceOfOptionalString() -> [cs::type("CustomSequence<string?>")] Sequence<string?>
     sendCustomSequenceOfOptionalString(p: [cs::type("CustomSequence<string?>")] Sequence<string?>)
 
-    returnCustomSequenceOfOptionalMyFixedLengthEnum() -> [cs::type("CustomSequence<MyFixedLengthEnum?>")] Sequence<MyFixedLengthEnum?>
-    sendCustomSequenceOfOptionalMyFixedLengthEnum(p: [cs::type("CustomSequence<MyFixedLengthEnum?>")] Sequence<MyFixedLengthEnum?>)
+    returnCustomSequenceOfOptionalMyFixedSizeEnum() -> [cs::type("CustomSequence<MyFixedSizeEnum?>")] Sequence<MyFixedSizeEnum?>
+    sendCustomSequenceOfOptionalMyFixedSizeEnum(p: [cs::type("CustomSequence<MyFixedSizeEnum?>")] Sequence<MyFixedSizeEnum?>)
 
     returnCustomSequenceOfOptionalMyVarSizeEnum() -> [cs::type("CustomSequence<MyVarSizeEnum?>")] Sequence<MyVarSizeEnum?>
     sendCustomSequenceOfOptionalMyVarSizeEnum(p: [cs::type("CustomSequence<MyVarSizeEnum?>")] Sequence<MyVarSizeEnum?>)

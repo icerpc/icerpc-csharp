@@ -5,9 +5,47 @@ module IceRpc::Slice::Tests
 interface DictionaryMappingOperations {
     returnDictionaryTuple() -> (r1: Dictionary<int32, int32> r2: Dictionary<int32, int32>)
 
-    returnDictionary() -> Dictionary<int32, int32>
+    returnDictionaryOfInt32() -> Dictionary<int32, int32>
+    sendDictionaryOfInt32(p: Dictionary<int32, int32>)
 
-    sendDictionary(p: Dictionary<int32, int32>)
+    returnDictionaryOfString() -> Dictionary<string, string>
+    sendDictionaryOfString(p: Dictionary<string, string>)
+
+    returnDictionaryOfMyFixedSizeEnum() -> Dictionary<MyFixedSizeEnum, MyFixedSizeEnum>
+    sendDictionaryOfMyFixedSizeEnum(p: Dictionary<MyFixedSizeEnum, MyFixedSizeEnum>)
+
+    returnDictionaryOfMyVarSizeEnum() -> Dictionary<MyVarSizeEnum, MyVarSizeEnum>
+    sendDictionaryOfMyVarSizeEnum(p: Dictionary<MyVarSizeEnum, MyVarSizeEnum>)
+
+    returnDictionaryOfMyUncheckedEnum() -> Dictionary<MyUncheckedEnum, MyUncheckedEnum>
+    sendDictionaryOfMyUncheckedEnum(p: Dictionary<MyUncheckedEnum, MyUncheckedEnum>)
+
+    returnDictionaryOfMyCompactStruct() -> Dictionary<MyCompactStruct, MyCompactStruct>
+    sendDictionaryOfMyCompactStruct(p: Dictionary<MyCompactStruct, MyCompactStruct>)
+
+    returnDictionaryOfMyStruct() -> Dictionary<string, MyStruct>
+    sendDictionaryOfMyStruct(p: Dictionary<string, MyStruct>)
+
+    returnDictionaryOfOptionalInt32() -> Dictionary<int32, int32?>
+    sendDictionaryOfOptionalInt32(p: Dictionary<int32, int32?>)
+
+    returnDictionaryOfOptionalString() -> Dictionary<string, string?>
+    sendDictionaryOfOptionalString(p: Dictionary<string, string?>)
+
+    returnDictionaryOfOptionalMyFixedSizeEnum() -> Dictionary<MyFixedSizeEnum, MyFixedSizeEnum?>
+    sendDictionaryOfOptionalMyFixedSizeEnum(p: Dictionary<MyFixedSizeEnum, MyFixedSizeEnum?>)
+
+    returnDictionaryOfOptionalMyVarSizeEnum() -> Dictionary<MyVarSizeEnum, MyVarSizeEnum?>
+    sendDictionaryOfOptionalMyVarSizeEnum(p: Dictionary<MyVarSizeEnum, MyVarSizeEnum?>)
+
+    returnDictionaryOfOptionalMyUncheckedEnum() -> Dictionary<MyUncheckedEnum, MyUncheckedEnum?>
+    sendDictionaryOfOptionalMyUncheckedEnum(p: Dictionary<MyUncheckedEnum, MyUncheckedEnum?>)
+
+    returnDictionaryOfOptionalMyCompactStruct() -> Dictionary<MyCompactStruct, MyCompactStruct?>
+    sendDictionaryOfOptionalMyCompactStruct(p: Dictionary<MyCompactStruct, MyCompactStruct?>)
+
+    returnDictionaryOfOptionalMyStruct() -> Dictionary<string, MyStruct?>
+    sendDictionaryOfOptionalMyStruct(p: Dictionary<string, MyStruct?>)
 
     // We don't need to add tests for other cs::type arguments because the code path is always the same. The argument
     // must be a non-abstract generic type that implements ICollection<KeyValuePair<TKey, TValue>> and provides a

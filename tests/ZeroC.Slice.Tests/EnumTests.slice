@@ -8,7 +8,7 @@ enum MyEnum : int32 {
     Enum3
 }
 
-enum MyFixedLengthEnum : int16 {
+enum MyFixedSizeEnum : int16 {
     SEnum1
     SEnum2
     SEnum3
