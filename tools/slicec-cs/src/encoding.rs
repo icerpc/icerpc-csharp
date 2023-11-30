@@ -78,7 +78,7 @@ fn encode_type(
         concrete_typeref => {
             let value = if type_ref.is_optional && type_ref.is_value_type() {
                 format!("{param}.Value")
-            } else if type_ref.is_optional && !type_ref.is_reference_type() {
+            } else if type_ref.is_optional && matches!(type_ref.concrete_type(), Types::CustomType(_)) {
                 format!("{param} ?? default!")
             } else {
                 param.to_owned()
