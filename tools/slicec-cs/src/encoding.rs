@@ -171,10 +171,11 @@ fn encode_tagged_type(
 
     let value = if data_type.is_value_type() {
         format!("{param}.Value")
-    } else if data_type.is_reference_type() {
-        param.to_owned()
-    } else {
+    } else if matches!(data_type.concrete_type(), Types::CustomType(_)) {
+        // We don't know if the mapped C# type is a value type or a reference type.
         format!("{param} ?? default!")
+    } else {
+        param.to_owned()
     };
 
     // For types with a known size, we provide a size parameter with the size of the tagged
@@ -355,10 +356,14 @@ fn encode_action_body(
     let mut code = CodeBlock::default();
     let is_optional = type_ref.is_optional && !is_tagged;
 
-    let value = match (is_optional, type_ref.is_value_type(), type_ref.is_reference_type()) {
-        (true, false, true) => "value!",
+    let value = match (
+        is_optional,
+        type_ref.is_value_type(),
+        matches!(type_ref.concrete_type(), Types::CustomType(_)),
+    ) {
+        (true, false, false) => "value!",
         (true, true, false) => "value!.Value",
-        (true, false, false) => "(value ?? default!)",
+        (true, false, true) => "(value ?? default!)",
         _ => "value",
     };
 
