@@ -60,9 +60,9 @@ pub fn initialize_required_fields(fields: &[&Field], field_type: FieldType) -> C
 
     for field in fields {
         let data_type = field.data_type();
-        // `is_value_type` returns false for custom types since we can't know what type the user mapped it to.
         if !data_type.is_optional && !data_type.is_value_type() {
             // This is to suppress compiler warnings for non-nullable fields.
+            // We don't need it for value fields since they are initialized to default.
             writeln!(code, "this.{} = default!;", field.field_name(field_type));
         }
     }
