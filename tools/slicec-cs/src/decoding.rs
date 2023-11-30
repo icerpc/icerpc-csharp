@@ -161,6 +161,10 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, 
         );
     }
 
+    let dictionary_type = dictionary_ref.cs_type_string(namespace, TypeContext::Decode, true);
+    let decode_key = decode_key.indent();
+    let decode_value = decode_value.indent();
+
     // Use WithOptionalValueType method if encoding is not Slice1 and the value type is optional
     if encoding != Encoding::Slice1 && value_type.is_optional {
         format!(
@@ -169,9 +173,6 @@ decoder.DecodeDictionaryWithOptionalValueType(
     size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
-            dictionary_type = dictionary_ref.cs_type_string(namespace, TypeContext::Decode, true),
-            decode_key = decode_key.indent(),
-            decode_value = decode_value.indent(),
         )
     } else {
         format!(
@@ -180,9 +181,6 @@ decoder.DecodeDictionary(
     size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
-            dictionary_type = dictionary_ref.cs_type_string(namespace, TypeContext::Decode, true),
-            decode_key = decode_key.indent(),
-            decode_value = decode_value.indent(),
         )
     }
     .into()
@@ -205,6 +203,8 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
     };
 
     if has_cs_type_attribute {
+        let sequence_type = sequence_ref.cs_type_string(namespace, TypeContext::Decode, true);
+
         let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !element_type.is_optional => {
                 // We always read an array even when mapped to a collection, as it's expected to be
@@ -257,7 +257,6 @@ decoder.DecodeSequence(
 decoder.DecodeSequenceOfOptionals(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
-                        sequence_type = sequence_ref.cs_type_string(namespace, TypeContext::Decode, true),
                         decode_func = decode_func(element_type, namespace, encoding).indent(),
                     );
                 } else {
@@ -267,7 +266,6 @@ decoder.DecodeSequenceOfOptionals(
 decoder.DecodeSequence(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
-                        sequence_type = sequence_ref.cs_type_string(namespace, TypeContext::Decode, true),
                         decode_func = decode_func(element_type, namespace, encoding).indent(),
                     );
                 }
@@ -279,9 +277,8 @@ decoder.DecodeSequence(
             write!(
                 code,
                 "\
-new {}(
+new {sequence_type}(
     {})",
-                sequence_ref.cs_type_string(namespace, TypeContext::Decode, true),
                 CodeBlock::from(arg).indent(),
             );
         }
@@ -365,27 +362,21 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> C
 }
 
 fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
-    // For value types the type declaration includes ? at the end, but the type name does not.
-    let type_name = if type_ref.is_optional && type_ref.is_value_type() {
-        type_ref.cs_type_string(namespace, TypeContext::Decode, true)
-    } else {
-        type_ref.cs_type_string(namespace, TypeContext::Decode, false)
-    };
-
     let mut code = CodeBlock::default();
-    if type_ref.is_optional && !type_ref.is_value_type() {
-        write!(code, "({type_name})");
+    let type_name = type_ref.cs_type_string(namespace, TypeContext::Decode, true);
+
+    // When we decode the type, we decode it as a non-optional.
+    // If the type is supposed to be optional, we cast it after decoding.
+    if type_ref.is_optional {
+        write!(code, "({type_name}?)");
     }
+
     match &type_ref.concrete_typeref() {
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             assert!(encoding == Encoding::Slice1);
             if type_ref.is_optional {
-                write!(
-                    code,
-                    "decoder.DecodeNullableClass<{}>()",
-                    type_ref.cs_type_string(namespace, TypeContext::Decode, true),
-                )
+                write!(code, "decoder.DecodeNullableClass<{type_name}>()")
             } else {
                 write!(code, "decoder.DecodeClass<{type_name}>()")
             }
@@ -421,10 +412,6 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
             )
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
-    }
-
-    if type_ref.is_optional && type_ref.is_value_type() {
-        write!(code, " as {type_name}?");
     }
     code
 }
