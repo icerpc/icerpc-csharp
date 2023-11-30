@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Tests.Common;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using System.IO.Pipelines;
 
