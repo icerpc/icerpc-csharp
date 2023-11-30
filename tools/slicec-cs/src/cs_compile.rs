@@ -5,7 +5,7 @@ use slicec::ast::node::Node;
 use slicec::compilation_state::CompilationState;
 use slicec::diagnostics::{Diagnostic, Error};
 use slicec::grammar::attributes::Unparsed;
-use slicec::grammar::{AttributeFunctions, Symbol};
+use slicec::grammar::{AttributeFunctions, Encoding, NamedSymbol, Symbol, Type};
 use std::io;
 
 pub unsafe fn cs_patcher(compilation_state: &mut CompilationState) {
@@ -23,8 +23,11 @@ pub unsafe fn cs_patcher(compilation_state: &mut CompilationState) {
 }
 
 pub fn cs_validator(compilation_state: &mut CompilationState) {
-    compilation_state.apply(ensure_custom_types_have_type_attribute);
     compilation_state.apply(check_for_unique_names);
+    compilation_state.apply(ensure_custom_types_have_type_attribute);
+
+    // TODO: remove this when we add proper support for enums with associated fields.
+    compilation_state.apply(disallow_enums_with_associated_fields);
 }
 
 fn check_for_unique_names(compilation_state: &mut CompilationState) {
@@ -56,6 +59,26 @@ fn ensure_custom_types_have_type_attribute(compilation_state: &mut CompilationSt
                     attribute: CsType::directive().to_owned(),
                 })
                 .set_span(custom_type.span())
+                .push_into(&mut compilation_state.diagnostics);
+            }
+        }
+    }
+}
+
+fn disallow_enums_with_associated_fields(compilation_state: &mut CompilationState) {
+    for node in compilation_state.ast.as_slice() {
+        if let Node::Enum(enum_ptr) = node {
+            let enum_def = enum_ptr.borrow();
+            if enum_def.underlying.is_none() && !enum_def.supported_encodings().supports(Encoding::Slice1) {
+                let identifier = enum_def.identifier();
+                Diagnostic::new(Error::Syntax {
+                    message: "enums with associated fields are not supported by slicec-cs".to_owned(),
+                })
+                .add_note(
+                    format!("Try specifying an underlying type on your enum: `enum {identifier} : varint32`"),
+                    None,
+                )
+                .set_span(enum_def.span())
                 .push_into(&mut compilation_state.diagnostics);
             }
         }

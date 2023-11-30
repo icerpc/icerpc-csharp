@@ -238,7 +238,8 @@ pub fn format_comment_message(message: &Message, namespace: &str) -> String {
     // Iterate through the components of the message and append them into a string.
     // If the component is text, escape XML entities and then append it. If the component is a link, format it first,
     // then append it.
-    message.iter().fold(String::new(), |s, component| match &component {
+    let message_components = message.value.iter();
+    message_components.fold(String::new(), |s, component| match &component {
         MessageComponent::Text(text) => s + &xml_escape(text),
         MessageComponent::Link(link_tag) => match link_tag.linked_entity() {
             Ok(entity) => {

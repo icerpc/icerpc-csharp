@@ -33,7 +33,11 @@ interface Locator {
     /// should treat this exception like a null return value.
     idempotent findAdapterById(id: string) -> IceRpc::ServiceAddress? throws AdapterNotFoundException
 
-    /// Gets the locator registry.
-    /// @returns: The locator registry, or null if this locator has no associated registry.
-    idempotent getRegistry() -> LocatorRegistry?
+    /// Gets a proxy to the locator registry.
+    /// @returns: A proxy to the locator registry, or null if this locator has no associated registry.
+    idempotent getRegistry() -> LocatorRegistryProxy?
 }
+
+/// The LocatorProxy data type, encoded as a service address.
+[cs::type("IceRpc.Slice.Ice.LocatorProxy")]
+custom LocatorProxy

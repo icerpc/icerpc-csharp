@@ -4,15 +4,19 @@ mode = Slice1
 
 module IceRpc::Slice::Tests
 
+/*
+TODO: re-enable these tests when '#3812' is fixed.
+
 compact struct MyCompactStructWithNullableProxy {
     a: int32
-    i: Pingable?
+    i: PingableProxy?
 }
 
 compact struct MyCompactStructWithSequenceOfNullableProxies {
-    i: Sequence<Pingable?>
+    i: Sequence<PingableProxy?>
 }
 
 compact struct MyCompactStructWithDictionaryOfNullableProxies {
-    i: Dictionary<int32, Pingable?>
+    i: Dictionary<int32, PingableProxy?>
 }
+*/

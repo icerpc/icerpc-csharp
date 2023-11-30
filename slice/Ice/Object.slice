@@ -21,3 +21,8 @@ interface Object {
     /// Pings the service.
     idempotent ice_ping()
 }
+
+/// The ObjectProxy data type, encoded as a service address.
+[cs::identifier("IceObjectProxy")]
+[cs::type("IceRpc.Slice.Ice.IceObjectProxy")]
+custom ObjectProxy

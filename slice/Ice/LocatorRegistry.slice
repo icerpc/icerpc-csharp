@@ -55,5 +55,9 @@ interface LocatorRegistry {
     /// @param serverId: The server ID.
     /// @param proxy: A proxy for the Process service of the server application.
     /// @throws ServerNotFoundException: Thrown if the locator does not know a server application with this server ID.
-    idempotent setServerProcessProxy(serverId: string, proxy: Process) throws ServerNotFoundException
+    idempotent setServerProcessProxy(serverId: string, proxy: ProcessProxy) throws ServerNotFoundException
 }
+
+/// The LocatorRegistryProxy data type, encoded as a service address.
+[cs::type("IceRpc.Slice.Ice.LocatorRegistryProxy")]
+custom LocatorRegistryProxy

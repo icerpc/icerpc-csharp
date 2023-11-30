@@ -19,10 +19,6 @@ struct Generator<'a> {
 }
 
 impl Visitor for Generator<'_> {
-    fn visit_file(&mut self, _: &SliceFile) {}
-
-    fn visit_module(&mut self, _: &Module) {}
-
     fn visit_struct(&mut self, struct_def: &Struct) {
         self.code.add_block(&struct_generator::generate_struct(struct_def));
     }
@@ -45,20 +41,6 @@ impl Visitor for Generator<'_> {
     fn visit_enum(&mut self, enum_def: &Enum) {
         self.code.add_block(&enum_generator::generate_enum(enum_def));
     }
-
-    fn visit_operation(&mut self, _: &Operation) {}
-
-    fn visit_custom_type(&mut self, _: &CustomType) {}
-
-    fn visit_type_alias(&mut self, _: &TypeAlias) {}
-
-    fn visit_field(&mut self, _: &Field) {}
-
-    fn visit_parameter(&mut self, _: &Parameter) {}
-
-    fn visit_enumerator(&mut self, _: &Enumerator) {}
-
-    fn visit_type_ref(&mut self, _: &TypeRef) {}
 }
 
 pub fn generate_from_slice_file(slice_file: &SliceFile, options: &CsOptions) -> String {

@@ -8,3 +8,6 @@ module IceRpc::Slice::Tests
 interface Pingable {
     ping()
 }
+
+[cs::type("IceRpc.Slice.Tests.PingableProxy")]
+custom PingableProxy

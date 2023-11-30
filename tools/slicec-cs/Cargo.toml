@@ -13,11 +13,11 @@ rust-version = "1.70"
 [dependencies]
 clap = { version = "4.3.15", features = ["derive"] }
 convert_case = "0.6.0"
-in_definite = "0.2.5"
-slicec = "0.1.1"
+in_definite = "1.0.0"
+slicec = "0.2.1"
 
 [dev-dependencies]
-test-case = "3.1.0"
+test-case = "3.3.1"
 
 [[bin]]
 name = "slicec-cs"

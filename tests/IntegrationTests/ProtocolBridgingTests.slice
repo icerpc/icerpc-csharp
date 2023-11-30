@@ -26,5 +26,8 @@ interface ProtocolBridgingTest {
     opContext()
 
     // Operation that returns a new proxy to the same target
-    opNewProxy() -> ProtocolBridgingTest
+    opNewProxy() -> ProtocolBridgingTestProxy
 }
+
+[cs::type("IceRpc.IntegrationTests.ProtocolBridgingTestProxy")]
+custom ProtocolBridgingTestProxy

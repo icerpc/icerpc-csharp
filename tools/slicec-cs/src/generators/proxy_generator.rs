@@ -120,6 +120,110 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
 
     code.add_block(&proxy_impl_builder.build());
 
+    let mut proxy_encoder_builder = ContainerBuilder::new(
+        &format!("{access} static class"),
+        &format!("{proxy_impl}SliceEncoderExtensions"),
+    );
+
+    if interface_def.supported_encodings().supports(Encoding::Slice1) {
+        proxy_encoder_builder.add_comment(
+            "summary",
+            format!(
+                r#"
+Provides extension methods for <see cref="SliceEncoder" /> to encode a <see cref="{proxy_impl}" />."#
+            ),
+        );
+    } else {
+        proxy_encoder_builder.add_comment(
+            "summary",
+            format!(
+                r#"
+Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cref="{proxy_impl}" />."#
+            ),
+        );
+    }
+
+    proxy_encoder_builder.add_block(
+        format!(
+            r#"
+/// <summary>Encodes a <see cref="{proxy_impl}" /> as an <see cref="IceRpc.ServiceAddress" />.</summary>
+/// <param name="encoder">The Slice encoder.</param>
+/// <param name="proxy">The proxy to encode as a service address.</param>
+{access} static void Encode{proxy_impl}(this ref SliceEncoder encoder, {proxy_impl} proxy) =>
+    encoder.EncodeServiceAddress(proxy.ServiceAddress);"#
+        )
+        .into(),
+    );
+
+    if interface_def.supported_encodings().supports(Encoding::Slice1) {
+        proxy_encoder_builder.add_block(
+            format!(
+                r#"
+/// <summary>Encodes a nullable <see cref="{proxy_impl}" /> as a nullable
+/// <see cref="IceRpc.ServiceAddress" /> (Slice1 only).</summary>
+/// <param name="encoder">The Slice encoder.</param>
+/// <param name="proxy">The proxy to encode as a service address (can be null).</param>
+{access} static void EncodeNullable{proxy_impl}(this ref SliceEncoder encoder, {proxy_impl}? proxy) =>
+    encoder.EncodeNullableServiceAddress(proxy?.ServiceAddress);"#
+            )
+            .into(),
+        );
+    }
+
+    code.add_block(&proxy_encoder_builder.build());
+
+    let mut proxy_decoder_builder = ContainerBuilder::new(
+        &format!("{access} static class"),
+        &format!("{proxy_impl}SliceDecoderExtensions"),
+    );
+
+    if interface_def.supported_encodings().supports(Encoding::Slice1) {
+        proxy_decoder_builder.add_comment(
+            "summary",
+            format!(
+                r#"
+Provides extension methods for <see cref="SliceDecoder" /> to decode a <see cref="{proxy_impl}" />."#
+            ),
+        );
+    } else {
+        proxy_decoder_builder.add_comment(
+            "summary",
+            format!(
+                r#"
+Provides an extension method for <see cref="SliceDecoder" /> to decode a <see cref="{proxy_impl}" />."#
+            ),
+        );
+    }
+
+    proxy_decoder_builder.add_block(
+        format!(
+            r#"
+/// <summary>Decodes an <see cref="IceRpc.ServiceAddress" /> into a <see cref="{proxy_impl}" />.</summary>
+/// <param name="decoder">The Slice decoder.</param>
+/// <returns>The proxy created from the decoded service address.</returns>
+{access} static {proxy_impl} Decode{proxy_impl}(this ref SliceDecoder decoder) =>
+    decoder.DecodeProxy<{proxy_impl}>();"#
+        )
+        .into(),
+    );
+
+    if interface_def.supported_encodings().supports(Encoding::Slice1) {
+        proxy_decoder_builder.add_block(
+            format!(
+                r#"
+/// <summary>Decodes a nullable <see cref="IceRpc.ServiceAddress" /> into a nullable
+/// <see cref="{proxy_impl}" /> (Slice1 only).</summary>
+/// <param name="decoder">The Slice decoder.</param>
+/// <returns>The proxy created from the decoded service address, or <langword name="null"/>.</returns>
+{access} static {proxy_impl}? DecodeNullable{proxy_impl}(this ref SliceDecoder decoder) =>
+    decoder.DecodeNullableProxy<{proxy_impl}>();"#
+            )
+            .into(),
+        );
+    }
+
+    code.add_block(&proxy_decoder_builder.build());
+
     code
 }
 

@@ -328,7 +328,7 @@ impl FunctionBuilder {
                     // 'default' as their default value. Other optional types are mapped to nullable types and
                     // can use 'null' as the default value, which makes it clear what the default is.
                     TypeRefs::Sequence(sequence_ref)
-                        if sequence_ref.has_fixed_size_numeric_elements()
+                        if sequence_ref.has_fixed_size_primitive_elements()
                             && !sequence_ref.has_attribute::<CsType>() =>
                     {
                         Some("default")
