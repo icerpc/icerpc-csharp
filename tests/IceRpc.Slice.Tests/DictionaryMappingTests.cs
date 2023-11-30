@@ -745,7 +745,7 @@ public class DictionaryMappingTests
         {
             Payload = requestPayload
         };
-        Dictionary<string, string?> decodedValue = 
+        Dictionary<string, string?> decodedValue =
             await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalStringAsync(
                 request,
                 default);
