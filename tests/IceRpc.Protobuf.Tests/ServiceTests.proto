@@ -12,7 +12,6 @@ service MyWidget {}
 // Test with unusual name casing.
 service myOtherWidget {}
 
-
 service MyFirstWidget {
     rpc OpFirst(google.protobuf.Empty) returns (google.protobuf.Empty);
 }

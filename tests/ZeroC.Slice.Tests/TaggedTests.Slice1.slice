@@ -4,7 +4,7 @@ mode = Slice1
 
 module ZeroC::Slice::Tests::Slice1
 
-compact struct FixedLengthStruct {
+compact struct FixedSizeStruct {
     x: int32
     y: int32
 }
@@ -20,7 +20,7 @@ class ClassWithTaggedFields {
     tag(2) b: int16?               // Uses F2 tag format
     tag(3) c: int32?               // Uses F4 tag format
     tag(4) d: int64?               // Uses F8 tag format
-    tag(5) e: FixedLengthStruct?   // Uses VSize tag format
+    tag(5) e: FixedSizeStruct?     // Uses VSize tag format
     tag(6) f: VarSizeStruct?       // Use FSize tag format
     tag(7) g: MyEnum?              // Uses Size tag format
     tag(8) h: Sequence<uint8>?     // Uses OptimizedVSize tag format

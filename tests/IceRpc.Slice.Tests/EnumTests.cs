@@ -37,30 +37,30 @@ public class EnumTests
     }
 
     [Test]
-    public void Operation_with_checked_fixed_length_enum_sequence_parameter()
+    public void Operation_with_checked_fixed_size_enum_sequence_parameter()
     {
         // Arrange
-        var expected = new MyFixedLengthEnum[]
+        var expected = new MyFixedSizeEnum[]
         {
-            MyFixedLengthEnum.SEnum1,
-            MyFixedLengthEnum.SEnum2,
-            MyFixedLengthEnum.SEnum3,
+            MyFixedSizeEnum.SEnum1,
+            MyFixedSizeEnum.SEnum2,
+            MyFixedSizeEnum.SEnum3,
         };
 
         // Act
-        var payload = EnumOperationsProxy.Request.EncodeOpCheckedEnumWithFixedLengthSeq(expected);
+        var payload = EnumOperationsProxy.Request.EncodeOpCheckedEnumWithFixedSizeSeq(expected);
 
         // Assert
         var decoded = Decode(payload);
         Assert.That(decoded, Is.EqualTo(expected));
         payload.Complete();
 
-        static MyFixedLengthEnum[] Decode(PipeReader payload)
+        static MyFixedSizeEnum[] Decode(PipeReader payload)
         {
             payload.TryRead(out var readResult);
             var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice2);
             decoder.SkipSize();
-            return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyFixedLengthEnum());
+            return decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeMyFixedSizeEnum());
         }
     }
 

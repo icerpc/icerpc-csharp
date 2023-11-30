@@ -9,9 +9,9 @@ public class EnumTests
     [TestCase((int)MyEnum.Enum1, 0)]
     [TestCase((int)MyEnum.Enum2, 1)]
     [TestCase((int)MyEnum.Enum3, 2)]
-    [TestCase((short)MyFixedLengthEnum.SEnum1, 0)]
-    [TestCase((short)MyFixedLengthEnum.SEnum2, 1)]
-    [TestCase((short)MyFixedLengthEnum.SEnum3, 2)]
+    [TestCase((short)MyFixedSizeEnum.SEnum1, 0)]
+    [TestCase((short)MyFixedSizeEnum.SEnum2, 1)]
+    [TestCase((short)MyFixedSizeEnum.SEnum3, 2)]
     [TestCase((int)MyVarSizeEnum.Enum1, -10)]
     [TestCase((int)MyVarSizeEnum.Enum2, 20)]
     [TestCase((int)MyVarSizeEnum.Enum3, 30)]
@@ -44,7 +44,7 @@ public class EnumTests
     public void As_enum_for_an_enum_with_contiguous_enumerators_fails_for_invalid_values(int value) =>
        Assert.That(() => value.AsMyEnum(), Throws.TypeOf<InvalidDataException>());
 
-    [TestCase(sizeof(MyFixedLengthEnum), sizeof(short))]
+    [TestCase(sizeof(MyFixedSizeEnum), sizeof(short))]
     [TestCase(sizeof(MyUncheckedEnum), sizeof(uint))]
     public void Enum_has_the_expected_size(int size, int expectedSize) =>
         Assert.That(size, Is.EqualTo(expectedSize));

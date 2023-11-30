@@ -8,7 +8,7 @@ enum MyEnum : int32 {
     Enum3
 }
 
-enum MyFixedLengthEnum : int16 {
+enum MyFixedSizeEnum : int16 {
     SEnum1
     SEnum2
     SEnum3
@@ -33,6 +33,6 @@ unchecked enum MyUncheckedEnum : uint32 {
 
 interface EnumOperations {
     opCheckedEnumSeq(p1: Sequence<MyEnum>)
-    opCheckedEnumWithFixedLengthSeq(p1: Sequence<MyFixedLengthEnum>)
+    opCheckedEnumWithFixedSizeSeq(p1: Sequence<MyFixedSizeEnum>)
     opUncheckedEnumSeq(p1: Sequence<MyUncheckedEnum>)
 }
