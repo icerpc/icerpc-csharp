@@ -6,7 +6,7 @@ use slicec::grammar::*;
 use slicec::utils::code_gen_util::TypeContext;
 
 pub trait TypeRefExt {
-    /// Is the type a value type (eg. Struct)
+    /// Is this type known to map to a C# value type?
     fn is_value_type(&self) -> bool;
 
     /// The C# mapped type for this type reference.

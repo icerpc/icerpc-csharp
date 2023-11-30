@@ -9,9 +9,6 @@ namespace IceRpc.Slice.Tests;
 [Parallelizable(ParallelScope.All)]
 public sealed class StructTests
 {
-    /*
-    TODO: re-enable these tests when 'https://github.com/icerpc/icerpc-csharp/issues/3812' is fixed.
-
     [Test]
     public void Decode_slice1_compact_struct_with_nullable_proxy(
         [Values("icerpc://localhost/service", null)] string? serviceAddress)
@@ -294,5 +291,4 @@ public sealed class StructTests
                 (ref SliceDecoder decoder) => decoder.DecodeProxy<PingableProxy>() as PingableProxy?),
             Is.EqualTo(expected.I));
     }
-    */
 }

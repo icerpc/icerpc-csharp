@@ -78,6 +78,8 @@ fn encode_type(
         concrete_typeref => {
             let value = if type_ref.is_optional && type_ref.is_value_type() {
                 format!("{param}.Value")
+            } else if type_ref.is_optional && matches!(type_ref.concrete_type(), Types::CustomType(_)) {
+                format!("{param} ?? default!")
             } else {
                 param.to_owned()
             };
@@ -169,6 +171,9 @@ fn encode_tagged_type(
 
     let value = if data_type.is_value_type() {
         format!("{param}.Value")
+    } else if matches!(data_type.concrete_type(), Types::CustomType(_)) {
+        // We don't know if the mapped C# type is a value type or a reference type.
+        format!("{param} ?? default!")
     } else {
         param.to_owned()
     };
@@ -351,9 +356,14 @@ fn encode_action_body(
     let mut code = CodeBlock::default();
     let is_optional = type_ref.is_optional && !is_tagged;
 
-    let value = match (is_optional, type_ref.is_value_type()) {
-        (true, false) => "value!",
-        (true, true) => "value!.Value",
+    let value = match (
+        is_optional,
+        type_ref.is_value_type(),
+        matches!(type_ref.concrete_type(), Types::CustomType(_)),
+    ) {
+        (true, false, false) => "value!",
+        (true, true, false) => "value!.Value",
+        (true, false, true) => "(value ?? default!)",
         _ => "value",
     };
 
@@ -394,10 +404,18 @@ fn encode_action_body(
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
-            write!(
-                code,
-                "{encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
-            )
+
+            if type_ref.is_optional && encoding == Encoding::Slice1 {
+                write!(
+                    code,
+                    "{encoder_extensions_class}.EncodeNullable{identifier}(ref encoder, value)",
+                )
+            } else {
+                write!(
+                    code,
+                    "{encoder_extensions_class}.Encode{identifier}(ref encoder, {value})",
+                )
+            }
         }
     }
 
