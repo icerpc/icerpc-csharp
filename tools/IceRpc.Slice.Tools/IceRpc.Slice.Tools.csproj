@@ -4,7 +4,8 @@
    <PropertyGroup>
       <Nullable>enable</Nullable>
       <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
-      <!--
+      <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+     <!--
         The target framework is netstandard2.0 to support Visual Studio
         see https://learn.microsoft.com/en-us/visualstudio/msbuild/tutorial-custom-task-code-generation?view=vs-2022#create-the-appsettingstronglytyped-project.
       -->
@@ -77,7 +78,10 @@
          <Pack>true</Pack>
          <PackagePath>\</PackagePath>
       </None>
-      <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/System.Text.Encodings.Web.dll" Pack="true" PackagePath="tasks/" Visible="false" />
+      <None Include="$(OutputPath)/System.Text.Json.dll" Pack="true" PackagePath="tasks/" Visible="false" />
    </ItemGroup>
    <Choose>
       <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
