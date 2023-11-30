@@ -185,7 +185,7 @@ public static class ServiceAddressSliceDecoderExtensions
     /// <returns>The decoded service address.</returns>
     private static ServiceAddress DecodeServiceAddressCore(this ref SliceDecoder decoder, string path)
     {
-        // With Slice1, a proxy is encoded as a kind of discriminated union with:
+        // With Slice1, a service address is encoded as a kind of discriminated union with:
         // - Identity
         // - If Identity is not the null identity:
         //     - the fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
