@@ -78,6 +78,8 @@ fn encode_type(
         concrete_typeref => {
             let value = if type_ref.is_optional && type_ref.is_value_type() {
                 format!("{param}.Value")
+            } else if type_ref.is_optional && !type_ref.is_reference_type() {
+                format!("{param} ?? default!")
             } else {
                 param.to_owned()
             };
@@ -169,8 +171,10 @@ fn encode_tagged_type(
 
     let value = if data_type.is_value_type() {
         format!("{param}.Value")
-    } else {
+    } else if data_type.is_reference_type() {
         param.to_owned()
+    } else {
+        format!("{param} ?? default!")
     };
 
     // For types with a known size, we provide a size parameter with the size of the tagged
@@ -351,9 +355,10 @@ fn encode_action_body(
     let mut code = CodeBlock::default();
     let is_optional = type_ref.is_optional && !is_tagged;
 
-    let value = match (is_optional, type_ref.is_value_type()) {
-        (true, false) => "value!",
-        (true, true) => "value!.Value",
+    let value = match (is_optional, type_ref.is_value_type(), type_ref.is_reference_type()) {
+        (true, false, true) => "value!",
+        (true, true, false) => "value!.Value",
+        (true, false, false) => "(value ?? default!)",
         _ => "value",
     };
 
@@ -396,7 +401,7 @@ fn encode_action_body(
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
             write!(
                 code,
-                "{encoder_extensions_class}.Encode{identifier}(ref encoder, value)",
+                "{encoder_extensions_class}.Encode{identifier}(ref encoder, {value})",
             )
         }
     }

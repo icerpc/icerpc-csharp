@@ -6,8 +6,13 @@ use slicec::grammar::*;
 use slicec::utils::code_gen_util::TypeContext;
 
 pub trait TypeRefExt {
-    /// Is the type a value type (eg. Struct)
+    /// Is this type known to map to a C# value type?
     fn is_value_type(&self) -> bool;
+
+    /// Is this type known to map to a C# reference type?
+    /// It's the opposite of `is_value_type()` except both `is_value_type()` and `is_reference_type()` return false for
+    /// a custom type since we don't know what the user selected.
+    fn is_reference_type(&self) -> bool;
 
     /// The C# mapped type for this type reference.
     fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
@@ -20,6 +25,10 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             Types::Enum(_) | Types::Struct(_) => true,
             _ => false,
         }
+    }
+
+    fn is_reference_type(&self) -> bool {
+        !self.is_value_type() && !matches!(self.concrete_type(), Types::CustomType(_))
     }
 
     fn cs_type_string(&self, namespace: &str, context: TypeContext, mut ignore_optional: bool) -> String {
