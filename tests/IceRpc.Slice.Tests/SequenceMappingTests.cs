@@ -249,7 +249,7 @@ public class SequenceMappingTests
     public async Task Operation_returning_a_sequence_of_custom_reference_types()
     {
         // Arrange
-        Uri[] value = [new Uri("icerpc://locahost"), new Uri("ice://locahost")];
+        Uri[] value = [new Uri("icerpc://localhost"), new Uri("ice://localhost")];
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfCustomReferenceType(value);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -274,7 +274,7 @@ public class SequenceMappingTests
     public async Task Operation_sending_a_sequence_of_custom_reference_types()
     {
         // Arrange
-        Uri[] value = [new Uri("icerpc://locahost"), new Uri("ice://locahost")];
+        Uri[] value = [new Uri("icerpc://localhost"), new Uri("ice://localhost")];
 
         // Act
         PipeReader requestPayload =
@@ -528,7 +528,7 @@ public class SequenceMappingTests
     public async Task Operation_returning_a_sequence_of_optional_custom_reference_types()
     {
         // Arrange
-        Uri?[] value = [new Uri("icerpc://locahost"), null, new Uri("ice://locahost")];
+        Uri?[] value = [new Uri("icerpc://localhost"), null, new Uri("ice://localhost")];
         PipeReader responsePayload =
             ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalCustomReferenceType(value);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
@@ -553,7 +553,7 @@ public class SequenceMappingTests
     public async Task Operation_sending_a_sequence_of_optional_custom_reference_types()
     {
         // Arrange
-        Uri?[] value = [new Uri("icerpc://locahost"), null, new Uri("ice://locahost")];
+        Uri?[] value = [new Uri("icerpc://localhost"), null, new Uri("ice://localhost")];
 
         // Act
         PipeReader requestPayload =
