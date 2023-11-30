@@ -8,7 +8,7 @@ namespace IceRpc;
 /// request over a connection.</summary>
 /// <example>
 /// The following example demonstrates how an application would typically create the pipeline and use it as the invoker
-/// for a proxy.
+/// for a Slice proxy or Protobuf client.
 /// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="CreatingAndUsingThePipeline" lang="csharp" />
 /// You can easily create your own interceptor and add it to the pipeline. The next example shows how you can create an
 /// interceptor using an <see cref="InlineInvoker"/> and add it to the pipeline with
