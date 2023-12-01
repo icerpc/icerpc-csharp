@@ -5,6 +5,7 @@ This folder contains example applications for using IceRPC + Protobuf integratio
 |                                        |                                                                                                                                     |
 |----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | [Deadline](./Deadline/)                | Shows how to use the deadline interceptor to set the invocation deadline.                                                           |
+| [GenericHost](./GenericHost/)          | Shows how to create client and server applications using Microsoft's Dependency Injection container.                                |
 | [Greeter](./Greeter/)                  | Shows how to call and implement a canonical Greeter service using the IceRPC + Protobuf integration.                                |
 | [Logger](./Loggger/)                   | Shows how to enable logging.                                                                                                        |
 | [Metrics](./Metrics/)                  | Shows how to use the metrics interceptor and middleware.                                                                            |
