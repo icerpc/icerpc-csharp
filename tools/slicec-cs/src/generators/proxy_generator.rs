@@ -71,10 +71,10 @@ This remote service must implement Slice interface {slice_interface}."#
 public const string DefaultServicePath = "{default_service_path}";
 
 /// <inheritdoc/>
-public SliceEncodeOptions? EncodeOptions {{ get; init; }} = null;
+public SliceEncodeOptions? EncodeOptions {{ get; init; }}
 
 /// <inheritdoc/>
-public IceRpc.IInvoker? Invoker {{ get; init; }} = null;
+public required IceRpc.IInvoker Invoker {{ get; init; }}
 
 /// <inheritdoc/>
 public IceRpc.ServiceAddress ServiceAddress {{ get; init; }} = _defaultServiceAddress;
@@ -232,13 +232,15 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
         r#"/// <summary>Creates a relative proxy from a path.</summary>
 /// <param name="path">The path.</param>
 /// <returns>The new relative proxy.</returns>
-public static {proxy_impl} FromPath(string path) => new() {{ ServiceAddress = new() {{ Path = path }} }};
+public static {proxy_impl} FromPath(string path) =>
+    new(IceRpc.InvalidInvoker.Instance, new IceRpc.ServiceAddress {{ Path = path }});
 
 /// <summary>Constructs a proxy from an invoker, a service address and encode options.</summary>
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="serviceAddress">The service address. <see langword="null" /> is equivalent to an icerpc service address
 /// with path <see cref="DefaultServicePath" />.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
+[System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute]
 public {proxy_impl}(
     IceRpc.IInvoker invoker,
     IceRpc.ServiceAddress? serviceAddress = null,
@@ -253,12 +255,13 @@ public {proxy_impl}(
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="serviceAddressUri">A URI that represents a service address.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
+[System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute]
 public {proxy_impl}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri, SliceEncodeOptions? encodeOptions = null)
     : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
 {{
 }}
 
-/// <summary>Constructs a proxy with the default service address and a <see langword="null" /> invoker.</summary>
+/// <summary>Constructs a proxy with an icerpc service address with path <see cref="DefaultServicePath" />.</summary>
 public {proxy_impl}()
 {{
 }}"#,

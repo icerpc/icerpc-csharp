@@ -15,20 +15,28 @@ public static class SliceServiceProviderExtensions
     /// invocation pipeline, and the <see cref="SliceEncodeOptions" /> retrieved from <paramref name="provider" /> as
     /// its encode options.</remarks>
     public static TProxy CreateSliceProxy<TProxy>(this IServiceProvider provider, ServiceAddress? serviceAddress = null)
-        where TProxy : struct, IProxy =>
-        serviceAddress is null ?
-        new TProxy
+        where TProxy : struct, IProxy
+    {
+        var invoker = (IInvoker?)provider.GetService(typeof(IInvoker));
+        if (invoker is null)
         {
-            EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
-            Invoker = (IInvoker?)provider.GetService(typeof(IInvoker))
+            throw new InvalidOperationException("Could not find service of type 'IInvoker' in the service container.");
         }
-        :
-        new TProxy
-        {
-            EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
-            Invoker = (IInvoker?)provider.GetService(typeof(IInvoker)),
-            ServiceAddress = serviceAddress
-        };
+
+        return serviceAddress is null ?
+            new TProxy
+            {
+                EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
+                Invoker = invoker
+            }
+            :
+            new TProxy
+            {
+                EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
+                Invoker = invoker,
+                ServiceAddress = serviceAddress
+            };
+    }
 
     /// <summary>Creates a Slice proxy with this service provider.</summary>
     /// <typeparam name="TProxy">The Slice proxy struct.</typeparam>

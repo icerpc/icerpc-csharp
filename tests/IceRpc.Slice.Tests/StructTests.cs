@@ -15,7 +15,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            serviceAddress is null ? null : new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+            serviceAddress is null ? null : new PingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         encoder.EncodeInt32(expected.A);
@@ -34,7 +34,7 @@ public sealed class StructTests
         var expected = new MyCompactStructWithNullableProxy(
             10,
             serviceAddress is null ? null :
-                new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+                new PingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var bitSequenceWriter = encoder.GetBitSequenceWriter(1);
@@ -62,9 +62,9 @@ public sealed class StructTests
         {
             I = new PingableProxy?[]
             {
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 null,
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -86,9 +86,9 @@ public sealed class StructTests
         {
             I = new PingableProxy?[]
             {
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 null,
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -111,9 +111,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 [2] = null,
-                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -136,9 +136,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 [2] = null,
-                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -160,7 +160,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            serviceAddress is null ? null : new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+            serviceAddress is null ? null : new PingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
 
@@ -178,7 +178,7 @@ public sealed class StructTests
     {
         var expected = new MyCompactStructWithNullableProxy(
             10,
-            serviceAddress is null ? null : new PingableProxy { ServiceAddress = new(new Uri(serviceAddress)) });
+            serviceAddress is null ? null : new PingableProxy(InvalidInvoker.Instance, new Uri(serviceAddress)));
 
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
@@ -200,9 +200,9 @@ public sealed class StructTests
         {
             I = new PingableProxy?[]
             {
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 null,
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -223,9 +223,9 @@ public sealed class StructTests
         {
             I = new PingableProxy?[]
             {
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 null,
-                new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -247,9 +247,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 [2] = null,
-                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -273,9 +273,9 @@ public sealed class StructTests
         {
             I = new Dictionary<int, PingableProxy?>
             {
-                [1] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service1")) },
+                [1] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service1")),
                 [2] = null,
-                [3] = new PingableProxy { ServiceAddress = new(new Uri("icerpc://localhost/service2")) },
+                [3] = new PingableProxy(InvalidInvoker.Instance, new Uri("icerpc://localhost/service2")),
             }
         };
         var buffer = new MemoryBufferWriter(new byte[256]);

@@ -22,15 +22,13 @@ public sealed partial class ProtocolBridgingTests
         var forwarderServerAddress = new ServerAddress(new Uri($"{forwarderProtocol}://colochost1"));
         var targetServerAddress = new ServerAddress(new Uri($"{targetProtocol}://colochost2"));
 
-        var forwarderProxy = new ProtocolBridgingTestProxy
-        {
-            ServiceAddress = new(new Uri($"{forwarderServerAddress}forward"))
-        };
+        var forwarderProxy = new ProtocolBridgingTestProxy(
+            InvalidInvoker.Instance,
+            new Uri($"{forwarderServerAddress}forward"));
 
-        var targetProxy = new ProtocolBridgingTestProxy
-        {
-            ServiceAddress = new(new Uri($"{targetServerAddress}target"))
-        };
+        var targetProxy = new ProtocolBridgingTestProxy(
+            InvalidInvoker.Instance,
+            new Uri($"{targetServerAddress}target"));
 
         var targetService = new ProtocolBridgingTestService(targetServerAddress);
 
@@ -141,7 +139,7 @@ public sealed partial class ProtocolBridgingTests
                 ServerAddress = _publishedServerAddress
             };
 
-            return new(new ProtocolBridgingTestProxy { ServiceAddress = serviceAddress });
+            return new(new ProtocolBridgingTestProxy(InvalidInvoker.Instance, serviceAddress));
         }
 
         public ValueTask OpOnewayAsync(int x, IFeatureCollection features, CancellationToken cancellationToken) => default;

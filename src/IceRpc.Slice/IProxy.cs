@@ -10,7 +10,7 @@ public interface IProxy
     SliceEncodeOptions? EncodeOptions { get; init; }
 
     /// <summary>Gets or initializes the invocation pipeline of this proxy.</summary>
-    IInvoker? Invoker { get; init; }
+    IInvoker Invoker { get; init; }
 
     /// <summary>Gets or initializes the address of the remote service.</summary>
     ServiceAddress ServiceAddress { get; init; }
