@@ -2,6 +2,7 @@
 
 using GreeterExample;
 using Microsoft.Extensions.Logging;
+using VisitorCenter;
 
 namespace IceRpc.Examples;
 
@@ -9,7 +10,7 @@ public static class PipelineExamples
 {
     public static async Task CreatingAndUsingThePipeline()
     {
-        #region CreatingAndUsingThePipeline
+        #region CreatingThePipeline
         // Create a simple console logger factory and configure the log level for category IceRpc.
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
             builder
@@ -23,10 +24,21 @@ public static class PipelineExamples
         Pipeline pipeline = new Pipeline()
             .UseLogger(loggerFactory)
             .Into(connection);
+        #endregion
 
-        // Create a proxy that uses pipeline as its invocation pipeline.
+        {
+        #region CreateSliceProxy
+        // Create a Slice proxy that uses pipeline as its invocation pipeline.
         var greeter = new GreeterProxy(pipeline);
         #endregion
+        }
+
+        {
+        #region CreateProtobufClient
+        // Create a Protobuf client that uses pipeline as its invocation pipeline.
+        var greeter = new GreeterClient(pipeline);
+        #endregion
+        }
     }
 
     public static void UseWithInlineInterceptor()

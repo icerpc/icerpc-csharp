@@ -13,6 +13,10 @@ public static class RequestContextPipelineExtensions
     /// <example>
     /// The following code adds the request context interceptor to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.RequestContext.Examples/RequestContextInterceptorExamples.cs" region="UseRequestContext" lang="csharp" />
+    /// The following code shows how to set the request context feature with a Slice proxy.
+    /// <code source="../../docfx/examples/IceRpc.RequestContext.Examples/RequestContextInterceptorExamples.cs" region="UseRequestContextWithSliceProxy" lang="csharp" />
+    /// The following code shows how to set the request context feature with a Protobuf client.
+    /// <code source="../../docfx/examples/IceRpc.RequestContext.Examples/RequestContextInterceptorExamples.cs" region="UseRequestContextWithProtobufClient" lang="csharp" />
     /// </example>
     /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/RequestContext"/>
     public static Pipeline UseRequestContext(this Pipeline pipeline) =>

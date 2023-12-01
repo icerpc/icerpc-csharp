@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <SliceFile Include="../Greeter.slice" />
+    <SliceFile Include="../Greeter.slice">
+      <OutputDir>generated/slicec</OutputDir>
+    </SliceFile>
+    <ProtoFile Include="../greeter.proto">
+      <OutputDir>generated/protoc</OutputDir>
+    </ProtoFile>
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.RequestContext" Version="$(Version)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="generated\" />
   </ItemGroup>
 </Project>

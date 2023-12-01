@@ -2,6 +2,7 @@
 
 using GreeterExample;
 using IceRpc.Features;
+using VisitorCenter;
 
 namespace IceRpc.RequestContext.Examples;
 
@@ -19,8 +20,6 @@ public static class RequestContextInterceptorExamples
             .UseRequestContext()
             .Into(connection);
 
-        var greeter = new GreeterProxy(pipeline);
-
         // Create a feature collection holding an IRequestContextFeature.
         IFeatureCollection features = new FeatureCollection().With<IRequestContextFeature>(
             new RequestContextFeature
@@ -28,9 +27,22 @@ public static class RequestContextInterceptorExamples
                 ["UserId"] = Environment.UserName.ToLowerInvariant(),
                 ["MachineName"] = Environment.MachineName
             });
+        #endregion
 
+        {
+        #region UseRequestContextWithSliceProxy
         // The request context interceptor encodes the request context feature into the request context field.
+        var greeter = new GreeterProxy(pipeline);
         string greeting = await greeter.GreetAsync(Environment.UserName, features);
         #endregion
+        }
+
+        {
+        #region UseRequestContextWithProtobufClient
+        // The request context interceptor encodes the request context feature into the request context field.
+        var greeter = new GreeterClient(pipeline);
+        GreetResponse response = await greeter.GreetAsync(new GreetRequest { Name = Environment.UserName }, features);
+        #endregion
+        }
     }
 }
