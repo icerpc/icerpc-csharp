@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using GreeterExample;
-using IceRpc.Slice;
 
 namespace IceRpc.Deadline.Examples;
 

@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <SliceFile Include="../Greeter.slice" />
+    <SliceFile Include="../Greeter.slice">
+      <OutputDir>generated/slicec</OutputDir>
+    </SliceFile>
+    <ProtoFile Include="../greeter.proto">
+      <OutputDir>generated/protoc</OutputDir>
+    </ProtoFile>
     <Compile Include="../Chatbot.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
     <PackageReference Include="IceRpc.Compressor" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" />
   </ItemGroup>
 </Project>
