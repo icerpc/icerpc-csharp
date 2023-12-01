@@ -16,13 +16,13 @@ public class ClientHostedService : BackgroundService
 
     // All the parameters are injected by the DI container.
     public ClientHostedService(
+        IGreeter greeter,
         IInvoker invoker,
-        ClientConnection connection,
         IHostApplicationLifetime applicationLifetime)
     {
         _applicationLifetime = applicationLifetime;
         _connection = connection;
-        _greeter = new GreeterClient(invoker);
+        _greeter = greeter;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

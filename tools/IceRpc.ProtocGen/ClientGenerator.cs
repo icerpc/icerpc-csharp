@@ -115,7 +115,7 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
 
     /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from this
     /// client.</summary>
-    public ProtobufEncodeOptions? EncodeOptions {{ get; init; }} = null;
+    public ProtobufEncodeOptions? EncodeOptions {{ get; init; }}
 
     /// <summary>Gets or initializes the invoker of this client.</summary>
     public IceRpc.IInvoker Invoker {{ get; init; }}

@@ -44,7 +44,7 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
                 };
             });
 
-        // Add the Protobuf service that implements Protobuf service `Greeter`, as a singleton.
+        // Add the Chatbot service, which implements the Protobuf `Greeter` service, as a singleton.
         services.AddSingleton<IGreeterService, Chatbot>();
 
         // Add a server and configure the dispatcher using a dispatcher builder. The server uses the ServerOptions
