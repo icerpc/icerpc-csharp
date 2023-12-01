@@ -10,7 +10,7 @@ public static class PipelineExamples
 {
     public static async Task CreatingAndUsingThePipeline()
     {
-        #region CreatingAndUsingThePipeline
+        #region CreatingThePipeline
         // Create a simple console logger factory and configure the log level for category IceRpc.
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
             builder
@@ -32,7 +32,6 @@ public static class PipelineExamples
         var greeter = new GreeterProxy(pipeline);
         #endregion
         }
-
 
         {
         #region CreateProtobufClient

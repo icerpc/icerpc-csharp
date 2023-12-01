@@ -9,7 +9,7 @@ namespace IceRpc;
 /// <example>
 /// The following example demonstrates how an application would typically create the pipeline and use it as the invoker
 /// for a Slice proxy or Protobuf client.
-/// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="CreatingAndUsingThePipeline" lang="csharp" />
+/// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="CreatingThePipeline" lang="csharp" />
 /// Create a Slice proxy that uses the pipeline as its invoker.
 /// <code source="../../docfx/examples/IceRpc.Examples/PipelineExamples.cs" region="CreateSliceProxy" lang="csharp" />
 /// Create a Protobuf client that uses the pipeline as its invoker.
