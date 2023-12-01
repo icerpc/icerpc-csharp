@@ -1,6 +1,6 @@
 # Examples
 
-This folder contains example applications for using IceRPC + Protobuf integration.
+This folder contains example applications that showcase the IceRPC + Protobuf integration.
 
 |                                        |                                                                                                                                     |
 |----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
@@ -14,6 +14,6 @@ This folder contains example applications for using IceRPC + Protobuf integratio
 | [RequestContext](./RequestContext/)    | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server.                     |
 | [Retry](./Retry/)                      | Shows how to use the retry interceptor to retry failed requests.                                                                    |
 | [Secure](./Secure/)                    | Shows how to secure TCP connections with TLS.                                                                                       |
+| [Stream](./Stream/)                    | Shows how to stream data from a client to a server.                                                                                 |
 | [Telemetry](./Telemetry/)              | Shows how to use the telemetry interceptor and middleware.                                                                          |
 | [Thermostat](./Thermostat/)            | Shows how to send requests via an intermediary server; includes sending requests the "other way around", from a server to a client. |
-| [Stream](./Stream/)                    | Shows how to stream data from a client to a server.                                                                                 |

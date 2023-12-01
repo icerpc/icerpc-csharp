@@ -1,6 +1,6 @@
 # Examples
 
-This folder contains example applications for using IceRPC core API.
+This folder contains example applications that showcase the core IceRPC API.
 
 |                       |                                                                                    |
 |-----------------------|------------------------------------------------------------------------------------|

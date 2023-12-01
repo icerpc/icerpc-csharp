@@ -1,6 +1,6 @@
 # Examples
 
-This folder contains example applications for using IceRPC + Slice integration.
+This folder contains example applications that showcase the IceRPC + Slice integration.
 
 |                                            |                                                                                                                                     |
 |--------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
