@@ -16,7 +16,7 @@ cd Server
 dotnet run
 ```
 
-In a separate window, start the Client program:
+In a separate terminal, start the Client program:
 
 ```shell
 cd Client

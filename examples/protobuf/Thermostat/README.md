@@ -62,7 +62,7 @@ cd Server
 dotnet run
 ```
 
-In a separate window, start the Device program:
+In a separate terminal, start the Device program:
 
 ```shell
 cd Device

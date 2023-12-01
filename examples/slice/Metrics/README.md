@@ -26,7 +26,7 @@ To monitor the server counter metrics, in a separate window run:
 dotnet-counters monitor --name Server --counters IceRpc.Dispatch
 ```
 
-In a separate window run the client program to send requests to the server:
+In a separate terminal run the client program to send requests to the server:
 
 ```shell
 cd Client

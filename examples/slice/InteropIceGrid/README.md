@@ -18,7 +18,7 @@ applications:
 - [java][4]
 - [python][5]
 
-In a separate window, start the Client program:
+In a separate terminal, start the Client program:
 
 ```shell
 cd Client
