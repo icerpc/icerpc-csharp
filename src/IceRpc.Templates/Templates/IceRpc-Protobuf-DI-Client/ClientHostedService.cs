@@ -12,7 +12,7 @@ public class ClientHostedService : BackgroundService
     private readonly ClientConnection _connection;
 
     // The IGreeter managed by the DI container.
-    private readonly GreeterClient _greeter;
+    private readonly IGreeter _greeter;
 
     // All the parameters are injected by the DI container.
     public ClientHostedService(
