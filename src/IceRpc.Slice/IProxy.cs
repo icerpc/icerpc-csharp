@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.ComponentModel.DataAnnotations;
-
 namespace IceRpc.Slice;
 
 /// <summary>Represents a local ambassador for a remote service.</summary>
