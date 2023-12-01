@@ -181,6 +181,65 @@ public class DictionaryMappingTests
     }
 
     [Test]
+    public async Task Operation_returning_a_dictionary_of_custom_value_types()
+    {
+        // Arrange
+        var value = new Dictionary<DateTime, DateTime>
+        {
+            [DateTime.UnixEpoch.AddYears(1)] = DateTime.UnixEpoch.AddYears(1),
+            [DateTime.UnixEpoch.AddYears(2)] = DateTime.UnixEpoch.AddYears(2),
+            [DateTime.UnixEpoch.AddYears(3)] = DateTime.UnixEpoch.AddYears(3)
+        };
+        PipeReader responsePayload =
+            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfCustomValueType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        Dictionary<DateTime, DateTime> r =
+            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfCustomValueTypeAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_dictionary_of_custom_reference_types()
+    {
+        // Arrange
+        var value = new Dictionary<Uri, Uri>
+        {
+            [new Uri("icerpc://localhost")] = new Uri("icerpc://localhost"),
+            [new Uri("ice://localhost")] = new Uri("ice://localhost")
+        };
+        PipeReader responsePayload =
+            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfCustomReferenceType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        Dictionary<Uri, Uri> r =
+            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfCustomReferenceTypeAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(value));
+    }
+
+    [Test]
     public async Task Operation_returning_a_dictionary_of_optional_int32()
     {
         // Arrange
@@ -286,6 +345,65 @@ public class DictionaryMappingTests
         // Act
         Dictionary<MyCompactStruct, MyCompactStruct?> r =
             await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfOptionalMyCompactStructAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_dictionary_of_optional_custom_value_types()
+    {
+        // Arrange
+        var value = new Dictionary<DateTime, DateTime?>
+        {
+            [DateTime.UnixEpoch.AddYears(1)] = DateTime.UnixEpoch.AddYears(1),
+            [DateTime.UnixEpoch.AddYears(2)] = null,
+            [DateTime.UnixEpoch.AddYears(3)] = DateTime.UnixEpoch.AddYears(3)
+        };
+        PipeReader responsePayload =
+            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfOptionalCustomValueType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        Dictionary<DateTime, DateTime?> r =
+            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfOptionalCustomValueTypeAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_dictionary_of_optional_custom_reference_types()
+    {
+        // Arrange
+        var value = new Dictionary<Uri, Uri?>
+        {
+            [new Uri("icerpc://localhost")] = new Uri("icerpc://localhost"),
+            [new Uri("ice://localhost")] = null
+        };
+        PipeReader responsePayload =
+            IDictionaryMappingOperationsService.Response.EncodeReturnDictionaryOfOptionalCustomReferenceType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        Dictionary<Uri, Uri?> r =
+            await DictionaryMappingOperationsProxy.Response.DecodeReturnDictionaryOfOptionalCustomReferenceTypeAsync(
                 response,
                 request,
                 InvalidProxy.Instance,
@@ -448,6 +566,57 @@ public class DictionaryMappingTests
     }
 
     [Test]
+    public async Task Operation_sending_a_dictionary_of_custom_value_types()
+    {
+        // Arrange
+        var value = new Dictionary<DateTime, DateTime>
+        {
+            [DateTime.UnixEpoch.AddYears(1)] = DateTime.UnixEpoch.AddYears(1),
+            [DateTime.UnixEpoch.AddYears(2)] = DateTime.UnixEpoch.AddYears(2),
+            [DateTime.UnixEpoch.AddYears(3)] = DateTime.UnixEpoch.AddYears(3)
+        };
+
+        // Act
+        var requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfCustomValueType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        Dictionary<DateTime, DateTime> decodedValue =
+            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfCustomValueTypeAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_dictionary_of_custom_reference_types()
+    {
+        // Arrange
+        var value = new Dictionary<Uri, Uri>
+        {
+            [new Uri("icerpc://localhost")] = new Uri("icerpc://localhost"),
+            [new Uri("ice://localhost")] = new Uri("ice://localhost")
+        };
+
+        // Act
+        var requestPayload = DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfCustomReferenceType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        Dictionary<Uri, Uri> decodedValue =
+            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfCustomReferenceTypeAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
     public async Task Operation_sending_a_dictionary_of_optional_int32()
     {
         // Arrange
@@ -543,6 +712,59 @@ public class DictionaryMappingTests
         };
         Dictionary<MyCompactStruct, MyCompactStruct?> decodedValue =
             await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalMyCompactStructAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_dictionary_of_optional_custom_value_types()
+    {
+        // Arrange
+        var value = new Dictionary<DateTime, DateTime?>
+        {
+            [DateTime.UnixEpoch.AddYears(1)] = DateTime.UnixEpoch.AddYears(1),
+            [DateTime.UnixEpoch.AddYears(2)] = null,
+            [DateTime.UnixEpoch.AddYears(3)] = DateTime.UnixEpoch.AddYears(3)
+        };
+
+        // Act
+        var requestPayload =
+            DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfOptionalCustomValueType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        Dictionary<DateTime, DateTime?> decodedValue =
+            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalCustomValueTypeAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_dictionary_of_optional_custom_reference_types()
+    {
+        // Arrange
+        var value = new Dictionary<Uri, Uri?>
+        {
+            [new Uri("icerpc://localhost")] = new Uri("icerpc://localhost"),
+            [new Uri("ice://localhost")] = null
+        };
+
+        // Act
+        var requestPayload =
+            DictionaryMappingOperationsProxy.Request.EncodeSendDictionaryOfOptionalCustomReferenceType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        Dictionary<Uri, Uri?> decodedValue =
+            await IDictionaryMappingOperationsService.Request.DecodeSendDictionaryOfOptionalCustomReferenceTypeAsync(
                 request,
                 default);
         Assert.That(decodedValue, Is.EqualTo(value));

@@ -17,6 +17,12 @@ interface DictionaryMappingOperations {
     returnDictionaryOfMyCompactStruct() -> Dictionary<MyCompactStruct, MyCompactStruct>
     sendDictionaryOfMyCompactStruct(p: Dictionary<MyCompactStruct, MyCompactStruct>)
 
+    returnDictionaryOfCustomValueType() -> Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp>
+    sendDictionaryOfCustomValueType(p: Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp>)
+
+    returnDictionaryOfCustomReferenceType() -> Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri>
+    sendDictionaryOfCustomReferenceType(p: Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri>)
+
     returnDictionaryOfOptionalInt32() -> Dictionary<int32, int32?>
     sendDictionaryOfOptionalInt32(p: Dictionary<int32, int32?>)
 
@@ -28,6 +34,12 @@ interface DictionaryMappingOperations {
 
     returnDictionaryOfOptionalMyCompactStruct() -> Dictionary<MyCompactStruct, MyCompactStruct?>
     sendDictionaryOfOptionalMyCompactStruct(p: Dictionary<MyCompactStruct, MyCompactStruct?>)
+
+    returnDictionaryOfOptionalCustomValueType() -> Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp?>
+    sendDictionaryOfOptionalCustomValueType(p: Dictionary<WellKnownTypes::TimeStamp, WellKnownTypes::TimeStamp?>)
+
+    returnDictionaryOfOptionalCustomReferenceType() -> Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri?>
+    sendDictionaryOfOptionalCustomReferenceType(p: Dictionary<WellKnownTypes::Uri, WellKnownTypes::Uri?>)
 
     // We don't need to add tests for other cs::type arguments because the code path is always the same. The argument
     // must be a non-abstract generic type that implements ICollection<KeyValuePair<TKey, TValue>> and provides a

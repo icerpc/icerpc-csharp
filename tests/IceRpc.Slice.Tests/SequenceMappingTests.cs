@@ -200,6 +200,99 @@ public class SequenceMappingTests
     }
 
     [Test]
+    public async Task Operation_returning_a_sequence_of_custom_value_types()
+    {
+        // Arrange
+        DateTime[] value = [DateTime.UnixEpoch, DateTime.UnixEpoch, DateTime.UnixEpoch];
+        PipeReader responsePayload =
+            ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfCustomValueType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        DateTime[] decodedValue =
+            await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfCustomValueTypeAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_sequence_of_custom_value_types()
+    {
+        // Arrange
+        DateTime[] value = [DateTime.UnixEpoch, DateTime.UnixEpoch, DateTime.UnixEpoch];
+
+        // Act
+        PipeReader requestPayload =
+            SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfCustomValueType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue = await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfCustomValueTypeAsync(
+            request,
+            default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_sequence_of_custom_reference_types()
+    {
+        // Arrange
+        Uri[] value = [new Uri("icerpc://localhost"), new Uri("ice://localhost")];
+        PipeReader responsePayload =
+            ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfCustomReferenceType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        Uri[] decodedValue =
+            await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfCustomReferenceTypeAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_sequence_of_custom_reference_types()
+    {
+        // Arrange
+        Uri[] value = [new Uri("icerpc://localhost"), new Uri("ice://localhost")];
+
+        // Act
+        PipeReader requestPayload =
+            SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfCustomReferenceType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfCustomReferenceTypeAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
     public async Task Operation_returning_a_sequence_of_optional_fixed_size_numeric()
     {
         // Arrange
@@ -379,6 +472,100 @@ public class SequenceMappingTests
         };
         var decodedValue =
             await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalMyStructAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_sequence_of_optional_custom_value_types()
+    {
+        // Arrange
+        DateTime?[] value = [DateTime.UnixEpoch, null, DateTime.UnixEpoch];
+        PipeReader responsePayload =
+            ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalCustomValueType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        DateTime?[] decodedValue =
+            await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfOptionalCustomValueTypeAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_sequence_of_optional_custom_value_types()
+    {
+        // Arrange
+        DateTime?[] value = [DateTime.UnixEpoch, null, DateTime.UnixEpoch];
+
+        // Act
+        PipeReader requestPayload =
+            SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalCustomValueType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        DateTime?[] decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalCustomValueTypeAsync(
+                request,
+                default);
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_returning_a_sequence_of_optional_custom_reference_types()
+    {
+        // Arrange
+        Uri?[] value = [new Uri("icerpc://localhost"), null, new Uri("ice://localhost")];
+        PipeReader responsePayload =
+            ISequenceMappingOperationsService.Response.EncodeReturnSequenceOfOptionalCustomReferenceType(value);
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
+        var response = new IncomingResponse(request, FakeConnectionContext.Instance)
+        {
+            Payload = responsePayload
+        };
+
+        // Act
+        Uri?[] decodedValue =
+            await SequenceMappingOperationsProxy.Response.DecodeReturnSequenceOfOptionalCustomReferenceTypeAsync(
+                response,
+                request,
+                InvalidProxy.Instance,
+                default);
+
+        // Assert
+        Assert.That(decodedValue, Is.EqualTo(value));
+    }
+
+    [Test]
+    public async Task Operation_sending_a_sequence_of_optional_custom_reference_types()
+    {
+        // Arrange
+        Uri?[] value = [new Uri("icerpc://localhost"), null, new Uri("ice://localhost")];
+
+        // Act
+        PipeReader requestPayload =
+            SequenceMappingOperationsProxy.Request.EncodeSendSequenceOfOptionalCustomReferenceType(value);
+
+        // Assert
+        using var request = new IncomingRequest(Protocol.IceRpc, FakeConnectionContext.Instance)
+        {
+            Payload = requestPayload
+        };
+        var decodedValue =
+            await ISequenceMappingOperationsService.Request.DecodeSendSequenceOfOptionalCustomReferenceTypeAsync(
                 request,
                 default);
         Assert.That(decodedValue, Is.EqualTo(value));
