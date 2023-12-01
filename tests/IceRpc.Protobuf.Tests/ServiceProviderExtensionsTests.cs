@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using Google.Protobuf.WellKnownTypes;
-using IceRpc.Protobuf.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.IO.Pipelines;
 
 namespace IceRpc.Protobuf.Tests;
 
@@ -13,11 +11,31 @@ public partial class ServiceProviderExtensionsTests
     [Test]
     public void Create_protobuf_client_with_no_params()
     {
-        var connection = new Connection();
         var serviceCollection = 
             new ServiceCollection()
-                .AddSingleton<IInvoker>(connection)
-                .Add
+                .AddSingleton(InvalidInvoker.Instance)
+                .AddSingleton<IMyOperations>(provider => provider.CreateProtobufClient<MyOperationsClient>());
 
+        var provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+
+        IMyOperations? client = provider.GetService<IMyOperations>();
+
+        Assert.That(client, Is.Not.Null);
+        Assert.That(client, Is.InstanceOf<IProtobufClient>());
+        IProtobufClient? protobufClient = (IProtobufClient?)client;
+        Assert.That(protobufClient.Invoker, Is.EqualTo(InvalidInvoker.Instance));
+        Assert.That(protobufClient.ServiceAddress.Path, Is.EqualTo(MyOperationsClient.DefaultServicePath));
+        Assert.That(protobufClient.EncodeOptions, Is.Null);
+    }
+
+    [Test]
+    public void Create_protobuf_client_without_invoker_fails()
+    {
+        var serviceCollection =
+            new ServiceCollection()
+                .AddSingleton<IMyOperations>(provider => provider.CreateProtobufClient<MyOperationsClient>());
+
+        var provider = serviceCollection.BuildServiceProvider(validateScopes: true);
+        Assert.That(() => provider.GetService<IMyOperations>(), Throws.InvalidOperationException);
     }
 }
