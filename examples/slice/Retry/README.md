@@ -21,7 +21,7 @@ cd Server
 dotnet run -- 0
 ```
 
-In a separate window, start the second instance:
+In a separate terminal, start the second instance:
 
 ```shell
 cd Server
@@ -35,7 +35,7 @@ cd Server
 dotnet run -- 2
 ```
 
-In a separate window, start the Client program, passing the number of server instances as an argument:
+In a separate terminal, start the Client program, passing the number of server instances as an argument:
 
 ```shell
 cd Client

@@ -14,14 +14,14 @@ First start the Zipkin service as documented in the Zipkin quick start guide:
 
 - [Zipkin quick-start](https://zipkin.io/pages/quickstart.html)
 
-In a separate window start the Greeter Server program:
+In a separate terminal start the Greeter Server program:
 
 ```shell
 cd Server
 dotnet run
 ```
 
-In a separate window, start the Client program:
+In a separate terminal, start the Client program:
 
 ```shell
 cd Client
