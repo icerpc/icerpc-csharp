@@ -107,7 +107,7 @@ public partial interface I{service.Name.ToPascalCase()}
 [global::System.Obsolete]";
         }
         clientImplementation += @$"
-public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}
+public readonly partial record struct {clientImplementationName} : I{service.Name.ToPascalCase()}, IProtobufClient
 {{
     /// <summary>Represents the default path for IceRPC services that implement Protobuf service
     /// <c>{service.FullName}</c>.</summary>
@@ -115,7 +115,7 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
 
     /// <summary>Gets or initializes the encode options, used to customize the encoding of payloads created from this
     /// client.</summary>
-    ProtobufEncodeOptions? EncodeOptions {{ get; init; }}
+    public ProtobufEncodeOptions? EncodeOptions {{ get; init; }} = null;
 
     /// <summary>Gets or initializes the invoker of this client.</summary>
     public IceRpc.IInvoker Invoker {{ get; init; }}
