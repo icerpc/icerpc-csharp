@@ -89,7 +89,7 @@ public partial class ProxyTests
         Assert.That(decoded.ServiceAddress, Is.EqualTo(expected));
     }
 
-    /// <summary>Verifies that a relative proxy gets a null invoker by default.</summary>
+    /// <summary>Verifies that a relative proxy gets the invalid invoker by default.</summary>
     [Test]
     public void Decode_relative_proxy()
     {
@@ -102,7 +102,7 @@ public partial class ProxyTests
             var decoder = new SliceDecoder(bufferWriter.WrittenMemory, encoding: SliceEncoding.Slice2);
             return decoder.DecodePingableProxy().Invoker;
         },
-        Is.Null);
+        Is.EqualTo(InvalidInvoker.Instance));
     }
 
     [Test]
@@ -159,9 +159,9 @@ public partial class ProxyTests
         },
         Throws.TypeOf<ArgumentException>());
 
-    /// <summary>Verifies that a proxy decoded from an incoming request has a null invoker by default.</summary>
+    /// <summary>Verifies that a proxy decoded from an incoming request has the invalid invoker by default.</summary>
     [Test]
-    public async Task Proxy_decoded_from_an_incoming_request_has_null_invoker()
+    public async Task Proxy_decoded_from_an_incoming_request_has_invalid_invoker()
     {
         // Arrange
         var service = new SendProxyTestService();
@@ -172,7 +172,7 @@ public partial class ProxyTests
 
         // Assert
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(InvalidInvoker.Instance));
     }
 
     /// <summary>Verifies that the invoker of a proxy decoded from an incoming request can be set using the Slice
@@ -229,12 +229,12 @@ public partial class ProxyTests
         public ValueTask<IceObjectProxy> ReceiveObjectProxyAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new IceObjectProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
+            new(new IceObjectProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
 
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
-            new(new ReceiveProxyTestProxy { ServiceAddress = new(new Uri("icerpc:/hello")) });
+            new(new ReceiveProxyTestProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
     }
 
     [SliceService]

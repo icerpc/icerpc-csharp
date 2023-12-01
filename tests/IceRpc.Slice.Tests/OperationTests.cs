@@ -615,7 +615,7 @@ public partial class OperationTests
     }
 
     [Test]
-    public async Task Proxy_decoded_from_incoming_request_has_a_null_invoker()
+    public async Task Proxy_decoded_from_incoming_request_has_invalid_invoker()
     {
         // Arrange
         var service = new MyOperationsAService();
@@ -627,7 +627,7 @@ public partial class OperationTests
 
         // Assert
         Assert.That(service.ReceivedProxy, Is.Not.Null);
-        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.Null);
+        Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(InvalidInvoker.Instance));
     }
 
     [Test]

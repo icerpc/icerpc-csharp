@@ -30,7 +30,7 @@ public static class ProxySliceDecoderExtensions
     {
         if (decodingContext is null)
         {
-            return new TProxy { ServiceAddress = serviceAddress };
+            return new TProxy { Invoker = InvalidInvoker.Instance, ServiceAddress = serviceAddress };
         }
         else
         {

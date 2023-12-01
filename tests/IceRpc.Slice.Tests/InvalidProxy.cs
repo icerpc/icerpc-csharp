@@ -12,7 +12,7 @@ internal class InvalidProxy : IProxy
         init { }
     }
 
-    public IInvoker? Invoker
+    public IInvoker Invoker
     {
         get => throw new NotImplementedException();
         init { }
