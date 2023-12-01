@@ -18,14 +18,11 @@ public partial class ServiceProviderExtensionsTests
 
         var provider = serviceCollection.BuildServiceProvider(validateScopes: true);
 
-        IMyOperations? client = provider.GetService<IMyOperations>();
-
+        var client = (IProtobufClient?)provider.GetService<IMyOperations>();
         Assert.That(client, Is.Not.Null);
-        Assert.That(client, Is.InstanceOf<IProtobufClient>());
-        IProtobufClient? protobufClient = (IProtobufClient?)client;
-        Assert.That(protobufClient.Invoker, Is.EqualTo(InvalidInvoker.Instance));
-        Assert.That(protobufClient.ServiceAddress.Path, Is.EqualTo(MyOperationsClient.DefaultServicePath));
-        Assert.That(protobufClient.EncodeOptions, Is.Null);
+        Assert.That(client.Invoker, Is.EqualTo(InvalidInvoker.Instance));
+        Assert.That(client.ServiceAddress.Path, Is.EqualTo(MyOperationsClient.DefaultServicePath));
+        Assert.That(client.EncodeOptions, Is.Null);
     }
 
     [Test]

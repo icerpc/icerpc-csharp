@@ -18,14 +18,11 @@ public partial class ServiceProviderExtensionsTests
 
         var provider = serviceCollection.BuildServiceProvider(validateScopes: true);
 
-        IMyOperationsA? proxy = provider.GetService<IMyOperationsA>();
-
+        var proxy = (IProxy?)provider.GetService<IMyOperationsA>();
         Assert.That(proxy, Is.Not.Null);
-        Assert.That(proxy, Is.InstanceOf<IProxy>());
-        IProxy? iproxy = (IProxy?)proxy;
-        Assert.That(iproxy.Invoker, Is.EqualTo(InvalidInvoker.Instance));
-        Assert.That(iproxy.ServiceAddress.Path, Is.EqualTo(MyOperationsAProxy.DefaultServicePath));
-        Assert.That(iproxy.EncodeOptions, Is.Null);
+        Assert.That(proxy.Invoker, Is.EqualTo(InvalidInvoker.Instance));
+        Assert.That(proxy.ServiceAddress.Path, Is.EqualTo(MyOperationsAProxy.DefaultServicePath));
+        Assert.That(proxy.EncodeOptions, Is.Null);
     }
 
     [Test]
