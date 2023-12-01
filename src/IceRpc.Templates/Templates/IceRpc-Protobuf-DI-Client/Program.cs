@@ -33,7 +33,9 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
                 builder => builder
                     .UseDeadline(hostContext.Configuration.GetValue<TimeSpan>("Deadline:DefaultTimeout"))
                     .UseLogger()
-                    .Into<ClientConnection>());
+                    .Into<ClientConnection>())
+            // Add an IGreeter singleton that uses the invoker singleton registered above.
+            .AddSingleton<IGreeter>(provider => provider.CreateProtobufClient<GreeterClient>());
     });
 
 // Build the host.

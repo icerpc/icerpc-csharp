@@ -1,7 +1,10 @@
+// Copyright (c) ZeroC, Inc.
+
 using IceRpc;
 using Microsoft.Extensions.Hosting;
+using VisitorCenter;
 
-namespace IceRpc_Protobuf_DI_Client;
+namespace GenericHostClient;
 
 /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
 public class ClientHostedService : BackgroundService
