@@ -203,7 +203,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [Apache License version 2.0]: LICENSE
 [API reference]: https://docs.icerpc.dev/api/csharp/api/IceRpc.html
 [Building from source]: BUILDING.md
-[ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml
+[ci-home]: https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml?query=branch%3A0.1.x
 [custom]: https://docs.icerpc.dev/slice2/language-guide/custom-types
 [Documentation]: https://docs.icerpc.dev
 [Examples]: examples
