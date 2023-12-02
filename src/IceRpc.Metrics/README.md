@@ -78,8 +78,8 @@ host.Run();
 [dotnet_counters]: https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Metrics
+[example]: https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples/Metrics
 [meter]: https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics.meter
 [middleware]: https://docs.icerpc.dev/icerpc/dispatch/middleware
 [package]: https://www.nuget.org/packages/IceRpc.Metrics
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Metrics
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.2.x/src/IceRpc.Metrics

@@ -17,7 +17,7 @@ public static class CompressorPipelineExtensions
     /// The following code adds the compressor interceptor to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.Compressor.Examples/CompressorInterceptorExamples.cs" region="UseCompressor" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Compress"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples/Compress"/>
     public static Pipeline UseCompressor(
         this Pipeline pipeline,
         CompressionFormat compressionFormat,

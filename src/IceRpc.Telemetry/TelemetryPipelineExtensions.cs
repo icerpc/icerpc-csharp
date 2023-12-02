@@ -17,7 +17,7 @@ public static class TelemetryPipelineExtensions
     /// The following code adds the telemetry interceptor to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.Telemetry.Examples/TelemetryInterceptorExamples.cs" region="UseTelemetry" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Telemetry"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples/Telemetry"/>
     public static Pipeline UseTelemetry(this Pipeline pipeline, ActivitySource activitySource) =>
         pipeline.Use(next => new TelemetryInterceptor(next, activitySource));
 }

@@ -14,7 +14,7 @@ public static class MetricsPipelineExtensions
     /// The following code adds the metrics interceptor to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.Metrics.Examples/MetricsInterceptorExamples.cs" region="UseMetrics" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Metrics"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples/Metrics"/>
     public static Pipeline UseMetrics(this Pipeline pipeline) =>
         pipeline.Use(next => new MetricsInterceptor(next));
 }

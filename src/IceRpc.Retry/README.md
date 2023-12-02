@@ -45,6 +45,6 @@ host.Run();
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Retry.html
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/Retry
+[example]: https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples/Retry
 [package]: https://www.nuget.org/packages/IceRpc.Retry
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Retry
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.2.x/src/IceRpc.Retry

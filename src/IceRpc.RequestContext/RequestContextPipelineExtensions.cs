@@ -18,7 +18,7 @@ public static class RequestContextPipelineExtensions
     /// The following code shows how to set the request context feature with a Protobuf client.
     /// <code source="../../docfx/examples/IceRpc.RequestContext.Examples/RequestContextInterceptorExamples.cs" region="UseRequestContextWithProtobufClient" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/RequestContext"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples/RequestContext"/>
     public static Pipeline UseRequestContext(this Pipeline pipeline) =>
         pipeline.Use(next => new RequestContextInterceptor(next));
 }

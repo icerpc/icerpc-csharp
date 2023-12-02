@@ -223,7 +223,7 @@ in-memory transport for testing). Future releases may add additional transports.
 [icerpc-protocol]: https://docs.icerpc.dev/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
-[license]: https://github.com/icerpc/icerpc-csharp/blob/main/LICENSE
+[license]: https://github.com/icerpc/icerpc-csharp/blob/0.2.x/LICENSE
 [NuGet packages]: https://www.nuget.org/profiles/IceRPC
 [Protobuf]: https://en.wikipedia.org/wiki/Protocol_Buffers
 [QUIC]: https://en.wikipedia.org/wiki/QUIC

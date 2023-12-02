@@ -14,7 +14,7 @@ public static class MetricsRouterExtensions
     /// The following code adds the metrics middleware to the dispatch pipeline.
     /// <code source="../../docfx/examples/IceRpc.Metrics.Examples/MetricsMiddlewareExamples.cs" region="UseMetrics" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Metrics"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples/Metrics"/>
     public static Router UseMetrics(this Router router) =>
         router.Use(next => new MetricsMiddleware(next));
 }

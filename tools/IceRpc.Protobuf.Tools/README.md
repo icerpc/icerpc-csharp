@@ -89,7 +89,7 @@ This package includes the `protoc` compiler binaries, and the Protobuf well-know
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Protobuf.Tools
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Protobuf.Tools
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.2.x/tools/IceRpc.Protobuf.Tools
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
 [google-protobuf]: https://www.nuget.org/packages/Google.Protobuf
 [google-protobuf-tools]: https://www.nuget.org/packages/Google.Protobuf.Tools

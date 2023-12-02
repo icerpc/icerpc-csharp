@@ -92,6 +92,6 @@ internal class Chatbot : IDispatcher
 [docs]:https://docs.icerpc.dev
 [getting-started]: https://docs.icerpc.dev/getting-started
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
-[examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
+[examples]: https://github.com/icerpc/icerpc-csharp/tree/0.2.x/examples
 [package]: https://www.nuget.org/packages/IceRpc
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.2.x/src/IceRpc
