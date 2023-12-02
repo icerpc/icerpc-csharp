@@ -14,7 +14,7 @@ public static class RequestContextPipelineExtensions
     /// The following code adds the request context interceptor to the invocation pipeline.
     /// <code source="../../docfx/examples/IceRpc.RequestContext.Examples/RequestContextInterceptorExamples.cs" region="UseRequestContext" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/RequestContext"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.1.x/examples/RequestContext"/>
     public static Pipeline UseRequestContext(this Pipeline pipeline) =>
         pipeline.Use(next => new RequestContextInterceptor(next));
 }

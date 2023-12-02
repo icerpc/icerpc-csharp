@@ -16,7 +16,7 @@ public static class TelemetryRouterExtensions
     /// The following code adds the telemetry middleware to the dispatch pipeline.
     /// <code source="../../docfx/examples/IceRpc.Telemetry.Examples/TelemetryMiddlewareExamples.cs" region="UseTelemetry" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Telemetry"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.1.x/examples/Telemetry"/>
     public static Router UseTelemetry(this Router router, ActivitySource activitySource) =>
         router.Use(next => new TelemetryMiddleware(next, activitySource));
 }

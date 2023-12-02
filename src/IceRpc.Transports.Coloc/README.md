@@ -39,4 +39,4 @@ await connection.ConnectAsync();
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [package]: https://www.nuget.org/packages/IceRpc.Transports.Coloc
 [product]: https://docs.icerpc.dev/icerpc
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Transports.Coloc
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.1.x/src/IceRpc.Transports.Coloc

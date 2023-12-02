@@ -45,10 +45,10 @@ IceRpc.Transports.Quic has the same platform requirements as `System.Net.Quic`. 
 as the [HTTP/3 platform dependencies][platform].
 
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Transports.Quic.html
-[example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/GreeterQuic
+[example]: https://github.com/icerpc/icerpc-csharp/tree/0.1.x/examples/GreeterQuic
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [quic]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview
 [package]: https://www.nuget.org/packages/IceRpc.Transports.Quic
 [platform]: https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-http3#platform-dependencies
 [product]: https://docs.icerpc.dev/icerpc
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc.Transports.Quic
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.1.x/src/IceRpc.Transports.Quic

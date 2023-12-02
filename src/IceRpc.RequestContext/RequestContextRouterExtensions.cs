@@ -17,7 +17,7 @@ public static class RequestContextRouterExtensions
     /// code.
     /// <code source="../../docfx/examples/IceRpc.RequestContext.Examples/Chatbot.cs" region="RequestContextFeature" lang="csharp" />
     /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/RequestContext"/>
+    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/0.1.x/examples/RequestContext"/>
     public static Router UseRequestContext(this Router router) =>
         router.Use(next => new RequestContextMiddleware(next));
 }

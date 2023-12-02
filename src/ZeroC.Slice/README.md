@@ -69,5 +69,5 @@ public partial record struct Person
 [idl]: https://en.wikipedia.org/wiki/Interface_description_language
 [package]: https://www.nuget.org/packages/ZeroC.Slice
 [pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
-[slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/ZeroC.Slice
+[slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/0.1.x/tools/IceRpc.Slice.Tools
+[source]: https://github.com/icerpc/icerpc-csharp/tree/0.1.x/src/ZeroC.Slice
