@@ -73,7 +73,7 @@ Then in another window, start the Client program:
 
 ```shell
 cd Client
-dotnet run
+dotnet run --no-build
 ```
 
 You can start multiple instances of the Client program. When you start Client with no arguments (as shown above), it
@@ -84,5 +84,5 @@ set point to 70°F with:
 
 ```shell
 cd Client
-dotnet run set 70
+dotnet run set 70 --no-build
 ```
