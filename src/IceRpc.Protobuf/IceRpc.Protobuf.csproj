@@ -7,6 +7,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
     <PackageReference Include="Google.Protobuf" Version="3.25.1" />
+    <!-- Includes the analyzer in the package without consuming it. -->
+    <ProjectReference
+      Include="..\IceRpc.Protobuf.Generators\IceRpc.Protobuf.Generators.csproj"
+      ReferenceOutputAssembly="false" />
   </ItemGroup>
   <!-- NuGet package contents-->
   <ItemGroup>
