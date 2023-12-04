@@ -16,6 +16,6 @@
     <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcProtobufToolsVersion)" />
   </ItemGroup>
 </Project>
