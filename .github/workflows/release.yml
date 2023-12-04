@@ -76,7 +76,7 @@ jobs:
       - name: Pack IceRPC Tools
         working-directory: tools
         run: |
-          dotnet build --configuration release
+          dotnet build --configuration Release
           dotnet pack --configuration Release --output ../
         env:
           SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
