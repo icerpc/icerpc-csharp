@@ -11,6 +11,7 @@
         <PackageType>Template</PackageType>
         <TargetFramework>net8.0</TargetFramework>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>$(IceRpcProtobufToolsVersion)</Version>
     </PropertyGroup>
     <ItemGroup>
         <Content Include="Templates\**\*" Exclude="Templates\**\bin\**;Templates\**\obj\**">

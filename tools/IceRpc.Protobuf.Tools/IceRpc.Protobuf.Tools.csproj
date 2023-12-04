@@ -29,6 +29,7 @@
       <IncludeBuildOutput>false</IncludeBuildOutput>
       <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
       <NoWarn>NU5100</NoWarn>
+      <Version>$(IceRpcProtobufToolsVersion)</Version>
    </PropertyGroup>
    <ItemGroup>
       <PackageReference Include="Microsoft.Build.Framework" Version="17.8.3" />

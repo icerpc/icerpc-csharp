@@ -9,7 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.2.0" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.2.0.1" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="0.2.0" />
     <PackageReference Include="IceRpc.Deadline" Version="0.2.0" />
     <PackageReference Include="IceRpc.Logger" Version="0.2.0" />
