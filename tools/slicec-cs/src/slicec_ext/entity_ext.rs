@@ -8,7 +8,7 @@ use slicec::grammar::attributes::Deprecated;
 use slicec::grammar::*;
 
 pub trait EntityExt: Entity {
-    // Returns the C# identifier for the entity, which is either the the identifier specified by the cs::identifier
+    // Returns the C# identifier for the entity, which is either the identifier specified by the cs::identifier
     /// attribute as-is or the Slice identifier formatted with the specified casing.
     fn cs_identifier(&self, case: Case) -> String {
         self.find_attribute::<CsIdentifier>().map_or_else(
