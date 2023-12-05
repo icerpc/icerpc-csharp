@@ -16,34 +16,45 @@ use slicec::visitor::Visitor;
 
 struct Generator<'a> {
     code: &'a mut CodeBlock,
+    for_interfaces: bool,
 }
 
 impl Visitor for Generator<'_> {
     fn visit_struct(&mut self, struct_def: &Struct) {
-        self.code.add_block(&struct_generator::generate_struct(struct_def));
+        if !self.for_interfaces {
+            self.code.add_block(&struct_generator::generate_struct(struct_def));
+        }
     }
 
     fn visit_class(&mut self, class_def: &Class) {
-        self.code.add_block(&class_generator::generate_class(class_def));
+        if !self.for_interfaces {
+            self.code.add_block(&class_generator::generate_class(class_def));
+        }
     }
 
     fn visit_exception(&mut self, exception_def: &Exception) {
-        self.code
-            .add_block(&exception_generator::generate_exception(exception_def));
+        if !self.for_interfaces {
+            self.code
+                .add_block(&exception_generator::generate_exception(exception_def));
+        }
     }
 
     fn visit_interface(&mut self, interface_def: &Interface) {
-        self.code.add_block(&proxy_generator::generate_proxy(interface_def));
-        self.code
-            .add_block(&dispatch_generator::generate_dispatch(interface_def));
+        if self.for_interfaces {
+            self.code.add_block(&proxy_generator::generate_proxy(interface_def));
+            self.code
+                .add_block(&dispatch_generator::generate_dispatch(interface_def));
+        }
     }
 
     fn visit_enum(&mut self, enum_def: &Enum) {
-        self.code.add_block(&enum_generator::generate_enum(enum_def));
+        if !self.for_interfaces {
+            self.code.add_block(&enum_generator::generate_enum(enum_def));
+        }
     }
 }
 
-pub fn generate_from_slice_file(slice_file: &SliceFile, options: &CsOptions) -> String {
+pub fn generate_from_slice_file(slice_file: &SliceFile, for_interfaces: bool, options: &CsOptions) -> String {
     // Write the preamble at the top of the generated file.
     let mut generated_code = preamble(slice_file, options.rpc_provider);
 
@@ -56,6 +67,7 @@ pub fn generate_from_slice_file(slice_file: &SliceFile, options: &CsOptions) -> 
         // Then generate code for the user's slice definitions.
         let mut generator = Generator {
             code: &mut generated_code,
+            for_interfaces,
         };
         slice_file.visit_with(&mut generator);
     }
