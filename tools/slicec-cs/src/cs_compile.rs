@@ -126,7 +126,8 @@ mod test {
                 panic!("Failed to compile IceRpc.Tests Slice files");
             }
 
-            generate_from_slice_file(compilation_state.files.values().next().unwrap(), &cs_options);
+            generate_from_slice_file(compilation_state.files.values().next().unwrap(), false, &cs_options);
+            generate_from_slice_file(compilation_state.files.values().next().unwrap(), true, &cs_options);
         }
     }
 
