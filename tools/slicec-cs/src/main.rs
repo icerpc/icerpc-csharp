@@ -15,7 +15,7 @@ mod slicec_ext;
 #[cfg(test)]
 mod attribute_tests;
 
-use crate::cs_options::CsOptions;
+use crate::cs_options::{CsOptions, RpcProvider};
 use clap::Parser;
 use cs_compile::{cs_patcher, cs_validator};
 use cs_options::SLICEC_CS;
@@ -42,13 +42,16 @@ pub fn main() {
                 &code,
                 &mut compilation_state.diagnostics,
             );
-            let interface_code = generate_from_slice_file(slice_file, true, &cs_options);
-            write_code(
-                &format!("{}.IceRpc", &slice_file.filename),
-                &slice_options.output_dir,
-                &interface_code,
-                &mut compilation_state.diagnostics,
-            );
+
+            if cs_options.rpc_provider == RpcProvider::IceRpc {
+                let interface_code = generate_from_slice_file(slice_file, true, &cs_options);
+                write_code(
+                    &format!("{}.IceRpc", &slice_file.filename),
+                    &slice_options.output_dir,
+                    &interface_code,
+                    &mut compilation_state.diagnostics,
+                );
+            }
         }
     }
 

@@ -73,7 +73,15 @@
                 Create a Compile item for each SliceFile item, representing the generated C# files.
                 Use RemoveMetadata to avoid including SliceFile-specific metadata in the generated Compile item.
             -->
-            <Compile Include="@(SliceFile->'%(GeneratedPath)');@(SliceFile->'%(IceRpcGeneratedPath)')"
+            <Compile Include="@(SliceFile->'%(GeneratedPath)')"
+                     Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
+                     RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"/>
+
+            <!--
+                TODO: use a dedicated option instead of "parsing" AdditionalOptions.
+            -->
+            <Compile Condition="'%(SliceFile.AdditionalOptions)' != '--rpc none'"
+                     Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
                      Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
                      RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"/>
         </ItemGroup>
