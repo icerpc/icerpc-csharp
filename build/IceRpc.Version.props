@@ -2,5 +2,6 @@
     <PropertyGroup>
         <!-- The version used by NuGet packages and assembly files -->
         <Version Condition="'$(Version)' == ''">0.2.0</Version>
+        <IceRpcProtobufToolsVersion>0.2.0.1</IceRpcProtobufToolsVersion>
     </PropertyGroup>
 </Project>
