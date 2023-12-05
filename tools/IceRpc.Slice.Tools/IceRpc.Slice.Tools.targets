@@ -63,23 +63,24 @@
         <ItemGroup>
             <SliceFile>
                 <!--
-                    Add GeneratePath metadata with the normalized path, this is required for excludes below to work
-                    with different path separators.
+                    Add GeneratedPath and IceRpcGeneratedPath metadata with the normalized path, this is required for
+                    excludes below to work with different path separators.
                 -->
-                <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename)*.cs'))</GeneratedPath>
+                <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
+                <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
             </SliceFile>
             <!--
-                Create a Compile item for each SliceFile item, representing the generated C# file.
+                Create a Compile item for each SliceFile item, representing the generated C# files.
                 Use RemoveMetadata to avoid including SliceFile-specific metadata in the generated Compile item.
             -->
-            <Compile Include="@(SliceFile->'%(GeneratedPath)')"
+            <Compile Include="@(SliceFile->'%(GeneratedPath)');@(SliceFile->'%(IceRpcGeneratedPath)')"
                      Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
-                     RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;PackagePath;Pack"/>
+                     RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"/>
         </ItemGroup>
     </Target>
 
     <Target Name="SliceCClean" BeforeTargets="Clean">
-        <Delete Files="@(SliceFile->'%(OutputDir)\%(Filename).cs')"/>
+        <Delete Files="@(SliceFile->'%(OutputDir)\%(Filename).cs');@(SliceFile->'%(OutputDir)\%(Filename).IceRpc.cs')"/>
     </Target>
 
     <!-- Package SliceFile items -->
