@@ -14,32 +14,31 @@ namespace IceRpc.Protobuf.Tools;
 /// <summary>A MSBuild task to generate C# code from Protobuf files using <c>protoc</c>.</summary>
 public class ProtocTask : ToolTask
 {
-    /// <summary>The output directory for the generated code; corresponds to the <c>--icerpc-csharp_out=</c> option of the
-    /// <c>protoc</c> compiler.</summary>
+    /// <summary>Gets or set the output directory for the generated code; corresponds to the
+    /// <c>--icerpc-csharp_out=</c> option of the <c>protoc</c> compiler.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
 
-    /// <summary>The directories in which to search for imports, corresponds to <c>-I</c> protoc compiler option.</summary>
+    /// <summary>Gets or sets the directories in which to search for imports, corresponds to <c>-I</c> protoc compiler
+    /// option.</summary>
     public string[] SearchPath { get; set; } = Array.Empty<string>();
 
-    /// <summary>The Protobuf files to compile, these are the input files pass to the protoc compiler.</summary>
+    /// <summary>Gets or sets the Protobuf source files to compile, these are the input files pass to the protoc
+    /// compiler.</summary>
     [Required]
     public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
 
-    /// <summary>The directory containing the protoc compiler.</summary>
+    /// <summary>Gets or set the directory containing the protoc compiler.</summary>
     [Required]
     public string ToolsPath { get; set; } = "";
 
-    /// <summary>The directory containing the protoc-gen-icerpc-csharp scripts.</summary>
+    /// <summary>Gets or set the directory containing the protoc-gen-icerpc-csharp scripts.</summary>
     [Required]
     public string ScriptPath { get; set; } = "";
 
-    /// <summary>The working directory for executing the protoc compiler from.</summary>
+    /// <summary>Gets or set the working directory for executing the protoc compiler from.</summary>
     [Required]
     public string WorkingDirectory { get; set; } = "";
-
-    [Output]
-    public ITaskItem[] ComputedSources { get; private set; } = Array.Empty<ITaskItem>();
 
     /// <inheritdoc/>
     protected override string ToolName =>
@@ -78,12 +77,11 @@ public class ProtocTask : ToolTask
                 searchPath.Add(directory);
             }
 
-            ITaskItem computedSource = new TaskItem(source.ItemSpec);
-            source.CopyMetadataTo(computedSource);
-            computedSource.SetMetadata("OutputFileName", Path.GetFileNameWithoutExtension(fullPath).ToPascalCase());
-            computedSources.Add(computedSource);
+            // Add dependency_out to generate dependency files
+            builder.AppendSwitch("--dependency_out");
+            builder.AppendFileNameIfNotNull(
+                Path.Combine(OutputDir, $"{source.GetMetadata("FileName").ToPascalCase()}.d"));
         }
-        ComputedSources = computedSources.ToArray();
 
         // Add protoc searchPath paths
         foreach (string path in searchPath)

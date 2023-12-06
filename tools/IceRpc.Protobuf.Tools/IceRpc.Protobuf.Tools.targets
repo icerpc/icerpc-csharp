@@ -3,6 +3,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <!-- Import ProtocTask -->
     <UsingTask TaskName="IceRpc.Protobuf.Tools.ProtocTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
+    <UsingTask TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
     <ItemGroup>
         <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
         <AvailableItemName Include="ProtoFile" />
@@ -29,8 +30,15 @@
             Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
     </ItemGroup>
     <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
-        <MakeDir Directories="%(ProtoFile.OutputDir)" />
-        <!-- Compile the Proto files
+      <MakeDir Directories="%(ProtoFile.OutputDir)" />
+      <UpToDateCheckTask
+          OutputDir="%(ProtoFile.OutputDir)"
+          Sources="@(ProtoFile)">
+        <Output
+            ItemName          = "_ProtoFile"
+            TaskParameter     = "ComputedSources"/>
+      </UpToDateCheckTask>
+      <!-- Compile the Proto files
           The search path determines where protoc compiler locates import files, we add:
           - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
           - $(MSBuildProjectDirectory) to import the project own files.
@@ -38,29 +46,17 @@
         -->
         <ProtocTask
             WorkingDirectory="$(MSBuildProjectDirectory)"
-            OutputDir="%(ProtoFile.OutputDir)"
+            OutputDir="@(_ProtoFile->'%(OutputDir)')"
             SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
             ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
             ScriptPath="$(IceRpcProtocGenPath)"
-            Sources="@(ProtoFile)">
-
-          <Output
-              ItemName          = "_ProtoFile"
-              TaskParameter     = "ComputedSources"/>
-        </ProtocTask>
+            Sources="%(_ProtoFile.Identity)"
+            Condition="'%(UpToDate)' != 'true'"/>
         <!--
             Include all C# generated source items that have not been already included. We delay this until we are
             running the ProtoCompile target so that default includes are already processed.
         -->
         <ItemGroup>
-            <_ProtoFile>
-                <!--
-                    Add GeneratePath metadata with the normalized path, this is required for excludes below to work
-                    with different path separators.
-                -->
-                <ProtoGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(OutputFilename).cs'))</ProtoGeneratedPath>
-                <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(OutputFilename).IceRpc.cs'))</IceRpcGeneratedPath>
-            </_ProtoFile>
             <Compile
                 Include="@(_ProtoFile->'%(ProtoGeneratedPath)')"
                 Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
