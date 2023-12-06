@@ -15,7 +15,7 @@ mod slicec_ext;
 #[cfg(test)]
 mod attribute_tests;
 
-use crate::cs_options::CsOptions;
+use crate::cs_options::{CsOptions, RpcProvider};
 use clap::Parser;
 use cs_compile::{cs_patcher, cs_validator};
 use cs_options::SLICEC_CS;
@@ -35,31 +35,22 @@ pub fn main() {
 
     if !compilation_state.diagnostics.has_errors() && !slice_options.dry_run {
         for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
-            let code = generate_from_slice_file(slice_file, &cs_options);
+            let code = generate_from_slice_file(slice_file, false, &cs_options);
+            write_code(
+                &slice_file.filename,
+                &slice_options.output_dir,
+                &code,
+                &mut compilation_state.diagnostics,
+            );
 
-            let path = match &slice_options.output_dir {
-                Some(output_dir) => Path::new(output_dir),
-                _ => Path::new("."),
-            }
-            .join(format!("{}.cs", &slice_file.filename))
-            .to_owned();
-
-            // If the file already exists and its contents match the generated code, we don't re-write it.
-            if matches!(std::fs::read(&path), Ok(file_bytes) if file_bytes == code.as_bytes()) {
-                continue;
-            }
-
-            match write_file(&path, &code) {
-                Ok(_) => (),
-                Err(error) => {
-                    Diagnostic::new(Error::IO {
-                        action: "write",
-                        path: path.display().to_string(),
-                        error,
-                    })
-                    .push_into(&mut compilation_state.diagnostics);
-                    continue;
-                }
+            if cs_options.rpc_provider == RpcProvider::IceRpc {
+                let interface_code = generate_from_slice_file(slice_file, true, &cs_options);
+                write_code(
+                    &format!("{}.IceRpc", &slice_file.filename),
+                    &slice_options.output_dir,
+                    &interface_code,
+                    &mut compilation_state.diagnostics,
+                );
             }
         }
     }
@@ -70,4 +61,32 @@ pub fn main() {
 fn write_file(path: &Path, contents: &str) -> Result<(), io::Error> {
     let mut file = File::create(path)?;
     file.write_all(contents.as_bytes())
+}
+
+fn write_code(
+    filename: &str,
+    output_dir: &Option<String>,
+    code: &str,
+    diagnostics: &mut slicec::diagnostics::Diagnostics,
+) {
+    let path = match &output_dir {
+        Some(value) => Path::new(value),
+        _ => Path::new("."),
+    }
+    .join(format!("{}.cs", &filename));
+
+    // If the file already exists and its contents match the generated code, we don't re-write it.
+    if !matches!(std::fs::read(&path), Ok(file_bytes) if file_bytes == code.as_bytes()) {
+        match write_file(&path, code) {
+            Ok(_) => (),
+            Err(error) => {
+                Diagnostic::new(Error::IO {
+                    action: "write",
+                    path: path.display().to_string(),
+                    error,
+                })
+                .push_into(diagnostics);
+            }
+        }
+    }
 }
