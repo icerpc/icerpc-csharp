@@ -74,6 +74,7 @@
         </OutputFileNamesTask>
         <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).cs')" />
         <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).IceRpc.cs')" />
+        <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).d')" />
     </Target>
 
      <!-- Package ProtoFile items -->
