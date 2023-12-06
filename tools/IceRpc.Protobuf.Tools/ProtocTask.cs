@@ -15,7 +15,7 @@ namespace IceRpc.Protobuf.Tools;
 /// <c>protoc-gen-icerpc-csharp</c> generator.</summary>
 public class ProtocTask : ToolTask
 {
-    /// <summary>Gets or set the output directory for the generated code; corresponds to the
+    /// <summary>Gets or sets the output directory for the generated code; corresponds to the
     /// <c>--icerpc-csharp_out=</c> option of the <c>protoc</c> compiler.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
@@ -29,15 +29,15 @@ public class ProtocTask : ToolTask
     [Required]
     public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
 
-    /// <summary>Gets or set the directory containing the protoc compiler.</summary>
+    /// <summary>Gets or sets the directory containing the protoc compiler.</summary>
     [Required]
     public string ToolsPath { get; set; } = "";
 
-    /// <summary>Gets or set the directory containing the protoc-gen-icerpc-csharp scripts.</summary>
+    /// <summary>Gets or sets the directory containing the protoc-gen-icerpc-csharp scripts.</summary>
     [Required]
     public string ScriptPath { get; set; } = "";
 
-    /// <summary>Gets or set the working directory for executing the protoc compiler from.</summary>
+    /// <summary>Gets or sets the working directory for executing the protoc compiler from.</summary>
     [Required]
     public string WorkingDirectory { get; set; } = "";
 
