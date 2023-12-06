@@ -27,11 +27,11 @@
       <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
-      <ProjectReference Include="..\ZeroC.Slice\ZeroC.Slice.csproj" ExactVersion="true" />
+      <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+      <ProjectReference Include="../ZeroC.Slice/ZeroC.Slice.csproj" ExactVersion="true" />
       <!-- Includes the analyzer in the package without consuming it. -->
       <ProjectReference
-        Include="..\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj"
+        Include="../IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"
         ReferenceOutputAssembly="false" />
       <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
           <PrivateAssets>all</PrivateAssets>
@@ -40,13 +40,13 @@
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
-      <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-      <Content Include="README.md" Pack="true" PackagePath="\" />
-      <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
+      <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+      <Content Include="README.md" Pack="true" PackagePath="/" />
+      <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
       <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="buildTransitive" />
-      <Content Include="..\IceRpc.Slice.Generators\bin\$(Configuration)\netstandard2.0\IceRpc.Slice.Generators.dll"
+      <Content Include="../IceRpc.Slice.Generators/bin/$(Configuration)/netstandard2.0/IceRpc.Slice.Generators.dll"
                Pack="true"
-               PackagePath="analyzers\dotnet\cs"/>
+               PackagePath="analyzers/dotnet/cs"/>
     </ItemGroup>
     <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

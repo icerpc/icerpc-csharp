@@ -15,6 +15,6 @@
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcProtobufToolsVersion)" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="generated\" />
+    <Folder Include="generated/" />
   </ItemGroup>
 </Project>

@@ -22,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc.Logger\IceRpc.Logger.csproj" />
-    <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
+    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Logger/IceRpc.Logger.csproj" />
+    <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
   </ItemGroup>
 
 </Project>
