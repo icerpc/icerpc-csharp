@@ -11,7 +11,8 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Protobuf.Tools;
 
-/// <summary>A MSBuild task to generate C# code from Protobuf files using <c>protoc</c>.</summary>
+/// <summary>A MSBuild task to generate code from Protobuf files using <c>protoc</c> C# built-in generator and
+/// <c>protoc-gen-icerpc-csharp</c> generator.</summary>
 public class ProtocTask : ToolTask
 {
     /// <summary>Gets or set the output directory for the generated code; corresponds to the

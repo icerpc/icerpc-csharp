@@ -12,8 +12,7 @@ namespace IceRpc.Protobuf.Tools;
 /// <summary>A MSBuild task to compute what Protobuf files have to be rebuild by <c>protoc</c>.</summary>
 public class UpToDateCheckTask : Task
 {
-    /// <summary>Gets or sets the output directory for the generated code; corresponds to the
-    /// <c>--icerpc-csharp_out=</c> option of the <c>protoc</c> compiler.</summary>
+    /// <summary>Gets or sets the output directory for the generated code.</summary>
     [Required]
     public string OutputDir { get; set; } = "";
 
@@ -25,6 +24,15 @@ public class UpToDateCheckTask : Task
     /// metadata.</summary>
     [Output]
     public ITaskItem[] ComputedSources { get; private set; } = Array.Empty<ITaskItem>();
+
+    /// <summary>Computes whether or not an output file is up to date or needs to be rebuilt. After executing this
+    /// task, <see cref="ComputedSources"/> contains a task item for each item in <see cref="Sources"/> with two
+    /// additional metadata entries. The <c>UpToDate</c> metadata is set to 'true' or 'false', indicating whether the
+    /// item is up to date or needs to be rebuilt. The <c>OutputFileName</c> metadata contains the base file name for
+    /// the generated outputs. This is the input item's file name without the extension, and converted to PascalCase.
+    /// </summary>
+    /// <returns>Returns <see langword="true"/> if the task was executed successfully, <see langword="false"/>
+    /// otherwise.</returns>
 
     public override bool Execute()
     {
@@ -64,9 +72,7 @@ public class UpToDateCheckTask : Task
             ITaskItem computedSource = new TaskItem(source.ItemSpec);
             source.CopyMetadataTo(computedSource);
             computedSource.SetMetadata("UpToDate", upToDate ? "true" : "false");
-            computedSource.SetMetadata("ProtoGeneratedPath", csharpOutput);
-            computedSource.SetMetadata("IceRpcGeneratedPath", icerpcOutput);
-            computedSource.SetMetadata("DependGeneratedPath", dependOutput);
+            computedSource.SetMetadata("OutputFileName", fileName);
             computedSource.SetMetadata("OutputDir", OutputDir);
             computedSources.Add(computedSource);
         }

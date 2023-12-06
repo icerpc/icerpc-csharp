@@ -59,10 +59,10 @@
         -->
         <ItemGroup>
             <Compile
-                Include="@(_ProtoFile->'%(ProtoGeneratedPath)')"
+                Include="@(_ProtoFile->'%(OutputDir)\%(OutputFileName).cs')"
                 Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
             <Compile
-                Include="@(_ProtoFile->'%(IceRpcGeneratedPath)')"
+                Include="@(_ProtoFile->'%(OutputDir)\%(OutputFileName).IceRpc.cs')"
                 Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
         </ItemGroup>
     </Target>
