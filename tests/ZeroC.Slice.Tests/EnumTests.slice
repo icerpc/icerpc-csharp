@@ -30,3 +30,9 @@ unchecked enum MyUncheckedEnum : uint32 {
     [cs::attribute("System.ComponentModel.Description(\"Sixteen\")")]
     E4 = 16
 }
+
+enum Shape {
+    Circle(diameter: int32)
+    Rectangle(name: string, tag(1) width: int32?, height: int32)
+    Triangle()
+}

@@ -2,7 +2,9 @@
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::comments::CommentTag;
-use crate::cs_util::CsCase;
+use crate::cs_util::{CsCase, FieldType};
+use crate::decoding::*;
+use crate::member_util::*;
 use crate::slicec_ext::*;
 use convert_case::Case;
 use slicec::code_block::CodeBlock;
@@ -11,35 +13,69 @@ use slicec::grammar::*;
 pub fn generate_enum(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
     code.add_block(&enum_declaration(enum_def));
-    code.add_block(&enum_underlying_extensions(enum_def));
+
+    if enum_def.is_mapped_to_cs_enum() {
+        code.add_block(&enum_underlying_extensions(enum_def));
+    }
+
     code.add_block(&enum_encoder_extensions(enum_def));
     code.add_block(&enum_decoder_extensions(enum_def));
     code
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
-    let mut builder = ContainerBuilder::new(
-        &format!("{} enum", enum_def.access_modifier()),
-        &enum_def.escape_identifier(),
-    );
-    if let Some(summary) = enum_def.formatted_doc_comment_summary() {
-        builder.add_comment("summary", summary);
-    }
-    builder
-        .add_generated_remark("enum", enum_def)
-        .add_comments(enum_def.formatted_doc_comment_seealso())
-        .add_obsolete_attribute(enum_def)
-        .add_base(enum_def.get_underlying_cs_type())
-        .add_block(enum_values(enum_def));
+    if enum_def.is_mapped_to_cs_enum() {
+        // Mapped to a C# enum.
+        let mut builder = ContainerBuilder::new(
+            &format!("{} enum", enum_def.access_modifier()),
+            &enum_def.escape_identifier(),
+        );
+        if let Some(summary) = enum_def.formatted_doc_comment_summary() {
+            builder.add_comment("summary", summary);
+        }
+        builder
+            .add_generated_remark("enum", enum_def)
+            .add_comments(enum_def.formatted_doc_comment_seealso())
+            .add_obsolete_attribute(enum_def)
+            .add_base(enum_def.get_underlying_cs_type())
+            .add_block(enumerators(enum_def));
 
-    // Add cs::attribute
-    for attribute in enum_def.cs_attributes() {
-        builder.add_attribute(attribute);
+        // Add cs::attribute
+        for attribute in enum_def.cs_attributes() {
+            builder.add_attribute(attribute);
+        }
+        builder.build()
+    } else {
+        // Mapped to a Dunet discriminated union.
+
+        let mut builder = ContainerBuilder::new(
+            &format!(
+                r#"
+[Dunet.Union]
+{} abstract partial record class"#,
+                enum_def.access_modifier()
+            ),
+            &enum_def.escape_identifier(),
+        );
+
+        if let Some(summary) = enum_def.formatted_doc_comment_summary() {
+            builder.add_comment("summary", summary);
+        }
+        builder
+            .add_generated_remark("discriminated union", enum_def)
+            .add_comments(enum_def.formatted_doc_comment_seealso())
+            .add_obsolete_attribute(enum_def)
+            .add_block(enumerators_as_nested_records(enum_def));
+
+        // Add cs::attribute
+        for attribute in enum_def.cs_attributes() {
+            builder.add_attribute(attribute);
+        }
+        builder.build()
     }
-    builder.build()
 }
 
-fn enum_values(enum_def: &Enum) -> CodeBlock {
+fn enumerators(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
     for enumerator in enum_def.enumerators() {
         let mut declaration = CodeBlock::default();
@@ -68,6 +104,80 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
         );
 
         code.add_block(&declaration);
+    }
+    code
+}
+
+fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
+    let mut code = CodeBlock::default();
+    let namespace = enum_def.namespace();
+
+    for enumerator in enum_def.enumerators() {
+        let escaped_identifier = enumerator.escape_identifier();
+        let mut builder = ContainerBuilder::new(
+            "public partial record class", // Dunet nested records are always public
+            &escaped_identifier,
+        );
+
+        if let Some(summary) = enumerator.formatted_doc_comment_summary() {
+            builder.add_comment("summary", summary);
+        }
+        builder
+            .add_comments(enumerator.formatted_doc_comment_seealso())
+            .add_obsolete_attribute(enumerator)
+            .add_base(enum_def.escape_identifier());
+
+        // Add cs::attribute
+        for attribute in enumerator.cs_attributes() {
+            builder.add_attribute(attribute);
+        }
+
+        if let Some(fields) = enumerator.associated_fields() {
+            builder.add_block(
+                fields
+                    .iter()
+                    .map(|m| field_declaration(m, FieldType::Class))
+                    .collect::<Vec<_>>()
+                    .join("\n\n")
+                    .into(),
+            );
+        }
+
+        builder.add_block(format!("private const ulong _discriminant = {};", enumerator.value()).into());
+
+        builder.add_block(
+            FunctionBuilder::new(
+                "public",
+                "",
+                &escaped_identifier,
+                FunctionType::BlockBody,
+            )
+            .add_comment(
+                "summary",
+                format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> and decodes its fields from a Slice decoder."#),
+            )
+            .add_parameter(
+                "ref SliceDecoder",
+                "decoder",
+                None,
+                Some("The Slice decoder.".to_owned()),
+            )
+            .set_body({
+                let mut code = CodeBlock::default();
+                code.writeln(&decode_fields(
+                    enumerator.associated_fields().unwrap_or_default().as_slice(),
+                    &namespace,
+                    FieldType::NonMangled,
+                    Encoding::Slice2,
+                ));
+
+                code.writeln("decoder.SkipTagged();");
+                code
+            })
+            .build(),
+        );
+
+        code.add_block(&builder.build());
     }
     code
 }
