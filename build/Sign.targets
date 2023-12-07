@@ -10,7 +10,7 @@
     <!-- Authenticode sign task that retries on failures -->
     <UsingTask TaskName="SignTask"
         TaskFactory="RoslynCodeTaskFactory"
-        AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
         <ParameterGroup>
             <WorkingDirectory ParameterType="System.String" Required="true" />
             <AdditionalOptions ParameterType="System.String" Required="true" />

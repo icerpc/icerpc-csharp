@@ -76,7 +76,7 @@
       </Content>
       <None Include="../../build/icerpc-icon.png">
          <Pack>true</Pack>
-         <PackagePath>\</PackagePath>
+         <PackagePath>/</PackagePath>
       </None>
       <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
       <None Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="tasks/" Visible="false" />

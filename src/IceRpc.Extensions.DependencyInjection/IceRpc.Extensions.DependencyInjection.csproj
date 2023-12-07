@@ -6,7 +6,7 @@
         <PackageTags>icerpc;rpc</PackageTags>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\IceRpc\IceRpc.csproj" ExactVersion="true" />
+        <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.*" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.*" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
@@ -16,8 +16,8 @@
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
-        <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-        <Content Include="README.md" Pack="true" PackagePath="\" />
-        <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
+        <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+        <Content Include="README.md" Pack="true" PackagePath="/" />
+        <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
     </ItemGroup>
 </Project>

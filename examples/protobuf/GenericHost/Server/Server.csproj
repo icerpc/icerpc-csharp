@@ -17,7 +17,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\certs\server.p12" Link="server.p12">
+    <None Include="../../../../certs/server.p12" Link="server.p12">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

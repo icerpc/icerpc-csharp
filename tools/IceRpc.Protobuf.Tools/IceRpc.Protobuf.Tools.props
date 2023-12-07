@@ -10,31 +10,31 @@
         <IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
     </PropertyGroup>
     <Choose>
-        <When Condition="Exists('$(MSBuildThisFileDirectory)..\IceRpc.ProtocGen')">
+        <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
             <!-- Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.ProtocGen assembly from
                  the source build. -->
             <PropertyGroup>
-                <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj\tools\</IceRpcProtocPath>
-                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)..\IceRpc.ProtocGen\bin\$(Configuration)\net8.0\</IceRpcProtocGenPath>
+                <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
+                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
             </PropertyGroup>
         </When>
         <Otherwise>
             <!-- Use the protoc compiler and the IceRpc.ProtocGen assembly in this NuGet package -->
             <PropertyGroup>
-              <IceRpcProtocPath>$(MSBuildThisFileDirectory)..\tools\</IceRpcProtocPath>
-              <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)..\tools\</IceRpcProtocGenPath>
+              <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
+              <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
             </PropertyGroup>
         </Otherwise>
     </Choose>
     <Choose>
-        <When Condition="Exists('$(MSBuildThisFileDirectory)bin\$(Configuration)\netstandard2.0\IceRpc.Protobuf.Tools.dll')">
+        <When Condition="Exists('$(MSBuildThisFileDirectory)bin/$(Configuration)/netstandard2.0/IceRpc.Protobuf.Tools.dll')">
             <PropertyGroup>
-                <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin\$(Configuration)\netstandard2.0\</IceRpcProtobufToolsTaskAssembliesPath>
+                <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/netstandard2.0/</IceRpcProtobufToolsTaskAssembliesPath>
             </PropertyGroup>
         </When>
         <Otherwise>
             <PropertyGroup>
-                <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)..\tasks\</IceRpcProtobufToolsTaskAssembliesPath>
+                <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
             </PropertyGroup>
         </Otherwise>
     </Choose>
@@ -54,7 +54,7 @@
     <!-- default values -->
     <ItemDefinitionGroup>
         <ProtoFile>
-            <OutputDir>$(MSBuildProjectDirectory)\generated</OutputDir>
+            <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
             <Pack>false</Pack>
             <PackagePath>protobuf</PackagePath>
         </ProtoFile>

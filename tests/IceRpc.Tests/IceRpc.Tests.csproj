@@ -20,12 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\IceRpc.Conformance.Tests\IceRpc.Conformance.Tests.csproj" />
-    <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
+    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
+    <ProjectReference Include="../IceRpc.Conformance.Tests/IceRpc.Conformance.Tests.csproj" />
+    <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\certs\*.p12">
+    <None Include="../../certs/*.p12">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
