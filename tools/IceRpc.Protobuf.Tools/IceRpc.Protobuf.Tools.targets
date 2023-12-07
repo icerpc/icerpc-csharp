@@ -22,12 +22,12 @@
         include them as "ProtoFile" items later.
     -->
     <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-        <None Remove="**/*.proto" />
+        <None Remove="**\*.proto" />
     </ItemGroup>
     <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
         <ProtoFile
             Condition="'$(EnableDefaultProtoFileItems)' == 'true'"
-            Include="**/*.proto"
+            Include="**\*.proto"
             Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
     </ItemGroup>
     <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
@@ -59,10 +59,10 @@
         -->
         <ItemGroup>
             <Compile
-                Include="@(_ProtoFile->'%(OutputDir)/%(OutputFileName).cs')"
+                Include="@(_ProtoFile->'%(OutputDir)\%(OutputFileName).cs')"
                 Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
             <Compile
-                Include="@(_ProtoFile->'%(OutputDir)/%(OutputFileName).IceRpc.cs')"
+                Include="@(_ProtoFile->'%(OutputDir)\%(OutputFileName).IceRpc.cs')"
                 Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
         </ItemGroup>
     </Target>
@@ -72,9 +72,9 @@
               ItemName          = "_ProtoFile"
               TaskParameter     = "ComputedSources"/>
         </OutputFileNamesTask>
-        <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).cs')" />
-        <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
-        <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).d')" />
+        <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).cs')" />
+        <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).IceRpc.cs')" />
+        <Delete Files="@(_ProtoFile->'%(OutputDir)\%(OutputFilename).d')" />
     </Target>
 
      <!-- Package ProtoFile items -->

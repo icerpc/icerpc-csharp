@@ -33,7 +33,6 @@ public class UpToDateCheckTask : Task
     /// </summary>
     /// <returns>Returns <see langword="true"/> if the task was executed successfully, <see langword="false"/>
     /// otherwise.</returns>
-
     public override bool Execute()
     {
         var computedSources = new List<ITaskItem>();
@@ -85,10 +84,11 @@ public class UpToDateCheckTask : Task
             var depends = new List<string>();
             string dependContents = File.ReadAllText(dependOutput);
             // strip everything before Xxx.cs:
-            int i = dependContents.IndexOf(".cs:");
-            if (i != -1 && i + 4 < dependContents.Length)
+            const string outputPrefix = ".cs:";
+            int i = dependContents.IndexOf(outputPrefix);
+            if (i != -1 && i + outputPrefix.Length < dependContents.Length)
             {
-                dependContents = dependContents.Substring(i + 4);
+                dependContents = dependContents.Substring(i + outputPrefix.Length);
                 foreach (string line in dependContents.Split(new char[] { '\\' }))
                 {
                     string filePath = line.Trim();
