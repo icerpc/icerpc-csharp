@@ -41,4 +41,5 @@ unchecked enum ExtShape {
     Circle(diameter: int32?)
     Rectangle(name: string, tag(1) width: int32?, height: int32?)
     Triangle()
+    Square
 }

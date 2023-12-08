@@ -199,8 +199,16 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     code.writeln("encoder.EncodeSize(Discriminant);");
 
                     if enum_def.is_unchecked {
-                        code.writeln("var sizePlaceholder = encoder.GetPlaceholderSpan(4);");
-                        code.writeln("int startPos = encoder.EncodedByteCount;");
+                        // TODO: oddly enough, an enumerator declared as E() or E does not result in the same
+                        // associated fields.
+                        if enumerator.associated_fields().unwrap_or_default().is_empty() {
+                            // For the tag end marker. This assumes an unchecked enum with associated fields is never
+                            // compact.
+                            code.writeln("encoder.EncodeSize(1);");
+                        } else {
+                            code.writeln("var sizePlaceholder = encoder.GetPlaceholderSpan(4);");
+                            code.writeln("int startPos = encoder.EncodedByteCount;");
+                        }
                     }
 
                     code.writeln(&encode_fields(
@@ -213,7 +221,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     // TODO: only for non-compact enum
                     code.writeln("encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
 
-                    if enum_def.is_unchecked {
+                    if enum_def.is_unchecked && enumerator.associated_fields().unwrap_or_default().is_empty() {
                         code.writeln("SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);");
                     }
 
