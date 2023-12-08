@@ -7,7 +7,7 @@ using IceRpc_Slice_Client;
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder
         .AddSimpleConsole()
-        .AddFilter("IceRpc", LogLevel.Debug));
+        .AddFilter("IceRpc", LogLevel.Information));
 
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
 await using var connection = new ClientConnection(
