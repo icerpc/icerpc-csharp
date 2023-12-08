@@ -105,8 +105,8 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     let use_set = if let Some((min_value, max_value)) = min_max_values {
         !enum_def.is_unchecked && (enum_def.enumerators.len() as i128) < max_value - min_value + 1
     } else {
-        // This means there are no enumerators.*
-        true
+        // An unchecked enum with no enumerator.
+        false
     };
 
     if use_set {

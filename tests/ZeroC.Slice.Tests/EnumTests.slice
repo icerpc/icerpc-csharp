@@ -30,3 +30,5 @@ unchecked enum MyUncheckedEnum : uint32 {
     [cs::attribute("System.ComponentModel.Description(\"Sixteen\")")]
     E4 = 16
 }
+
+unchecked enum MyVarInt62Alias : varint62 {}
