@@ -312,7 +312,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
     }
 
     let mut invocation_builder = FunctionCallBuilder::new("this.InvokeAsync");
-    invocation_builder.use_semi_colon(false);
+    invocation_builder.use_semicolon(false);
     invocation_builder.arguments_on_newline(true);
 
     // The operation to call
@@ -349,7 +349,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
                         "{stream_parameter_name}.ToPipeReader<{}>",
                         stream_type.cs_type_string(namespace, TypeContext::Encode, false),
                     ))
-                    .use_semi_colon(false)
+                    .use_semicolon(false)
                     .add_argument(
                         encode_stream_parameter(stream_type, TypeContext::Encode, namespace, operation.encoding)
                             .indent(),

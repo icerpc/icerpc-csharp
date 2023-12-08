@@ -25,15 +25,64 @@ pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, 
 
     // Decode required fields
     for field in required_fields {
-        let param = format!("this.{}", field.field_name(field_type));
-        code.writeln(&decode_member(field, namespace, &param, encoding));
+        code.write(&format!("this.{} = ", field.field_name(field_type)));
+        code.write(&decode_member(field, namespace, encoding));
+        code.writeln(";");
     }
 
     // Decode tagged data fields
     for field in tagged_fields {
-        let param = format!("this.{}", field.field_name(field_type));
-        code.writeln(&decode_tagged(field, namespace, &param, true, encoding));
+        code.write(&format!("this.{} = ", field.field_name(field_type)));
+        code.write(&decode_tagged(field, namespace, true, encoding));
+        code.writeln(";");
     }
+
+    code
+}
+
+pub fn decode_enum_fields(
+    fields: &[&Field],
+    enum_class: &str,
+    namespace: &str,
+    field_type: FieldType,
+    encoding: Encoding,
+) -> CodeBlock {
+    let mut code = CodeBlock::default();
+
+    let (required_fields, tagged_fields) = get_sorted_members(fields);
+
+    let bit_sequence_size = get_bit_sequence_size(encoding, fields);
+
+    if bit_sequence_size > 0 {
+        writeln!(
+            code,
+            "var bitSequenceReader = decoder.GetBitSequenceReader({bit_sequence_size});",
+        );
+    }
+
+    let mut new_instance_builder = FunctionCallBuilder::new(format!("new {enum_class}"));
+    new_instance_builder.arguments_on_newline(fields.len() > 1);
+
+    // Decode required fields. It's critical to specify the field name as we may not
+    // be decoding in declaration order.
+    for field in required_fields {
+        new_instance_builder.add_argument(&format!(
+            "{field_name}: {field_value}",
+            field_name = field.field_name(field_type),
+            field_value = decode_member(field, namespace, encoding)
+        ));
+    }
+
+    // Decode tagged data fields
+    for field in tagged_fields {
+        new_instance_builder.add_argument(&format!(
+            "{field_name}: {field_value}",
+            field_name = field.field_name(field_type),
+            field_value = decode_tagged(field, namespace, true, encoding)
+        ));
+    }
+
+    writeln!(code, "var result = {}", new_instance_builder.build());
 
     code
 }
@@ -46,12 +95,10 @@ pub fn default_activator(encoding: Encoding) -> &'static str {
     }
 }
 
-fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: Encoding) -> CodeBlock {
+fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let data_type = member.data_type();
     let type_string = data_type.cs_type_string(namespace, TypeContext::Decode, true);
-
-    write!(code, "{param} = ");
 
     if data_type.is_optional {
         match data_type.concrete_type() {
@@ -115,18 +162,11 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str, encoding: E
     if data_type.is_optional {
         code.write(" : null");
     }
-    code.write(";");
 
     code
 }
 
-pub fn decode_tagged(
-    member: &impl Member,
-    namespace: &str,
-    param: &str,
-    constructed_type: bool,
-    encoding: Encoding,
-) -> CodeBlock {
+pub fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bool, encoding: Encoding) -> CodeBlock {
     let data_type = member.data_type();
 
     assert!(data_type.is_optional);
@@ -139,9 +179,10 @@ pub fn decode_tagged(
         )
         .add_argument(decode_func(data_type, namespace, encoding))
         .add_argument_if_present((encoding == Encoding::Slice1).then(|| format!("useTagEndMarker: {constructed_type}")))
+        .use_semicolon(false)
         .build();
 
-    format!("{param} = {decode}").into()
+    decode
 }
 
 pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
@@ -443,36 +484,32 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     for member in required_members {
         writeln!(
             code,
-            "{param_type} {decode}",
+            "{param_type} {param_name} = {decode};",
             // For optional value types we have to use the full type as the compiler cannot
             // disambiguate between null and the actual value type.
             param_type = match member.data_type().is_optional && member.data_type().is_value_type() {
                 true => member.data_type().cs_type_string(namespace, TypeContext::Decode, false),
                 false => String::from("var"),
             },
-            decode = decode_member(
-                member,
-                namespace,
-                &member.parameter_name_with_prefix("sliceP_"),
-                operation.encoding,
-            ),
+            param_name = &member.parameter_name_with_prefix("sliceP_"),
+            decode = decode_member(member, namespace, operation.encoding),
         )
     }
 
     for member in tagged_members {
         writeln!(
             code,
-            "{param_type} {decode}",
+            "{param_type} {param_name} = {decode};",
             // For optional value types we have to use the full type as the compiler cannot
             // disambiguate between null and the actual value type.
             param_type = match member.data_type().is_value_type() {
                 true => member.data_type().cs_type_string(namespace, TypeContext::Decode, false),
                 false => String::from("var"),
             },
+            param_name = &member.parameter_name_with_prefix("sliceP_"),
             decode = decode_tagged(
                 member,
                 namespace,
-                &member.parameter_name_with_prefix("sliceP_"),
                 false, // not a constructed type
                 operation.encoding
             ),
