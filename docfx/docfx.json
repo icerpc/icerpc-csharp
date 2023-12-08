@@ -4,7 +4,11 @@
       "src": [
         {
           "files": ["src/*/*.csproj"],
-          "exclude": ["src/IceRpc.Templates/**", "src/IceRpc.Slice.Generators/**", "src/IceRpc.Protobuf.Generators/**"],
+          "exclude": [
+            "src/IceRpc.Templates/**",
+            "src/IceRpc.Slice.Generators/**",
+            "src/IceRpc.Protobuf.Generators/**"
+          ],
           "src": "../"
         }
       ],
@@ -49,7 +53,7 @@
     "keepFileLink": false,
     "disableGitFeatures": false,
     "globalMetadata": {
-      "_appTitle": "IceRPC",
+      "_appTitle": "IceRPC API",
       "_appName": "Docs",
       "_appFaviconPath": "images/favicon.ico",
       "_appLogoPath": "images/logo.svg",
