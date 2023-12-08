@@ -1,0 +1,22 @@
+// Copyright (c) ZeroC, Inc.
+
+mode = Slice1
+
+module ZeroC::Slice::Tests
+
+enum MySlice1Enum {
+    Enum1
+    Enum2
+    Enum3
+}
+
+[cs::attribute("System.Flags")]
+unchecked enum MySlice1UncheckedEnum {
+    E0 = 1
+    E1 = 2
+    E2 = 4
+    E3 = 8
+
+    [cs::attribute("System.ComponentModel.Description(\"Sixteen\")")]
+    E4 = 16
+}
