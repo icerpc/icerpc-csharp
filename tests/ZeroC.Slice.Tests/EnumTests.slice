@@ -43,3 +43,4 @@ unchecked enum ExtShape {
     Triangle()
     Square
 }
+unchecked enum MyVarInt62Alias : varint62 {}
