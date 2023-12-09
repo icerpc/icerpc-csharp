@@ -196,7 +196,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 .add_parameter("ref SliceEncoder", "encoder", None, None)
                 .set_body({
                     let mut code = CodeBlock::default();
-                    code.writeln("encoder.EncodeSize(Discriminant);");
+                    code.writeln("encoder.EncodeVarInt32(Discriminant);");
 
                     if enum_def.is_unchecked {
                         // TODO: oddly enough, an enumerator declared as E() or E does not result in the same
@@ -248,7 +248,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 .add_parameter("ref SliceEncoder", "encoder", None, None)
                 .set_body({
                     let mut code = CodeBlock::default();
-                    code.writeln("encoder.EncodeSize(Discriminant);");
+                    code.writeln("encoder.EncodeVarInt32(Discriminant);");
                     code.writeln("encoder.EncodeSize(Fields.Length);");
                     code.writeln("encoder.WriteByteSpan(Fields.Span);");
 
@@ -445,7 +445,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
             identifier = enum_def.cs_identifier(Case::Pascal),
             decode_enum = match &enum_def.underlying {
                 Some(underlying) => format!("decoder.Decode{}()", underlying.definition().type_suffix()),
-                _ => "decoder.DecodeSize()".to_owned(),
+                _ => "decoder.DecodeSize()".to_owned(), // Slice1 only
             },
         )
     } else {
@@ -474,7 +474,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
         };
 
         format!(
-            r#"decoder.DecodeSize() switch
+            r#"decoder.DecodeVarInt32() switch
     {{
         {cases}
         {fallback}
