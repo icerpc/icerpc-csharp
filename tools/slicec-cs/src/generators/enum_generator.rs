@@ -146,7 +146,15 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
             builder.add_attribute(attribute);
         }
 
-        builder.add_block(format!("internal const int Discriminant = {};", enumerator.value()).into());
+        builder.add_block({
+            let mut code = CodeBlock::default();
+            code.writeln(&CommentTag::new(
+                "summary",
+                "The discriminant of this enumerator.".into(),
+            ));
+            writeln!(code, "public const int Discriminant = {};", enumerator.value());
+            code
+        });
 
         builder.add_block(
             FunctionBuilder::new(
@@ -239,6 +247,15 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
         let mut builder = ContainerBuilder::new("public partial record class", "Unknown");
 
         builder
+            .add_comment(
+                "summary",
+                format!(
+                    "Represents an enumerator not defined in the local Slice definition of unchecked enum '{enum_name}'.",
+                    enum_name = enum_def.identifier(),
+                )
+            )
+            .add_comment_with_attribute("param", "name", "Discriminant", "The discriminant of this unknown enumerator.")
+            .add_comment_with_attribute("param", "name", "Fields", "The encoded fields of this unknown enumerator.")
             .add_base(enum_def.escape_identifier())
             .add_field("int Discriminant".into())
             .add_field("global::System.ReadOnlyMemory<byte> Fields".into());
