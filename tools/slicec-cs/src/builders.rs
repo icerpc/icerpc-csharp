@@ -132,11 +132,6 @@ impl ContainerBuilder {
         self
     }
 
-    pub fn add_field(&mut self, field: String) -> &mut Self {
-        self.fields.push(field);
-        self
-    }
-
     pub fn add_fields(&mut self, fields: &[&Field]) -> &mut Self {
         for field in fields {
             let type_string = field

@@ -72,6 +72,16 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
             builder.add_attribute(attribute);
         }
 
+        builder.add_block({
+            let mut code = CodeBlock::default();
+            code.writeln(&CommentTag::new(
+                "summary",
+                "The discriminant of this enumerator.".into(),
+            ));
+            code.writeln("public int Discriminant => GetDiscriminant();");
+            code
+        });
+
         builder.add_block(
             FunctionBuilder::new("internal abstract", "void", "Encode", FunctionType::Declaration)
                 .add_comment("summary", "Encodes this enumerator into the given Slice encoder.")
@@ -82,6 +92,16 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
                     Some("The Slice encoder.".to_owned()),
                 )
                 .build(),
+        );
+
+        builder.add_block(
+            FunctionBuilder::new(
+                "private protected abstract",
+                "int",
+                "GetDiscriminant",
+                FunctionType::Declaration,
+            )
+            .build(),
         );
 
         builder.build()
@@ -152,7 +172,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 "summary",
                 "The discriminant of this enumerator.".into(),
             ));
-            writeln!(code, "public const int Discriminant = {};", enumerator.value());
+            writeln!(code, "public new const int Discriminant = {};", enumerator.value());
             code
         });
 
@@ -238,6 +258,8 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 .build(),
         );
 
+        builder.add_block("private protected override int GetDiscriminant() => Discriminant;".into());
+
         code.add_block(&builder.build());
     }
 
@@ -246,26 +268,61 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
 
         let mut builder = ContainerBuilder::new("public partial record class", "Unknown");
 
-        builder
-            .add_comment(
+        builder.add_comment(
+            "summary",
+            format!(
+                "Represents an enumerator not defined in the local Slice definition of unchecked enum '{enum_name}'.",
+                enum_name = enum_def.identifier(),
+            ),
+        );
+
+        builder.add_block({
+            let mut code = CodeBlock::default();
+            code.writeln(&CommentTag::new(
                 "summary",
-                format!(
-                    "Represents an enumerator not defined in the local Slice definition of unchecked enum '{enum_name}'.",
-                    enum_name = enum_def.identifier(),
+                "The fields of this unknown enumerator.".into(),
+            ));
+            writeln!(
+                code,
+                "public global::System.ReadOnlyMemory<byte> Fields {{ get; init; }}"
+            );
+            code
+        });
+
+        builder.add_block("private readonly int _discriminant;".into());
+
+        builder.add_block(
+            FunctionBuilder::new("public", "", "Unknown", FunctionType::BlockBody)
+                .add_comment("summary", "Constructs a new instance of Unknown.")
+                .add_comment_with_attribute(
+                    "param",
+                    "name",
+                    "discriminant",
+                    "The discriminant of this unknown enumerator.",
                 )
-            )
-            .add_comment_with_attribute("param", "name", "Discriminant", "The discriminant of this unknown enumerator.")
-            .add_comment_with_attribute("param", "name", "Fields", "The encoded fields of this unknown enumerator.")
-            .add_base(enum_def.escape_identifier())
-            .add_field("int Discriminant".into())
-            .add_field("global::System.ReadOnlyMemory<byte> Fields".into());
+                .add_comment_with_attribute(
+                    "param",
+                    "name",
+                    "fields",
+                    "The encoded fields of this unknown enumerator.",
+                )
+                .add_parameter("int", "discriminant", None, None)
+                .add_parameter("global::System.ReadOnlyMemory<byte>", "fields", None, None)
+                .set_body({
+                    let mut code = CodeBlock::default();
+                    code.writeln("_discriminant = discriminant;");
+                    code.writeln("Fields = fields;");
+                    code
+                })
+                .build(),
+        );
 
         builder.add_block(
             FunctionBuilder::new("internal override", "void", "Encode", FunctionType::BlockBody)
                 .add_parameter("ref SliceEncoder", "encoder", None, None)
                 .set_body({
                     let mut code = CodeBlock::default();
-                    code.writeln("encoder.EncodeVarInt32(Discriminant);");
+                    code.writeln("encoder.EncodeVarInt32(_discriminant);");
                     code.writeln("encoder.EncodeSize(Fields.Length);");
                     code.writeln("encoder.WriteByteSpan(Fields.Span);");
 
@@ -273,6 +330,8 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 })
                 .build(),
         );
+
+        builder.add_block("private protected override int GetDiscriminant() => _discriminant;".into());
 
         builder.build();
         code.add_block(&builder.build());
