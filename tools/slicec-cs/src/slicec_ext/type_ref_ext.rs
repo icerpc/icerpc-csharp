@@ -18,7 +18,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         match self.concrete_type() {
             Types::Primitive(primitive) => !matches!(primitive, Primitive::String | Primitive::AnyClass),
             Types::Struct(_) => true,
-            Types::Enum(e) => e.is_mapped_to_cs_enum(),
+            Types::Enum(enum_ref) => enum_ref.is_mapped_to_cs_enum(),
             _ => false,
         }
     }
