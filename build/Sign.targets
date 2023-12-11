@@ -41,17 +41,6 @@
             Lines = "Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
     </Target>
 
-    <!-- Sign the Windows compiler executables when building the release packagefs (SLICEC_CS_STAGING_PATH is set) -->
-    <Target Name="SignCompilers"
-            BeforeTargets="SignPackage"
-            Condition="Exists('$(SIGN_CERTIFICATE)') and Exists('$(SLICEC_CS_STAGING_PATH)')">
-        <SignTask
-            WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
-            AdditionalOptions="$(SignCommand)"
-            Files="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe"
-            SignTool="$(SignTool)" />
-    </Target>
-
     <Target Name="SignPackageClean" AfterTargets="Clean" Condition="'$(OS)' == 'Windows_NT' ">
         <Delete Files="$(IntermediateOutputPath)sign.log" />
     </Target>
