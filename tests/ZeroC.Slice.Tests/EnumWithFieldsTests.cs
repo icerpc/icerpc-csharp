@@ -22,6 +22,7 @@ public class EnumWithFieldsTests
 
         // Assert
         Assert.That(decoded, Is.InstanceOf(typeof(Color.Blue)));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
 
     [TestCase("canary", (ushort)7)]
@@ -41,6 +42,7 @@ public class EnumWithFieldsTests
 
         // Assert
         Assert.That(decoded, Is.EqualTo(paintColor));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
 
     [Test]
@@ -59,6 +61,7 @@ public class EnumWithFieldsTests
 
         // Assert
         Assert.That(decoded, Is.InstanceOf(typeof(Shape.Unknown)));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
         Assert.That(decoded.Discriminant, Is.EqualTo(RevisedShape.Square.Discriminant));
     }
 
@@ -72,7 +75,7 @@ public class EnumWithFieldsTests
         encoder1.EncodeRevisedShape(revisedShape);
 
         var decoder1 = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
-        var shape = decoder1.DecodeShape(); // shape is Shape.Unknown
+        var shape = decoder1.DecodeShape();
         buffer.Clear();
 
         var encoder2 = new SliceEncoder(buffer, SliceEncoding.Slice2);
@@ -85,6 +88,8 @@ public class EnumWithFieldsTests
 
         // Assert
         Assert.That(decoded, Is.EqualTo(revisedShape)); // we didn't loose any information
+        Assert.That(decoder2.Consumed, Is.EqualTo(encoder2.EncodedByteCount));
+        Assert.That(shape, Is.InstanceOf(typeof(Shape.Unknown)));
     }
 
     [TestCase("foo", 8u, 4u)]
@@ -104,5 +109,6 @@ public class EnumWithFieldsTests
 
         // Assert
         Assert.That(decoded, Is.EqualTo(shape));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
 }
