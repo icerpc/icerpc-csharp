@@ -240,7 +240,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     }
 
                     code.writeln(&encode_fields(
-                        enumerator.associated_fields().unwrap_or_default().as_slice(),
+                        &enumerator.associated_fields().unwrap_or_default(),
                         &namespace,
                         FieldType::NonMangled,
                         Encoding::Slice2,
