@@ -530,7 +530,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
         for enumerator in enum_def.enumerators() {
             let enumerator_class = format!(
                 "{escaped_identifier}.{enumerator_name}",
-                enumerator_name = enumerator.escape_identifier()
+                enumerator_name = enumerator.escape_identifier(),
             );
 
             writeln!(
