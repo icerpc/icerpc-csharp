@@ -53,7 +53,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
                 r#"
 [Dunet.Union]
 {} abstract partial record class"#,
-                enum_def.access_modifier()
+                enum_def.access_modifier(),
             ),
             &enum_def.escape_identifier(),
         );
