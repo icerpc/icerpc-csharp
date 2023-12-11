@@ -203,7 +203,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 }
 
                 code.writeln(&decode_enum_fields(
-                    enumerator.associated_fields().unwrap_or_default().as_slice(),
+                    &enumerator.associated_fields().unwrap_or_default(),
                     &escaped_identifier,
                     &namespace,
                     FieldType::NonMangled,
