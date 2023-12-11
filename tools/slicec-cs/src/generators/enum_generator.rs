@@ -159,7 +159,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
             .add_comments(enumerator.formatted_doc_comment_seealso())
             .add_obsolete_attribute(enumerator)
             .add_base(enum_def.escape_identifier())
-            .add_fields(enumerator.associated_fields().unwrap_or_default().as_slice());
+            .add_fields(&enumerator.associated_fields().unwrap_or_default());
 
         // Add cs::attribute
         for attribute in enumerator.cs_attributes() {
