@@ -9,8 +9,7 @@ enum PaintColor {
     Red(tag(1) code: uint16?)
     White(tag(1) code: uint16?)
     Blue(tag(1) code: uint16?)
-    Yellow(tag(1) code: uint16?) // Extra enumerator, not compatible with Color, but doesn't break encoding of other
-                                 // enumerators
+    Yellow(shade: string, code: uint16?) // Extra enumerator, not compatible with Color
 }
 
 unchecked enum Shape {
@@ -24,5 +23,5 @@ unchecked enum RevisedShape {
     Rectangle(width: uint32, height: uint32)
     Triangle(side1: uint32, side2: uint32, side3: uint32)
     Square(side: uint32, tag(1) color: Color?)
-    Oval(major: uint32, minor: uint32)
+    Oval(name: string?, major: uint32, minor: uint32)
 }

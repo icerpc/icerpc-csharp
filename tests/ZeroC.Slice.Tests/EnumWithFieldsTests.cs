@@ -24,6 +24,25 @@ public class EnumWithFieldsTests
         Assert.That(decoded, Is.InstanceOf(typeof(Color.Blue)));
     }
 
+    [TestCase("canary", (ushort)7)]
+    [TestCase("lemon", null)]
+    public void Decode_enum_with_optional_field(string shade, ushort? code)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var paintColor = new PaintColor.Yellow(shade, code);
+        encoder.EncodePaintColor(paintColor);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        // Act
+        var decoded = decoder.DecodePaintColor();
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(paintColor));
+    }
+
     [Test]
     public void Decode_unchecked_enum_returns_unknown()
     {
@@ -66,5 +85,24 @@ public class EnumWithFieldsTests
 
         // Assert
         Assert.That(decoded, Is.EqualTo(revisedShape)); // we didn't loose any information
+    }
+
+    [TestCase("foo", 8u, 4u)]
+    [TestCase(null, 7u, 3u)]
+    public void Decode_enum_with_optional_field(string? name, uint major, uint minor)
+    {
+        // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var shape = new RevisedShape.Oval(name, major, minor);
+        encoder.EncodeRevisedShape(shape);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        // Act
+        var decoded = decoder.DecodeRevisedShape();
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(shape));
     }
 }
