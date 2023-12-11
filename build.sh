@@ -89,7 +89,7 @@ publish()
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
     run_command rm "-rf" "$global_packages/zeroc.slice/$version" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
-    run_command dotnet "nuget" "push" "tools/**/$dotnet_config/*.$version*.nupkg" "--source" "$global_packages"
+    run_command dotnet "nuget" "push" "tools/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
 }
 

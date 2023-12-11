@@ -12,7 +12,7 @@
     <PackageReference Include="IceRpc.RequestContext" Version="$(Version)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcProtobufToolsVersion)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="generated/" />
