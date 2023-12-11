@@ -43,7 +43,7 @@ public class EnumWithFieldsTests
         Assert.That(decoded.Discriminant, Is.EqualTo(RevisedShape.Square.Discriminant));
     }
 
-     [Test]
+    [Test]
     public void Decode_unchecked_enum_preserves_fields()
     {
         // Arrange
