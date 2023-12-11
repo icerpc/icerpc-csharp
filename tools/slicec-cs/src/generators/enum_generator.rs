@@ -170,7 +170,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
             let mut code = CodeBlock::default();
             code.writeln(&CommentTag::new(
                 "summary",
-                "The discriminant of this enumerator.".into(),
+                "The discriminant of this enumerator.".to_owned(),
             ));
             writeln!(code, "public new const int Discriminant = {};", enumerator.value());
             code
