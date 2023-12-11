@@ -255,7 +255,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
 
                     code
                 })
-                .build(),
+                .build()
         );
 
         builder.add_block("private protected override int GetDiscriminant() => Discriminant;".into());
