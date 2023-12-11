@@ -70,7 +70,7 @@ pub fn decode_enum_fields(
         new_instance_builder.add_argument(&format!(
             "{field_name}: {field_value}",
             field_name = field.field_name(field_type),
-            field_value = decode_member(field, namespace, encoding)
+            field_value = decode_member(field, namespace, encoding),
         ));
     }
 
