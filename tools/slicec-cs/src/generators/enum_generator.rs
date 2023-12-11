@@ -475,7 +475,7 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
             },
         )
     } else {
-        "value.Encode(ref encoder);".into()
+        "value.Encode(ref encoder);".to_owned()
     };
 
     // Enum encoding
