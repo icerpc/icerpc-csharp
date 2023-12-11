@@ -25,9 +25,10 @@ pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, 
 
     // Decode required fields
     for field in required_fields {
-        code.write(&format!("this.{} = ", field.field_name(field_type)));
-        code.write(&decode_member(field, namespace, encoding));
-        code.writeln(";");
+        writeln!(&code, "this.{param} = {decode};",
+             param =  field.field_name(field_type),
+             decode = &decode_member(field, namespace, encoding)
+         );
     }
 
     // Decode tagged data fields
