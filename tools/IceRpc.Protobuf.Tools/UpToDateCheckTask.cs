@@ -20,7 +20,7 @@ public class UpToDateCheckTask : Task
     [Required]
     public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
 
-    /// <summary>Gets the computed sources, which are equal to the <see cref="Sources" /> but carring additional
+    /// <summary>Gets the computed sources, which are equivalent to the <see cref="Sources"/> but carry additional
     /// metadata.</summary>
     [Output]
     public ITaskItem[] ComputedSources { get; private set; } = Array.Empty<ITaskItem>();
