@@ -84,13 +84,8 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
 
         builder.add_block(
             FunctionBuilder::new("internal abstract", "void", "Encode", FunctionType::Declaration)
-                .add_comment("summary", "Encodes this enumerator into the given Slice encoder.")
-                .add_parameter(
-                    "ref SliceEncoder",
-                    "encoder",
-                    None,
-                    Some("The Slice encoder.".to_owned()),
-                )
+                .add_never_editor_browsable_attribute()
+                .add_parameter("ref SliceEncoder", "encoder", None, None)
                 .build(),
         );
 
@@ -178,6 +173,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
 
         builder.add_block(
             FunctionBuilder::new("internal override", "void", "Encode", FunctionType::BlockBody)
+                .add_never_editor_browsable_attribute()
                 .add_parameter("ref SliceEncoder", "encoder", None, None)
                 .set_body({
                     let mut code = CodeBlock::default();
@@ -423,31 +419,51 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     )
     .add_generated_remark("static class", enum_def);
 
-    let encode_body = if enum_def.is_mapped_to_cs_enum() {
-        format!(
-            "{encode_enum}(({cs_type})value);",
-            encode_enum = match &enum_def.underlying {
-                Some(underlying) => format!("encoder.Encode{}", underlying.definition().type_suffix()),
-                None => "encoder.EncodeSize".to_owned(),
-            },
-        )
-    } else {
-        "value.Encode(ref encoder);".to_owned()
-    };
+    builder.add_block({
+        let mut encode_builder = FunctionBuilder::new(
+            &format!("{access} static", access = enum_def.access_modifier()),
+            "void",
+            &format!("Encode{}", enum_def.cs_identifier(Case::Pascal)),
+            FunctionType::ExpressionBody,
+        );
 
-    // Enum encoding
-    builder.add_block(
-        format!(
-            r#"
-/// <summary>Encodes a <see cref="{escaped_identifier}" /> enum.</summary>
-/// <param name="encoder">The Slice encoder.</param>
-/// <param name="value">The <see cref="{escaped_identifier}" /> enumerator value to encode.</param>
-{access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
-    {encode_body}"#,
-            identifier = enum_def.cs_identifier(Case::Pascal),
-        )
-        .into(),
-    );
+        encode_builder
+            .add_comment(
+                "summary",
+                format!(r#"Encodes a <see cref="{escaped_identifier}" /> enum."#),
+            )
+            .add_parameter(
+                "this ref SliceEncoder",
+                "encoder",
+                None,
+                Some("The Slice encoder.".to_owned()),
+            )
+            .add_parameter(
+                &escaped_identifier,
+                "value",
+                None,
+                Some(format!(
+                    r#"The <see cref="{escaped_identifier}" /> enumerator value to encode."#
+                )),
+            );
+
+        if enum_def.is_mapped_to_cs_enum() {
+            encode_builder.set_body(
+                format!(
+                    "{encode_enum}(({cs_type})value)",
+                    encode_enum = match &enum_def.underlying {
+                        Some(underlying) => format!("encoder.Encode{}", underlying.definition().type_suffix()),
+                        None => "encoder.EncodeSize".to_owned(),
+                    }
+                )
+                .into(),
+            );
+        } else {
+            encode_builder.set_body("value.Encode(ref encoder)".into());
+        }
+
+        encode_builder.build()
+    });
 
     builder.build()
 }
