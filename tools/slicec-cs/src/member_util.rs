@@ -41,6 +41,7 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
 {access} {type_string} {name} {{ get; {setter}; }}",
         access = field.parent().access_modifier(),
         name = field.field_name(field_type),
+        field = if field.is_cs_readonly() { "init" } else { "set" },
     )
 }
 
