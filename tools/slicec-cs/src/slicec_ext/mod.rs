@@ -15,7 +15,7 @@ pub use comment_ext::CommentExt;
 pub use entity_ext::EntityExt;
 pub use enum_ext::EnumExt;
 pub use interface_ext::InterfaceExt;
-pub use member_ext::{MemberExt, ParameterExt, ParameterSliceExt};
+pub use member_ext::{FieldExt, MemberExt, ParameterExt, ParameterSliceExt};
 pub use module_ext::ModuleExt;
 pub use operation_ext::OperationExt;
 pub use primitive_ext::PrimitiveExt;

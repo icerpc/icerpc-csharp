@@ -187,9 +187,21 @@ public sealed class StructTests
     public void Cs_readonly_on_field()
     {
         // Arrange / Act
-        var fieldInfo = typeof(MyStructWithFieldAttributes).GetField("J")!;
+        var propertyInfo = typeof(MyStructWithFieldAttributes).GetProperty("J")!;
+        var setMethodReturnParameterModifiers = propertyInfo.SetMethod!.ReturnParameter.GetRequiredCustomModifiers();
 
         // Assert
-        Assert.That(fieldInfo.IsInitOnly);
+        Assert.That(setMethodReturnParameterModifiers.Contains(typeof(System.Runtime.CompilerServices.IsExternalInit)));
+    }
+
+    [Test]
+    public void Clone_cs_readonly_struct()
+    {
+        var keyValuePair = new KeyValuePair(5, "foo");
+        keyValuePair = keyValuePair with { Value = "bar" };
+
+        // Assert
+        Assert.That(keyValuePair.Key, Is.EqualTo(5));
+        Assert.That(keyValuePair.Value, Is.EqualTo("bar"));
     }
 }

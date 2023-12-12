@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{EntityExt, TypeRefExt};
+use crate::cs_attributes::CsReadonly;
 use crate::cs_util::{escape_keyword, format_comment_message, mangle_name, FieldType};
 use convert_case::Case;
 use slicec::grammar::*;
@@ -24,6 +25,20 @@ impl<T: Member> MemberExt for T {
 
     fn field_name(&self, field_type: FieldType) -> String {
         mangle_name(&self.escape_identifier(), field_type)
+    }
+}
+
+pub trait FieldExt {
+    /// Check if this field, or its parent struct, are marked with `cs::readonly`.
+    fn is_cs_readonly(&self) -> bool;
+}
+
+impl FieldExt for Field {
+    fn is_cs_readonly(&self) -> bool {
+        self.all_attributes()
+            .concat()
+            .into_iter()
+            .any(|a| a.downcast::<CsReadonly>().is_some())
     }
 }
 
