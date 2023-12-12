@@ -29,6 +29,7 @@ impl<T: Member> MemberExt for T {
 }
 
 pub trait FieldExt {
+    /// Check if this field, or its parent struct, are marked with `cs::readonly`.
     fn is_cs_readonly(&self) -> bool;
 }
 
