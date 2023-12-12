@@ -11,7 +11,7 @@
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
     <ProtoFile Include="../proto/request_counter.proto" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcProtobufToolsVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
   </ItemGroup>
 </Project>

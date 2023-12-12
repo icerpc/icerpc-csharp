@@ -34,12 +34,12 @@
         include them as "SliceFile" items later.
     -->
     <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-        <None Remove="**\*.slice"/>
+        <None Remove="**/*.slice"/>
     </ItemGroup>
 
     <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
         <SliceFile
-            Condition="'$(EnableDefaultSliceFileItems)' == 'true'" Include="**\*.slice"
+            Condition="'$(EnableDefaultSliceFileItems)' == 'true'" Include="**/*.slice"
             Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"/>
     </ItemGroup>
 
@@ -88,7 +88,7 @@
     </Target>
 
     <Target Name="SliceCClean" BeforeTargets="Clean">
-        <Delete Files="@(SliceFile->'%(OutputDir)\%(Filename).cs');@(SliceFile->'%(OutputDir)\%(Filename).IceRpc.cs')"/>
+        <Delete Files="@(SliceFile->'%(OutputDir)/%(Filename).cs');@(SliceFile->'%(OutputDir)/%(Filename).IceRpc.cs')"/>
     </Target>
 
     <!-- Package SliceFile items -->

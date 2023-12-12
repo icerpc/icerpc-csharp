@@ -31,14 +31,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ZeroC.Slice\ZeroC.Slice.csproj" />
-    <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\A\A.csproj" />
-    <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\B\B.csproj" />
-    <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\C\C.csproj" />
-    <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\D\D.csproj" />
-    <ProjectReference Include="..\ZeroC.Slice.Tests.ReferencedAssemblies\DPrime\DPrime.csproj" />
+    <ProjectReference Include="../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
+    <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/A/A.csproj" />
+    <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/B/B.csproj" />
+    <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/C/C.csproj" />
+    <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/D/D.csproj" />
+    <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
     <!-- Reference the built-in Slice files -->
-    <SliceDirectory Include="..\..\slice" />
+    <SliceDirectory Include="../../slice" />
   </ItemGroup>
   <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

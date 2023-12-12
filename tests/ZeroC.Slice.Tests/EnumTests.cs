@@ -17,6 +17,11 @@ public class EnumTests
     [TestCase((int)MyVarSizeEnum.Enum3, 30)]
     [TestCase((uint)MyUncheckedEnum.E0, 1)]
     [TestCase((uint)MyUncheckedEnum.E4, 16)]
+    [TestCase((int)MySlice1Enum.Enum1, 0)]
+    [TestCase((int)MySlice1Enum.Enum2, 1)]
+    [TestCase((int)MySlice1Enum.Enum3, 2)]
+    [TestCase((uint)MySlice1UncheckedEnum.E0, 1)]
+    [TestCase((uint)MySlice1UncheckedEnum.E4, 16)]
     public void Enumerator_has_the_expected_value(object value, object expectedValue) =>
         Assert.That(value, Is.EqualTo(expectedValue));
 
@@ -59,5 +64,167 @@ public class EnumTests
 
         // Assert
         Assert.That(description, Is.EqualTo("Sixteen"));
+    }
+
+    [Test]
+    public void Encode_int32_enum([Values(MyEnum.Enum1, MyEnum.Enum2)]MyEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+
+        encoder.EncodeMyEnum(expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice2);
+        var decoded = (MyEnum)decoder.DecodeInt32();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Decode_int32_enum([Values(MyEnum.Enum1, MyEnum.Enum2)] MyEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+
+        encoder.EncodeInt32((int)expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice2);
+        var decoded = decoder.DecodeMyEnum();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Encode_varint32_enum([Values(MyVarSizeEnum.Enum1, MyVarSizeEnum.Enum2)] MyVarSizeEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+
+        encoder.EncodeMyVarSizeEnum(expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice2);
+        var decoded = (MyVarSizeEnum)decoder.DecodeVarInt32();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Decode_varint32_enum([Values(MyVarSizeEnum.Enum1, MyVarSizeEnum.Enum2)] MyVarSizeEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+
+        encoder.EncodeVarInt32((int)expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice2);
+        var decoded = decoder.DecodeMyVarSizeEnum();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Encode_unchecked_enum([Values(MyUncheckedEnum.E1, MyUncheckedEnum.E4 + 1)] MyUncheckedEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+
+        encoder.EncodeMyUncheckedEnum(expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoded = (MyUncheckedEnum)decoder.DecodeUInt32();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Decode_unchecked_enum([Values(MyUncheckedEnum.E1, MyUncheckedEnum.E4 + 1)] MyUncheckedEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice2);
+
+        encoder.EncodeUInt32((uint)expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice2);
+        var decoded = decoder.DecodeMyUncheckedEnum();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Encode_slice1_enum([Values(MySlice1Enum.Enum1, MySlice1Enum.Enum2)] MySlice1Enum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+
+        encoder.EncodeMySlice1Enum(expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoded = (MySlice1Enum)decoder.DecodeSize();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Decode_slice1_enum([Values(MySlice1Enum.Enum1, MySlice1Enum.Enum2)] MySlice1Enum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+
+        encoder.EncodeSize((int)expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoded = decoder.DecodeMySlice1Enum();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Encode_slice1_unchecked_enum(
+    [Values(MySlice1UncheckedEnum.E1, MySlice1UncheckedEnum.E4 + 1)] MySlice1UncheckedEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+
+        encoder.EncodeMySlice1UncheckedEnum(expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoded = (MySlice1UncheckedEnum)decoder.DecodeSize();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Decode_slice1_unchecked_enum(
+        [Values(MySlice1UncheckedEnum.E1, MySlice1UncheckedEnum.E4 + 1)] MySlice1UncheckedEnum expected)
+    {
+        var buffer = new byte[256];
+        var bufferWriter = new MemoryBufferWriter(buffer);
+        var encoder = new SliceEncoder(bufferWriter, SliceEncoding.Slice1);
+
+        encoder.EncodeSize((int)expected);
+
+        var decoder = new SliceDecoder(buffer.AsMemory(0, encoder.EncodedByteCount), SliceEncoding.Slice1);
+        var decoded = decoder.DecodeMySlice1UncheckedEnum();
+
+        Assert.That(decoded, Is.EqualTo(expected));
+        Assert.That(decoder.Remaining, Is.EqualTo(0));
     }
 }

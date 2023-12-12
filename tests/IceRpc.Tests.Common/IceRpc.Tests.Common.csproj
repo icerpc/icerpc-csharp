@@ -18,17 +18,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" ExactVersion="true" />
-    <ProjectReference Include="..\..\src\IceRpc.Transports.Coloc\IceRpc.Transports.Coloc.csproj" ExactVersion="true" />
-    <ProjectReference Include="..\..\src\IceRpc.Logger\IceRpc.Logger.csproj" ExactVersion="true" />
-    <ProjectReference Include="..\..\src\IceRpc.Extensions.DependencyInjection\IceRpc.Extensions.DependencyInjection.csproj" ExactVersion="true" />
+    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../../src/IceRpc.Transports.Coloc/IceRpc.Transports.Coloc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../../src/IceRpc.Logger/IceRpc.Logger.csproj" ExactVersion="true" />
+    <ProjectReference Include="../../src/IceRpc.Extensions.DependencyInjection/IceRpc.Extensions.DependencyInjection.csproj" ExactVersion="true" />
   </ItemGroup>
 
   <!-- NuGet package contents-->
   <ItemGroup>
-    <Content Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-    <Content Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="..\..\build\icerpc-icon.png" Pack="true" PackagePath="\" />
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

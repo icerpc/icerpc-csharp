@@ -10,7 +10,7 @@
     <!-- Authenticode sign task that retries on failures -->
     <UsingTask TaskName="SignTask"
         TaskFactory="RoslynCodeTaskFactory"
-        AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
         <ParameterGroup>
             <WorkingDirectory ParameterType="System.String" Required="true" />
             <AdditionalOptions ParameterType="System.String" Required="true" />
@@ -39,17 +39,6 @@
             Encoding = "Unicode"
             Overwrite = "true"
             Lines = "Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
-    </Target>
-
-    <!-- Sign the Windows compiler executables when building the release packagefs (SLICEC_CS_STAGING_PATH is set) -->
-    <Target Name="SignCompilers"
-            BeforeTargets="SignPackage"
-            Condition="Exists('$(SIGN_CERTIFICATE)') and Exists('$(SLICEC_CS_STAGING_PATH)')">
-        <SignTask
-            WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
-            AdditionalOptions="$(SignCommand)"
-            Files="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe"
-            SignTool="$(SignTool)" />
     </Target>
 
     <Target Name="SignPackageClean" AfterTargets="Clean" Condition="'$(OS)' == 'Windows_NT' ">

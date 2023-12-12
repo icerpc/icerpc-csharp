@@ -15,13 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc.Slice\IceRpc.Slice.csproj" />
-    <ProjectReference Include="..\..\src\IceRpc.Slice.Generators\IceRpc.Slice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\..\src\IceRpc.Compressor\IceRpc.Compressor.csproj" />
-    <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
+    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../src/IceRpc.Compressor/IceRpc.Compressor.csproj" />
+    <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <!-- Reference the built-in Slice files -->
-    <SliceDirectory Include="..\..\slice" />
+    <SliceDirectory Include="../../slice" />
   </ItemGroup>
 
   <PropertyGroup>

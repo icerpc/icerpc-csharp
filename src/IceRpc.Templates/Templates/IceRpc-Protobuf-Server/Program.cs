@@ -8,7 +8,7 @@ using IceRpc_Protobuf_Server;
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder
         .AddSimpleConsole()
-        .AddFilter("IceRpc", LogLevel.Debug));
+        .AddFilter("IceRpc", LogLevel.Information));
 
 // Create a router (dispatch pipeline), install two middleware and map our implementation of `IGreeterService` at the
 // default path for this interface: `/VisitorCenter.Greeter`
