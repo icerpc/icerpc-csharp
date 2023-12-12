@@ -4,9 +4,9 @@ use std::collections::HashMap;
 
 use crate::comments::CommentTag;
 use crate::cs_attributes::CsType;
-use crate::cs_util::format_comment_message;
+use crate::cs_util::*;
 use crate::member_util::escape_parameter_name;
-use crate::slicec_ext::{EntityExt, InterfaceExt, MemberExt, ParameterExt};
+use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
 use slicec::supported_encodings::SupportedEncodings;
@@ -98,6 +98,7 @@ pub struct ContainerBuilder {
     container_type: String,
     name: String,
     bases: Vec<String>,
+    fields: Vec<String>,
     contents: Vec<CodeBlock>,
     attributes: Vec<String>,
     comments: Vec<CommentTag>,
@@ -109,6 +110,7 @@ impl ContainerBuilder {
             container_type: container_type.to_owned(),
             name: name.to_owned(),
             bases: vec![],
+            fields: vec![],
             contents: vec![],
             attributes: vec![],
             comments: vec![],
@@ -129,6 +131,21 @@ impl ContainerBuilder {
         self.contents.push(content);
         self
     }
+
+    pub fn add_fields(&mut self, fields: &[&Field]) -> &mut Self {
+        for field in fields {
+            let type_string = field
+                .data_type()
+                .cs_type_string(&field.namespace(), TypeContext::Field, false);
+
+            self.fields.push(format!(
+                "{type_string} {name}",
+                name = field.field_name(FieldType::Class),
+            ));
+        }
+
+        self
+    }
 }
 
 impl Builder for ContainerBuilder {
@@ -145,13 +162,18 @@ impl Builder for ContainerBuilder {
 
         writeln!(
             code,
-            "{container_type} {name}{bases}",
+            "{container_type} {name}{fields}{bases}",
             container_type = self.container_type,
             name = self.name,
             bases = if self.bases.is_empty() {
                 "".to_string()
             } else {
                 format!(" : {bases}", bases = self.bases.join(", "))
+            },
+            fields = if self.fields.is_empty() {
+                "".to_string()
+            } else {
+                format!("({})", self.fields.join(", "))
             },
         );
 
@@ -507,7 +529,7 @@ pub struct FunctionCallBuilder {
     callable: String,
     arguments: Vec<String>,
     arguments_on_newline: bool,
-    use_semi_colon: bool,
+    use_semicolon: bool,
 }
 
 impl FunctionCallBuilder {
@@ -516,7 +538,7 @@ impl FunctionCallBuilder {
             callable: callable.into(),
             arguments: vec![],
             arguments_on_newline: false,
-            use_semi_colon: true,
+            use_semicolon: true,
         }
     }
 
@@ -525,8 +547,8 @@ impl FunctionCallBuilder {
         self
     }
 
-    pub fn use_semi_colon(&mut self, use_semi_colon: bool) -> &mut Self {
-        self.use_semi_colon = use_semi_colon;
+    pub fn use_semicolon(&mut self, use_semicolon: bool) -> &mut Self {
+        self.use_semicolon = use_semicolon;
         self
     }
 
@@ -558,7 +580,7 @@ impl Builder for FunctionCallBuilder {
             format!("{}({})", self.callable, self.arguments.join(", "))
         };
 
-        if self.use_semi_colon {
+        if self.use_semicolon {
             function_call.push(';');
         }
 

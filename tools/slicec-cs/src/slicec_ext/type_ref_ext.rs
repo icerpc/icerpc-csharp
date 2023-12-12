@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use super::{EntityExt, PrimitiveExt};
+use super::{EntityExt, EnumExt, PrimitiveExt};
 use crate::cs_attributes::CsType;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::TypeContext;
@@ -17,7 +17,8 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     fn is_value_type(&self) -> bool {
         match self.concrete_type() {
             Types::Primitive(primitive) => !matches!(primitive, Primitive::String | Primitive::AnyClass),
-            Types::Enum(_) | Types::Struct(_) => true,
+            Types::Struct(_) => true,
+            Types::Enum(enum_ref) => enum_ref.is_mapped_to_cs_enum(),
             _ => false,
         }
     }

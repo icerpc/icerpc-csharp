@@ -1,0 +1,27 @@
+// Copyright (c) ZeroC, Inc.
+
+module ZeroC::Slice::Tests
+
+enum Color { Red, White, Blue }
+
+// Compatible with Color, but with an extra code
+enum PaintColor {
+    Red(tag(1) code: uint16?)
+    White(tag(1) code: uint16?)
+    Blue(tag(1) code: uint16?)
+    Yellow(shade: string, code: uint16?) // Extra enumerator, not compatible with Color
+}
+
+unchecked enum Shape {
+    Circle(radius: uint32)
+    Rectangle(width: uint32, height: uint32)
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+}
+
+unchecked enum RevisedShape {
+    Circle(radius: uint32),
+    Rectangle(width: uint32, height: uint32)
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+    Square(side: uint32, tag(1) color: Color?)
+    Oval(name: string?, major: uint32, minor: uint32)
+}
