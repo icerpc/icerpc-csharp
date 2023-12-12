@@ -177,49 +177,6 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
         });
 
         builder.add_block(
-            FunctionBuilder::new(
-                "internal static",
-                &escaped_identifier,
-                "FromSliceDecoder",
-                FunctionType::BlockBody,
-            )
-            .add_comment(
-                "summary",
-                format!(
-                    r#"Decodes a new instance of <see cref="{escaped_identifier}" /> from the given Slice decoder."#
-                ),
-            )
-            .add_parameter(
-                "ref SliceDecoder",
-                "decoder",
-                None,
-                Some("The Slice decoder.".to_owned()),
-            )
-            .set_body({
-                let mut code = CodeBlock::default();
-
-                if enum_def.is_unchecked {
-                    code.writeln("decoder.SkipSize();");
-                }
-
-                code.writeln(&decode_enum_fields(
-                    &enumerator.associated_fields().unwrap_or_default(),
-                    &escaped_identifier,
-                    &namespace,
-                    FieldType::NonMangled,
-                    Encoding::Slice2,
-                ));
-
-                // TODO: only for non-compact enum
-                code.writeln("decoder.SkipTagged();");
-
-                code.writeln("return result;");
-                code
-            })
-            .build(),
-        );
-
-        builder.add_block(
             FunctionBuilder::new("internal override", "void", "Encode", FunctionType::BlockBody)
                 .add_parameter("ref SliceEncoder", "encoder", None, None)
                 .set_body({
@@ -499,6 +456,8 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let cs_type = enum_def.get_underlying_cs_type();
+    let namespace = enum_def.namespace();
+
     let mut builder = ContainerBuilder::new(
         &format!("{access} static class"),
         &format!("{}SliceDecoderExtensions", enum_def.cs_identifier(Case::Pascal)),
@@ -544,40 +503,76 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
                 ).into()
             );
         } else {
-            let mut cases = CodeBlock::default();
+            let mut body = CodeBlock::default();
 
-            for enumerator in enum_def.enumerators() {
-                let enumerator_class = format!(
-                    "{escaped_identifier}.{enumerator_name}",
-                    enumerator_name = enumerator.escape_identifier(),
-                );
+            body.add_block({
+                let mut cases = CodeBlock::default();
 
-                writeln!(
-                    cases,
-                    "{enumerator_class}.Discriminant => {enumerator_class}.FromSliceDecoder(ref decoder),",
-                )
-            }
-            cases.indent();
+                for enumerator in enum_def.enumerators() {
+                    let enumerator_name = enumerator.escape_identifier();
 
-            let fallback = if enum_def.is_unchecked {
-                format!("int value => new {escaped_identifier}.Unknown(value, decoder.DecodeSequence<byte>())")
-            } else {
-                format!(
-                    r#"int value => throw new global::System.IO.InvalidDataException($"Received invalid discriminant value '{{value}}' for {scoped}.")"#,
-                    scoped = enum_def.escape_scoped_identifier(&enum_def.namespace()),
-                )
-            };
+                    writeln!(
+                        cases,
+                        "{escaped_identifier}.{enumerator_name}.Discriminant => Decode{enumerator_name}(ref decoder),",
+                    )
+                }
+                cases.indent();
 
-            decode_builder.set_body(
-                format!(
+                let fallback = if enum_def.is_unchecked {
+                    format!("int value => new {escaped_identifier}.Unknown(value, decoder.DecodeSequence<byte>())")
+                } else {
+                    format!(
+                        r#"int value => throw new global::System.IO.InvalidDataException($"Received invalid discriminant value '{{value}}' for {scoped}.")"#,
+                        scoped = enum_def.escape_scoped_identifier(&enum_def.namespace()),
+                    )
+                };
+
+                &format!(
                     r#"return decoder.DecodeVarInt32() switch
 {{
     {cases}
     {fallback}
-}};"#,
-                ).into()
-            );
-        };
+}};"#
+                )
+            });
+
+            // Generate a local function for each enumerator
+            for enumerator in enum_def.enumerators() {
+                let enumerator_name = enumerator.escape_identifier();
+                let decoded_type = format!("{escaped_identifier}.{enumerator_name}");
+                body.add_block(
+                    &FunctionBuilder::new(
+                        "static",
+                        &decoded_type,
+                        &format!("Decode{enumerator_name}"),
+                        FunctionType::BlockBody,
+                    ).add_parameter("ref SliceDecoder", "decoder", None, None)
+                    .set_body({
+                        let mut code = CodeBlock::default();
+
+                        if enum_def.is_unchecked {
+                            code.writeln("decoder.SkipSize();");
+                        }
+
+                        code.writeln(&decode_enum_fields(
+                            &enumerator.associated_fields().unwrap_or_default(),
+                            &decoded_type,
+                            &namespace,
+                            FieldType::NonMangled,
+                            Encoding::Slice2,
+                        ));
+
+                        // TODO: only for non-compact enum
+                        code.writeln("decoder.SkipTagged();");
+
+                        code.writeln("return result;");
+                        code
+                    }).build()
+                );
+            }
+
+            decode_builder.set_body(body);
+        }
 
         decode_builder.build()
     });
