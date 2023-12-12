@@ -89,7 +89,7 @@ public class EnumWithFieldsTests
         // Assert
         Assert.That(decoded, Is.EqualTo(revisedShape)); // we didn't loose any information
         Assert.That(decoder2.Consumed, Is.EqualTo(encoder2.EncodedByteCount));
-        Assert.That(shape, Is.InstanceOf(typeof(Shape.Unknown)));
+        Assert.That(shape, Is.InstanceOf<Shape.Unknown>());
     }
 
     [TestCase("foo", 8u, 4u)]
