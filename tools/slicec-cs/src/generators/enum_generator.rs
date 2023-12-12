@@ -216,7 +216,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 code.writeln("return result;");
                 code
             })
-            .build()
+            .build(),
         );
 
         builder.add_block(
@@ -509,68 +509,78 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
         format!(r#"Provides an extension method for decoding a <see cref="{escaped_identifier}" /> using a <see cref="SliceDecoder" />."#),
     ).add_generated_remark("static class", enum_def);
 
-    let decode_body = if enum_def.is_mapped_to_cs_enum() {
-        let underlying_extensions_class = format!(
-            "{}{}Extensions",
-            enum_def.cs_identifier(Case::Pascal),
-            cs_type.to_cs_case(Case::Pascal),
+    builder.add_block({
+        let mut decode_builder = FunctionBuilder::new(
+            &format!("{access} static"),
+            &escaped_identifier,
+            &format!("Decode{identifier}", identifier = enum_def.cs_identifier(Case::Pascal)),
+            if enum_def.is_mapped_to_cs_enum() {
+                FunctionType::ExpressionBody
+            } else {
+                FunctionType::BlockBody
+            },
         );
 
-        format!(
-            "{underlying_extensions_class}.As{identifier}({decode_enum});",
-            identifier = enum_def.cs_identifier(Case::Pascal),
-            decode_enum = match &enum_def.underlying {
-                Some(underlying) => format!("decoder.Decode{}()", underlying.definition().type_suffix()),
-                _ => "decoder.DecodeSize()".to_owned(), // Slice1 only
-            },
-        )
-    } else {
-        let mut cases = CodeBlock::default();
+        decode_builder.add_comment("summary", format!(r#"Decodes a <see cref="{escaped_identifier}" /> enum."#));
 
-        for enumerator in enum_def.enumerators() {
-            let enumerator_class = format!(
-                "{escaped_identifier}.{enumerator_name}",
-                enumerator_name = enumerator.escape_identifier(),
+        decode_builder.add_parameter(
+            "this ref SliceDecoder",
+            "decoder",
+            None,
+            Some("The Slice decoder.".to_owned()));
+
+        decode_builder.add_comment("returns", format!(r#"The decoded <see cref="{escaped_identifier}" /> enumerator value."#));
+
+        if enum_def.is_mapped_to_cs_enum() {
+            decode_builder.set_body(
+                format!(
+                    "{identifier}{int_type}Extensions.As{identifier}({decode_enum})",
+                    identifier = enum_def.cs_identifier(Case::Pascal),
+                    int_type = cs_type.to_cs_case(Case::Pascal),
+                    decode_enum = match &enum_def.underlying {
+                        Some(underlying) => format!("decoder.Decode{}()", underlying.definition().type_suffix()),
+                        _ => "decoder.DecodeSize()".to_owned(), // Slice1 only
+                    }
+                ).into()
             );
-
-            writeln!(
-                cases,
-                "{enumerator_class}.Discriminant => {enumerator_class}.FromSliceDecoder(ref decoder),",
-            )
-        }
-        cases.indent().indent();
-
-        let fallback = if enum_def.is_unchecked {
-            format!("int value => new {escaped_identifier}.Unknown(value, decoder.DecodeSequence<byte>())")
         } else {
-            format!(
-                r#"int value => throw new global::System.IO.InvalidDataException($"Received invalid discriminant value '{{value}}' for {scoped}.")"#,
-                scoped = enum_def.escape_scoped_identifier(&enum_def.namespace()),
-            )
+            let mut cases = CodeBlock::default();
+
+            for enumerator in enum_def.enumerators() {
+                let enumerator_class = format!(
+                    "{escaped_identifier}.{enumerator_name}",
+                    enumerator_name = enumerator.escape_identifier(),
+                );
+
+                writeln!(
+                    cases,
+                    "{enumerator_class}.Discriminant => {enumerator_class}.FromSliceDecoder(ref decoder),",
+                )
+            }
+            cases.indent();
+
+            let fallback = if enum_def.is_unchecked {
+                format!("int value => new {escaped_identifier}.Unknown(value, decoder.DecodeSequence<byte>())")
+            } else {
+                format!(
+                    r#"int value => throw new global::System.IO.InvalidDataException($"Received invalid discriminant value '{{value}}' for {scoped}.")"#,
+                    scoped = enum_def.escape_scoped_identifier(&enum_def.namespace()),
+                )
+            };
+
+            decode_builder.set_body(
+                format!(
+                    r#"return decoder.DecodeVarInt32() switch
+{{
+    {cases}
+    {fallback}
+}};"#,
+                ).into()
+            );
         };
 
-        format!(
-            r#"decoder.DecodeVarInt32() switch
-    {{
-        {cases}
-        {fallback}
-    }};"#,
-        )
-    };
-
-    // Enum decoding
-    builder.add_block(
-        format!(
-            r#"
-/// <summary>Decodes a <see cref="{escaped_identifier}" /> enum.</summary>
-/// <param name="decoder">The Slice decoder.</param>
-/// <returns>The decoded <see cref="{escaped_identifier}" /> enumerator value.</returns>
-{access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
-    {decode_body}"#,
-            identifier = enum_def.cs_identifier(Case::Pascal)
-        )
-        .into(),
-    );
+        decode_builder.build()
+    });
 
     builder.build()
 }
