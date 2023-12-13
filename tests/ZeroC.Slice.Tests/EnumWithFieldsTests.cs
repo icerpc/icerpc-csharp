@@ -62,7 +62,7 @@ public class EnumWithFieldsTests
         // Assert
         Assert.That(decoded, Is.InstanceOf<Shape.Unknown>());
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
-        Assert.That(decoded.Discriminant, Is.EqualTo(RevisedShape.Square.Discriminant));
+        Assert.That(((Shape.Unknown)decoded).Discriminant, Is.EqualTo(RevisedShape.Square.Discriminant));
     }
 
     [Test]
