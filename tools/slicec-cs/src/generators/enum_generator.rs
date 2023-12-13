@@ -50,8 +50,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
 
         let mut builder = ContainerBuilder::new(
             &format!(
-                r#"
-[Dunet.Union]
+                r#"[Dunet.Union]
 {} abstract partial record class"#,
                 enum_def.access_modifier(),
             ),
