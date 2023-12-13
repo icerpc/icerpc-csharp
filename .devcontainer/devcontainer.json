@@ -9,7 +9,6 @@
         "vscode": {
             /* spell-checker:disable */
             "extensions": [
-                "davidson.vscode-markdownlint",
                 "editorconfig.editorconfig",
                 "ms-azuretools.vscode-docker",
                 "ms-dotnettools.csdevkit",
