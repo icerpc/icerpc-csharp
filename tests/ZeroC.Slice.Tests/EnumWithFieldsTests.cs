@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
+using System.ComponentModel;
 
 namespace ZeroC.Slice.Tests;
 
@@ -111,4 +112,8 @@ public class EnumWithFieldsTests
         Assert.That(decoded, Is.EqualTo(shape));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
     }
+
+    [Test]
+    public void Enumerator_with_fields_gets_attribute() =>
+        Assert.That(typeof(ShapeWithAttribute.Rectangle).GetSliceTypeId(), Is.EqualTo("MyRectangle"));
 }

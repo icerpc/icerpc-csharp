@@ -25,3 +25,14 @@ unchecked enum RevisedShape {
     Square(side: uint32, tag(1) color: Color?)
     Oval(name: string?, major: uint32, minor: uint32)
 }
+
+enum ShapeWithAttribute {
+    [cs::attribute("SliceTypeId(\"MyCircle\")")]
+    Circle(radius: uint32)
+
+    [cs::attribute("SliceTypeId(\"MyRectangle\")")]
+    Rectangle(width: uint32, height: uint32)
+
+    [cs::attribute("SliceTypeId(\"MyTriangle\")")]
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+}
