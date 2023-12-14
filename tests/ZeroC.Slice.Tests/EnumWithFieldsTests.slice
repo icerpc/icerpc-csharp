@@ -26,6 +26,13 @@ unchecked enum RevisedShape {
     Oval(name: string?, major: uint32, minor: uint32)
 }
 
+compact enum CompactShape {
+    Circle(radius: uint32)
+    Rectangle(width: uint32, height: uint32)
+    Triangle(side1: uint32, side2: uint32, side3: uint32)
+    Oval(name: string?, major: uint32, minor: uint32)
+}
+
 enum ShapeWithAttribute {
     [cs::attribute("SliceTypeId(\"MyCircle\")")]
     Circle(radius: uint32)

@@ -23,6 +23,9 @@ public class EnumWithFieldsTests
         // Assert
         Assert.That(decoded, Is.InstanceOf(typeof(Color.Blue)));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+
+        // 1 for the discriminant, 1 for the tag, 1 for the tagged value size, 2 for code, 1 for the tag end marker
+        Assert.That(decoder.Consumed, Is.EqualTo(1 + 1 + 1 + 2 + 1));
     }
 
     [TestCase("canary", (ushort)7)]
@@ -110,6 +113,56 @@ public class EnumWithFieldsTests
         // Assert
         Assert.That(decoded, Is.EqualTo(shape));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [Test]
+    public void Decode_compact_enum()
+    {
+         // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var shape = new CompactShape.Rectangle(10, 20);
+        encoder.EncodeCompactShape(shape);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        // Act
+        var decoded = decoder.DecodeCompactShape();
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(shape));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+    }
+
+    [TestCase("foo", 8u, 4u)]
+    [TestCase(null, 7u, 3u)]
+    public void Decode_compact_enum_with_optional_field(string? name, uint major, uint minor)
+    {
+         // Arrange
+        var buffer = new MemoryBufferWriter(new byte[256]);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
+        var shape = new CompactShape.Oval(name, major, minor);
+        encoder.EncodeCompactShape(shape);
+
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice2);
+
+        // Act
+        var decoded = decoder.DecodeCompactShape();
+
+        // Assert
+        Assert.That(decoded, Is.EqualTo(shape));
+        Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
+        if (name is null)
+        {
+            // 1 for the discriminant, 1 for the bit sequence, 4 for major, 4 for minor
+            Assert.That(decoder.Consumed, Is.EqualTo(1 + 1 + 4 + 4));
+        }
+        else
+        {
+            // 1 for the discriminant, 1 for the bit sequence, 1 for the name length (assuming small length),
+            // name.Length bytes (assuming ASCII), 4 for major, 4 for minor
+            Assert.That(decoder.Consumed, Is.EqualTo(1 + 1 + 1 + name.Length + 4 + 4));
+        }
     }
 
     [Test]

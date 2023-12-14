@@ -133,7 +133,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
             .add_comments(enumerator.formatted_doc_comment_seealso())
             .add_obsolete_attribute(enumerator)
             .add_base(enum_def.escape_identifier())
-            .add_fields(&enumerator.associated_fields().unwrap_or_default());
+            .add_fields(&enumerator.fields());
 
         // Add cs::attribute
         for attribute in enumerator.cs_attributes() {
@@ -159,9 +159,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     code.writeln("encoder.EncodeVarInt32(Discriminant);");
 
                     if enum_def.is_unchecked {
-                        // TODO: oddly enough, an enumerator declared as E() or E does not result in the same
-                        // associated fields.
-                        if enumerator.associated_fields().unwrap_or_default().is_empty() {
+                        if enumerator.fields().is_empty() {
                             // For the tag end marker. This assumes an unchecked enum with associated fields is never
                             // compact.
                             code.writeln("encoder.EncodeSize(1);");
@@ -172,16 +170,17 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     }
 
                     code.writeln(&encode_fields(
-                        &enumerator.associated_fields().unwrap_or_default(),
+                        &enumerator.fields(),
                         &namespace,
                         FieldType::NonMangled,
                         Encoding::Slice2,
                     ));
 
-                    // TODO: only for non-compact enum
-                    code.writeln("encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
+                    if !enum_def.is_compact {
+                        code.writeln("encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
+                    }
 
-                    if enum_def.is_unchecked && !enumerator.associated_fields().unwrap_or_default().is_empty() {
+                    if enum_def.is_unchecked && !enumerator.fields().is_empty() {
                         code.writeln("SliceEncoder.EncodeVarUInt62((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);");
                     }
 
@@ -520,15 +519,16 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
                         }
 
                         code.writeln(&decode_enum_fields(
-                            &enumerator.associated_fields().unwrap_or_default(),
+                            &enumerator.fields(),
                             &decoded_type,
                             &namespace,
                             FieldType::NonMangled,
                             Encoding::Slice2,
                         ));
 
-                        // TODO: only for non-compact enum
-                        code.writeln("decoder.SkipTagged();");
+                        if !enum_def.is_compact {
+                            code.writeln("decoder.SkipTagged();");
+                        }
 
                         code.writeln("return result;");
                         code
