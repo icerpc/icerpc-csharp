@@ -1,6 +1,6 @@
 [package]
 name = "slicec-cs"
-version = "0.2.0"
+version = "0.3.0-preview1"
 authors = ["ZeroC Inc."]
 description = """
 The slicec-cs compiler, for compiling Slice files into C# code.
@@ -14,7 +14,7 @@ rust-version = "1.70"
 clap = { version = "4.3.15", features = ["derive"] }
 convert_case = "0.6.0"
 in_definite = "1.0.0"
-slicec = "0.2.1"
+slicec = { git = "https://github.com/icerpc/slicec", rev = "afba8cf1cde99fdbf475aa2839c08866076d8e77" }
 
 [dev-dependencies]
 test-case = "3.3.1"
