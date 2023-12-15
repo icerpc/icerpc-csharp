@@ -9,7 +9,7 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
 
-pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, encoding: Encoding) -> CodeBlock {
+pub fn decode_fields(fields: &[&Field], namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
 
     let (required_fields, tagged_fields) = get_sorted_members(fields);
@@ -28,7 +28,7 @@ pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, 
         writeln!(
             code,
             "this.{param} = {decode};",
-            param = field.field_name(field_type),
+            param = field.field_name(),
             decode = decode_member(field, namespace, encoding),
         );
     }
@@ -38,7 +38,7 @@ pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, 
         writeln!(
             code,
             "this.{param} = {decode};",
-            param = field.field_name(field_type),
+            param = field.field_name(),
             decode = decode_tagged(field, namespace, true, encoding),
         );
     }
@@ -46,13 +46,7 @@ pub fn decode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, 
     code
 }
 
-pub fn decode_enum_fields(
-    fields: &[&Field],
-    enum_class: &str,
-    namespace: &str,
-    field_type: FieldType,
-    encoding: Encoding,
-) -> CodeBlock {
+pub fn decode_enum_fields(fields: &[&Field], enum_class: &str, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
 
     let (required_fields, tagged_fields) = get_sorted_members(fields);
@@ -74,7 +68,7 @@ pub fn decode_enum_fields(
     for field in required_fields {
         new_instance_builder.add_argument(&format!(
             "{field_name}: {field_value}",
-            field_name = field.field_name(field_type),
+            field_name = field.field_name(),
             field_value = decode_member(field, namespace, encoding),
         ));
     }
@@ -83,7 +77,7 @@ pub fn decode_enum_fields(
     for field in tagged_fields {
         new_instance_builder.add_argument(&format!(
             "{field_name}: {field_value}",
-            field_name = field.field_name(field_type),
+            field_name = field.field_name(),
             field_value = decode_tagged(field, namespace, true, encoding),
         ));
     }

@@ -143,10 +143,8 @@ impl ContainerBuilder {
                 .data_type()
                 .cs_type_string(&field.namespace(), TypeContext::Field, false);
 
-            self.fields.push(format!(
-                "{type_string} {name}",
-                name = field.field_name(FieldType::Class),
-            ));
+            self.fields
+                .push(format!("{type_string} {name}", name = field.field_name(),));
         }
 
         self

@@ -4,7 +4,6 @@ use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
 };
 use crate::cs_attributes::CsReadonly;
-use crate::cs_util::FieldType;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
@@ -36,7 +35,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     builder.add_block(
         fields
             .iter()
-            .map(|m| field_declaration(m, FieldType::NonMangled))
+            .map(|m| field_declaration(m))
             .collect::<Vec<_>>()
             .join("\n\n")
             .into(),
@@ -64,12 +63,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     main_constructor.set_body({
         let mut code = CodeBlock::default();
         for field in &fields {
-            writeln!(
-                code,
-                "this.{} = {};",
-                field.field_name(FieldType::NonMangled),
-                field.parameter_name(),
-            );
+            writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name(),);
         }
         code
     });
@@ -78,10 +72,10 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     // Decode constructor
     let mut decode_body = EncodingBlockBuilder::new("decoder.Encoding", struct_def.supported_encodings())
         .add_encoding_block(Encoding::Slice1, || {
-            decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
+            decode_fields(&fields, &namespace, Encoding::Slice1)
         })
         .add_encoding_block(Encoding::Slice2, || {
-            decode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
+            decode_fields(&fields, &namespace, Encoding::Slice2)
         })
         .build();
 
@@ -112,10 +106,10 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     // Encode method
     let mut encode_body = EncodingBlockBuilder::new("encoder.Encoding", struct_def.supported_encodings())
         .add_encoding_block(Encoding::Slice1, || {
-            encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice1)
+            encode_fields(&fields, &namespace, Encoding::Slice1)
         })
         .add_encoding_block(Encoding::Slice2, || {
-            encode_fields(&fields, &namespace, FieldType::NonMangled, Encoding::Slice2)
+            encode_fields(&fields, &namespace, Encoding::Slice2)
         })
         .build();
 

@@ -2,7 +2,7 @@
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::comments::CommentTag;
-use crate::cs_util::{CsCase, FieldType};
+use crate::cs_util::CsCase;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::slicec_ext::*;
@@ -172,7 +172,6 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     code.writeln(&encode_fields(
                         &enumerator.fields(),
                         &namespace,
-                        FieldType::NonMangled,
                         Encoding::Slice2,
                     ));
 
@@ -522,7 +521,6 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
                             &enumerator.fields(),
                             &decoded_type,
                             &namespace,
-                            FieldType::NonMangled,
                             Encoding::Slice2,
                         ));
 

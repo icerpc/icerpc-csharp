@@ -2,7 +2,7 @@
 
 use super::{EntityExt, TypeRefExt};
 use crate::cs_attributes::CsReadonly;
-use crate::cs_util::{escape_keyword, format_comment_message, mangle_name, FieldType};
+use crate::cs_util::{escape_keyword, format_comment_message};
 use convert_case::Case;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::TypeContext;
@@ -10,7 +10,7 @@ use slicec::utils::code_gen_util::TypeContext;
 pub trait MemberExt {
     fn parameter_name(&self) -> String;
     fn parameter_name_with_prefix(&self, prefix: &str) -> String;
-    fn field_name(&self, field_type: FieldType) -> String;
+    fn field_name(&self) -> String;
 }
 
 impl<T: Member> MemberExt for T {
@@ -23,8 +23,8 @@ impl<T: Member> MemberExt for T {
         escape_keyword(&name)
     }
 
-    fn field_name(&self, field_type: FieldType) -> String {
-        mangle_name(&self.escape_identifier(), field_type)
+    fn field_name(&self) -> String {
+        self.escape_identifier()
     }
 }
 
@@ -104,9 +104,7 @@ impl ParameterSliceExt for [&Parameter] {
             _ => format!(
                 "({})",
                 self.iter()
-                    .map(|m| m.cs_type_string(namespace, context, ignore_optional)
-                        + " "
-                        + &m.field_name(FieldType::NonMangled))
+                    .map(|m| m.cs_type_string(namespace, context, ignore_optional) + " " + &m.field_name())
                     .collect::<Vec<String>>()
                     .join(", "),
             ),

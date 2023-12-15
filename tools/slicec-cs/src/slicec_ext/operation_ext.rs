@@ -2,7 +2,6 @@
 
 use super::{EntityExt, MemberExt, ParameterExt, ParameterSliceExt};
 use crate::cs_attributes::CsEncodedReturn;
-use crate::cs_util::FieldType;
 use slicec::grammar::{AttributeFunctions, Contained, Operation};
 use slicec::utils::code_gen_util::TypeContext;
 
@@ -60,7 +59,7 @@ fn operation_return_type(operation: &Operation, is_dispatch: bool, context: Type
             format!(
                 "(global::System.IO.Pipelines.PipeReader Payload, {} {})",
                 stream_member.cs_type_string(&namespace, context, false),
-                stream_member.field_name(FieldType::NonMangled),
+                stream_member.field_name(),
             )
         } else {
             "global::System.IO.Pipelines.PipeReader".to_owned()

@@ -92,56 +92,6 @@ pub fn escape_keyword(identifier: &str) -> String {
     (if CS_KEYWORDS.contains(&identifier) { "@" } else { "" }.to_owned()) + identifier
 }
 
-/// The field container type, Class, Exception or NonMangled (currently used for structs),
-/// `mangle_name` operation use this enum to decide what names needs mangling.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FieldType {
-    NonMangled,
-    Class,
-    Exception,
-}
-
-/// Checks if the provided identifier would shadow a base method in an object or exception, and
-/// escapes it if necessary by appending a "Slice" prefix to the identifier.
-pub fn mangle_name(identifier: &str, field_type: FieldType) -> String {
-    // The names of all the methods defined on the Object base class.
-    const OBJECT_BASE_NAMES: [&str; 7] = [
-        "Equals",
-        "Finalize",
-        "GetHashCode",
-        "GetType",
-        "MemberwiseClone",
-        "ReferenceEquals",
-        "ToString",
-    ];
-    // The names of all the methods and properties defined on the Exception base class.
-    const EXCEPTION_BASE_NAMES: [&str; 10] = [
-        "Data",
-        "GetBaseException",
-        "GetObjectData",
-        "HelpLink",
-        "HResult",
-        "InnerException",
-        "Message",
-        "Source",
-        "StackTrace",
-        "TargetSite",
-    ];
-
-    let needs_mangling = match field_type {
-        FieldType::Exception => OBJECT_BASE_NAMES.contains(&identifier) | EXCEPTION_BASE_NAMES.contains(&identifier),
-        FieldType::Class => OBJECT_BASE_NAMES.contains(&identifier),
-        FieldType::NonMangled => false,
-    };
-
-    // If the name conflicts with a base method, add a Slice prefix to it.
-    if needs_mangling {
-        format!("Slice{identifier}")
-    } else {
-        identifier.to_owned()
-    }
-}
-
 pub trait CsCase {
     fn to_cs_case(&self, case: Case) -> String;
 }
