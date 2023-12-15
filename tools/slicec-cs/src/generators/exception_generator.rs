@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
-use crate::cs_util::*;
 use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
@@ -40,7 +39,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
     exception_class_builder.add_block(
         fields
             .iter()
-            .map(|m| field_declaration(m, FieldType::Exception))
+            .map(|m| field_declaration(m))
             .collect::<Vec<_>>()
             .join("\n\n")
             .into(),
@@ -60,7 +59,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
             .add_parameter("string?", "message", Some("null"), None)
             .add_base_parameter("ref decoder")
             .add_base_parameter("message")
-            .set_body(initialize_required_fields(fields, FieldType::Exception))
+            .set_body(initialize_required_fields(fields))
             .build()
     } else {
         FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
@@ -68,7 +67,7 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
             .add_parameter("ref SliceDecoder", "decoder", None, None)
             .add_parameter("string?", "message", Some("null"), None)
             .add_base_parameter("message")
-            .set_body(initialize_required_fields(fields, FieldType::Exception))
+            .set_body(initialize_required_fields(fields))
             .build()
     });
 
@@ -83,7 +82,7 @@ decoder.StartSlice();
 {decode_fields}
 decoder.EndSlice();
 {decode_base}",
-                    decode_fields = decode_fields(fields, namespace, FieldType::Exception, Encoding::Slice1),
+                    decode_fields = decode_fields(fields, namespace, Encoding::Slice1),
                     decode_base = if has_base { "base.DecodeCore(ref decoder);" } else { "" },
                 )
                 .into(),
@@ -111,7 +110,7 @@ encoder.StartSlice(SliceTypeId);
 {encode_fields}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-                encode_fields = encode_fields(fields, namespace, FieldType::Exception, Encoding::Slice1),
+                encode_fields = encode_fields(fields, namespace, Encoding::Slice1),
                 is_last_slice = !has_base,
                 encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
             )
@@ -172,7 +171,7 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
     // ctor impl
     let mut ctor_body = CodeBlock::default();
     for field in exception_def.fields() {
-        let field_name = field.field_name(FieldType::Exception);
+        let field_name = field.field_name();
         let parameter_name = field.parameter_name();
 
         writeln!(ctor_body, "this.{field_name} = {parameter_name};");

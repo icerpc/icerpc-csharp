@@ -3,7 +3,6 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
-use crate::cs_util::*;
 use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
@@ -51,7 +50,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
     class_builder.add_block(
         fields
             .iter()
-            .map(|m| field_declaration(m, FieldType::Class))
+            .map(|m| field_declaration(m))
             .collect::<Vec<_>>()
             .join("\n\n")
             .into(),
@@ -115,7 +114,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
         decode_constructor.add_base_parameter("ref decoder");
     }
     decode_constructor
-        .set_body(initialize_required_fields(&fields, FieldType::Class))
+        .set_body(initialize_required_fields(&fields))
         .add_never_editor_browsable_attribute();
 
     class_builder.add_block(decode_constructor.build());
@@ -153,12 +152,7 @@ fn constructor(
     builder.set_body({
         let mut code = CodeBlock::default();
         for field in fields {
-            writeln!(
-                code,
-                "this.{} = {};",
-                field.field_name(FieldType::Class),
-                field.parameter_name(),
-            );
+            writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name(),);
         }
         code
     });
@@ -190,7 +184,6 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             code.writeln(&encode_fields(
                 &fields,
                 namespace,
-                FieldType::Class,
                 Encoding::Slice1, // classes are Slice1 only
             ));
 
@@ -214,7 +207,6 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             code.writeln(&decode_fields(
                 &fields,
                 namespace,
-                FieldType::Class,
                 Encoding::Slice1, // classes are Slice1 only
             ));
             code.writeln("decoder.EndSlice();");

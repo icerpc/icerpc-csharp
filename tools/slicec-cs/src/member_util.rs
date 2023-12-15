@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::comments::CommentTag;
-use crate::cs_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Contained, Field, Member};
@@ -15,7 +14,7 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
     }
 }
 
-pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
+pub fn field_declaration(field: &Field) -> String {
     let type_string = field
         .data_type()
         .cs_type_string(&field.namespace(), TypeContext::Field, false);
@@ -38,14 +37,13 @@ pub fn field_declaration(field: &Field, field_type: FieldType) -> String {
 {prelude}
 {access} {type_string} {name} {{ get; {setter}; }}",
         access = field.parent().access_modifier(),
-        name = field.field_name(field_type),
+        name = field.field_name(),
         setter = if field.is_cs_readonly() { "init" } else { "set" },
     )
 }
 
-pub fn initialize_required_fields(fields: &[&Field], field_type: FieldType) -> CodeBlock {
+pub fn initialize_required_fields(fields: &[&Field]) -> CodeBlock {
     // This helper should only be used for classes and exceptions
-    debug_assert!(matches!(field_type, FieldType::Class | FieldType::Exception));
 
     let mut code = CodeBlock::default();
 
@@ -54,7 +52,7 @@ pub fn initialize_required_fields(fields: &[&Field], field_type: FieldType) -> C
         if !data_type.is_optional && !data_type.is_value_type() {
             // This is to suppress compiler warnings for non-nullable fields.
             // We don't need it for value fields since they are initialized to default.
-            writeln!(code, "this.{} = default!;", field.field_name(field_type));
+            writeln!(code, "this.{} = default!;", field.field_name());
         }
     }
 

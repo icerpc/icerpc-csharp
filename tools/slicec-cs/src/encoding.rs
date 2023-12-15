@@ -2,14 +2,13 @@
 
 use crate::builders::{Builder, FunctionCallBuilder};
 use crate::cs_attributes::CsType;
-use crate::cs_util::*;
 use crate::slicec_ext::*;
 use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::*;
 
-pub fn encode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, encoding: Encoding) -> CodeBlock {
+pub fn encode_fields(fields: &[&Field], namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
 
     let (required_fields, tagged_fields) = get_sorted_members(fields);
@@ -24,7 +23,7 @@ pub fn encode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, 
     }
 
     for field in required_fields {
-        let param = format!("this.{}", field.field_name(field_type));
+        let param = format!("this.{}", field.field_name());
         code.writeln(&encode_type(
             field.data_type(),
             TypeContext::Field,
@@ -37,7 +36,7 @@ pub fn encode_fields(fields: &[&Field], namespace: &str, field_type: FieldType, 
 
     // Encode tagged
     for field in tagged_fields {
-        let param = format!("this.{}", field.field_name(field_type));
+        let param = format!("this.{}", field.field_name());
         code.writeln(&encode_tagged_type(
             field,
             namespace,

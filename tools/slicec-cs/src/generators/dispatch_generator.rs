@@ -2,7 +2,6 @@
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_attributes::CsEncodedReturn;
-use crate::cs_util::*;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::slicec_ext::*;
@@ -429,7 +428,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
         [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
         _ => parameters
             .into_iter()
-            .map(|parameter| "args.".to_owned() + &parameter.field_name(FieldType::NonMangled))
+            .map(|parameter| "args.".to_owned() + &parameter.field_name())
             .collect(),
     };
     args.push("request.Features".to_owned());
@@ -528,7 +527,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
         1 => "returnValue".to_owned(),
         _ => non_streamed_return_values
             .iter()
-            .map(|r| format!("returnValue.{}", &r.field_name(FieldType::NonMangled)))
+            .map(|r| format!("returnValue.{}", &r.field_name()))
             .collect::<Vec<_>>()
             .join(", "),
     });
@@ -555,7 +554,7 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
             let stream_arg = if return_values.len() == 1 {
                 "returnValue".to_owned()
             } else {
-                format!("returnValue.{}", &stream_return.field_name(FieldType::NonMangled))
+                format!("returnValue.{}", &stream_return.field_name())
             };
 
             match stream_type.concrete_type() {
