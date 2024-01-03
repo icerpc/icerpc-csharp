@@ -66,10 +66,8 @@ public class ActivatorTests
     [Test, TestCaseSource(nameof(ReferencedAssembliesClassTypeIds))]
     public void Activator_cannot_create_instances_of_classes_defined_in_unknown_assemblies(string typeId)
     {
-        var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         var sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
-
-        object? instance = sut.CreateClassInstance(typeId, ref decoder);
+        object? instance = sut.CreateClassInstance(typeId);
 
         Assert.That(instance, Is.Null);
     }
@@ -77,10 +75,9 @@ public class ActivatorTests
     [Test, TestCaseSource(nameof(ReferencedAssembliesClassTypeIds))]
     public void Activator_cannot_create_instances_of_exceptions_defined_in_unknown_assemblies(string typeId)
     {
-        var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         var sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
 
-        object? instance = sut.CreateExceptionInstance(typeId, ref decoder, message: null);
+        object? instance = sut.CreateExceptionInstance(typeId, message: null);
 
         Assert.That(instance, Is.Null);
     }
@@ -91,10 +88,9 @@ public class ActivatorTests
         string typeId,
         Type expectedType)
     {
-        var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         var sut = IActivator.FromAssembly(assembly);
 
-        object? instance = sut.CreateClassInstance(typeId, ref decoder);
+        object? instance = sut.CreateClassInstance(typeId);
 
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
@@ -109,7 +105,7 @@ public class ActivatorTests
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         var sut = IActivator.FromAssembly(assembly);
 
-        object? instance = sut.CreateExceptionInstance(typeId, ref decoder, message: null);
+        object? instance = sut.CreateExceptionInstance(typeId, message: null);
 
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));

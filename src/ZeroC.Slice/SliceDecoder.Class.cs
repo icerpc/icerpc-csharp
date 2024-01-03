@@ -50,7 +50,7 @@ public ref partial struct SliceDecoder
 
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-            sliceException = activator.CreateExceptionInstance(typeId, ref this, message) as SliceException;
+            sliceException = activator.CreateExceptionInstance(typeId, message) as SliceException;
             if (sliceException is null && SkipSlice(typeId))
             {
                 // Cannot decode this exception.
@@ -261,7 +261,7 @@ public ref partial struct SliceDecoder
             // not created yet.
             if (typeId is not null)
             {
-                instance = activator.CreateClassInstance(typeId, ref this) as SliceClass;
+                instance = activator.CreateClassInstance(typeId) as SliceClass;
             }
 
             if (instance is null && SkipSlice(typeId))

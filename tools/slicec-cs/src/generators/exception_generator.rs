@@ -51,25 +51,26 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
 
     exception_class_builder.add_block(one_shot_constructor(exception_def));
 
-    // Hide this method because it must only be called by the Activator and not by the application or generated code.
-    exception_class_builder.add_block(if has_base {
-        FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-            .add_never_editor_browsable_attribute()
-            .add_parameter("ref SliceDecoder", "decoder", None, None)
-            .add_parameter("string?", "message", Some("null"), None)
-            .add_base_parameter("ref decoder")
-            .add_base_parameter("message")
-            .set_body(initialize_required_fields(fields))
-            .build()
-    } else {
-        FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-            .add_never_editor_browsable_attribute()
-            .add_parameter("ref SliceDecoder", "decoder", None, None)
-            .add_parameter("string?", "message", Some("null"), None)
-            .add_base_parameter("message")
-            .set_body(initialize_required_fields(fields))
-            .build()
-    });
+    // constructor for decoding, generated only if necessary
+    if !exception_def.all_fields().is_empty() {
+        exception_class_builder.add_block(
+            FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
+                .add_never_editor_browsable_attribute()
+                .add_comment(
+                    "summary",
+                    format!(
+                        r#"Constructs a new instance of <see cref="{}"/> for the Slice decoder."#,
+                        &exception_name
+                    ),
+                )
+                .add_parameter("string?", "message", Some("null"), None)
+                .add_base_parameter("message")
+                .add_parameter("global::System.Exception?", "innerException", Some("null"), None)
+                .add_base_parameter("innerException")
+                .set_body(initialize_required_fields(fields))
+                .build(),
+        );
+    }
 
     exception_class_builder.add_block(
         FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
