@@ -63,9 +63,9 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
                         &exception_name
                     ),
                 )
-                .add_parameter("string?", "message", Some("null"), None)
+                .add_parameter("string?", "message", None, None)
                 .add_base_parameter("message")
-                .add_parameter("global::System.Exception?", "innerException", Some("null"), None)
+                .add_parameter("global::System.Exception?", "innerException", None, None)
                 .add_base_parameter("innerException")
                 .set_body(initialize_required_fields(fields))
                 .build(),
