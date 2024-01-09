@@ -14,7 +14,6 @@ use slicec::utils::code_gen_util::TypeContext;
 pub fn generate_class(class_def: &Class) -> CodeBlock {
     let class_name = class_def.escape_identifier();
     let namespace = class_def.namespace();
-    let has_base_class = class_def.base_class().is_some();
 
     let fields = class_def.fields();
     let base_fields = class_def.base_class().map_or(vec![], Class::all_fields);
@@ -95,29 +94,17 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
         ));
     }
 
-    // public constructor used for decoding
-    // the decoder parameter is used to distinguish this ctor from the parameterless ctor that
-    // users may want to add to the partial class. It's not used otherwise.
-    let mut decode_constructor = FunctionBuilder::new(access, "", &class_name, FunctionType::BlockBody);
-
-    if !has_base_class {
-        decode_constructor.add_attribute(
-            r#"global::System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Microsoft.Performance",
-    "CA1801: Review unused parameters",
-    Justification="Special constructor used for Slice decoding")"#,
+    // parameterless constructor for decoding, generated only if the preceding constructors are not parameterless
+    if non_nullable_fields.len() + non_nullable_base_fields.len() > 0 {
+        let mut decode_constructor = FunctionBuilder::new(access, "", &class_name, FunctionType::BlockBody);
+        decode_constructor.add_never_editor_browsable_attribute();
+        decode_constructor.add_comment(
+            "summary",
+            format!(r#"Constructs a new instance of <see cref="{class_name}"/> for the Slice decoder."#),
         );
+        decode_constructor.set_body(initialize_required_fields(&fields));
+        class_builder.add_block(decode_constructor.build());
     }
-
-    decode_constructor.add_parameter("ref SliceDecoder", "decoder", None, None);
-    if has_base_class {
-        decode_constructor.add_base_parameter("ref decoder");
-    }
-    decode_constructor
-        .set_body(initialize_required_fields(&fields))
-        .add_never_editor_browsable_attribute();
-
-    class_builder.add_block(decode_constructor.build());
 
     class_builder.add_block(encode_and_decode(class_def));
 

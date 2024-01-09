@@ -160,6 +160,9 @@ dotnet_diagnostic.SA1000.severity = warning
 # SA1001: Commas should not be preceded by whitespace
 dotnet_diagnostic.SA1001.severity = warning
 
+# SA1010: Opening square brackets should be spaced correctly
+dotnet_diagnostic.SA1010.severity = none
+
 # SA1013: Closing brace should not be preceded by a space
 dotnet_diagnostic.SA1013.severity = warning
 

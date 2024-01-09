@@ -8,10 +8,8 @@ using System.Reflection;
 
 namespace ZeroC.Slice.Internal;
 
-// Instantiates a Slice class or exception. The message is used only for exceptions.
-// Note that the decoder is actually not used by the constructor of the Slice class or exception since the actual
-// decoding takes place later on.
-internal delegate object ActivateObject(ref SliceDecoder decoder, string? message);
+// Instantiates a Slice class or exception. The message is used only for exceptions; innerException is always null.
+internal delegate object ActivateObject(string? message, Exception? innerException);
 
 /// <summary>The default implementation of <see cref="IActivator" />, which uses a dictionary.</summary>
 internal class Activator : IActivator
@@ -21,11 +19,12 @@ internal class Activator : IActivator
 
     private readonly IReadOnlyDictionary<string, Lazy<ActivateObject>> _dict;
 
-    public object? CreateClassInstance(string typeId, ref SliceDecoder decoder) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(ref decoder, message: null) : null;
+    public object? CreateClassInstance(string typeId) =>
+        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ?
+            factory.Value(message: null, innerException: null) : null;
 
-    public object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(ref decoder, message) : null;
+    public object? CreateExceptionInstance(string typeId, string? message) =>
+        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(message, null) : null;
 
     /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
     internal static Activator Merge(IEnumerable<Activator> activators)
@@ -106,25 +105,22 @@ internal class ActivatorFactory
         {
             bool isException = type.IsSubclassOf(typeof(SliceException));
 
-            Type[] types = isException ?
-                new Type[] { typeof(SliceDecoder).MakeByRefType(), typeof(string) } :
-                new Type[] { typeof(SliceDecoder).MakeByRefType() };
+            Type[] types = isException ? [typeof(string), typeof(Exception)] : [];
 
             ConstructorInfo constructor = type.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 null,
                 types,
-                null) ?? throw new InvalidOperationException($"Cannot get Slice decoding constructor for '{type}'.");
-            ParameterExpression decoderParam =
-                Expression.Parameter(typeof(SliceDecoder).MakeByRefType(), "decoder");
+                null) ?? throw new InvalidOperationException($"Cannot find Slice decoding constructor for '{type}'.");
 
             ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
+            ParameterExpression innerExceptionParam = Expression.Parameter(typeof(Exception), "innerException");
 
             Expression expression = isException ?
-                Expression.New(constructor, decoderParam, messageParam) :
-                Expression.New(constructor, decoderParam);
+                Expression.New(constructor, messageParam, innerExceptionParam) :
+                Expression.New(constructor);
 
-            return Expression.Lambda<ActivateObject>(expression, decoderParam, messageParam).Compile();
+            return Expression.Lambda<ActivateObject>(expression, messageParam, innerExceptionParam).Compile();
         }
     }
 

@@ -31,14 +31,12 @@ public interface IActivator
 
     /// <summary>Creates an instance of a Slice class based on a type ID.</summary>
     /// <param name="typeId">The Slice type ID.</param>
-    /// <param name="decoder">The decoder.</param>
     /// <returns>A new instance of the class identified by <paramref name="typeId" />.</returns>
-    object? CreateClassInstance(string typeId, ref SliceDecoder decoder);
+    object? CreateClassInstance(string typeId);
 
     /// <summary>Creates an instance of a Slice exception based on a type ID.</summary>
     /// <param name="typeId">The Slice type ID.</param>
-    /// <param name="decoder">The decoder.</param>
     /// <param name="message">The exception message.</param>
     /// <returns>A new instance of the class identified by <paramref name="typeId" />.</returns>
-    object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message);
+    object? CreateExceptionInstance(string typeId, string? message);
 }

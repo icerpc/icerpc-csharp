@@ -268,10 +268,10 @@ public class SlicingTests
             _excludeTypeId = excludeTypeId;
         }
 
-        public object? CreateClassInstance(string typeId, ref SliceDecoder decoder) =>
-            _excludeTypeId == typeId ? null : _decoratee.CreateClassInstance(typeId, ref decoder);
+        public object? CreateClassInstance(string typeId) =>
+            _excludeTypeId == typeId ? null : _decoratee.CreateClassInstance(typeId);
 
-        public object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message) =>
-            _excludeTypeId == typeId ? null : _decoratee.CreateExceptionInstance(typeId, ref decoder, message);
+        public object? CreateExceptionInstance(string typeId, string? message) =>
+            _excludeTypeId == typeId ? null : _decoratee.CreateExceptionInstance(typeId, message);
     }
 }

@@ -538,11 +538,11 @@ public class TaggedTests
         private readonly string _replacementTypeId;
         private readonly string _typeId;
 
-        public object? CreateClassInstance(string typeId, ref SliceDecoder decoder) =>
-            _decoratee.CreateClassInstance(typeId == _typeId ? _replacementTypeId : typeId, ref decoder);
+        public object? CreateClassInstance(string typeId) =>
+            _decoratee.CreateClassInstance(typeId == _typeId ? _replacementTypeId : typeId);
 
-        public object? CreateExceptionInstance(string typeId, ref SliceDecoder decoder, string? message) =>
-            _decoratee.CreateExceptionInstance(typeId, ref decoder, message);
+        public object? CreateExceptionInstance(string typeId, string? message) =>
+            _decoratee.CreateExceptionInstance(typeId, message);
 
         internal TypeReplacementActivator(IActivator decoratee, string typeId, string replacementTypeId)
         {
