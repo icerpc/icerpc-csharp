@@ -4,8 +4,7 @@ using System.ComponentModel;
 
 namespace ZeroC.Slice;
 
-/// <summary>Represents the base class for exceptions defined in Slice. The Slice keyword AnyException maps to this
-/// class.</summary>
+/// <summary>Represents the base class for exceptions defined in Slice.</summary>
 public abstract class SliceException : Exception
 {
     /// <summary>Encodes this exception.</summary>
@@ -24,13 +23,11 @@ public abstract class SliceException : Exception
 
     /// <summary>Decodes a Slice exception.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    /// <remarks>Implemented only by Slice1-compatible exceptions.</remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     protected virtual void DecodeCore(ref SliceDecoder decoder) => throw new NotImplementedException();
 
     /// <summary>Encodes this Slice exception.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    /// <remarks>Implemented for all Slice encodings.</remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     protected abstract void EncodeCore(ref SliceEncoder encoder);
 }
