@@ -118,7 +118,7 @@ public class EnumWithFieldsTests
     [Test]
     public void Decode_compact_enum()
     {
-         // Arrange
+        // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var shape = new CompactShape.Rectangle(10, 20);
@@ -138,7 +138,7 @@ public class EnumWithFieldsTests
     [TestCase(null, 7u, 3u)]
     public void Decode_compact_enum_with_optional_field(string? name, uint major, uint minor)
     {
-         // Arrange
+        // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice2);
         var shape = new CompactShape.Oval(name, major, minor);
