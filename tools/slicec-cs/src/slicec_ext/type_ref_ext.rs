@@ -109,7 +109,7 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
     }
 }
 
-// Helper method to convert a result type into a string
+/// Helper method to convert a result type into a string
 fn result_type_to_string(result_type_ref: &TypeRef<ResultType>, namespace: &str) -> String {
     let success_type = result_type_ref
         .success_type
