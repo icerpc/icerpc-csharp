@@ -230,8 +230,8 @@ decoder.DecodeDictionary(
 
 pub fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encoding: Encoding) -> CodeBlock {
     assert!(encoding != Encoding::Slice1);
-    let success_type = &result_type_ref.ok_type;
-    let failure_type = &result_type_ref.err_type;
+    let success_type = &result_type_ref.success_type;
+    let failure_type = &result_type_ref.failure_type;
 
     let decode_success = decode_result_field(success_type, namespace, encoding);
     let decode_failure = decode_result_field(failure_type, namespace, encoding);

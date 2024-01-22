@@ -442,8 +442,8 @@ fn encode_result(
     encoder_param: &str,
     encoding: Encoding,
 ) -> CodeBlock {
-    let success_type = &result_type_def.ok_type;
-    let failure_type = &result_type_def.err_type;
+    let success_type = &result_type_def.success_type;
+    let failure_type = &result_type_def.failure_type;
     format!(
         "\
 {encoder_param}.EncodeResult(
