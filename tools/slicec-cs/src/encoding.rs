@@ -110,7 +110,13 @@ fn encode_type(
                     let name = enum_ref.cs_identifier(Case::Pascal);
                     format!("{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {value});")
                 }
-                _ => panic!("class and proxy types are handled in the outer match"),
+                TypeRefs::ResultType(result_type_ref) => {
+                    format!(
+                        "{};",
+                        encode_result(result_type_ref, namespace, param, encoder_param, encoding),
+                    )
+                }
+                _ => panic!("class types are handled in the outer match"),
             };
 
             if type_ref.is_optional {
@@ -192,6 +198,7 @@ fn encode_tagged_type(
         },
         Types::Struct(struct_def) => (struct_def.fixed_wire_size().map(|s| s.to_string()), None),
         Types::Enum(enum_def) => (enum_def.fixed_wire_size().map(|s| s.to_string()), None),
+        Types::ResultType(result_type_def) => (result_type_def.fixed_wire_size().map(|s| s.to_string()), None),
         Types::Sequence(sequence_def) => {
             if let Some(element_size) = sequence_def.element_type.fixed_wire_size() {
                 if element_size == 1 {
@@ -382,6 +389,13 @@ fn encode_action_body(
             let name = enum_ref.cs_identifier(Case::Pascal);
             write!(code, "{encoder_extensions_class}.Encode{name}(ref encoder, {value})")
         }
+        TypeRefs::ResultType(result_type_ref) => {
+            write!(
+                code,
+                "{}",
+                encode_result(result_type_ref, namespace, "value", "encoder", encoding)
+            )
+        }
         TypeRefs::Dictionary(dictionary_ref) => {
             write!(
                 code,
@@ -421,6 +435,27 @@ fn encode_action_body(
     code
 }
 
+fn encode_result(
+    result_type_def: &ResultType,
+    namespace: &str,
+    param: &str,
+    encoder_param: &str,
+    encoding: Encoding,
+) -> CodeBlock {
+    let success_type = &result_type_def.ok_type;
+    let failure_type = &result_type_def.err_type;
+    format!(
+        "\
+{encoder_param}.EncodeResult(
+    {param},
+    {encode_success},
+    {encode_failure})",
+        encode_success = encode_result_field(success_type, namespace, encoding).indent(),
+        encode_failure = encode_result_field(failure_type, namespace, encoding).indent(),
+    )
+    .into()
+}
+
 pub fn encode_stream_parameter(
     type_ref: &TypeRef,
     type_context: TypeContext,
@@ -443,6 +478,26 @@ pub fn encode_stream_parameter(
         ))
     } else {
         encode_action(type_ref, type_context, namespace, encoding, false)
+    }
+}
+
+pub fn encode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+    let value_type = type_ref.cs_type_string(namespace, TypeContext::Field, false);
+    if type_ref.is_optional {
+        CodeBlock::from(format!(
+            "\
+(ref SliceEncoder encoder, {value_type} value) =>
+{{
+    encoder.EncodeBool(value is not null);
+    if (value is not null)
+    {{
+        {encode_action_body};
+    }}
+}}",
+            encode_action_body = encode_action_body(type_ref, TypeContext::Field, namespace, encoding, false).indent()
+        ))
+    } else {
+        encode_action(type_ref, TypeContext::Field, namespace, encoding, false)
     }
 }
 

@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace ZeroC.Slice;
@@ -65,6 +66,38 @@ public static class SliceEncoderExtensions
                     valueEncodeAction(ref encoder, value);
                 }
             }
+        }
+    }
+
+    /// <summary>Encodes a result.</summary>
+    /// <typeparam name="TSuccess">The type of the success value.</typeparam>
+    /// <typeparam name="TFailure">The type of the failure value.</typeparam>
+    /// <param name="encoder">The Slice encoder.</param>
+    /// <param name="v">The result to encode.</param>
+    /// <param name="successEncodeAction">The encode action for the success type.</param>
+    /// <param name="failureEncodeAction">The encode action for the failure type.</param>
+    public static void EncodeResult<TSuccess, TFailure>(
+        this ref SliceEncoder encoder,
+        Result<TSuccess, TFailure> v,
+        EncodeAction<TSuccess> successEncodeAction,
+        EncodeAction<TFailure> failureEncodeAction)
+    {
+        switch (v)
+        {
+            case Result<TSuccess, TFailure>.Success success:
+                encoder.EncodeVarInt32(0);
+                successEncodeAction(ref encoder, success.Value);
+                break;
+
+            case Result<TSuccess, TFailure>.Failure failure:
+                encoder.EncodeVarInt32(1);
+                failureEncodeAction(ref encoder, failure.Value);
+                break;
+
+            default:
+                // Our result type somehow got extended with an additional enumerator.
+                Debug.Fail("Unexpected result type");
+                break;
         }
     }
 

@@ -148,6 +148,7 @@ fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> C
                 name = enum_ref.cs_identifier(Case::Pascal),
             );
         }
+        TypeRefs::ResultType(result_type_ref) => code.write(&decode_result(result_type_ref, namespace, encoding)),
         TypeRefs::CustomType(custom_type_ref) => {
             write!(
                 code,
@@ -224,6 +225,23 @@ decoder.DecodeDictionary(
     {decode_value})",
         )
     }
+    .into()
+}
+
+pub fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encoding: Encoding) -> CodeBlock {
+    assert!(encoding != Encoding::Slice1);
+    let success_type = &result_type_ref.ok_type;
+    let failure_type = &result_type_ref.err_type;
+
+    let decode_success = decode_result_field(success_type, namespace, encoding);
+    let decode_failure = decode_result_field(failure_type, namespace, encoding);
+
+    format!(
+        "\
+    decoder.DecodeResult(
+        {decode_success},
+        {decode_failure})"
+    )
     .into()
 }
 
@@ -397,6 +415,42 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
     }
 }
 
+fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+    if type_ref.is_optional {
+        let mut decode_func_body = decode_func_body(type_ref, namespace, encoding);
+
+        // TODO: it's lame to have to do this here. We should provide a better API.
+        if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
+            write!(
+                decode_func_body,
+                " as {}",
+                type_ref.cs_type_string(namespace, TypeContext::Nested, false),
+            );
+        }
+
+        decode_func_body.indent();
+
+        // TODO: this won't result is a nice looking line when decode_func_body is multi-line
+        CodeBlock::from(format!(
+            "(ref SliceDecoder decoder) => decoder.DecodeBool() ? {decode_func_body} : null"
+        ))
+    } else {
+        let mut decode_func = decode_func(type_ref, namespace, encoding);
+
+        // Ditto
+        if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
+            write!(
+                decode_func,
+                " as {}",
+                type_ref.cs_type_string(namespace, TypeContext::Nested, false),
+            );
+        }
+
+        decode_func.indent(); // TODO: this doesn't work
+        decode_func
+    }
+}
+
 pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
     let decode_func_body = decode_func_body(type_ref, namespace, encoding);
     CodeBlock::from(format!("(ref SliceDecoder decoder) => {decode_func_body}"))
@@ -436,6 +490,9 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
                     enum_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = enum_ref.cs_identifier(Case::Pascal),
             )
+        }
+        TypeRefs::ResultType(result_type_ref) => {
+            write!(code, "{}", decode_result(result_type_ref, namespace, encoding))
         }
         TypeRefs::Struct(_) => write!(code, "new {type_name}(ref decoder)"),
         TypeRefs::CustomType(custom_type_ref) => {

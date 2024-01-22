@@ -13,6 +13,9 @@ interface MyOperationsA {
     // Multiple parameter and return
     opWithMultipleParametersAndReturnValues(p1: int32, p2: int32) -> (r1: int32, r2: int32)
 
+    // operation that accepts and returns a Result
+    opWithResult(p: Result<string, int32>) -> Result<string, int32>
+
     // Compress attribute
     [compress(Args, Return)] opWithCompressArgsAndReturnAttribute(p: int32) -> int32
 
@@ -33,7 +36,7 @@ interface MyOperationsA {
     // cancel and features as regular parameter names
     opWithSpecialParameterNames(cancel: int32, features: int32)
 
-    // Encoded result
+    // Encoded return
     [cs::encodedReturn] opWithSingleReturnValueAndEncodedReturnAttribute() -> Sequence<int32>
     [cs::encodedReturn] opWithMultipleReturnValuesAndEncodedReturnAttribute() -> (r1: Sequence<int32>, r2: Sequence<int32>)
     [cs::encodedReturn] opWithStreamReturnAndEncodedReturnAttribute() -> (r1: Sequence<int32>, r2: stream int32)
