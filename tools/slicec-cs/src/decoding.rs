@@ -199,7 +199,7 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, 
         write!(
             decode_value,
             " as {}",
-            value_type.cs_type_string(namespace, TypeContext::Nested, false),
+            value_type.cs_type_string(namespace, TypeContext::Nested, true),
         );
     }
 
@@ -257,7 +257,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encodi
         write!(
             code,
             "({}[])",
-            element_type.cs_type_string(namespace, TypeContext::Nested, true),
+            element_type.cs_type_string(namespace, TypeContext::Nested, false),
         );
     };
 

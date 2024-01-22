@@ -81,3 +81,13 @@ interface SequenceMappingOperations {
         r2: [cs::type("CustomSequence<int>")] Sequence<int32>
     )
 }
+
+// Just to test that the generated code compiles.
+struct NestedOptionalSequences {
+    s1: Sequence<Sequence<Sequence<string?>>>
+    s2: Sequence<Sequence<Sequence<string>?>>
+    s3: Sequence<Sequence<Sequence<string>>?>
+    s4: Sequence<Sequence<Sequence<string>>>?
+
+    s5: Sequence<Sequence<Sequence<string?>?>?>?
+}

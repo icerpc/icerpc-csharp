@@ -71,3 +71,13 @@ interface DictionaryMappingOperations {
 compact struct StructWithCustomDictionary {
     value: [cs::type("CustomDictionary<int, int>")] Dictionary<int32, int32>
 }
+
+// Just to test that the generated code compiles.
+struct NestedOptionalDictionaries {
+    d1: Dictionary<string, Dictionary<string, Dictionary<string, bool?>>>
+    d2: Dictionary<string, Dictionary<string, Dictionary<string, bool>?>>
+    d3: Dictionary<string, Dictionary<string, Dictionary<string, bool>>?>
+    d4: Dictionary<string, Dictionary<string, Dictionary<string, bool>>>?
+
+    d5: Dictionary<string, Dictionary<string, Dictionary<string, bool?>?>?>?
+}

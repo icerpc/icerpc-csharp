@@ -400,7 +400,7 @@ fn encode_action_body(
             write!(
                 code,
                 "{}",
-                encode_dictionary(dictionary_ref, namespace, "value", "encoder", encoding)
+                encode_dictionary(dictionary_ref, namespace, value, "encoder", encoding)
             )
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -409,7 +409,7 @@ fn encode_action_body(
             write!(
                 code,
                 "{}",
-                encode_sequence(sequence_ref, namespace, "value", type_context, "encoder", encoding),
+                encode_sequence(sequence_ref, namespace, value, type_context, "encoder", encoding),
             )
         }
         TypeRefs::Struct(_) => write!(code, "{value}.Encode(ref encoder)"),
