@@ -138,7 +138,7 @@ if ({param} != null)
                         TypeRefs::Sequence(sequence_ref)
                             if sequence_ref.has_fixed_size_primitive_elements()
                                 && !sequence_ref.has_attribute::<CsType>()
-                                && type_context == TypeContext::Encode =>
+                                && type_context == TypeContext::OutgoingParam =>
                             format!("{param}.Span"),
                         _ => param.to_owned(),
                     },
@@ -170,7 +170,7 @@ fn encode_tagged_type(
     let read_only_memory = matches!(
         data_type.concrete_type(),
         Types::Sequence(sequence_def) if sequence_def.has_fixed_size_primitive_elements()
-            && type_context == TypeContext::Encode
+            && type_context == TypeContext::OutgoingParam
             && !data_type.has_attribute::<CsType>()
     );
 
@@ -289,7 +289,7 @@ fn encode_sequence(
     encoding: Encoding,
 ) -> CodeBlock {
     if sequence_ref.has_fixed_size_primitive_elements() && !sequence_ref.has_attribute::<CsType>() {
-        if type_context == TypeContext::Encode {
+        if type_context == TypeContext::OutgoingParam {
             format!("{encoder_param}.EncodeSpan({value}.Span)")
         } else {
             format!("{encoder_param}.EncodeSequence({value})")
@@ -306,7 +306,7 @@ fn encode_sequence(
             } else {
                 ""
             },
-            encode_action = encode_action(element_type, TypeContext::Nested, namespace, encoding, false).indent(),
+            encode_action = encode_action(element_type, TypeContext::Field, namespace, encoding, false).indent(),
         )
     }
     .into()
@@ -332,8 +332,8 @@ fn encode_dictionary(
         } else {
             "EncodeDictionary"
         },
-        encode_key = encode_action(key_type, TypeContext::Nested, namespace, encoding, false).indent(),
-        encode_value = encode_action(value_type, TypeContext::Nested, namespace, encoding, false).indent(),
+        encode_key = encode_action(key_type, TypeContext::Field, namespace, encoding, false).indent(),
+        encode_value = encode_action(value_type, TypeContext::Field, namespace, encoding, false).indent(),
     )
     .into()
 }
@@ -533,7 +533,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
 
         code.writeln(&encode_type(
             member.data_type(),
-            TypeContext::Encode,
+            TypeContext::OutgoingParam,
             namespace,
             name.as_str(),
             encoder_param,
@@ -552,7 +552,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
             namespace,
             name.as_str(),
             encoder_param,
-            TypeContext::Encode,
+            TypeContext::OutgoingParam,
             operation.encoding,
         ));
     }

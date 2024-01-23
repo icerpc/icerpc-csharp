@@ -347,7 +347,7 @@ impl FunctionBuilder {
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
 
-            let default_value = if context == TypeContext::Encode && (index >= trailing_optional_parameters_index) {
+            let default_value = if context == TypeContext::OutgoingParam && (index >= trailing_optional_parameters_index) {
                 match parameter.data_type.concrete_typeref() {
                     // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
                     // 'default' as their default value. Other optional types are mapped to nullable types and
@@ -373,7 +373,7 @@ impl FunctionBuilder {
         }
 
         match context {
-            TypeContext::Decode => {
+            TypeContext::IncomingParam => {
                 self.add_parameter(
                     "IceRpc.Features.IFeatureCollection",
                     &escape_parameter_name(&parameters, "features"),
@@ -381,7 +381,7 @@ impl FunctionBuilder {
                     Some("The dispatch features.".to_owned()),
                 );
             }
-            TypeContext::Encode => {
+            TypeContext::OutgoingParam => {
                 self.add_parameter(
                     "IceRpc.Features.IFeatureCollection?",
                     &escape_parameter_name(&parameters, "features"),
@@ -395,7 +395,7 @@ impl FunctionBuilder {
         self.add_parameter(
             "global::System.Threading.CancellationToken",
             &escape_parameter_name(&parameters, "cancellationToken"),
-            if context == TypeContext::Encode {
+            if context == TypeContext::OutgoingParam {
                 Some("default")
             } else {
                 None
@@ -450,8 +450,8 @@ impl FunctionBuilder {
         // since they can't have '@returns' tags in their doc comments.
         if operation.return_type.is_empty() {
             let comment = match context {
-                TypeContext::Decode => "A value task that completes when this implementation completes.",
-                TypeContext::Encode => "A task that completes when the response is received.",
+                TypeContext::IncomingParam => "A value task that completes when this implementation completes.",
+                TypeContext::OutgoingParam => "A task that completes when the response is received.",
                 _ => unreachable!("Unexpected context value"),
             };
             self.add_comment("returns", comment);

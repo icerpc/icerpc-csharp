@@ -108,7 +108,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             },
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                &parameters.to_tuple_type(namespace, TypeContext::Decode, false),
+                &parameters.to_tuple_type(namespace, TypeContext::IncomingParam, false),
             ),
             &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
@@ -192,7 +192,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         match non_streamed_returns.as_slice() {
             [param] => {
                 builder.add_parameter(
-                    &param.cs_type_string(namespace, TypeContext::Encode, false),
+                    &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
                     "returnValue",
                     None,
                     Some("The operation return value.".to_owned()),
@@ -201,7 +201,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             _ => {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
-                        &param.cs_type_string(namespace, TypeContext::Encode, false),
+                        &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
                         &param.parameter_name(),
                         None,
                         param.formatted_parameter_doc_comment(),
@@ -345,7 +345,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
         builder.add_comment("summary", summary);
     }
     builder
-        .add_operation_parameters(operation, TypeContext::Decode)
+        .add_operation_parameters(operation, TypeContext::IncomingParam)
         .add_comments(operation.formatted_doc_comment_seealso())
         .build()
 }
@@ -567,7 +567,7 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
     {encoding},
     {encode_options})",
                     encode_stream_parameter =
-                        encode_stream_parameter(stream_type, TypeContext::Encode, namespace, operation.encoding)
+                        encode_stream_parameter(stream_type, TypeContext::OutgoingParam, namespace, operation.encoding)
                             .indent(),
                     use_segments = stream_type.fixed_wire_size().is_none(),
                     encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",

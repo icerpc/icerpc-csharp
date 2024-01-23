@@ -38,9 +38,9 @@ impl OperationExt for Operation {
                 self,
                 is_dispatch,
                 if is_dispatch {
-                    TypeContext::Encode
+                    TypeContext::OutgoingParam
                 } else {
-                    TypeContext::Decode
+                    TypeContext::IncomingParam
                 },
             );
             if is_dispatch {
