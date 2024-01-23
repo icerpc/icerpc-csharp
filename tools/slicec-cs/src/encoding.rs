@@ -481,7 +481,7 @@ pub fn encode_stream_parameter(
     }
 }
 
-pub fn encode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+fn encode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
     let value_type = type_ref.cs_type_string(namespace, TypeContext::Field, false);
     if type_ref.is_optional {
         CodeBlock::from(format!(

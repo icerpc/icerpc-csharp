@@ -167,7 +167,7 @@ fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> C
     code
 }
 
-pub fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bool, encoding: Encoding) -> CodeBlock {
+fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bool, encoding: Encoding) -> CodeBlock {
     let data_type = member.data_type();
 
     assert!(data_type.is_optional);
@@ -186,7 +186,7 @@ pub fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bo
     decode
 }
 
-pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
+fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let key_type = &dictionary_ref.key_type;
     let value_type = &dictionary_ref.value_type;
 
@@ -228,7 +228,7 @@ decoder.DecodeDictionary(
     .into()
 }
 
-pub fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encoding: Encoding) -> CodeBlock {
+fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encoding: Encoding) -> CodeBlock {
     assert!(encoding != Encoding::Slice1);
     let success_type = &result_type_ref.success_type;
     let failure_type = &result_type_ref.failure_type;
@@ -245,7 +245,7 @@ decoder.DecodeResult(
     .into()
 }
 
-pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
+fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
 
