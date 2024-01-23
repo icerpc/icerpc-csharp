@@ -419,7 +419,6 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let cs_type = enum_def.get_underlying_cs_type();
-    let namespace = enum_def.namespace();
 
     let mut builder = ContainerBuilder::new(
         &format!("{access} static class"),
@@ -520,7 +519,6 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
                         code.writeln(&decode_enum_fields(
                             &enumerator.fields(),
                             &decoded_type,
-                            &namespace,
                             Encoding::Slice2,
                         ));
 
