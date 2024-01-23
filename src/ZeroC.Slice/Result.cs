@@ -6,7 +6,7 @@ namespace ZeroC.Slice;
 /// type of Slice operations.</summary>
 /// <typeparam name="TSuccess">The success type.</typeparam>
 /// <typeparam name="TFailure">The failure type.</typeparam>
-/// <remarks>The Slice built-in generic type Result maps to this class in C#.</remarks>
+/// <remarks>The Slice Result type (a built-in generic type) maps to this generic class in C#.</remarks>
 [Dunet.Union]
 public abstract partial record class Result<TSuccess, TFailure>
 {

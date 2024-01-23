@@ -238,9 +238,9 @@ pub fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, enc
 
     format!(
         "\
-    decoder.DecodeResult(
-        {decode_success},
-        {decode_failure})"
+decoder.DecodeResult(
+    {decode_success},
+    {decode_failure})"
     )
     .into()
 }
@@ -428,12 +428,15 @@ fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) 
             );
         }
 
-        decode_func_body.indent();
+        let mut decode_func = CodeBlock::from(format!(
+            "\
+(ref SliceDecoder decoder) => decoder.DecodeBool() ?
+    {decode_func_body}
+    : null",
+        ));
 
-        // TODO: this won't result is a nice looking line when decode_func_body is multi-line
-        CodeBlock::from(format!(
-            "(ref SliceDecoder decoder) => decoder.DecodeBool() ? {decode_func_body} : null"
-        ))
+        decode_func.indent();
+        decode_func
     } else {
         let mut decode_func = decode_func(type_ref, namespace, encoding);
 
@@ -446,7 +449,7 @@ fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) 
             );
         }
 
-        decode_func.indent(); // TODO: this doesn't work
+        decode_func.indent();
         decode_func
     }
 }
