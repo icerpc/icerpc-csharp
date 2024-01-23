@@ -30,7 +30,4 @@ cd Client
 dotnet run
 ```
 
-> This is a concise example with minimal code. If you are looking for a more realistic example, see the
-> [Logger](../Logger/README.md) example.
-
 [Dunet]: https://github.com/domn1995/dunet
