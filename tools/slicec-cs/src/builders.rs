@@ -241,7 +241,6 @@ pub struct FunctionBuilder {
     return_type: String,
     parameters: Vec<String>,
     body: CodeBlock,
-    base_constructor: String,
     base_arguments: Vec<String>,
     comments: Vec<CommentTag>,
     attributes: Vec<String>,
@@ -251,16 +250,6 @@ pub struct FunctionBuilder {
 
 impl FunctionBuilder {
     pub fn new(access: &str, return_type: &str, name: &str, function_type: FunctionType) -> FunctionBuilder {
-        Self::new_with_base_constructor(access, return_type, name, "base", function_type)
-    }
-
-    pub fn new_with_base_constructor(
-        access: &str,
-        return_type: &str,
-        name: &str,
-        base_constructor: &str,
-        function_type: FunctionType,
-    ) -> FunctionBuilder {
         FunctionBuilder {
             parameters: Vec::new(),
             access: access.to_owned(),
@@ -269,7 +258,6 @@ impl FunctionBuilder {
             body: CodeBlock::default(),
             comments: Vec::new(),
             attributes: Vec::new(),
-            base_constructor: base_constructor.to_owned(),
             base_arguments: Vec::new(),
             function_type,
             inherit_doc: false,
@@ -497,8 +485,7 @@ impl Builder for FunctionBuilder {
             [] => {}
             _ => write!(
                 code,
-                "\n    : {}({})",
-                self.base_constructor,
+                "\n    : base({})",
                 self.base_arguments.join(", "),
             ),
         }
