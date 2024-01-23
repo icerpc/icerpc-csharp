@@ -549,7 +549,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             // disambiguate between null and the actual value type.
             param_type = match member.data_type().is_optional && member.data_type().is_value_type() {
                 true => member.data_type().cs_type_string(namespace, TypeContext::IncomingParam, false),
-                false => String::from("var"),
+                false => "var".to_owned(),
             },
             param_name = &member.parameter_name_with_prefix("sliceP_"),
             decode = decode_member(member, namespace, operation.encoding),
@@ -564,7 +564,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             // disambiguate between null and the actual value type.
             param_type = match member.data_type().is_value_type() {
                 true => member.data_type().cs_type_string(namespace, TypeContext::IncomingParam, false),
-                false => String::from("var"),
+                false => "var".to_owned(),
             },
             param_name = &member.parameter_name_with_prefix("sliceP_"),
             decode = decode_tagged(
