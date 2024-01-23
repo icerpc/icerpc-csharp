@@ -374,7 +374,7 @@ impl FunctionBuilder {
                 &parameter_type,
                 &parameter_name,
                 default_value,
-                parameter.formatted_parameter_doc_comment(),
+                parameter.formatted_param_doc_comment(),
             );
         }
 

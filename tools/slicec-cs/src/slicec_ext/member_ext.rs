@@ -45,9 +45,9 @@ impl FieldExt for Field {
 
     fn formatted_param_doc_comment(&self) -> Option<String> {
         if let Entities::Enumerator(enumerator) = self.parent().concrete_entity() {
-            // Check if this field's parent (enumerator) has a doc comment on it.
+            // Check if the enumerator has a doc comment on it.
             enumerator.comment().and_then(|comment| {
-                // If it did, search the comment for a '@param' tag with this parameter's identifier and return it.
+                // If it does, search the comment for a '@param' tag with this field's identifier and return it.
                 comment
                     .params
                     .iter()
@@ -65,7 +65,7 @@ pub trait ParameterExt {
 
     /// Returns the message of the `@param` tag corresponding to this parameter from the operation it's part of.
     /// If the operation has no doc comment, or a matching `@param` tag, this returns `None`.
-    fn formatted_parameter_doc_comment(&self) -> Option<String>;
+    fn formatted_param_doc_comment(&self) -> Option<String>;
 }
 
 impl ParameterExt for Parameter {
@@ -82,10 +82,10 @@ impl ParameterExt for Parameter {
         }
     }
 
-    fn formatted_parameter_doc_comment(&self) -> Option<String> {
-        // Check if this parameter's parent operation had a doc comment on it.
+    fn formatted_param_doc_comment(&self) -> Option<String> {
+        // Check if this parameter's parent operation has a doc comment on it.
         self.parent().comment().and_then(|comment| {
-            // If it did, search the comment for a '@param' tag with this parameter's identifier and return it.
+            // If it does, search the comment for a '@param' tag with this parameter's identifier and return it.
             comment
                 .params
                 .iter()

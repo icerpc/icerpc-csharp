@@ -492,7 +492,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
                 &param.cs_type_string(namespace, TypeContext::Encode, false),
                 &param.parameter_name(),
                 None,
-                param.formatted_parameter_doc_comment(),
+                param.formatted_param_doc_comment(),
             );
         }
 
