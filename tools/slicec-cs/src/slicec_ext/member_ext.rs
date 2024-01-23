@@ -31,6 +31,8 @@ impl<T: Member> MemberExt for T {
 pub trait FieldExt {
     /// Check if this field, or its parent struct, are marked with `cs::readonly`.
     fn is_cs_readonly(&self) -> bool;
+
+    fn formatted_param_doc_comment(&self) -> Option<String>;
 }
 
 impl FieldExt for Field {
@@ -39,6 +41,22 @@ impl FieldExt for Field {
             .concat()
             .into_iter()
             .any(|a| a.downcast::<CsReadonly>().is_some())
+    }
+
+    fn formatted_param_doc_comment(&self) -> Option<String> {
+        if let Entities::Enumerator(enumerator) = self.parent().concrete_entity() {
+            // Check if this field's parent (enumerator) has a doc comment on it.
+            enumerator.comment().and_then(|comment| {
+                // If it did, search the comment for a '@param' tag with this parameter's identifier and return it.
+                comment
+                    .params
+                    .iter()
+                    .find(|param_tag| param_tag.identifier.value == self.identifier())
+                    .map(|param_tag| format_comment_message(&param_tag.message, &self.namespace()))
+            })
+        } else {
+            None
+        }
     }
 }
 

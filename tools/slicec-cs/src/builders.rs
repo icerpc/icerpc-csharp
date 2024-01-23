@@ -132,8 +132,11 @@ impl ContainerBuilder {
         self
     }
 
-    pub fn add_field(&mut self, field: String) -> &mut Self {
-        self.fields.push(field);
+    pub fn add_field(&mut self, field_name: &str, field_type: &str, doc_comment: Option<&str>) -> &mut Self {
+        if let Some(comment) = doc_comment {
+            self.add_comment_with_attribute("param", "name", field_name, comment);
+        }
+        self.fields.push(format!("{field_type} {field_name}"));
         self
     }
 
@@ -143,8 +146,11 @@ impl ContainerBuilder {
                 .data_type()
                 .cs_type_string(&field.namespace(), TypeContext::Field, false);
 
-            self.fields
-                .push(format!("{type_string} {name}", name = field.field_name(),));
+            self.add_field(
+                &field.field_name(),
+                &type_string,
+                field.formatted_param_doc_comment().as_deref(),
+            );
         }
 
         self

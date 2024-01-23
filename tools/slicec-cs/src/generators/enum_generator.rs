@@ -197,9 +197,6 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
         let mut builder = ContainerBuilder::new("public partial record class", "Unknown");
 
         builder
-            .add_field("int Discriminant".to_owned())
-            .add_field("global::System.ReadOnlyMemory<byte> Fields".to_owned())
-            .add_base(enum_def.escape_identifier())
             .add_comment(
                 "summary",
                 format!(
@@ -207,18 +204,9 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     enum_name = enum_def.identifier(),
                 ),
             )
-            .add_comment_with_attribute(
-                "param",
-                "name",
-                "Discriminant",
-                "The discriminant of this unknown enumerator.",
-            )
-            .add_comment_with_attribute(
-                "param",
-                "name",
-                "Fields",
-                "The encoded fields of this unknown enumerator.",
-            )
+            .add_field("Discriminant", "int", Some("The discriminant of this enumerator."))
+            .add_field("Fields", "global::System.ReadOnlyMemory<byte>", Some("The encoded fields of this unknown enumerator."))
+            .add_base(enum_def.escape_identifier())
             .add_block(
                 FunctionBuilder::new("internal override", "void", "Encode", FunctionType::BlockBody)
                     .add_parameter("ref SliceEncoder", "encoder", None, None)

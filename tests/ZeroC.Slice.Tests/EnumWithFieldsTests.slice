@@ -12,9 +12,21 @@ enum PaintColor {
     Yellow(shade: string, code: uint16?) // Extra enumerator, not compatible with Color
 }
 
+/// An extensive shape.
 unchecked enum Shape {
+    /// A circle.
+    /// @param radius: The radius of the circle.
     Circle(radius: uint32)
+
+    /// A rectangle.
+    /// @param width: The width of the rectangle.
+    /// @param height: The height of the rectangle.
     Rectangle(width: uint32, height: uint32)
+
+    /// A triangle.
+    /// @param side1: The length of the first side.
+    /// @param side2: The length of the second side.
+    /// @param side3: The length of the third side.
     Triangle(side1: uint32, side2: uint32, side3: uint32)
 }
 
