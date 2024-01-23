@@ -6,6 +6,7 @@ using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
+using ZeroC.Slice;
 
 namespace IceRpc.Slice.Tests;
 
@@ -80,6 +81,36 @@ public partial class OperationTests
 
         Assert.That(r1, Is.EqualTo(10));
         Assert.That(r2, Is.EqualTo(20));
+    }
+
+    [Test]
+    public async Task Operation_with_result_success()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MyOperationsAService());
+        var proxy = new MyOperationsAProxy(invoker);
+        var arg = new Result<string, int>.Success("hello");
+
+        // Act
+        Result<string, int> r = await proxy.OpWithResultAsync(arg);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(arg));
+    }
+
+    [Test]
+    public async Task Operation_with_result_failure()
+    {
+        // Arrange
+        var invoker = new ColocInvoker(new MyOperationsAService());
+        var proxy = new MyOperationsAProxy(invoker);
+        var arg = new Result<string, int>.Failure(123);
+
+        // Act
+        Result<string, int> r = await proxy.OpWithResultAsync(arg);
+
+        // Assert
+        Assert.That(r, Is.EqualTo(arg));
     }
 
     [Test]
@@ -696,6 +727,11 @@ public partial class OperationTests
             int p2,
             IFeatureCollection features,
             CancellationToken cancellationToken) => new((p1, p2));
+
+        public ValueTask<Result<string, int>> OpWithResultAsync(
+            Result<string, int> p,
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => new(p);
 
         public ValueTask<int> OpWithCompressArgsAndReturnAttributeAsync(
             int p,

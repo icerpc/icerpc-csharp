@@ -28,6 +28,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Struct(struct_ref) => struct_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
+            TypeRefs::ResultType(result_type_ref) => result_type_to_string(result_type_ref, namespace),
             TypeRefs::CustomType(custom_type_ref) => {
                 let attribute = custom_type_ref.definition().find_attribute::<CsType>();
                 attribute.unwrap().type_string.clone()
@@ -106,4 +107,16 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
                 "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{key_type}, {value_type}>>"
             )
     }
+}
+
+/// Helper method to convert a result type into a string
+fn result_type_to_string(result_type_ref: &TypeRef<ResultType>, namespace: &str) -> String {
+    let success_type = result_type_ref
+        .success_type
+        .cs_type_string(namespace, TypeContext::Nested, false);
+    let failure_type = result_type_ref
+        .failure_type
+        .cs_type_string(namespace, TypeContext::Nested, false);
+
+    format!("Result<{success_type}, {failure_type}>")
 }

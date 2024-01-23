@@ -87,6 +87,24 @@ public static class SliceDecoderExtensions
         }
     }
 
+    /// <summary>Decodes a result.</summary>
+    /// <typeparam name="TSuccess">The type of the success value.</typeparam>
+    /// <typeparam name="TFailure">The type of the failure value.</typeparam>
+    /// <param name="decoder">The Slice decoder.</param>
+    /// <param name="successDecodeFunc">The decode function for the success type.</param>
+    /// <param name="failureDecodeFunc">The decode function for the failure type.</param>
+    /// <returns>The decoded result.</returns>
+    public static Result<TSuccess, TFailure> DecodeResult<TSuccess, TFailure>(
+        this ref SliceDecoder decoder,
+        DecodeFunc<TSuccess> successDecodeFunc,
+        DecodeFunc<TFailure> failureDecodeFunc) =>
+        decoder.DecodeVarInt32() switch
+        {
+            0 => new Result<TSuccess, TFailure>.Success(successDecodeFunc(ref decoder)),
+            1 => new Result<TSuccess, TFailure>.Failure(failureDecodeFunc(ref decoder)),
+            int value => throw new InvalidDataException($"Received invalid discriminant value '{value}' for Result.")
+        };
+
     /// <summary>Decodes a sequence of fixed-size numeric values.</summary>
     /// <typeparam name="T">The sequence element type.</typeparam>
     /// <param name="decoder">The Slice decoder.</param>

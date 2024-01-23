@@ -1,0 +1,23 @@
+// Copyright (c) ZeroC, Inc.
+
+module ZeroC::Slice::Tests
+
+// Equivalent to a Result<string, int32>
+compact enum StringInt32Result {
+    Success(value: string)
+    Failure(value: int32)
+}
+
+compact struct StringInt32ResultHolder {
+    value: Result<string, int32>
+}
+
+// Equivalent to a Result<string, int32?>
+compact enum StringOptInt32Result {
+    Success(value: string)
+    Failure(value: int32?)
+}
+
+compact struct StringOptInt32ResultHolder {
+    value: Result<string, int32?>
+}
