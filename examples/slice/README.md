@@ -6,6 +6,7 @@ This folder contains example applications that showcase the IceRPC + Slice integ
 |--------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | [Compress](./Compress/)                    | Shows how to use the compress interceptor and middleware.                                                                           |
 | [Deadline](./Deadline/)                    | Shows how to use the deadline interceptor to set the invocation deadline.                                                           |
+| [DiscriminatedUnion](./DiscriminatedUnion/)| Shows how to define and use discriminated unions in Slice.                                                                          |
 | [Download](./Download/)                    | Shows how to download a file from a server by streaming this file.                                                                  |
 | [GenericHost](./GenericHost/)              | Shows how to create client and server applications using Microsoft's Dependency Injection container.                                |
 | [Greeter](./Greeter/)                      | Shows how to call and implement a canonical Greeter service using the IceRPC + Slice integration.                                   |

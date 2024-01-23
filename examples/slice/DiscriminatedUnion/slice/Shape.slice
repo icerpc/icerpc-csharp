@@ -1,0 +1,32 @@
+// Copyright (c) ZeroC, Inc.
+
+module TwoD
+
+/// A shape is a discriminated union; each enumerator represents a specific shape with its own fields.
+enum Shape {
+    /// A circle.
+    /// @param radius: The radius of the circle.
+    Circle(radius: float64)
+
+    /// A square.
+    /// @param side: The length of each side of the square.
+    Square(side: float64)
+
+    /// A rectangle.
+    /// @param width: The width of the rectangle.
+    /// @param height: The height of the rectangle.
+    Rectangle(width: float64, height: float64)
+
+    /// An ellipse.
+    /// @param majorAxis: The length of the major axis of the ellipse.
+    /// @param minorAxis: The length of the minor axis of the ellipse.
+    Ellipse(majorAxis: float64, minorAxis: float64)
+}
+
+/// A calculator for 2-dimensional shapes.
+interface AreaCalculator {
+    /// Computes the area of a shape.
+    /// @param shape: The shape.
+    /// @returns: The area in the same unit as the shape, but squared.
+    computeArea(shape: Shape) -> float64
+}
