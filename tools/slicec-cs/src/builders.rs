@@ -643,41 +643,41 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
             [] => panic!("No supported encodings"),
             [encoding] => self.encoding_blocks[encoding](),
             _ => {
-                let mut slice1_blocks = self.encoding_blocks[&Encoding::Slice1]();
-                let mut slice2_blocks = self.encoding_blocks[&Encoding::Slice2]();
+                let mut slice1_block = self.encoding_blocks[&Encoding::Slice1]();
+                let mut slice2_block = self.encoding_blocks[&Encoding::Slice2]();
 
-                // Only write one encoding block if `slice1_blocks` and `slice2_blocks` are the same.
-                if slice1_blocks.to_string() == slice2_blocks.to_string() {
-                    return slice2_blocks;
+                // Only write one encoding block if `slice1_block` and `slice2_block` are the same.
+                if slice1_block.to_string() == slice2_block.to_string() {
+                    return slice2_block;
                 }
 
-                if slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
+                if slice1_block.is_empty() && !slice2_block.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only
 {{
-    {slice2_blocks}
+    {slice2_block}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        slice2_blocks = slice2_blocks.indent(),
+                        slice2_block = slice2_block.indent(),
                     )
                     .into()
-                } else if !slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
+                } else if !slice1_block.is_empty() && !slice2_block.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} == SliceEncoding.Slice1)
 {{
-    {slice1_blocks}
+    {slice1_block}
 }}
 else // Slice2
 {{
-    {slice2_blocks}
+    {slice2_block}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        slice1_blocks = slice1_blocks.indent(),
-                        slice2_blocks = slice2_blocks.indent(),
+                        slice1_block = slice1_block.indent(),
+                        slice2_block = slice2_block.indent(),
                     )
                     .into()
                 } else {
