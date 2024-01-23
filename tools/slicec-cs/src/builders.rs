@@ -483,11 +483,7 @@ impl Builder for FunctionBuilder {
 
         match self.base_arguments.as_slice() {
             [] => {}
-            _ => write!(
-                code,
-                "\n    : base({})",
-                self.base_arguments.join(", "),
-            ),
+            _ => write!(code, "\n    : base({})", self.base_arguments.join(", ")),
         }
 
         match self.function_type {

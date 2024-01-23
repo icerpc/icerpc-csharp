@@ -350,10 +350,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
                         stream_type.cs_type_string(namespace, TypeContext::OutgoingParam, false),
                     ))
                     .use_semicolon(false)
-                    .add_argument(
-                        encode_stream_parameter(stream_type, TypeContext::OutgoingParam, namespace, operation.encoding)
-                            .indent(),
-                    )
+                    .add_argument(encode_stream_parameter(stream_type, namespace, operation.encoding).indent())
                     .add_argument(stream_type.fixed_wire_size().is_none())
                     .add_argument(encoding)
                     .add_argument("this.EncodeOptions")

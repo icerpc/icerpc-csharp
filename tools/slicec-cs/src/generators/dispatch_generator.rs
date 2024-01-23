@@ -567,8 +567,7 @@ fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
     {encoding},
     {encode_options})",
                     encode_stream_parameter =
-                        encode_stream_parameter(stream_type, TypeContext::OutgoingParam, namespace, operation.encoding)
-                            .indent(),
+                        encode_stream_parameter(stream_type, namespace, operation.encoding).indent(),
                     use_segments = stream_type.fixed_wire_size().is_none(),
                     encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
                 )
