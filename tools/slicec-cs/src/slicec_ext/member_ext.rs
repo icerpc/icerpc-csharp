@@ -32,6 +32,8 @@ pub trait FieldExt {
     /// Check if this field, or its parent struct, are marked with `cs::readonly`.
     fn is_cs_readonly(&self) -> bool;
 
+    /// Returns the value of the `@param` doc-comment tag for this enumerator field, if a tag with this field name is
+    /// present. Panics if this field is not an enumerator field.
     fn formatted_param_doc_comment(&self) -> Option<String>;
 }
 
