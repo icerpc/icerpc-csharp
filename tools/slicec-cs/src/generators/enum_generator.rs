@@ -117,7 +117,6 @@ fn enumerators(enum_def: &Enum) -> CodeBlock {
 
 fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
-    let namespace = enum_def.namespace();
 
     for enumerator in enum_def.enumerators() {
         let escaped_identifier = enumerator.escape_identifier();
@@ -169,11 +168,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                         }
                     }
 
-                    code.writeln(&encode_fields(
-                        &enumerator.fields(),
-                        &namespace,
-                        Encoding::Slice2,
-                    ));
+                    code.writeln(&encode_fields(&enumerator.fields(), Encoding::Slice2));
 
                     if !enum_def.is_compact {
                         code.writeln("encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
