@@ -4,13 +4,13 @@ module TwoD
 
 /// A shape is a discriminated union; each enumerator represents a specific shape with its own fields.
 enum Shape {
-    /// A circle.
-    /// @param radius: The radius of the circle.
-    Circle(radius: float64)
-
     /// A square.
     /// @param side: The length of each side of the square.
     Square(side: float64)
+
+    /// A circle.
+    /// @param radius: The radius of the circle.
+    Circle(radius: float64)
 
     /// A rectangle.
     /// @param width: The width of the rectangle.

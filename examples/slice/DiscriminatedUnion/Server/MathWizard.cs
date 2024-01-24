@@ -20,8 +20,8 @@ internal partial class MathWizard : IAreaCalculatorService
         // The Dunet-generated Match method accepts functions in declaration order.
         // See https://github.com/domn1995/dunet
         double area = shape.Match<double>(
-            circle => Math.PI * circle.Radius * circle.Radius,
             square => square.Side * square.Side,
+            circle => Math.PI * circle.Radius * circle.Radius,
             rectangle => rectangle.Width * rectangle.Height,
             ellipse => Math.PI * ellipse.MajorAxis * ellipse.MinorAxis / 4);
 

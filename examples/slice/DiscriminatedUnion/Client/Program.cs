@@ -12,8 +12,8 @@ Shape[] shapes =
 {
     new Shape.Rectangle(3.0F, 2.0F),
     new Shape.Ellipse(3.0F, 2.0F),
-    new Shape.Circle(2.0F),
     new Shape.Square(4.0F),
+    new Shape.Circle(2.0F),
 };
 
 foreach (var shape in shapes)
