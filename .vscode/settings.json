@@ -36,6 +36,9 @@
       "paths": ["examples/slice/Deadline"]
     },
     {
+      "paths": ["examples/slice/DiscriminatedUnion"]
+    },
+    {
       "paths": ["examples/slice/Download"]
     },
     {
