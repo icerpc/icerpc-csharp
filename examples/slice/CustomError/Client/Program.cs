@@ -12,16 +12,16 @@ string[] names = [ "", "jimmy", "billy bob", "alice", Environment.UserName ];
 
 foreach (string name in names)
 {
-    Console.Write($"The greeting for '{name}' is ");
+    Result<string, GreeterError> result = await greeter.GreetAsync(name);
 
     // Use the Dunet-generated MatchXxx methods to process the result and the GreeterError.
-    string message = await greeter.GreetAsync(name).MatchAsync(
-        success => $"'{success.Value}'",
+    string message = result.Match(
+        success => success.Value,
         failure => failure.Value.MatchAway(
             away => $"Away until {away.Until.ToLocalTime()}",
             () => $"{failure.Value}"));
 
-    Console.WriteLine(message);
+    Console.WriteLine($"The greeting for '{name}' is '{message}'");
 }
 
 await connection.ShutdownAsync();
