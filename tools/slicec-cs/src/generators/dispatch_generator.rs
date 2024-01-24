@@ -204,7 +204,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                         &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
                         &param.parameter_name(),
                         None,
-                        param.formatted_parameter_doc_comment(),
+                        param.formatted_param_doc_comment(),
                     );
                 }
             }
