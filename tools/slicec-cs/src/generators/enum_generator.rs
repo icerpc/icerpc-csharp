@@ -204,7 +204,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     enum_name = enum_def.identifier(),
                 ),
             )
-            .add_field("Discriminant", "int", Some("The discriminant of this enumerator."))
+            .add_field("Discriminant", "int", Some("The discriminant of this unknown enumerator."))
             .add_field("Fields", "global::System.ReadOnlyMemory<byte>", Some("The encoded fields of this unknown enumerator."))
             .add_base(enum_def.escape_identifier())
             .add_block(
