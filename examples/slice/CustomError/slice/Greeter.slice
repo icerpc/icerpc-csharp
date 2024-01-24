@@ -1,0 +1,25 @@
+// Copyright (c) ZeroC, Inc.
+
+module VisitorCenter
+
+/// Represents a simple greeter.
+interface Greeter {
+    /// Creates a personalized greeting.
+    /// @param name: The name of the person to greet.
+    /// @returns: The greeting string when the operation succeeds, or a custom error when the operation fails.
+    greet(name: string) -> Result<string, GreeterError>
+}
+
+/// The errors returned by the Greeter.
+unchecked enum GreeterError {
+    /// The name is empty.
+    EmptyName
+
+    /// The name is too long.
+    /// @param maxLength: A name with length greater than maxLength is too long.
+    NameTooLong(maxLength: int32)
+
+    /// The greeter stepped away.
+    /// @param until: The date and time of the greeter's return.
+    Away(until: WellKnownTypes::TimeStamp)
+}
