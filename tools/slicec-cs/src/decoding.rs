@@ -11,7 +11,7 @@ use slicec::grammar::*;
 use slicec::utils::code_gen_util::{get_bit_sequence_size, TypeContext};
 
 /// Compute how many bits are needed to decode the provided members, and if more than 0 bits are needed,
-/// This generates code that creates a new `BitSequenceReader` with the necessary capacity.
+/// this generates code that creates a new `BitSequenceReader` with the necessary capacity.
 fn initialize_bit_sequence_reader_for<T: Member>(members: &[&T], code: &mut CodeBlock, encoding: Encoding) {
     let bit_sequence_size = get_bit_sequence_size(encoding, members);
     if bit_sequence_size > 0 {
@@ -499,21 +499,21 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 
     for parameter in get_sorted_members(&non_streamed_parameters) {
         let param_type = parameter.data_type();
-    
+
         // For optional value types we have to use the full type as the compiler cannot
         // disambiguate between null and the actual value type.
         let param_type_string = match param_type.is_optional && param_type.is_value_type() {
             true => param_type.cs_type_string(&namespace, TypeContext::IncomingParam, false),
             false => "var".to_owned(),
         };
-    
+
         let param_name = &parameter.parameter_name_with_prefix("sliceP_");
-    
+
         let decode = match parameter.is_tagged() {
             true => decode_tagged(parameter, &namespace, false, encoding),
             false => decode_member(parameter, &namespace, encoding),
         };
-    
+
         writeln!(code, "{param_type_string} {param_name} = {decode};")
     }
 
