@@ -152,7 +152,6 @@ fn constructor(
 fn encode_and_decode(class_def: &Class) -> CodeBlock {
     let mut code = CodeBlock::default();
 
-    let namespace = &class_def.namespace();
     let fields = class_def.fields();
     let has_base_class = class_def.base_class().is_some();
 
@@ -168,11 +167,8 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
                     .build(),
             );
 
-            code.writeln(&encode_fields(
-                &fields,
-                namespace,
-                Encoding::Slice1, // classes are Slice1 only
-            ));
+            // classes are Slice1 only
+            code.writeln(&encode_fields(&fields, Encoding::Slice1));
 
             if has_base_class {
                 code.writeln("encoder.EndSlice(false);");

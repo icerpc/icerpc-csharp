@@ -2,18 +2,17 @@
 
 use crate::builders::{Builder, FunctionCallBuilder};
 use crate::cs_attributes::CsType;
+use crate::member_util::get_sorted_members;
 use crate::slicec_ext::*;
 use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::*;
+use slicec::utils::code_gen_util::{get_bit_sequence_size, TypeContext};
 
-pub fn encode_fields(fields: &[&Field], namespace: &str, encoding: Encoding) -> CodeBlock {
+pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
 
-    let (required_fields, tagged_fields) = get_sorted_members(fields);
-
-    let bit_sequence_size = get_bit_sequence_size(encoding, &required_fields);
+    let bit_sequence_size = get_bit_sequence_size(encoding, fields);
     if bit_sequence_size > 0 {
         writeln!(
             code,
@@ -21,42 +20,29 @@ pub fn encode_fields(fields: &[&Field], namespace: &str, encoding: Encoding) -> 
         );
     }
 
-    for field in required_fields {
+    for field in get_sorted_members(fields) {
+        let namespace = field.namespace();
         let param = format!("this.{}", field.field_name());
-        code.writeln(&encode_type(
-            field.data_type(),
-            TypeContext::Field,
-            namespace,
-            &param,
-            "encoder",
-            encoding,
-        ));
-    }
-
-    // Encode tagged
-    for field in tagged_fields {
-        let param = format!("this.{}", field.field_name());
-        code.writeln(&encode_tagged_type(
-            field,
-            namespace,
-            &param,
-            "encoder",
-            TypeContext::Field,
-            encoding,
-        ));
+        let encode_fn = match field.is_tagged() {
+            true => encode_tagged_type,
+            false => encode_type,
+        };
+        code.writeln(&encode_fn(field, TypeContext::Field, &namespace, &param, "encoder", encoding));
     }
 
     code
 }
 
 fn encode_type(
-    type_ref: &TypeRef,
+    member: &impl Member,
     type_context: TypeContext,
     namespace: &str,
     param: &str,
     encoder_param: &str,
     encoding: Encoding,
 ) -> CodeBlock {
+    let type_ref = member.data_type();
+
     match &type_ref.concrete_typeref() {
         TypeRefs::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
@@ -152,10 +138,10 @@ if ({param} != null)
 
 fn encode_tagged_type(
     member: &impl Member,
+    type_context: TypeContext,
     namespace: &str,
     param: &str,
     encoder_param: &str,
-    type_context: TypeContext,
     encoding: Encoding,
 ) -> CodeBlock {
     let mut code = CodeBlock::default();
@@ -494,56 +480,34 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
     let mut code = CodeBlock::default();
     let namespace = &operation.namespace();
 
-    let members = if return_type {
+    let parameters = if return_type {
         operation.non_streamed_return_members()
     } else {
         operation.non_streamed_parameters()
     };
 
-    let (required_members, tagged_members) = get_sorted_members(&members);
-
-    let bit_sequence_size = get_bit_sequence_size(operation.encoding, &members);
-
+    let bit_sequence_size = get_bit_sequence_size(operation.encoding, &parameters);
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceWriter = {encoder_param}.GetBitSequenceWriter({bit_sequence_size});",
+            "var bitSequenceWriter = encoder_.GetBitSequenceWriter({bit_sequence_size});",
         );
     }
 
-    let return_value_name = return_type && members.len() == 1;
+    let single_return_type = return_type && parameters.len() == 1;
 
-    for member in required_members {
-        let name = if return_value_name {
+    for parameter in get_sorted_members(&parameters) {
+        let parameter_name = if single_return_type {
             "returnValue".to_owned()
         } else {
-            member.parameter_name()
+            parameter.parameter_name()
         };
 
-        code.writeln(&encode_type(
-            member.data_type(),
-            TypeContext::OutgoingParam,
-            namespace,
-            name.as_str(),
-            encoder_param,
-            operation.encoding,
-        ));
-    }
-
-    for member in tagged_members {
-        let name = if return_value_name {
-            "returnValue".to_owned()
-        } else {
-            member.parameter_name()
+        let encode_fn = match parameter.is_tagged() {
+            true => encode_tagged_type,
+            false => encode_type,
         };
-        code.writeln(&encode_tagged_type(
-            member,
-            namespace,
-            name.as_str(),
-            encoder_param,
-            TypeContext::OutgoingParam,
-            operation.encoding,
-        ));
+        code.writeln(&encode_fn(parameter, TypeContext::OutgoingParam, namespace, &parameter_name, encoder_param, operation.encoding));
     }
 
     if operation.encoding != Encoding::Slice1 {
