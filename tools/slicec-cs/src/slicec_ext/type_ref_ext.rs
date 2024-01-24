@@ -36,7 +36,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Sequence(sequence_ref) => {
                 // For readonly sequences of fixed size numeric elements the mapping is the
                 // same for optional an non optional types.
-                if context == TypeContext::Encode
+                if context == TypeContext::OutgoingParam
                     && sequence_ref.has_fixed_size_primitive_elements()
                     && !self.has_attribute::<CsType>()
                 {
@@ -60,19 +60,19 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, context: TypeContext) -> String {
     let element_type = sequence_ref
         .element_type
-        .cs_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Field, false);
 
     let cs_type_attribute = sequence_ref.find_attribute::<CsType>();
 
     match context {
-        TypeContext::Field | TypeContext::Nested => {
+        TypeContext::Field => {
             format!("global::System.Collections.Generic.IList<{element_type}>")
         }
-        TypeContext::Decode => match cs_type_attribute {
+        TypeContext::IncomingParam => match cs_type_attribute {
             Some(arg) => arg.type_string.clone(),
             None => format!("{element_type}[]"),
         },
-        TypeContext::Encode => {
+        TypeContext::OutgoingParam => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
             if sequence_ref.has_fixed_size_primitive_elements() && cs_type_attribute.is_none() {
                 format!("global::System.ReadOnlyMemory<{element_type}>")
@@ -87,22 +87,22 @@ fn sequence_type_to_string(sequence_ref: &TypeRef<Sequence>, namespace: &str, co
 fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, context: TypeContext) -> String {
     let key_type = dictionary_ref
         .key_type
-        .cs_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Field, false);
     let value_type = dictionary_ref
         .value_type
-        .cs_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Field, false);
 
     let cs_type_attribute = dictionary_ref.find_attribute::<CsType>();
 
     match context {
-        TypeContext::Field | TypeContext::Nested => {
+        TypeContext::Field => {
             format!("global::System.Collections.Generic.IDictionary<{key_type}, {value_type}>")
         }
-        TypeContext::Decode => match cs_type_attribute {
+        TypeContext::IncomingParam => match cs_type_attribute {
             Some(arg) => arg.type_string.clone(),
             None => format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>"),
         },
-        TypeContext::Encode =>
+        TypeContext::OutgoingParam =>
             format!(
                 "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{key_type}, {value_type}>>"
             )
@@ -113,10 +113,10 @@ fn dictionary_type_to_string(dictionary_ref: &TypeRef<Dictionary>, namespace: &s
 fn result_type_to_string(result_type_ref: &TypeRef<ResultType>, namespace: &str) -> String {
     let success_type = result_type_ref
         .success_type
-        .cs_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Field, false);
     let failure_type = result_type_ref
         .failure_type
-        .cs_type_string(namespace, TypeContext::Nested, false);
+        .cs_type_string(namespace, TypeContext::Field, false);
 
     format!("Result<{success_type}, {failure_type}>")
 }

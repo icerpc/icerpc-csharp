@@ -31,6 +31,10 @@ impl<T: Member> MemberExt for T {
 pub trait FieldExt {
     /// Check if this field, or its parent struct, are marked with `cs::readonly`.
     fn is_cs_readonly(&self) -> bool;
+
+    /// Returns the value of the `@param` doc-comment tag for this enumerator field, if a tag with this field name is
+    /// present. Panics if this field is not an enumerator field.
+    fn formatted_param_doc_comment(&self) -> Option<String>;
 }
 
 impl FieldExt for Field {
@@ -40,6 +44,22 @@ impl FieldExt for Field {
             .into_iter()
             .any(|a| a.downcast::<CsReadonly>().is_some())
     }
+
+    fn formatted_param_doc_comment(&self) -> Option<String> {
+        if let Entities::Enumerator(enumerator) = self.parent().concrete_entity() {
+            // Check if the enumerator has a doc comment on it.
+            enumerator.comment().and_then(|comment| {
+                // If it does, search the comment for a '@param' tag with this field's identifier and return it.
+                comment
+                    .params
+                    .iter()
+                    .find(|param_tag| param_tag.identifier.value == self.identifier())
+                    .map(|param_tag| format_comment_message(&param_tag.message, &self.namespace()))
+            })
+        } else {
+            panic!("Called 'formatted_param_doc_comment' on field outside of enumerator!");
+        }
+    }
 }
 
 pub trait ParameterExt {
@@ -47,7 +67,7 @@ pub trait ParameterExt {
 
     /// Returns the message of the `@param` tag corresponding to this parameter from the operation it's part of.
     /// If the operation has no doc comment, or a matching `@param` tag, this returns `None`.
-    fn formatted_parameter_doc_comment(&self) -> Option<String>;
+    fn formatted_param_doc_comment(&self) -> Option<String>;
 }
 
 impl ParameterExt for Parameter {
@@ -64,10 +84,10 @@ impl ParameterExt for Parameter {
         }
     }
 
-    fn formatted_parameter_doc_comment(&self) -> Option<String> {
-        // Check if this parameter's parent operation had a doc comment on it.
+    fn formatted_param_doc_comment(&self) -> Option<String> {
+        // Check if this parameter's parent operation has a doc comment on it.
         self.parent().comment().and_then(|comment| {
-            // If it did, search the comment for a '@param' tag with this parameter's identifier and return it.
+            // If it does, search the comment for a '@param' tag with this parameter's identifier and return it.
             comment
                 .params
                 .iter()

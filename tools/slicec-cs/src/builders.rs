@@ -132,8 +132,11 @@ impl ContainerBuilder {
         self
     }
 
-    pub fn add_field(&mut self, field: String) -> &mut Self {
-        self.fields.push(field);
+    pub fn add_field(&mut self, field_name: &str, field_type: &str, doc_comment: Option<&str>) -> &mut Self {
+        if let Some(comment) = doc_comment {
+            self.add_comment_with_attribute("param", "name", field_name, comment);
+        }
+        self.fields.push(format!("{field_type} {field_name}"));
         self
     }
 
@@ -143,8 +146,11 @@ impl ContainerBuilder {
                 .data_type()
                 .cs_type_string(&field.namespace(), TypeContext::Field, false);
 
-            self.fields
-                .push(format!("{type_string} {name}", name = field.field_name(),));
+            self.add_field(
+                &field.field_name(),
+                &type_string,
+                field.formatted_param_doc_comment().as_deref(),
+            );
         }
 
         self
@@ -241,7 +247,6 @@ pub struct FunctionBuilder {
     return_type: String,
     parameters: Vec<String>,
     body: CodeBlock,
-    base_constructor: String,
     base_arguments: Vec<String>,
     comments: Vec<CommentTag>,
     attributes: Vec<String>,
@@ -251,16 +256,6 @@ pub struct FunctionBuilder {
 
 impl FunctionBuilder {
     pub fn new(access: &str, return_type: &str, name: &str, function_type: FunctionType) -> FunctionBuilder {
-        Self::new_with_base_constructor(access, return_type, name, "base", function_type)
-    }
-
-    pub fn new_with_base_constructor(
-        access: &str,
-        return_type: &str,
-        name: &str,
-        base_constructor: &str,
-        function_type: FunctionType,
-    ) -> FunctionBuilder {
         FunctionBuilder {
             parameters: Vec::new(),
             access: access.to_owned(),
@@ -269,7 +264,6 @@ impl FunctionBuilder {
             body: CodeBlock::default(),
             comments: Vec::new(),
             attributes: Vec::new(),
-            base_constructor: base_constructor.to_owned(),
             base_arguments: Vec::new(),
             function_type,
             inherit_doc: false,
@@ -347,7 +341,7 @@ impl FunctionBuilder {
             let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
             let parameter_name = parameter.parameter_name();
 
-            let default_value = if context == TypeContext::Encode && (index >= trailing_optional_parameters_index) {
+            let default_value = if context == TypeContext::OutgoingParam && (index >= trailing_optional_parameters_index) {
                 match parameter.data_type.concrete_typeref() {
                     // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
                     // 'default' as their default value. Other optional types are mapped to nullable types and
@@ -368,12 +362,12 @@ impl FunctionBuilder {
                 &parameter_type,
                 &parameter_name,
                 default_value,
-                parameter.formatted_parameter_doc_comment(),
+                parameter.formatted_param_doc_comment(),
             );
         }
 
         match context {
-            TypeContext::Decode => {
+            TypeContext::IncomingParam => {
                 self.add_parameter(
                     "IceRpc.Features.IFeatureCollection",
                     &escape_parameter_name(&parameters, "features"),
@@ -381,7 +375,7 @@ impl FunctionBuilder {
                     Some("The dispatch features.".to_owned()),
                 );
             }
-            TypeContext::Encode => {
+            TypeContext::OutgoingParam => {
                 self.add_parameter(
                     "IceRpc.Features.IFeatureCollection?",
                     &escape_parameter_name(&parameters, "features"),
@@ -395,7 +389,7 @@ impl FunctionBuilder {
         self.add_parameter(
             "global::System.Threading.CancellationToken",
             &escape_parameter_name(&parameters, "cancellationToken"),
-            if context == TypeContext::Encode {
+            if context == TypeContext::OutgoingParam {
                 Some("default")
             } else {
                 None
@@ -450,8 +444,8 @@ impl FunctionBuilder {
         // since they can't have '@returns' tags in their doc comments.
         if operation.return_type.is_empty() {
             let comment = match context {
-                TypeContext::Decode => "A value task that completes when this implementation completes.",
-                TypeContext::Encode => "A task that completes when the response is received.",
+                TypeContext::IncomingParam => "A value task that completes when this implementation completes.",
+                TypeContext::OutgoingParam => "A task that completes when the response is received.",
                 _ => unreachable!("Unexpected context value"),
             };
             self.add_comment("returns", comment);
@@ -495,12 +489,7 @@ impl Builder for FunctionBuilder {
 
         match self.base_arguments.as_slice() {
             [] => {}
-            _ => write!(
-                code,
-                "\n    : {}({})",
-                self.base_constructor,
-                self.base_arguments.join(", "),
-            ),
+            _ => write!(code, "\n    : base({})", self.base_arguments.join(", ")),
         }
 
         match self.function_type {
@@ -656,41 +645,41 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
             [] => panic!("No supported encodings"),
             [encoding] => self.encoding_blocks[encoding](),
             _ => {
-                let mut slice1_blocks = self.encoding_blocks[&Encoding::Slice1]();
-                let mut slice2_blocks = self.encoding_blocks[&Encoding::Slice2]();
+                let mut slice1_block = self.encoding_blocks[&Encoding::Slice1]();
+                let mut slice2_block = self.encoding_blocks[&Encoding::Slice2]();
 
-                // Only write one encoding block if `slice1_blocks` and `slice2_blocks` are the same.
-                if slice1_blocks.to_string() == slice2_blocks.to_string() {
-                    return slice2_blocks;
+                // Only write one encoding block if `slice1_block` and `slice2_block` are the same.
+                if slice1_block.to_string() == slice2_block.to_string() {
+                    return slice2_block;
                 }
 
-                if slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
+                if slice1_block.is_empty() && !slice2_block.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only
 {{
-    {slice2_blocks}
+    {slice2_block}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        slice2_blocks = slice2_blocks.indent(),
+                        slice2_block = slice2_block.indent(),
                     )
                     .into()
-                } else if !slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
+                } else if !slice1_block.is_empty() && !slice2_block.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} == SliceEncoding.Slice1)
 {{
-    {slice1_blocks}
+    {slice1_block}
 }}
 else // Slice2
 {{
-    {slice2_blocks}
+    {slice2_block}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        slice1_blocks = slice1_blocks.indent(),
-                        slice2_blocks = slice2_blocks.indent(),
+                        slice1_block = slice1_block.indent(),
+                        slice2_block = slice2_block.indent(),
                     )
                     .into()
                 } else {
