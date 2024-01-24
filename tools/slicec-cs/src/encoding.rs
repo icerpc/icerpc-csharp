@@ -9,21 +9,16 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::utils::code_gen_util::{get_bit_sequence_size, TypeContext};
 
-/// Compute how many bits are needed to encode the provided members, and if more than 0 bits are needed,
-/// this generates code that creates a new `BitSequenceWriter` with the necessary capacity.
-fn initialize_bit_sequence_writer_for<T: Member>(members: &[&T], code: &mut CodeBlock, encoding: Encoding) {
-    let bit_sequence_size = get_bit_sequence_size(encoding, members);
+pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
+    let mut code = CodeBlock::default();
+
+    let bit_sequence_size = get_bit_sequence_size(encoding, fields);
     if bit_sequence_size > 0 {
         writeln!(
             code,
             "var bitSequenceWriter = encoder.GetBitSequenceWriter({bit_sequence_size});",
         );
     }
-}
-
-pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
-    let mut code = CodeBlock::default();
-    initialize_bit_sequence_writer_for(fields, &mut code, encoding);
 
     for field in get_sorted_members(fields) {
         let namespace = field.namespace();
@@ -491,14 +486,28 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
         operation.non_streamed_parameters()
     };
 
-    initialize_bit_sequence_writer_for(&parameters, &mut code, operation.encoding);
+    let bit_sequence_size = get_bit_sequence_size(operation.encoding, &parameters);
+    if bit_sequence_size > 0 {
+        writeln!(
+            code,
+            "var bitSequenceWriter = encoder_.GetBitSequenceWriter({bit_sequence_size});",
+        );
+    }
+
+    let single_return_type = return_type && parameters.len() == 1;
 
     for parameter in get_sorted_members(&parameters) {
+        let parameter_name = if single_return_type {
+            "returnValue".to_owned()
+        } else {
+            parameter.parameter_name()
+        };
+
         let encode_fn = match parameter.is_tagged() {
             true => encode_tagged_type,
             false => encode_type,
         };
-        code.writeln(&encode_fn(parameter, TypeContext::OutgoingParam, namespace, &parameter.parameter_name(), encoder_param, operation.encoding));
+        code.writeln(&encode_fn(parameter, TypeContext::OutgoingParam, namespace, &parameter_name, encoder_param, operation.encoding));
     }
 
     if operation.encoding != Encoding::Slice1 {
