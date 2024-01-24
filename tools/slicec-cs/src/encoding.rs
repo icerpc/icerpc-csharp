@@ -14,7 +14,6 @@ pub fn encode_fields(fields: &[&Field], namespace: &str, encoding: Encoding) -> 
     let (required_fields, tagged_fields) = get_sorted_members(fields);
 
     let bit_sequence_size = get_bit_sequence_size(encoding, &required_fields);
-
     if bit_sequence_size > 0 {
         writeln!(
             code,
@@ -456,7 +455,17 @@ fn encode_result(
     .into()
 }
 
-pub fn encode_stream_parameter(
+pub fn encode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+    encode_type_with_bit_sequence_optimization(type_ref, TypeContext::OutgoingParam, namespace, encoding)
+}
+
+fn encode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+    encode_type_with_bit_sequence_optimization(type_ref, TypeContext::Field, namespace, encoding)
+}
+
+/// This function returns a `encode_action` lambda function. This includes the code for handling optional types.
+/// Instead of using a whole bit-sequence, it encodes the optionality on a single bool however.
+fn encode_type_with_bit_sequence_optimization(
     type_ref: &TypeRef,
     type_context: TypeContext,
     namespace: &str,
@@ -478,26 +487,6 @@ pub fn encode_stream_parameter(
         ))
     } else {
         encode_action(type_ref, type_context, namespace, encoding, false)
-    }
-}
-
-pub fn encode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
-    let value_type = type_ref.cs_type_string(namespace, TypeContext::Field, false);
-    if type_ref.is_optional {
-        CodeBlock::from(format!(
-            "\
-(ref SliceEncoder encoder, {value_type} value) =>
-{{
-    encoder.EncodeBool(value is not null);
-    if (value is not null)
-    {{
-        {encode_action_body};
-    }}
-}}",
-            encode_action_body = encode_action_body(type_ref, TypeContext::Field, namespace, encoding, false).indent()
-        ))
-    } else {
-        encode_action(type_ref, TypeContext::Field, namespace, encoding, false)
     }
 }
 

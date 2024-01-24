@@ -6,6 +6,14 @@ use slicec::code_block::CodeBlock;
 use slicec::grammar::{Contained, Field, Member};
 use slicec::utils::code_gen_util::TypeContext;
 
+/// Takes a list of members and sorts them in the following order: [required members][tagged members]
+/// Required members are left in the provided order. Tagged members are sorted so tag values are in increasing order.
+pub fn get_sorted_members<'a, T: Member + ?Sized>(members: &[&'a T]) -> impl Iterator<Item = &'a T> {
+    let (mut tagged, required): (Vec<&T>, Vec<&T>) = members.iter().partition(|member| member.is_tagged());
+    tagged.sort_by_key(|member| member.tag().unwrap());
+    required.into_iter().chain(tagged)
+}
+
 pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
     if parameters.iter().any(|p| p.parameter_name() == name) {
         name.to_owned() + "_"

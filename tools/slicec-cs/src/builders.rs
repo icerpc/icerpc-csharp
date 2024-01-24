@@ -241,7 +241,6 @@ pub struct FunctionBuilder {
     return_type: String,
     parameters: Vec<String>,
     body: CodeBlock,
-    base_constructor: String,
     base_arguments: Vec<String>,
     comments: Vec<CommentTag>,
     attributes: Vec<String>,
@@ -251,16 +250,6 @@ pub struct FunctionBuilder {
 
 impl FunctionBuilder {
     pub fn new(access: &str, return_type: &str, name: &str, function_type: FunctionType) -> FunctionBuilder {
-        Self::new_with_base_constructor(access, return_type, name, "base", function_type)
-    }
-
-    pub fn new_with_base_constructor(
-        access: &str,
-        return_type: &str,
-        name: &str,
-        base_constructor: &str,
-        function_type: FunctionType,
-    ) -> FunctionBuilder {
         FunctionBuilder {
             parameters: Vec::new(),
             access: access.to_owned(),
@@ -269,7 +258,6 @@ impl FunctionBuilder {
             body: CodeBlock::default(),
             comments: Vec::new(),
             attributes: Vec::new(),
-            base_constructor: base_constructor.to_owned(),
             base_arguments: Vec::new(),
             function_type,
             inherit_doc: false,
@@ -495,12 +483,7 @@ impl Builder for FunctionBuilder {
 
         match self.base_arguments.as_slice() {
             [] => {}
-            _ => write!(
-                code,
-                "\n    : {}({})",
-                self.base_constructor,
-                self.base_arguments.join(", "),
-            ),
+            _ => write!(code, "\n    : base({})", self.base_arguments.join(", ")),
         }
 
         match self.function_type {
@@ -656,41 +639,41 @@ impl<'a> Builder for EncodingBlockBuilder<'a> {
             [] => panic!("No supported encodings"),
             [encoding] => self.encoding_blocks[encoding](),
             _ => {
-                let mut slice1_blocks = self.encoding_blocks[&Encoding::Slice1]();
-                let mut slice2_blocks = self.encoding_blocks[&Encoding::Slice2]();
+                let mut slice1_block = self.encoding_blocks[&Encoding::Slice1]();
+                let mut slice2_block = self.encoding_blocks[&Encoding::Slice2]();
 
-                // Only write one encoding block if `slice1_blocks` and `slice2_blocks` are the same.
-                if slice1_blocks.to_string() == slice2_blocks.to_string() {
-                    return slice2_blocks;
+                // Only write one encoding block if `slice1_block` and `slice2_block` are the same.
+                if slice1_block.to_string() == slice2_block.to_string() {
+                    return slice2_block;
                 }
 
-                if slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
+                if slice1_block.is_empty() && !slice2_block.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} != SliceEncoding.Slice1) // Slice2 only
 {{
-    {slice2_blocks}
+    {slice2_block}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        slice2_blocks = slice2_blocks.indent(),
+                        slice2_block = slice2_block.indent(),
                     )
                     .into()
-                } else if !slice1_blocks.is_empty() && !slice2_blocks.is_empty() {
+                } else if !slice1_block.is_empty() && !slice2_block.is_empty() {
                     format!(
                         "\
 if ({encoding_variable} == SliceEncoding.Slice1)
 {{
-    {slice1_blocks}
+    {slice1_block}
 }}
 else // Slice2
 {{
-    {slice2_blocks}
+    {slice2_block}
 }}
 ",
                         encoding_variable = self.encoding_variable,
-                        slice1_blocks = slice1_blocks.indent(),
-                        slice2_blocks = slice2_blocks.indent(),
+                        slice1_block = slice1_block.indent(),
+                        slice2_block = slice2_block.indent(),
                     )
                     .into()
                 } else {

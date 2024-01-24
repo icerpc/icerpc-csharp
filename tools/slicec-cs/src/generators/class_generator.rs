@@ -193,7 +193,6 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             code.writeln("decoder.StartSlice();");
             code.writeln(&decode_fields(
                 &fields,
-                namespace,
                 Encoding::Slice1, // classes are Slice1 only
             ));
             code.writeln("decoder.EndSlice();");

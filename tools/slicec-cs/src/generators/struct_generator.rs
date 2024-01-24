@@ -72,10 +72,10 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     // Decode constructor
     let mut decode_body = EncodingBlockBuilder::new("decoder.Encoding", struct_def.supported_encodings())
         .add_encoding_block(Encoding::Slice1, || {
-            decode_fields(&fields, &namespace, Encoding::Slice1)
+            decode_fields(&fields, Encoding::Slice1)
         })
         .add_encoding_block(Encoding::Slice2, || {
-            decode_fields(&fields, &namespace, Encoding::Slice2)
+            decode_fields(&fields, Encoding::Slice2)
         })
         .build();
 

@@ -3,88 +3,65 @@
 use crate::builders::{Builder, FunctionCallBuilder};
 use crate::cs_attributes::CsType;
 use crate::cs_util::*;
+use crate::member_util::get_sorted_members;
 use crate::slicec_ext::*;
 use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::*;
+use slicec::utils::code_gen_util::{get_bit_sequence_size, TypeContext};
 
-pub fn decode_fields(fields: &[&Field], namespace: &str, encoding: Encoding) -> CodeBlock {
-    let mut code = CodeBlock::default();
-
-    let (required_fields, tagged_fields) = get_sorted_members(fields);
-
-    let bit_sequence_size = get_bit_sequence_size(encoding, fields);
-
+/// Compute how many bits are needed to decode the provided members, and if more than 0 bits are needed,
+/// This generates code that creates a new `BitSequenceReader` with the necessary capacity.
+fn initialize_bit_sequence_reader_for<T: Member>(members: &[&T], code: &mut CodeBlock, encoding: Encoding) {
+    let bit_sequence_size = get_bit_sequence_size(encoding, members);
     if bit_sequence_size > 0 {
         writeln!(
             code,
             "var bitSequenceReader = decoder.GetBitSequenceReader({bit_sequence_size});",
         );
     }
+}
 
-    // Decode required fields
-    for field in required_fields {
-        writeln!(
-            code,
-            "this.{param} = {decode};",
-            param = field.field_name(),
-            decode = decode_member(field, namespace, encoding),
-        );
-    }
+pub fn decode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
+    let mut code = CodeBlock::default();
+    initialize_bit_sequence_reader_for(fields, &mut code, encoding);
 
-    // Decode tagged data fields
-    for field in tagged_fields {
-        writeln!(
-            code,
-            "this.{param} = {decode};",
-            param = field.field_name(),
-            decode = decode_tagged(field, namespace, true, encoding),
-        );
-    }
+    let action = |field_name, field_value| {
+        writeln!(code, "this.{field_name} = {field_value};")
+    };
 
+    decode_fields_core(fields, encoding, action);
     code
 }
 
-pub fn decode_enum_fields(fields: &[&Field], enum_class: &str, namespace: &str, encoding: Encoding) -> CodeBlock {
+pub fn decode_enum_fields(fields: &[&Field], enum_class: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
-
-    let (required_fields, tagged_fields) = get_sorted_members(fields);
-
-    let bit_sequence_size = get_bit_sequence_size(encoding, fields);
-
-    if bit_sequence_size > 0 {
-        writeln!(
-            code,
-            "var bitSequenceReader = decoder.GetBitSequenceReader({bit_sequence_size});",
-        );
-    }
+    initialize_bit_sequence_reader_for(fields, &mut code, encoding);
 
     let mut new_instance_builder = FunctionCallBuilder::new(format!("new {enum_class}"));
     new_instance_builder.arguments_on_newline(fields.len() > 1);
+    let action = |field_name, field_value| {
+        new_instance_builder.add_argument(&format!("{field_name}: {field_value}"));
+    };
 
-    // Decode required fields. It's critical to specify the field name as we may not
-    // be decoding in declaration order.
-    for field in required_fields {
-        new_instance_builder.add_argument(&format!(
-            "{field_name}: {field_value}",
-            field_name = field.field_name(),
-            field_value = decode_member(field, namespace, encoding),
-        ));
-    }
-
-    // Decode tagged data fields
-    for field in tagged_fields {
-        new_instance_builder.add_argument(&format!(
-            "{field_name}: {field_value}",
-            field_name = field.field_name(),
-            field_value = decode_tagged(field, namespace, true, encoding),
-        ));
-    }
-
+    decode_fields_core(fields, encoding, action);
     writeln!(code, "var result = {}", new_instance_builder.build());
-
     code
+}
+
+/// Generates code for each of the provided fields by calling the provided `action` for each field.
+fn decode_fields_core(fields: &[&Field], encoding: Encoding, mut action: impl FnMut(String, CodeBlock)) {
+    for field in get_sorted_members(fields) {
+        let namespace = field.namespace();
+
+        let field_name = field.field_name();
+        let field_value = match field.is_tagged() {
+            true => decode_tagged(field, &namespace, true, encoding),
+            false => decode_member(field, &namespace, encoding),
+        };
+
+        action(field_name, field_value);
+    }
 }
 
 pub fn default_activator(encoding: Encoding) -> &'static str {
@@ -167,7 +144,7 @@ fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> C
     code
 }
 
-pub fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bool, encoding: Encoding) -> CodeBlock {
+fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bool, encoding: Encoding) -> CodeBlock {
     let data_type = member.data_type();
 
     assert!(data_type.is_optional);
@@ -186,7 +163,7 @@ pub fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bo
     decode
 }
 
-pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
+fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let key_type = &dictionary_ref.key_type;
     let value_type = &dictionary_ref.value_type;
 
@@ -228,7 +205,7 @@ decoder.DecodeDictionary(
     .into()
 }
 
-pub fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encoding: Encoding) -> CodeBlock {
+fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encoding: Encoding) -> CodeBlock {
     assert!(encoding != Encoding::Slice1);
     let success_type = &result_type_ref.success_type;
     let failure_type = &result_type_ref.failure_type;
@@ -245,7 +222,7 @@ decoder.DecodeResult(
     .into()
 }
 
-pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
+fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
 
@@ -416,42 +393,31 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
 }
 
 fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+    let mut decode_func = match type_ref.is_optional {
+        true => decode_func_body(type_ref, namespace, encoding),
+        false => decode_func(type_ref, namespace, encoding),
+    };
+
+    // TODO: it's lame to have to do this here. We should provide a better API.
+    if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
+        write!(
+            decode_func,
+            " as {}",
+            type_ref.cs_type_string(namespace, TypeContext::Field, false),
+        );
+    }
+
     if type_ref.is_optional {
-        let mut decode_func_body = decode_func_body(type_ref, namespace, encoding);
-
-        // TODO: it's lame to have to do this here. We should provide a better API.
-        if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
-            write!(
-                decode_func_body,
-                " as {}",
-                type_ref.cs_type_string(namespace, TypeContext::Field, false),
-            );
-        }
-
-        let mut decode_func = CodeBlock::from(format!(
+        decode_func = CodeBlock::from(format!(
             "\
 (ref SliceDecoder decoder) => decoder.DecodeBool() ?
-    {decode_func_body}
+    {decode_func}
     : null",
         ));
-
-        decode_func.indent();
-        decode_func
-    } else {
-        let mut decode_func = decode_func(type_ref, namespace, encoding);
-
-        // Ditto
-        if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
-            write!(
-                decode_func,
-                " as {}",
-                type_ref.cs_type_string(namespace, TypeContext::Field, false),
-            );
-        }
-
-        decode_func.indent();
-        decode_func
     }
+
+    decode_func.indent();
+    decode_func
 }
 
 pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
@@ -519,64 +485,39 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
 
 pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     let mut code = CodeBlock::default();
+    let namespace = operation.namespace();
+    let encoding = operation.encoding;
 
-    let namespace = &operation.namespace();
-
-    let non_streamed_members = if dispatch {
+    let non_streamed_parameters = if dispatch {
         operation.non_streamed_parameters()
     } else {
         operation.non_streamed_return_members()
     };
+    assert!(!non_streamed_parameters.is_empty());
 
-    assert!(!non_streamed_members.is_empty());
+    initialize_bit_sequence_reader_for(&non_streamed_parameters, &mut code, operation.encoding);
 
-    let (required_members, tagged_members) = get_sorted_members(&non_streamed_members);
-
-    let bit_sequence_size = get_bit_sequence_size(operation.encoding, &non_streamed_members);
-
-    if bit_sequence_size > 0 {
-        writeln!(
-            code,
-            "var bitSequenceReader = decoder.GetBitSequenceReader({bit_sequence_size});",
-        );
+    for parameter in get_sorted_members(&non_streamed_parameters) {
+        let param_type = parameter.data_type();
+    
+        // For optional value types we have to use the full type as the compiler cannot
+        // disambiguate between null and the actual value type.
+        let param_type_string = match param_type.is_optional && param_type.is_value_type() {
+            true => param_type.cs_type_string(&namespace, TypeContext::IncomingParam, false),
+            false => "var".to_owned(),
+        };
+    
+        let param_name = &parameter.parameter_name_with_prefix("sliceP_");
+    
+        let decode = match parameter.is_tagged() {
+            true => decode_tagged(parameter, &namespace, false, encoding),
+            false => decode_member(parameter, &namespace, encoding),
+        };
+    
+        writeln!(code, "{param_type_string} {param_name} = {decode};")
     }
 
-    for member in required_members {
-        writeln!(
-            code,
-            "{param_type} {param_name} = {decode};",
-            // For optional value types we have to use the full type as the compiler cannot
-            // disambiguate between null and the actual value type.
-            param_type = match member.data_type().is_optional && member.data_type().is_value_type() {
-                true => member.data_type().cs_type_string(namespace, TypeContext::IncomingParam, false),
-                false => String::from("var"),
-            },
-            param_name = &member.parameter_name_with_prefix("sliceP_"),
-            decode = decode_member(member, namespace, operation.encoding),
-        )
-    }
-
-    for member in tagged_members {
-        writeln!(
-            code,
-            "{param_type} {param_name} = {decode};",
-            // For optional value types we have to use the full type as the compiler cannot
-            // disambiguate between null and the actual value type.
-            param_type = match member.data_type().is_value_type() {
-                true => member.data_type().cs_type_string(namespace, TypeContext::IncomingParam, false),
-                false => String::from("var"),
-            },
-            param_name = &member.parameter_name_with_prefix("sliceP_"),
-            decode = decode_tagged(
-                member,
-                namespace,
-                false, // not a constructed type
-                operation.encoding
-            ),
-        )
-    }
-
-    writeln!(code, "return {};", non_streamed_members.to_argument_tuple("sliceP_"));
+    writeln!(code, "return {};", non_streamed_parameters.to_argument_tuple("sliceP_"));
 
     code
 }

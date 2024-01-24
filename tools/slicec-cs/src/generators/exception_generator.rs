@@ -83,7 +83,7 @@ decoder.StartSlice();
 {decode_fields}
 decoder.EndSlice();
 {decode_base}",
-                    decode_fields = decode_fields(fields, namespace, Encoding::Slice1),
+                    decode_fields = decode_fields(fields, Encoding::Slice1),
                     decode_base = if has_base { "base.DecodeCore(ref decoder);" } else { "" },
                 )
                 .into(),
