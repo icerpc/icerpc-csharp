@@ -98,7 +98,6 @@ decoder.EndSlice();
 
 fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let fields = &exception_def.fields();
-    let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
 
     FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
@@ -111,7 +110,7 @@ encoder.StartSlice(SliceTypeId);
 {encode_fields}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}",
-                encode_fields = encode_fields(fields, namespace, Encoding::Slice1),
+                encode_fields = encode_fields(fields, Encoding::Slice1),
                 is_last_slice = !has_base,
                 encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
             )
