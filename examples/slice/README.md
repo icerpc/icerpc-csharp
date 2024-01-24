@@ -5,6 +5,7 @@ This folder contains example applications that showcase the IceRPC + Slice integ
 |                                            |                                                                                                                                     |
 |--------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | [Compress](./Compress/)                    | Shows how to use the compress interceptor and middleware.                                                                           |
+| [CustomError](./CustomError/)              | Shows how to return custom errors from operations with the Result<Success, Failure> type.                                           |
 | [Deadline](./Deadline/)                    | Shows how to use the deadline interceptor to set the invocation deadline.                                                           |
 | [DiscriminatedUnion](./DiscriminatedUnion/)| Shows how to define and use discriminated unions in Slice.                                                                          |
 | [Download](./Download/)                    | Shows how to download a file from a server by streaming this file.                                                                  |
