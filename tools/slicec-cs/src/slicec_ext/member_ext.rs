@@ -55,7 +55,7 @@ impl FieldExt for Field {
                     .map(|param_tag| format_comment_message(&param_tag.message, &self.namespace()))
             })
         } else {
-            None
+            panic!("Called 'formatted_param_doc_comment' on field outside of enumerator!");
         }
     }
 }
