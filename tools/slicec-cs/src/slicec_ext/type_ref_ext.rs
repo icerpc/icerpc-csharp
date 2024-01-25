@@ -52,40 +52,30 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             }
         };
 
-        if self.is_optional && !ignore_optional {
-            type_string + "?"
-        } else {
-            type_string
-        }
+        set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
     }
 
     fn incoming_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
                 let element_type = sequence_ref.element_type.field_type_string(namespace, false);
-                let cs_type_attribute = sequence_ref.find_attribute::<CsType>();
-                match cs_type_attribute {
-                    Some(arg) => arg.type_string.clone(),
+                match sequence_ref.find_attribute::<CsType>() {
+                    Some(argument) => argument.type_string.clone(),
                     None => format!("{element_type}[]"),
                 }
             }
             TypeRefs::Dictionary(dictionary_ref) => {
                 let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
                 let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
-                let cs_type_attribute = dictionary_ref.find_attribute::<CsType>();
-                match cs_type_attribute {
-                    Some(arg) => arg.type_string.clone(),
+                match dictionary_ref.find_attribute::<CsType>() {
+                    Some(argument) => argument.type_string.clone(),
                     None => format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>"),
                 }
             }
             _ => self.field_type_string(namespace, true),
         };
 
-        if self.is_optional && !ignore_optional {
-            type_string + "?"
-        } else {
-            type_string
-        }
+        set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
     }
 
     fn outgoing_type_string(&self, namespace: &str, mut ignore_optional: bool) -> String {
@@ -112,10 +102,13 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             _ => self.field_type_string(namespace, true),
         };
 
-        if self.is_optional && !ignore_optional {
-            type_string + "?"
-        } else {
-            type_string
-        }
+        set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
+    }
+}
+
+fn set_optional_modifier_for(type_string: String, is_optional: bool) -> String {
+    match is_optional {
+        true => type_string + "?",
+        false => type_string
     }
 }

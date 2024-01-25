@@ -176,6 +176,7 @@ fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, enco
         write!(
             decode_value,
             " as {}",
+            // TODO change this to a cast, so we can pass `ignore_optional = false`.
             value_type.field_type_string(namespace, true),
         );
     }
