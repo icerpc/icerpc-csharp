@@ -8,8 +8,6 @@ pub trait TypeRefExt {
     /// Is this type known to map to a C# value type?
     fn is_value_type(&self) -> bool;
 
-    // TODO add comments
-    // TODO the functions have some shared logic that can be pulled out!
     fn field_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
     fn incoming_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
     fn outgoing_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
@@ -58,18 +56,22 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     fn incoming_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
-                let element_type = sequence_ref.element_type.field_type_string(namespace, false);
                 match sequence_ref.find_attribute::<CsType>() {
                     Some(argument) => argument.type_string.clone(),
-                    None => format!("{element_type}[]"),
+                    None => {
+                        let element_type = sequence_ref.element_type.field_type_string(namespace, false);
+                        format!("{element_type}[]")
+                    }
                 }
             }
             TypeRefs::Dictionary(dictionary_ref) => {
-                let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
-                let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
                 match dictionary_ref.find_attribute::<CsType>() {
                     Some(argument) => argument.type_string.clone(),
-                    None => format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>"),
+                    None => {
+                        let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
+                        let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
+                        format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>")
+                    }
                 }
             }
             _ => self.field_type_string(namespace, true),
