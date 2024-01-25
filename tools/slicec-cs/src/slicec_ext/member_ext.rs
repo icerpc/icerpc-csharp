@@ -5,7 +5,6 @@ use crate::cs_attributes::CsReadonly;
 use crate::cs_util::{escape_keyword, format_comment_message};
 use convert_case::Case;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::TypeContext;
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;
@@ -63,7 +62,7 @@ impl FieldExt for Field {
 }
 
 pub trait ParameterExt {
-    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
+    fn cs_type_string(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String;
 
     /// Returns the message of the `@param` tag corresponding to this parameter from the operation it's part of.
     /// If the operation has no doc comment, or a matching `@param` tag, this returns `None`.
@@ -71,16 +70,20 @@ pub trait ParameterExt {
 }
 
 impl ParameterExt for Parameter {
-    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
-        let type_str = self.data_type().cs_type_string(namespace, context, ignore_optional);
+    fn cs_type_string(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String {
+        let type_string = match is_dispatch {
+            true => self.data_type().outgoing_type_string(namespace, ignore_optional),
+            false => self.data_type().incoming_type_string(namespace, ignore_optional),
+        };
+
         if self.is_streamed {
-            if type_str == "byte" {
+            if type_string == "byte" {
                 "global::System.IO.Pipelines.PipeReader".to_owned()
             } else {
-                format!("global::System.Collections.Generic.IAsyncEnumerable<{type_str}>")
+                format!("global::System.Collections.Generic.IAsyncEnumerable<{type_string}>")
             }
         } else {
-            type_str
+            type_string
         }
     }
 
@@ -99,7 +102,7 @@ impl ParameterExt for Parameter {
 
 pub trait ParameterSliceExt {
     fn to_argument_tuple(&self, prefix: &str) -> String;
-    fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
+    fn to_tuple_type(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String;
 }
 
 impl ParameterSliceExt for [&Parameter] {
@@ -117,14 +120,14 @@ impl ParameterSliceExt for [&Parameter] {
         }
     }
 
-    fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
+    fn to_tuple_type(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String {
         match self {
             [] => panic!("tuple type with no members"),
-            [member] => member.cs_type_string(namespace, context, ignore_optional),
+            [member] => member.cs_type_string(namespace, ignore_optional, is_dispatch),
             _ => format!(
                 "({})",
                 self.iter()
-                    .map(|m| m.cs_type_string(namespace, context, ignore_optional) + " " + &m.field_name())
+                    .map(|m| m.cs_type_string(namespace, ignore_optional, is_dispatch) + " " + &m.field_name())
                     .collect::<Vec<String>>()
                     .join(", "),
             ),

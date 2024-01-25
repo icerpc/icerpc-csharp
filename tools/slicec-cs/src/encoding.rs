@@ -7,7 +7,7 @@ use crate::slicec_ext::*;
 use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::{get_bit_sequence_size, TypeContext};
+use slicec::utils::code_gen_util::get_bit_sequence_size;
 
 pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
@@ -27,7 +27,7 @@ pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
             true => encode_tagged_type,
             false => encode_type,
         };
-        code.writeln(&encode_fn(field, TypeContext::Field, &namespace, &param, "encoder", encoding));
+        code.writeln(&encode_fn(field, &namespace, &param, "encoder", encoding, false));
     }
 
     code
@@ -35,11 +35,11 @@ pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
 
 fn encode_type(
     member: &impl Member,
-    type_context: TypeContext,
     namespace: &str,
     param: &str,
     encoder_param: &str,
     encoding: Encoding,
+    is_outgoing_param: bool,
 ) -> CodeBlock {
     let type_ref = member.data_type();
 
@@ -81,7 +81,7 @@ fn encode_type(
                 }
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
-                    encode_sequence(sequence_ref, namespace, param, type_context, encoder_param, encoding),
+                    encode_sequence(sequence_ref, namespace, param, encoder_param, encoding, is_outgoing_param),
                 ),
                 TypeRefs::Dictionary(dictionary_ref) => {
                     format!(
@@ -123,7 +123,7 @@ if ({param} != null)
                         TypeRefs::Sequence(sequence_ref)
                             if sequence_ref.has_fixed_size_primitive_elements()
                                 && !sequence_ref.has_attribute::<CsType>()
-                                && type_context == TypeContext::OutgoingParam =>
+                                && is_outgoing_param =>
                             format!("{param}.Span"),
                         _ => param.to_owned(),
                     },
@@ -138,11 +138,11 @@ if ({param} != null)
 
 fn encode_tagged_type(
     member: &impl Member,
-    type_context: TypeContext,
     namespace: &str,
     param: &str,
     encoder_param: &str,
     encoding: Encoding,
+    is_outgoing_param: bool,
 ) -> CodeBlock {
     let mut code = CodeBlock::default();
     let data_type = member.data_type();
@@ -155,7 +155,7 @@ fn encode_tagged_type(
     let read_only_memory = matches!(
         data_type.concrete_type(),
         Types::Sequence(sequence_def) if sequence_def.has_fixed_size_primitive_elements()
-            && type_context == TypeContext::OutgoingParam
+            && is_outgoing_param
             && !data_type.has_attribute::<CsType>()
     );
 
@@ -229,7 +229,7 @@ fn encode_tagged_type(
     let null_check = if read_only_memory {
         format!("{param}.Span != null")
     } else {
-        let unwrapped_type = data_type.cs_type_string(namespace, type_context, true);
+        let unwrapped_type = get_type_string(data_type, namespace, true, is_outgoing_param);
         format!("{param} is {unwrapped_type} {unwrapped_name}")
     };
 
@@ -242,7 +242,7 @@ fn encode_tagged_type(
         .add_argument_if_present(size_parameter.map(|size| format!("size: {size}")))
         .add_argument_if(read_only_memory, value)
         .add_argument_if(!read_only_memory, unwrapped_name)
-        .add_argument(encode_action(data_type, type_context, namespace, encoding, true))
+        .add_argument(encode_action(data_type, namespace, encoding, true, is_outgoing_param))
         .build();
 
     writeln!(
@@ -269,12 +269,12 @@ fn encode_sequence(
     sequence_ref: &TypeRef<Sequence>,
     namespace: &str,
     value: &str,
-    type_context: TypeContext,
     encoder_param: &str,
     encoding: Encoding,
+    is_outgoing_param: bool,
 ) -> CodeBlock {
     if sequence_ref.has_fixed_size_primitive_elements() && !sequence_ref.has_attribute::<CsType>() {
-        if type_context == TypeContext::OutgoingParam {
+        if is_outgoing_param {
             format!("{encoder_param}.EncodeSpan({value}.Span)")
         } else {
             format!("{encoder_param}.EncodeSequence({value})")
@@ -291,7 +291,7 @@ fn encode_sequence(
             } else {
                 ""
             },
-            encode_action = encode_action(element_type, TypeContext::Field, namespace, encoding, false).indent(),
+            encode_action = encode_action(element_type, namespace, encoding, false, false).indent(),
         )
     }
     .into()
@@ -317,32 +317,32 @@ fn encode_dictionary(
         } else {
             "EncodeDictionary"
         },
-        encode_key = encode_action(key_type, TypeContext::Field, namespace, encoding, false).indent(),
-        encode_value = encode_action(value_type, TypeContext::Field, namespace, encoding, false).indent(),
+        encode_key = encode_action(key_type, namespace, encoding, false, false).indent(),
+        encode_value = encode_action(value_type, namespace, encoding, false, false).indent(),
     )
     .into()
 }
 
 fn encode_action(
     type_ref: &TypeRef,
-    type_context: TypeContext,
     namespace: &str,
     encoding: Encoding,
     is_tagged: bool,
+    is_outgoing_param: bool,
 ) -> CodeBlock {
     CodeBlock::from(format!(
         "(ref SliceEncoder encoder, {value_type} value) => {encode_action_body}",
-        value_type = type_ref.cs_type_string(namespace, type_context, is_tagged),
-        encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, is_tagged),
+        value_type = get_type_string(type_ref, namespace, is_tagged, is_outgoing_param),
+        encode_action_body = encode_action_body(type_ref, namespace, encoding, is_tagged, is_outgoing_param),
     ))
 }
 
 fn encode_action_body(
     type_ref: &TypeRef,
-    type_context: TypeContext,
     namespace: &str,
     encoding: Encoding,
     is_tagged: bool,
+    is_outgoing_param: bool,
 ) -> CodeBlock {
     let mut code = CodeBlock::default();
     let is_optional = type_ref.is_optional && !is_tagged;
@@ -394,7 +394,7 @@ fn encode_action_body(
             write!(
                 code,
                 "{}",
-                encode_sequence(sequence_ref, namespace, value, type_context, "encoder", encoding),
+                encode_sequence(sequence_ref, namespace, value, "encoder", encoding, is_outgoing_param),
             )
         }
         TypeRefs::Struct(_) => write!(code, "{value}.Encode(ref encoder)"),
@@ -442,22 +442,22 @@ fn encode_result(
 }
 
 pub fn encode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
-    encode_type_with_bit_sequence_optimization(type_ref, TypeContext::OutgoingParam, namespace, encoding)
+    encode_type_with_bit_sequence_optimization(type_ref, namespace, encoding, true)
 }
 
 fn encode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
-    encode_type_with_bit_sequence_optimization(type_ref, TypeContext::Field, namespace, encoding)
+    encode_type_with_bit_sequence_optimization(type_ref, namespace, encoding, false)
 }
 
 /// This function returns a `encode_action` lambda function. This includes the code for handling optional types.
 /// Instead of using a whole bit-sequence, it encodes the optionality on a single bool however.
 fn encode_type_with_bit_sequence_optimization(
     type_ref: &TypeRef,
-    type_context: TypeContext,
     namespace: &str,
     encoding: Encoding,
+    is_outgoing_param: bool,
 ) -> CodeBlock {
-    let value_type = type_ref.cs_type_string(namespace, type_context, false);
+    let value_type = get_type_string(type_ref, namespace, false, is_outgoing_param);
     if type_ref.is_optional {
         CodeBlock::from(format!(
             "\
@@ -469,10 +469,10 @@ fn encode_type_with_bit_sequence_optimization(
         {encode_action_body};
     }}
 }}",
-            encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, false).indent()
+            encode_action_body = encode_action_body(type_ref, namespace, encoding, false, is_outgoing_param).indent()
         ))
     } else {
-        encode_action(type_ref, type_context, namespace, encoding, false)
+        encode_action(type_ref, namespace, encoding, false, is_outgoing_param)
     }
 }
 
@@ -507,7 +507,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
             true => encode_tagged_type,
             false => encode_type,
         };
-        code.writeln(&encode_fn(parameter, TypeContext::OutgoingParam, namespace, &parameter_name, encoder_param, operation.encoding));
+        code.writeln(&encode_fn(parameter, namespace, &parameter_name, encoder_param, operation.encoding, true));
     }
 
     if operation.encoding != Encoding::Slice1 {
@@ -548,4 +548,11 @@ int startPos_ = encoder_.EncodedByteCount;",
         encode_returns = encode_operation_parameters(operation, is_dispatch, "encoder_"),
     )
     .into()
+}
+
+fn get_type_string(type_ref: &TypeRef, namespace: &str, ignore_optional: bool, is_outgoing_param: bool) -> String {
+    match is_outgoing_param {
+        true => type_ref.outgoing_type_string(namespace, ignore_optional),
+        false => type_ref.field_type_string(namespace, ignore_optional),
+    }
 }

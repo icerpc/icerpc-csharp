@@ -10,7 +10,6 @@ use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Commentable, Encoding, Entity, Operation, *};
 use slicec::supported_encodings::SupportedEncodings;
-use slicec::utils::code_gen_util::TypeContext;
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
@@ -142,9 +141,7 @@ impl ContainerBuilder {
 
     pub fn add_fields(&mut self, fields: &[&Field]) -> &mut Self {
         for field in fields {
-            let type_string = field
-                .data_type()
-                .cs_type_string(&field.namespace(), TypeContext::Field, false);
+            let type_string = field.data_type().field_type_string(&field.namespace(), false);
 
             self.add_field(
                 &field.field_name(),
@@ -321,7 +318,7 @@ impl FunctionBuilder {
         self
     }
 
-    pub fn add_operation_parameters(&mut self, operation: &Operation, context: TypeContext) -> &mut Self {
+    pub fn add_operation_parameters(&mut self, operation: &Operation, is_dispatch: bool) -> &mut Self {
         let parameters = operation.parameters();
 
         // Find an index such that all parameters after it are optional (but not streamed)
@@ -338,10 +335,10 @@ impl FunctionBuilder {
         };
 
         for (index, parameter) in parameters.iter().enumerate() {
-            let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
+            let parameter_type = parameter.cs_type_string(&operation.namespace(), false, is_dispatch);
             let parameter_name = parameter.parameter_name();
 
-            let default_value = if context == TypeContext::OutgoingParam && (index >= trailing_optional_parameters_index) {
+            let default_value = if is_dispatch && (index >= trailing_optional_parameters_index) {
                 match parameter.data_type.concrete_typeref() {
                     // Sequences of fixed-size numeric types are mapped to `ReadOnlyMemory<T>` and have to use
                     // 'default' as their default value. Other optional types are mapped to nullable types and
@@ -366,34 +363,26 @@ impl FunctionBuilder {
             );
         }
 
-        match context {
-            TypeContext::IncomingParam => {
-                self.add_parameter(
-                    "IceRpc.Features.IFeatureCollection",
-                    &escape_parameter_name(&parameters, "features"),
-                    None,
-                    Some("The dispatch features.".to_owned()),
-                );
-            }
-            TypeContext::OutgoingParam => {
-                self.add_parameter(
-                    "IceRpc.Features.IFeatureCollection?",
-                    &escape_parameter_name(&parameters, "features"),
-                    Some("null"),
-                    Some("The invocation features.".to_owned()),
-                );
-            }
-            _ => panic!("Unexpected context value"),
+        if is_dispatch {
+            self.add_parameter(
+                "IceRpc.Features.IFeatureCollection",
+                &escape_parameter_name(&parameters, "features"),
+                None,
+                Some("The dispatch features.".to_owned()),
+            );
+        } else {
+            self.add_parameter(
+                "IceRpc.Features.IFeatureCollection?",
+                &escape_parameter_name(&parameters, "features"),
+                Some("null"),
+                Some("The invocation features.".to_owned()),
+            );
         }
 
         self.add_parameter(
             "global::System.Threading.CancellationToken",
             &escape_parameter_name(&parameters, "cancellationToken"),
-            if context == TypeContext::OutgoingParam {
-                Some("default")
-            } else {
-                None
-            },
+            is_dispatch.then_some("default"),
             Some("A cancellation token that receives the cancellation requests.".to_owned()),
         );
 
@@ -443,10 +432,9 @@ impl FunctionBuilder {
         // Generate documentation for "void" returns. This is only done for void operations
         // since they can't have '@returns' tags in their doc comments.
         if operation.return_type.is_empty() {
-            let comment = match context {
-                TypeContext::IncomingParam => "A value task that completes when this implementation completes.",
-                TypeContext::OutgoingParam => "A task that completes when the response is received.",
-                _ => unreachable!("Unexpected context value"),
+            let comment = match is_dispatch {
+                true => "A task that completes when the response is received.",
+                false => "A value task that completes when this implementation completes.",
             };
             self.add_comment("returns", comment);
         }

@@ -3,15 +3,13 @@
 use super::{EntityExt, EnumExt, PrimitiveExt};
 use crate::cs_attributes::CsType;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::TypeContext;
 
 pub trait TypeRefExt {
     /// Is this type known to map to a C# value type?
     fn is_value_type(&self) -> bool;
 
-    /// The C# mapped type for this type reference.
-    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
-
+    // TODO add comments
+    // TODO the functions have some shared logic that can be pulled out!
     fn field_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
     fn incoming_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
     fn outgoing_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
@@ -118,14 +116,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             type_string + "?"
         } else {
             type_string
-        }
-    }
-
-    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
-        match context {
-            TypeContext::Field => self.field_type_string(namespace, ignore_optional),
-            TypeContext::IncomingParam => self.incoming_type_string(namespace, ignore_optional),
-            TypeContext::OutgoingParam => self.outgoing_type_string(namespace, ignore_optional),
         }
     }
 }

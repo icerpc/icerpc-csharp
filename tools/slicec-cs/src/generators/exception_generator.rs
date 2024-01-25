@@ -7,7 +7,6 @@ use crate::member_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Encoding, Exception, Member};
-use slicec::utils::code_gen_util::TypeContext;
 
 pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
     let exception_name = exception_def.escape_identifier();
@@ -144,7 +143,7 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
 
     for field in &all_fields {
         ctor_builder.add_parameter(
-            &field.data_type().cs_type_string(namespace, TypeContext::Field, false),
+            &field.data_type().field_type_string(namespace, false),
             field.parameter_name().as_str(),
             None,
             field.formatted_doc_comment_summary(),

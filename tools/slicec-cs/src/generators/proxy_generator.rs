@@ -10,7 +10,7 @@ use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::attributes::Oneway;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::*;
+use slicec::utils::code_gen_util::get_bit_sequence_size;
 
 pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();
@@ -293,7 +293,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let mut builder = FunctionBuilder::new("public", &return_task, &async_operation_name, body_type);
     builder.set_inherit_doc(true);
     builder.add_obsolete_attribute(operation);
-    builder.add_operation_parameters(operation, TypeContext::OutgoingParam);
+    builder.add_operation_parameters(operation, true);
 
     let mut body = CodeBlock::default();
 
@@ -347,7 +347,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
                 invocation_builder.add_argument(
                     FunctionCallBuilder::new(format!(
                         "{stream_parameter_name}.ToPipeReader<{}>",
-                        stream_type.cs_type_string(namespace, TypeContext::OutgoingParam, false),
+                        stream_type.outgoing_type_string(namespace, false),
                     ))
                     .use_semicolon(false)
                     .add_argument(encode_stream_parameter(stream_type, namespace, operation.encoding).indent())
@@ -406,7 +406,7 @@ fn proxy_base_operation_impl(operation: &Operation, namespace: &str) -> CodeBloc
     let mut builder = FunctionBuilder::new("public", &return_task, &async_name, FunctionType::ExpressionBody);
     builder.set_inherit_doc(true);
     builder.add_obsolete_attribute(operation);
-    builder.add_operation_parameters(operation, TypeContext::OutgoingParam);
+    builder.add_operation_parameters(operation, true);
 
     builder.set_body(
         format!(
@@ -435,7 +435,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
             builder.add_comment("summary", summary);
         }
         builder
-            .add_operation_parameters(operation, TypeContext::OutgoingParam)
+            .add_operation_parameters(operation, true)
             .add_comments(operation.formatted_doc_comment_seealso())
             .add_obsolete_attribute(operation);
         code.add_block(&builder.build());
@@ -486,7 +486,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         for param in &params {
             builder.add_parameter(
-                &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
+                &param.cs_type_string(namespace, false, true),
                 &param.parameter_name(),
                 None,
                 param.formatted_param_doc_comment(),
@@ -554,7 +554,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         } else {
             format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                members.to_tuple_type(namespace, TypeContext::IncomingParam, false),
+                members.to_tuple_type(namespace, false, false),
             )
         };
 

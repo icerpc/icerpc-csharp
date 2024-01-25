@@ -7,7 +7,7 @@ use crate::encoding::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::*;
+use slicec::utils::code_gen_util::get_bit_sequence_size;
 
 pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();
@@ -108,7 +108,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             },
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                &parameters.to_tuple_type(namespace, TypeContext::IncomingParam, false),
+                &parameters.to_tuple_type(namespace, false, false),
             ),
             &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
@@ -192,7 +192,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         match non_streamed_returns.as_slice() {
             [param] => {
                 builder.add_parameter(
-                    &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
+                    &param.cs_type_string(namespace, false, true),
                     "returnValue",
                     None,
                     Some("The operation return value.".to_owned()),
@@ -201,7 +201,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             _ => {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
-                        &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
+                        &param.cs_type_string(namespace, false, true),
                         &param.parameter_name(),
                         None,
                         param.formatted_param_doc_comment(),
@@ -345,7 +345,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
         builder.add_comment("summary", summary);
     }
     builder
-        .add_operation_parameters(operation, TypeContext::IncomingParam)
+        .add_operation_parameters(operation, false)
         .add_comments(operation.formatted_doc_comment_seealso())
         .build()
 }

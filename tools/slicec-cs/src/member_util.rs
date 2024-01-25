@@ -4,7 +4,6 @@ use crate::comments::CommentTag;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Contained, Field, Member};
-use slicec::utils::code_gen_util::TypeContext;
 
 /// Takes a list of members and sorts them in the following order: [required members][tagged members]
 /// Required members are left in the provided order. Tagged members are sorted so tag values are in increasing order.
@@ -23,9 +22,7 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
 }
 
 pub fn field_declaration(field: &Field) -> String {
-    let type_string = field
-        .data_type()
-        .cs_type_string(&field.namespace(), TypeContext::Field, false);
+    let type_string = field.data_type().field_type_string(&field.namespace(), false);
     let mut prelude = CodeBlock::default();
 
     if let Some(summary) = field.formatted_doc_comment_summary() {
