@@ -365,17 +365,17 @@ impl FunctionBuilder {
 
         if is_dispatch {
             self.add_parameter(
-                "IceRpc.Features.IFeatureCollection",
-                &escape_parameter_name(&parameters, "features"),
-                None,
-                Some("The dispatch features.".to_owned()),
-            );
-        } else {
-            self.add_parameter(
                 "IceRpc.Features.IFeatureCollection?",
                 &escape_parameter_name(&parameters, "features"),
                 Some("null"),
                 Some("The invocation features.".to_owned()),
+            );
+        } else {
+            self.add_parameter(
+                "IceRpc.Features.IFeatureCollection",
+                &escape_parameter_name(&parameters, "features"),
+                None,
+                Some("The dispatch features.".to_owned()),
             );
         }
 
