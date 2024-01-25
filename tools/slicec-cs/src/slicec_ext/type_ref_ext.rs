@@ -111,6 +111,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 fn set_optional_modifier_for(type_string: String, is_optional: bool) -> String {
     match is_optional {
         true => type_string + "?",
-        false => type_string
+        false => type_string,
     }
 }

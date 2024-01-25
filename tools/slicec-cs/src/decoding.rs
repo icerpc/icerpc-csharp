@@ -232,11 +232,7 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
     if !has_cs_type_attribute && matches!(element_type.concrete_type(), Types::Sequence(_)) {
         // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
         // used in the request and response decode methods.
-        write!(
-            code,
-            "({}[])",
-            element_type.field_type_string(namespace, false),
-        );
+        write!(code, "({}[])", element_type.field_type_string(namespace, false));
     };
 
     if has_cs_type_attribute {
@@ -401,11 +397,7 @@ fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) 
 
     // TODO: it's lame to have to do this here. We should provide a better API.
     if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
-        write!(
-            decode_func,
-            " as {}",
-            type_ref.field_type_string(namespace, false),
-        );
+        write!(decode_func, " as {}", type_ref.field_type_string(namespace, false));
     }
 
     if type_ref.is_optional {
