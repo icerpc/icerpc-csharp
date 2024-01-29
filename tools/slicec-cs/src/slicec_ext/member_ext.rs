@@ -62,7 +62,7 @@ impl FieldExt for Field {
 }
 
 pub trait ParameterExt {
-    fn cs_type_string(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String;
+    fn cs_type_string(&self, namespace: &str, ignore_optional: bool, is_outgoing: bool) -> String;
 
     /// Returns the message of the `@param` tag corresponding to this parameter from the operation it's part of.
     /// If the operation has no doc comment, or a matching `@param` tag, this returns `None`.
@@ -70,8 +70,8 @@ pub trait ParameterExt {
 }
 
 impl ParameterExt for Parameter {
-    fn cs_type_string(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String {
-        let type_string = match is_dispatch {
+    fn cs_type_string(&self, namespace: &str, ignore_optional: bool, is_outgoing: bool) -> String {
+        let type_string = match is_outgoing {
             true => self.data_type().outgoing_type_string(namespace, ignore_optional),
             false => self.data_type().incoming_type_string(namespace, ignore_optional),
         };
@@ -102,7 +102,7 @@ impl ParameterExt for Parameter {
 
 pub trait ParameterSliceExt {
     fn to_argument_tuple(&self, prefix: &str) -> String;
-    fn to_tuple_type(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String;
+    fn to_tuple_type(&self, namespace: &str, ignore_optional: bool, is_outgoing: bool) -> String;
 }
 
 impl ParameterSliceExt for [&Parameter] {
@@ -120,14 +120,14 @@ impl ParameterSliceExt for [&Parameter] {
         }
     }
 
-    fn to_tuple_type(&self, namespace: &str, ignore_optional: bool, is_dispatch: bool) -> String {
+    fn to_tuple_type(&self, namespace: &str, ignore_optional: bool, is_outgoing: bool) -> String {
         match self {
             [] => panic!("tuple type with no members"),
-            [member] => member.cs_type_string(namespace, ignore_optional, is_dispatch),
+            [member] => member.cs_type_string(namespace, ignore_optional, is_outgoing),
             _ => format!(
                 "({})",
                 self.iter()
-                    .map(|m| m.cs_type_string(namespace, ignore_optional, is_dispatch) + " " + &m.field_name())
+                    .map(|m| m.cs_type_string(namespace, ignore_optional, is_outgoing) + " " + &m.field_name())
                     .collect::<Vec<String>>()
                     .join(", "),
             ),
