@@ -178,7 +178,7 @@ Slice provides common primitives types with easy-to-understand names:
 - floating point types (float32, float64)
 
 You can define new types with `struct`, `enum`, and `custom`. You can construct collections with `Sequence<T>` and
-`Dictionary<Key, Value>`. And you can have your Slice operation return different values upon success or failure with
+`Dictionary<Key, Value>`. And you can have your Slice operation return different types upon success or failure with
 `Result<Success, Failure>`.
 
 [custom] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of modularity and
