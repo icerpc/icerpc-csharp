@@ -177,16 +177,17 @@ Slice provides common primitives types with easy-to-understand names:
 - variable-size integral types (varint32, varint62, varuint32, varuint62)
 - floating point types (float32, float64)
 
-You can define new types with `struct`, `enum`, and `custom`. And you can construct collections with `Sequence<T>` and
-`Dictionary<Key, Value>`.
+You can define new types with `struct`, `enum`, and `custom`. You can construct collections with `Sequence<T>` and
+`Dictionary<Key, Value>`. And you can have your Slice operation return different types upon success or failure with
+`Result<Success, Failure>`.
 
 [custom] allows you to send any C# type you wish through Slice, in keeping with IceRPC's mantra of modularity and
 extensibility. You just need to provide methods to encode and decode instances of your custom type.
 
 ## Protobuf
 
-Protocol Buffers, or Protobuf for short, is a popular IDL and serialization format developed by Google. It's the preferred
-IDL for a number of RPC frameworks, including [gRPC].
+Protocol Buffers, or Protobuf for short, is a popular IDL and serialization format developed by Google. It's the
+preferred IDL for a number of RPC frameworks, including [gRPC].
 
 The IceRPC + Protobuf integration allows you to call and implement Protobuf services using IceRPC with only a few lines
 of code.
