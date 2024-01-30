@@ -63,7 +63,7 @@ impl FieldExt for Field {
 }
 
 pub trait ParameterExt {
-    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
+    fn cs_type_string(&self, namespace: &str, context: TypeContext) -> String;
 
     /// Returns the message of the `@param` tag corresponding to this parameter from the operation it's part of.
     /// If the operation has no doc comment, or a matching `@param` tag, this returns `None`.
@@ -71,11 +71,11 @@ pub trait ParameterExt {
 }
 
 impl ParameterExt for Parameter {
-    fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
+    fn cs_type_string(&self, namespace: &str, context: TypeContext) -> String {
         // TODO this can be further simplified.
         let type_str = match context {
-            TypeContext::OutgoingParam => self.data_type().outgoing_type_string(namespace, ignore_optional),
-            TypeContext::IncomingParam => self.data_type().incoming_type_string(namespace, ignore_optional),
+            TypeContext::OutgoingParam => self.data_type().outgoing_type_string(namespace, false),
+            TypeContext::IncomingParam => self.data_type().incoming_type_string(namespace, false),
             TypeContext::Field => unreachable!(),
         };
 
@@ -105,7 +105,7 @@ impl ParameterExt for Parameter {
 
 pub trait ParameterSliceExt {
     fn to_argument_tuple(&self, prefix: &str) -> String;
-    fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String;
+    fn to_tuple_type(&self, namespace: &str, context: TypeContext) -> String;
 }
 
 impl ParameterSliceExt for [&Parameter] {
@@ -123,14 +123,14 @@ impl ParameterSliceExt for [&Parameter] {
         }
     }
 
-    fn to_tuple_type(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
+    fn to_tuple_type(&self, namespace: &str, context: TypeContext) -> String {
         match self {
             [] => panic!("tuple type with no members"),
-            [member] => member.cs_type_string(namespace, context, ignore_optional),
+            [member] => member.cs_type_string(namespace, context),
             _ => format!(
                 "({})",
                 self.iter()
-                    .map(|m| m.cs_type_string(namespace, context, ignore_optional) + " " + &m.field_name())
+                    .map(|m| m.cs_type_string(namespace, context) + " " + &m.field_name())
                     .collect::<Vec<String>>()
                     .join(", "),
             ),

@@ -486,7 +486,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         for param in &params {
             builder.add_parameter(
-                &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
+                &param.cs_type_string(namespace, TypeContext::OutgoingParam),
                 &param.parameter_name(),
                 None,
                 param.formatted_param_doc_comment(),
@@ -554,7 +554,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         } else {
             format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                members.to_tuple_type(namespace, TypeContext::IncomingParam, false),
+                members.to_tuple_type(namespace, TypeContext::IncomingParam),
             )
         };
 
