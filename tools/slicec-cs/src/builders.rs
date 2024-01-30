@@ -144,7 +144,7 @@ impl ContainerBuilder {
         for field in fields {
             let type_string = field
                 .data_type()
-                .cs_type_string(&field.namespace(), TypeContext::Field, false);
+                .field_type_string(&field.namespace(), false);
 
             self.add_field(
                 &field.field_name(),

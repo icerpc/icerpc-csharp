@@ -229,7 +229,7 @@ fn encode_tagged_type(
     let null_check = if read_only_memory {
         format!("{param}.Span != null")
     } else {
-        let unwrapped_type = data_type.cs_type_string(namespace, type_context, true);
+        let unwrapped_type = get_type_string(data_type, namespace, type_context, true);
         format!("{param} is {unwrapped_type} {unwrapped_name}")
     };
 
@@ -332,7 +332,7 @@ fn encode_action(
 ) -> CodeBlock {
     CodeBlock::from(format!(
         "(ref SliceEncoder encoder, {value_type} value) => {encode_action_body}",
-        value_type = type_ref.cs_type_string(namespace, type_context, is_tagged),
+        value_type = get_type_string(type_ref, namespace, type_context, is_tagged),
         encode_action_body = encode_action_body(type_ref, type_context, namespace, encoding, is_tagged),
     ))
 }
@@ -457,7 +457,7 @@ fn encode_type_with_bit_sequence_optimization(
     namespace: &str,
     encoding: Encoding,
 ) -> CodeBlock {
-    let value_type = type_ref.cs_type_string(namespace, type_context, false);
+    let value_type = get_type_string(type_ref, namespace, type_context, false);
     if type_ref.is_optional {
         CodeBlock::from(format!(
             "\
@@ -548,4 +548,13 @@ int startPos_ = encoder_.EncodedByteCount;",
         encode_returns = encode_operation_parameters(operation, is_dispatch, "encoder_"),
     )
     .into()
+}
+
+// TODO temporary bridging code while cleaning up the type_string functions.
+fn get_type_string(type_ref: &TypeRef, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
+    match context {
+        TypeContext::OutgoingParam => type_ref.outgoing_type_string(namespace, ignore_optional),
+        TypeContext::Field => type_ref.field_type_string(namespace, ignore_optional),
+        TypeContext::IncomingParam => unreachable!(),
+    }
 }

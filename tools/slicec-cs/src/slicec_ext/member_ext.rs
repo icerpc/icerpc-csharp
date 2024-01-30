@@ -72,7 +72,13 @@ pub trait ParameterExt {
 
 impl ParameterExt for Parameter {
     fn cs_type_string(&self, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
-        let type_str = self.data_type().cs_type_string(namespace, context, ignore_optional);
+        // TODO this can be further simplified.
+        let type_str = match context {
+            TypeContext::OutgoingParam => self.data_type().outgoing_type_string(namespace, ignore_optional),
+            TypeContext::IncomingParam => self.data_type().incoming_type_string(namespace, ignore_optional),
+            TypeContext::Field => unreachable!(),
+        };
+
         if self.is_streamed {
             if type_str == "byte" {
                 "global::System.IO.Pipelines.PipeReader".to_owned()
