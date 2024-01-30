@@ -25,6 +25,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 
     fn field_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
         let type_string = match &self.concrete_typeref() {
+            TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_type().to_owned(),
             TypeRefs::Struct(struct_ref) => struct_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
@@ -46,7 +47,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
                 format!("global::System.Collections.Generic.IDictionary<{key_type}, {value_type}>")
             }
-            TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_type().to_owned(),
         };
 
         set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
@@ -55,20 +55,22 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     fn incoming_parameter_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
-                let element_type = sequence_ref.element_type.field_type_string(namespace, false);
-
                 match sequence_ref.find_attribute::<CsType>() {
-                    Some(arg) => arg.type_string.clone(),
-                    None => format!("{element_type}[]"),
+                    Some(argument) => argument.type_string.clone(),
+                    None => {
+                        let element_type = sequence_ref.element_type.field_type_string(namespace, false);
+                        format!("{element_type}[]")
+                    }
                 }
             }
             TypeRefs::Dictionary(dictionary_ref) => {
-                let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
-                let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
-
                 match dictionary_ref.find_attribute::<CsType>() {
-                    Some(arg) => arg.type_string.clone(),
-                    None => format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>"),
+                    Some(argument) => argument.type_string.clone(),
+                    None => {
+                        let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
+                        let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
+                        format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>")
+                    }
                 }
             }
             _ => self.field_type_string(namespace, true),
@@ -98,7 +100,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Dictionary(dictionary_ref) => {
                 let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
                 let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
-
                 format!(
                     "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{key_type}, {value_type}>>"
                 )
