@@ -73,7 +73,7 @@ pub fn default_activator(encoding: Encoding) -> &'static str {
 fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let data_type = member.data_type();
-    let type_string = data_type.incoming_parameter_type_string(namespace, true);
+    let type_string = data_type.field_type_string(namespace, true);
 
     if data_type.is_optional {
         match data_type.concrete_type() {
