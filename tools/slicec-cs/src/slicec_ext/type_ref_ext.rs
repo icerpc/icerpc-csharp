@@ -36,7 +36,8 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             }
             TypeRefs::CustomType(custom_type_ref) => {
                 let attribute = custom_type_ref.definition().find_attribute::<CsType>();
-                attribute.unwrap().type_string.clone()
+                let attribute = attribute.expect("called 'type_string' on custom type with no 'cs::type' attribute!");
+                attribute.type_string.clone()
             }
             TypeRefs::Sequence(sequence_ref) => {
                 let element_type = sequence_ref.element_type.field_type_string(namespace, false);
@@ -83,17 +84,13 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
                 let element_type = sequence_ref.element_type.field_type_string(namespace, false);
-
-                // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
-                if sequence_ref.has_fixed_size_primitive_elements() && sequence_ref.has_attribute::<CsType>() {
+                let has_cs_type_attribute = self.has_attribute::<CsType>();
+                if sequence_ref.has_fixed_size_primitive_elements() && !has_cs_type_attribute {
+                    // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead,
+                    // and the mapping is the same for optional and non-optional types.
+                    ignore_optional = true;
                     format!("global::System.ReadOnlyMemory<{element_type}>")
                 } else {
-                    // For readonly sequences of fixed size numeric elements the mapping is the
-                    // same for optional an non optional types.
-                    if sequence_ref.has_fixed_size_primitive_elements() {
-                        ignore_optional = true;
-                    }
-
                     format!("global::System.Collections.Generic.IEnumerable<{element_type}>")
                 }
             }
