@@ -142,9 +142,7 @@ impl ContainerBuilder {
 
     pub fn add_fields(&mut self, fields: &[&Field]) -> &mut Self {
         for field in fields {
-            let type_string = field
-                .data_type()
-                .field_type_string(&field.namespace(), false);
+            let type_string = field.data_type().field_type_string(&field.namespace(), false);
 
             self.add_field(
                 &field.field_name(),

@@ -22,9 +22,7 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
 }
 
 pub fn field_declaration(field: &Field) -> String {
-    let type_string = field
-        .data_type()
-        .field_type_string(&field.namespace(), false);
+    let type_string = field.data_type().field_type_string(&field.namespace(), false);
     let mut prelude = CodeBlock::default();
 
     if let Some(summary) = field.formatted_doc_comment_summary() {

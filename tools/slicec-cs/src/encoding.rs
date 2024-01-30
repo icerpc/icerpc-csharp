@@ -553,7 +553,7 @@ int startPos_ = encoder_.EncodedByteCount;",
 // TODO temporary bridging code while cleaning up the type_string functions.
 fn get_type_string(type_ref: &TypeRef, namespace: &str, context: TypeContext, ignore_optional: bool) -> String {
     match context {
-        TypeContext::OutgoingParam => type_ref.outgoing_type_string(namespace, ignore_optional),
+        TypeContext::OutgoingParam => type_ref.outgoing_parameter_type_string(namespace, ignore_optional),
         TypeContext::Field => type_ref.field_type_string(namespace, ignore_optional),
         TypeContext::IncomingParam => unreachable!(),
     }

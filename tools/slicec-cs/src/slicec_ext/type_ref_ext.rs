@@ -9,8 +9,8 @@ pub trait TypeRefExt {
     fn is_value_type(&self) -> bool;
 
     fn field_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
-    fn incoming_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
-    fn outgoing_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
+    fn incoming_parameter_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
+    fn outgoing_parameter_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
 }
 
 impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
@@ -52,7 +52,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
     }
 
-    fn incoming_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
+    fn incoming_parameter_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
                 let element_type = sequence_ref.element_type.field_type_string(namespace, false);
@@ -77,7 +77,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
     }
 
-    fn outgoing_type_string(&self, namespace: &str, mut ignore_optional: bool) -> String {
+    fn outgoing_parameter_type_string(&self, namespace: &str, mut ignore_optional: bool) -> String {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
                 let element_type = sequence_ref.element_type.field_type_string(namespace, false);
