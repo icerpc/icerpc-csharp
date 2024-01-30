@@ -71,7 +71,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                     None => format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>"),
                 }
             }
-            _ => self.field_type_string(namespace, ignore_optional),
+            _ => self.field_type_string(namespace, true),
         };
 
         set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
@@ -103,7 +103,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                     "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{key_type}, {value_type}>>"
                 )
             }
-            _ => self.field_type_string(namespace, ignore_optional),
+            _ => self.field_type_string(namespace, true),
         };
 
         set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
