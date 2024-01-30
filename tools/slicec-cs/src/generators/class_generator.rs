@@ -9,7 +9,6 @@ use crate::member_util::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Encoding, Field};
-use slicec::utils::code_gen_util::TypeContext;
 
 pub fn generate_class(class_def: &Class) -> CodeBlock {
     let class_name = class_def.escape_identifier();
@@ -129,7 +128,7 @@ fn constructor(
 
     for field in base_fields.iter().chain(fields.iter()) {
         builder.add_parameter(
-            &field.data_type.cs_type_string(namespace, TypeContext::Field, false),
+            &field.data_type.field_type_string(namespace, false),
             &field.parameter_name(),
             None,
             field.formatted_doc_comment_summary(),

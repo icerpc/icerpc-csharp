@@ -10,7 +10,6 @@ use crate::member_util::*;
 use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::*;
 
 pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     let escaped_identifier = struct_def.escape_identifier();
@@ -54,7 +53,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
 
     for field in &fields {
         main_constructor.add_parameter(
-            &field.data_type().cs_type_string(&namespace, TypeContext::Field, false),
+            &field.data_type().field_type_string(&namespace, false),
             field.parameter_name().as_str(),
             None,
             field.formatted_doc_comment_summary(),
