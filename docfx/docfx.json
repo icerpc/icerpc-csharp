@@ -13,6 +13,7 @@
         }
       ],
       "dest": "api",
+      "filter": "filterConfig.yml",
       "includePrivateMembers": false,
       "disableGitFeatures": false,
       "disableDefaultFilter": false,
@@ -58,7 +59,7 @@
       "_appFaviconPath": "images/favicon.ico",
       "_appLogoPath": "images/logo.svg",
       "_appLogoUrl": "https://docs.icerpc.dev",
-      "_appFooter": "© 2023 ZeroC",
+      "_appFooter": "© 2024 ZeroC",
       "_enableSearch": true,
       "_googleAnalyticsTagId": "G-2D9VN5WR6Z",
       "_gitContribute": {

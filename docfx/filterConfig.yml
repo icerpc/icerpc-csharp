@@ -1,0 +1,13 @@
+apiRules:
+- exclude:
+    uidRegex: ^ZeroC\.Slice\.ResultMatchExtensions
+    type: Type
+- exclude:
+    uidRegex: '^ZeroC\.Slice\.Result`2\.(Match|Unwrap).+$'
+    type: Method
+- exclude:
+    uidRegex: '^ZeroC\.Slice\.Result`2\.Failure\.(Match|Unwrap).+$'
+    type: Method
+- exclude:
+    uidRegex: '^ZeroC\.Slice\.Result`2\.Success\.(Match|Unwrap).+$'
+    type: Method
