@@ -484,53 +484,44 @@ pub fn decode_non_streamed_parameters_func(non_streamed_parameters: &[&Parameter
         }
 
         // Otherwise we return a full multi-line lambda function for decoding the parameters.
-        params => {
-            let decode_body = decode_non_streamed_parameters(params, encoding).indent();
+        _ => {
+            let mut code = CodeBlock::default();
+
+            initialize_bit_sequence_reader_for(non_streamed_parameters, &mut code, encoding);
+
+            for parameter in get_sorted_members(non_streamed_parameters) {
+                let param_type = parameter.data_type();
+                let namespace = parameter.namespace();
+
+                // For optional value types we have to use the full type as the compiler cannot
+                // disambiguate between null and the actual value type.
+                let param_type_string = match param_type.is_optional && param_type.is_value_type() {
+                    true => param_type.incoming_parameter_type_string(&namespace, false),
+                    false => "var".to_owned(),
+                };
+
+                let param_name = &parameter.parameter_name_with_prefix();
+
+                let decode = match parameter.is_tagged() {
+                    true => decode_tagged(parameter, &namespace, false, encoding),
+                    false => decode_member(parameter, &namespace, encoding),
+                };
+
+                writeln!(code, "{param_type_string} {param_name} = {decode};")
+            }
+            writeln!(code, "return {};", non_streamed_parameters.to_argument_tuple());
+
+            let body_content = code.indent();
             format!(
                 "\
     (ref SliceDecoder decoder) =>
     {{
-        {decode_body}
+        {body_content}
     }}",
             )
             .into()
         }
     }
-}
-
-fn decode_non_streamed_parameters(non_streamed_parameters: &[&Parameter], encoding: Encoding) -> CodeBlock {
-    // Ensure that the parameters are all non-streamed, and there's at least one of them.
-    assert!(non_streamed_parameters.iter().all(|p| !p.is_streamed));
-    assert!(!non_streamed_parameters.is_empty());
-
-    let mut code = CodeBlock::default();
-
-    initialize_bit_sequence_reader_for(non_streamed_parameters, &mut code, encoding);
-
-    for parameter in get_sorted_members(non_streamed_parameters) {
-        let param_type = parameter.data_type();
-        let namespace = parameter.namespace();
-
-        // For optional value types we have to use the full type as the compiler cannot
-        // disambiguate between null and the actual value type.
-        let param_type_string = match param_type.is_optional && param_type.is_value_type() {
-            true => param_type.incoming_parameter_type_string(&namespace, false),
-            false => "var".to_owned(),
-        };
-
-        let param_name = &parameter.parameter_name_with_prefix();
-
-        let decode = match parameter.is_tagged() {
-            true => decode_tagged(parameter, &namespace, false, encoding),
-            false => decode_member(parameter, &namespace, encoding),
-        };
-
-        writeln!(code, "{param_type_string} {param_name} = {decode};")
-    }
-
-    writeln!(code, "return {};", non_streamed_parameters.to_argument_tuple());
-
-    code
 }
 
 pub fn decode_operation_stream(
