@@ -20,7 +20,7 @@ impl<T: Member> MemberExt for T {
 
     /// Returns this parameter's C# identifier (in camel case) with a `sliceP_` prefix.
     fn parameter_name_with_prefix(&self) -> String {
-        escape_keyword(&format!("sliceP_{}", self.cs_identifier(Case::Camel)))
+        format!("sliceP_{}", self.cs_identifier(Case::Camel))
     }
 
     fn field_name(&self) -> String {
