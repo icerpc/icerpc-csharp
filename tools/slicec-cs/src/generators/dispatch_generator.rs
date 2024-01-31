@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::code_gen_util::{get_bit_sequence_size, TypeContext};
 use crate::cs_attributes::CsEncodedReturn;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::*;
 
 pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();

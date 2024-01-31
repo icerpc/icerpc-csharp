@@ -12,14 +12,14 @@ use slicec::grammar::*;
 
 pub fn generate_enum(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::default();
-    code.add_block(&enum_declaration(enum_def));
+    code.add_block(enum_declaration(enum_def));
 
     if enum_def.is_mapped_to_cs_enum() {
-        code.add_block(&enum_underlying_extensions(enum_def));
+        code.add_block(enum_underlying_extensions(enum_def));
     }
 
-    code.add_block(&enum_encoder_extensions(enum_def));
-    code.add_block(&enum_decoder_extensions(enum_def));
+    code.add_block(enum_encoder_extensions(enum_def));
+    code.add_block(enum_decoder_extensions(enum_def));
     code
 }
 
@@ -110,7 +110,7 @@ fn enumerators(enum_def: &Enum) -> CodeBlock {
             enumerator.value()
         );
 
-        code.add_block(&declaration);
+        code.add_block(declaration);
     }
     code
 }
@@ -183,7 +183,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                 .build()
         );
 
-        code.add_block(&builder.build());
+        code.add_block(builder.build());
     }
 
     if enum_def.is_unchecked {
@@ -217,7 +217,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
                     .build(),
             );
 
-        code.add_block(&builder.build());
+        code.add_block(builder.build());
     }
 
     code
@@ -461,7 +461,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
                         "{escaped_identifier}.{enumerator_name}.Discriminant => Decode{enumerator_name}(ref decoder),",
                     )
                 }
-                cases.indent();
+                cases = cases.indent();
 
                 let fallback = if enum_def.is_unchecked {
                     format!("int value => new {escaped_identifier}.Unknown(value, decoder.DecodeSequence<byte>())")
@@ -472,7 +472,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
                     )
                 };
 
-                &format!(
+                format!(
                     r#"return decoder.DecodeVarInt32() switch
 {{
     {cases}
@@ -486,7 +486,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
                 let enumerator_name = enumerator.escape_identifier();
                 let decoded_type = format!("{escaped_identifier}.{enumerator_name}");
                 body.add_block(
-                    &FunctionBuilder::new(
+                    FunctionBuilder::new(
                         "static",
                         &decoded_type,
                         &format!("Decode{enumerator_name}"),

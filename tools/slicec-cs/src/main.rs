@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 mod builders;
+mod code_gen_util;
 mod comments;
 mod cs_attributes;
 mod cs_compile;

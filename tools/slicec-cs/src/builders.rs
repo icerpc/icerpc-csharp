@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+use crate::code_gen_util::TypeContext;
 use crate::comments::CommentTag;
 use crate::cs_attributes::CsType;
 use crate::cs_util::*;
@@ -7,7 +8,6 @@ use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::TypeContext;
 
 pub trait Builder {
     fn build(&self) -> CodeBlock;
@@ -181,7 +181,7 @@ impl Builder for ContainerBuilder {
             },
         );
 
-        let mut body_content: CodeBlock = self.contents.iter().cloned().collect();
+        let body_content: CodeBlock = self.contents.iter().cloned().collect();
 
         if body_content.is_empty() {
             code.writeln("{\n}");

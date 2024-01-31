@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{EntityExt, MemberExt, ParameterExt, ParameterSliceExt};
+use crate::code_gen_util::TypeContext;
 use crate::cs_attributes::CsEncodedReturn;
 use slicec::grammar::{AttributeFunctions, Contained, Operation};
-use slicec::utils::code_gen_util::TypeContext;
 
 pub trait OperationExt {
     /// Returns the format that classes should be encoded with.

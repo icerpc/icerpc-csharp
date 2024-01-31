@@ -3,6 +3,7 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
+use crate::code_gen_util::{get_bit_sequence_size, TypeContext};
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
@@ -10,7 +11,6 @@ use crate::slicec_ext::*;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::attributes::Oneway;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::*;
 
 pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
     let namespace = interface_def.namespace();
@@ -42,7 +42,7 @@ pub fn generate_proxy(interface_def: &Interface) -> CodeBlock {
         .add_comments(interface_def.formatted_doc_comment_seealso())
         .add_bases(&interface_bases)
         .add_block(proxy_interface_operations(interface_def));
-    code.add_block(&proxy_interface_builder.build());
+    code.add_block(proxy_interface_builder.build());
 
     let mut proxy_impl_builder =
         ContainerBuilder::new(&format!("{access} readonly partial record struct"), &proxy_impl);
@@ -118,7 +118,7 @@ public static implicit operator {base_impl}({proxy_impl} proxy) =>
         proxy_impl_builder.add_block(proxy_operation_impl(operation));
     }
 
-    code.add_block(&proxy_impl_builder.build());
+    code.add_block(proxy_impl_builder.build());
 
     let mut proxy_encoder_builder = ContainerBuilder::new(
         &format!("{access} static class"),
@@ -170,7 +170,7 @@ Provides an extension method for <see cref="SliceEncoder" /> to encode a <see cr
         );
     }
 
-    code.add_block(&proxy_encoder_builder.build());
+    code.add_block(proxy_encoder_builder.build());
 
     let mut proxy_decoder_builder = ContainerBuilder::new(
         &format!("{access} static class"),
@@ -222,7 +222,7 @@ Provides an extension method for <see cref="SliceDecoder" /> to decode a <see cr
         );
     }
 
-    code.add_block(&proxy_decoder_builder.build());
+    code.add_block(proxy_decoder_builder.build());
 
     code
 }
@@ -438,7 +438,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
             .add_operation_parameters(operation, TypeContext::OutgoingParam)
             .add_comments(operation.formatted_doc_comment_seealso())
             .add_obsolete_attribute(operation);
-        code.add_block(&builder.build());
+        code.add_block(builder.build());
     }
 
     code
@@ -651,11 +651,7 @@ var {stream_parameter_name} = {decode_operation_stream}
             ),
         }
 
-        writeln!(
-            code,
-            "return {};",
-            operation.return_members().to_argument_tuple(),
-        );
+        writeln!(code, "return {};", operation.return_members().to_argument_tuple());
     } else if return_void {
         writeln!(
             code,
