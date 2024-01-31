@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::builders::{
-    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, EncodingBlockBuilder, FunctionBuilder, FunctionType,
-};
+use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::cs_attributes::CsReadonly;
 use crate::decoding::*;
 use crate::encoding::*;
@@ -10,6 +8,8 @@ use crate::member_util::*;
 use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
+use slicec::supported_encodings::SupportedEncodings;
+use slicec::utils::code_gen_util::TypeContext;
 
 pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     let escaped_identifier = struct_def.escape_identifier();
@@ -69,10 +69,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     builder.add_block(main_constructor.build());
 
     // Decode constructor
-    let mut decode_body = EncodingBlockBuilder::new("decoder.Encoding", struct_def.supported_encodings())
-        .add_encoding_block(Encoding::Slice1, || decode_fields(&fields, Encoding::Slice1))
-        .add_encoding_block(Encoding::Slice2, || decode_fields(&fields, Encoding::Slice2))
-        .build();
+    let mut decode_body = generate_encoding_blocks(&fields, struct_def.supported_encodings(), decode_fields, "decoder");
 
     if !struct_def.is_compact {
         writeln!(decode_body, "decoder.SkipTagged();");
@@ -99,10 +96,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
         );
 
     // Encode method
-    let mut encode_body = EncodingBlockBuilder::new("encoder.Encoding", struct_def.supported_encodings())
-        .add_encoding_block(Encoding::Slice1, || encode_fields(&fields, Encoding::Slice1))
-        .add_encoding_block(Encoding::Slice2, || encode_fields(&fields, Encoding::Slice2))
-        .build();
+    let mut encode_body = generate_encoding_blocks(&fields, struct_def.supported_encodings(), encode_fields, "encoder");
 
     if !struct_def.is_compact {
         writeln!(encode_body, "encoder.EncodeVarInt32(Slice2Definitions.TagEndMarker);");
@@ -126,4 +120,47 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     );
 
     builder.build()
+}
+
+/// Generates an expression for encoding or decoding the fields of a struct.
+/// It checks which encodings this struct supports, and only generates code for the necessary encodings.
+fn generate_encoding_blocks(
+    fields: &[&Field],
+    encodings: SupportedEncodings,
+    encoding_fn: fn(&[&Field], Encoding) -> CodeBlock,
+    encoding_source: &'static str,
+) -> CodeBlock {
+    match encodings[..] {
+        [] => unreachable!("No supported encodings"),
+        [encoding] => encoding_fn(fields, encoding),
+        _ => {
+            let mut slice1_block = encoding_fn(fields, Encoding::Slice1);
+            let mut slice2_block = encoding_fn(fields, Encoding::Slice2);
+
+            // The encoding blocks are only empty for empty structs. But `Slice1` doesn't support empty structs.
+            // So this branch of the match statement is never hit, since it's for structs that support both encodings.
+            assert!(!slice1_block.is_empty() && !slice2_block.is_empty());
+
+            // Only write one encoding block if `slice1_block` and `slice2_block` are the same.
+            if slice1_block.to_string() == slice2_block.to_string() {
+                return slice2_block;
+            }
+
+            format!(
+                "\
+if ({encoding_source}.Encoding == SliceEncoding.Slice1)
+{{
+{slice1_block}
+}}
+else // Slice2
+{{
+{slice2_block}
+}}
+",
+                slice1_block = slice1_block.indent(),
+                slice2_block = slice2_block.indent(),
+            )
+            .into()
+        }
+    }
 }
