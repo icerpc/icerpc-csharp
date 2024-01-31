@@ -95,3 +95,38 @@ jobs:
       - name: Cleanup
         if: always()
         run: Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx -ErrorAction SilentlyContinue
+  test-packages:
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+          - os: ubuntu-22.04
+          - os: windows-2022
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    needs: build-packages
+    - name: Download packages artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: packages
+    - name: Install packages to local NuGet repository
+      working-directory: packages
+      run: dotnet nuget push *.nupkg --source ~/.nuget/packages
+      if: runner.os == 'macOS' || runner.os == 'Linux'
+      shell: bash
+    - name: Install packages to local NuGet repository
+      working-directory: packages
+      run: dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
+      if: runner.os == 'Windows'
+      shell: powershell
+    - name: 🔨 Build Examples
+      run: for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
+      if: runner.os == 'macOS' || runner.os == 'Linux'
+      shell: bash
+    - name: 🔨 Build Examples
+      run: |
+        $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
+        foreach ($example in $examples) { dotnet build $example.FullName }
+      if: runner.os == 'Windows'
+      shell: powershell
