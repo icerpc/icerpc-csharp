@@ -40,8 +40,8 @@ Install Rust using [rustup](https://rustup.rs/).
 Download the .NET SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download/dotnet).
 
 3. Rosetta 2 on Apple silicon Mac computers\
-Make sure you install [Rosetta 2] before building IceRPC on macOS for Apple silicon. It is required for running protoc
-when building the IceRPC + Protobuf integration. Corresponding protoc issue:
+Make sure to install [Rosetta 2] before building IceRPC on an Apple silicon Mac computer. It is required for running
+`protoc` when building the IceRPC + Protobuf tests. Corresponding protoc issue:
 https://github.com/protocolbuffers/protobuf/issues/15524
 
 4. docfx (optional)\
