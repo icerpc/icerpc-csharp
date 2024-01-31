@@ -468,7 +468,37 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
     code
 }
 
-pub fn decode_non_streamed_parameters(non_streamed_parameters: &[&Parameter], encoding: Encoding) -> CodeBlock {
+/// Returns a lambda function that takes a `SliceDecoder` and decodes the provided list of parameters from it.
+/// This function assumes the parameters are non-streamed, and that at least one such parameter was provided.
+pub fn decode_non_streamed_parameters_func(non_streamed_parameters: &[&Parameter], encoding: Encoding) -> CodeBlock {
+    // Ensure that the parameters are all non-streamed.
+    assert!(non_streamed_parameters.iter().all(|p| !p.is_streamed));
+
+    match non_streamed_parameters {
+        [] => panic!("passed empty parameter list to `decode_non_streamed_parameters_func"),
+
+        // If there's only one parameter, it isn't tagged, and doesn't require a bit-sequence to decode,
+        // We return a simplified lambda function.
+        [param] if !param.is_tagged() && (encoding == Encoding::Slice1 || !param.data_type().is_optional) => {
+            decode_func(param.data_type(), &param.namespace(), encoding)
+        }
+
+        // Otherwise we return a full multi-line lambda function for decoding the parameters.
+        params => {
+            let decode_body = decode_non_streamed_parameters(params, encoding).indent();
+            format!(
+                "\
+    (ref SliceDecoder decoder) =>
+    {{
+        {decode_body}
+    }}",
+            )
+            .into()
+        }
+    }
+}
+
+fn decode_non_streamed_parameters(non_streamed_parameters: &[&Parameter], encoding: Encoding) -> CodeBlock {
     // Ensure that the parameters are all non-streamed, and there's at least one of them.
     assert!(non_streamed_parameters.iter().all(|p| !p.is_streamed));
     assert!(!non_streamed_parameters.is_empty());

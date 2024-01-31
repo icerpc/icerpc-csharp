@@ -3,7 +3,7 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
-use crate::code_gen_util::{get_bit_sequence_size, TypeContext};
+use crate::code_gen_util::TypeContext;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
@@ -595,6 +595,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 fn response_operation_body(operation: &Operation) -> CodeBlock {
     let mut code = CodeBlock::default();
     let namespace = &operation.namespace();
+    let encoding = operation.encoding;
     let non_streamed_members = operation.non_streamed_return_members();
     let return_void = operation.return_members().is_empty();
 
@@ -611,7 +612,7 @@ await response.DecodeVoidReturnValueAsync(
     defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
-                encoding = operation.encoding.to_cs_encoding(),
+                encoding = encoding.to_cs_encoding(),
             );
         } else {
             writeln!(
@@ -621,13 +622,13 @@ var {return_value} = await response.DecodeReturnValueAsync(
     request,
     {encoding},
     sender,
-    {return_value_decode_func},
+    {return_value_decode_fn},
     defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
                 return_value = non_streamed_members.to_argument_tuple(),
-                encoding = operation.encoding.to_cs_encoding(),
-                return_value_decode_func = return_value_decode_func(operation).indent(),
+                encoding = encoding.to_cs_encoding(),
+                return_value_decode_fn = decode_non_streamed_parameters_func(&non_streamed_members, encoding).indent(),
             );
         }
 
@@ -647,7 +648,7 @@ var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(response)
 var {stream_parameter_name} = {decode_operation_stream}
 ",
                 stream_parameter_name = stream_member.parameter_name_with_prefix(),
-                decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, false),
+                decode_operation_stream = decode_operation_stream(stream_member, namespace, encoding, false),
             ),
         }
 
@@ -663,8 +664,8 @@ response.DecodeVoidReturnValueAsync(
     defaultActivator: {default_activator},
     cancellationToken)
 ",
-            encoding = operation.encoding.to_cs_encoding(),
-            default_activator = default_activator(operation.encoding),
+            encoding = encoding.to_cs_encoding(),
+            default_activator = default_activator(encoding),
         );
     } else {
         writeln!(
@@ -674,17 +675,17 @@ response.DecodeReturnValueAsync(
     request,
     {encoding},
     sender,
-    {return_value_decode_func},
+    {return_value_decode_fn},
     defaultActivator: {default_activator},
     cancellationToken)
 ",
-            encoding = operation.encoding.to_cs_encoding(),
-            return_value_decode_func = return_value_decode_func(operation).indent(),
-            default_activator = default_activator(operation.encoding),
+            encoding = encoding.to_cs_encoding(),
+            return_value_decode_fn = decode_non_streamed_parameters_func(&non_streamed_members, encoding).indent(),
+            default_activator = default_activator(encoding),
         );
     }
 
-    if operation.encoding == Encoding::Slice1 {
+    if encoding == Encoding::Slice1 {
         let mut try_catch_block = CodeBlock::default();
         let decode_response = code.indent();
 
@@ -728,31 +729,5 @@ catch {catch_expression}
         try_catch_block
     } else {
         code
-    }
-}
-
-fn return_value_decode_func(operation: &Operation) -> CodeBlock {
-    let namespace = &operation.namespace();
-    let encoding = operation.encoding;
-
-    // vec of members
-    let members = operation.non_streamed_return_members();
-    assert!(!members.is_empty());
-
-    if members.len() == 1
-        && get_bit_sequence_size(encoding, &members) == 0
-        && !members.first().unwrap().is_tagged()
-    {
-        decode_func(members.first().unwrap().data_type(), namespace, encoding)
-    } else {
-        format!(
-            "\
-(ref SliceDecoder decoder) =>
-{{
-    {decode}
-}}",
-            decode = decode_non_streamed_parameters(&members, encoding).indent(),
-        )
-        .into()
     }
 }
