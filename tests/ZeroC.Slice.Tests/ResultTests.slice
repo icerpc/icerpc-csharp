@@ -21,3 +21,20 @@ compact enum StringOptInt32Result {
 compact struct StringOptInt32ResultHolder {
     value: Result<string, int32?>
 }
+
+// Just to test that the generated code compiles.
+struct OptionalCollectionResults {
+    r1: Result<string, Sequence<Dictionary<string, bool?>>>
+    r2: Result<string, Sequence<Dictionary<string, bool>?>>
+    r3: Result<string, Sequence<Dictionary<string, bool>>?>
+    r4: Result<string, Sequence<Dictionary<string, bool>>>?
+
+    r5: Result<string, Sequence<Dictionary<string, bool?>?>?>?
+
+    r6: Result<Sequence<Dictionary<string, bool?>>, string>
+    r7: Result<Sequence<Dictionary<string, bool>?>, string>
+    r8: Result<Sequence<Dictionary<string, bool>>?, string>
+    r9: Result<Sequence<Dictionary<string, bool>>, string>?
+
+    r10: Result<Sequence<Dictionary<string, bool?>?>?, string>?
+}

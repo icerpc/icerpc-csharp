@@ -390,7 +390,7 @@ fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) 
 
     // TODO: it's lame to have to do this here. We should provide a better API.
     if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
-        write!(decode_func, " as {}", type_ref.field_type_string(namespace, false));
+        write!(decode_func, " as {}", type_ref.field_type_string(namespace, true));
     }
 
     if type_ref.is_optional {
