@@ -122,7 +122,9 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     builder.build()
 }
 
-pub fn generate_encoding_blocks(
+/// Generates an expression for encoding or decoding the fields of a struct.
+/// It checks which encodings this struct supports, and only generates code for the necessary encodings.
+fn generate_encoding_blocks(
     fields: &[&Field],
     encodings: SupportedEncodings,
     encoding_fn: fn(&[&Field], Encoding) -> CodeBlock,
@@ -135,25 +137,17 @@ pub fn generate_encoding_blocks(
             let mut slice1_block = encoding_fn(fields, Encoding::Slice1);
             let mut slice2_block = encoding_fn(fields, Encoding::Slice2);
 
+            // The encoding blocks are only empty for empty structs. But `Slice1` doesn't support empty structs.
+            // So this branch of the match statement is never hit, since it's for structs that support both encodings.
+            assert!(!slice1_block.is_empty() && !slice2_block.is_empty());
+
             // Only write one encoding block if `slice1_block` and `slice2_block` are the same.
             if slice1_block.to_string() == slice2_block.to_string() {
                 return slice2_block;
             }
 
-            if slice1_block.is_empty() && !slice2_block.is_empty() {
-                format!(
-                    "\
-if ({encoding_source}.Encoding != SliceEncoding.Slice1) // Slice2 only
-{{
-{slice2_block}
-}}
-",
-                    slice2_block = slice2_block.indent(),
-                )
-                .into()
-            } else if !slice1_block.is_empty() && !slice2_block.is_empty() {
-                format!(
-                    "\
+            format!(
+                "\
 if ({encoding_source}.Encoding == SliceEncoding.Slice1)
 {{
 {slice1_block}
@@ -163,13 +157,10 @@ else // Slice2
 {slice2_block}
 }}
 ",
-                    slice1_block = slice1_block.indent(),
-                    slice2_block = slice2_block.indent(),
-                )
-                .into()
-            } else {
-                unreachable!("it's impossible to have an empty Slice2 block with a non empty Slice1 block");
-            }
+                slice1_block = slice1_block.indent(),
+                slice2_block = slice2_block.indent(),
+            )
+            .into()
         }
     }
 }
