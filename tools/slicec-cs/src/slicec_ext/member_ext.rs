@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 use super::{EntityExt, TypeRefExt};
+use crate::code_gen_util::TypeContext;
 use crate::cs_attributes::CsReadonly;
 use crate::cs_util::{escape_keyword, format_comment_message};
 use convert_case::Case;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::TypeContext;
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{Builder, FunctionCallBuilder};
+use crate::code_gen_util::get_bit_sequence_size;
 use crate::cs_attributes::CsType;
 use crate::cs_util::*;
 use crate::member_util::get_sorted_members;
@@ -8,7 +9,6 @@ use crate::slicec_ext::*;
 use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::get_bit_sequence_size;
 
 /// Compute how many bits are needed to decode the provided members, and if more than 0 bits are needed,
 /// this generates code that creates a new `BitSequenceReader` with the necessary capacity.
@@ -166,7 +166,7 @@ fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, enco
     let value_type = &dictionary_ref.value_type;
 
     // decode key
-    let mut decode_key = decode_func(key_type, namespace, encoding);
+    let decode_key = decode_func(key_type, namespace, encoding);
 
     // decode value
     let mut decode_value = decode_func(value_type, namespace, encoding);
@@ -402,8 +402,7 @@ fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) 
         ));
     }
 
-    decode_func.indent();
-    decode_func
+    decode_func.indent()
 }
 
 pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {

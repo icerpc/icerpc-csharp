@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{Builder, FunctionCallBuilder};
+use crate::code_gen_util::{get_bit_sequence_size, TypeContext};
 use crate::cs_attributes::CsType;
 use crate::member_util::get_sorted_members;
 use crate::slicec_ext::*;
 use convert_case::Case;
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
-use slicec::utils::code_gen_util::{get_bit_sequence_size, TypeContext};
 
 pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();

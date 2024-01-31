@@ -22,34 +22,34 @@ struct Generator<'a> {
 impl Visitor for Generator<'_> {
     fn visit_struct(&mut self, struct_def: &Struct) {
         if !self.for_interfaces {
-            self.code.add_block(&struct_generator::generate_struct(struct_def));
+            self.code.add_block(struct_generator::generate_struct(struct_def));
         }
     }
 
     fn visit_class(&mut self, class_def: &Class) {
         if !self.for_interfaces {
-            self.code.add_block(&class_generator::generate_class(class_def));
+            self.code.add_block(class_generator::generate_class(class_def));
         }
     }
 
     fn visit_exception(&mut self, exception_def: &Exception) {
         if !self.for_interfaces {
             self.code
-                .add_block(&exception_generator::generate_exception(exception_def));
+                .add_block(exception_generator::generate_exception(exception_def));
         }
     }
 
     fn visit_interface(&mut self, interface_def: &Interface) {
         if self.for_interfaces {
-            self.code.add_block(&proxy_generator::generate_proxy(interface_def));
+            self.code.add_block(proxy_generator::generate_proxy(interface_def));
             self.code
-                .add_block(&dispatch_generator::generate_dispatch(interface_def));
+                .add_block(dispatch_generator::generate_dispatch(interface_def));
         }
     }
 
     fn visit_enum(&mut self, enum_def: &Enum) {
         if !self.for_interfaces {
-            self.code.add_block(&enum_generator::generate_enum(enum_def));
+            self.code.add_block(enum_generator::generate_enum(enum_def));
         }
     }
 }
@@ -64,14 +64,14 @@ pub fn generate_from_slice_file(slice_file: &SliceFile, for_interfaces: bool, _o
         generated_code.add_block("using IceRpc.Slice;\nusing ZeroC.Slice;");
     } else {
         generated_code.add_block("using ZeroC.Slice;");
-        generated_code.add_block(&format!("[assembly:Slice(\"{filename}.slice\")]"));
+        generated_code.add_block(format!("[assembly:Slice(\"{filename}.slice\")]"));
     }
 
     // If the slice file wasn't empty, generate code for its contents.
     if let Some(module_ptr) = &slice_file.module {
         // First generate the file's namespace declaration.
         let namespace = module_ptr.borrow().as_namespace();
-        generated_code.add_block(&format!("namespace {namespace};"));
+        generated_code.add_block(format!("namespace {namespace};"));
 
         // Then generate code for the user's slice definitions.
         let mut generator = Generator {

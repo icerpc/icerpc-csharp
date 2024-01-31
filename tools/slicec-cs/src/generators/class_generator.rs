@@ -143,7 +143,7 @@ fn constructor(
         code
     });
 
-    code.add_block(&builder.build());
+    code.add_block(builder.build());
 
     code
 }
@@ -199,8 +199,8 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
         .add_never_editor_browsable_attribute()
         .build();
 
-    code.add_block(&encode_class);
-    code.add_block(&decode_class);
+    code.add_block(encode_class);
+    code.add_block(decode_class);
 
     code
 }

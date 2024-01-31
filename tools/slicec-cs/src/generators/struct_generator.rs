@@ -9,7 +9,6 @@ use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
 use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::supported_encodings::SupportedEncodings;
-use slicec::utils::code_gen_util::TypeContext;
 
 pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     let escaped_identifier = struct_def.escape_identifier();
@@ -134,8 +133,8 @@ fn generate_encoding_blocks(
         [] => unreachable!("No supported encodings"),
         [encoding] => encoding_fn(fields, encoding),
         _ => {
-            let mut slice1_block = encoding_fn(fields, Encoding::Slice1);
-            let mut slice2_block = encoding_fn(fields, Encoding::Slice2);
+            let slice1_block = encoding_fn(fields, Encoding::Slice1);
+            let slice2_block = encoding_fn(fields, Encoding::Slice2);
 
             // The encoding blocks are only empty for empty structs. But `Slice1` doesn't support empty structs.
             // So this branch of the match statement is never hit, since it's for structs that support both encodings.
