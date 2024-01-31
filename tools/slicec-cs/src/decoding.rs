@@ -475,9 +475,9 @@ pub fn decode_non_streamed_parameters(non_streamed_parameters: &[&Parameter], en
 
     let mut code = CodeBlock::default();
 
-    initialize_bit_sequence_reader_for(&non_streamed_parameters, &mut code, encoding);
+    initialize_bit_sequence_reader_for(non_streamed_parameters, &mut code, encoding);
 
-    for parameter in get_sorted_members(&non_streamed_parameters) {
+    for parameter in get_sorted_members(non_streamed_parameters) {
         let param_type = parameter.data_type();
         let namespace = parameter.namespace();
 
