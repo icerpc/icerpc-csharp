@@ -139,9 +139,7 @@ impl ContainerBuilder {
 
     pub fn add_fields(&mut self, fields: &[&Field]) -> &mut Self {
         for field in fields {
-            let type_string = field
-                .data_type()
-                .cs_type_string(&field.namespace(), TypeContext::Field, false);
+            let type_string = field.data_type().field_type_string(&field.namespace(), false);
 
             self.add_field(
                 &field.field_name(),
@@ -335,7 +333,7 @@ impl FunctionBuilder {
         };
 
         for (index, parameter) in parameters.iter().enumerate() {
-            let parameter_type = parameter.cs_type_string(&operation.namespace(), context, false);
+            let parameter_type = parameter.cs_type_string(&operation.namespace(), context);
             let parameter_name = parameter.parameter_name();
 
             let default_value = if context == TypeContext::OutgoingParam && (index >= trailing_optional_parameters_index) {

@@ -28,9 +28,19 @@
         "tests/ZeroC.Slice.Tests.ReferencedAssemblies/DPrime"
       ]
     },
+    {
+      "paths": [
+        "tests/IntegrationTests",
+        "tests/IceRpc.Slice.Tests",
+        "tests/IceRpc.Compressor.Tests"
+      ]
+    },
     // Examples
     {
       "paths": ["examples/slice/Compress"]
+    },
+    {
+      "paths": ["examples/slice/CustomError"]
     },
     {
       "paths": ["examples/slice/Deadline"]

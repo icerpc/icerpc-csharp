@@ -86,6 +86,9 @@ You need to reference the `IceRpc.Protobuf` NuGet package to compile the generat
 This package includes the `protoc` compiler binaries, and the Protobuf well-known type definitions from the
 [Google.Protobuf.Tools][google-protobuf-tools] package.
 
+Google.Protobuf.Tools does not include a `protoc` binary for macOS on Apple silicon. As a result, you need to install
+[Rosetta 2] to build on an Apple silicon Mac computer.
+
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc
 [package]: https://www.nuget.org/packages/IceRpc.Protobuf.Tools
@@ -93,3 +96,4 @@ This package includes the `protoc` compiler binaries, and the Protobuf well-know
 [system-io-pipelines]: https://www.nuget.org/packages/System.IO.Pipelines
 [google-protobuf]: https://www.nuget.org/packages/Google.Protobuf
 [google-protobuf-tools]: https://www.nuget.org/packages/Google.Protobuf.Tools
+[Rosetta 2]: https://en.wikipedia.org/wiki/Rosetta_(software)

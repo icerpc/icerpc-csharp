@@ -108,7 +108,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             },
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                &parameters.to_tuple_type(namespace, TypeContext::IncomingParam, false),
+                &parameters.to_tuple_type(namespace, TypeContext::IncomingParam),
             ),
             &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
@@ -192,7 +192,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         match non_streamed_returns.as_slice() {
             [param] => {
                 builder.add_parameter(
-                    &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
+                    &param.cs_type_string(namespace, TypeContext::OutgoingParam),
                     "returnValue",
                     None,
                     Some("The operation return value.".to_owned()),
@@ -201,7 +201,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             _ => {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
-                        &param.cs_type_string(namespace, TypeContext::OutgoingParam, false),
+                        &param.cs_type_string(namespace, TypeContext::OutgoingParam),
                         &param.parameter_name(),
                         None,
                         param.formatted_param_doc_comment(),
