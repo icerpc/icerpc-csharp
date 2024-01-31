@@ -514,10 +514,10 @@ pub fn decode_non_streamed_parameters_func(non_streamed_parameters: &[&Parameter
             let body_content = code.indent();
             format!(
                 "\
-    (ref SliceDecoder decoder) =>
-    {{
-        {body_content}
-    }}",
+(ref SliceDecoder decoder) =>
+{{
+    {body_content}
+}}",
             )
             .into()
         }
