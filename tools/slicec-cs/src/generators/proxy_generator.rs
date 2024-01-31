@@ -733,15 +733,17 @@ catch {catch_expression}
 
 fn return_value_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
+    let encoding = operation.encoding;
+
     // vec of members
     let members = operation.non_streamed_return_members();
     assert!(!members.is_empty());
 
     if members.len() == 1
-        && get_bit_sequence_size(operation.encoding, &members) == 0
+        && get_bit_sequence_size(encoding, &members) == 0
         && !members.first().unwrap().is_tagged()
     {
-        decode_func(members.first().unwrap().data_type(), namespace, operation.encoding)
+        decode_func(members.first().unwrap().data_type(), namespace, encoding)
     } else {
         format!(
             "\
@@ -749,7 +751,7 @@ fn return_value_decode_func(operation: &Operation) -> CodeBlock {
 {{
     {decode}
 }}",
-            decode = decode_operation(operation, false).indent(),
+            decode = decode_non_streamed_parameters(&members, encoding).indent(),
         )
         .into()
     }

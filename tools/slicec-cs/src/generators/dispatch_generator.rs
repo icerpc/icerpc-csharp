@@ -311,24 +311,25 @@ request.DecodeArgsAsync(
 
 fn request_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
+    let encoding = operation.encoding;
 
     let parameters = operation.non_streamed_parameters();
     assert!(!parameters.is_empty());
 
     let use_default_decode_func = parameters.len() == 1
-        && get_bit_sequence_size(operation.encoding, &parameters) == 0
+        && get_bit_sequence_size(encoding, &parameters) == 0
         && !parameters.first().unwrap().is_tagged();
 
     if use_default_decode_func {
         let param = parameters.first().unwrap();
-        decode_func(param.data_type(), namespace, operation.encoding)
+        decode_func(param.data_type(), namespace, encoding)
     } else {
         format!(
             "(ref SliceDecoder decoder) =>
 {{
     {}
 }}",
-            decode_operation(operation, true).indent(),
+            decode_non_streamed_parameters(&parameters, encoding).indent(),
         )
         .into()
     }

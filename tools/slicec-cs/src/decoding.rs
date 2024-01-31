@@ -468,22 +468,18 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
     code
 }
 
-pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
-    let mut code = CodeBlock::default();
-    let namespace = operation.namespace();
-    let encoding = operation.encoding;
-
-    let non_streamed_parameters = if dispatch {
-        operation.non_streamed_parameters()
-    } else {
-        operation.non_streamed_return_members()
-    };
+pub fn decode_non_streamed_parameters(non_streamed_parameters: &[&Parameter], encoding: Encoding) -> CodeBlock {
+    // Ensure that the parameters are all non-streamed, and there's at least one of them.
+    assert!(non_streamed_parameters.iter().all(|p| !p.is_streamed));
     assert!(!non_streamed_parameters.is_empty());
 
-    initialize_bit_sequence_reader_for(&non_streamed_parameters, &mut code, operation.encoding);
+    let mut code = CodeBlock::default();
 
-    for parameter in get_sorted_members(&non_streamed_parameters) {
+    initialize_bit_sequence_reader_for(non_streamed_parameters, &mut code, encoding);
+
+    for parameter in get_sorted_members(non_streamed_parameters) {
         let param_type = parameter.data_type();
+        let namespace = parameter.namespace();
 
         // For optional value types we have to use the full type as the compiler cannot
         // disambiguate between null and the actual value type.
