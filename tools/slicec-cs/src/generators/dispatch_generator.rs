@@ -265,7 +265,7 @@ var {args} = await request.DecodeArgsAsync(
     {decode_func},
     defaultActivator: null,
     cancellationToken).ConfigureAwait(false);",
-                args = non_streamed_parameters.to_argument_tuple("sliceP_"),
+                args = non_streamed_parameters.to_argument_tuple(),
                 encoding = operation.encoding.to_cs_encoding(),
                 decode_func = request_decode_func(operation).indent(),
             );
@@ -275,7 +275,7 @@ var {args} = await request.DecodeArgsAsync(
                     writeln!(
                         code,
                         "var {} = IceRpc.IncomingFrameExtensions.DetachPayload(request);",
-                        stream_member.parameter_name_with_prefix("sliceP_"),
+                        stream_member.parameter_name_with_prefix(),
                     )
                 }
                 _ => writeln!(
@@ -284,12 +284,12 @@ var {args} = await request.DecodeArgsAsync(
 var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(request);
 var {stream_parameter_name} = {decode_operation_stream}
 ",
-                    stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
+                    stream_parameter_name = stream_member.parameter_name_with_prefix(),
                     decode_operation_stream =
                         decode_operation_stream(stream_member, namespace, operation.encoding, true),
                 ),
             }
-            writeln!(code, "return {};", operation.parameters().to_argument_tuple("sliceP_"));
+            writeln!(code, "return {};", operation.parameters().to_argument_tuple());
         }
     } else {
         writeln!(
@@ -410,7 +410,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
             writeln!(
                 check_and_decode,
                 "var {var_name} = await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
-                var_name = parameter.parameter_name_with_prefix("sliceP_"),
+                var_name = parameter.parameter_name_with_prefix(),
             )
         }
         _ => {
@@ -425,7 +425,7 @@ await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait
     let mut dispatch_and_return = CodeBlock::default();
 
     let mut args = match parameters.as_slice() {
-        [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
+        [parameter] => vec![parameter.parameter_name_with_prefix()],
         _ => parameters
             .into_iter()
             .map(|parameter| "args.".to_owned() + &parameter.field_name())

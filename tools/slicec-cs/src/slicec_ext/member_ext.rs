@@ -9,7 +9,7 @@ use slicec::utils::code_gen_util::TypeContext;
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;
-    fn parameter_name_with_prefix(&self, prefix: &str) -> String;
+    fn parameter_name_with_prefix(&self) -> String;
     fn field_name(&self) -> String;
 }
 
@@ -18,9 +18,9 @@ impl<T: Member> MemberExt for T {
         escape_keyword(&self.cs_identifier(Case::Camel))
     }
 
-    fn parameter_name_with_prefix(&self, prefix: &str) -> String {
-        let name = prefix.to_owned() + &self.cs_identifier(Case::Camel);
-        escape_keyword(&name)
+    /// Returns this parameter's C# identifier (in camel case) with a `sliceP_` prefix.
+    fn parameter_name_with_prefix(&self) -> String {
+        escape_keyword(&format!("sliceP_{}", self.cs_identifier(Case::Camel)))
     }
 
     fn field_name(&self) -> String {
@@ -104,19 +104,22 @@ impl ParameterExt for Parameter {
 }
 
 pub trait ParameterSliceExt {
-    fn to_argument_tuple(&self, prefix: &str) -> String;
+    fn to_argument_tuple(&self) -> String;
     fn to_tuple_type(&self, namespace: &str, context: TypeContext) -> String;
 }
 
 impl ParameterSliceExt for [&Parameter] {
-    fn to_argument_tuple(&self, prefix: &str) -> String {
+    /// Convert each parameter in this slice to it's argument representation.
+    /// This is the parameter's C# identifier (in camel case) with a `sliceP_` prefix.
+    /// If there are more than 1 parameters in this slice, it returns them wrapped in parenthesis (a tuple).
+    fn to_argument_tuple(&self) -> String {
         match self {
             [] => panic!("tuple type with no members"),
-            [member] => member.parameter_name_with_prefix(prefix),
+            [member] => member.parameter_name_with_prefix(),
             _ => format!(
                 "({})",
                 self.iter()
-                    .map(|m| m.parameter_name_with_prefix(prefix))
+                    .map(|m| m.parameter_name_with_prefix())
                     .collect::<Vec<String>>()
                     .join(", "),
             ),

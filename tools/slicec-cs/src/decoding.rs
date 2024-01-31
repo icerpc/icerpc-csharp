@@ -493,7 +493,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             false => "var".to_owned(),
         };
 
-        let param_name = &parameter.parameter_name_with_prefix("sliceP_");
+        let param_name = &parameter.parameter_name_with_prefix();
 
         let decode = match parameter.is_tagged() {
             true => decode_tagged(parameter, &namespace, false, encoding),
@@ -503,7 +503,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         writeln!(code, "{param_type_string} {param_name} = {decode};")
     }
 
-    writeln!(code, "return {};", non_streamed_parameters.to_argument_tuple("sliceP_"));
+    writeln!(code, "return {};", non_streamed_parameters.to_argument_tuple());
 
     code
 }
