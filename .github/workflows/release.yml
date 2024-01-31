@@ -104,7 +104,6 @@ jobs:
           - os: ubuntu-22.04
           - os: windows-2022
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
     needs: build-packages
     - name: Download packages artifacts
       uses: actions/download-artifact@v3
