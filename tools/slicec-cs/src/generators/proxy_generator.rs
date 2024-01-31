@@ -625,7 +625,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
     defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
-                return_value = non_streamed_members.to_argument_tuple("sliceP_"),
+                return_value = non_streamed_members.to_argument_tuple(),
                 encoding = operation.encoding.to_cs_encoding(),
                 return_value_decode_func = return_value_decode_func(operation).indent(),
             );
@@ -637,7 +637,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
                 writeln!(
                     code,
                     "var {} = IceRpc.IncomingFrameExtensions.DetachPayload(response);",
-                    stream_member.parameter_name_with_prefix("sliceP_"),
+                    stream_member.parameter_name_with_prefix(),
                 )
             }
             _ => writeln!(
@@ -646,7 +646,7 @@ var {return_value} = await response.DecodeReturnValueAsync(
 var payloadContinuation = IceRpc.IncomingFrameExtensions.DetachPayload(response);
 var {stream_parameter_name} = {decode_operation_stream}
 ",
-                stream_parameter_name = stream_member.parameter_name_with_prefix("sliceP_"),
+                stream_parameter_name = stream_member.parameter_name_with_prefix(),
                 decode_operation_stream = decode_operation_stream(stream_member, namespace, operation.encoding, false),
             ),
         }
@@ -654,7 +654,7 @@ var {stream_parameter_name} = {decode_operation_stream}
         writeln!(
             code,
             "return {};",
-            operation.return_members().to_argument_tuple("sliceP_"),
+            operation.return_members().to_argument_tuple(),
         );
     } else if return_void {
         writeln!(
