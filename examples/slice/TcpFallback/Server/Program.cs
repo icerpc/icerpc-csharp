@@ -11,7 +11,7 @@ using VisitorCenter;
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder
         .AddSimpleConsole()
-        .AddFilter("IceRpc", LogLevel.Information));
+        .AddFilter("IceRpc", LogLevel.Debug));
 
 // Create a router (dispatch pipeline) with the greeter service.
 Router router = new Router()
