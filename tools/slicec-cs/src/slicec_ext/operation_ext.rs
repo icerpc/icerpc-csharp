@@ -30,11 +30,12 @@ impl OperationExt for Operation {
         if return_members.is_empty() {
             "global::System.Threading.Tasks.Task".to_owned()
         } else {
-            let return_type = operation_return_type(
-                self,
-                false,
-                TypeContext::IncomingParam,
-            );
+            let namespace = self.parent().namespace();
+            let return_type = match self.return_members().as_slice() {
+                [] => "void".to_owned(),
+                [member] => member.cs_type_string(&namespace, TypeContext::IncomingParam),
+                members => members.to_tuple_type(&namespace, TypeContext::IncomingParam),
+            };
             format!("global::System.Threading.Tasks.Task<{return_type}>")
         }
     }
@@ -44,33 +45,25 @@ impl OperationExt for Operation {
         if return_members.is_empty() {
             "global::System.Threading.Tasks.ValueTask".to_owned()
         } else {
-            let return_type = operation_return_type(
-                self,
-                true,
-                TypeContext::OutgoingParam,
-            );
+            let namespace = self.parent().namespace();
+            let return_type = if self.has_attribute::<CsEncodedReturn>() {
+                if let Some(stream_member) = self.streamed_return_member() {
+                    format!(
+                        "(global::System.IO.Pipelines.PipeReader Payload, {} {})",
+                        stream_member.cs_type_string(&namespace, TypeContext::OutgoingParam),
+                        stream_member.field_name(),
+                    )
+                } else {
+                    "global::System.IO.Pipelines.PipeReader".to_owned()
+                }
+            } else {
+                match self.return_members().as_slice() {
+                    [] => "void".to_owned(),
+                    [member] => member.cs_type_string(&namespace, TypeContext::OutgoingParam),
+                    members => members.to_tuple_type(&namespace, TypeContext::OutgoingParam),
+                }
+            };
             format!("global::System.Threading.Tasks.ValueTask<{return_type}>")
-        }
-    }
-}
-
-fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
-    let namespace = operation.parent().namespace();
-    if is_dispatch && operation.has_attribute::<CsEncodedReturn>() {
-        if let Some(stream_member) = operation.streamed_return_member() {
-            format!(
-                "(global::System.IO.Pipelines.PipeReader Payload, {} {})",
-                stream_member.cs_type_string(&namespace, context),
-                stream_member.field_name(),
-            )
-        } else {
-            "global::System.IO.Pipelines.PipeReader".to_owned()
-        }
-    } else {
-        match operation.return_members().as_slice() {
-            [] => "void".to_owned(),
-            [member] => member.cs_type_string(&namespace, context),
-            members => members.to_tuple_type(&namespace, context),
         }
     }
 }
