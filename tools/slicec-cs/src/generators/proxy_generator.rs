@@ -275,7 +275,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
     let operation_name = operation.escape_identifier();
     let async_operation_name = operation.escape_identifier_with_suffix("Async");
-    let return_task = operation.invocation_return_task();
+    let return_task = operation.invocation_return_task("Task");
 
     let parameters = operation.non_streamed_parameters();
 
@@ -393,7 +393,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
 fn proxy_base_operation_impl(operation: &Operation, namespace: &str) -> CodeBlock {
     let async_name = operation.escape_identifier_with_suffix("Async");
-    let return_task = operation.invocation_return_task();
+    let return_task = operation.invocation_return_task("Task");
     let mut operation_params = operation
         .parameters()
         .iter()
@@ -427,7 +427,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let mut builder = FunctionBuilder::new(
             "",
-            &operation.invocation_return_task(),
+            &operation.invocation_return_task("Task"),
             &operation.escape_identifier_with_suffix("Async"),
             FunctionType::Declaration,
         );
@@ -517,8 +517,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
-    let namespace = &interface_def.namespace();
-
     let mut operations = interface_def.operations();
     operations.retain(|o| {
         // We need to generate a method to decode the responses of any operations with return members or any Slice1
@@ -541,21 +539,10 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     ).add_generated_remark("static class", interface_def);
 
     for operation in operations {
-        let members = operation.return_members();
-
         let function_type = if operation.streamed_return_member().is_some() || operation.encoding == Encoding::Slice1 {
             FunctionType::BlockBody
         } else {
             FunctionType::ExpressionBody
-        };
-
-        let return_type = if members.is_empty() {
-            "global::System.Threading.Tasks.ValueTask".to_owned()
-        } else {
-            format!(
-                "global::System.Threading.Tasks.ValueTask<{}>",
-                members.to_tuple_type(namespace, TypeContext::IncomingParam),
-            )
         };
 
         let mut builder = FunctionBuilder::new(
@@ -564,7 +551,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             } else {
                 "public static async"
             },
-            &return_type,
+            &operation.invocation_return_task("ValueTask"),
             &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
         );

@@ -9,7 +9,7 @@ pub trait OperationExt {
     /// Returns the format that classes should be encoded with.
     fn get_class_format(&self, is_dispatch: bool) -> &str;
 
-    fn invocation_return_task(&self) -> String;
+    fn invocation_return_task(&self, task_type: &str) -> String;
     fn dispatch_return_task(&self) -> String;
 }
 
@@ -25,14 +25,13 @@ impl OperationExt for Operation {
         }
     }
 
-    fn invocation_return_task(&self) -> String {
+    fn invocation_return_task(&self, task_type: &str) -> String {
         let namespace = self.namespace();
         let return_type = match self.return_members().as_slice() {
-            [] => return "global::System.Threading.Tasks.Task".to_owned(),
-            [member] => member.cs_type_string(&namespace, TypeContext::IncomingParam),
+            [] => return format!("global::System.Threading.Tasks.{task_type}"),
             members => members.to_tuple_type(&namespace, TypeContext::IncomingParam),
         };
-        format!("global::System.Threading.Tasks.Task<{return_type}>")
+        format!("global::System.Threading.Tasks.{task_type}<{return_type}>")
     }
 
     fn dispatch_return_task(&self) -> String {
@@ -54,7 +53,6 @@ impl OperationExt for Operation {
             } else {
                 match return_members.as_slice() {
                     [] => unreachable!(),
-                    [member] => member.cs_type_string(&namespace, TypeContext::OutgoingParam),
                     members => members.to_tuple_type(&namespace, TypeContext::OutgoingParam),
                 }
             };
