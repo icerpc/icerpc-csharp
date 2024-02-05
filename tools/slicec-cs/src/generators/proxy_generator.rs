@@ -464,9 +464,9 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         .add_generated_remark("static class", interface_def);
 
     for operation in operations {
-        let params: Vec<&Parameter> = operation.non_streamed_parameters();
+        let non_streamed_parameters = operation.non_streamed_parameters();
 
-        assert!(!params.is_empty());
+        assert!(!non_streamed_parameters.is_empty());
 
         let mut builder = FunctionBuilder::new(
             "public static",
@@ -479,14 +479,14 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             "summary",
             format!(
                 "Encodes the argument{s} of operation <c>{slice_operation}</c> into a request payload.",
-                s = if params.len() == 1 { "" } else { "s" },
+                s = if non_streamed_parameters.len() == 1 { "" } else { "s" },
                 slice_operation = operation.identifier(),
             ),
         );
 
-        for param in &params {
+        for param in &non_streamed_parameters {
             builder.add_parameter(
-                &param.cs_type_string(namespace, TypeContext::OutgoingParam),
+                &param.data_type().outgoing_parameter_type_string(namespace, false),
                 &param.parameter_name(),
                 None,
                 param.formatted_param_doc_comment(),
