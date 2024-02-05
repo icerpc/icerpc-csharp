@@ -4,7 +4,7 @@ is_global = true
 dotnet_diagnostic.CA2007.severity = none
 
 # CA1416: Validate platform compatibility
-# QUIC is nominally supported only on Windows, Linux and macOS.
+# QUIC is nominally supported only on Windows, Linux, and macOS.
 dotnet_diagnostic.CA1416.severity = none
 
 # CA1848: Use the LoggerMessage delegates
