@@ -51,10 +51,7 @@ impl OperationExt for Operation {
                     "global::System.IO.Pipelines.PipeReader".to_owned()
                 }
             } else {
-                match return_members.as_slice() {
-                    [] => unreachable!(),
-                    members => members.to_tuple_type(&namespace, TypeContext::OutgoingParam),
-                }
+                return_members.to_tuple_type(&namespace, TypeContext::OutgoingParam),
             };
             format!("global::System.Threading.Tasks.ValueTask<{return_type}>")
         }
