@@ -275,7 +275,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
     let operation_name = operation.escape_identifier();
     let async_operation_name = operation.escape_identifier_with_suffix("Async");
-    let return_task = operation.return_task(false);
+    let return_task = operation.invocation_return_task();
 
     let parameters = operation.non_streamed_parameters();
 
@@ -393,7 +393,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
 fn proxy_base_operation_impl(operation: &Operation, namespace: &str) -> CodeBlock {
     let async_name = operation.escape_identifier_with_suffix("Async");
-    let return_task = operation.return_task(false);
+    let return_task = operation.invocation_return_task();
     let mut operation_params = operation
         .parameters()
         .iter()
@@ -427,7 +427,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let mut builder = FunctionBuilder::new(
             "",
-            &operation.return_task(false),
+            &operation.invocation_return_task(),
             &operation.escape_identifier_with_suffix("Async"),
             FunctionType::Declaration,
         );

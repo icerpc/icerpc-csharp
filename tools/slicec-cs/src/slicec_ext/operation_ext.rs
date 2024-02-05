@@ -9,8 +9,8 @@ pub trait OperationExt {
     /// Returns the format that classes should be encoded with.
     fn get_class_format(&self, is_dispatch: bool) -> &str;
 
-    /// The operation return task.
-    fn return_task(&self, is_dispatch: bool) -> String;
+    fn invocation_return_task(&self) -> String;
+    fn dispatch_return_task(&self) -> String;
 }
 
 impl OperationExt for Operation {
@@ -25,29 +25,31 @@ impl OperationExt for Operation {
         }
     }
 
-    fn return_task(&self, is_dispatch: bool) -> String {
+    fn invocation_return_task(&self) -> String {
         let return_members = self.return_members();
         if return_members.is_empty() {
-            if is_dispatch {
-                "global::System.Threading.Tasks.ValueTask".to_owned()
-            } else {
-                "global::System.Threading.Tasks.Task".to_owned()
-            }
+            "global::System.Threading.Tasks.Task".to_owned()
         } else {
             let return_type = operation_return_type(
                 self,
-                is_dispatch,
-                if is_dispatch {
-                    TypeContext::OutgoingParam
-                } else {
-                    TypeContext::IncomingParam
-                },
+                false,
+                TypeContext::IncomingParam,
             );
-            if is_dispatch {
-                format!("global::System.Threading.Tasks.ValueTask<{return_type}>")
-            } else {
-                format!("global::System.Threading.Tasks.Task<{return_type}>")
-            }
+            format!("global::System.Threading.Tasks.Task<{return_type}>")
+        }
+    }
+
+    fn dispatch_return_task(&self) -> String {
+        let return_members = self.return_members();
+        if return_members.is_empty() {
+            "global::System.Threading.Tasks.ValueTask".to_owned()
+        } else {
+            let return_type = operation_return_type(
+                self,
+                true,
+                TypeContext::OutgoingParam,
+            );
+            format!("global::System.Threading.Tasks.ValueTask<{return_type}>")
         }
     }
 }
