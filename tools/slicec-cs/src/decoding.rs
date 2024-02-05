@@ -414,9 +414,9 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
     let mut code = CodeBlock::default();
     let type_name = type_ref.incoming_parameter_type_string(namespace, true);
 
-    // When we decode the type, we decode it as a non-optional.
-    // If the type is supposed to be optional, we cast it after decoding.
-    if type_ref.is_optional {
+    // When we decode the type, we decode it as a non-optional. If the type is supposed to be optional,
+    // we cast it after decoding. Except for sequences and dictionaries, because we always cast them anyways.
+    if type_ref.is_optional && !matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
         write!(code, "({type_name}?)");
     }
 
