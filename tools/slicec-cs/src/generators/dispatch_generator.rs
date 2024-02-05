@@ -312,7 +312,7 @@ request.DecodeArgsAsync(
 fn operation_declaration(operation: &Operation) -> CodeBlock {
     let mut builder = FunctionBuilder::new(
         "public",
-        &operation.return_task(true),
+        &operation.dispatch_return_task(),
         &operation.escape_identifier_with_suffix("Async"),
         FunctionType::Declaration,
     );
