@@ -26,12 +26,12 @@ impl OperationExt for Operation {
     }
 
     fn invocation_return_task(&self, task_type: &str) -> String {
-        let namespace = self.namespace();
+        let namespace = &self.namespace();
         let return_type = match self.return_members().as_slice() {
-            [] => return format!("global::System.Threading.Tasks.{task_type}"),
-            members => members.to_tuple_type(&namespace, TypeContext::IncomingParam),
+            [] => "".to_owned(),
+            members => format!("<{}>", members.to_tuple_type(namespace, TypeContext::IncomingParam)),
         };
-        format!("global::System.Threading.Tasks.{task_type}<{return_type}>")
+        format!("global::System.Threading.Tasks.{task_type}{return_type}")
     }
 
     fn dispatch_return_task(&self) -> String {
@@ -51,7 +51,7 @@ impl OperationExt for Operation {
                     "global::System.IO.Pipelines.PipeReader".to_owned()
                 }
             } else {
-                return_members.to_tuple_type(&namespace, TypeContext::OutgoingParam),
+                return_members.to_tuple_type(&namespace, TypeContext::OutgoingParam)
             };
             format!("global::System.Threading.Tasks.ValueTask<{return_type}>")
         }
