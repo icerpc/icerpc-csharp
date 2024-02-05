@@ -198,8 +198,8 @@ fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encodin
     let success_type = &result_type_ref.success_type;
     let failure_type = &result_type_ref.failure_type;
 
-    let decode_success = decode_type_with_cast(success_type, namespace, encoding, success_type.is_optional).indent();
-    let decode_failure = decode_type_with_cast(failure_type, namespace, encoding, failure_type.is_optional).indent();
+    let decode_success = decode_func_with_cast(success_type, namespace, encoding, success_type.is_optional).indent();
+    let decode_failure = decode_func_with_cast(failure_type, namespace, encoding, failure_type.is_optional).indent();
 
     format!(
         "\
@@ -376,8 +376,14 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
     }
 }
 
-/// Used by `decode_dictionary` and `decode_result` to generate a decoding action that includes a cast for collections.
-fn decode_type_with_cast(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_optional: bool) -> CodeBlock {
+/// Like [`decode_func`], this returns a lambda function that takes a `SliceDecoder` and returns a decoded type.
+/// The difference between this function and `decode_func` is this function writes a cast on the lambda, if the
+/// type being decoded is mapped differently as a field/parameter (ie. sequence and dictionary types).
+///
+/// This function must be called instead of `decode_func` when we're decoding in the context of a generic type
+/// (ie. `decode_result` or `decode_dictionary`). The C# compiler cannot implicitly convert nested generic types,
+/// so we need these casts to satisfy the type system.
+fn decode_func_with_cast(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_optional: bool) -> CodeBlock {
     let decode_func = decode_func_body(type_ref, namespace, encoding);
     let cast = match type_ref.concrete_type() {
         Types::Sequence(_) | Types::Dictionary(_) => format!("({})", type_ref.field_type_string(namespace, false)),
