@@ -167,7 +167,7 @@ fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, enco
 
     // decode key
     let decode_key = decode_func(key_type, namespace, encoding);
-    let decode_value = decode_type_with_cast(value_type, namespace, encoding, false);
+    let decode_value = decode_func_with_cast(value_type, namespace, encoding, false);
     let dictionary_type = dictionary_ref.incoming_parameter_type_string(namespace, true);
     let decode_key = decode_key.indent();
     let decode_value = decode_value.indent();
