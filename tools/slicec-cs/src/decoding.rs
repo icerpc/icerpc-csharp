@@ -167,13 +167,7 @@ fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, enco
 
     // decode key
     let decode_key = decode_func(key_type, namespace, encoding);
-
-    // decode value
-    let mut decode_value = decode_func(value_type, namespace, encoding);
-    if matches!(value_type.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
-        write!(decode_value, " as {}", value_type.field_type_string(namespace, true));
-    }
-
+    let decode_value = decode_func_with_cast(value_type, namespace, encoding, false);
     let dictionary_type = dictionary_ref.incoming_parameter_type_string(namespace, true);
     let decode_key = decode_key.indent();
     let decode_value = decode_value.indent();
@@ -204,8 +198,8 @@ fn decode_result(result_type_ref: &TypeRef<ResultType>, namespace: &str, encodin
     let success_type = &result_type_ref.success_type;
     let failure_type = &result_type_ref.failure_type;
 
-    let decode_success = decode_result_field(success_type, namespace, encoding);
-    let decode_failure = decode_result_field(failure_type, namespace, encoding);
+    let decode_success = decode_func_with_cast(success_type, namespace, encoding, success_type.is_optional).indent();
+    let decode_failure = decode_func_with_cast(failure_type, namespace, encoding, failure_type.is_optional).indent();
 
     format!(
         "\
@@ -382,27 +376,31 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
     }
 }
 
-fn decode_result_field(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
-    let mut decode_func = match type_ref.is_optional {
-        true => decode_func_body(type_ref, namespace, encoding),
-        false => decode_func(type_ref, namespace, encoding),
+/// Like [`decode_func`], this returns a lambda function that takes a `SliceDecoder` and returns a decoded type.
+/// The difference between this function and `decode_func` is this function writes a cast on the lambda, if the
+/// type being decoded is mapped differently as a field/parameter (ie. sequence and dictionary types).
+///
+/// This function must be called instead of `decode_func` when we're decoding in the context of a generic type
+/// (ie. `decode_result` or `decode_dictionary`). The C# compiler cannot implicitly convert nested generic types,
+/// so we need these casts to satisfy the type system.
+fn decode_func_with_cast(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_optional: bool) -> CodeBlock {
+    let decode_func = decode_func_body(type_ref, namespace, encoding);
+    let cast = match type_ref.concrete_type() {
+        Types::Sequence(_) | Types::Dictionary(_) => format!("({})", type_ref.field_type_string(namespace, false)),
+        _ => "".to_owned(),
     };
 
-    // TODO: it's lame to have to do this here. We should provide a better API.
-    if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
-        write!(decode_func, " as {}", type_ref.field_type_string(namespace, true));
-    }
-
-    if type_ref.is_optional {
-        decode_func = CodeBlock::from(format!(
+    if is_optional {
+        format!(
             "\
 (ref SliceDecoder decoder) => decoder.DecodeBool() ?
-    {decode_func}
+    {cast}{decode_func}
     : null",
-        ));
+        )
+    } else {
+        format!("(ref SliceDecoder decoder) => {cast}{decode_func}")
     }
-
-    decode_func.indent()
+    .into()
 }
 
 pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
