@@ -9,9 +9,6 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
     <!-- Enable preview features to use the QUIC transport -->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <TargetFramework>net8.0-linux</TargetFramework>
-    <TargetFramework>net8.0-macos</TargetFramework>
-    <TargetFramework>net8.0-windows</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
