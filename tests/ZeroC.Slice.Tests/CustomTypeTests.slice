@@ -14,11 +14,6 @@ class ClassWithCustomTypeFields {
     d: StructWithCustomTypeField,
 }
 
-// Ensures that the generated code doesn't produce a warning for uninitialized non-nullable custom types.
-exception ExceptionWithCustomTypeField {
-    m: CustomType
-}
-
 compact struct StructWithCustomTypeField {
     m: CustomType
 }
@@ -29,4 +24,9 @@ compact struct StructWithSequenceOfCustomTypes {
 
 compact struct StructWithSequenceOfOptionalCustomTypes {
     s: Sequence<CustomType?>,
+}
+
+// Ensures that the generated code doesn't produce a warning for uninitialized non-nullable custom types.
+exception ExceptionWithCustomTypeField {
+    m: CustomType
 }
