@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Protobuf;
 using MetricsServer;
 using VisitorCenter;
 

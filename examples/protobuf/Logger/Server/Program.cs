@@ -2,7 +2,6 @@
 
 using GreeterLogServer;
 using IceRpc;
-using IceRpc.Protobuf;
 using Microsoft.Extensions.Logging;
 using VisitorCenter;
 
