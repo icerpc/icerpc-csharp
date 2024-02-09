@@ -6,7 +6,7 @@ using IceRpc.Protobuf;
 using Metrics;
 using VisitorCenter;
 
-namespace MultipleInterfacesServer;
+namespace MultipleServicesServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements the 'Greeter' and 'RequestCounter' Protobuf services.
 /// </summary>

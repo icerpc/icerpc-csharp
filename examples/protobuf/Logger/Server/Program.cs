@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterLogServer;
+using LoggerServer;
 using IceRpc;
 using IceRpc.Protobuf;
 using Microsoft.Extensions.Logging;

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using MultipleInterfacesServer;
+using MultipleServicesServer;
 
 // Create a server that dispatches all requests to the same service, an instance of Chatbot.
 await using var server = new Server(new Chatbot());
