@@ -49,7 +49,8 @@ public class CustomTypeTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, encoding);
-        var expected = new [] {
+        var expected = new[]
+        {
             new MyCustomType { Flag = true, Value = 79 },
             new MyCustomType { Flag = false, Value = 97 },
             new MyCustomType { Flag = true, Value = 7997 },
@@ -73,7 +74,8 @@ public class CustomTypeTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, encoding);
-        var expected = new StructWithSequenceOfCustomTypes(new [] {
+        var expected = new StructWithSequenceOfCustomTypes(new[]
+        {
             new MyCustomType { Flag = true, Value = 79 },
             new MyCustomType { Flag = false, Value = 97 },
             new MyCustomType { Flag = true, Value = 7997 },
@@ -95,7 +97,8 @@ public class CustomTypeTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        var expected = new MyCustomType? [] {
+        var expected = new MyCustomType?[]
+        {
             new MyCustomType { Flag = false, Value = 7997 },
             null,
             new MyCustomType { Flag = true, Value = 79 },
@@ -117,7 +120,8 @@ public class CustomTypeTests
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
-        var expected = new StructWithSequenceOfOptionalCustomTypes(new MyCustomType? [] {
+        var expected = new StructWithSequenceOfOptionalCustomTypes(new MyCustomType?[]
+        {
             new MyCustomType { Flag = false, Value = 7997 },
             null,
             new MyCustomType { Flag = true, Value = 79 },
