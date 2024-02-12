@@ -6,11 +6,27 @@ module ZeroC::Slice::Tests
 [cs::type("MyCustomType")]
 custom CustomType
 
+class ClassWithCustomTypeFields {
+    a: CustomType,
+    b: CustomType?,
+    tag(1) c: CustomType?,
+
+    d: StructWithCustomTypeField,
+}
+
 compact struct StructWithCustomTypeField {
     m: CustomType
 }
 
+compact struct StructWithSequenceOfCustomTypes {
+    s: Sequence<CustomType>,
+}
+
+compact struct StructWithSequenceOfOptionalCustomTypes {
+    s: Sequence<CustomType?>,
+}
+
 // Ensures that the generated code doesn't produce a warning for uninitialized non-nullable custom types.
-exception ExceptionWithCustomField {
+exception ExceptionWithCustomTypeField {
     m: CustomType
 }

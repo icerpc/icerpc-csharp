@@ -185,7 +185,7 @@ public class NumericTypesEncodingTests
     }
 
     [Test]
-    public void Encode_negative_size_fails([Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Encode_negative_size_fails([Values] SliceEncoding encoding)
     {
         var bufferWriter = new MemoryBufferWriter(new byte[256]);
 
