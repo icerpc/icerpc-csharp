@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{Builder, FunctionCallBuilder};
+use crate::code_block::CodeBlock;
 use crate::code_gen_util::get_bit_sequence_size;
 use crate::cs_attributes::CsType;
 use crate::cs_util::*;
 use crate::member_util::get_sorted_members;
 use crate::slicec_ext::*;
 use convert_case::Case;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 
 /// Compute how many bits are needed to decode the provided members, and if more than 0 bits are needed,

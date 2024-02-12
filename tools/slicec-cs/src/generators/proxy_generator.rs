@@ -3,12 +3,12 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
+use crate::code_block::CodeBlock;
 use crate::code_gen_util::TypeContext;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::attributes::Oneway;
 use slicec::grammar::*;
 

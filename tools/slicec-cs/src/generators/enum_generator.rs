@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::code_block::CodeBlock;
 use crate::comments::CommentTag;
 use crate::cs_util::CsCase;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::slicec_ext::*;
 use convert_case::Case;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 
 pub fn generate_enum(enum_def: &Enum) -> CodeBlock {

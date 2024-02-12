@@ -3,11 +3,11 @@
 use crate::builders::{
     AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
 };
+use crate::code_block::CodeBlock;
 use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::{Class, Encoding, Field};
 
 pub fn generate_class(class_def: &Class) -> CodeBlock {

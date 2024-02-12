@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
+use crate::code_block::CodeBlock;
 use crate::comments::CommentTag;
 use crate::slicec_ext::*;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::{Contained, Field, Member};
 
 /// Takes a list of members and sorts them in the following order: [required members][tagged members]

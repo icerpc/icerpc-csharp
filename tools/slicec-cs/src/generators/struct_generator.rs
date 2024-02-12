@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::code_block::CodeBlock;
 use crate::cs_attributes::CsReadonly;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
 use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
-use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::supported_encodings::SupportedEncodings;
 

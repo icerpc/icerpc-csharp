@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
 use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::code_block::CodeBlock;
 use crate::code_gen_util::TypeContext;
 use crate::cs_attributes::CsEncodedReturn;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::slicec_ext::*;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 
 pub fn generate_dispatch(interface_def: &Interface) -> CodeBlock {

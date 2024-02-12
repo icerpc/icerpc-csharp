@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc.
 
+use crate::code_block::CodeBlock;
 use crate::code_gen_util::TypeContext;
 use crate::comments::CommentTag;
 use crate::cs_attributes::CsType;
 use crate::cs_util::*;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 
 pub trait Builder {

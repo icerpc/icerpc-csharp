@@ -7,9 +7,9 @@ mod exception_generator;
 mod proxy_generator;
 mod struct_generator;
 
+use crate::code_block::CodeBlock;
 use crate::cs_options::CsOptions;
 use crate::slicec_ext::ModuleExt;
-use slicec::code_block::CodeBlock;
 use slicec::grammar::*;
 use slicec::slice_file::SliceFile;
 use slicec::visitor::Visitor;
