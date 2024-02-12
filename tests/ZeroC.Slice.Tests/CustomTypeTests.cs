@@ -205,7 +205,7 @@ public class CustomTypeTests
         Assert.That(CustomTypeSliceDecoderExtensions.DecodeNullableCustomType(ref decoder), Is.Null);
         Assert.That(new StructWithCustomTypeField(ref decoder), Is.EqualTo(structWithCustomTypeField));
         Assert.That(
-            decoder.DecodeTagged(1, TagFormat.FSize, (ref SliceDecoder decoder) => CustomTypeSliceDecoderExtensions.DecodeCustomType(ref decoder), useTagEndMarker: false),
+            decoder.DecodeTagged(1, TagFormat.FSize, CustomTypeSliceDecoderExtensions.DecodeCustomType, useTagEndMarker: false),
             Is.EqualTo(myCustomType));
 
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
