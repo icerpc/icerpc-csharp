@@ -90,20 +90,18 @@ public class CustomTypeTests
     }
 
     [Test]
-    public void Decode_sequence_of_optional_custom_types([Values] SliceEncoding encoding)
+    public void Decode_slice1_sequence_of_optional_custom_types()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         var expected = new MyCustomType? [] {
             new MyCustomType { Flag = false, Value = 7997 },
             null,
             new MyCustomType { Flag = true, Value = 79 },
         };
-        encoder.EncodeSequence(
-            expected,
-            CustomTypeSliceEncoderExtensions.EncodeNullableCustomType);
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        encoder.EncodeSequence(expected, CustomTypeSliceEncoderExtensions.EncodeNullableCustomType);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         // Act
         var value = new StructWithSequenceOfOptionalCustomTypes(ref decoder);
@@ -114,11 +112,11 @@ public class CustomTypeTests
     }
 
     [Test]
-    public void Encode_sequence_of_optional_custom_types([Values] SliceEncoding encoding)
+    public void Encode_slice1_sequence_of_optional_custom_types()
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
-        var encoder = new SliceEncoder(buffer, encoding);
+        var encoder = new SliceEncoder(buffer, SliceEncoding.Slice1);
         var expected = new StructWithSequenceOfOptionalCustomTypes(new MyCustomType? [] {
             new MyCustomType { Flag = false, Value = 7997 },
             null,
@@ -129,8 +127,9 @@ public class CustomTypeTests
         expected.Encode(ref encoder);
 
         // Assert
-        var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
+        var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
         var value = decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeNullableCustomType());
+
         Assert.That(expected.S, Is.EqualTo(value));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }

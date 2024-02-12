@@ -8,7 +8,7 @@ namespace ZeroC.Slice.Tests;
 public class DictionaryEncodingTests
 {
     [Test]
-    public void Encode_dictionary([Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Encode_dictionary([Values] SliceEncoding encoding)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[1024 * 256]);

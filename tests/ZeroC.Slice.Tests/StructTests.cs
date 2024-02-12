@@ -8,8 +8,7 @@ namespace ZeroC.Slice.Tests;
 public sealed class StructTests
 {
     [Test]
-    public void Decode_compact_struct(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Decode_compact_struct([Values] SliceEncoding encoding)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, encoding);
@@ -89,8 +88,7 @@ public sealed class StructTests
     }
 
     [Test]
-    public void Encode_compact_struct(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Encode_compact_struct([Values] SliceEncoding encoding)
     {
         var buffer = new MemoryBufferWriter(new byte[256]);
         var encoder = new SliceEncoder(buffer, encoding);

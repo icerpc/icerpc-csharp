@@ -10,8 +10,7 @@ namespace ZeroC.Slice.Tests;
 public class SequenceDecodingTests
 {
     [Test]
-    public void Decode_bool_sequence_data_member(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Decode_bool_sequence_data_member([Values] SliceEncoding encoding)
     {
         // Arrange
         bool[] expected = [false, true, false];
@@ -30,8 +29,7 @@ public class SequenceDecodingTests
     }
 
     [Test]
-    public void Decode_bool_sequence_data_member_with_invalid_values(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Decode_bool_sequence_data_member_with_invalid_values([Values] SliceEncoding encoding)
     {
         // Arrange
         var buffer = new MemoryBufferWriter(new byte[256]);
@@ -52,8 +50,7 @@ public class SequenceDecodingTests
     /// fixed-size numeric value type.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the decoding.</param>
     [Test]
-    public void Decode_fixed_sized_numeric_sequence(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Decode_fixed_sized_numeric_sequence([Values] SliceEncoding encoding)
     {
         int[] expected = Enumerable.Range(0, 256).Select(i => i).ToArray();
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
@@ -75,8 +72,7 @@ public class SequenceDecodingTests
     /// string sequence.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the decoding.</param>
     [Test]
-    public void Decode_string_sequence(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Decode_string_sequence([Values] SliceEncoding encoding)
     {
         string[] expected = Enumerable.Range(0, 256).Select(i => $"string-{i}").ToArray();
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
