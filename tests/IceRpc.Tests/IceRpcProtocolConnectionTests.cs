@@ -601,8 +601,8 @@ public sealed class IceRpcProtocolConnectionTests
 
     [Test]
     public async Task Invocation_refused_if_waiting_on_create_stream_and_connection_is_shutdown_or_disposed(
-        [Values(false, true)] bool shutdown,
-        [Values(false, true)] bool clientSide)
+        [Values] bool shutdown,
+        [Values] bool clientSide)
     {
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
 
@@ -1170,7 +1170,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// PipeReader.</summary>
     [Test]
     public async Task PayloadContinuation_of_outgoing_request_completed_when_not_read_by_dispatcher(
-        [Values(false, true)] bool isOneway)
+        [Values] bool isOneway)
     {
         // Arrange
         using var dispatcher = new TestDispatcher();
@@ -1201,8 +1201,7 @@ public sealed class IceRpcProtocolConnectionTests
 
     /// <summary>Ensures that the payload continuation of a request is completed when it reaches the endStream.</summary>
     [Test]
-    public async Task PayloadContinuation_of_outgoing_request_completed_on_end_stream(
-        [Values(false, true)] bool isOneway)
+    public async Task PayloadContinuation_of_outgoing_request_completed_on_end_stream([Values] bool isOneway)
     {
         // Arrange
         using var dispatcher = new TestDispatcher(holdDispatchCount: 1);
@@ -1237,7 +1236,7 @@ public sealed class IceRpcProtocolConnectionTests
     /// <summary>Ensures that the request payload continuation is completed if the payload continuation is invalid.
     /// </summary>
     [Test]
-    public async Task Payload_completed_on_invalid_request_payload_continuation([Values(true, false)] bool isOneway)
+    public async Task Payload_completed_on_invalid_request_payload_continuation([Values] bool isOneway)
     {
         // Arrange
         var taskExceptionObserver = new TestTaskExceptionObserver();

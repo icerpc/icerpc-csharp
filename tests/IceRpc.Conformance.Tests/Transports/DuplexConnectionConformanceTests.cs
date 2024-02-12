@@ -68,7 +68,7 @@ public abstract class DuplexConnectionConformanceTests
 
     [Test]
     public async Task Connect_succeeds_or_fails_with_connection_aborted_if_the_peer_disposes_the_connection_after_connect(
-        [Values(true, false)] bool serverDispose)
+        [Values] bool serverDispose)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -221,8 +221,7 @@ public abstract class DuplexConnectionConformanceTests
     /// <summary>Verifies that calling read on a connection fails with
     /// <see cref="IceRpcError.ConnectionAborted" /> if the peer connection is disposed.</summary>
     [Test]
-    public async Task Read_from_disposed_peer_connection_fails_with_connection_aborted(
-        [Values(true, false)] bool readFromServer)
+    public async Task Read_from_disposed_peer_connection_fails_with_connection_aborted([Values] bool readFromServer)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);

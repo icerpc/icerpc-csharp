@@ -18,7 +18,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <summary>Verifies that both peers can initiate and accept streams.</summary>
     /// <param name="serverInitiated">Whether the stream is initiated by the server or by the client.</param>
     [Test]
-    public async Task Accept_a_stream([Values(true, false)] bool serverInitiated)
+    public async Task Accept_a_stream([Values] bool serverInitiated)
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
 
@@ -85,8 +85,7 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    public async Task Completing_an_unidirectional_stream_allows_accepting_a_new_one(
-        [Values(true, false)] bool abort)
+    public async Task Completing_an_unidirectional_stream_allows_accepting_a_new_one([Values] bool abort)
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection();
@@ -125,8 +124,7 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
-    public async Task Completing_a_bidirectional_stream_allows_accepting_a_new_one(
-        [Values(true, false)] bool abort)
+    public async Task Completing_a_bidirectional_stream_allows_accepting_a_new_one([Values] bool abort)
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection();
@@ -258,8 +256,7 @@ public abstract class MultiplexedConnectionConformanceTests
     /// <param name="disposeServerConnection">Whether to dispose the server connection or the client connection.
     /// </param>
     [Test]
-    public async Task Cannot_create_streams_with_a_disposed_connection(
-        [Values(true, false)] bool disposeServerConnection)
+    public async Task Cannot_create_streams_with_a_disposed_connection([Values] bool disposeServerConnection)
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
