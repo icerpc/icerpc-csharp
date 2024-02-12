@@ -3,10 +3,11 @@
 using Google.Protobuf.WellKnownTypes;
 using IceRpc.Features;
 using IceRpc.Protobuf;
+using StreamExample;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace StreamExample;
+namespace StreamServer;
 
 [ProtobufService]
 internal partial class RandomGenerator : IGeneratorService

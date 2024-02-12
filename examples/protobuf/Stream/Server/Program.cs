@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using StreamExample;
+using StreamServer;
 
 await using var server = new Server(new RandomGenerator());
 server.Listen();

@@ -4,7 +4,7 @@ using IceRpc.Features;
 using IceRpc.Protobuf;
 using VisitorCenter;
 
-namespace GreeterLogServer;
+namespace LoggerServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Protobuf service 'Greeter'.</summary>
 [ProtobufService]

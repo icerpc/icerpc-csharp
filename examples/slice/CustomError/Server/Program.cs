@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-using GreeterServer;
+using CustomErrorServer;
 using IceRpc;
 
 // Create a server that dispatches all requests to the same service, an instance of Chatbot.

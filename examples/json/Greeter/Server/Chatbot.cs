@@ -4,7 +4,7 @@ using IceRpc;
 using IceRpc.Json;
 using VisitorCenter;
 
-namespace GreeterJsonServer;
+namespace GreeterServer;
 
 /// <summary>Implements a dispatcher for the Greet operation.</summary>
 internal class Chatbot : IDispatcher

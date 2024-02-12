@@ -2,10 +2,11 @@
 
 using IceRpc.Features;
 using IceRpc.Slice;
+using StreamExample;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace StreamExample;
+namespace StreamServer;
 
 [SliceService]
 internal partial class RandomGenerator : IGeneratorService
