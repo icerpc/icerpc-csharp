@@ -4,7 +4,7 @@ use crate::slicec_ext::primitive_ext::PrimitiveExt;
 use slicec::grammar::*;
 
 pub trait EnumExt {
-    fn get_underlying_cs_type(&self) -> String;
+    fn get_underlying_cs_type(&self) -> String; // TODO This could become 'str'!
 
     fn is_mapped_to_cs_enum(&self) -> bool;
 }
