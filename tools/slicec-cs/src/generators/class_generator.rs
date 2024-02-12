@@ -128,7 +128,7 @@ fn constructor(
 
     for field in base_fields.iter().chain(fields.iter()) {
         builder.add_parameter(
-            &field.data_type.field_type_string(namespace, false),
+            &field.data_type.field_type_string(namespace),
             &field.parameter_name(),
             None,
             field.formatted_doc_comment_summary(),

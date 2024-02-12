@@ -52,7 +52,7 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
 
     for field in &fields {
         main_constructor.add_parameter(
-            &field.data_type().field_type_string(&namespace, false),
+            &field.data_type().field_type_string(&namespace),
             field.parameter_name().as_str(),
             None,
             field.formatted_doc_comment_summary(),

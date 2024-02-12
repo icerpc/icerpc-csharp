@@ -8,9 +8,9 @@ pub trait TypeRefExt {
     /// Is this type known to map to a C# value type?
     fn is_value_type(&self) -> bool;
 
-    fn field_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
-    fn incoming_parameter_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
-    fn outgoing_parameter_type_string(&self, namespace: &str, ignore_optional: bool) -> String;
+    fn field_type_string(&self, namespace: &str) -> String;
+    fn incoming_parameter_type_string(&self, namespace: &str) -> String;
+    fn outgoing_parameter_type_string(&self, namespace: &str) -> String;
 }
 
 impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
@@ -23,15 +23,15 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         }
     }
 
-    fn field_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
+    fn field_type_string(&self, namespace: &str) -> String {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_type().to_owned(),
             TypeRefs::Struct(struct_ref) => struct_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
             TypeRefs::ResultType(result_type_ref) => {
-                let success_type = result_type_ref.success_type.field_type_string(namespace, false);
-                let failure_type = result_type_ref.failure_type.field_type_string(namespace, false);
+                let success_type = result_type_ref.success_type.field_type_string(namespace);
+                let failure_type = result_type_ref.failure_type.field_type_string(namespace);
                 format!("Result<{success_type}, {failure_type}>")
             }
             TypeRefs::CustomType(custom_type_ref) => {
@@ -40,26 +40,26 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 attribute.type_string.clone()
             }
             TypeRefs::Sequence(sequence_ref) => {
-                let element_type = sequence_ref.element_type.field_type_string(namespace, false);
+                let element_type = sequence_ref.element_type.field_type_string(namespace);
                 format!("global::System.Collections.Generic.IList<{element_type}>")
             }
             TypeRefs::Dictionary(dictionary_ref) => {
-                let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
-                let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
+                let key_type = dictionary_ref.key_type.field_type_string(namespace);
+                let value_type = dictionary_ref.value_type.field_type_string(namespace);
                 format!("global::System.Collections.Generic.IDictionary<{key_type}, {value_type}>")
             }
         };
 
-        set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
+        set_optional_modifier_for(type_string, self.is_optional)
     }
 
-    fn incoming_parameter_type_string(&self, namespace: &str, ignore_optional: bool) -> String {
+    fn incoming_parameter_type_string(&self, namespace: &str) -> String {
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
                 match sequence_ref.find_attribute::<CsType>() {
                     Some(argument) => argument.type_string.clone(),
                     None => {
-                        let element_type = sequence_ref.element_type.field_type_string(namespace, false);
+                        let element_type = sequence_ref.element_type.field_type_string(namespace);
                         format!("{element_type}[]")
                     }
                 }
@@ -68,22 +68,23 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 match dictionary_ref.find_attribute::<CsType>() {
                     Some(argument) => argument.type_string.clone(),
                     None => {
-                        let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
-                        let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
+                        let key_type = dictionary_ref.key_type.field_type_string(namespace);
+                        let value_type = dictionary_ref.value_type.field_type_string(namespace);
                         format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>")
                     }
                 }
             }
-            _ => self.field_type_string(namespace, true),
+            _ => return self.field_type_string(namespace),
         };
 
-        set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)
+        set_optional_modifier_for(type_string, self.is_optional)
     }
 
-    fn outgoing_parameter_type_string(&self, namespace: &str, mut ignore_optional: bool) -> String {
+    fn outgoing_parameter_type_string(&self, namespace: &str) -> String {
+        let mut ignore_optional = false;
         let type_string = match &self.concrete_typeref() {
             TypeRefs::Sequence(sequence_ref) => {
-                let element_type = sequence_ref.element_type.field_type_string(namespace, false);
+                let element_type = sequence_ref.element_type.field_type_string(namespace);
                 let has_cs_type_attribute = self.has_attribute::<CsType>();
                 if sequence_ref.has_fixed_size_primitive_elements() && !has_cs_type_attribute {
                     // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead,
@@ -95,13 +96,13 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 }
             }
             TypeRefs::Dictionary(dictionary_ref) => {
-                let key_type = dictionary_ref.key_type.field_type_string(namespace, false);
-                let value_type = dictionary_ref.value_type.field_type_string(namespace, false);
+                let key_type = dictionary_ref.key_type.field_type_string(namespace);
+                let value_type = dictionary_ref.value_type.field_type_string(namespace);
                 format!(
                     "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{key_type}, {value_type}>>"
                 )
             }
-            _ => self.field_type_string(namespace, true),
+            _ => return self.field_type_string(namespace),
         };
 
         set_optional_modifier_for(type_string, self.is_optional && !ignore_optional)

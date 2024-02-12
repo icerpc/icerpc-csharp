@@ -143,7 +143,7 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
 
     for field in &all_fields {
         ctor_builder.add_parameter(
-            &field.data_type().field_type_string(namespace, false),
+            &field.data_type().field_type_string(namespace),
             field.parameter_name().as_str(),
             None,
             field.formatted_doc_comment_summary(),
