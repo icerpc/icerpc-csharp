@@ -258,16 +258,14 @@ new {sequence_type}(
 
 
 
-
-
     if has_cs_type_attribute {
         match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !element_type.is_optional => {
+            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !(element_type.is_optional && (encoding != Encoding::Slice1 || encoding == Encoding::Slice1)) => {
                 builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
                 builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
                 wrap_code_in_custom_constructor(builder)
             }
-            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !element_type.is_optional => {
+            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
                 if enum_def.is_unchecked {
                     builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
                 } else {
@@ -295,7 +293,7 @@ new {sequence_type}(
                 builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
                 builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
             }
-            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !element_type.is_optional => {
+            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
                 if enum_def.is_unchecked {
                     builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
                 } else {
