@@ -295,7 +295,7 @@ new {sequence_type}(
                 builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
                 builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
             }
-            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && (!element_type.is_optional || encoding == Encoding::Slice1) => {
+            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !element_type.is_optional => {
                 if enum_def.is_unchecked {
                     builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
                 } else {
