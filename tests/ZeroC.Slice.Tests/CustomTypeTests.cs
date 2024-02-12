@@ -56,7 +56,7 @@ public class CustomTypeTests
         };
         encoder.EncodeSequence(
             expected,
-            (ref SliceEncoder encoder, MyCustomType value) => CustomTypeSliceEncoderExtensions.EncodeCustomType(ref encoder, value));
+            CustomTypeSliceEncoderExtensions.EncodeCustomType);
         var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
 
         // Act
