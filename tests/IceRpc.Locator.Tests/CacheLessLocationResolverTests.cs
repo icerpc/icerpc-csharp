@@ -9,9 +9,7 @@ namespace IceRpc.Locator.Tests;
 public class CacheLessLocationResolverTests
 {
     [Test]
-    public async Task Resolving_a_known_location_returns_a_proxy(
-        [Values(true, false)] bool isAdapterId,
-        [Values(true, false)] bool refreshCache)
+    public async Task Resolving_a_known_location_returns_a_proxy([Values] bool isAdapterId, [Values] bool refreshCache)
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
         ILocationResolver locationResolver =
@@ -28,8 +26,7 @@ public class CacheLessLocationResolverTests
     }
 
     [Test]
-    public async Task Resolving_a_known_location_returns_a_proxy_indirectly(
-        [Values(true, false)] bool refreshCache)
+    public async Task Resolving_a_known_location_returns_a_proxy_indirectly([Values] bool refreshCache)
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
 
@@ -50,9 +47,7 @@ public class CacheLessLocationResolverTests
     }
 
     [Test]
-    public async Task Resolving_an_unknown_location_returns_null(
-        [Values(true, false)] bool isAdapterId,
-        [Values(true, false)] bool refreshCache)
+    public async Task Resolving_an_unknown_location_returns_null([Values] bool isAdapterId, [Values] bool refreshCache)
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
         ILocationResolver locationResolver =
@@ -69,8 +64,7 @@ public class CacheLessLocationResolverTests
     }
 
     [Test]
-    public async Task Resolving_an_unknown_location_returns_null_indirectly(
-        [Values(true, false)] bool refreshCache)
+    public async Task Resolving_an_unknown_location_returns_null_indirectly([Values] bool refreshCache)
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost:10000/greeter"));
         var intermediary = new ServiceAddress(new Uri("ice:/xxx?adapter-id=BadAdapter"));

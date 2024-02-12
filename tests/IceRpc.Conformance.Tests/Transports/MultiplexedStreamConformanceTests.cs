@@ -366,8 +366,8 @@ public abstract class MultiplexedStreamConformanceTests
 
     [Test]
     public async Task Stream_local_writes_are_closed_when_remote_input_is_completed(
-        [Values(false, true)] bool isBidirectional,
-        [Values(false, true)] bool abort)
+        [Values] bool isBidirectional,
+        [Values] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
@@ -414,8 +414,8 @@ public abstract class MultiplexedStreamConformanceTests
 
     [Test]
     public async Task Stream_local_writes_are_closed_when_local_output_completed(
-        [Values(false, true)] bool isBidirectional,
-        [Values(false, true)] bool abort)
+        [Values] bool isBidirectional,
+        [Values] bool abort)
     {
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
         var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();

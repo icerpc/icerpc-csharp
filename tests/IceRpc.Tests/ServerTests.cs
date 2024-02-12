@@ -87,7 +87,7 @@ public class ServerTests
 
     [Test]
     public async Task Connection_establishment_aborts_if_connection_is_refused_and_close_hangs_or_fails(
-        [Values(true, false)] bool failure)
+        [Values] bool failure)
     {
         // Arrange
         using var dispatcher = new TestDispatcher();

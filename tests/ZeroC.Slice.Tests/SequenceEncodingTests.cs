@@ -58,8 +58,7 @@ public class SequenceEncodingTests
     /// EncodeAction{T})" /> with a sequence of non numeric types.</summary>
     /// <param name="encoding">The <see cref="SliceEncoding" /> to use for the encoding.</param>
     [Test]
-    public void Encode_string_sequence(
-        [Values(SliceEncoding.Slice1, SliceEncoding.Slice2)] SliceEncoding encoding)
+    public void Encode_string_sequence([Values] SliceEncoding encoding)
     {
         var buffer = new MemoryBufferWriter(new byte[1024 * 1024]);
         var sut = new SliceEncoder(buffer, encoding);

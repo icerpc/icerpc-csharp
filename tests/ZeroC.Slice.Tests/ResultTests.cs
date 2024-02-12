@@ -7,7 +7,7 @@ namespace ZeroC.Slice.Tests;
 public class ResultTests
 {
     [Test]
-    public void String_int32_result_encoded_like_compact_enum_with_fields([Values]bool success)
+    public void String_int32_result_encoded_like_compact_enum_with_fields([Values] bool success)
     {
         // Arrange
         const string successValue = "hello";

@@ -239,7 +239,7 @@ public class TcpTransportTests
     }
 
     [Test]
-    public async Task Tcp_transport_connection_information([Values(true, false)] bool tls)
+    public async Task Tcp_transport_connection_information([Values] bool tls)
     {
         // Arrange
         using var cts = new CancellationTokenSource();

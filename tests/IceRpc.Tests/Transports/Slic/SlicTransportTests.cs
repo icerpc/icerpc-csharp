@@ -212,7 +212,7 @@ public class SlicTransportTests
     }
 
     [Test]
-    public async Task Connect_exception_handling_on_protocol_error([Values(false, true)] bool clientSide)
+    public async Task Connect_exception_handling_on_protocol_error([Values] bool clientSide)
     {
         // Arrange
         var operationsOptions = new DuplexTransportOperationsOptions()
@@ -556,8 +556,7 @@ public class SlicTransportTests
 
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
     [Test]
-    public async Task Connection_with_idle_timeout_is_not_aborted_when_idle(
-        [Values(true, false)] bool serverIdleTimeout)
+    public async Task Connection_with_idle_timeout_is_not_aborted_when_idle([Values] bool serverIdleTimeout)
     {
         // Arrange
         var services = new ServiceCollection().AddSlicTest();
@@ -590,8 +589,7 @@ public class SlicTransportTests
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection when there is slow write activity
     /// from client to server.</summary>
     [Test]
-    public async Task Connection_with_idle_timeout_and_slow_write_is_not_aborted(
-        [Values(true, false)] bool serverIdleTimeout)
+    public async Task Connection_with_idle_timeout_and_slow_write_is_not_aborted([Values] bool serverIdleTimeout)
     {
         // Arrange
         var services = new ServiceCollection().AddSlicTest();
