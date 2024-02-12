@@ -102,7 +102,7 @@ public class CustomTypeTests
         };
         encoder.EncodeSequence(
             expected,
-            (ref SliceEncoder encoder, MyCustomType? value) => CustomTypeSliceEncoderExtensions.EncodeNullableCustomType(ref encoder, value));
+            CustomTypeSliceEncoderExtensions.EncodeNullableCustomType);
         var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
 
         // Act
