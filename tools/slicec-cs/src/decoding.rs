@@ -228,7 +228,7 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
         let sequence_type = remove_optional_modifier_from(sequence_ref.incoming_parameter_type_string(namespace));
 
         let arg: Option<String> = match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !element_type.is_optional => {
+            Types::Primitive(primitive) if element_type.fixed_wire_size().is_some() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than decoding the collection elements one by one.
                 Some(format!(
@@ -241,10 +241,7 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
                     }
                 ))
             }
-            Types::Enum(enum_def)
-                if enum_def.underlying.is_some()
-                    && enum_def.fixed_wire_size().is_some()
-                    && !element_type.is_optional =>
+            Types::Enum(enum_def) if element_type.fixed_wire_size().is_some() =>
             {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than decoding the collection elements one by one.
@@ -326,7 +323,7 @@ decoder.DecodeSequenceOfOptionals(
                     }
                 )
             }
-            Types::Enum(enum_def) if enum_def.underlying.is_some() && enum_def.fixed_wire_size().is_some() => {
+            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() => {
                 if enum_def.is_unchecked {
                     write!(
                         code,
