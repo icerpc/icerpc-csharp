@@ -214,13 +214,7 @@ decoder.DecodeResult(
 fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let element_type = &sequence_ref.element_type;
     let incoming_element_type_string = element_type.incoming_parameter_type_string(namespace);
-
     let has_cs_type_attribute = sequence_ref.has_attribute::<CsType>();
-
-
-
-
-
 
     let uses_bit_sequence = element_type.is_optional && encoding != Encoding::Slice1;
     let function_name = match uses_bit_sequence {
@@ -228,33 +222,18 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
         false => "decoder.DecodeSequence",
     };
 
-    let mut builder = FunctionCallBuilder::new(function_name);
-    builder.use_semicolon(false);
-
-
-
-
     let sequence_type = remove_optional_modifier_from(sequence_ref.incoming_parameter_type_string(namespace));
-
     let wrap_code_in_custom_constructor = |builder: FunctionCallBuilder| {
-        
-        let code = builder.build().indent();
-        CodeBlock::from(format!(
-            "\
-new {sequence_type}(
-{code})"
-        ))
+        FunctionCallBuilder::new(format!("new {sequence_type}"))
+            .arguments_on_newline(true)
+            .use_semicolon(false)
+            .add_argument(builder.build().indent())
+            .build()
     };
 
-    let wrap_code_in_array_cast = |builder: FunctionCallBuilder| {
-        // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
-        // used in the request and response decode methods.
-        let code = builder.build();
-        let element_type = element_type.field_type_string(namespace);
-        CodeBlock::from(format!("({element_type}[]){code}"))
-    };
-
-
+    let mut builder = FunctionCallBuilder::new(function_name);
+    builder.arguments_on_newline(true);
+    builder.use_semicolon(false);
 
     match element_type.concrete_type() {
         Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
@@ -293,7 +272,11 @@ new {sequence_type}(
     }
 
     if !has_cs_type_attribute && matches!(element_type.concrete_type(), Types::Sequence(_)) {
-        wrap_code_in_array_cast(builder)
+        // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
+        // used in the request and response decode methods.
+        let code = builder.build();
+        let element_type = element_type.field_type_string(namespace);
+        CodeBlock::from(format!("({element_type}[]){code}"))
     } else {
         builder.build()
     }
