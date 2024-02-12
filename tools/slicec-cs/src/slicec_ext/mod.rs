@@ -31,7 +31,6 @@ pub fn remove_optional_modifier_from(mut type_string: String) -> String {
     type_string
 }
 
-
 fn scoped_identifier(identifier: String, identifier_namespace: String, current_namespace: &str) -> String {
     if current_namespace == identifier_namespace {
         identifier
