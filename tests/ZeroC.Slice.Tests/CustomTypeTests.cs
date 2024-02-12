@@ -130,7 +130,7 @@ public class CustomTypeTests
 
         // Assert
         var decoder = new SliceDecoder(buffer.WrittenMemory, encoding);
-        var value = decoder.DecodeSequence((ref SliceDecoder decoder) => (MyCustomType?)CustomTypeSliceDecoderExtensions.DecodeNullableCustomType(ref decoder));
+        var value = decoder.DecodeSequence((ref SliceDecoder decoder) => decoder.DecodeNullableCustomType());
         Assert.That(expected.S, Is.EqualTo(value));
         Assert.That(decoder.Consumed, Is.EqualTo(buffer.WrittenMemory.Length));
     }
