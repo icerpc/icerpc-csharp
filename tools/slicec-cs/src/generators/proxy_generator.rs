@@ -347,7 +347,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
                 invocation_builder.add_argument(
                     FunctionCallBuilder::new(format!(
                         "{stream_parameter_name}.ToPipeReader<{}>",
-                        stream_type.outgoing_parameter_type_string(namespace, false),
+                        stream_type.outgoing_parameter_type_string(namespace),
                     ))
                     .use_semicolon(false)
                     .add_argument(encode_stream_parameter(stream_type, namespace, operation.encoding).indent())
@@ -486,7 +486,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         for param in &non_streamed_parameters {
             builder.add_parameter(
-                &param.data_type().outgoing_parameter_type_string(namespace, false),
+                &param.data_type().outgoing_parameter_type_string(namespace),
                 &param.parameter_name(),
                 None,
                 param.formatted_param_doc_comment(),

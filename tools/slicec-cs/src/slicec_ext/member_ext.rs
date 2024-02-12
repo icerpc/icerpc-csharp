@@ -74,8 +74,8 @@ impl ParameterExt for Parameter {
     fn cs_type_string(&self, namespace: &str, context: TypeContext) -> String {
         // TODO this can be further simplified.
         let type_str = match context {
-            TypeContext::OutgoingParam => self.data_type().outgoing_parameter_type_string(namespace, false),
-            TypeContext::IncomingParam => self.data_type().incoming_parameter_type_string(namespace, false),
+            TypeContext::OutgoingParam => self.data_type().outgoing_parameter_type_string(namespace),
+            TypeContext::IncomingParam => self.data_type().incoming_parameter_type_string(namespace),
             TypeContext::Field => unreachable!(),
         };
 
