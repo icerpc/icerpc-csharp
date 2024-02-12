@@ -251,7 +251,7 @@ public static class CustomTypeSliceDecoderExtensions
 
     public static MyCustomType? DecodeNullableCustomType(this ref SliceDecoder decoder)
     {
-        Assert.That(encoder.Encoding, Is.EqualTo(SliceEncoding.Slice1));
+        Assert.That(decoder.Encoding, Is.EqualTo(SliceEncoding.Slice1));
 
         return decoder.DecodeString() switch
         {
