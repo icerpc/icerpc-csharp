@@ -256,68 +256,46 @@ new {sequence_type}(
 
 
 
+    match element_type.concrete_type() {
+        Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
+            builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
+            builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
 
-
-    if has_cs_type_attribute {
-        match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
+            if has_cs_type_attribute {
+                return wrap_code_in_custom_constructor(builder);
+            }
+        }
+        Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
+            if enum_def.is_unchecked {
                 builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
-                builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
-                wrap_code_in_custom_constructor(builder)
+            } else {
+                let underlying_type = enum_def.get_underlying_cs_type();
+                let enum_type_name = incoming_element_type_string;
+                let enum_name = enum_def.cs_identifier(Case::Pascal);
+                let underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
+                    &(underlying_type.to_cs_case(Case::Pascal) + "Extensions"),
+                    namespace,
+                );
+                let decode_func = format!("({enum_type_name} e) => _ = {underlying_extensions_class}.As{enum_name}(({underlying_type})e)");
+                builder.add_argument(decode_func);
             }
-            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
-                if enum_def.is_unchecked {
-                    builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
-                } else {
-                    let enum_type_name = incoming_element_type_string;
-                    let underlying_type = enum_def.get_underlying_cs_type();
-                    let underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                        &(underlying_type.to_cs_case(Case::Pascal) + "Extensions"),
-                        namespace,
-                    );
-                    let enum_name = enum_def.cs_identifier(Case::Pascal);
-                    let decode_func = format!("({enum_type_name} e) => _ = {underlying_extensions_class}.As{enum_name}(({underlying_type})e)");
-                    builder.add_argument(decode_func);
-                }
-                wrap_code_in_custom_constructor(builder)
+
+            if has_cs_type_attribute {
+                return wrap_code_in_custom_constructor(builder);
             }
-            _ => {
+        }
+        _ => {
+            if has_cs_type_attribute {
                 builder.add_argument(format!("sequenceFactory: (size) => new {sequence_type}(size)"));
-                builder.add_argument(decode_func(element_type, namespace, encoding, false).indent());
-                builder.build()
             }
+            builder.add_argument(decode_func(element_type, namespace, encoding, false).indent());
         }
-    } else {
-        match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
-                builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
-                builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
-            }
-            Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
-                if enum_def.is_unchecked {
-                    builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
-                } else {
-                    let underlying_type = enum_def.get_underlying_cs_type();
-                    let enum_type_name = incoming_element_type_string;
-                    let enum_name = enum_def.cs_identifier(Case::Pascal);
-                    let underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                        &(underlying_type.to_cs_case(Case::Pascal) + "Extensions"),
-                        namespace,
-                    );
-                    let decode_func = format!("({enum_type_name} e) => _ = {underlying_extensions_class}.As{enum_name}(({underlying_type})e)");
-                    builder.add_argument(decode_func);
-                }
-            }
-            _ => {
-                builder.add_argument(decode_func(element_type, namespace, encoding, false).indent());
-            }
-        }
+    }
 
-        if matches!(element_type.concrete_type(), Types::Sequence(_)) {
-            wrap_code_in_array_cast(builder)
-        } else {
-            builder.build()
-        }
+    if !has_cs_type_attribute && matches!(element_type.concrete_type(), Types::Sequence(_)) {
+        wrap_code_in_array_cast(builder)
+    } else {
+        builder.build()
     }
 }
 
