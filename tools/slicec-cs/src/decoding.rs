@@ -210,7 +210,6 @@ decoder.DecodeResult(
     .into()
 }
 
-// TODO try and untangle this function.
 fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let element_type = &sequence_ref.element_type;
     let element_type_string = element_type.field_type_string(namespace);
