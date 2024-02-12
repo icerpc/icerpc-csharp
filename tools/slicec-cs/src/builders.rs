@@ -573,7 +573,7 @@ impl Builder for FunctionCallBuilder {
             None => "".to_owned(),
         };
 
-        let mut function_call = if self.arguments_on_newline && self.arguments.len() > 0 {
+        let mut function_call = if self.arguments_on_newline && !self.arguments.is_empty() {
             format!("{}{type_arg}(\n    {})", self.callable, self.arguments.join(",\n    "))
         } else {
             format!("{}{type_arg}({})", self.callable, self.arguments.join(", "))

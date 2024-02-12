@@ -214,23 +214,16 @@ decoder.DecodeResult(
 fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let element_type = &sequence_ref.element_type;
     let element_type_string = element_type.field_type_string(namespace);
+    let sequence_type = remove_optional_modifier_from(sequence_ref.incoming_parameter_type_string(namespace));
     let has_cs_type_attribute = sequence_ref.has_attribute::<CsType>();
 
     let uses_bit_sequence = element_type.is_optional && encoding != Encoding::Slice1;
+    let mut uses_sequence_factory = false;
+
     let function_name = match uses_bit_sequence {
         true => "decoder.DecodeSequenceOfOptionals",
         false => "decoder.DecodeSequence",
     };
-
-    let sequence_type = remove_optional_modifier_from(sequence_ref.incoming_parameter_type_string(namespace));
-    let wrap_code_in_custom_constructor = |builder: FunctionCallBuilder| {
-        FunctionCallBuilder::new(format!("new {sequence_type}"))
-            .arguments_on_newline(true)
-            .use_semicolon(false)
-            .add_argument(builder.build().indent())
-            .build()
-    };
-
     let mut builder = FunctionCallBuilder::new(function_name);
     builder.arguments_on_newline(true);
     builder.use_semicolon(false);
@@ -239,10 +232,6 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
         Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
             builder.set_type_argument(remove_optional_modifier_from(element_type_string));
             builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
-
-            if has_cs_type_attribute {
-                return wrap_code_in_custom_constructor(builder);
-            }
         }
         Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
             if enum_def.is_unchecked {
@@ -257,17 +246,24 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
                 let decode_func = format!("({element_type_string} e) => _ = {underlying_extensions_class}.As{enum_name}(({underlying_type})e)");
                 builder.add_argument(decode_func);
             }
-
-            if has_cs_type_attribute {
-                return wrap_code_in_custom_constructor(builder);
-            }
         }
         _ => {
             if has_cs_type_attribute {
+                uses_sequence_factory = true;
                 builder.add_argument(format!("sequenceFactory: (size) => new {sequence_type}(size)"));
             }
             builder.add_argument(decode_func(element_type, namespace, encoding, false).indent());
         }
+    }
+
+    if has_cs_type_attribute && !uses_sequence_factory {
+        // If 'cs::type' is used on a sequence of fixed-size primitives (or enums with such an underlying type),
+        // instead of using a 'sequenceFactory', we pass the decoded sequence directly to the mapped type's constructor.
+        return FunctionCallBuilder::new(format!("new {sequence_type}"))
+            .arguments_on_newline(true)
+            .use_semicolon(false)
+            .add_argument(builder.build().indent())
+            .build();
     }
 
     if !has_cs_type_attribute && matches!(element_type.concrete_type(), Types::Sequence(_)) {
@@ -275,10 +271,10 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
         // used in the request and response decode methods.
         let code = builder.build();
         let element_type_string = element_type.field_type_string(namespace);
-        CodeBlock::from(format!("({element_type_string}[]){code}"))
-    } else {
-        builder.build()
+        return CodeBlock::from(format!("({element_type_string}[]){code}"));
     }
+    
+    builder.build()
 }
 
 fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
