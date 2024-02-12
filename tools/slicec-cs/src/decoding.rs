@@ -213,7 +213,7 @@ decoder.DecodeResult(
 // TODO try and untangle this function.
 fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
     let element_type = &sequence_ref.element_type;
-    let incoming_element_type_string = element_type.incoming_parameter_type_string(namespace);
+    let element_type_string = element_type.field_type_string(namespace);
     let has_cs_type_attribute = sequence_ref.has_attribute::<CsType>();
 
     let uses_bit_sequence = element_type.is_optional && encoding != Encoding::Slice1;
@@ -237,7 +237,7 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
 
     match element_type.concrete_type() {
         Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
-            builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
+            builder.set_type_argument(remove_optional_modifier_from(element_type_string));
             builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
 
             if has_cs_type_attribute {
@@ -246,16 +246,15 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
         }
         Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
             if enum_def.is_unchecked {
-                builder.set_type_argument(remove_optional_modifier_from(incoming_element_type_string));
+                builder.set_type_argument(remove_optional_modifier_from(element_type_string));
             } else {
                 let underlying_type = enum_def.get_underlying_cs_type();
-                let enum_type_name = incoming_element_type_string;
                 let enum_name = enum_def.cs_identifier(Case::Pascal);
                 let underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
                     &(underlying_type.to_cs_case(Case::Pascal) + "Extensions"),
                     namespace,
                 );
-                let decode_func = format!("({enum_type_name} e) => _ = {underlying_extensions_class}.As{enum_name}(({underlying_type})e)");
+                let decode_func = format!("({element_type_string} e) => _ = {underlying_extensions_class}.As{enum_name}(({underlying_type})e)");
                 builder.add_argument(decode_func);
             }
 
@@ -275,8 +274,8 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
         // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
         // used in the request and response decode methods.
         let code = builder.build();
-        let element_type = element_type.field_type_string(namespace);
-        CodeBlock::from(format!("({element_type}[]){code}"))
+        let element_type_string = element_type.field_type_string(namespace);
+        CodeBlock::from(format!("({element_type_string}[]){code}"))
     } else {
         builder.build()
     }
