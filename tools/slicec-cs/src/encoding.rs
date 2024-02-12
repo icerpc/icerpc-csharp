@@ -344,7 +344,6 @@ fn encode_action_body(
     encoding: Encoding,
     is_tagged: bool,
 ) -> CodeBlock {
-    let mut code = CodeBlock::default();
     let is_optional_and_untagged = type_ref.is_optional && !is_tagged;
 
     let value = match (
@@ -362,62 +361,42 @@ fn encode_action_body(
         TypeRefs::Class(_) => {
             assert!(encoding == Encoding::Slice1);
             if is_optional_and_untagged {
-                write!(code, "encoder.EncodeNullableClass(value)");
+                "encoder.EncodeNullableClass(value)".into()
             } else {
-                write!(code, "encoder.EncodeClass(value)");
+                "encoder.EncodeClass(value)".into()
             }
         }
-        TypeRefs::Primitive(primitive_ref) => write!(code, " encoder.Encode{}({value})", primitive_ref.type_suffix()),
+        TypeRefs::Primitive(primitive_ref) => format!("encoder.Encode{}({value})", primitive_ref.type_suffix()).into(),
         TypeRefs::Enum(enum_ref) => {
             let encoder_extensions_class =
                 enum_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let name = enum_ref.cs_identifier(Case::Pascal);
-            write!(code, "{encoder_extensions_class}.Encode{name}(ref encoder, {value})")
+            format!("{encoder_extensions_class}.Encode{name}(ref encoder, {value})").into()
         }
         TypeRefs::ResultType(result_type_ref) => {
-            write!(
-                code,
-                "{}",
                 encode_result(result_type_ref, namespace, "value", "encoder", encoding)
-            )
         }
         TypeRefs::Dictionary(dictionary_ref) => {
-            write!(
-                code,
-                "{}",
                 encode_dictionary(dictionary_ref, namespace, value, "encoder", encoding)
-            )
         }
         TypeRefs::Sequence(sequence_ref) => {
             // We generate the sequence encoder inline, so this function must not be called when
             // the top-level object is not cached.
-            write!(
-                code,
-                "{}",
-                encode_sequence(sequence_ref, namespace, value, type_context, "encoder", encoding),
-            )
+                encode_sequence(sequence_ref, namespace, value, type_context, "encoder", encoding)
         }
-        TypeRefs::Struct(_) => write!(code, "{value}.Encode(ref encoder)"),
+        TypeRefs::Struct(_) => format!("{value}.Encode(ref encoder)").into(),
         TypeRefs::CustomType(custom_type_ref) => {
             let encoder_extensions_class =
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
 
             if is_optional_and_untagged && encoding == Encoding::Slice1 {
-                write!(
-                    code,
-                    "{encoder_extensions_class}.EncodeNullable{identifier}(ref encoder, value)",
-                )
+                format!("{encoder_extensions_class}.EncodeNullable{identifier}(ref encoder, value)").into()
             } else {
-                write!(
-                    code,
-                    "{encoder_extensions_class}.Encode{identifier}(ref encoder, {value})",
-                )
+                format!("{encoder_extensions_class}.Encode{identifier}(ref encoder, {value})").into()
             }
         }
     }
-
-    code
 }
 
 fn encode_result(
