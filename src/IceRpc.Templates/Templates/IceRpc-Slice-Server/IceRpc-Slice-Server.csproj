@@ -9,10 +9,10 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Slice.Tools" Version="0.3.0-preview1" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Slice" Version="0.3.0-preview1" />
-    <PackageReference Include="IceRpc.Deadline" Version="0.3.0-preview1" />
-    <PackageReference Include="IceRpc.Logger" Version="0.3.0-preview1" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="0.3.0" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice" Version="0.3.0" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.3.0" />
+    <PackageReference Include="IceRpc.Logger" Version="0.3.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
   </ItemGroup>
