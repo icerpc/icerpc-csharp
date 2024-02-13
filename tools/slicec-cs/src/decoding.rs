@@ -210,161 +210,70 @@ decoder.DecodeResult(
     .into()
 }
 
-// TODO try and untangle this function.
 fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: Encoding) -> CodeBlock {
-    let mut code = CodeBlock::default();
     let element_type = &sequence_ref.element_type;
-    let incoming_element_type_string = element_type.incoming_parameter_type_string(namespace);
-
+    let element_type_string = element_type.field_type_string(namespace);
+    let sequence_type = remove_optional_modifier_from(sequence_ref.incoming_parameter_type_string(namespace));
     let has_cs_type_attribute = sequence_ref.has_attribute::<CsType>();
+
+    let uses_bit_sequence = element_type.is_optional && encoding != Encoding::Slice1;
+    let mut uses_sequence_factory = false;
+
+    let function_name = match uses_bit_sequence {
+        true => "decoder.DecodeSequenceOfOptionals",
+        false => "decoder.DecodeSequence",
+    };
+    let mut builder = FunctionCallBuilder::new(function_name);
+    builder.arguments_on_newline(true);
+    builder.use_semicolon(false);
+
+    match element_type.concrete_type() {
+        Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
+            builder.set_type_argument(remove_optional_modifier_from(element_type_string));
+            builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
+        }
+        Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
+            if enum_def.is_unchecked {
+                builder.set_type_argument(remove_optional_modifier_from(element_type_string));
+            } else {
+                let underlying_type = enum_def.get_underlying_cs_type();
+                let enum_name = enum_def.cs_identifier(Case::Pascal);
+                let underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
+                    &(underlying_type.to_cs_case(Case::Pascal) + "Extensions"),
+                    namespace,
+                );
+                let decode_func = format!("({element_type_string} e) => _ = {underlying_extensions_class}.As{enum_name}(({underlying_type})e)");
+                builder.add_argument(decode_func);
+            }
+        }
+        _ => {
+            if has_cs_type_attribute {
+                uses_sequence_factory = true;
+                builder.add_argument(format!("sequenceFactory: (size) => new {sequence_type}(size)"));
+            }
+            builder.add_argument(decode_func(element_type, namespace, encoding, false).indent());
+        }
+    }
+
+    if has_cs_type_attribute && !uses_sequence_factory {
+        // If 'cs::type' is used on a sequence of fixed-size primitives (or enums with such an underlying type),
+        // instead of using a 'sequenceFactory', we pass the decoded sequence directly to the mapped type's constructor.
+        return FunctionCallBuilder::new(format!("new {sequence_type}"))
+            .arguments_on_newline(true)
+            .use_semicolon(false)
+            .add_argument(builder.build().indent())
+            .build();
+    }
 
     if !has_cs_type_attribute && matches!(element_type.concrete_type(), Types::Sequence(_)) {
         // For nested sequences we want to cast Foo[][] returned by DecodeSequence to IList<Foo>[]
         // used in the request and response decode methods.
-        write!(code, "({}[])", element_type.field_type_string(namespace));
-    };
-
-    if has_cs_type_attribute {
-        let sequence_type = remove_optional_modifier_from(sequence_ref.incoming_parameter_type_string(namespace));
-
-        let arg: Option<String> = match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !element_type.is_optional => {
-                // We always read an array even when mapped to a collection, as it's expected to be
-                // faster than decoding the collection elements one by one.
-                Some(format!(
-                    "decoder.DecodeSequence<{}>({})",
-                    remove_optional_modifier_from(incoming_element_type_string),
-                    if matches!(primitive, Primitive::Bool) {
-                        "checkElement: SliceDecoder.CheckBoolValue"
-                    } else {
-                        ""
-                    }
-                ))
-            }
-            Types::Enum(enum_def)
-                if enum_def.underlying.is_some()
-                    && enum_def.fixed_wire_size().is_some()
-                    && !element_type.is_optional =>
-            {
-                // We always read an array even when mapped to a collection, as it's expected to be
-                // faster than decoding the collection elements one by one.
-                if enum_def.is_unchecked {
-                    Some(format!(
-                        "decoder.DecodeSequence<{}>()",
-                        remove_optional_modifier_from(incoming_element_type_string),
-                    ))
-                } else {
-                    Some(format!(
-                        "\
-decoder.DecodeSequence(
-    ({enum_type_name} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
-                        enum_type_name = incoming_element_type_string,
-                        underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                            &format!(
-                                "{}Extensions",
-                                enum_def.get_underlying_cs_type().to_cs_case(Case::Pascal)
-                            ),
-                            namespace,
-                        ),
-                        name = enum_def.cs_identifier(Case::Pascal),
-                        underlying_type = enum_def.get_underlying_cs_type(),
-                    ))
-                }
-            }
-            _ => {
-                if encoding != Encoding::Slice1 && element_type.is_optional {
-                    write!(
-                        code,
-                        "\
-decoder.DecodeSequenceOfOptionals(
-    sequenceFactory: (size) => new {sequence_type}(size),
-    {decode_func})",
-                        decode_func = decode_func(element_type, namespace, encoding, false).indent(),
-                    );
-                } else {
-                    write!(
-                        code,
-                        "\
-decoder.DecodeSequence(
-    sequenceFactory: (size) => new {sequence_type}(size),
-    {decode_func})",
-                        decode_func = decode_func(element_type, namespace, encoding, false).indent(),
-                    );
-                }
-                None
-            }
-        };
-
-        if let Some(arg) = arg {
-            write!(
-                code,
-                "\
-new {sequence_type}(
-    {})",
-                CodeBlock::from(arg).indent(),
-            );
-        }
-    } else if encoding != Encoding::Slice1 && element_type.is_optional {
-        write!(
-            code,
-            "\
-decoder.DecodeSequenceOfOptionals(
-    {})",
-            decode_func(element_type, namespace, encoding, false).indent(),
-        )
-    } else {
-        match element_type.concrete_type() {
-            Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() => {
-                write!(
-                    code,
-                    "decoder.DecodeSequence<{}>({})",
-                    remove_optional_modifier_from(incoming_element_type_string),
-                    if matches!(primitive, Primitive::Bool) {
-                        "checkElement: SliceDecoder.CheckBoolValue"
-                    } else {
-                        ""
-                    }
-                )
-            }
-            Types::Enum(enum_def) if enum_def.underlying.is_some() && enum_def.fixed_wire_size().is_some() => {
-                if enum_def.is_unchecked {
-                    write!(
-                        code,
-                        "decoder.DecodeSequence<{}>()",
-                        remove_optional_modifier_from(incoming_element_type_string),
-                    )
-                } else {
-                    write!(
-                        code,
-                        "\
-decoder.DecodeSequence(
-    ({enum_type} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
-                        enum_type = incoming_element_type_string,
-                        underlying_extensions_class = enum_def.escape_scoped_identifier_with_suffix(
-                            &format!(
-                                "{}Extensions",
-                                enum_def.get_underlying_cs_type().to_cs_case(Case::Pascal)
-                            ),
-                            namespace,
-                        ),
-                        name = enum_def.cs_identifier(Case::Pascal),
-                        underlying_type = enum_def.get_underlying_cs_type(),
-                    );
-                }
-            }
-            _ => {
-                write!(
-                    code,
-                    "\
-decoder.DecodeSequence(
-    {})",
-                    decode_func(element_type, namespace, encoding, false).indent(),
-                )
-            }
-        }
+        let code = builder.build();
+        let element_type_string = element_type.field_type_string(namespace);
+        return CodeBlock::from(format!("({element_type_string}[]){code}"));
     }
-
-    code
+    
+    builder.build()
 }
 
 fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
