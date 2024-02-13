@@ -374,15 +374,15 @@ fn encode_action_body(
             format!("{encoder_extensions_class}.Encode{name}(ref encoder, {value})").into()
         }
         TypeRefs::ResultType(result_type_ref) => {
-                encode_result(result_type_ref, namespace, "value", "encoder", encoding)
+            encode_result(result_type_ref, namespace, "value", "encoder", encoding)
         }
         TypeRefs::Dictionary(dictionary_ref) => {
-                encode_dictionary(dictionary_ref, namespace, value, "encoder", encoding)
+            encode_dictionary(dictionary_ref, namespace, value, "encoder", encoding)
         }
         TypeRefs::Sequence(sequence_ref) => {
             // We generate the sequence encoder inline, so this function must not be called when
             // the top-level object is not cached.
-                encode_sequence(sequence_ref, namespace, value, type_context, "encoder", encoding)
+            encode_sequence(sequence_ref, namespace, value, type_context, "encoder", encoding)
         }
         TypeRefs::Struct(_) => format!("{value}.Encode(ref encoder)").into(),
         TypeRefs::CustomType(custom_type_ref) => {
