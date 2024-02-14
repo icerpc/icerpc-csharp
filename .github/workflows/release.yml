@@ -38,7 +38,7 @@ jobs:
           cargo-build-args: --release
           target: ${{ matrix.target }}
       - name: Archive Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: slicec-cs-${{ matrix.target }}
           path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
@@ -58,7 +58,7 @@ jobs:
           certutil -decode $env:GITHUB_WORKSPACE\certificate.pfx.base64 $env:GITHUB_WORKSPACE\certificate.pfx
           Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx.base64
       - name: Download slicec-cs compiler artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Set version from tag
         run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
       - name: Copy slicec-cs binaries to staging path
@@ -86,7 +86,7 @@ jobs:
         working-directory: src/IceRpc.Templates
         run: dotnet pack --configuration Release --output ../../
       - name: Upload packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packages
           path: |
@@ -107,9 +107,10 @@ jobs:
     needs: build-packages
     steps:
     - name: Download packages artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: packages
+        path: packages
     - name: Install packages to local NuGet repository
       working-directory: packages
       run: dotnet nuget push *.nupkg --source ~/.nuget/packages
