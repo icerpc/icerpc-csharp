@@ -125,12 +125,13 @@ jobs:
         dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
       if: runner.os == 'Windows'
       shell: powershell
-    - name: 🔨 Build Examples
-      run: for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
-      if: runner.os == 'macOS' || runner.os == 'Linux'
-      shell: bash
     - name: Set version from tag
       run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
+    - name: 🔨 Build Examples
+      run: |
+        for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
+      if: runner.os == 'macOS' || runner.os == 'Linux'
+      shell: bash
     - name: 🔨 Build Examples
       run: |
         $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
