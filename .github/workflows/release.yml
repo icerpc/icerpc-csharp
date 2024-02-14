@@ -105,6 +105,7 @@ jobs:
           - os: windows-2022
     runs-on: ${{ matrix.os }}
     needs: build-packages
+    steps:
     - name: Download packages artifacts
       uses: actions/download-artifact@v3
       with:
@@ -124,7 +125,7 @@ jobs:
       if: runner.os == 'macOS' || runner.os == 'Linux'
       shell: bash
     - name: Set version from tag
-        run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
+      run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
     - name: 🔨 Build Examples
       run: |
         $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
