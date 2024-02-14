@@ -60,7 +60,9 @@ jobs:
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v4
       - name: Set version from tag
-        run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
+        run: |
+          $version = $env:GITHUB_REF -replace '^refs/tags/v',''
+          echo "VERSION=$version" >> $env:GITHUB_ENV
       - name: Copy slicec-cs binaries to staging path
         run: |
           @("macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "windows-x64") | ForEach-Object { New-Item -ItemType Directory -Path $env:GITHUB_WORKSPACE\tools\slicec-cs\staging -Name $_ }
@@ -106,6 +108,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: build-packages
     steps:
+    - uses: actions/checkout@v3
+    - name: Initialize NuGet local cache
+      run: dotnet restore
     - name: Download packages artifacts
       uses: actions/download-artifact@v4
       with:
@@ -114,19 +119,25 @@ jobs:
     - name: Install packages to local NuGet repository
       working-directory: packages
       run: |
-        mkdir -p ~/.nuget/packages
         dotnet nuget push *.nupkg --source ~/.nuget/packages
       if: runner.os == 'macOS' || runner.os == 'Linux'
       shell: bash
     - name: Install packages to local NuGet repository
       working-directory: packages
       run: |
-        New-Item -ItemType Directory -Path $env:USERPROFILE/.nuget/packages
         dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
       if: runner.os == 'Windows'
       shell: powershell
     - name: Set version from tag
-      run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+      if: runner.os == 'macOS' || runner.os == 'Linux'
+    - name: Set version from tag
+      run: |
+        $version = $env:GITHUB_REF -replace '^refs/tags/v',''
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+      if: runner.os == 'Windows'
     - name: 🔨 Build Examples
       run: |
         for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
