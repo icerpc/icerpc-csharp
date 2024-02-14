@@ -16,7 +16,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="dunet" Version="1.11.0" />
+        <PackageReference Include="dunet" Version="1.11.2" />
     </ItemGroup>
     <!-- NuGet package contents-->
     <!-- There is no need to compile the well known types with the Slice compiler since they are all custom. -->
