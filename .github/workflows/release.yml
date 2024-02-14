@@ -114,7 +114,7 @@ jobs:
     - name: Install packages to local NuGet repository
       working-directory: packages
       run: |
-        mkdir ~/.nuget/packages
+        mkdir -p ~/.nuget/packages
         dotnet nuget push *.nupkg --source ~/.nuget/packages
       if: runner.os == 'macOS' || runner.os == 'Linux'
       shell: bash
