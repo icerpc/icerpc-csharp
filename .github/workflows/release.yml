@@ -123,6 +123,8 @@ jobs:
       run: for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
       if: runner.os == 'macOS' || runner.os == 'Linux'
       shell: bash
+    - name: Set version from tag
+        run: echo "VERSION=$($env:GITHUB_REF.TrimStart('refs/tags/v'))" >> $env:GITHUB_ENV
     - name: 🔨 Build Examples
       run: |
         $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
