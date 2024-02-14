@@ -113,12 +113,16 @@ jobs:
         path: packages
     - name: Install packages to local NuGet repository
       working-directory: packages
-      run: dotnet nuget push *.nupkg --source ~/.nuget/packages
+      run: |
+        mkdir ~/.nuget/packages
+        dotnet nuget push *.nupkg --source ~/.nuget/packages
       if: runner.os == 'macOS' || runner.os == 'Linux'
       shell: bash
     - name: Install packages to local NuGet repository
       working-directory: packages
-      run: dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
+      run: |
+        New-Item -ItemType Directory -Path $env:USERPROFILE/.nuget/packages
+        dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
       if: runner.os == 'Windows'
       shell: powershell
     - name: 🔨 Build Examples
