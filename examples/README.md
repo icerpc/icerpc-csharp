@@ -12,13 +12,14 @@ is branch-specific:
 |----------------------|----------------------------------|--------------|
 | 0.1.x                | 0.1.*                            | .NET 7.0     |
 | 0.2.x                | 0.2.*                            | .NET 8.0     |
+| 0.3.x                | 0.3.*                            | .NET 8.0     |
 | main                 | Not yet published on nuget.org   | .NET 8.0     |
 
-If you want to build the examples for a released version (such as 0.2.x), please checkout the corresponding release
+If you want to build the examples for a released version (such as 0.3.x), please checkout the corresponding release
 branch. For example:
 
 ```shell
-git checkout -b 0.2.x origin/0.2.x
+git checkout -b 0.3.x origin/0.3.x
 ```
 
 Then, when you build an example, the build uses the NuGet packages published on nuget.org.
