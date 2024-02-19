@@ -344,10 +344,8 @@ fn encode_action_body(
     encoding: Encoding,
     is_tagged: bool,
 ) -> CodeBlock {
-    let is_optional_and_untagged = type_ref.is_optional && !is_tagged;
-
     let value = match (
-        is_optional_and_untagged,
+        type_ref.is_optional && !is_tagged,
         type_ref.is_value_type(),
         matches!(type_ref.concrete_type(), Types::CustomType(_)),
     ) {
@@ -360,7 +358,7 @@ fn encode_action_body(
     match &type_ref.concrete_typeref() {
         TypeRefs::Class(_) => {
             assert!(encoding == Encoding::Slice1);
-            if is_optional_and_untagged {
+            if type_ref.is_optional {
                 "encoder.EncodeNullableClass(value)".into()
             } else {
                 "encoder.EncodeClass(value)".into()
@@ -390,7 +388,7 @@ fn encode_action_body(
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
 
-            if is_optional_and_untagged && encoding == Encoding::Slice1 {
+            if type_ref.is_optional && encoding == Encoding::Slice1 {
                 format!("{encoder_extensions_class}.EncodeNullable{identifier}(ref encoder, value)").into()
             } else {
                 format!("{encoder_extensions_class}.Encode{identifier}(ref encoder, {value})").into()

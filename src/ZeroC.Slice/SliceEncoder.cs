@@ -354,7 +354,7 @@ public ref partial struct SliceEncoder
         int tag,
         TagFormat tagFormat,
         T v,
-        EncodeAction<T> encodeAction) where T : notnull
+        EncodeAction<T> encodeAction)
     {
         if (Encoding != SliceEncoding.Slice1)
         {

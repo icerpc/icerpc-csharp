@@ -158,7 +158,7 @@ public class CustomTypeTests
         CustomTypeSliceEncoderExtensions.EncodeCustomType(ref encoder, myCustomType);
         CustomTypeSliceEncoderExtensions.EncodeNullableCustomType(ref encoder, null);
         structWithCustomTypeField.Encode(ref encoder);
-        encoder.EncodeTagged(1, TagFormat.FSize, myCustomType, CustomTypeSliceEncoderExtensions.EncodeCustomType);
+        encoder.EncodeTagged<MyCustomType?>(1, TagFormat.FSize, myCustomType, CustomTypeSliceEncoderExtensions.EncodeNullableCustomType);
 
         encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
 
@@ -208,7 +208,7 @@ public class CustomTypeTests
         Assert.That(CustomTypeSliceDecoderExtensions.DecodeNullableCustomType(ref decoder), Is.Null);
         Assert.That(new StructWithCustomTypeField(ref decoder), Is.EqualTo(structWithCustomTypeField));
         Assert.That(
-            decoder.DecodeTagged(1, TagFormat.FSize, CustomTypeSliceDecoderExtensions.DecodeCustomType, useTagEndMarker: false),
+            decoder.DecodeTagged(1, TagFormat.FSize, CustomTypeSliceDecoderExtensions.DecodeNullableCustomType, useTagEndMarker: false),
             Is.EqualTo(myCustomType));
 
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));

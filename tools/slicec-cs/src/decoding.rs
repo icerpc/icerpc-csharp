@@ -153,7 +153,7 @@ fn decode_tagged(member: &impl Member, namespace: &str, constructed_type: bool, 
         .add_argument_if_present(
             (encoding == Encoding::Slice1).then(|| format!("TagFormat.{}", data_type.tag_format().unwrap())),
         )
-        .add_argument(decode_func(data_type, namespace, encoding, true))
+        .add_argument(decode_func(data_type, namespace, encoding))
         .add_argument_if_present((encoding == Encoding::Slice1).then(|| format!("useTagEndMarker: {constructed_type}")))
         .use_semicolon(false)
         .build();
@@ -166,7 +166,7 @@ fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str, enco
     let value_type = &dictionary_ref.value_type;
 
     // decode key
-    let decode_key = decode_func(key_type, namespace, encoding, false);
+    let decode_key = decode_func(key_type, namespace, encoding);
     let decode_value = decode_func_with_cast(value_type, namespace, encoding, false);
     let dictionary_type = remove_optional_modifier_from(dictionary_ref.incoming_parameter_type_string(namespace));
     let decode_key = decode_key.indent();
@@ -251,7 +251,7 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
                 uses_sequence_factory = true;
                 builder.add_argument(format!("sequenceFactory: (size) => new {sequence_type}(size)"));
             }
-            builder.add_argument(decode_func(element_type, namespace, encoding, false).indent());
+            builder.add_argument(decode_func(element_type, namespace, encoding).indent());
         }
     }
 
@@ -272,18 +272,18 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
         let element_type_string = element_type.field_type_string(namespace);
         return CodeBlock::from(format!("({element_type_string}[]){code}"));
     }
-    
+
     builder.build()
 }
 
 fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
-    let decode_func_body = decode_func_body(type_ref, namespace, encoding, false);
+    let decode_func_body = decode_func_body(type_ref, namespace, encoding);
     if type_ref.is_optional {
         CodeBlock::from(format!(
             "(ref SliceDecoder decoder) => decoder.DecodeBool() ? {decode_func_body} : null"
         ))
     } else {
-        decode_func(type_ref, namespace, encoding, false)
+        decode_func(type_ref, namespace, encoding)
     }
 }
 
@@ -295,7 +295,7 @@ fn decode_stream_parameter(type_ref: &TypeRef, namespace: &str, encoding: Encodi
 /// (ie. `decode_result` or `decode_dictionary`). The C# compiler cannot implicitly convert nested generic types,
 /// so we need these casts to satisfy the type system.
 fn decode_func_with_cast(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_optional: bool) -> CodeBlock {
-    let decode_func = decode_func_body(type_ref, namespace, encoding, false);
+    let decode_func = decode_func_body(type_ref, namespace, encoding);
     let cast = match type_ref.concrete_type() {
         Types::Sequence(_) | Types::Dictionary(_) => format!("({})", type_ref.field_type_string(namespace)),
         _ => "".to_owned(),
@@ -314,19 +314,21 @@ fn decode_func_with_cast(type_ref: &TypeRef, namespace: &str, encoding: Encoding
     .into()
 }
 
-pub fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_tagged: bool) -> CodeBlock {
-    let decode_func_body = decode_func_body(type_ref, namespace, encoding, is_tagged);
+fn decode_func(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
+    let decode_func_body = decode_func_body(type_ref, namespace, encoding);
     CodeBlock::from(format!("(ref SliceDecoder decoder) => {decode_func_body}"))
 }
 
-fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_tagged: bool) -> CodeBlock {
+fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> CodeBlock {
     let mut code = CodeBlock::default();
     let type_name = remove_optional_modifier_from(type_ref.incoming_parameter_type_string(namespace));
-    let is_optional_and_untagged = type_ref.is_optional && !is_tagged;
 
     // When we decode the type, we decode it as a non-optional. If the type is supposed to be optional,
     // we cast it after decoding. Except for sequences and dictionaries, because we always cast them anyways.
-    if type_ref.is_optional && !matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
+    if type_ref.is_optional
+        && !matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_))
+        && !matches!(type_ref.concrete_type(), Types::CustomType(_) if encoding == Encoding::Slice1)
+    {
         write!(code, "({type_name}?)");
     }
 
@@ -334,7 +336,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             assert!(encoding == Encoding::Slice1);
-            if is_optional_and_untagged {
+            if type_ref.is_optional {
                 write!(code, "decoder.DecodeNullableClass<{type_name}>()")
             } else {
                 write!(code, "decoder.DecodeClass<{type_name}>()")
@@ -366,7 +368,7 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding, is_
                 decoder_extensions_class =
                     custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                 name = custom_type_ref.cs_identifier(Case::Pascal),
-                nullable = if is_optional_and_untagged && encoding == Encoding::Slice1 {
+                nullable = if type_ref.is_optional && encoding == Encoding::Slice1 {
                     "Nullable"
                 } else {
                     ""
@@ -390,7 +392,7 @@ pub fn decode_non_streamed_parameters_func(non_streamed_parameters: &[&Parameter
         // If there's only one parameter, it isn't tagged, and doesn't require a bit-sequence to decode,
         // We return a simplified lambda function.
         [param] if !param.is_tagged() && (encoding == Encoding::Slice1 || !param.data_type().is_optional) => {
-            decode_func(param.data_type(), &param.namespace(), encoding, false)
+            decode_func(param.data_type(), &param.namespace(), encoding)
         }
 
         // Otherwise we return a full multi-line lambda function for decoding the parameters.
