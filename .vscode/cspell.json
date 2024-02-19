@@ -70,5 +70,9 @@
     "rust",
     "softwareTerms",
     "en_US"
+  ],
+  "enableFiletypes": [
+    "ice",
+    "slice"
   ]
 }
