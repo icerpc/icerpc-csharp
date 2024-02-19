@@ -72,7 +72,6 @@
     "en_US"
   ],
   "enableFiletypes": [
-    "ice",
     "slice"
   ]
 }
