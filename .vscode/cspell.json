@@ -20,5 +20,8 @@
   "dictionaries": [
     "softwareTerms",
     "en_US"
+  ],
+  "enableFiletypes": [
+    "slice"
   ]
 }
