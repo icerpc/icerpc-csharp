@@ -158,7 +158,12 @@ public class CustomTypeTests
         CustomTypeSliceEncoderExtensions.EncodeCustomType(ref encoder, myCustomType);
         CustomTypeSliceEncoderExtensions.EncodeNullableCustomType(ref encoder, null);
         structWithCustomTypeField.Encode(ref encoder);
-        encoder.EncodeTagged(1, TagFormat.FSize, myCustomType, (ref SliceEncoder encoder, MyCustomType value) => CustomTypeSliceEncoderExtensions.EncodeNullableCustomType(ref encoder, value));
+        encoder.EncodeTagged(
+            1,
+            TagFormat.FSize,
+            myCustomType, 
+            (ref SliceEncoder encoder, MyCustomType value) =>
+                CustomTypeSliceEncoderExtensions.EncodeNullableCustomType(ref encoder, value));
 
         encoder.EncodeUInt8(Slice1Definitions.TagEndMarker);
 
