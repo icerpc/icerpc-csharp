@@ -388,6 +388,9 @@ fn encode_action_body(
                 custom_type_ref.escape_scoped_identifier_with_suffix("SliceEncoderExtensions", namespace);
             let identifier = custom_type_ref.cs_identifier(Case::Pascal);
 
+            // We use the 'Nullable' encoding function here, even for tags, to ensure interop with Ice.
+            // Because an Ice client could send a tagged proxy that is 'set' to 'null', so we must use the 'Nullable'
+            // version on the decoding side. And so, for consistency, we also use the 'Nullable' version here.
             if type_ref.is_optional && encoding == Encoding::Slice1 {
                 format!("{encoder_extensions_class}.EncodeNullable{identifier}(ref encoder, value)").into()
             } else {

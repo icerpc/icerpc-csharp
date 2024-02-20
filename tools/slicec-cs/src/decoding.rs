@@ -323,8 +323,9 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
     let mut code = CodeBlock::default();
     let type_name = remove_optional_modifier_from(type_ref.incoming_parameter_type_string(namespace));
 
-    // When we decode the type, we decode it as a non-optional. If the type is supposed to be optional,
-    // we cast it after decoding. Except for sequences and dictionaries, because we always cast them anyways.
+    // When we decode the type, we decode it as a non-optional. If the type is supposed to be optional, we cast it after
+    // decoding. Except for sequences and dictionaries, because we always cast them anyways, and for optional custom
+    // types, since the 'DecodeNullableX' we use to decode already returns a nullable type (so no cast needed).
     if type_ref.is_optional
         && !matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_))
         && !matches!(type_ref.concrete_type(), Types::CustomType(_) if encoding == Encoding::Slice1)
@@ -362,18 +363,17 @@ fn decode_func_body(type_ref: &TypeRef, namespace: &str, encoding: Encoding) -> 
         }
         TypeRefs::Struct(_) => write!(code, "new {type_name}(ref decoder)"),
         TypeRefs::CustomType(custom_type_ref) => {
-            write!(
-                code,
-                "{decoder_extensions_class}.Decode{nullable}{name}(ref decoder)",
-                decoder_extensions_class =
-                    custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
-                name = custom_type_ref.cs_identifier(Case::Pascal),
-                nullable = if type_ref.is_optional && encoding == Encoding::Slice1 {
-                    "Nullable"
-                } else {
-                    ""
-                },
-            )
+            let extensions_class =
+                custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace);
+            let identifier = custom_type_ref.cs_identifier(Case::Pascal);
+
+            // We use the 'Nullable' decoding function here, even for tags, to ensure interop with Ice.
+            // Because an Ice client could send a tagged proxy that is 'set' to 'null'.
+            if type_ref.is_optional && encoding == Encoding::Slice1 {
+                write!(code, "{extensions_class}.DecodeNullable{identifier}(ref decoder)");
+            } else {
+                write!(code, "{extensions_class}.Decode{identifier}(ref decoder)");
+            }
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
     }
