@@ -52,8 +52,8 @@ return request.Operation switch
             }
 
             string dispatcherClass = $@"
-/// <summary>Implements <see cref=""IceRpc.IDispatcher"" /> for the operations of all the Slice interfaces implemented
-/// by this class.</summary>
+/// <summary>Implements <see cref=""IceRpc.IDispatcher"" /> for the Slice interface(s) implemented by this class.
+/// </summary>
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 {{
     /// <summary>Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name carried
@@ -61,9 +61,9 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
     /// <param name=""request"">The incoming request.</param>
     /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The outgoing response.</returns>
-    /// <exception cref=""IceRpc.DispatchException"">Thrown if the operation name does not correspond to any method
-    /// implemented by this class. The status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.
-    /// </exception>
+    /// <exception cref=""IceRpc.DispatchException"">Thrown if the operation name carried by the request does not
+    /// correspond to any method implemented by this class. The exception status code is
+    /// <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.</exception>
     {methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
         IceRpc.IncomingRequest request,
         global::System.Threading.CancellationToken cancellationToken)

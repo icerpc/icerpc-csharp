@@ -5,8 +5,6 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
