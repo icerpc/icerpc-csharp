@@ -1,6 +1,10 @@
 name: ci
 
-on: [push, pull_request]
+on:
+  push:
+    branches: ["0.3.x"]
+  pull_request:
+    branches: ["0.3.x"]
 
 jobs:
   build_and_test:
