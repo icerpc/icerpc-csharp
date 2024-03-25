@@ -23,6 +23,23 @@
             "datatype":"bool",
             "description":"If specified, skips the automatic restore of the project on create.",
             "defaultValue":"false"
+        },
+        "transport": {
+            "type": "parameter",
+            "description": "The transport to use for IceRPC connections.",
+            "datatype": "choice",
+            "choices": [
+                {
+                    "choice": "quic",
+                    "description": "Use QUIC transport"
+                },
+                {
+                    "choice": "slic",
+                    "description": "Use slic transport"
+                }
+            ],
+            "defaultValue": "slic",
+            "replaces": "slic"
         }
     },
     "sources":[
@@ -32,10 +49,83 @@
                     "rename":{
                         "editorconfig":".editorconfig"
                     }
+                },
+                {
+                    "condition": "(transport == 'quic')",
+                    "exclude": [
+                        "slic/*"
+                    ],
+                    "rename": {
+                        "quic/Program.cs": "Program.cs"
+                    }
+                },
+                {
+                    "condition": "(transport == 'slic')",
+                    "exclude": [
+                        "quic/*",
+                        "certs/*"
+                    ],
+                    "rename": {
+                        "slic/Program.cs": "Program.cs"
+                    }
                 }
             ]
         }
     ],
+    "SpecialCustomOperations": {
+        "**/*.xaml": {
+            "operations": [
+                {
+                    "type": "conditional",
+                    "configuration": {
+                        "actionableIf": [
+                            "<!--#if"
+                        ],
+                        "actionableElse": [
+                            "#else",
+                            "<!--#else"
+                        ],
+                        "actionableElseif": [
+                            "#elseif",
+                            "<!--#elseif"
+                        ],
+                        "endif": [
+                            "#endif",
+                            "<!--#endif"
+                        ],
+                        "trim": "true",
+                        "wholeLine": "true"
+                    }
+                }
+            ]
+        },
+        "editorconfig": {
+            "operations": [
+                {
+                    "type": "conditional",
+                    "configuration": {
+                        "actionableIf": [
+                            "<!--#if"
+                        ],
+                        "actionableElse": [
+                            "#else",
+                            "<!--#else"
+                        ],
+                        "actionableElseif": [
+                            "#elseif",
+                            "<!--#elseif"
+                        ],
+                        "endif": [
+                            "#endif",
+                            "<!--#endif"
+                        ],
+                        "trim": "true",
+                        "wholeLine": "true"
+                    }
+                }
+            ]
+        }
+    },
     "primaryOutputs":[
         {
             "path":"IceRpc-Slice-Client.csproj"
