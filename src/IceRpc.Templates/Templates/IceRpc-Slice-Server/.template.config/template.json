@@ -56,8 +56,7 @@
                         "slic/*"
                     ],
                     "rename": {
-                        "quic/Program.cs": "Program.cs",
-                        "quic/IceRpc-Slice-Server.csproj": "IceRpc-Slice-Server.csproj"
+                        "quic/Program.cs": "Program.cs"
                     }
                 },
                 {
@@ -67,8 +66,7 @@
                         "certs/*"
                     ],
                     "rename": {
-                        "slic/Program.cs": "Program.cs",
-                        "slic/IceRpc-Slice-Server.csproj": "IceRpc-Slice-Server.csproj"
+                        "slic/Program.cs": "Program.cs"
                     }
                 }
             ]

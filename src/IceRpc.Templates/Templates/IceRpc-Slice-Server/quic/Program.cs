@@ -2,6 +2,8 @@ using IceRpc;
 using IceRpc.Slice;
 using IceRpc.Transports.Quic;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 using IceRpc_Slice_Server;
 
