@@ -31,15 +31,15 @@
             "choices": [
                 {
                     "choice": "quic",
-                    "description": "Use QUIC transport"
+                    "description": "Use the QUIC transport"
                 },
                 {
-                    "choice": "slic",
-                    "description": "Use slic transport"
+                    "choice": "tcp",
+                    "description": "Use the TCP transport"
                 }
             ],
-            "defaultValue": "slic",
-            "replaces": "slic"
+            "defaultValue": "tcp",
+            "replaces": "tcp"
         }
     },
     "sources": [
@@ -51,23 +51,10 @@
                     }
                 },
                 {
-                    "condition": "(transport == 'quic')",
+                    "condition": "(transport == 'tcp')",
                     "exclude": [
-                        "slic/*"
-                    ],
-                    "rename": {
-                        "quic/Program.cs": "Program.cs"
-                    }
-                },
-                {
-                    "condition": "(transport == 'slic')",
-                    "exclude": [
-                        "quic/*",
                         "certs/*"
-                    ],
-                    "rename": {
-                        "slic/Program.cs": "Program.cs"
-                    }
+                    ]
                 }
             ]
         }
