@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-    <!--#if(transport=="quic")-->
+    <!--#if (transport=="quic")-->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <!--#endif"-->
   </PropertyGroup>
@@ -16,7 +16,7 @@
     <PackageReference Include="IceRpc.Slice" Version="0.3.1-preview1" />
     <PackageReference Include="IceRpc.Deadline" Version="0.3.1-preview1" />
     <PackageReference Include="IceRpc.Logger" Version="0.3.1-preview1" />
-    <!--#if(transport=="quic")-->
+    <!--#if (transport=="quic")-->
     <PackageReference Include="IceRpc.Transports.Quic" Version="0.3.1-preview1" />
     <!--#endif"-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
