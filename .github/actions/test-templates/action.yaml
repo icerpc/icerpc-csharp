@@ -25,6 +25,12 @@ runs:
   - name: 🧪 Test IceRpc + Slice Server Template
     run: mkdir -p templates-test/slice-server && cd templates-test/slice-server && dotnet new icerpc-slice-server && dotnet build
     shell: bash
+  - name: 🧪 Test IceRpc + Slice Client Template with QUIC
+    run: mkdir -p templates-test/slice-client-quic && cd templates-test/slice-client-quic && dotnet new icerpc-slice-client --transport quic && dotnet build
+    shell: bash
+  - name: 🧪 Test IceRpc + Slice Server Template with QUIC
+    run: mkdir -p templates-test/slice-server-quic && cd templates-test/slice-server-quic && dotnet new icerpc-slice-server --transport quic && dotnet build
+    shell: bash
   - name: 🧪 Test IceRpc + Slice DI Client Template
     run: mkdir -p templates-test/slice-di-client && cd templates-test/slice-di-client && dotnet new icerpc-slice-di-client && dotnet build
     shell: bash
