@@ -34,9 +34,9 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
     }
 };
 #endif
-#if (transport == "quic")
 
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
+#if (transport == "quic")
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
     clientAuthenticationOptions,
