@@ -40,6 +40,7 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
     clientAuthenticationOptions,
+    multiplexedClientTransport: new QuicClientTransport(),
     logger: loggerFactory.CreateLogger<ClientConnection>());
 #else
 await using var connection = new ClientConnection(
