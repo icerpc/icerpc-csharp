@@ -10,7 +10,6 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -24,5 +23,8 @@ jobs:
         uses: ./.github/actions/test
 
   test_templates:
-    - name: Test Templates
-      uses: ./.github/actions/test-templates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Test Templates
+        uses: ./.github/actions/test-templates
