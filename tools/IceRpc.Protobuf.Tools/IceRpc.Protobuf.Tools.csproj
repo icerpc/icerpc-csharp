@@ -29,11 +29,12 @@
       <IncludeBuildOutput>false</IncludeBuildOutput>
       <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
       <NoWarn>NU5100</NoWarn>
+      <ProtobufVersion>26.0</ProtobufVersion>
    </PropertyGroup>
    <ItemGroup>
       <PackageReference Include="Microsoft.Build.Framework" Version="17.8.3" />
       <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.3" />
-      <PackageReference Include="Google.Protobuf.Tools" Version="3.26.0" />
+      <PackageReference Include="Google.Protobuf.Tools" Version="3.$(ProtobufVersion)" />
    </ItemGroup>
    <ItemGroup>
       <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
@@ -73,27 +74,55 @@
       </None>
    </ItemGroup>
    <Target Name="CopyGoogleProtobufTools" BeforeTargets="CoreCompile">
-      <ItemGroup>
-         <GoogleProtobufFiles Include="$(protoc_tools)/google/protobuf/*.*"/>
-         <GoogleLinuxProtoc Include="$(protoc_tools)/linux_x64/*.*" />
-         <GoogleWindowsProtoc Include="$(protoc_tools)/windows_x64/*.*" />
-         <GoogleMacOsxProtoc Include="$(protoc_tools)/macosx_x64/*.*" />
-      </ItemGroup>
+
+      <!-- Download and extract macOS and Linux ARM64 binaries from protobuf release package. The compilers for ARM64
+           are not included with Google.Protobuf NuGet packge.
+      -->
+      <DownloadFile
+         SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-osx-aarch_64.zip" 
+         DestinationFolder="$(MSBuildThisFileDirectory)obj" 
+         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip')"/>
+
+      <Unzip 
+         SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip" 
+         DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
+         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')"/>
+
+      <DownloadFile
+         SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
+         DestinationFolder="$(MSBuildThisFileDirectory)obj" />
+
+      <Unzip 
+         SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip" 
+         DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
+         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')"/>
+
       <Copy
             SourceFiles="@(GoogleProtobufFiles)"
             DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/google/protobuf"
             SkipUnchangedFiles="true" />
       <Copy
-            SourceFiles="@(GoogleLinuxProtoc)"
+            SourceFiles="$(protoc_tools)/linux_x64/protoc"
             DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/linux_x64"
             SkipUnchangedFiles="true" />
       <Copy
-            SourceFiles="@(GoogleWindowsProtoc)"
+            SourceFiles="$(protoc_tools)/windows_x64/protoc.exe"
             DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/windows_x64"
             SkipUnchangedFiles="true" />
+      
       <Copy
-            SourceFiles="@(GoogleMacOsxProtoc)"
+            SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/linux_aarch64"
+            SkipUnchangedFiles="true" />
+      
+      <Copy
+            SourceFiles="$(protoc_tools)/macosx_x64/protoc"
             DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/macosx_x64"
+            SkipUnchangedFiles="true" />
+
+      <Copy
+            SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/macosx_aarch64"
             SkipUnchangedFiles="true" />
    </Target>
    <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
