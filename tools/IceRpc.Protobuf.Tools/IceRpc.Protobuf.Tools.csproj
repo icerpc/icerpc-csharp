@@ -76,7 +76,7 @@
    <Target Name="CopyGoogleProtobufTools" BeforeTargets="CoreCompile">
 
       <!-- Download and extract macOS and Linux ARM64 binaries from protobuf release package. The compilers for ARM64
-           are not included with Google.Protobuf NuGet packge.
+           are not included with Google.Protobuf NuGet package.
       -->
       <DownloadFile
          SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
