@@ -79,23 +79,28 @@
            are not included with Google.Protobuf NuGet packge.
       -->
       <DownloadFile
-         SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-osx-aarch_64.zip" 
-         DestinationFolder="$(MSBuildThisFileDirectory)obj" 
+         SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
+         DestinationFolder="$(MSBuildThisFileDirectory)obj"
          Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip')"/>
-
-      <Unzip 
-         SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip" 
-         DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
-         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')"/>
 
       <DownloadFile
          SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
          DestinationFolder="$(MSBuildThisFileDirectory)obj" />
 
-      <Unzip 
-         SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip" 
-         DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
+      <!-- We cannot use MSBuild Unzip task because it doesn't preserve the executable permissions -->
+      <MakeDir Directories="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
+         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')"/>
+      <Exec Command="tar -xf $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip -C $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
+            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc')"/>
+
+      <MakeDir Directories="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
          Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')"/>
+      <Exec Command="tar -xf $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip -C $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
+            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc')"/>
+
+      <ItemGroup>
+         <GoogleProtobufFiles Include="$(protoc_tools)/google/protobuf/*.*"/>
+      </ItemGroup>
 
       <Copy
             SourceFiles="@(GoogleProtobufFiles)"
@@ -103,26 +108,26 @@
             SkipUnchangedFiles="true" />
       <Copy
             SourceFiles="$(protoc_tools)/linux_x64/protoc"
-            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/linux_x64"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/linux-x64"
             SkipUnchangedFiles="true" />
       <Copy
             SourceFiles="$(protoc_tools)/windows_x64/protoc.exe"
-            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/windows_x64"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/windows-x64"
             SkipUnchangedFiles="true" />
-      
+
       <Copy
             SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc"
-            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/linux_aarch64"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/linux-arm64"
             SkipUnchangedFiles="true" />
-      
+
       <Copy
             SourceFiles="$(protoc_tools)/macosx_x64/protoc"
-            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/macosx_x64"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/macos-x64"
             SkipUnchangedFiles="true" />
 
       <Copy
             SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
-            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/macosx_aarch64"
+            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/macos-arm64"
             SkipUnchangedFiles="true" />
    </Target>
    <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
