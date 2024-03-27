@@ -8,7 +8,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 
 var greeter = new GreeterProxy(connection);
 
-string[] names = [ "", "jimmy", "billy bob", "alice", Environment.UserName ];
+string[] names = ["", "jimmy", "billy bob", "alice", Environment.UserName];
 
 foreach (string name in names)
 {

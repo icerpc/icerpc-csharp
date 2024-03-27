@@ -34,7 +34,7 @@ pipeline = pipeline
 // Create a hello proxy with the invocation pipeline as its invoker. Note that this proxy has no server address.
 var hello = new HelloProxy(pipeline, new Uri("ice:/hello"));
 
-menu();
+Menu();
 string? line = null;
 do
 {
@@ -57,27 +57,27 @@ do
             case "x":
                 break;
             case "?":
-                menu();
+                Menu();
                 break;
             default:
                 Console.WriteLine($"unknown command '{line}'");
-                menu();
+                Menu();
                 break;
-        };
+        }
     }
     catch (Exception exception)
     {
         await Console.Error.WriteLineAsync(exception.ToString());
     }
-} while (line != "x");
+}
+while (line != "x");
 
 await connectionCache.ShutdownAsync();
 
-static void menu() =>
+static void Menu() =>
     Console.WriteLine(
         "usage:\n" +
         "t: send greeting\n" +
         "s: shutdown server\n" +
         "x: exit\n" +
-        "?: help\n"
-    );
+        "?: help\n");

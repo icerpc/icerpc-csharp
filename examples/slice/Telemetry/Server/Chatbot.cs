@@ -8,7 +8,7 @@ namespace TelemetryServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Slice interface 'Greeter'.</summary>
 [SliceService]
-internal partial class Chatbot :  IGreeterService
+internal partial class Chatbot : IGreeterService
 {
     public ValueTask<string> GreetAsync(string name, IFeatureCollection features, CancellationToken cancellationToken)
     {
