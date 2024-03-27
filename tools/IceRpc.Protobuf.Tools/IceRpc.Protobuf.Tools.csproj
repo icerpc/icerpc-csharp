@@ -87,16 +87,22 @@
          SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
          DestinationFolder="$(MSBuildThisFileDirectory)obj" />
 
-      <!-- We cannot use MSBuild Unzip task because it doesn't preserve the executable permissions -->
+      <!-- We cannot use MSBuild Unzip task because it doesn't preserve the executable permissions:
+         On macOS and Linux we use unzip, on Windows we use tar. We don't use tar on all platforms as the GNU tar version doesn't support zip files.
+         The version included with Windows does. -->
       <MakeDir Directories="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
          Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')"/>
+      <Exec Command="unzip -x $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip -d $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
+            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc') and !$([MSBuild]::IsOSPlatform('Windows'))"/>
       <Exec Command="tar -xf $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip -C $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
-            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc')"/>
+            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc') and $([MSBuild]::IsOSPlatform('Windows'))"/>
 
       <MakeDir Directories="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
          Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')"/>
+      <Exec Command="unzip -x $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip -d $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
+            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc') and !$([MSBuild]::IsOSPlatform('Windows'))"/>
       <Exec Command="tar -xf $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip -C $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
-            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc')"/>
+            Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc') and $([MSBuild]::IsOSPlatform('Windows'))"/>
 
       <ItemGroup>
          <GoogleProtobufFiles Include="$(protoc_tools)/google/protobuf/*.*"/>
