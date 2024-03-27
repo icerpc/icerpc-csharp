@@ -17,6 +17,8 @@ jobs:
         uses: ./.github/actions/build
       - name: Run Tests
         uses: ./.github/actions/test
+      - name: Test Templates
+        uses: ./.github/actions/test-templates
 
   # The examples use an already an published version of the IceRPC NuGet packages
   build_examples:
@@ -34,5 +36,3 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Test Templates
-        uses: ./.github/actions/test-templates
