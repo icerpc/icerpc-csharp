@@ -12,6 +12,7 @@ runs:
     shell: bash
   - name: 🧪 Test IceRpc + Protobuf Server Template
     run: mkdir -p templates-test/protobuf-server && cd templates-test/protobuf-server && dotnet new icerpc-protobuf-server && dotnet build
+    shell: bash
   - name: 🧪 Test IceRpc + Protobuf Client Template with QUIC
     run: mkdir -p templates-test/protobuf-client-quic && cd templates-test/protobuf-client-quic && dotnet new icerpc-protobuf-client --transport quic && dotnet build
     shell: bash
