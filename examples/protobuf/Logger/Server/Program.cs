@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using LoggerServer;
 using IceRpc;
+using LoggerServer;
 using Microsoft.Extensions.Logging;
 using VisitorCenter;
 

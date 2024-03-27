@@ -5,5 +5,7 @@
         <WarningLevel>4</WarningLevel>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <AnalysisMode>All</AnalysisMode>
+        <!-- TODO update to 1.2 stable release https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187#issuecomment-1043221630 -->
+        <StyleCopAnalyzersVersion>1.2.0-beta.435</StyleCopAnalyzersVersion>
     </PropertyGroup>
 </Project>

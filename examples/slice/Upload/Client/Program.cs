@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using System.IO.Pipelines;
 using Repository;
+using System.IO.Pipelines;
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 var uploader = new UploaderProxy(connection);

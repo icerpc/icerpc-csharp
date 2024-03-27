@@ -14,5 +14,9 @@
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
     <PackageReference Include="IceRpc.RequestContext" Version="$(Version)" />
     <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

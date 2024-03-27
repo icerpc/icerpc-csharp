@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using Metrics;
 using IceRpc.Features;
 using IceRpc.Slice;
+using Metrics;
 using VisitorCenter;
 
 namespace MultipleInterfacesServer;

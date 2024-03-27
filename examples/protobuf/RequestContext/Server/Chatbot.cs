@@ -26,6 +26,6 @@ internal partial class Chatbot : IGreeterService
                 Console.WriteLine($"  {key}: {value}");
             }
         }
-        return new(new GreetResponse{ Greeting = $"Hello, {message.Name}!" } );
+        return new(new GreetResponse { Greeting = $"Hello, {message.Name}!" });
     }
 }

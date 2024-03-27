@@ -10,10 +10,10 @@ namespace TcpFallbackServer;
 [ProtobufService]
 internal partial class Chatbot : IGreeterService
 {
-   public ValueTask<GreetResponse> GreetAsync(
-        GreetRequest message,
-        IFeatureCollection features,
-        CancellationToken cancellationToken)
+    public ValueTask<GreetResponse> GreetAsync(
+         GreetRequest message,
+         IFeatureCollection features,
+         CancellationToken cancellationToken)
     {
         Console.WriteLine($"Dispatching Greet request {{ name = '{message.Name}' }}");
         return new(new GreetResponse { Greeting = $"Hello, {message.Name}!" });
