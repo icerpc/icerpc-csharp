@@ -8,20 +8,26 @@ on:
 
 jobs:
   build_and_test:
-
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Build
-      uses: ./.github/actions/build
-    - name: Publish
-      uses: ./.github/actions/publish
-    - name: Build Examples
-      uses: ./.github/actions/build-examples
-    - name: Run Tests
-      uses: ./.github/actions/test
-    - name: Test Templates
-      uses: ./.github/actions/test-templates
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build
+        uses: ./.github/actions/build
+      - name: Publish
+        uses: ./.github/actions/publish
+      - name: Run Tests
+        uses: ./.github/actions/test
+      - name: Test Templates
+        uses: ./.github/actions/test-templates
+
+  # The examples use an already an published version of the IceRPC NuGet packages
+  build_examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build Examples
+        uses: ./.github/actions/build-examples

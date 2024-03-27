@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
-using SecureServer;
 using IceRpc;
+using SecureServer;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 

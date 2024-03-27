@@ -33,7 +33,7 @@ internal partial class ThermoBot : IThermoControlService
         IFeatureCollection features,
         CancellationToken cancellationToken)
     {
-        lock(_mutex)
+        lock (_mutex)
         {
             if (message.SetPoint < 65.0F)
             {

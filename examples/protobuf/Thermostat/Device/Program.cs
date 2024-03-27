@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using Google.Protobuf.WellKnownTypes;
 using IceRpc;
 using Igloo;
 using Microsoft.Extensions.Logging;
