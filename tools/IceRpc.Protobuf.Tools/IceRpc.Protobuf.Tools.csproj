@@ -108,7 +108,7 @@
          DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
          Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')"/>
 
-      <!-- Make protoc compiler writeable, otherwise Copy task fails when running inside a devcontainer -->
+      <!-- Make protoc compiler writeable, otherwise Copy task fails when running inside a container -->
       <Exec Command="chmod +w $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
          Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))" />
 
