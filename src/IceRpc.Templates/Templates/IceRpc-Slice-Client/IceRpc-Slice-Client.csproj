@@ -21,5 +21,11 @@
     <!--#endif-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
+    <!-- The 1.2 beta version is required for supporting the latest language features.
+         See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>
