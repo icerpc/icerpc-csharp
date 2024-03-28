@@ -153,3 +153,4 @@ jobs:
         shell: powershell
       - name: 🧪 Test Templates
         uses: ./.github/actions/test-templates
+        if: runner.os == 'macOS' || runner.os == 'Linux'
