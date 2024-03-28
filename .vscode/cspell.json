@@ -23,6 +23,7 @@
     "ECONNRESET",
     "EPIPE",
     "finalizers",
+    "globalconfig",
     "globaltool",
     "icerpc",
     "Idempotency",
