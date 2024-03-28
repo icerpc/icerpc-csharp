@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build
         uses: ./.github/actions/build
       - name: Publish
@@ -34,6 +34,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build Examples
         uses: ./.github/actions/build-examples
