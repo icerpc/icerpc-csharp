@@ -10,9 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Metrics" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Metrics" Version="$(IceRpcVersion)" />
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

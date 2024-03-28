@@ -3,9 +3,9 @@
   <ItemGroup>
     <Compile Include="../Chatbot.cs" />
     <SliceFile Include="../Greeter.slice" />
-    <PackageReference Include="IceRpc" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Metrics" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Metrics" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
   </ItemGroup>
 </Project>
