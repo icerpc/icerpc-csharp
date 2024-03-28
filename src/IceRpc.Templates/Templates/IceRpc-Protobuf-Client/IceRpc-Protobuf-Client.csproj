@@ -12,12 +12,12 @@
     <!--#endif"-->
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.3.1-preview1" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="0.3.1-preview1" />
-    <PackageReference Include="IceRpc.Deadline" Version="0.3.1-preview1" />
-    <PackageReference Include="IceRpc.Logger" Version="0.3.1-preview1" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.3.*" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="0.3.*" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.3.*" />
+    <PackageReference Include="IceRpc.Logger" Version="0.3.*" />
     <!--#if (transport=="quic")-->
-    <PackageReference Include="IceRpc.Transports.Quic" Version="0.3.1-preview1" />
+    <PackageReference Include="IceRpc.Transports.Quic" Version="0.3.*" />
     <!--#endif"-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
