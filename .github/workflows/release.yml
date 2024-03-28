@@ -152,5 +152,4 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
       - name: 🧪 Test Templates
-        run: |
-          uses: ./.github/actions/test-templates
+        uses: ./.github/actions/test-templates
