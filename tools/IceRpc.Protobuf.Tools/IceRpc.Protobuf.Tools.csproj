@@ -101,23 +101,28 @@
       <ExtractTask
          SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
          DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
-         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc')"/>
+         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')"/>
 
       <ExtractTask
          SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
          DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
-         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc')"/>
+         Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')"/>
+
+      <!-- Make protoc compiler writeable, otherwise Copy task fails when running inside a devcontainer -->
+      <Exec Command="chmod +w $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
+         Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))" />
+
+      <Exec Command="chmod +w $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc"
+         Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))" />
 
       <Copy
             SourceFiles="@(GoogleProtobufFiles)"
             DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/google/protobuf"
-            OverwriteReadOnlyFiles="true"
             SkipUnchangedFiles="true" />
 
       <Copy
             SourceFiles="@(ProtocCompiler)"
-            DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/%(ProtocCompiler.Prefix)"
-            OverwriteReadOnlyFiles="true"
+            DestinationFiles="@(ProtocCompiler->'$(MSBuildThisFileDirectory)obj/tools/%(Prefix)/%(Filename)%(Extension)')"
             SkipUnchangedFiles="true" />
    </Target>
    <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
