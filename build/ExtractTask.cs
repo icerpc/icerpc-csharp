@@ -8,7 +8,6 @@ using System.Threading;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-
 /// <summary>A custom MSBuild task that extracts .zip archive files to a destination folder. This tasks uses
 /// <see cref="ZipFile.ExtractToDirectory(string, string)"/> to extract the files, which ensures that Unix permissions
 /// are correctly restored. The MSBuild Unzip task does not restore Unix permissions.</summary>
@@ -19,9 +18,8 @@ public class ExtractTask : Task
     [Required]
     public ITaskItem DestinationFolder { get; set; }
 
-    /// <summary>
-    /// Gets or sets an array of <see cref="ITaskItem"/> objects containing the paths to .zip archive files to unzip.
-    /// </summary>
+    /// <summary>Gets or sets an array of <see cref="ITaskItem"/> objects containing the paths to .zip archive files to
+    /// unzip.</summary>
     [Required]
     public ITaskItem[] SourceFiles { get; set; }
 

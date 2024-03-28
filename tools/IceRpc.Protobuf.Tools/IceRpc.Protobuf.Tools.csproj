@@ -30,12 +30,11 @@
       <IncludeBuildOutput>false</IncludeBuildOutput>
       <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
       <NoWarn>NU5100</NoWarn>
-      <ProtobufVersion>26.1</ProtobufVersion>
    </PropertyGroup>
    <ItemGroup>
       <PackageReference Include="Microsoft.Build.Framework" Version="17.8.3" />
       <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.3" />
-      <PackageReference Include="Google.Protobuf.Tools" Version="3.$(ProtobufVersion)" />
+      <PackageReference Include="Google.Protobuf.Tools" Version="$(NuGetProtobufVersion)" />
    </ItemGroup>
    <ItemGroup>
       <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
