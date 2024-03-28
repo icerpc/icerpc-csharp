@@ -34,7 +34,7 @@ runs:
     run: mkdir -p templates-test/SliceServerQuic && cd templates-test/SliceServerQuic && dotnet new icerpc-slice-server --transport quic && dotnet build
     shell: bash
   - name: 🧪 Test IceRpc + Slice DI Client Template
-    run: mkdir -p templates-test/sliceDIClient && cd templates-test/SliceDIClient && dotnet new icerpc-slice-di-client && dotnet build
+    run: mkdir -p templates-test/SliceDIClient && cd templates-test/SliceDIClient && dotnet new icerpc-slice-di-client && dotnet build
     shell: bash
   - name: 🧪 Test IceRpc + Slice DI Server Template
     run: mkdir -p templates-test/SliceDIServer && cd templates-test/SliceDIServer && dotnet new icerpc-slice-di-server && dotnet build

@@ -193,6 +193,9 @@ dotnet_diagnostic.SA1201.severity = none
 # SA1208: Using directives for System should appear before other using directives
 dotnet_diagnostic.SA1208.severity = none
 
+# SA1210: SA1210: Using directives should be ordered alphabetically by the namespaces
+dotnet_diagnostic.SA1210.severity = none
+
 # SA1214: Readonly fields should appear before non-readonly fields
 dotnet_diagnostic.SA1214.severity = none
 
