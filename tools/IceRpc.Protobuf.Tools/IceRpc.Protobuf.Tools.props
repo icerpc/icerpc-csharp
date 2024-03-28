@@ -8,7 +8,7 @@
         <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
         <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
         <IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
-        <IceRpcProtocPrefix>$(IceRpcOSName)-$(IceRpcOSArch)</IceRpcProtocPrefix>
+        <IceRpcProtocPrefix>$(IceRpcOSName)_$(IceRpcOSArch)</IceRpcProtocPrefix>
     </PropertyGroup>
     <Choose>
         <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
