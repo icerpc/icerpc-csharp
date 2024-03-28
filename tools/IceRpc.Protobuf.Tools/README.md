@@ -84,7 +84,7 @@ You need to reference the `IceRpc.Protobuf` NuGet package to compile the generat
 ## Protobuf compiler
 
 This package includes the `protoc` compiler binaries, and the Protobuf well-known type definitions from the
-[Google.Protobuf.Tools][google-protobuf-tools] package, additionally it includes the `protoc` ARM64 binaries
+[Google.Protobuf.Tools][google-protobuf-tools] package. Additionally, it includes the `protoc` ARM64 binaries
 for Linux and macOS from `[Google Protobuf release page][google-protobuf-release].
 
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
