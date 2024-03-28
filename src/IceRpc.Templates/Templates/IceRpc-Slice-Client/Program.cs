@@ -32,10 +32,8 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
         return customChain.Build((X509Certificate2)certificate!);
     }
 };
-#endif
 
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
-#if (transport == "quic")
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
     clientAuthenticationOptions,

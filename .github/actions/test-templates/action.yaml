@@ -2,6 +2,8 @@ name: Test Templates
 
 runs:
   using: "composite"
+  env:
+    TreatWarningsAsErrors: true
   steps:
   - name: 🧪 Test IceRpc + Protobuf Client Template
     run: mkdir -p templates-test/ProtobufClient && cd templates-test/ProtobufClient && dotnet new icerpc-protobuf-client && dotnet build
