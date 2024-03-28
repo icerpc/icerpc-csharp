@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 #endif
-
 using IceRpc_Protobuf_Client;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
@@ -33,10 +32,8 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
         return customChain.Build((X509Certificate2)certificate!);
     }
 };
-#endif
 
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
-#if (transport == "quic")
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
     clientAuthenticationOptions,

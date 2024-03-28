@@ -6,7 +6,7 @@
         "Server",
         "Slice"
     ],
-    "identity": "IceRpc.Slice.Server.0.1",
+    "identity": "IceRpc.Slice.Server",
     "name": "IceRPC + Slice Server",
     "description": "A project template for creating an IceRPC + Slice server console application.",
     "shortName": "icerpc-slice-server",
@@ -57,6 +57,11 @@
                     ]
                 }
             ]
+        },
+        {
+            "source": "../../",
+            "include": ["CodeAnalysis.globalconfig"],
+            "target": "./"
         }
     ],
     "SpecialCustomOperations": {
