@@ -25,11 +25,11 @@
     <ProtoFile Include="../proto/greeter.proto" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.*" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
