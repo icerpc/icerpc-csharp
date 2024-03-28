@@ -116,16 +116,18 @@ jobs:
       with:
         name: packages
         path: packages
-    - name: Install packages to local NuGet repository
+    - name: Install NuGet packages and dotnet new templates
       working-directory: packages
       run: |
         dotnet nuget push *.nupkg --source ~/.nuget/packages
+        dotnet new install IceRpc.Templates*.nupkg
       if: runner.os == 'macOS' || runner.os == 'Linux'
       shell: bash
-    - name: Install packages to local NuGet repository
+    - name: Install NuGet packages and dotnet new templates
       working-directory: packages
       run: |
         dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
+        dotnet new install IceRpc.Templates*.nupkg
       if: runner.os == 'Windows'
       shell: powershell
     - name: Set version from tag
@@ -149,10 +151,6 @@ jobs:
         foreach ($example in $examples) { dotnet build $example.FullName }
       if: runner.os == 'Windows'
       shell: powershell
-    - name: 🔗 Install Templates
-      run: |
-        dotnet new install $env:USERPROFILE/.nuget/packages/icerpc.templates
-      shell: bash
     - name: 🧪 Test Templates
       run: |
         uses: ./.github/actions/test-templates
