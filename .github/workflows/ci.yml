@@ -19,6 +19,10 @@ jobs:
         uses: ./.github/actions/publish
       - name: Run Tests
         uses: ./.github/actions/test
+      - name: Install Templates
+        run: |
+          dotnet new install src/IceRpc.Templates/bin/Debug/IceRpc.Templates.*.nupkg
+        shell: bash
       - name: Test Templates
         uses: ./.github/actions/test-templates
 
