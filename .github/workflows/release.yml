@@ -149,3 +149,6 @@ jobs:
         foreach ($example in $examples) { dotnet build $example.FullName }
       if: runner.os == 'Windows'
       shell: powershell
+    - name: 🧪 Test Templates
+      run: |
+        uses: ./.github/actions/test-templates
