@@ -19,8 +19,14 @@ jobs:
         uses: ./.github/actions/publish
       - name: Run Tests
         uses: ./.github/actions/test
+      - name: Install Templates
+        run: dotnet new install src/IceRpc.Templates/bin/Debug/IceRpc.Templates.*.nupkg
+        shell: bash
       - name: Test Templates
         uses: ./.github/actions/test-templates
+      - name: Build DocFX Examples
+        run: dotnet build docfx/examples/Examples.sln
+        shell: bash
 
   # The examples use an already an published version of the IceRPC NuGet packages
   build_examples:

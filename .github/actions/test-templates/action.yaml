@@ -3,10 +3,6 @@ name: Test Templates
 runs:
   using: "composite"
   steps:
-  - name: 🔗 Install Templates
-    run: |
-      dotnet new install src/IceRpc.Templates/bin/Debug/IceRpc.Templates.*.nupkg
-    shell: bash
   - name: 🧪 Test IceRpc + Protobuf Client Template
     run: mkdir -p templates-test/protobuf-client && cd templates-test/protobuf-client && dotnet new icerpc-protobuf-client && dotnet build
     shell: bash

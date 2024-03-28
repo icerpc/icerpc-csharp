@@ -6,5 +6,4 @@ runs:
   - name: 🔨 Build Examples
     run: |
       for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
-      dotnet build docfx/examples/Examples.sln
     shell: bash
