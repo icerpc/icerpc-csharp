@@ -6,7 +6,7 @@
         "Client",
         "Protobuf"
     ],
-    "identity": "IceRpc.Protobuf.Client.0.1",
+    "identity": "IceRpc.Protobuf.Client",
     "name": "IceRPC + Protobuf Client",
     "description": "A project template for creating an IceRPC + Protobuf client console application.",
     "shortName": "icerpc-protobuf-client",
@@ -57,6 +57,11 @@
                     ]
                 }
             ]
+        },
+        {
+            "source": "../../",
+            "include": ["CodeAnalysis.globalconfig"],
+            "target": "./"
         }
     ],
     "SpecialCustomOperations": {

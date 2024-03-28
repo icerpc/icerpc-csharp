@@ -18,6 +18,7 @@
             <Pack>true</Pack>
         </Content>
         <Compile Remove="**/*" />
+        <Content Include="CodeAnalysis.globalconfig" Pack="true" PackagePath="/" />
         <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
         <Content Include="README.md" Pack="true" PackagePath="/" />
         <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
