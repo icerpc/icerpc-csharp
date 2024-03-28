@@ -7,12 +7,12 @@
     <ProtoFile Include="../greeter.proto">
       <OutputDir>generated/protoc</OutputDir>
     </ProtoFile>
-    <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.RequestContext" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
+    <PackageReference Include="IceRpc.RequestContext" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="generated/" />
