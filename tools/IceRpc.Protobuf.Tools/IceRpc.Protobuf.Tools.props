@@ -8,6 +8,7 @@
         <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
         <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
         <IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
+        <IceRpcProtocPrefix>$(IceRpcOSName)_$(IceRpcOSArch)</IceRpcProtocPrefix>
     </PropertyGroup>
     <Choose>
         <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
@@ -35,19 +36,6 @@
         <Otherwise>
             <PropertyGroup>
                 <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
-            </PropertyGroup>
-        </Otherwise>
-    </Choose>
-    <Choose>
-        <When Condition="'$(IceRpcOSName)' == 'macos'">
-            <PropertyGroup>
-                <!-- Google.Protobuf.Tools doesn't include an arm64 native compiler, we have to use the x64 one.-->
-                <IceRpcProtocPrefix>macosx_x64</IceRpcProtocPrefix>
-            </PropertyGroup>
-        </When>
-        <Otherwise>
-            <PropertyGroup>
-                <IceRpcProtocPrefix>$(IceRpcOSName)_$(IceRpcOSArch)</IceRpcProtocPrefix>
             </PropertyGroup>
         </Otherwise>
     </Choose>

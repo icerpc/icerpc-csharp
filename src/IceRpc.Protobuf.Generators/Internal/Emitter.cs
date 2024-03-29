@@ -59,8 +59,18 @@ request.Operation switch
                 serviceClass.IsSealed ? "public" : "public virtual";
 
             string dispatcherClass = $@"
+/// <summary>Implements <see cref=""IceRpc.IDispatcher"" /> for the Protobuf service(s) implemented by this class.
+/// </summary>
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 {{
+    /// <summary>Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name carried
+    /// by the request. With IceRPC + Protobuf, operation names are the same as Protobuf rpc method names.</summary>
+    /// <param name=""request"">The incoming request.</param>
+    /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
+    /// <returns>The outgoing response.</returns>
+    /// <exception cref=""IceRpc.DispatchException"">Thrown if the rpc method name carried by the request does not
+    /// correspond to any method implemented by this class. The exception status code is
+    /// <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.</exception>
     {methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
         IceRpc.IncomingRequest request,
         global::System.Threading.CancellationToken cancellationToken) =>
@@ -88,8 +98,6 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 
 #nullable enable
 
-#pragma warning disable CS1591 // Missing XML Comment
-#pragma warning disable CS1573 // Parameter has no matching param tag in the XML comment
 #pragma warning disable CS0612 // Type or member is obsolete
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CS0619 // Type or member is obsolete

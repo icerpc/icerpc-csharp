@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
+using Demo;
 using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Ice;
-using Demo;
 
 namespace MinimalServer;
 

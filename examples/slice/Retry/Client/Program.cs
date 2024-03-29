@@ -38,8 +38,11 @@ await using var connectionCache = new ConnectionCache();
 // Create an invocation pipeline with the retry and logger interceptors.
 Pipeline pipeline = new Pipeline()
     .UseRetry(
-        // Make up to 5 attempts before giving up.
-        new RetryOptions { MaxAttempts = 5 },
+        new RetryOptions
+        {
+            // Make up to 5 attempts before giving up.
+            MaxAttempts = 5
+        },
         loggerFactory)
     .UseLogger(loggerFactory)
     .Into(connectionCache);

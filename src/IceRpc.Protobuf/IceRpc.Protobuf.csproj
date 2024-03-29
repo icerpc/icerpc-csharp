@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
-    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <PackageReference Include="Google.Protobuf" Version="$(NuGetProtobufVersion)" />
     <!-- Includes the analyzer in the package without consuming it. -->
     <ProjectReference
       Include="../IceRpc.Protobuf.Generators/IceRpc.Protobuf.Generators.csproj"

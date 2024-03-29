@@ -2,6 +2,7 @@
   "version": "0.2",
   "language": "en",
   "words": [
+    "aarch",
     "ALPN",
     "apos",
     "appsettings",
@@ -22,6 +23,7 @@
     "ECONNRESET",
     "EPIPE",
     "finalizers",
+    "globalconfig",
     "globaltool",
     "icerpc",
     "Idempotency",

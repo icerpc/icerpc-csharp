@@ -1,57 +1,110 @@
 {
-    "$schema":"http://json.schemastore.org/template",
-    "author":"ZeroC",
-    "classifications":[
+    "$schema": "http://json.schemastore.org/template",
+    "author": "ZeroC",
+    "classifications": [
         "IceRPC",
         "Server",
         "Slice"
     ],
-    "identity":"IceRpc.Slice.Server.0.1",
-    "name":"IceRPC + Slice Server",
-    "description":"A project template for creating an IceRPC + Slice server console application.",
-    "shortName":"icerpc-slice-server",
-    "tags":{
-        "language":"C#",
-        "type":"project"
+    "identity": "IceRpc.Slice.Server",
+    "name": "IceRPC + Slice Server",
+    "description": "A project template for creating an IceRPC + Slice server console application.",
+    "shortName": "icerpc-slice-server",
+    "tags": {
+        "language": "C#",
+        "type": "project"
     },
-    "sourceName":"IceRpc-Slice-Server",
-    "preferNameDirectory":true,
-    "defaultName":"Server",
-    "symbols":{
-        "skipRestore":{
-            "type":"parameter",
-            "datatype":"bool",
-            "description":"If specified, skips the automatic restore of the project on create.",
-            "defaultValue":"false"
+    "sourceName": "IceRpc-Slice-Server",
+    "preferNameDirectory": true,
+    "defaultName": "Server",
+    "symbols": {
+        "skipRestore": {
+            "type": "parameter",
+            "datatype": "bool",
+            "description": "If specified, skips the automatic restore of the project on create.",
+            "defaultValue": "false"
+        },
+        "transport": {
+            "type": "parameter",
+            "description": "The transport to use for IceRPC connections.",
+            "datatype": "choice",
+            "choices": [
+                {
+                    "choice": "quic",
+                    "description": "Use the QUIC transport"
+                },
+                {
+                    "choice": "tcp",
+                    "description": "Use the TCP transport"
+                }
+            ],
+            "defaultValue": "tcp",
+            "replaces": "tcp"
         }
     },
-    "sources":[
+    "sources": [
         {
-            "modifiers":[
+            "modifiers": [
                 {
-                    "rename":{
-                        "editorconfig":".editorconfig"
+                    "rename": {
+                        "editorconfig": ".editorconfig"
+                    }
+                },
+                {
+                    "condition": "(transport == 'tcp')",
+                    "exclude": [
+                        "certs/*"
+                    ]
+                }
+            ]
+        },
+        {
+            "source": "../../",
+            "include": ["CodeAnalysis.globalconfig"],
+            "target": "./"
+        }
+    ],
+    "SpecialCustomOperations": {
+        "editorconfig": {
+            "operations": [
+                {
+                    "type": "conditional",
+                    "configuration": {
+                        "actionableIf": [
+                            "#if"
+                        ],
+                        "actionableElse": [
+                            "#else"
+                        ],
+                        "actionableElseif": [
+                            "#elseif"
+                        ],
+                        "endif": [
+                            "#endif"
+                        ],
+                        "trim": "true",
+                        "wholeLine": "true"
                     }
                 }
             ]
         }
-    ],
-    "primaryOutputs":[
+    },
+    "primaryOutputs": [
         {
-            "path":"IceRpc-Slice-Server.csproj"
+            "path": "IceRpc-Slice-Server.csproj"
         }
     ],
-    "postActions":[
+    "postActions": [
         {
-            "condition":"(!skipRestore)",
-            "description":"Restore NuGet packages required by this project.",
-            "manualInstructions":[
+            "condition": "(!skipRestore)",
+            "description": "Restore NuGet packages required by this project.",
+            "manualInstructions": [
                 {
-                    "text":"Run 'dotnet restore'"
+                    "text": "Run 'dotnet restore'"
                 }
             ],
-            "actionId":"210D431B-A78B-4D2F-B762-4ED3E3EA9025",
-            "continueOnError":true
+            "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+            "continueOnError": true
         }
     ]
 }
