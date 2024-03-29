@@ -92,3 +92,6 @@ docfx/api
 nuget.config
 NuGet.config
 *.nupkg
+
+# CSharp Dev Kit
+.mono

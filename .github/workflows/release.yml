@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build
         uses: ./.github/actions/build-compiler
         with:
@@ -51,7 +51,7 @@ jobs:
       SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
       SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Create Code Signing Certificate
         run: |
           Set-Content -Path $env:GITHUB_WORKSPACE\certificate.pfx.base64 -Value '${{ secrets.SIGN_CERTIFICATE }}'
@@ -108,44 +108,49 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: build-packages
     steps:
-    - uses: actions/checkout@v3
-    - name: Initialize NuGet local cache
-      run: dotnet restore
-    - name: Download packages artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: packages
-        path: packages
-    - name: Install packages to local NuGet repository
-      working-directory: packages
-      run: |
-        dotnet nuget push *.nupkg --source ~/.nuget/packages
-      if: runner.os == 'macOS' || runner.os == 'Linux'
-      shell: bash
-    - name: Install packages to local NuGet repository
-      working-directory: packages
-      run: |
-        dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
-      if: runner.os == 'Windows'
-      shell: powershell
-    - name: Set version from tag
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-      if: runner.os == 'macOS' || runner.os == 'Linux'
-    - name: Set version from tag
-      run: |
-        $version = $env:GITHUB_REF -replace '^refs/tags/v',''
-        echo "VERSION=$version" >> $env:GITHUB_ENV
-      if: runner.os == 'Windows'
-    - name: 🔨 Build Examples
-      run: |
-        for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
-      if: runner.os == 'macOS' || runner.os == 'Linux'
-      shell: bash
-    - name: 🔨 Build Examples
-      run: |
-        $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
-        foreach ($example in $examples) { dotnet build $example.FullName }
-      if: runner.os == 'Windows'
-      shell: powershell
+      - uses: actions/checkout@v4
+      - name: Initialize NuGet local cache
+        run: dotnet restore
+      - name: Download packages artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+      - name: Install NuGet packages and dotnet new templates
+        working-directory: packages
+        run: |
+          dotnet nuget push *.nupkg --source ~/.nuget/packages
+          dotnet new install IceRpc.Templates*.nupkg
+        if: runner.os == 'macOS' || runner.os == 'Linux'
+        shell: bash
+      - name: Install NuGet packages and dotnet new templates
+        working-directory: packages
+        run: |
+          dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
+          dotnet new install IceRpc.Templates*.nupkg
+        if: runner.os == 'Windows'
+        shell: powershell
+      - name: Set version from tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+        if: runner.os == 'macOS' || runner.os == 'Linux'
+      - name: Set version from tag
+        run: |
+          $version = $env:GITHUB_REF -replace '^refs/tags/v',''
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+        if: runner.os == 'Windows'
+      - name: 🔨 Build Examples
+        run: |
+          for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
+        if: runner.os == 'macOS' || runner.os == 'Linux'
+        shell: bash
+      - name: 🔨 Build Examples
+        run: |
+          $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
+          foreach ($example in $examples) { dotnet build $example.FullName }
+        if: runner.os == 'Windows'
+        shell: powershell
+      - name: 🧪 Test Templates
+        uses: ./.github/actions/test-templates
+        if: runner.os == 'macOS' || runner.os == 'Linux'

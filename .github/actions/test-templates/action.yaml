@@ -3,31 +3,39 @@ name: Test Templates
 runs:
   using: "composite"
   steps:
-  - name: 🔗 Install Templates
-    run: |
-      dotnet new install src/IceRpc.Templates/bin/Debug/IceRpc.Templates.*.nupkg
-    shell: bash
   - name: 🧪 Test IceRpc + Protobuf Client Template
-    run: mkdir -p templates-test/protobuf-client && cd templates-test/protobuf-client && dotnet new icerpc-protobuf-client && dotnet build
+    run: mkdir -p templates-test/ProtobufClient && cd templates-test/ProtobufClient && dotnet new icerpc-protobuf-client && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash
   - name: 🧪 Test IceRpc + Protobuf Server Template
-    run: mkdir -p templates-test/protobuf-server && cd templates-test/protobuf-server && dotnet new icerpc-protobuf-server && dotnet build
+    run: mkdir -p templates-test/ProtobufServer && cd templates-test/ProtobufServer && dotnet new icerpc-protobuf-server && dotnet build /p:TreatWarningsAsErrors=true
+    shell: bash
+  - name: 🧪 Test IceRpc + Protobuf Client Template with QUIC
+    run: mkdir -p templates-test/ProtobufClientQuic && cd templates-test/ProtobufClientQuic && dotnet new icerpc-protobuf-client --transport quic && dotnet build /p:TreatWarningsAsErrors=true
+    shell: bash
+  - name: 🧪 Test IceRpc + Protobuf Server Template with QUIC
+    run: mkdir -p templates-test/ProtobufServerQuic && cd templates-test/ProtobufServerQuic && dotnet new icerpc-protobuf-server --transport quic && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash
   - name: 🧪 Test IceRpc + Protobuf DI Client Template
-    run: mkdir -p templates-test/protobuf-di-client && cd templates-test/protobuf-di-client && dotnet new icerpc-protobuf-di-client && dotnet build
+    run: mkdir -p templates-test/ProtobufDIClient && cd templates-test/ProtobufDIClient && dotnet new icerpc-protobuf-di-client && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash
   - name: 🧪 Test IceRpc + Protobuf DI Server Template
-    run: mkdir -p templates-test/protobuf-di-server && cd templates-test/protobuf-di-server && dotnet new icerpc-slice-di-server && dotnet build
+    run: mkdir -p templates-test/ProtobufDIServer && cd templates-test/ProtobufDIServer && dotnet new icerpc-slice-di-server && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash
   - name: 🧪 Test IceRpc + Slice Client Template
-    run: mkdir -p templates-test/slice-client && cd templates-test/slice-client && dotnet new icerpc-slice-client && dotnet build
+    run: mkdir -p templates-test/SliceClient && cd templates-test/SliceClient && dotnet new icerpc-slice-client && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash
   - name: 🧪 Test IceRpc + Slice Server Template
-    run: mkdir -p templates-test/slice-server && cd templates-test/slice-server && dotnet new icerpc-slice-server && dotnet build
+    run: mkdir -p templates-test/SliceServer && cd templates-test/SliceServer && dotnet new icerpc-slice-server && dotnet build /p:TreatWarningsAsErrors=true
+    shell: bash
+  - name: 🧪 Test IceRpc + Slice Client Template with QUIC
+    run: mkdir -p templates-test/SliceClientQuic && cd templates-test/SliceClientQuic && dotnet new icerpc-slice-client --transport quic && dotnet build /p:TreatWarningsAsErrors=true
+    shell: bash
+  - name: 🧪 Test IceRpc + Slice Server Template with QUIC
+    run: mkdir -p templates-test/SliceServerQuic && cd templates-test/SliceServerQuic && dotnet new icerpc-slice-server --transport quic && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash
   - name: 🧪 Test IceRpc + Slice DI Client Template
-    run: mkdir -p templates-test/slice-di-client && cd templates-test/slice-di-client && dotnet new icerpc-slice-di-client && dotnet build
+    run: mkdir -p templates-test/SliceDIClient && cd templates-test/SliceDIClient && dotnet new icerpc-slice-di-client && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash
   - name: 🧪 Test IceRpc + Slice DI Server Template
-    run: mkdir -p templates-test/slice-di-server && cd templates-test/slice-di-server && dotnet new icerpc-slice-di-server && dotnet build
+    run: mkdir -p templates-test/SliceDIServer && cd templates-test/SliceDIServer && dotnet new icerpc-slice-di-server && dotnet build /p:TreatWarningsAsErrors=true
     shell: bash

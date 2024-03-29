@@ -1,57 +1,110 @@
 {
-    "$schema":"http://json.schemastore.org/template",
-    "author":"ZeroC",
-    "classifications":[
+    "$schema": "http://json.schemastore.org/template",
+    "author": "ZeroC",
+    "classifications": [
         "IceRPC",
         "Client",
         "Protobuf"
     ],
-    "identity":"IceRpc.Protobuf.Client.0.1",
-    "name":"IceRPC + Protobuf Client",
-    "description":"A project template for creating an IceRPC + Protobuf client console application.",
-    "shortName":"icerpc-protobuf-client",
-    "tags":{
-        "language":"C#",
-        "type":"project"
+    "identity": "IceRpc.Protobuf.Client",
+    "name": "IceRPC + Protobuf Client",
+    "description": "A project template for creating an IceRPC + Protobuf client console application.",
+    "shortName": "icerpc-protobuf-client",
+    "tags": {
+        "language": "C#",
+        "type": "project"
     },
-    "sourceName":"IceRpc-Protobuf-Client",
-    "preferNameDirectory":true,
-    "defaultName":"Client",
-    "symbols":{
-        "skipRestore":{
-            "type":"parameter",
-            "datatype":"bool",
-            "description":"If specified, skips the automatic restore of the project on create.",
-            "defaultValue":"false"
+    "sourceName": "IceRpc-Protobuf-Client",
+    "preferNameDirectory": true,
+    "defaultName": "Client",
+    "symbols": {
+        "skipRestore": {
+            "type": "parameter",
+            "datatype": "bool",
+            "description": "If specified, skips the automatic restore of the project on create.",
+            "defaultValue": "false"
+        },
+        "transport": {
+            "type": "parameter",
+            "description": "The transport to use for IceRPC connections.",
+            "datatype": "choice",
+            "choices": [
+                {
+                    "choice": "quic",
+                    "description": "Use the QUIC transport"
+                },
+                {
+                    "choice": "tcp",
+                    "description": "Use the TCP transport"
+                }
+            ],
+            "defaultValue": "tcp",
+            "replaces": "tcp"
         }
     },
-    "sources":[
+    "sources": [
         {
-            "modifiers":[
+            "modifiers": [
                 {
-                    "rename":{
-                        "editorconfig":".editorconfig"
+                    "rename": {
+                        "editorconfig": ".editorconfig"
+                    }
+                },
+                {
+                    "condition": "(transport == 'tcp')",
+                    "exclude": [
+                        "certs/*"
+                    ]
+                }
+            ]
+        },
+        {
+            "source": "../../",
+            "include": ["CodeAnalysis.globalconfig"],
+            "target": "./"
+        }
+    ],
+    "SpecialCustomOperations": {
+        "editorconfig": {
+            "operations": [
+                {
+                    "type": "conditional",
+                    "configuration": {
+                        "actionableIf": [
+                            "#if"
+                        ],
+                        "actionableElse": [
+                            "#else"
+                        ],
+                        "actionableElseif": [
+                            "#elseif"
+                        ],
+                        "endif": [
+                            "#endif"
+                        ],
+                        "trim": "true",
+                        "wholeLine": "true"
                     }
                 }
             ]
         }
-    ],
-    "primaryOutputs":[
+    },
+    "primaryOutputs": [
         {
-            "path":"IceRpc-Protobuf-Client.csproj"
+            "path": "IceRpc-Protobuf-Client.csproj"
         }
     ],
-    "postActions":[
+    "postActions": [
         {
-            "condition":"(!skipRestore)",
-            "description":"Restore NuGet packages required by this project.",
-            "manualInstructions":[
+            "condition": "(!skipRestore)",
+            "description": "Restore NuGet packages required by this project.",
+            "manualInstructions": [
                 {
-                    "text":"Run 'dotnet restore'"
+                    "text": "Run 'dotnet restore'"
                 }
             ],
-            "actionId":"210D431B-A78B-4D2F-B762-4ED3E3EA9025",
-            "continueOnError":true
+            "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+            "continueOnError": true
         }
     ]
 }

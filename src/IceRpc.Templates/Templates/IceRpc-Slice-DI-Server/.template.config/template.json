@@ -6,7 +6,7 @@
         "Server",
         "Slice"
     ],
-    "identity":"IceRpc.Slice.DI.Server.0.1",
+    "identity":"IceRpc.Slice.DI.Server",
     "name":"IceRPC + Slice DI Server",
     "description":"A project template for creating an IceRPC + Slice server console application using Microsoft's DI container.",
     "shortName":"icerpc-slice-di-server",
@@ -34,6 +34,11 @@
                     }
                 }
             ]
+        },
+        {
+            "source": "../../",
+            "include": ["CodeAnalysis.globalconfig"],
+            "target": "./"
         }
     ],
     "primaryOutputs":[

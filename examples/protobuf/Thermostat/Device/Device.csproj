@@ -12,9 +12,13 @@
     <ProtoFile Include="../proto/thermo_control.proto;../proto/reading.proto;../proto/set_point.proto; ../proto/thermo_home.proto" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
-    <PackageReference Include="IceRpc.Deadline" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
+    <PackageReference Include="IceRpc.Deadline" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

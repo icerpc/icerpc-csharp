@@ -36,7 +36,7 @@ pub fn main() {
     let mut compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
 
     if !compilation_state.diagnostics.has_errors() && !slice_options.dry_run {
-        for slice_file in compilation_state.files.values().filter(|file| file.is_source) {
+        for slice_file in compilation_state.files.iter().filter(|file| file.is_source) {
             let code = generate_from_slice_file(slice_file, false, &cs_options);
             write_code(
                 &slice_file.filename,

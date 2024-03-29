@@ -2,26 +2,30 @@ name: ci
 
 on:
   push:
-    branches: ["main", "0.2.x"]
+    branches: ["main"]
   pull_request:
-    branches: ["main", "0.2.x"]
+    branches: ["main"]
 
 jobs:
   build_and_test:
-
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Build
-      uses: ./.github/actions/build
-    - name: Publish
-      uses: ./.github/actions/publish
-    - name: Build Examples
-      uses: ./.github/actions/build-examples
-    - name: Run Tests
-      uses: ./.github/actions/test
-    - name: Test Templates
-      uses: ./.github/actions/test-templates
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build
+        uses: ./.github/actions/build
+      - name: Publish
+        uses: ./.github/actions/publish
+      - name: Run Tests
+        uses: ./.github/actions/test
+      - name: Install Templates
+        run: dotnet new install src/IceRpc.Templates/bin/Debug/IceRpc.Templates.*.nupkg
+        shell: bash
+      - name: Test Templates
+        uses: ./.github/actions/test-templates
+      - name: Build Examples
+        uses: ./.github/actions/build-examples
+      - name: Build DocFX Examples
+        run: dotnet build docfx/examples/Examples.sln
+        shell: bash

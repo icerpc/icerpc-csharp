@@ -6,7 +6,7 @@
         "Server",
         "Protobuf"
     ],
-    "identity":"IceRpc.Protobuf.DI.Server.0.1",
+    "identity":"IceRpc.Protobuf.DI.Server",
     "name":"IceRPC + Protobuf DI Server",
     "description":"A project template for creating an IceRPC + Protobuf server console application using Microsoft's DI container.",
     "shortName":"icerpc-protobuf-di-server",
@@ -34,6 +34,11 @@
                     }
                 }
             ]
+        },
+        {
+            "source": "../../",
+            "include": ["CodeAnalysis.globalconfig"],
+            "target": "./"
         }
     ],
     "primaryOutputs":[
