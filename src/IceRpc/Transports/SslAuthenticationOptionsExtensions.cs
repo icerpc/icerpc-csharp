@@ -15,9 +15,12 @@ public static class SslAuthenticationOptionsExtensions
         new()
         {
             AllowRenegotiation = value.AllowRenegotiation,
+            AllowTlsResume = value.AllowTlsResume,
             ApplicationProtocols = value.ApplicationProtocols,
+            CertificateChainPolicy = value.CertificateChainPolicy,
             CertificateRevocationCheckMode = value.CertificateRevocationCheckMode,
             CipherSuitesPolicy = value.CipherSuitesPolicy,
+            ClientCertificateContext = value.ClientCertificateContext,
             ClientCertificates = value.ClientCertificates,
             EnabledSslProtocols = value.EnabledSslProtocols,
             EncryptionPolicy = value.EncryptionPolicy,
@@ -33,7 +36,9 @@ public static class SslAuthenticationOptionsExtensions
         new()
         {
             AllowRenegotiation = value.AllowRenegotiation,
+            AllowTlsResume = value.AllowTlsResume,
             ApplicationProtocols = value.ApplicationProtocols,
+            CertificateChainPolicy = value.CertificateChainPolicy,
             CertificateRevocationCheckMode = value.CertificateRevocationCheckMode,
             CipherSuitesPolicy = value.CipherSuitesPolicy,
             ClientCertificateRequired = value.ClientCertificateRequired,
