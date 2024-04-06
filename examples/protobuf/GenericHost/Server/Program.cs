@@ -25,22 +25,32 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
         // The activity source used by the telemetry interceptor.
         services.AddSingleton(sp => new ActivitySource("IceRpc"));
 
-        string workingDirectory = Directory.GetCurrentDirectory();
-        Console.WriteLine(workingDirectory);
+        string serverCert = Path.Combine(
+            hostContext.HostingEnvironment.ContentRootPath,
+            hostContext.Configuration.GetValue<string>("AuthenticationOptions:CertificateFile")!);
+
+        string serverKey = Path.Combine(
+            hostContext.HostingEnvironment.ContentRootPath,
+            hostContext.Configuration.GetValue<string>("AuthenticationOptions:KeyFile")!);
+
+        // The X509 certificate used by the server.
+        services.AddSingleton(sp => X509Certificate2.CreateFromPemFile(serverCert, serverKey));
 
         // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
         // callback to configure its authentication options.
         services
             .AddOptions<ServerOptions>()
             .Bind(hostContext.Configuration.GetSection("Server"))
-            .Configure(options =>
+            .Configure((ServerOptions options, X509Certificate2 serverCertificate) =>
             {
+                // Create a collection with the server certificate and any intermediate certificates. This is used by
+                // ServerCertificateContext to provide the certificate chain to the peer.
+                var intermediates = new X509Certificate2Collection();
+                intermediates.ImportFromPemFile(serverCert);
+
                 options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = new X509Certificate2(
-                        Path.Combine(
-                            hostContext.HostingEnvironment.ContentRootPath,
-                            hostContext.Configuration.GetValue<string>("Certificate:File")!))
+                    ServerCertificateContext = SslStreamCertificateContext.Create(serverCertificate, intermediates)
                 };
             });
 

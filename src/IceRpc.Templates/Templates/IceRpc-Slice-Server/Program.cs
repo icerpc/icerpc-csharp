@@ -26,9 +26,20 @@ Router router = new Router()
 
 // Create a server that logs message to a logger with category `IceRpc.Server`.
 #if (transport == "quic")
+const string serverCert = "certs/server_cert.pem";
+const string serverKey = "certs/server_key.pem";
+
+// The X509 certificate used by the server.
+using var serverCertificate = X509Certificate2.CreateFromPemFile(serverCert, serverKey);
+
+// Create a collection with the server certificate and any intermediate certificates. This is used by
+// ServerCertificateContext to provide the certificate chain to the peer.
+var intermediates = new X509Certificate2Collection();
+intermediates.ImportFromPemFile(serverCert);
+
 var sslServerAuthenticationOptions = new SslServerAuthenticationOptions
 {
-    ServerCertificate = new X509Certificate2("certs/server.p12")
+    ServerCertificateContext = ServerCertificateContext.Create(serverCertificate, intermediates)
 };
 
 await using var server = new Server(
