@@ -1,5 +1,4 @@
 using IceRpc;
-using IceRpc.Protobuf;
 #if (transport == "quic")
 using IceRpc.Transports.Quic;
 #endif
@@ -39,7 +38,7 @@ intermediates.ImportFromPemFile(serverCert);
 
 var sslServerAuthenticationOptions = new SslServerAuthenticationOptions
 {
-    ServerCertificateContext = ServerCertificateContext.Create(serverCertificate, intermediates)
+    ServerCertificateContext = SslStreamCertificateContext.Create(serverCertificate, intermediates)
 };
 
 await using var server = new Server(
