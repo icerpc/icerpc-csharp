@@ -1462,7 +1462,7 @@ internal class SlicConnection : IMultiplexedConnection
                 {
                     throw new IceRpcException(
                         IceRpcError.IceRpcError,
-                        $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached");
+                        $"The maximum unidirectional stream count {_maxUnidirectionalStreams} was reached.");
                 }
                 Interlocked.Increment(ref _unidirectionalStreamCount);
             }

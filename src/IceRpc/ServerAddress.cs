@@ -60,7 +60,7 @@ public readonly record struct ServerAddress
         init
         {
             _transport = value is null || (ServiceAddress.IsValidParamValue(value) && value.Length > 0) ? value :
-                throw new ArgumentException($"The value '{value}' is not valid transport name", nameof(value));
+                throw new ArgumentException($"The value '{value}' is not valid transport name.", nameof(value));
             OriginalUri = null; // new transport invalidates OriginalUri
         }
     }
@@ -126,7 +126,7 @@ public readonly record struct ServerAddress
         }
 
         Protocol = Protocol.TryParse(uri.Scheme, out Protocol? protocol) ? protocol :
-            throw new ArgumentException($"Cannot create a server address with protocol '{uri.Scheme}'", nameof(uri));
+            throw new ArgumentException($"Cannot create a server address with protocol '{uri.Scheme}'.", nameof(uri));
 
         _host = uri.IdnHost;
         if (_host.Length == 0)

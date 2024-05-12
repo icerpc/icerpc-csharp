@@ -24,7 +24,7 @@ public record class ConnectionCacheOptions
     {
         get => _connectTimeout;
         set => _connectTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
+            throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}.", nameof(value));
     }
 
     /// <summary>Gets or sets a value indicating whether or not the connection cache prefers an active connection over
@@ -42,7 +42,7 @@ public record class ConnectionCacheOptions
     {
         get => _shutdownTimeout;
         set => _shutdownTimeout = value != TimeSpan.Zero ? value :
-            throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}", nameof(value));
+            throw new ArgumentException($"0 is not a valid value for {nameof(ShutdownTimeout)}.", nameof(value));
     }
 
     private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

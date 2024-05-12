@@ -56,7 +56,7 @@ public class Protocol
     /// <returns>A protocol with the given name in lowercase.</returns>
     /// <exception cref="FormatException">Thrown when <paramref name="name" /> is not ice or icerpc.</exception>
     public static Protocol Parse(string name) =>
-        TryParse(name, out Protocol? protocol) ? protocol : throw new FormatException($"unknown protocol '{name}'");
+        TryParse(name, out Protocol? protocol) ? protocol : throw new FormatException($"Unknown protocol '{name}'.");
 
     /// <summary>Tries to parse a string into a protocol.</summary>
     /// <param name="name">The name of the protocol.</param>

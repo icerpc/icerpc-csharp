@@ -24,7 +24,7 @@ impl CsType {
             Attributables::TypeRef(type_ref)
                 if matches!(type_ref.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) => {}
             _ => {
-                let note = "the cs::type attribute can only be applied to sequences, dictionaries, and custom types";
+                let note = "The cs::type attribute can only be applied to sequences, dictionaries, and custom types.";
                 report_unexpected_attribute(self, span, Some(note), diagnostics);
             }
         }

@@ -110,7 +110,7 @@ internal abstract class ColocConnection : IDuplexConnection
         }
         if (_state.HasFlag(State.Writing))
         {
-            throw new InvalidOperationException("Shutdown or writing is in progress");
+            throw new InvalidOperationException("Shutdown or writing is in progress.");
         }
         if (!_state.TrySetFlag(State.ShuttingDown))
         {

@@ -63,7 +63,7 @@ public sealed record class TcpServerTransportOptions : TcpTransportOptions
     {
         get => _listenBacklog;
         set => _listenBacklog = value > 0 ? value :
-            throw new ArgumentException($"The {nameof(ListenBacklog)} value cannot be less than 1", nameof(value));
+            throw new ArgumentException($"The {nameof(ListenBacklog)} value cannot be less than 1.", nameof(value));
     }
 
     private int _listenBacklog = 511;

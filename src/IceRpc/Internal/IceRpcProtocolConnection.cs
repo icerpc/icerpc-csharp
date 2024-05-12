@@ -950,7 +950,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         catch (Exception exception)
         {
             Debug.Fail($"The accept stream task failed with an unexpected exception: {exception}");
-            RefuseNewInvocations("The connection was lost");
+            RefuseNewInvocations("The connection was lost.");
             _ = _shutdownRequestedTcs.TrySetResult();
             throw;
         }
