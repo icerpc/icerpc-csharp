@@ -32,7 +32,7 @@ internal static class QuicExceptionExtensions
                     new IceRpcException(IceRpcError.IceRpcError, exception),
             QuicError.ConnectionRefused => new IceRpcException(IceRpcError.ConnectionRefused, exception),
             QuicError.ConnectionTimeout => new IceRpcException(IceRpcError.ConnectionAborted, exception),
-            QuicError.ConnectionIdle => new IceRpcException(IceRpcError.ConnectionAborted, exception),
+            QuicError.ConnectionIdle => new IceRpcException(IceRpcError.ConnectionIdle, exception),
             QuicError.OperationAborted => new IceRpcException(IceRpcError.OperationAborted, exception),
             QuicError.AlpnInUse => new IceRpcException(IceRpcError.AddressInUse, exception),
             QuicError.StreamAborted =>
