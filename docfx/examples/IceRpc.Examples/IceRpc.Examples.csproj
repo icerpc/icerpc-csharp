@@ -8,8 +8,8 @@
       <OutputDir>generated/protoc</OutputDir>
     </ProtoFile>
     <Compile Include="../Chatbot.cs" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
     <PackageReference Include="IceRpc.Compressor" Version="$(Version)" />
