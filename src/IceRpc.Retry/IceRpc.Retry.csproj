@@ -7,7 +7,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.*" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(NetRuntimeVersion)" />
         <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

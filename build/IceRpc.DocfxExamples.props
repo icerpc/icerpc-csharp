@@ -3,7 +3,6 @@
     <Import Project="$(MSBuildThisFileDirectory)IceRpc.Version.props" />
     <PropertyGroup>
         <Nullable>enable</Nullable>
-        <TargetFramework>net8.0</TargetFramework>
         <LangVersion>12.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <ImplicitUsings>true</ImplicitUsings>
