@@ -19,12 +19,13 @@ public record class ConnectionOptions
     /// is disabled, the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport
     /// connection can wait forever to receive a byte.</summary>
     /// <value><see langword="true"/> if Ice idle check is enabled; otherwise, <see langword="false"/>. Defaults to <see
-    /// langword="false"/> for compatibility with the default ACM configuration of Ice 3.7. The recommended setting is
-    /// <see langword="true"/> when the peer is an Ice application with the HeartbeatAlways ACM configuration or when
-    /// the peer is an IceRPC application.</value>
-    /// <remarks>When setting this value to <see langword="true"/>, make sure the peer's idle timeout is equal to or
-    /// less than <see cref="IceIdleTimeout" />.</remarks>
-    public bool EnableIceIdleCheck { get; set; }
+    /// langword="true"/>.</value>
+    /// <remarks>Set to <see langword="false"/> when the peer is an Ice application using Ice 3.7 or earlier and you
+    /// can't update this application to turn on HeartbeatAlways with
+    /// <see href="https://doc.zeroc.com/ice/3.7/property-reference/ice-acm#id-.Ice.ACM.*v3.7-Ice.ACM.Heartbeat"/>.
+    /// When this value is set to <see langword="true"/>, make sure the peer's idle timeout is equal to
+    /// <see cref="IceIdleTimeout" />.</remarks>
+    public bool EnableIceIdleCheck { get; set; } = true;
 
     /// <summary>Gets or sets the Ice idle timeout. This option is specific to the ice protocol. Once the connection is
     /// established, the runtime sends a heartbeat to the peer when there is no write on the connection for half this
