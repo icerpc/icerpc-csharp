@@ -32,8 +32,8 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="System.IO.Pipelines" Version="$(NetRuntimeVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(NetRuntimeVersion)" />
+        <PackageReference Include="System.IO.Pipelines" Version="$(IceRpcNetRuntimeVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(IceRpcNetRuntimeVersion)" />
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>

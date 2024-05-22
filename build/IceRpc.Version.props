@@ -5,7 +5,8 @@
         <!-- The Protobuf version used by IceRpc.Protobuf -->
         <ProtobufVersion>26.1</ProtobufVersion>
         <NuGetProtobufVersion>3.$(ProtobufVersion)</NuGetProtobufVersion>
-        <TargetFramework>net8.0</TargetFramework>
-        <NetRuntimeVersion>8.0.*</NetRuntimeVersion>
+        <!-- The target framework used by assemblies -->
+        <IceRpcTargetFramework>net8.0</IceRpcTargetFramework>
+        <IceRpcNetRuntimeVersion>8.0.*</IceRpcNetRuntimeVersion>
     </PropertyGroup>
 </Project>

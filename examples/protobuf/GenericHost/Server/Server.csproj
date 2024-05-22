@@ -22,8 +22,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(IceRpcNetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(IceRpcNetRuntimeVersion)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />

@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The default value for $(IceRpcTargetFramework) is set in ./build/IceRpc.Version.props -->
+    <TargetFramework>$(IceRpcTargetFramework)</TargetFramework>
     <!-- We don't generate a NuGet package for IceRpc.ProtocGen. The generator is packaged with IceRpc.Protobuf.Tools -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>

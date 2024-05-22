@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../slice/ThermoControl.slice;../slice/Reading.slice; ../slice/ThermoHome.slice" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(IceRpcNetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(IceRpcNetRuntimeVersion)" />
     <PackageReference Include="IceRpc.Deadline" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />

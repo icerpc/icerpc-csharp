@@ -22,8 +22,8 @@
   </ItemGroup>
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(IceRpcNetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(IceRpcNetRuntimeVersion)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />

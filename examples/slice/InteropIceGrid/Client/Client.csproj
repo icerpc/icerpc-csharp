@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../slice/Hello.slice" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(IceRpcNetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(IceRpcNetRuntimeVersion)" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />

@@ -2,6 +2,10 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Src.props" />
     <PropertyGroup>
+        <!-- The target framework to build assemblies in src directory, the default value $(IceRpcTargetFramework) is
+             set in ./build/IceRpc.Version.props
+             -->
+        <TargetFramework>$(IceRpcTargetFramework)</TargetFramework>
         <!-- Include PDB in the built .nupkg -->
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     </PropertyGroup>

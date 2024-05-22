@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(IceRpcNetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(IceRpcNetRuntimeVersion)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
