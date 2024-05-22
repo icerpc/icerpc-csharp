@@ -16,7 +16,7 @@
                  the source build. -->
             <PropertyGroup>
                 <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
-                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
+                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/$(TargetFramework)/</IceRpcProtocGenPath>
             </PropertyGroup>
         </When>
         <Otherwise>
