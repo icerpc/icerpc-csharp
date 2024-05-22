@@ -36,7 +36,7 @@ public class TransportOperations<T> where T : struct, Enum
         {
             _holdOperations = value;
 
-            foreach (T operation in Enum.GetValues(typeof(T)))
+            foreach (T operation in Enum.GetValues<T>())
             {
                 if (!_holdOperationsTcsMap.TryGetValue(operation, out TaskCompletionSource? tcs))
                 {

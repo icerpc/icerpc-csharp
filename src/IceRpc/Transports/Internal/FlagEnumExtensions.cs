@@ -26,7 +26,7 @@ internal static class FlagEnumExtensions
     internal static bool HasFlag<T>(this ref int source, T flag) where T : Enum
     {
         int flagValue = Unsafe.As<T, int>(ref flag);
-        return (Thread.VolatileRead(ref source) & flagValue) == flagValue;
+        return (Volatile.Read(ref source) & flagValue) == flagValue;
     }
 
     internal static void ClearFlag<T>(this ref int source, T flag) where T : Enum

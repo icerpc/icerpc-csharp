@@ -21,7 +21,7 @@ public class EnumWithFieldsTests
         var decoded = decoder.DecodeColor();
 
         // Assert
-        Assert.That(decoded, Is.InstanceOf(typeof(Color.Blue)));
+        Assert.That(decoded, Is.InstanceOf<Color.Blue>());
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.EncodedByteCount));
 
         // 1 for the discriminant, 1 for the tag, 1 for the tagged value size, 2 for code, 1 for the tag end marker

@@ -15,7 +15,7 @@ public class SequenceEncodingTests
     {
         get
         {
-            foreach (SliceEncoding encoding in Enum.GetValues(typeof(SliceEncoding)))
+            foreach (SliceEncoding encoding in Enum.GetValues<SliceEncoding>())
             {
                 foreach (int size in new int[] { 0, 256 })
                 {

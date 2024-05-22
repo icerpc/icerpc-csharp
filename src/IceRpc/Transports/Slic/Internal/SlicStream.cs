@@ -17,7 +17,7 @@ internal class SlicStream : IMultiplexedStream
     {
         get
         {
-            ulong id = Thread.VolatileRead(ref _id);
+            ulong id = Volatile.Read(ref _id);
             if (id == ulong.MaxValue)
             {
                 throw new InvalidOperationException("The stream ID isn't allocated yet.");
@@ -28,7 +28,7 @@ internal class SlicStream : IMultiplexedStream
         set
         {
             Debug.Assert(_id == ulong.MaxValue);
-            Thread.VolatileWrite(ref _id, value);
+            Volatile.Write(ref _id, value);
         }
     }
 
@@ -42,7 +42,7 @@ internal class SlicStream : IMultiplexedStream
     public bool IsRemote { get; }
 
     /// <inheritdoc/>
-    public bool IsStarted => Thread.VolatileRead(ref _id) != ulong.MaxValue;
+    public bool IsStarted => Volatile.Read(ref _id) != ulong.MaxValue;
 
     public PipeWriter Output =>
         _outputPipeWriter ?? throw new InvalidOperationException("A remote unidirectional stream has no Output.");
