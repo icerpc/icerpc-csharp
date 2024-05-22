@@ -2,6 +2,11 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Examples.props" />
     <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Version.props" />
+    <PropertyGroup>
+        <!-- The target framework to build example projects, the default value $(IceRpcTargetFramework) is
+             set in ./build/IceRpc.Version.props -->
+        <TargetFramework>$(IceRpcTargetFramework)</TargetFramework>
+    </PropertyGroup>
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" />
         <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.globalconfig" />
