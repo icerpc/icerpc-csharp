@@ -8,9 +8,18 @@ on:
 
 jobs:
   build_and_test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        dotnet: [8.0.x, 9.0.x]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build
