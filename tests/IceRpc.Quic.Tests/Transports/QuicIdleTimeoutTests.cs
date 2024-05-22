@@ -26,7 +26,7 @@ public class QuicIdleTimeoutTests
     /// timeout.</summary>
     /// <remarks>The behavior shown by this test is not desirable for IceRPC: we would prefer QUIC or IceRPC's QUIC
     /// wrapper to keep this connection alive when there is an outstanding request.
-    /// See https://github.com/icerpc/icerpc-csharp/issues/3353.</remarks>
+    /// See <see href="https://github.com/icerpc/icerpc-csharp/issues/3353" />.</remarks>
     [Test]
     public async Task Quic_connection_idle_after_idle_timeout([Values]bool configureServer)
     {
@@ -60,8 +60,6 @@ public class QuicIdleTimeoutTests
         // Act / Assert
         var startTime = TimeSpan.FromMilliseconds(Environment.TickCount64);
 
-        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(data));
-
         Assert.That(
             async () => await sut.Local.Input.ReadAsync().AsTask(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
@@ -69,5 +67,49 @@ public class QuicIdleTimeoutTests
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime,
             Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(data));
+    }
+
+    /// <summary>Verifies the QUIC connection is kept alive by the keep alive interval.</summary>
+    [Test]
+    public async Task Quic_connection_kept_alive_by_keep_alive_interval()
+    {
+        // Arrange
+        var services = new ServiceCollection().AddQuicTest();
+
+        services.AddOptions<QuicServerTransportOptions>("server").Configure(
+            options => options.IdleTimeout = TimeSpan.FromMilliseconds(500));
+
+        services.AddOptions<QuicClientTransportOptions>("client").Configure(
+            options => options.KeepAliveInterval = TimeSpan.FromMilliseconds(250));
+
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientServerConnection = provider.GetRequiredService<ClientServerMultiplexedConnection>();
+        await clientServerConnection.AcceptAndConnectAsync();
+        using var sut = await clientServerConnection.CreateAndAcceptStreamAsync(bidirectional: true);
+
+        // Simulate a request
+        var data = new byte[] { 0x1, 0x2, 0x3 };
+        await sut.Local.Output.WriteAsync(data);
+        ReadResult readResult = await sut.Remote.Input.ReadAsync();
+
+        // Act/Assert
+
+        // Without the keep-alive interval, the idle timer aborts the connection after 500ms.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+#if NET9_0_OR_GREATER
+        Assert.That(
+            async () => await sut.Local.Input.ReadAsync(cts.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+#else
+        Assert.That(
+            async () => await sut.Local.Input.ReadAsync().AsTask(),
+            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
+#endif
+
+        Assert.That(readResult.Buffer.ToArray(), Is.EqualTo(data));
     }
 }
