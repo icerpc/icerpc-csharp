@@ -45,7 +45,7 @@ public class CompressorMiddlewareTests
             new BrotliStream(outStream, CompressionMode.Decompress) :
             new DeflateStream(outStream, CompressionMode.Decompress);
         byte[] decompressedPayload = new byte[4096];
-        await decompressedStream.ReadAsync(decompressedPayload);
+        await decompressedStream.ReadAtLeastAsync(decompressedPayload, _payload.Length);
         Assert.That(decompressedPayload, Is.EqualTo(_payload));
         payloadWriter.Complete();
     }
