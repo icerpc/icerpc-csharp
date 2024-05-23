@@ -12,15 +12,17 @@
     </PropertyGroup>
     <Choose>
         <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
-            <!-- Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.ProtocGen assembly from
-                 the source build. -->
+            <!-- With a source build:
+                - Use the protoc compiler from Google.Protobuf.Tools dependency.
+                - Use the IceRpc.ProtocGen assembly from the source build. -->
             <PropertyGroup>
                 <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
                 <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/$(IceRpcTargetFramework)/</IceRpcProtocGenPath>
             </PropertyGroup>
         </When>
         <Otherwise>
-            <!-- Use the protoc compiler and the IceRpc.ProtocGen assembly in this NuGet package -->
+            <!-- When using the NuGet package:
+                - The protoc compiler and the IceRpc.ProtocGen assembly are in the package's tool directory -->
             <PropertyGroup>
               <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
               <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>

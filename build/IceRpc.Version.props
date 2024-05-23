@@ -5,8 +5,9 @@
         <!-- The Protobuf version used by IceRpc.Protobuf -->
         <ProtobufVersion>26.1</ProtobufVersion>
         <NuGetProtobufVersion>3.$(ProtobufVersion)</NuGetProtobufVersion>
-        <!-- The target framework used by assemblies -->
-        <IceRpcTargetFramework>net8.0</IceRpcTargetFramework>
-        <IceRpcNetRuntimeVersion>8.0.*</IceRpcNetRuntimeVersion>
+        <!-- The target framework used by assemblies. We target .NET 8 by default, for building with .NET 9 preview update
+             the IceRpcTargetFramework to `net9.0` and IceRpcNetRuntimeVersion to `9.0.*-preview.*`  -->
+        <IceRpcTargetFramework>net9.0</IceRpcTargetFramework>
+        <IceRpcNetRuntimeVersion>9.0.*-preview.*</IceRpcNetRuntimeVersion>
     </PropertyGroup>
 </Project>
