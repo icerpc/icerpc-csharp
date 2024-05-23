@@ -65,6 +65,9 @@ public class QuicClientTransport : IMultiplexedClientTransport
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
+#if NET9_0_OR_GREATER
+            KeepAliveInterval = _quicTransportOptions.KeepAliveInterval,
+#endif
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
             RemoteEndPoint = endpoint,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
