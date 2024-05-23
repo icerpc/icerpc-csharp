@@ -34,9 +34,10 @@ runs:
           ${{ runner.os }}-cargo-
     - uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: "8.0.x"
-        dotnet-version: "9.0.x"
-        dotnet-quality: 'preview'
+        dotnet-version: |
+          8.0.x
+          9.0.x
+        dotnet-quality: "preview"
     - name: Install libmsquic
       run: |
         wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
