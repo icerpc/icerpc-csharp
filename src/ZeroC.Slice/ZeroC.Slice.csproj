@@ -5,6 +5,7 @@
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>slice;binary;serialization;format</PackageTags>
         <PackageIcon>slice-icon.png</PackageIcon>
+        <TargetFramework>net8.0</TargetFramework>
     </PropertyGroup>
     <ItemDefinitionGroup>
       <SliceFile>

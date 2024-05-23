@@ -17,7 +17,7 @@
                 - Use the IceRpc.ProtocGen assembly from the source build. -->
             <PropertyGroup>
                 <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
-                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/$(IceRpcTargetFramework)/</IceRpcProtocGenPath>
+                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
             </PropertyGroup>
         </When>
         <Otherwise>

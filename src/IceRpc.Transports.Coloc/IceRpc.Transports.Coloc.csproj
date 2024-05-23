@@ -4,6 +4,7 @@
         <Description>Coloc transport for IceRPC</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>icerpc;rpc</PackageTags>
+        <TargetFramework>net8.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
