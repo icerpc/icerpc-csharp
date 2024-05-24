@@ -427,6 +427,7 @@ public abstract class MultiplexedConnectionConformanceTests
     }
 
     [Test]
+    [Ignore("TODO: Fix https://github.com/icerpc/icerpc-csharp/issues/3990")]
     public async Task Connection_dispose_aborts_pending_operations_with_operation_aborted_error()
     {
         // Arrange

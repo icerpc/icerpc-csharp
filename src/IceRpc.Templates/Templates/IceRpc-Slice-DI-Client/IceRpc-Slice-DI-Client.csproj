@@ -9,8 +9,13 @@
         <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
     </PropertyGroup>
     <ItemGroup>
+        <!--#if (framework=="net8.0")-->
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.*" />
+        <!--#else-->
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.*-preview.*" />
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.*-preview.*" />
+        <!--#endif-->
         <PackageReference Include="IceRpc.Slice.Tools" Version="0.4.0-preview1" PrivateAssets="All" />
         <PackageReference Include="IceRpc.Slice" Version="0.4.0-preview1" />
         <PackageReference Include="IceRpc.Deadline" Version="0.4.0-preview1" />

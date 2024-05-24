@@ -5,6 +5,7 @@
         <Description>IceRpc.Slice for C#.</Description>
         <AssemblyTitle>$(Description)</AssemblyTitle>
         <PackageTags>icerpc;slice;binary;serialization;format</PackageTags>
+        <TargetFramework>net8.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
       <SliceFile

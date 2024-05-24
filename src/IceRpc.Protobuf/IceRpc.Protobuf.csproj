@@ -3,6 +3,7 @@
     <Description>IceRPC Protobuf integration package</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>IceRPC;RPC;Protobuf</PackageTags>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
