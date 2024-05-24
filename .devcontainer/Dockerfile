@@ -22,12 +22,6 @@ RUN set -eux \
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-# Clenup
-RUN set -eux \
-    && rm packages-microsoft-prod.deb \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
 # Set environment variables
 ENV DOTNET_ROOT=~/.dotnet
 ENV PATH=$DOTNET_ROOT:$DOTNET_ROOT/tools:~/.cargo/bin:$PATH
