@@ -490,7 +490,7 @@ public sealed record class ServiceAddress
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
         {
             throw new FormatException(
-                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'.");
+                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
         }
     }
 
