@@ -210,7 +210,7 @@ pub fn format_comment_message(message: &Message, namespace: &str) -> String {
 }
 
 fn xml_escape(text: &str) -> String {
-    // We don't need to escape single-quote characters because 'slicec-cs' always generates double-quoted strings.
+    // We don't need to escape the single-quote character because 'slicec-cs' always generates double-quoted strings.
     text.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
