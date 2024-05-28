@@ -210,10 +210,10 @@ pub fn format_comment_message(message: &Message, namespace: &str) -> String {
 }
 
 fn xml_escape(text: &str) -> String {
+    // We don't escape single-quotes because we always generate double-quoted strings.
     text.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
-        .replace('\'', "&apos;")
         .replace('"', "&quot;")
 }
 
