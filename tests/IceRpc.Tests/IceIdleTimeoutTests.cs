@@ -26,7 +26,7 @@ public class IceIdleTimeoutTests
             sut.Client,
             readIdleTimeout: TimeSpan.FromMilliseconds(500),
             writeIdleTimeout: TimeSpan.FromMilliseconds(500),
-            keepAliveAction: () => { });
+            sendHeartbeat: () => { });
 
         // Write and read data to the connection
         await sut.Server.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
@@ -46,7 +46,7 @@ public class IceIdleTimeoutTests
     }
 
     [Test]
-    public async Task Ice_keep_alive_action_is_called()
+    public async Task Ice_send_heartbeat_action_is_called()
     {
         // Arrange
         await using ServiceProvider provider = new ServiceCollection()
@@ -62,7 +62,7 @@ public class IceIdleTimeoutTests
             sut.Client,
             readIdleTimeout: Timeout.InfiniteTimeSpan,
             writeIdleTimeout: TimeSpan.FromMilliseconds(500),
-            keepAliveAction: () => semaphore.Release());
+            sendHeartbeat: () => semaphore.Release());
 
         // Write and read data.
         await clientConnection.WriteAsync(new ReadOnlySequence<byte>(new byte[1]), default);
