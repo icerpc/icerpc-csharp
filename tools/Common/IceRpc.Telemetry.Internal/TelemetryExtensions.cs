@@ -12,25 +12,25 @@ public partial record struct Telemetry
     /// <param name="args">The command-line arguments.</param>
     public Telemetry(string[] args)
     {
-        // Parse command-line arguments to get the version
+        // Parse the version
         string version = args
             .SkipWhile(arg => arg != "--version")
             .Skip(1)
             .FirstOrDefault() ?? "unknown";
 
-        // Parse command-line arguments to get the source
+        // Parse the source
         string source = args
             .SkipWhile(arg => arg != "--source")
             .Skip(1)
             .FirstOrDefault() ?? "unknown";
 
-        // Parse command-line arguments to get the hash
+        // Parse the hash
         string hash = args
             .SkipWhile(arg => arg != "--hash")
             .Skip(1)
             .FirstOrDefault() ?? "unknown";
 
-        // Parse command-line arguments to get the updated-files
+        // Parse if files were updated
         bool? updatedFiles = args
             .SkipWhile(arg => arg != "--updated-files")
             .Skip(1)

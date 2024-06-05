@@ -27,16 +27,16 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
 
 try
 {
-    // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
+    // Create a client connection
     await using var connection = new ClientConnection(new Uri(uri), clientAuthenticationOptions);
 
-    // Create an invocation pipeline with two interceptors.
+    // Create an invocation pipeline with the retry and deadline interceptors.
     Pipeline pipeline = new Pipeline()
         .UseRetry(new RetryOptions { MaxAttempts = maxAttempts })
         .UseDeadline(defaultTimeout: TimeSpan.FromMilliseconds(timeout))
         .Into(connection);
 
-    // Create a greeter proxy with this invocation pipeline.
+    // Create a reporter proxy with this invocation pipeline.
     var reporter = new ReporterProxy(pipeline);
 
     // Upload the telemetry to the server.
