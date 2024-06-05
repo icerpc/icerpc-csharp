@@ -8,7 +8,7 @@ using VisitorCenter;
 // Create the authentication options with a custom certificate validation callback that uses the test certificates'
 // Root CA.
 
-using var rootCA = new X509Certificate2("certs/cacert.der");
+using var rootCA = new X509Certificate2("../../../../certs/cacert.der");
 var clientAuthenticationOptions = new SslClientAuthenticationOptions()
 {
     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
