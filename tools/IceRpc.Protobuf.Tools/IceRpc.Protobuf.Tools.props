@@ -41,18 +41,6 @@
             </PropertyGroup>
         </Otherwise>
     </Choose>
-    <Choose>
-        <When Condition="'$(IceRpcOSName)' == 'windows'">
-            <PropertyGroup>
-                <TelemetryScript>$(TelemetryScriptPath)\telemetry.bat</TelemetryScript>
-            </PropertyGroup>
-        </When>
-        <Otherwise>
-            <PropertyGroup>
-                <TelemetryScript>$(TelemetryScriptPath)\telemetry.sh</TelemetryScript>
-            </PropertyGroup>
-        </Otherwise>
-    </Choose>
     <!-- default values -->
     <ItemDefinitionGroup>
         <ProtoFile>
