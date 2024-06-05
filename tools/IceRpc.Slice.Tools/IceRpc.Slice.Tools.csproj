@@ -46,6 +46,14 @@
       <PackageReference Include="System.Text.Json" Version="8.0.*" />
    </ItemGroup>
    <ItemGroup>
+      <None Include="../Common/IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/*" Exclude="../IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/*.exe">
+        <PackagePath>tools/</PackagePath>
+        <Pack>true</Pack>
+      </None>
+      <None Include="../Common/IceRpc.Telemetry.Internal/certs/">
+        <PackagePath>tools/certs</PackagePath>
+        <Pack>true</Pack>
+      </None>
       <Content Include="../../LICENSE">
          <PackagePath />
          <Pack>true</Pack>

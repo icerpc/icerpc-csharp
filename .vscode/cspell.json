@@ -25,6 +25,8 @@
     "finalizers",
     "globalconfig",
     "globaltool",
+    "Hashable",
+    "hasher",
     "icerpc",
     "Idempotency",
     "localizable",

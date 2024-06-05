@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <!-- Import SliceCCSharpTask -->
+    <!-- Import Tasks -->
     <UsingTask
         TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
         AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll" />
-
+    <UsingTask
+        TaskName="IceRpc.Telemetry.Internal.TelemetryTask"
+        AssemblyFile="$(TelemetryScriptPath)IceRpc.Telemetry.Internal.dll" />
     <ItemGroup>
         <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
         <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">
@@ -43,9 +45,26 @@
             Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"/>
     </ItemGroup>
 
-    <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
+    <!-- Target to retrieve the IceRpc.Slice.Tools version -->
+    <Target Name="GetIceRpcSliceToolsVersion">
+        <!-- Create an item group to capture PackageReferences -->
+        <ItemGroup>
+            <IceRpcSliceToolsPackageReference Include="@(PackageReference)" Condition="'%(Identity)' == 'IceRpc.Slice.Tools'" />
+        </ItemGroup>
+
+        <!-- Extract the version from the PackageReference -->
+        <PropertyGroup>
+            <IceRpcSliceToolsVersion>%(IceRpcSliceToolsPackageReference.Version)</IceRpcSliceToolsVersion>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''" DependsOnTargets="GetIceRpcSliceToolsVersion">
 
         <MakeDir Directories="%(SliceFile.OutputDir)"/>
+        <PropertyGroup>
+            <Verbose>false</Verbose>
+            <Verbose Condition="'$(DisableTelemetry)' != 'true'">true</Verbose>
+        </PropertyGroup>
 
         <!-- Compile the Slice files -->
         <SliceCCSharpTask
@@ -54,7 +73,23 @@
             References            = "@(SliceDirectory->'%(FullPath)')"
             ToolsPath             = "$(SliceCompilerPath)"
             AdditionalOptions     = "%(SliceFile.AdditionalOptions)"
-            Sources               = "@(SliceFile)"/>
+            Sources               = "@(SliceFile)"
+            Verbose               = "$(Verbose)"
+            OutputHash            = "$(Hash)"
+            UpdatedFiles          = "$(UpdatedFiles)">
+            <Output PropertyName="Hash" TaskParameter="OutputHash"/>
+            <Output PropertyName="UpdatedFiles" TaskParameter="UpdatedFiles"/>
+        </SliceCCSharpTask>
+
+        <!-- Run telemetry -->
+        <TelemetryTask
+            WorkingDirectory="$(TelemetryScriptPath)"
+            Version="$(IceRpcSliceToolsVersion)"
+            Hash="$(Hash)"
+            UpdatedFiles="$(UpdatedFiles)"
+            Source="IceRpc.Slice.Tools"
+            Condition="'$(DisableTelemetry)' != 'true'"
+            ContinueOnError="true"/>
 
         <!--
             Include all C# generated source items that have not been already included. We delay this until we are

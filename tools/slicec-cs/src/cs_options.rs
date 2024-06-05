@@ -18,6 +18,10 @@ pub struct CsOptions {
     #[arg(long = "rpc", value_enum, default_value_t = RpcProvider::IceRpc, ignore_case = true)]
     pub rpc_provider: RpcProvider,
 
+    /// Enable additional compilation information output.
+    #[arg(long, short)]
+    pub verbose: bool,
+
     // Import the options common to all slice compilers.
     #[command(flatten)]
     pub slice_options: SliceOptions,
@@ -30,6 +34,7 @@ impl Default for CsOptions {
 
         CsOptions {
             rpc_provider: RpcProvider::default(),
+            verbose: false,
             slice_options,
         }
     }

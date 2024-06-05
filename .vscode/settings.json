@@ -8,6 +8,11 @@
       "paths": ["slice"],
       "addWellKnownTypes": false
     },
+    // Tools
+    {
+      "paths": ["tools/Common/IceRpc.Telemetry.Internal/slice"],
+      "addWellKnownTypes": false
+    },
     // Slice Tests
     {
       "paths": ["tests/ZeroC.Slice.Tests"]

@@ -14,7 +14,9 @@ rust-version = "1.70"
 clap = { version = "~4.3.20", features = ["derive"] }
 convert_case = "0.6.0"
 in_definite = "1.0.0"
-slicec = "0.3.1"
+serde_json = "1.0.117"
+sha2 = "0.10.8"
+slicec = { git = "ssh://git@github.com/icerpc/slicec.git", branch = "main" }
 
 [dev-dependencies]
 test-case = "3.3.1"

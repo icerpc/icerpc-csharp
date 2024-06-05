@@ -1,0 +1,33 @@
+[cs::namespace("IceRpc.Telemetry.Internal")]
+module TelemetryReporter
+
+/// Represents a simple telemetry reporter that can upload telemetry data to a
+/// remote server.
+interface Reporter {
+    /// Uploads telemetry data.
+    /// @param telemetry: The telemetry data to upload.
+    [oneway] upload(telemetry: Telemetry)
+}
+
+struct Telemetry {
+    /// The version of IceRPC that is being used.
+    IceRpcVersion: string
+
+    /// The operating system that the client is running on.
+    OperatingSystem: string
+
+    /// Processor count
+    ProcessorCount: varint32
+
+    /// The amount of memory that the client has.
+    Memory: varint32
+
+    /// The source of the telemetry data.
+    Source: string
+
+    /// The hashed slice files or protobuf files.
+    Hash: string
+
+    /// Updated files
+    UpdatedFiles: bool?
+}

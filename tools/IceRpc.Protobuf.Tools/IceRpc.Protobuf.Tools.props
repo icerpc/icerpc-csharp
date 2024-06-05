@@ -17,6 +17,7 @@
             <PropertyGroup>
                 <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
                 <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
+                <TelemetryScriptPath>$(MSBuildThisFileDirectory)../Common/IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
             </PropertyGroup>
         </When>
         <Otherwise>
@@ -24,6 +25,7 @@
             <PropertyGroup>
               <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
               <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
+              <TelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</TelemetryScriptPath>
             </PropertyGroup>
         </Otherwise>
     </Choose>
@@ -36,6 +38,18 @@
         <Otherwise>
             <PropertyGroup>
                 <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
+    <Choose>
+        <When Condition="'$(IceRpcOSName)' == 'windows'">
+            <PropertyGroup>
+                <TelemetryScript>$(TelemetryScriptPath)\telemetry.bat</TelemetryScript>
+            </PropertyGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <TelemetryScript>$(TelemetryScriptPath)\telemetry.sh</TelemetryScript>
             </PropertyGroup>
         </Otherwise>
     </Choose>

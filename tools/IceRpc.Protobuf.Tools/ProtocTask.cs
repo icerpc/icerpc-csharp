@@ -5,9 +5,12 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace IceRpc.Protobuf.Tools;
 
@@ -41,6 +44,10 @@ public class ProtocTask : ToolTask
     [Required]
     public string WorkingDirectory { get; set; } = "";
 
+    /// <summary>The computed SHA-256 hash of the Slice files.</summary>
+    [Output]
+    public string? OutputHash { get; set; }
+
     /// <inheritdoc/>
     protected override string ToolName =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "protoc.exe" : "protoc";
@@ -67,6 +74,7 @@ public class ProtocTask : ToolTask
         builder.AppendFileNameIfNotNull(OutputDir);
 
         var searchPath = new List<string>(SearchPath);
+
         // Add the sources directories to the import search path
         var computedSources = new List<ITaskItem>();
         foreach (ITaskItem source in Sources)
@@ -131,4 +139,18 @@ public class ProtocTask : ToolTask
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
+}
+
+/// <summary>Converts a byte array to a hexadecimal string.</summary>
+public static class HexStringConverter
+{
+    public static string ToHexString(byte[] bytes)
+    {
+        var sb = new StringBuilder(bytes.Length * 2);
+        foreach (byte b in bytes)
+        {
+            sb.Append(b.ToString("x2"));
+        }
+        return sb.ToString();
+    }
 }

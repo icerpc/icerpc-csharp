@@ -3,8 +3,10 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <!-- Import Tasks -->
     <UsingTask TaskName="IceRpc.Protobuf.Tools.OutputFileNamesTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
+    <UsingTask TaskName="IceRpc.Protobuf.Tools.OutputHashTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
     <UsingTask TaskName="IceRpc.Protobuf.Tools.ProtocTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
     <UsingTask TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
+    <UsingTask TaskName="IceRpc.Telemetry.Internal.TelemetryTask" AssemblyFile="$(TelemetryScriptPath)IceRpc.Telemetry.Internal.dll" />
     <ItemGroup>
         <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
         <AvailableItemName Include="ProtoFile" />
@@ -30,7 +32,21 @@
             Include="**/*.proto"
             Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
     </ItemGroup>
-    <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
+
+    <!-- Target to retrieve the IceRpc.Protobuf.Tools version -->
+    <Target Name="GetIceRpcProtobufToolsVersion">
+        <!-- Create an item group to capture PackageReferences -->
+        <ItemGroup>
+            <IceRpcProtobufToolsPackageReference Include="@(PackageReference)" Condition="'%(Identity)' == 'IceRpc.Protobuf.Tools'" />
+        </ItemGroup>
+
+        <!-- Extract the version from the PackageReference -->
+        <PropertyGroup>
+            <IceRpcProtobufToolsVersion>%(IceRpcProtobufToolsPackageReference.Version)</IceRpcProtobufToolsVersion>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''" DependsOnTargets="GetIceRpcProtobufToolsVersion">
       <MakeDir Directories="%(ProtoFile.OutputDir)" />
       <UpToDateCheckTask
           OutputDir="%(ProtoFile.OutputDir)"
@@ -39,6 +55,11 @@
             ItemName          = "_ProtoFile"
             TaskParameter     = "ComputedSources"/>
       </UpToDateCheckTask>
+      <PropertyGroup>
+        <!-- Define the UpdatedFiles property with the negated value -->
+        <UpdatedFiles Condition="'%(_ProtoFile.UpToDate)' == 'true'">false</UpdatedFiles>
+        <UpdatedFiles Condition="'%(_ProtoFile.UpToDate)' == 'false'">true</UpdatedFiles>
+      </PropertyGroup>
       <!-- Compile the Proto files
           The search path determines where protoc compiler locates import files, we add:
           - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
@@ -53,6 +74,23 @@
             ScriptPath="$(IceRpcProtocGenPath)"
             Sources="%(_ProtoFile.Identity)"
             Condition="'%(_ProtoFile.UpToDate)' != 'true'"/>
+        <OutputHashTask
+            Sources="%(_ProtoFile.Identity)"
+            OutputHash="$(Hash)"
+            Condition="'$(DisableTelemetry)' != 'true'">
+            <Output PropertyName="Hash" TaskParameter="OutputHash"/>
+        </OutputHashTask>
+
+        <!-- Run telemetry -->
+        <TelemetryTask
+            WorkingDirectory="$(TelemetryScriptPath)"
+            Version="$(IceRpcProtobufToolsVersion)"
+            Hash="$(Hash)"
+            UpdatedFiles="$(UpdatedFiles)"
+            Source="IceRpc.Protobuf.Tools"
+            Condition="'$(DisableTelemetry)' != 'true'"
+            ContinueOnError="true"/>
+
         <!--
             Include all C# generated source items that have not been already included. We delay this until we are
             running the ProtoCompile target so that default includes are already processed.
