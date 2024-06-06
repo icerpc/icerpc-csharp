@@ -39,7 +39,11 @@ public class SliceCCSharpTask : ToolTask
 
     /// <inheritdoc/>
     protected override string ToolName =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec-cs.exe" : "slicec-cs";
+    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec-cs.exe" : "slicec-cs";
+
+    /// <summary>The computed SHA-256 hash of the Slice files.</summary>
+    [Output]
+    public string? OutputHash { get; set; }
 
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
@@ -63,6 +67,7 @@ public class SliceCCSharpTask : ToolTask
             builder.AppendTextUnquoted(option);
         }
         builder.AppendSwitch("--diagnostic-format=json");
+        builder.AppendSwitch("--metrics");
         builder.AppendFileNamesIfNotNull(
             Sources.Select(item => item.GetMetadata("FullPath").ToString()).ToArray(),
             " ");
@@ -145,4 +150,40 @@ public class SliceCCSharpTask : ToolTask
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
+
+    /// <inheritdoc/>
+    protected override int ExecuteTool(string pathToTool, string responseFileCommands, string commandLineCommands)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = pathToTool,
+            Arguments = commandLineCommands,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = GetWorkingDirectory()
+        };
+
+        using var process = Process.Start(startInfo);
+
+        if (process is null)
+        {
+            Log.LogError("Failed to start the Slice compiler process.");
+            return -1;
+        }
+
+        string output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            Log.LogError($"Slice compiler failed with exit code {process.ExitCode}.");
+            return process.ExitCode;
+        }
+
+        var jsonDoc = System.Text.Json.JsonDocument.Parse(output);
+        OutputHash = jsonDoc.RootElement.GetProperty("hash").GetString();
+
+        return process.ExitCode;
+    }
 }
