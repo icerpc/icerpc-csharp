@@ -1,17 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
-    <!-- A task to extract Zip files using ZipFile.ExtractToDirectory. We don't use Unzip task because
+  <!-- A task to extract Zip files using ZipFile.ExtractToDirectory. We don't use Unzip task because
          it doesn't preserve unix file permissions. -->
-    <UsingTask TaskName="ExtractTask"
-        TaskFactory="RoslynCodeTaskFactory"
-        AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
-        <ParameterGroup>
-            <DestinationFolder ParameterType="Microsoft.Build.Framework.ITaskItem" Required="true" />
-            <SourceFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
-        </ParameterGroup>
-        <Task>
-            <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)/ExtractTask.cs" />
-        </Task>
-    </UsingTask>
+  <UsingTask
+    TaskName="ExtractTask"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+  >
+    <ParameterGroup>
+      <DestinationFolder ParameterType="Microsoft.Build.Framework.ITaskItem" Required="true" />
+      <SourceFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)/ExtractTask.cs" />
+    </Task>
+  </UsingTask>
 </Project>

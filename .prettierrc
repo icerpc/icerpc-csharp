@@ -1,0 +1,8 @@
+{
+    "plugins": [
+        "@prettier/plugin-xml"
+    ],
+    "printWidth": 120,
+    "singleQuote": false,
+    "xmlWhitespaceSensitivity": "preserve"
+}

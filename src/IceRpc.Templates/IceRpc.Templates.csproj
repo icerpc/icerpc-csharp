@@ -1,26 +1,26 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <ContentTargetFolders>Templates</ContentTargetFolders>
-        <Description>IceRPC templates.</Description>
-        <IncludeBuildOutput>false</IncludeBuildOutput>
-        <IncludeContentInPack>true</IncludeContentInPack>
-        <NoWarn>$(NoWarn);NU5128</NoWarn>
-        <PackageId>IceRpc.Templates</PackageId>
-        <PackageTags>icerpc;rpc;templates</PackageTags>
-        <PackageType>Template</PackageType>
-        <TargetFramework>net8.0</TargetFramework>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-    </PropertyGroup>
-    <ItemGroup>
-        <Content Include="Templates/**/*" Exclude="Templates/**/bin/**;Templates/**/obj/**">
-            <PackagePath>Templates</PackagePath>
-            <Pack>true</Pack>
-        </Content>
-        <Compile Remove="**/*" />
-        <Content Include="CodeAnalysis.globalconfig" Pack="true" PackagePath="/" />
-        <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
-        <Content Include="README.md" Pack="true" PackagePath="/" />
-        <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    </ItemGroup>
+  <PropertyGroup>
+    <ContentTargetFolders>Templates</ContentTargetFolders>
+    <Description>IceRPC templates.</Description>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <PackageId>IceRpc.Templates</PackageId>
+    <PackageTags>icerpc;rpc;templates</PackageTags>
+    <PackageType>Template</PackageType>
+    <TargetFramework>net8.0</TargetFramework>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Templates/**/*" Exclude="Templates/**/bin/**;Templates/**/obj/**">
+      <PackagePath>Templates</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+    <Compile Remove="**/*" />
+    <Content Include="CodeAnalysis.globalconfig" Pack="true" PackagePath="/" />
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 </Project>

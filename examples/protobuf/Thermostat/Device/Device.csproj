@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,7 +9,9 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <ProtoFile Include="../proto/thermo_control.proto;../proto/reading.proto;../proto/set_point.proto; ../proto/thermo_home.proto" />
+    <ProtoFile
+      Include="../proto/thermo_control.proto;../proto/reading.proto;../proto/set_point.proto; ../proto/thermo_home.proto"
+    />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
     <PackageReference Include="IceRpc.Deadline" Version="$(IceRpcVersion)" />

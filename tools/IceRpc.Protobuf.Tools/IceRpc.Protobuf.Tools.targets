@@ -1,91 +1,99 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <!-- Import Tasks -->
-    <UsingTask TaskName="IceRpc.Protobuf.Tools.OutputFileNamesTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
-    <UsingTask TaskName="IceRpc.Protobuf.Tools.ProtocTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
-    <UsingTask TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask" AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll" />
-    <ItemGroup>
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
-        <AvailableItemName Include="ProtoFile" />
-    </ItemGroup>
+  <!-- Import Tasks -->
+  <UsingTask
+    TaskName="IceRpc.Protobuf.Tools.OutputFileNamesTask"
+    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+  />
+  <UsingTask
+    TaskName="IceRpc.Protobuf.Tools.ProtocTask"
+    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+  />
+  <UsingTask
+    TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask"
+    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+  />
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
+    <AvailableItemName Include="ProtoFile" />
+  </ItemGroup>
 
-    <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
-        <ProtoFile Update="@(ProtoFile)">
-            <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-            <Link Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))">%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
-        </ProtoFile>
-    </ItemGroup>
+  <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
+    <ProtoFile Update="@(ProtoFile)">
+      <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      <Link
+        Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))"
+      >%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </ProtoFile>
+  </ItemGroup>
 
-    <!--
+  <!--
         When EnableDefaultItems property is true, *.proto files are included as "None" items. We remove them here, to
         include them as "ProtoFile" items later.
     -->
-    <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-        <None Remove="**/*.proto" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-        <ProtoFile
-            Condition="'$(EnableDefaultProtoFileItems)' == 'true'"
-            Include="**/*.proto"
-            Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
-    </ItemGroup>
-    <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
-      <MakeDir Directories="%(ProtoFile.OutputDir)" />
-      <UpToDateCheckTask
-          OutputDir="%(ProtoFile.OutputDir)"
-          Sources="@(ProtoFile)">
-        <Output
-            ItemName          = "_ProtoFile"
-            TaskParameter     = "ComputedSources"/>
-      </UpToDateCheckTask>
-      <!-- Compile the Proto files
+  <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
+    <None Remove="**/*.proto" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
+    <ProtoFile
+      Condition="'$(EnableDefaultProtoFileItems)' == 'true'"
+      Include="**/*.proto"
+      Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
+    />
+  </ItemGroup>
+  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
+    <MakeDir Directories="%(ProtoFile.OutputDir)" />
+    <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)">
+      <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
+    </UpToDateCheckTask>
+    <!-- Compile the Proto files
           The search path determines where protoc compiler locates import files, we add:
           - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
           - $(MSBuildProjectDirectory) to import the project own files.
           - @(ProtoSearchPath) additional search paths specified by the user.
         -->
-        <ProtocTask
-            WorkingDirectory="$(MSBuildProjectDirectory)"
-            OutputDir="@(_ProtoFile->'%(OutputDir)')"
-            SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
-            ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
-            ScriptPath="$(IceRpcProtocGenPath)"
-            Sources="%(_ProtoFile.Identity)"
-            Condition="'%(_ProtoFile.UpToDate)' != 'true'"/>
-        <!--
+    <ProtocTask
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      OutputDir="@(_ProtoFile->'%(OutputDir)')"
+      SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
+      ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
+      ScriptPath="$(IceRpcProtocGenPath)"
+      Sources="%(_ProtoFile.Identity)"
+      Condition="'%(_ProtoFile.UpToDate)' != 'true'"
+    />
+    <!--
             Include all C# generated source items that have not been already included. We delay this until we are
             running the ProtoCompile target so that default includes are already processed.
         -->
-        <ItemGroup>
-            <Compile
-                Include="@(_ProtoFile->'%(OutputDir)/%(OutputFileName).cs')"
-                Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
-            <Compile
-                Include="@(_ProtoFile->'%(OutputDir)/%(OutputFileName).IceRpc.cs')"
-                Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')" />
-        </ItemGroup>
-    </Target>
-    <Target Name="ProtoClean" BeforeTargets="Clean">
-        <OutputFileNamesTask Sources="@(ProtoFile)">
-          <Output
-              ItemName          = "_ProtoFile"
-              TaskParameter     = "ComputedSources"/>
-        </OutputFileNamesTask>
-        <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).cs')" />
-        <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
-        <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).d')" />
-    </Target>
+    <ItemGroup>
+      <Compile
+        Include="@(_ProtoFile->'%(OutputDir)/%(OutputFileName).cs')"
+        Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
+      />
+      <Compile
+        Include="@(_ProtoFile->'%(OutputDir)/%(OutputFileName).IceRpc.cs')"
+        Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
+      />
+    </ItemGroup>
+  </Target>
+  <Target Name="ProtoClean" BeforeTargets="Clean">
+    <OutputFileNamesTask Sources="@(ProtoFile)">
+      <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
+    </OutputFileNamesTask>
+    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).cs')" />
+    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).IceRpc.cs')" />
+    <Delete Files="@(_ProtoFile->'%(OutputDir)/%(OutputFilename).d')" />
+  </Target>
 
-     <!-- Package ProtoFile items -->
-    <Target Name="PackProtoFileItems" BeforeTargets="GenerateNuspec">
-        <CreateItem
-            Include="@(ProtoFile)"
-            Condition="'%(ProtoFile.Pack)' == 'true'"
-            AdditionalMetadata="PackagePath=%(ProtoFile.PackagePath)">
-            <Output
-                TaskParameter="Include"
-                ItemName="_PackageFiles"/>
-        </CreateItem>
-    </Target>
+  <!-- Package ProtoFile items -->
+  <Target Name="PackProtoFileItems" BeforeTargets="GenerateNuspec">
+    <CreateItem
+      Include="@(ProtoFile)"
+      Condition="'%(ProtoFile.Pack)' == 'true'"
+      AdditionalMetadata="PackagePath=%(ProtoFile.PackagePath)"
+    >
+      <Output TaskParameter="Include" ItemName="_PackageFiles" />
+    </CreateItem>
+  </Target>
 </Project>

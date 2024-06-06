@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <!-- CS1591: Missing XML comment for publicly visible type or member.

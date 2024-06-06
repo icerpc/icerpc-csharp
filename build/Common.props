@@ -1,42 +1,42 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <!-- TODO: the file is misnamed: it's common to tests and src, but not used by examples -->
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="$(MSBuildThisFileDirectory)IceRpc.Version.props" />
-    <PropertyGroup>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <WarningLevel>4</WarningLevel>
-        <Nullable>enable</Nullable>
-        <LangVersion>12.0</LangVersion>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <AnalysisMode>All</AnalysisMode>
-        <ImplicitUsings>true</ImplicitUsings>
-        <!-- The 1.2 beta version is required for supporting the latest language features.
+  <Import Project="$(MSBuildThisFileDirectory)IceRpc.Version.props" />
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningLevel>4</WarningLevel>
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisMode>All</AnalysisMode>
+    <ImplicitUsings>true</ImplicitUsings>
+    <!-- The 1.2 beta version is required for supporting the latest language features.
              See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
-        <StyleCopAnalyzersVersion>1.2.0-beta.556</StyleCopAnalyzersVersion>
-        <DebugType>portable</DebugType>
-        <DebugSymbols>true</DebugSymbols>
-    </PropertyGroup>
+    <StyleCopAnalyzersVersion>1.2.0-beta.556</StyleCopAnalyzersVersion>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-        <Optimize>false</Optimize>
-    </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <Optimize>false</Optimize>
+  </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-        <Optimize>true</Optimize>
-    </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
 
-    <!-- Common Assembly & Packaging properties -->
-    <PropertyGroup>
-        <Authors>ZeroC, Inc.</Authors>
-        <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-        <PackageIcon>icerpc-icon.png</PackageIcon>
-        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-        <PackageProjectUrl>https://zeroc.com/icerpc</PackageProjectUrl>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageVersion>$(Version)</PackageVersion>
-        <Product>IceRPC</Product>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
-    </PropertyGroup>
+  <!-- Common Assembly & Packaging properties -->
+  <PropertyGroup>
+    <Authors>ZeroC, Inc.</Authors>
+    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
+    <PackageIcon>icerpc-icon.png</PackageIcon>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://zeroc.com/icerpc</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageVersion>$(Version)</PackageVersion>
+    <Product>IceRPC</Product>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
+  </PropertyGroup>
 </Project>

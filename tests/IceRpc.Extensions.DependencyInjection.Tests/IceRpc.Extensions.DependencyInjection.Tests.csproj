@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
@@ -24,5 +23,4 @@
     <ProjectReference Include="../IceRpc.Conformance.Tests/IceRpc.Conformance.Tests.csproj" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
   </ItemGroup>
-
 </Project>
