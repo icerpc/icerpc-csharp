@@ -61,9 +61,8 @@ pub fn main() {
     // Emit diagnostics and totals.
     let exit_code = i32::from(compilation_state.emit_diagnostics(slice_options));
 
-    // If we're not in dry-run mode and verbose mode is enabled, output verbose compilation
-    // information.
-    if cs_options.metrics && !slice_options.dry_run {
+    // If the metrics flag is set mode is enabled, output additional compilation information.
+    if cs_options.metrics {
         println!(r#"{{ "hash": "{hash}", "exit_code": {exit_code} }}"#);
     }
 
