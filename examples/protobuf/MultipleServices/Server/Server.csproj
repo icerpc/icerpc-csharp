@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -11,12 +11,23 @@
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
     <ProtoFile Include="../proto/request_counter.proto" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference
+      Include="IceRpc.Protobuf.Tools"
+      Version="$(IceRpcVersion)"
+      PrivateAssets="All"
+    />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
-    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+    <PackageReference
+      Include="StyleCop.Analyzers"
+      Version="$(StyleCopAnalyzersVersion)"
+    >
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets
+      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+    <Compile
+      Include="../../../common/Program.CancelKeyPressed.cs"
+      Link="Program.CancelKeyPressed.cs"
+    />
   </ItemGroup>
 </Project>

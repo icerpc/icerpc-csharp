@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props" />
+  <Import
+    Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props"
+  />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,7 +14,10 @@
 
   <ItemGroup>
     <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
-    <PackageReference Include="Google.Protobuf" Version="$(NuGetProtobufVersion)" />
+    <PackageReference
+      Include="Google.Protobuf"
+      Version="$(NuGetProtobufVersion)"
+    />
     <None Include="protoc-gen-icerpc-csharp.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

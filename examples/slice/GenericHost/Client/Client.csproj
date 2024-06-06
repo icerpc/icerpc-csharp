@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -24,15 +24,29 @@
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.*" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference
+      Include="Microsoft.Extensions.Options.DataAnnotations"
+      Version="8.0.*"
+    />
+    <PackageReference
+      Include="IceRpc.Slice.Tools"
+      Version="$(IceRpcVersion)"
+      PrivateAssets="All"
+    />
     <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />
+    <PackageReference
+      Include="IceRpc.Extensions.DependencyInjection"
+      Version="$(IceRpcVersion)"
+    />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(IceRpcVersion)" />
-    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+    <PackageReference
+      Include="StyleCop.Analyzers"
+      Version="$(StyleCopAnalyzersVersion)"
+    >
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets
+      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -12,12 +12,19 @@
     </ProtoFile>
     <Compile Include="../Chatbot.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
+    <PackageReference
+      Include="Microsoft.Extensions.Logging.Console"
+      Version="8.0.*"
+    />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
     <PackageReference Include="IceRpc.Compressor" Version="$(Version)" />
     <PackageReference Include="IceRpc.Slice" Version="$(Version)" />
-    <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
+    <PackageReference
+      Include="IceRpc.Slice.Tools"
+      Version="$(Version)"
+      PrivateAssets="All"
+    />
     <PackageReference Include="IceRpc.Protobuf" Version="$(Version)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(Version)" />
   </ItemGroup>

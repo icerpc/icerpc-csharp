@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -7,20 +7,34 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-     <!-- Enable preview features to use the QUIC transport -->
+    <!-- Enable preview features to use the QUIC transport -->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
+    <PackageReference
+      Include="Microsoft.Extensions.Logging.Console"
+      Version="8.0.*"
+    />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference
+      Include="IceRpc.Protobuf.Tools"
+      Version="$(IceRpcVersion)"
+      PrivateAssets="All"
+    />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Transports.Quic" Version="$(IceRpcVersion)" />
-    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+    <PackageReference
+      Include="IceRpc.Transports.Quic"
+      Version="$(IceRpcVersion)"
+    />
+    <PackageReference
+      Include="StyleCop.Analyzers"
+      Version="$(StyleCopAnalyzersVersion)"
+    >
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets
+      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 </Project>

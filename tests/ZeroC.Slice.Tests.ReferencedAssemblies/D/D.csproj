@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import
+    Project="../../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props"
+  />
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
@@ -14,9 +16,12 @@
     <ProjectReference Include="../B/B.csproj" />
     <ProjectReference Include="../C/C.csproj" />
     <PackageReference Include="coverlet.collector" Version="6.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets
+      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  <Import Project="../../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import
+    Project="../../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets"
+  />
 </Project>

@@ -1,0 +1,11 @@
+{
+    "plugins": [
+        "@prettier/plugin-xml"
+    ],
+    "tabWidth": 2,
+    "useTabs": false,
+    "singleQuote": false,
+    "bracketSpacing": true,
+    "xmlSelfClosingSpace": true,
+    "xmlWhitespaceSensitivity": "preserve"
+}
