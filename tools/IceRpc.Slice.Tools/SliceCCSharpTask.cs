@@ -39,7 +39,7 @@ public class SliceCCSharpTask : ToolTask
 
     /// <inheritdoc/>
     protected override string ToolName =>
-    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec-cs.exe" : "slicec-cs";
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec-cs.exe" : "slicec-cs";
 
     /// <summary>The computed SHA-256 hash of the Slice files.</summary>
     [Output]
