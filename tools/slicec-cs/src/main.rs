@@ -58,13 +58,13 @@ pub fn main() {
         }
     }
 
+    // If the metrics flag is set output additional compilation information.
+    if cs_options.metrics {
+        println!(r#"{{ "hash": "{hash}" }}"#);
+    }
+
     // Emit diagnostics and totals.
     let exit_code = i32::from(compilation_state.emit_diagnostics(slice_options));
-
-    // If the metrics flag is set mode is enabled, output additional compilation information.
-    if cs_options.metrics {
-        println!(r#"{{ "hash": "{hash}", "exit_code": {exit_code} }}"#);
-    }
 
     std::process::exit(exit_code);
 }
