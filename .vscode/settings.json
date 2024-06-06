@@ -12,16 +12,12 @@
   "slice.configurations": [
     // Slice Definitions
     {
-      "paths": [
-        "slice"
-      ],
+      "paths": ["slice"],
       "addWellKnownTypes": false
     },
     // Slice Tests
     {
-      "paths": [
-        "tests/ZeroC.Slice.Tests"
-      ]
+      "paths": ["tests/ZeroC.Slice.Tests"]
     },
     {
       "paths": [
@@ -48,104 +44,64 @@
     },
     // Examples
     {
-      "paths": [
-        "examples/slice/Compress"
-      ]
+      "paths": ["examples/slice/Compress"]
     },
     {
-      "paths": [
-        "examples/slice/CustomError"
-      ]
+      "paths": ["examples/slice/CustomError"]
     },
     {
-      "paths": [
-        "examples/slice/Deadline"
-      ]
+      "paths": ["examples/slice/Deadline"]
     },
     {
-      "paths": [
-        "examples/slice/DiscriminatedUnion"
-      ]
+      "paths": ["examples/slice/DiscriminatedUnion"]
     },
     {
-      "paths": [
-        "examples/slice/Download"
-      ]
+      "paths": ["examples/slice/Download"]
     },
     {
-      "paths": [
-        "examples/slice/GenericHost"
-      ]
+      "paths": ["examples/slice/GenericHost"]
     },
     {
-      "paths": [
-        "examples/slice/Greeter"
-      ]
+      "paths": ["examples/slice/Greeter"]
     },
     {
-      "paths": [
-        "examples/slice/InteropIceGrid"
-      ]
+      "paths": ["examples/slice/InteropIceGrid"]
     },
     {
-      "paths": [
-        "examples/slice/InteropMinimal"
-      ]
+      "paths": ["examples/slice/InteropMinimal"]
     },
     {
-      "paths": [
-        "examples/slice/Logger"
-      ]
+      "paths": ["examples/slice/Logger"]
     },
     {
-      "paths": [
-        "examples/slice/Metrics"
-      ]
+      "paths": ["examples/slice/Metrics"]
     },
     {
-      "paths": [
-        "examples/slice/MultipleInterfaces"
-      ]
+      "paths": ["examples/slice/MultipleInterfaces"]
     },
     {
-      "paths": [
-        "examples/slice/Quic"
-      ]
+      "paths": ["examples/slice/Quic"]
     },
     {
-      "paths": [
-        "examples/slice/RequestContext"
-      ]
+      "paths": ["examples/slice/RequestContext"]
     },
     {
-      "paths": [
-        "examples/slice/Retry"
-      ]
+      "paths": ["examples/slice/Retry"]
     },
     {
-      "paths": [
-        "examples/slice/Secure"
-      ]
+      "paths": ["examples/slice/Secure"]
     },
     {
-      "paths": [
-        "examples/slice/Stream"
-      ]
+      "paths": ["examples/slice/Stream"]
     },
     {
-      "paths": [
-        "examples/slice/Telemetry"
-      ]
+      "paths": ["examples/slice/Telemetry"]
     },
     {
-      "paths": [
-        "examples/slice/Thermostat"
-      ]
+      "paths": ["examples/slice/Thermostat"]
     },
     {
-      "paths": [
-        "examples/slice/Upload"
-      ]
+      "paths": ["examples/slice/Upload"]
     }
   ]
 }
