@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<Project
-  ToolsVersion="14.0"
-  DefaultTargets="Build"
-  xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
->
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildThisFileDirectory)../build/Sign.targets" />
   <!--
         This target is a workaround for using an exact version match with NuGet ProjectReference dependencies
@@ -23,22 +19,16 @@
         Include="@(_ProjectReferencesWithVersions)"
         Condition="'%(Identity)' != '' And '@(_ProjectReferenceWithExplicitPackageVersion)' == '@(_ProjectReferencesWithVersions)'"
       >
-        <ProjectVersion
-        >@(_ProjectReferenceWithExplicitPackageVersion->'%(PackageVersion)')</ProjectVersion>
+        <ProjectVersion>@(_ProjectReferenceWithExplicitPackageVersion->'%(PackageVersion)')</ProjectVersion>
       </_ProjectReferenceWithReassignedVersion>
       <_ProjectReferenceWithReassignedVersion
         Include="@(_ProjectReferencesWithVersions)"
         Condition="'%(Identity)' != '' And '@(_ProjectReferenceWithExactPackageVersion)' == '@(_ProjectReferencesWithVersions)'"
       >
-        <ProjectVersion
-        >[@(_ProjectReferencesWithVersions->'%(ProjectVersion)')]</ProjectVersion>
+        <ProjectVersion>[@(_ProjectReferencesWithVersions->'%(ProjectVersion)')]</ProjectVersion>
       </_ProjectReferenceWithReassignedVersion>
-      <_ProjectReferencesWithVersions
-        Remove="@(_ProjectReferenceWithReassignedVersion)"
-      />
-      <_ProjectReferencesWithVersions
-        Include="@(_ProjectReferenceWithReassignedVersion)"
-      />
+      <_ProjectReferencesWithVersions Remove="@(_ProjectReferenceWithReassignedVersion)" />
+      <_ProjectReferencesWithVersions Include="@(_ProjectReferenceWithReassignedVersion)" />
     </ItemGroup>
   </Target>
 </Project>

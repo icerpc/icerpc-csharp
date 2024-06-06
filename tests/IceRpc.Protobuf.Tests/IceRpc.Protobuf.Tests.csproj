@@ -1,7 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import
-    Project="../../tools/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.props"
-  />
+  <Import Project="../../tools/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.props" />
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
@@ -11,34 +9,26 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0">
-      <IncludeAssets
-      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="NUnit.Analyzers" Version="3.9.0">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets
-      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
     <PackageReference Include="NUnit" Version="3.14.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="../../src/IceRpc.Protobuf/IceRpc.Protobuf.csproj"
-    />
+    <ProjectReference Include="../../src/IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
     <ProjectReference
       Include="../../src/IceRpc.Protobuf.Generators/IceRpc.Protobuf.Generators.csproj"
       OutputItemType="Analyzer"
       ReferenceOutputAssembly="false"
     />
-    <ProjectReference
-      Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj"
-    />
+    <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
   </ItemGroup>
-  <Import
-    Project="../../tools/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.targets"
-  />
+  <Import Project="../../tools/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.targets" />
 </Project>

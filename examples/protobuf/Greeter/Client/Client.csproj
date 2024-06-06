@@ -11,18 +11,10 @@
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
-    <PackageReference
-      Include="IceRpc.Protobuf.Tools"
-      Version="$(IceRpcVersion)"
-      PrivateAssets="All"
-    />
-    <PackageReference
-      Include="StyleCop.Analyzers"
-      Version="$(StyleCopAnalyzersVersion)"
-    >
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets
-      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 </Project>

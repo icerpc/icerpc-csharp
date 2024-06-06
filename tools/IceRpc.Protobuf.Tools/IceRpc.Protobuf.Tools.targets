@@ -15,17 +15,13 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
   <ItemGroup>
-    <PropertyPageSchema
-      Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml"
-    />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
     <AvailableItemName Include="ProtoFile" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
     <ProtoFile Update="@(ProtoFile)">
-      <LinkBase
-        Condition="'%(LinkBase)' != ''"
-      >$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       <Link
         Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))"
       >%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
@@ -46,16 +42,9 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <Target
-    Name="ProtoCompile"
-    BeforeTargets="CoreCompile"
-    Condition="@(ProtoFile) != ''"
-  >
+  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
     <MakeDir Directories="%(ProtoFile.OutputDir)" />
-    <UpToDateCheckTask
-      OutputDir="%(ProtoFile.OutputDir)"
-      Sources="@(ProtoFile)"
-    >
+    <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
     <!-- Compile the Proto files

@@ -8,21 +8,11 @@
     AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
   >
     <ParameterGroup>
-      <DestinationFolder
-        ParameterType="Microsoft.Build.Framework.ITaskItem"
-        Required="true"
-      />
-      <SourceFiles
-        ParameterType="Microsoft.Build.Framework.ITaskItem[]"
-        Required="true"
-      />
+      <DestinationFolder ParameterType="Microsoft.Build.Framework.ITaskItem" Required="true" />
+      <SourceFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
     </ParameterGroup>
     <Task>
-      <Code
-        Type="Class"
-        Language="cs"
-        Source="$(MSBuildThisFileDirectory)/ExtractTask.cs"
-      />
+      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)/ExtractTask.cs" />
     </Task>
   </UsingTask>
 </Project>

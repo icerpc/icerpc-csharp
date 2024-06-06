@@ -12,28 +12,14 @@
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
-    <Compile
-      Include="../../../common/Program.CancelKeyPressed.cs"
-      Link="Program.CancelKeyPressed.cs"
-    />
-    <PackageReference
-      Include="IceRpc.Protobuf.Tools"
-      Version="$(IceRpcVersion)"
-      PrivateAssets="All"
-    />
+    <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
-    <PackageReference
-      Include="IceRpc.Transports.Quic"
-      Version="$(IceRpcVersion)"
-    />
-    <PackageReference
-      Include="StyleCop.Analyzers"
-      Version="$(StyleCopAnalyzersVersion)"
-    >
+    <PackageReference Include="IceRpc.Transports.Quic" Version="$(IceRpcVersion)" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets
-      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 </Project>

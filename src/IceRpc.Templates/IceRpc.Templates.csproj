@@ -13,10 +13,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-    <Content
-      Include="Templates/**/*"
-      Exclude="Templates/**/bin/**;Templates/**/obj/**"
-    >
+    <Content Include="Templates/**/*" Exclude="Templates/**/bin/**;Templates/**/obj/**">
       <PackagePath>Templates</PackagePath>
       <Pack>true</Pack>
     </Content>

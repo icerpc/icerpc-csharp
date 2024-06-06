@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import
-    Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props"
-  />
+  <Import Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props" />
   <PropertyGroup>
     <Nullable>enable</Nullable>
     <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
@@ -33,37 +31,20 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoWarn>NU5100</NoWarn>
-    <RustConfiguration
-      Condition="'$(Configuration)' == 'Release'"
-    >release</RustConfiguration>
-    <RustConfiguration
-      Condition="'$(Configuration)' == 'Debug'"
-    >debug</RustConfiguration>
-    <SliceCompilerExe
-      Condition="'$(OS)' == 'Windows_NT'"
-    >slicec-cs.exe</SliceCompilerExe>
-    <SliceCompilerExe
-      Condition="'$(OS)' != 'Windows_NT'"
-    >slicec-cs</SliceCompilerExe>
+    <RustConfiguration Condition="'$(Configuration)' == 'Release'">release</RustConfiguration>
+    <RustConfiguration Condition="'$(Configuration)' == 'Debug'">debug</RustConfiguration>
+    <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
+    <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
     <!-- Internal properties used to compute the slicec-cs compiler location for the current platform. -->
-    <IceRPC_OSName
-      Condition="$([MSBuild]::IsOSPlatform('Linux'))"
-    >linux</IceRPC_OSName>
-    <IceRPC_OSName
-      Condition="$([MSBuild]::IsOSPlatform('Windows'))"
-    >windows</IceRPC_OSName>
-    <IceRPC_OSName
-      Condition="$([MSBuild]::IsOSPlatform('OSX'))"
-    >macos</IceRPC_OSName>
+    <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRPC_OSName>
+    <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRPC_OSName>
+    <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRPC_OSName>
     <IceRPC_OSArch
     >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRPC_OSArch>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Framework" Version="17.8.3" />
-    <PackageReference
-      Include="Microsoft.Build.Utilities.Core"
-      Version="17.8.3"
-    />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.3" />
     <PackageReference Include="System.Text.Json" Version="8.0.*" />
   </ItemGroup>
   <ItemGroup>
@@ -99,30 +80,10 @@
       <Pack>true</Pack>
       <PackagePath>/</PackagePath>
     </None>
-    <None
-      Include="$(OutputPath)/$(AssemblyName).dll"
-      Pack="true"
-      PackagePath="tasks/"
-      Visible="false"
-    />
-    <None
-      Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll"
-      Pack="true"
-      PackagePath="tasks/"
-      Visible="false"
-    />
-    <None
-      Include="$(OutputPath)/System.Text.Encodings.Web.dll"
-      Pack="true"
-      PackagePath="tasks/"
-      Visible="false"
-    />
-    <None
-      Include="$(OutputPath)/System.Text.Json.dll"
-      Pack="true"
-      PackagePath="tasks/"
-      Visible="false"
-    />
+    <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
+    <None Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="tasks/" Visible="false" />
+    <None Include="$(OutputPath)/System.Text.Encodings.Web.dll" Pack="true" PackagePath="tasks/" Visible="false" />
+    <None Include="$(OutputPath)/System.Text.Json.dll" Pack="true" PackagePath="tasks/" Visible="false" />
   </ItemGroup>
   <Choose>
     <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
@@ -153,9 +114,7 @@
     <Otherwise>
       <ItemGroup>
         <!-- Use the compilers from this source build. -->
-        <Content
-          Include="../slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)"
-        >
+        <Content Include="../slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
           <PackagePath>tools/$(IceRPC_OSName)-$(IceRPC_OSArch)/</PackagePath>
           <Pack>true</Pack>
         </Content>
@@ -163,9 +122,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <GlobalAnalyzerConfigFiles
-      Include="$(MSBuildThisFileDirectory)CodeAnalysis.config"
-    />
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
   </ItemGroup>
   <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
   <!-- Sign the Windows compiler executables when building the release packages and (SLICEC_CS_STAGING_PATH is set) -->

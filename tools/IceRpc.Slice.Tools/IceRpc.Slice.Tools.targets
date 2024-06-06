@@ -8,17 +8,11 @@
   />
 
   <ItemGroup>
-    <PropertyPageSchema
-      Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml"
-    />
-    <PropertyPageSchema
-      Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml"
-    >
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">
       <Context>Project</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema
-      Include="$(MSBuildThisFileDirectory)SliceFile.FileProperties.xaml"
-    >
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.FileProperties.xaml">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
     <AvailableItemName Include="SliceFile" />
@@ -31,9 +25,7 @@
 
   <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
     <SliceFile Update="@(SliceFile)">
-      <LinkBase
-        Condition="'%(LinkBase)' != ''"
-      >$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       <Link
         Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))"
       >%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
@@ -56,11 +48,7 @@
     />
   </ItemGroup>
 
-  <Target
-    Name="SliceC"
-    BeforeTargets="CoreCompile"
-    Condition="@(SliceFile) != ''"
-  >
+  <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(SliceFile.OutputDir)" />
 
     <!-- Compile the Slice files -->
@@ -83,10 +71,8 @@
                     Add GeneratedPath and IceRpcGeneratedPath metadata with the normalized path, this is required for
                     excludes below to work with different path separators.
                 -->
-        <GeneratedPath
-        >$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
-        <IceRpcGeneratedPath
-        >$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
+        <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
+        <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
       </SliceFile>
       <!--
                 Create a Compile item for each SliceFile item, representing the generated C# files.
@@ -111,9 +97,7 @@
   </Target>
 
   <Target Name="SliceCClean" BeforeTargets="Clean">
-    <Delete
-      Files="@(SliceFile->'%(OutputDir)/%(Filename).cs');@(SliceFile->'%(OutputDir)/%(Filename).IceRpc.cs')"
-    />
+    <Delete Files="@(SliceFile->'%(OutputDir)/%(Filename).cs');@(SliceFile->'%(OutputDir)/%(Filename).IceRpc.cs')" />
   </Target>
 
   <!-- Package SliceFile items -->

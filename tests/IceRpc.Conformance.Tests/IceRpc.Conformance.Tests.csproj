@@ -11,28 +11,20 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0">
-      <IncludeAssets
-      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="NUnit.Analyzers" Version="3.9.0">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets
-      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NUnit" Version="3.14.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="../../src/IceRpc/IceRpc.csproj"
-      ExactVersion="true"
-    />
-    <ProjectReference
-      Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj"
-      ExactVersion="true"
-    />
+    <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" ExactVersion="true" />
   </ItemGroup>
 
   <!-- NuGet package contents-->

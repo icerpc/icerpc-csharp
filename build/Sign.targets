@@ -2,8 +2,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
-    <SignCommand
-    >/f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256</SignCommand>
+    <SignCommand>/f "$(SIGN_CERTIFICATE)" /p $(SIGN_PASSWORD) /tr $(TimeStampServer) /td sha256 /fd sha256</SignCommand>
     <SignTool Condition="'$(SignTool)' == ''">signtool.exe</SignTool>
   </PropertyGroup>
 
@@ -16,18 +15,11 @@
     <ParameterGroup>
       <WorkingDirectory ParameterType="System.String" Required="true" />
       <AdditionalOptions ParameterType="System.String" Required="true" />
-      <Files
-        ParameterType="Microsoft.Build.Framework.ITaskItem[]"
-        Required="True"
-      />
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="True" />
       <SignTool ParameterType="System.String" Required="false" />
     </ParameterGroup>
     <Task>
-      <Code
-        Type="Class"
-        Language="cs"
-        Source="$(MSBuildThisFileDirectory)/SignTask.cs"
-      />
+      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)/SignTask.cs" />
     </Task>
   </UsingTask>
 
@@ -36,9 +28,7 @@
     BeforeTargets="CopyFilesToOutputDirectory"
     Condition="'$(OS)' == 'Windows_NT' and Exists('$(SIGN_CERTIFICATE)') and (!Exists('$(IntermediateOutputPath)sign.log') or $([System.IO.File]::GetLastWriteTime('$(IntermediateOutputPath)$(TargetName)$(TargetExt)').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(IntermediateOutputPath)sign.log').Ticks))"
   >
-    <Message
-      Text="Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)"
-    />
+    <Message Text="Signing $(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
 
     <!-- Authenticode signing -->
     <SignTask
@@ -56,11 +46,7 @@
     />
   </Target>
 
-  <Target
-    Name="SignPackageClean"
-    AfterTargets="Clean"
-    Condition="'$(OS)' == 'Windows_NT' "
-  >
+  <Target Name="SignPackageClean" AfterTargets="Clean" Condition="'$(OS)' == 'Windows_NT' ">
     <Delete Files="$(IntermediateOutputPath)sign.log" />
   </Target>
 

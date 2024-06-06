@@ -8,17 +8,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-    <PackageReference
-      Include="Microsoft.Extensions.Logging.Abstractions"
-      Version="8.0.*"
-    />
-    <PackageReference
-      Include="StyleCop.Analyzers"
-      Version="$(StyleCopAnalyzersVersion)"
-    >
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.*" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets
-      >runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
   <!-- NuGet package contents-->
