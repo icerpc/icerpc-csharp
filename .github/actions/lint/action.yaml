@@ -3,9 +3,14 @@ name: Lint
 runs:
   using: "composite"
   steps:
-    - name: Install prettier
-      run: npm i -g prettier @prettier/plugin-xml
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: "npm"
+    - name: Install dependencies
+      run: npm install prettier @prettier/plugin-xml
       shell: bash
     - name: Lint XML
-      run: prettier --check '**/*.{props,csproj,targets}' --plugin=@prettier/plugin-xml
+      run: npx prettier --check '**/*.{props,csproj,targets}' --plugin=@prettier/plugin-xml
       shell: bash
