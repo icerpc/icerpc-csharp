@@ -2,6 +2,7 @@
     "recommendations": [
         "davidanson.vscode-markdownlint",
         "editorconfig.editorconfig",
+        "esbenp.prettier-vscode",
         "ms-azuretools.vscode-docker",
         "ms-dotnettools.csdevkit",
         "rust-lang.rust-analyzer",

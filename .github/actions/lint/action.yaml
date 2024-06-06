@@ -1,0 +1,11 @@
+name: Lint
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install prettier
+      run: npm i -g prettier @prettier/plugin-xml
+      shell: bash
+    - name: Lint XML
+      run: prettier --check '**/*.{props,csproj,targets}' --plugin=@prettier/plugin-xml
+      shell: bash
