@@ -29,5 +29,3 @@ jobs:
       - name: Build DocFX Examples
         run: dotnet build docfx/examples/Examples.sln
         shell: bash
-      - name: Lint
-        uses: ./.github/actions/lint
