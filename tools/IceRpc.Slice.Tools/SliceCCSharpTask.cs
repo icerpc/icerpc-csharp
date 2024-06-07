@@ -43,7 +43,7 @@ public class SliceCCSharpTask : ToolTask
 
     /// <summary>The computed SHA-256 hash of the Slice files.</summary>
     [Output]
-    public string? OutputHash { get; set; }
+    public string? CompilationHash { get; set; }
 
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
@@ -97,7 +97,7 @@ public class SliceCCSharpTask : ToolTask
         {
             // Messages from stdout
             var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
-            OutputHash = jsonDoc.RootElement.GetProperty("hash").GetString();
+            CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
             return;
         }
 
