@@ -20,7 +20,7 @@ pub struct CsOptions {
 
     /// Enable additional compilation information output.
     #[arg(long)]
-    pub metrics: bool,
+    pub telemetry: bool,
 
     // Import the options common to all slice compilers.
     #[command(flatten)]
@@ -34,7 +34,7 @@ impl Default for CsOptions {
 
         CsOptions {
             rpc_provider: RpcProvider::default(),
-            metrics: false,
+            telemetry: false,
             slice_options,
         }
     }

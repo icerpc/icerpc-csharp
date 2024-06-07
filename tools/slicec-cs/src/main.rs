@@ -59,7 +59,7 @@ pub fn main() {
     }
 
     // If the metrics flag is set output additional compilation information.
-    if cs_options.metrics {
+    if cs_options.telemetry {
         println!(r#"{{ "hash": "{hash}" }}"#);
     }
 
