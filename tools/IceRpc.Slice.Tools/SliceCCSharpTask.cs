@@ -95,6 +95,7 @@ public class SliceCCSharpTask : ToolTask
     {
         if (messageImportance == MessageImportance.Low)
         {
+            // Messages from stdout
             var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
             OutputHash = jsonDoc.RootElement.GetProperty("hash").GetString();
             return;
