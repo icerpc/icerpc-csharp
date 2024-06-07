@@ -1,30 +1,31 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <Description>Slice for C#.</Description>
-        <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>slice;binary;serialization;format</PackageTags>
-        <PackageIcon>slice-icon.png</PackageIcon>
-    </PropertyGroup>
-    <ItemDefinitionGroup>
-      <SliceFile>
-        <AdditionalOptions>--rpc none</AdditionalOptions>
-      </SliceFile>
-    </ItemDefinitionGroup>
-    <ItemGroup>
-        <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="dunet" Version="1.11.2" />
-    </ItemGroup>
-    <!-- NuGet package contents-->
-    <!-- There is no need to compile the well known types with the Slice compiler since they are all custom. -->
-    <ItemGroup>
-        <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
-        <Content Include="README.md" Pack="true" PackagePath="/" />
-        <None Include="../../build/slice-icon.png" Pack="true" PackagePath="/" />
-        <Content Include="ZeroC.Slice.props" Pack="true" PackagePath="buildTransitive" />
-        <Content Include="../../slice/WellKnownTypes/*.slice" Pack="true" PackagePath="slice/WellKnownTypes" />
-    </ItemGroup>
+  <PropertyGroup>
+    <Description>Slice for C#.</Description>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+    <PackageTags>slice;binary;serialization;format</PackageTags>
+    <PackageIcon>slice-icon.png</PackageIcon>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <SliceFile>
+      <AdditionalOptions>--rpc none</AdditionalOptions>
+    </SliceFile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="dunet" Version="1.11.2" />
+  </ItemGroup>
+  <!-- NuGet package contents-->
+  <!-- There is no need to compile the well known types with the Slice compiler since they are all custom. -->
+  <ItemGroup>
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/slice-icon.png" Pack="true" PackagePath="/" />
+    <Content Include="ZeroC.Slice.props" Pack="true" PackagePath="buildTransitive" />
+    <Content Include="../../slice/WellKnownTypes/*.slice" Pack="true" PackagePath="slice/WellKnownTypes" />
+  </ItemGroup>
 </Project>

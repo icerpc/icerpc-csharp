@@ -1,32 +1,37 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
-        <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
-        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.*" />
-        <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.4.0-preview1" PrivateAssets="All" />
-        <PackageReference Include="IceRpc.Protobuf" Version="0.4.0-preview1" />
-        <PackageReference Include="IceRpc.Deadline" Version="0.4.0-preview1" />
-        <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="0.4.0-preview1" />
-        <PackageReference Include="IceRpc.Logger" Version="0.4.0-preview1" />
-        <!-- The 1.2 beta version is required for supporting the latest language features.
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
+    <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--#if (framework=="net8.0")-->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.*" />
+    <!--#else-->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.*-preview.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.*-preview.*" />
+    <!--#endif-->
+    <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.4.0-preview1" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Protobuf" Version="0.4.0-preview1" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.4.0-preview1" />
+    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="0.4.0-preview1" />
+    <PackageReference Include="IceRpc.Logger" Version="0.4.0-preview1" />
+    <!-- The 1.2 beta version is required for supporting the latest language features.
          See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
-        <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.globalconfig" />
-    </ItemGroup>
-    <ItemGroup>
-        <None Update="appsettings.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.globalconfig" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

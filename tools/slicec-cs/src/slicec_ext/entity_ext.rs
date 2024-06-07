@@ -51,19 +51,6 @@ pub trait EntityExt: Entity {
         scoped_identifier(self.escape_identifier(), self.namespace(), current_namespace)
     }
 
-    /// Appends the provided prefix to the definition's identifier, fully scoped.
-    /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
-    /// Note: The case style is applied to all scope segments, not just the last one.
-    ///
-    /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
-    fn escape_scoped_identifier_with_prefix(&self, prefix: &str, current_namespace: &str) -> String {
-        scoped_identifier(
-            self.escape_identifier_with_prefix(prefix),
-            self.namespace(),
-            current_namespace,
-        )
-    }
-
     /// Concatenates the provided suffix on the definition's identifier, with scoping.
     /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
     /// Note: The case style is applied to all scope segments, not just the last one.
@@ -72,24 +59,6 @@ pub trait EntityExt: Entity {
     fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str) -> String {
         scoped_identifier(
             self.escape_identifier_with_suffix(suffix),
-            self.namespace(),
-            current_namespace,
-        )
-    }
-
-    /// Applies the provided prefix and suffix to the definition's identifier, with scoping.
-    /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
-    /// Note: The case style is applied to all scope segments, not just the last one.
-    ///
-    /// If the provided namespace is non-empty, the identifier's scope is qualified relative to it.
-    fn escape_scoped_identifier_with_prefix_and_suffix(
-        &self,
-        prefix: &str,
-        suffix: &str,
-        current_namespace: &str,
-    ) -> String {
-        scoped_identifier(
-            self.escape_identifier_with_prefix_and_suffix(prefix, suffix),
             self.namespace(),
             current_namespace,
         )

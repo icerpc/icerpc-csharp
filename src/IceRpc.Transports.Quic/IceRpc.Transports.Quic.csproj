@@ -1,25 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <Description>QUIC transport for IceRPC</Description>
-        <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>icerpc;rpc;quic</PackageTags>
-        <!-- Properties for .NET QUIC -->
-        <EnablePreviewFeatures>True</EnablePreviewFeatures>
-        <!-- CA2252: Opt in to preview features before using them. -->
-        <NoWarn>CA2252</NoWarn>
-    </PropertyGroup>
-    <ItemGroup>
-        <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-        <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
-    <!-- NuGet package contents-->
-    <ItemGroup>
-        <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
-        <Content Include="README.md" Pack="true" PackagePath="/" />
-        <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    </ItemGroup>
+  <PropertyGroup>
+    <Description>QUIC transport for IceRPC</Description>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+    <PackageTags>icerpc;rpc;quic</PackageTags>
+    <!-- Properties for .NET QUIC -->
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <!-- CA2252: Opt in to preview features before using them. -->
+    <NoWarn>CA2252</NoWarn>
+    <!-- Target both .NET 8 and .NET 9 for QUIC to utilize new features in .NET 9 where available. -->
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- NuGet package contents-->
+  <ItemGroup>
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 </Project>

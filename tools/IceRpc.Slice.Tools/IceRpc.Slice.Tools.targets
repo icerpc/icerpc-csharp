@@ -1,141 +1,158 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <!-- Import Tasks -->
-    <UsingTask
-        TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
-        AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll" />
-    <UsingTask
-        TaskName="IceRpc.Telemetry.Internal.TelemetryTask"
-        AssemblyFile="$(TelemetryScriptPath)IceRpc.Telemetry.Internal.dll" />
-    <ItemGroup>
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">
-            <Context>Project</Context>
-        </PropertyPageSchema>
-        <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.FileProperties.xaml">
-            <Context>File;BrowseObject</Context>
-        </PropertyPageSchema>
-        <AvailableItemName Include="SliceFile"/>
-    </ItemGroup>
+  <!-- Import Tasks -->
+  <UsingTask
+    TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
+    AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
+  />
+  <UsingTask
+    TaskName="IceRpc.Telemetry.Internal.TelemetryTask"
+    AssemblyFile="$(TelemetryScriptPath)IceRpc.Telemetry.Internal.dll"
+  />
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">
+      <Context>Project</Context>
+    </PropertyPageSchema>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.FileProperties.xaml">
+      <Context>File;BrowseObject</Context>
+    </PropertyPageSchema>
+    <AvailableItemName Include="SliceFile" />
+  </ItemGroup>
 
-    <!-- This capability is used to apply the SliceFile property page designer -->
-    <ItemGroup>
-        <ProjectCapability Include="SliceFile" />
-    </ItemGroup>
+  <!-- This capability is used to apply the SliceFile property page designer -->
+  <ItemGroup>
+    <ProjectCapability Include="SliceFile" />
+  </ItemGroup>
 
-    <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
-        <SliceFile Update="@(SliceFile)">
-            <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-            <Link Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))">%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
-        </SliceFile>
-    </ItemGroup>
+  <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
+    <SliceFile Update="@(SliceFile)">
+      <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      <Link
+        Condition="'%(Link)' == '' And '%(DefiningProjectExtension)' != '.projitems' And !$([MSBuild]::ValueOrDefault('%(FullPath)', '').StartsWith($([MSBuild]::EnsureTrailingSlash($(MSBuildProjectDirectory)))))"
+      >%(LinkBase)%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </SliceFile>
+  </ItemGroup>
 
-    <!--
+  <!--
         When EnableDefaultItems property is true, *.slice files are included as "None" items. We remove them here, to
         include them as "SliceFile" items later.
     -->
-    <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-        <None Remove="**/*.slice"/>
+  <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
+    <None Remove="**/*.slice" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
+    <SliceFile
+      Condition="'$(EnableDefaultSliceFileItems)' == 'true'"
+      Include="**/*.slice"
+      Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
+    />
+  </ItemGroup>
+
+  <!-- Target to retrieve the IceRpc.Slice.Tools version -->
+  <Target Name="GetIceRpcSliceToolsVersion">
+    <!-- Create an item group to capture PackageReferences -->
+    <ItemGroup>
+      <IceRpcSliceToolsPackageReference
+        Include="@(PackageReference)"
+        Condition="'%(Identity)' == 'IceRpc.Slice.Tools'"
+      />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
-        <SliceFile
-            Condition="'$(EnableDefaultSliceFileItems)' == 'true'" Include="**/*.slice"
-            Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"/>
-    </ItemGroup>
+    <!-- Extract the version from the PackageReference -->
+    <PropertyGroup>
+      <IceRpcSliceToolsVersion>%(IceRpcSliceToolsPackageReference.Version)</IceRpcSliceToolsVersion>
+    </PropertyGroup>
+  </Target>
 
-    <!-- Target to retrieve the IceRpc.Slice.Tools version -->
-    <Target Name="GetIceRpcSliceToolsVersion">
-        <!-- Create an item group to capture PackageReferences -->
-        <ItemGroup>
-            <IceRpcSliceToolsPackageReference Include="@(PackageReference)" Condition="'%(Identity)' == 'IceRpc.Slice.Tools'" />
-        </ItemGroup>
+  <Target
+    Name="SliceC"
+    BeforeTargets="CoreCompile"
+    Condition="@(SliceFile) != ''"
+    DependsOnTargets="GetIceRpcSliceToolsVersion"
+  >
+    <MakeDir Directories="%(SliceFile.OutputDir)" />
+    <PropertyGroup>
+      <Verbose>false</Verbose>
+      <Verbose Condition="'$(DisableTelemetry)' != 'true'">true</Verbose>
+    </PropertyGroup>
 
-        <!-- Extract the version from the PackageReference -->
-        <PropertyGroup>
-            <IceRpcSliceToolsVersion>%(IceRpcSliceToolsPackageReference.Version)</IceRpcSliceToolsVersion>
-        </PropertyGroup>
-    </Target>
+    <!-- Compile the Slice files -->
+    <SliceCCSharpTask
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      OutputDir="%(SliceFile.OutputDir)"
+      References="@(SliceDirectory->'%(FullPath)')"
+      ToolsPath="$(SliceCompilerPath)"
+      AdditionalOptions="%(SliceFile.AdditionalOptions)"
+      Sources="@(SliceFile)"
+      Verbose="$(Verbose)"
+      OutputHash="$(Hash)"
+      UpdatedFiles="$(UpdatedFiles)"
+    >
+      <Output PropertyName="Hash" TaskParameter="OutputHash" />
+      <Output PropertyName="UpdatedFiles" TaskParameter="UpdatedFiles" />
+    </SliceCCSharpTask>
 
-    <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''" DependsOnTargets="GetIceRpcSliceToolsVersion">
+    <!-- Run telemetry -->
+    <TelemetryTask
+      WorkingDirectory="$(TelemetryScriptPath)"
+      Version="$(IceRpcSliceToolsVersion)"
+      Hash="$(Hash)"
+      UpdatedFiles="$(UpdatedFiles)"
+      Source="IceRpc.Slice.Tools"
+      Condition="'$(DisableTelemetry)' != 'true'"
+      ContinueOnError="true"
+    />
 
-        <MakeDir Directories="%(SliceFile.OutputDir)"/>
-        <PropertyGroup>
-            <Verbose>false</Verbose>
-            <Verbose Condition="'$(DisableTelemetry)' != 'true'">true</Verbose>
-        </PropertyGroup>
-
-        <!-- Compile the Slice files -->
-        <SliceCCSharpTask
-            WorkingDirectory      = "$(MSBuildProjectDirectory)"
-            OutputDir             = "%(SliceFile.OutputDir)"
-            References            = "@(SliceDirectory->'%(FullPath)')"
-            ToolsPath             = "$(SliceCompilerPath)"
-            AdditionalOptions     = "%(SliceFile.AdditionalOptions)"
-            Sources               = "@(SliceFile)"
-            Verbose               = "$(Verbose)"
-            OutputHash            = "$(Hash)"
-            UpdatedFiles          = "$(UpdatedFiles)">
-            <Output PropertyName="Hash" TaskParameter="OutputHash"/>
-            <Output PropertyName="UpdatedFiles" TaskParameter="UpdatedFiles"/>
-        </SliceCCSharpTask>
-
-        <!-- Run telemetry -->
-        <TelemetryTask
-            WorkingDirectory="$(TelemetryScriptPath)"
-            Version="$(IceRpcSliceToolsVersion)"
-            Hash="$(Hash)"
-            UpdatedFiles="$(UpdatedFiles)"
-            Source="IceRpc.Slice.Tools"
-            Condition="'$(DisableTelemetry)' != 'true'"
-            ContinueOnError="true"/>
-
-        <!--
+    <!--
             Include all C# generated source items that have not been already included. We delay this until we are
             running the SliceC target so that default includes are already processed.
         -->
-        <ItemGroup>
-            <SliceFile>
-                <!--
+    <ItemGroup>
+      <SliceFile>
+        <!--
                     Add GeneratedPath and IceRpcGeneratedPath metadata with the normalized path, this is required for
                     excludes below to work with different path separators.
                 -->
-                <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
-                <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
-            </SliceFile>
-            <!--
+        <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
+        <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
+      </SliceFile>
+      <!--
                 Create a Compile item for each SliceFile item, representing the generated C# files.
                 Use RemoveMetadata to avoid including SliceFile-specific metadata in the generated Compile item.
             -->
-            <Compile Include="@(SliceFile->'%(GeneratedPath)')"
-                     Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
-                     RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"/>
+      <Compile
+        Include="@(SliceFile->'%(GeneratedPath)')"
+        Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
+        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"
+      />
 
-            <!--
+      <!--
                 TODO: use a dedicated option instead of "parsing" AdditionalOptions.
             -->
-            <Compile Condition="'%(SliceFile.AdditionalOptions)' != '--rpc none'"
-                     Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
-                     Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
-                     RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"/>
-        </ItemGroup>
-    </Target>
+      <Compile
+        Condition="'%(SliceFile.AdditionalOptions)' != '--rpc none'"
+        Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
+        Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
+        RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"
+      />
+    </ItemGroup>
+  </Target>
 
-    <Target Name="SliceCClean" BeforeTargets="Clean">
-        <Delete Files="@(SliceFile->'%(OutputDir)/%(Filename).cs');@(SliceFile->'%(OutputDir)/%(Filename).IceRpc.cs')"/>
-    </Target>
+  <Target Name="SliceCClean" BeforeTargets="Clean">
+    <Delete Files="@(SliceFile->'%(OutputDir)/%(Filename).cs');@(SliceFile->'%(OutputDir)/%(Filename).IceRpc.cs')" />
+  </Target>
 
-    <!-- Package SliceFile items -->
-    <Target Name="PackSliceFileItems" BeforeTargets="GenerateNuspec">
-        <CreateItem
-            Include="@(SliceFile)"
-            Condition="'%(SliceFile.Pack)' == 'true'"
-            AdditionalMetadata="PackagePath=%(SliceFile.PackagePath)">
-            <Output
-                TaskParameter="Include"
-                ItemName="_PackageFiles"/>
-        </CreateItem>
-    </Target>
-
+  <!-- Package SliceFile items -->
+  <Target Name="PackSliceFileItems" BeforeTargets="GenerateNuspec">
+    <CreateItem
+      Include="@(SliceFile)"
+      Condition="'%(SliceFile.Pack)' == 'true'"
+      AdditionalMetadata="PackagePath=%(SliceFile.PackagePath)"
+    >
+      <Output TaskParameter="Include" ItemName="_PackageFiles" />
+    </CreateItem>
+  </Target>
 </Project>

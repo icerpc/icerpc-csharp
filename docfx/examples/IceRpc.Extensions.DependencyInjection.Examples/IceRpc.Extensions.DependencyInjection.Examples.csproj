@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <!-- Enable preview features to use the QUIC transport -->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
@@ -13,6 +14,6 @@
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(Version)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
     <PackageReference Include="IceRpc.Transports.Quic" Version="$(Version)" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
   </ItemGroup>
 </Project>

@@ -480,7 +480,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Checks if <paramref name="path" /> is a properly escaped URI absolute path, i.e. that it starts
-    /// with a <c>/</c> and contains only unreserved characters, <c>%</c>, or reserved characters other than
+    /// with a <c>/</c> and contains only unreserved characters, <c>%</c>, and reserved characters other than
     /// <c>?</c> and <c>#</c>.</summary>
     /// <param name="path">The path to check.</param>
     /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
@@ -490,11 +490,11 @@ public sealed record class ServiceAddress
         if (path.Length == 0 || path[0] != '/' || !IsValid(path, _notValidInPath))
         {
             throw new FormatException(
-                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'.");
+                $"Invalid path '{path}'; a valid path starts with '/' and contains only unreserved characters, '%', and reserved characters other than '?' and '#'.");
         }
     }
 
-    /// <summary>Checks if <paramref name="value" /> contains only unreserved characters, <c>%</c>, or reserved
+    /// <summary>Checks if <paramref name="value" /> contains only unreserved characters, <c>%</c>, and reserved
     /// characters other than <c>#</c> and <c>&#38;</c>.</summary>
     /// <param name="value">The value to check.</param>
     /// <returns><see langword="true" /> if <paramref name="value" /> is a valid parameter value; otherwise,
@@ -520,7 +520,7 @@ public sealed record class ServiceAddress
     }
 
     /// <summary>Checks if <paramref name="fragment" /> is a properly escaped URI fragment, i.e. it contains only
-    ///  unreserved characters, reserved characters or '%'.</summary>
+    /// unreserved characters, reserved characters, and '%'.</summary>
     /// <param name="fragment">The fragment to check.</param>
     /// <exception cref="FormatException">Thrown if the fragment is not valid.</exception>
     /// <remarks>The fragment of a URI with a supported protocol satisfies these requirements.</remarks>
@@ -529,7 +529,7 @@ public sealed record class ServiceAddress
         if (!IsValid(fragment, _notValidInFragment))
         {
             throw new FormatException(
-                $"Invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters or '%'.");
+                $"Invalid fragment '{fragment}'; a valid fragment contains only unreserved characters, reserved characters, and '%'.");
         }
     }
 

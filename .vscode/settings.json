@@ -1,7 +1,14 @@
 {
   "dotnet.defaultSolution": "IceRpc.sln",
-  "rust-analyzer.linkedProjects": ["tools/slicec-cs/Cargo.toml"],
-  "rust-analyzer.rustfmt.extraArgs": ["+nightly"],
+  "rust-analyzer.linkedProjects": [
+    "tools/slicec-cs/Cargo.toml"
+  ],
+  "rust-analyzer.rustfmt.extraArgs": [
+    "+nightly"
+  ],
+  "prettier.documentSelectors": [
+    "**/*.{props,csproj,targets}"
+  ],
   "slice.configurations": [
     // Slice Definitions
     {

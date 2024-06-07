@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>major</RollForward>
     <!-- We don't generate a NuGet package for IceRpc.ProtocGen. The generator is packaged with IceRpc.Protobuf.Tools -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>

@@ -3,6 +3,7 @@
     <Description>IceRPC Protobuf integration package</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>IceRPC;RPC;Protobuf</PackageTags>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
@@ -10,15 +11,18 @@
     <!-- Includes the analyzer in the package without consuming it. -->
     <ProjectReference
       Include="../IceRpc.Protobuf.Generators/IceRpc.Protobuf.Generators.csproj"
-      ReferenceOutputAssembly="false" />
+      ReferenceOutputAssembly="false"
+    />
   </ItemGroup>
   <!-- NuGet package contents-->
   <ItemGroup>
     <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
     <Content Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    <Content Include="../IceRpc.Protobuf.Generators/bin/$(Configuration)/netstandard2.0/IceRpc.Protobuf.Generators.dll"
-             Pack="true"
-             PackagePath="analyzers/dotnet/cs"/>
+    <Content
+      Include="../IceRpc.Protobuf.Generators/bin/$(Configuration)/netstandard2.0/IceRpc.Protobuf.Generators.dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+    />
   </ItemGroup>
 </Project>

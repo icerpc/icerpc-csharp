@@ -511,13 +511,11 @@ public sealed class IceProtocolConnectionTests
     {
         var clientConnectionOptions = new ConnectionOptions
         {
-            EnableIceIdleCheck = true,
             IceIdleTimeout = TimeSpan.FromSeconds(10)
         };
 
         var serverConnectionOptions = new ConnectionOptions
         {
-            EnableIceIdleCheck = true,
             IceIdleTimeout = TimeSpan.FromMilliseconds(100)
         };
 

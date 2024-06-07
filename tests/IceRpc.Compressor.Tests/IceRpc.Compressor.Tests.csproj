@@ -1,5 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -17,7 +20,11 @@
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
     <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
-    <ProjectReference Include="../../src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference
+      Include="../../src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
     <ProjectReference Include="../../src/IceRpc.Compressor/IceRpc.Compressor.csproj" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <!-- Reference the built-in Slice files -->

@@ -18,6 +18,23 @@
     "preferNameDirectory":true,
     "defaultName":"Server",
     "symbols":{
+        "Framework": {
+            "type": "parameter",
+            "description": "The target framework for the project.",
+            "datatype": "choice",
+            "choices": [
+                {
+                    "choice": "net8.0",
+                    "description": "Target net8.0"
+                },
+                {
+                "choice": "net9.0",
+                "description": "Target net9.0"
+                }
+            ],
+            "replaces": "net8.0",
+            "defaultValue": "net8.0"
+        },
         "skipRestore":{
             "type":"parameter",
             "datatype":"bool",

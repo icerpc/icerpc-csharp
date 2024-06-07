@@ -1,32 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
-    <PropertyGroup>
-        <Description>Locator interceptor for IceRPC</Description>
-        <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>icerpc;rpc</PackageTags>
-    </PropertyGroup>
-    <ItemGroup>
-        <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-        <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" ExactVersion="true" />
-        <SliceFile
-            Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice"
-            OutputDir="$(MSBuildProjectDirectory)/generated"
-            Pack="true"
-            PackagePath="slice/Ice" />
-        <!-- Reference the built-in Slice files -->
-        <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
-        <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
-    <!-- NuGet package contents-->
-    <ItemGroup>
-        <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
-        <Content Include="README.md" Pack="true" PackagePath="/" />
-        <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-        <Content Include="IceRpc.Locator.props" Pack="true" PackagePath="buildTransitive" />
-    </ItemGroup>
-    <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <PropertyGroup>
+    <Description>Locator interceptor for IceRPC</Description>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+    <PackageTags>icerpc;rpc</PackageTags>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" ExactVersion="true" />
+    <SliceFile
+      Include="../../slice/Ice/Locator.slice;../../slice/Ice/LocatorRegistry.slice;../../slice/Ice/Process.slice"
+      OutputDir="$(MSBuildProjectDirectory)/generated"
+      Pack="true"
+      PackagePath="slice/Ice"
+    />
+    <!-- Reference the built-in Slice files -->
+    <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- NuGet package contents-->
+  <ItemGroup>
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
+    <Content Include="IceRpc.Locator.props" Pack="true" PackagePath="buildTransitive" />
+  </ItemGroup>
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

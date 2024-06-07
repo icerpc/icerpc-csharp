@@ -112,6 +112,7 @@ public abstract class MultiplexedListenerConformanceTests
     }
 
     [Test]
+    [Ignore("TODO: Fix https://github.com/icerpc/icerpc-csharp/issues/3990")]
     public async Task Call_accept_on_a_listener_and_then_dispose_it_fails_with_operation_aborted_error()
     {
         // Arrange

@@ -1,46 +1,50 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
-    <PropertyGroup>
-        <Description>IceRPC for C#.</Description>
-        <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>icerpc;rpc;quic</PackageTags>
-    </PropertyGroup>
-    <ItemDefinitionGroup>
-      <SliceFile>
-        <AdditionalOptions>--rpc none</AdditionalOptions>
-      </SliceFile>
-    </ItemDefinitionGroup>
-    <ItemGroup>
-        <SliceFile
-          Include="../../slice/IceRpc/*.slice"
-          Exclude="../../slice/IceRpc/ServiceAddress.slice"
-          OutputDir="$(MSBuildProjectDirectory)/generated"
-          Pack="true"
-          PackagePath="slice/$(AssemblyName)" />
-        <SliceFile
-          Include="../../slice/IceRpc/Internal/*.slice"
-          OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-        <SliceFile
-          Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice"
-          OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated" />
-       <SliceDirectory Include="../../slice/IceRpc/"/>
-      </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="../ZeroC.Slice/ZeroC.Slice.csproj" ExactVersion="true" />
-        <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="System.IO.Pipelines" Version="$(NetRuntimeVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(NetRuntimeVersion)" />
-    </ItemGroup>
-    <!-- NuGet package contents-->
-    <ItemGroup>
-        <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
-        <Content Include="README.md" Pack="true" PackagePath="/" />
-        <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-        <Content Include="IceRpc.props" Pack="true" PackagePath="buildTransitive" />
-    </ItemGroup>
-    <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <PropertyGroup>
+    <Description>IceRPC for C#.</Description>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+    <PackageTags>icerpc;rpc;quic</PackageTags>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <SliceFile>
+      <AdditionalOptions>--rpc none</AdditionalOptions>
+    </SliceFile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <SliceFile
+      Include="../../slice/IceRpc/*.slice"
+      Exclude="../../slice/IceRpc/ServiceAddress.slice"
+      OutputDir="$(MSBuildProjectDirectory)/generated"
+      Pack="true"
+      PackagePath="slice/$(AssemblyName)"
+    />
+    <SliceFile
+      Include="../../slice/IceRpc/Internal/*.slice"
+      OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+    />
+    <SliceFile
+      Include="../../slice/IceRpc/Transports/Slic/Internal/*.slice"
+      OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated"
+    />
+    <SliceDirectory Include="../../slice/IceRpc/" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ZeroC.Slice/ZeroC.Slice.csproj" ExactVersion="true" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.IO.Pipelines" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.*" />
+  </ItemGroup>
+  <!-- NuGet package contents-->
+  <ItemGroup>
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
+    <Content Include="IceRpc.props" Pack="true" PackagePath="buildTransitive" />
+  </ItemGroup>
+  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

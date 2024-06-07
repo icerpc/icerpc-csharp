@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
@@ -10,8 +10,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(NetRuntimeVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(NetRuntimeVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="NUnit.Analyzers" Version="3.9.0">
       <PrivateAssets>all</PrivateAssets>
@@ -26,5 +26,4 @@
     <ProjectReference Include="../../src/IceRpc.Retry/IceRpc.Retry.csproj" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
   </ItemGroup>
-
 </Project>

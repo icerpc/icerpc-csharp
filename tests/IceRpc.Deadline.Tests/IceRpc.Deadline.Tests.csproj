@@ -2,6 +2,7 @@
   <PropertyGroup>
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,5 +24,4 @@
     <ProjectReference Include="../../src/IceRpc.Deadline/IceRpc.Deadline.csproj" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
   </ItemGroup>
-
 </Project>

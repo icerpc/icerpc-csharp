@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,8 +11,8 @@
   <ItemGroup>
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
     <Compile Include="../../../common/PipeReaderJsonSerializer.cs" Link="PipeReaderJsonSerializer.cs" />

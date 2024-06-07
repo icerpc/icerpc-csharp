@@ -42,14 +42,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private readonly IDuplexConnection _duplexConnection;
     private readonly DuplexConnectionReader _duplexConnectionReader;
     private readonly IceDuplexConnectionWriter _duplexConnectionWriter;
+    private bool _heartbeatEnabled = true;
+    private Task _heartbeatTask = Task.CompletedTask;
     private readonly TimeSpan _inactivityTimeout;
     private readonly Timer _inactivityTimeoutTimer;
     private string? _invocationRefusedMessage;
     private int _lastRequestId;
     private readonly int _maxFrameSize;
     private readonly object _mutex = new();
-    private bool _pingEnabled = true;
-    private Task _pingTask = Task.CompletedTask;
     private readonly PipeOptions _pipeOptions;
     private Task? _readFramesTask;
 
@@ -223,7 +223,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     _dispatchesAndInvocationsCompleted.TrySetResult();
                 }
 
-                _pingEnabled = false; // makes _pingTask immutable
+                _heartbeatEnabled = false; // makes _heartbeatTask immutable
 
                 _disposeTask = PerformDisposeAsync();
             }
@@ -250,7 +250,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     await Task.WhenAll(
                         _connectTask,
                         _readFramesTask ?? Task.CompletedTask,
-                        _pingTask,
+                        _heartbeatTask,
                         _dispatchesAndInvocationsCompleted.Task,
                         _shutdownTask).ConfigureAwait(false);
                 }
@@ -501,16 +501,18 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Wait for dispatches and invocations to complete.
                 await _dispatchesAndInvocationsCompleted.Task.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
-                // Stops pings. We can't do earlier: while we're waiting for dispatches and invocations to complete,
-                // we need to keep sending pings otherwise the peer could see the connection as idle and abort it.
+                // Stops sending heartbeats. We can't do earlier: while we're waiting for dispatches and invocations to
+                // complete, we need to keep sending heartbeats otherwise the peer could see the connection as idle and
+                // abort it.
                 lock (_mutex)
                 {
-                    _pingEnabled = false; // makes _pingTask immutable
+                    _heartbeatEnabled = false; // makes _heartbeatTask immutable
                 }
 
-                // Wait for the last ping to complete before sending the CloseConnection frame or disposing the duplex
-                // connection. _pingTask is immutable once _shutdownTask set. _pingTask can be canceled by DisposeAsync.
-                await _pingTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
+                // Wait for the last send heartbeat to complete before sending the CloseConnection frame or disposing
+                // the duplex connection. _heartbeatTask is immutable once _shutdownTask set. _heartbeatTask can be
+                // canceled by DisposeAsync.
+                await _heartbeatTask.WaitAsync(shutdownCts.Token).ConfigureAwait(false);
 
                 if (sendCloseConnectionFrame)
                 {
@@ -598,7 +600,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 duplexConnection,
                 readIdleTimeout: options.EnableIceIdleCheck ? options.IceIdleTimeout : Timeout.InfiniteTimeSpan,
                 writeIdleTimeout: options.IceIdleTimeout,
-                KeepAlive);
+                SendHeartbeat);
         }
 
         _duplexConnection = duplexConnection;
@@ -627,13 +629,13 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             }
         });
 
-        void KeepAlive()
+        void SendHeartbeat()
         {
             lock (_mutex)
             {
-                if (_pingTask.IsCompletedSuccessfully && _pingEnabled)
+                if (_heartbeatTask.IsCompletedSuccessfully && _heartbeatEnabled)
                 {
-                    _pingTask = SendValidateConnectionFrameAsync(_disposedCts.Token);
+                    _heartbeatTask = SendValidateConnectionFrameAsync(_disposedCts.Token);
                 }
             }
 
@@ -658,7 +660,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 }
                 catch (Exception exception)
                 {
-                    Debug.Fail($"The ping task completed due to an unhandled exception: {exception}");
+                    Debug.Fail($"The heartbeat task completed due to an unhandled exception: {exception}");
                     throw;
                 }
 
@@ -1204,7 +1206,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                         // cancel ongoing writes to _duplexConnection: we don't send incomplete/invalid data.
                         _twowayDispatchesCts.Cancel();
 
-                        // We keep sending pings. If the shutdown request / shutdown is not fulfilled quickly, they
+                        // We keep sending heartbeats. If the shutdown request / shutdown is not fulfilled quickly, they
                         // tell the peer we're still alive and maybe stuck waiting for invocations and dispatches to
                         // complete.
 

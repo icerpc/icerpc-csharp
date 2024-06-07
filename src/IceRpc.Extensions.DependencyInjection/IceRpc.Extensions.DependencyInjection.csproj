@@ -1,23 +1,24 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <Description>Dependency injection extensions for IceRPC</Description>
-        <AssemblyTitle>$(Description)</AssemblyTitle>
-        <PackageTags>icerpc;rpc</PackageTags>
-    </PropertyGroup>
-    <ItemGroup>
-        <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(NetRuntimeVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="$(NetRuntimeVersion)" />
-        <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
-    <!-- NuGet package contents-->
-    <ItemGroup>
-        <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
-        <Content Include="README.md" Pack="true" PackagePath="/" />
-        <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    </ItemGroup>
+  <PropertyGroup>
+    <Description>Dependency injection extensions for IceRPC</Description>
+    <AssemblyTitle>$(Description)</AssemblyTitle>
+    <PackageTags>icerpc;rpc</PackageTags>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.*" />
+    <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- NuGet package contents-->
+  <ItemGroup>
+    <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <Content Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 </Project>

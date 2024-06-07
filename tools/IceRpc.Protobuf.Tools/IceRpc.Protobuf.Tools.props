@@ -1,52 +1,59 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <PropertyGroup>
-        <EnableDefaultProtoFileItems Condition="'$(EnableDefaultProtoFileItems)' == ''">true</EnableDefaultProtoFileItems>
-        <!-- Internal properties used to compute the protoc excutable location for the current platform. -->
-        <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRpcOSName>
-        <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
-        <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
-        <IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
-        <IceRpcProtocPrefix>$(IceRpcOSName)_$(IceRpcOSArch)</IceRpcProtocPrefix>
-    </PropertyGroup>
-    <Choose>
-        <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
-            <!-- Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.ProtocGen assembly from
+  <PropertyGroup>
+    <EnableDefaultProtoFileItems Condition="'$(EnableDefaultProtoFileItems)' == ''">true</EnableDefaultProtoFileItems>
+    <!-- Internal properties used to compute the protoc excutable location for the current platform. -->
+    <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRpcOSName>
+    <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
+    <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
+    <IceRpcOSArch
+    >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
+    <IceRpcProtocPrefix>$(IceRpcOSName)_$(IceRpcOSArch)</IceRpcProtocPrefix>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
+      <!-- Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.ProtocGen assembly from
                  the source build. -->
-            <PropertyGroup>
-                <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
-                <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
-                <TelemetryScriptPath>$(MSBuildThisFileDirectory)../Common/IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
-            </PropertyGroup>
-        </When>
-        <Otherwise>
-            <!-- Use the protoc compiler and the IceRpc.ProtocGen assembly in this NuGet package -->
-            <PropertyGroup>
-              <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
-              <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
-              <TelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</TelemetryScriptPath>
-            </PropertyGroup>
-        </Otherwise>
-    </Choose>
-    <Choose>
-        <When Condition="Exists('$(MSBuildThisFileDirectory)bin/$(Configuration)/netstandard2.0/IceRpc.Protobuf.Tools.dll')">
-            <PropertyGroup>
-                <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/netstandard2.0/</IceRpcProtobufToolsTaskAssembliesPath>
-            </PropertyGroup>
-        </When>
-        <Otherwise>
-            <PropertyGroup>
-                <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
-            </PropertyGroup>
-        </Otherwise>
-    </Choose>
-    <!-- default values -->
-    <ItemDefinitionGroup>
-        <ProtoFile>
-            <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
-            <Pack>false</Pack>
-            <PackagePath>protobuf</PackagePath>
-        </ProtoFile>
-    </ItemDefinitionGroup>
+      <PropertyGroup>
+        <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
+        <IceRpcProtocGenPath
+        >$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
+        <TelemetryScriptPath
+        >$(MSBuildThisFileDirectory)../Common/IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <!-- Use the protoc compiler and the IceRpc.ProtocGen assembly in this NuGet package -->
+      <PropertyGroup>
+        <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
+        <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
+        <TelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</TelemetryScriptPath>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When
+      Condition="Exists('$(MSBuildThisFileDirectory)bin/$(Configuration)/netstandard2.0/IceRpc.Protobuf.Tools.dll')"
+    >
+      <PropertyGroup>
+        <IceRpcProtobufToolsTaskAssembliesPath
+        >$(MSBuildThisFileDirectory)bin/$(Configuration)/netstandard2.0/</IceRpcProtobufToolsTaskAssembliesPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <IceRpcProtobufToolsTaskAssembliesPath
+        >$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <!-- default values -->
+  <ItemDefinitionGroup>
+    <ProtoFile>
+      <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
+      <Pack>false</Pack>
+      <PackagePath>protobuf</PackagePath>
+    </ProtoFile>
+  </ItemDefinitionGroup>
 </Project>

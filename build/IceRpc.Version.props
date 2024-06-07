@@ -1,11 +1,9 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <PropertyGroup>
-        <!-- The version of all assembly files built in this repository -->
-        <Version Condition="'$(Version)' == ''">0.4.0-preview1</Version>
-        <!-- The Protobuf version used by IceRpc.Protobuf -->
-        <ProtobufVersion>26.1</ProtobufVersion>
-        <NuGetProtobufVersion>3.$(ProtobufVersion)</NuGetProtobufVersion>
-        <TargetFramework>net8.0</TargetFramework>
-        <NetRuntimeVersion>8.0.*</NetRuntimeVersion>
-    </PropertyGroup>
+  <PropertyGroup>
+    <!-- The version of all assembly files built in this repository -->
+    <Version Condition="'$(Version)' == ''">0.4.0-preview1</Version>
+    <!-- The Protobuf version used by IceRpc.Protobuf -->
+    <ProtobufVersion>26.1</ProtobufVersion>
+    <NuGetProtobufVersion>3.$(ProtobufVersion)</NuGetProtobufVersion>
+  </PropertyGroup>
 </Project>
