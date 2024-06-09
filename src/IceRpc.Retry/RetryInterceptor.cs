@@ -43,9 +43,9 @@ namespace IceRpc.Retry;
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;
-    private readonly IInvoker _next;
     private readonly int _maxAttempts;
     private readonly int _maxPayloadSize;
+    private readonly IInvoker _next;
 
     /// <summary>Constructs a retry interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
