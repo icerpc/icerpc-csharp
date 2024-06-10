@@ -83,6 +83,7 @@ public sealed class Pipeline : IInvoker
         {
             pipeline = interceptor(pipeline);
         }
+        _interceptorStack.Clear(); // we no longer need these functions
         return pipeline;
     }
 }

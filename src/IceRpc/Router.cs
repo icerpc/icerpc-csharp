@@ -206,6 +206,7 @@ public sealed class Router : IDispatcher
         {
             dispatchPipeline = middleware(dispatchPipeline);
         }
+        _middlewareStack.Clear(); // we no longer need these functions
         return dispatchPipeline;
     }
 }
