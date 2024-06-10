@@ -17,16 +17,10 @@ public class TelemetryTask : ToolTask
     public string Version { get; set; } = "";
 
     /// <summary>
-    /// Gets or sets the hash.
+    /// Gets or sets the compilation hash.
     /// </summary>
     [Required]
-    public string Hash { get; set; } = "";
-
-    /// <summary>
-    /// Gets or sets the updated files.
-    /// </summary>
-    [Required]
-    public string UpdatedFiles { get; set; } = "";
+    public string CompilationHash { get; set; } = "";
 
     /// <summary>
     /// Gets or sets the source.
@@ -59,9 +53,7 @@ public class TelemetryTask : ToolTask
         commandLine.AppendSwitch("--source");
         commandLine.AppendSwitch(Source);
         commandLine.AppendSwitch("--hash");
-        commandLine.AppendSwitch(Hash);
-        commandLine.AppendSwitch("--updated-files");
-        commandLine.AppendSwitch(UpdatedFiles);
+        commandLine.AppendSwitch(CompilationHash);
 
         return commandLine.ToString();
     }

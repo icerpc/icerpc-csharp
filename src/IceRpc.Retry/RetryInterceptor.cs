@@ -43,8 +43,9 @@ namespace IceRpc.Retry;
 public class RetryInterceptor : IInvoker
 {
     private readonly ILogger _logger;
+    private readonly int _maxAttempts;
+    private readonly int _maxPayloadSize;
     private readonly IInvoker _next;
-    private readonly RetryOptions _options;
 
     /// <summary>Constructs a retry interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
@@ -53,21 +54,22 @@ public class RetryInterceptor : IInvoker
     public RetryInterceptor(IInvoker next, RetryOptions options, ILogger logger)
     {
         _next = next;
-        _options = options;
+        _maxAttempts = options.MaxAttempts;
+        _maxPayloadSize = options.MaxPayloadSize;
         _logger = logger;
     }
 
     /// <inheritdoc/>
     public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancellationToken)
     {
-        if (request.PayloadContinuation is not null)
+        // This interceptor does not support retrying requests with a payload continuation.
+        if (request.PayloadContinuation is not null || _maxAttempts == 1)
         {
-            // This interceptor does not support retrying requests with a payload continuation.
             return await _next.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            var decorator = new ResettablePipeReaderDecorator(request.Payload, _options.MaxPayloadSize);
+            var decorator = new ResettablePipeReaderDecorator(request.Payload, _maxPayloadSize);
             request.Payload = decorator;
 
             try
@@ -115,7 +117,10 @@ public class RetryInterceptor : IInvoker
 
                     // Check if we can retry
                     tryAgain = false;
-                    if (attempt < _options.MaxAttempts && decorator.IsResettable)
+
+                    // The decorator is non-resettable when we've reached the last attempt (see below) or the decorator
+                    // caught an exception that prevents resetting, like a ReadAsync exception.
+                    if (decorator.IsResettable)
                     {
                         if (retryWithOtherReplica)
                         {
@@ -148,6 +153,13 @@ public class RetryInterceptor : IInvoker
                         {
                             attempt++;
                             decorator.Reset();
+
+                            // If this attempt is the last attempt, we make the decorator non-resettable to release the
+                            // memory for the request payload as soon as possible.
+                            if (attempt == _maxAttempts)
+                            {
+                               decorator.IsResettable = false;
+                            }
                         }
                     }
                 }
@@ -179,5 +191,5 @@ public class RetryInterceptor : IInvoker
     }
 
     private IDisposable? CreateRetryLogScope(int attempt) =>
-        _logger != NullLogger.Instance && attempt > 1 ? _logger.RetryScope(attempt, _options.MaxAttempts) : null;
+        _logger != NullLogger.Instance && attempt > 1 ? _logger.RetryScope(attempt, _maxAttempts) : null;
 }

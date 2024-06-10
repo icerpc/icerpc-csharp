@@ -24,25 +24,17 @@ public partial record struct Telemetry
             .Skip(1)
             .FirstOrDefault() ?? "unknown";
 
-        // Parse the hash
-        string hash = args
+        // Parse the compilation hash
+        string compilationHash = args
             .SkipWhile(arg => arg != "--hash")
             .Skip(1)
             .FirstOrDefault() ?? "unknown";
-
-        // Parse if files were updated
-        bool? updatedFiles = args
-            .SkipWhile(arg => arg != "--updated-files")
-            .Skip(1)
-            .Select(arg => bool.TryParse(arg, out bool result) ? (bool?)result : null)
-            .FirstOrDefault();
 
         IceRpcVersion = version;
         Source = source;
         OperatingSystem = Environment.OSVersion.ToString();
         ProcessorCount = Environment.ProcessorCount;
         Memory = Process.GetCurrentProcess().Threads.Count;
-        Hash = hash;
-        UpdatedFiles = updatedFiles;
+        CompilationHash = compilationHash;
     }
 }

@@ -18,9 +18,9 @@ pub struct CsOptions {
     #[arg(long = "rpc", value_enum, default_value_t = RpcProvider::IceRpc, ignore_case = true)]
     pub rpc_provider: RpcProvider,
 
-    /// Enable additional compilation information output.
-    #[arg(long, short)]
-    pub verbose: bool,
+    /// Output additional compilation information for the telemetry service.
+    #[arg(long)]
+    pub telemetry: bool,
 
     // Import the options common to all slice compilers.
     #[command(flatten)]
@@ -34,7 +34,7 @@ impl Default for CsOptions {
 
         CsOptions {
             rpc_provider: RpcProvider::default(),
-            verbose: false,
+            telemetry: false,
             slice_options,
         }
     }

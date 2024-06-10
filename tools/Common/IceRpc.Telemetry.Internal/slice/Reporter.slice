@@ -26,8 +26,5 @@ struct Telemetry {
     Source: string
 
     /// The hashed slice files or protobuf files.
-    Hash: string
-
-    /// Updated files
-    UpdatedFiles: bool?
+    CompilationHash: string
 }
