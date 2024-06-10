@@ -35,7 +35,7 @@ pub fn main() {
     let slice_options = &cs_options.slice_options;
 
     let mut compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
-    let hash = SliceFile::compute_sha256_hash(&compilation_state.files);
+
     if !compilation_state.diagnostics.has_errors() && !slice_options.dry_run {
         for slice_file in compilation_state.files.iter().filter(|file| file.is_source) {
             let code = generate_from_slice_file(slice_file, false, &cs_options);
@@ -58,8 +58,9 @@ pub fn main() {
         }
     }
 
-    // If the metrics flag is set output additional compilation information.
+    // If the telemetry flag is set, output additional compilation information.
     if cs_options.telemetry {
+        let hash = SliceFile::compute_sha256_hash(&compilation_state.files);
         println!(r#"{{ "hash": "{hash}" }}"#);
     }
 
