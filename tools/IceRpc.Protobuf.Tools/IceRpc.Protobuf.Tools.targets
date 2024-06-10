@@ -64,7 +64,7 @@
       <IceRpcProtobufToolsVersion>%(IceRpcProtobufToolsPackageReference.Version)</IceRpcProtobufToolsVersion>
     </PropertyGroup>
   </Target>
-  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
+  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" DependsOnTargets="GetIceRpcProtobufToolsVersion" Condition="@(ProtoFile) != ''">
     <MakeDir Directories="%(ProtoFile.OutputDir)" />
     <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />

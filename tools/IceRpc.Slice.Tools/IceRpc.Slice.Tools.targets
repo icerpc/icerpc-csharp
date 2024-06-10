@@ -91,7 +91,7 @@
     <TelemetryTask
       WorkingDirectory="$(TelemetryScriptPath)"
       Version="$(IceRpcSliceToolsVersion)"
-      Hash="$(Hash)"
+      CompilationHash="$(Hash)"
       Source="IceRpc.Slice.Tools"
       Condition="'$(DisableTelemetry)' != 'true'"
       ContinueOnError="true"
