@@ -23,6 +23,7 @@ use cs_compile::{cs_patcher, cs_validator};
 use cs_options::SLICEC_CS;
 use generators::generate_from_slice_file;
 use slicec::diagnostics::{Diagnostic, Error};
+use slicec::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -57,7 +58,16 @@ pub fn main() {
         }
     }
 
-    std::process::exit(i32::from(compilation_state.emit_diagnostics(slice_options)))
+    // If the telemetry flag is set, output additional compilation information.
+    if cs_options.telemetry {
+        let hash = SliceFile::compute_sha256_hash(&compilation_state.files);
+        println!(r#"{{ "hash": "{hash}" }}"#);
+    }
+
+    // Emit diagnostics and totals.
+    let exit_code = i32::from(compilation_state.emit_diagnostics(slice_options));
+
+    std::process::exit(exit_code);
 }
 
 fn write_file(path: &Path, contents: &str) -> Result<(), io::Error> {

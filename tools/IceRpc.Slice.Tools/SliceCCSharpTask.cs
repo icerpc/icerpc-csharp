@@ -41,6 +41,10 @@ public class SliceCCSharpTask : ToolTask
     protected override string ToolName =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "slicec-cs.exe" : "slicec-cs";
 
+    /// <summary>The computed SHA-256 hash of the Slice files.</summary>
+    [Output]
+    public string? CompilationHash { get; set; }
+
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
@@ -63,6 +67,7 @@ public class SliceCCSharpTask : ToolTask
             builder.AppendTextUnquoted(option);
         }
         builder.AppendSwitch("--diagnostic-format=json");
+        builder.AppendSwitch("--telemetry");
         builder.AppendFileNamesIfNotNull(
             Sources.Select(item => item.GetMetadata("FullPath").ToString()).ToArray(),
             " ");
@@ -90,7 +95,9 @@ public class SliceCCSharpTask : ToolTask
     {
         if (messageImportance == MessageImportance.Low)
         {
-            // Ignore messages from stdout, messageImportance is set to MessageImportance.Low for messages from stdout.
+            // Messages from stdout
+            var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
+            CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
             return;
         }
 
