@@ -50,28 +50,10 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-
-  <!-- Target to retrieve the IceRpc.Slice.Tools version -->
-  <Target Name="GetIceRpcSliceToolsVersion">
-    <!-- Create an item group to capture PackageReferences -->
-    <ItemGroup>
-      <IceRpcSliceToolsPackageReference
-        Include="@(PackageReference)"
-        Condition="'%(Identity)' == 'IceRpc.Slice.Tools'"
-      />
-    </ItemGroup>
-
-    <!-- Extract the version from the PackageReference -->
-    <PropertyGroup>
-      <IceRpcSliceToolsVersion>%(IceRpcSliceToolsPackageReference.Version)</IceRpcSliceToolsVersion>
-    </PropertyGroup>
-  </Target>
-
   <Target
     Name="SliceC"
     BeforeTargets="CoreCompile"
     Condition="@(SliceFile) != ''"
-    DependsOnTargets="GetIceRpcSliceToolsVersion"
   >
     <MakeDir Directories="%(SliceFile.OutputDir)" />
     <!-- Compile the Slice files -->
@@ -90,7 +72,6 @@
     <!-- Run telemetry -->
     <TelemetryTask
       WorkingDirectory="$(TelemetryScriptPath)"
-      Version="$(IceRpcSliceToolsVersion)"
       CompilationHash="$(Hash)"
       Source="IceRpc.Slice.Tools"
       Condition="'$(DisableTelemetry)' != 'true'"

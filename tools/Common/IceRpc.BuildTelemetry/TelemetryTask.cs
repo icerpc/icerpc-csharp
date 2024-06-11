@@ -11,12 +11,6 @@ namespace IceRpc.BuildTelemetry;
 public class TelemetryTask : ToolTask
 {
     /// <summary>
-    /// Gets or sets the version.
-    /// </summary>
-    [Required]
-    public string Version { get; set; } = "";
-
-    /// <summary>
     /// Gets or sets the compilation hash.
     /// </summary>
     [Required]
@@ -48,8 +42,6 @@ public class TelemetryTask : ToolTask
     {
         var commandLine = new CommandLineBuilder();
         commandLine.AppendFileNameIfNotNull("IceRpc.BuildTelemetry.Reporter.dll");
-        commandLine.AppendSwitch("--version");
-        commandLine.AppendSwitch(Version);
         commandLine.AppendSwitch("--source");
         commandLine.AppendSwitch(Source);
         commandLine.AppendSwitch("--hash");

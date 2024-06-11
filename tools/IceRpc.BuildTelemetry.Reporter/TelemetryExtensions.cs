@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Diagnostics;
+using System.Reflection;
 
 namespace IceRpc.BuildTelemetry.Reporter;
 
@@ -12,14 +13,9 @@ public partial record struct Telemetry
     /// <param name="args">The command-line arguments.</param>
     public Telemetry(string[] args)
     {
-        // // Parse the version
-        // string version = args
-        //     .SkipWhile(arg => arg != "--version")
-        //     .Skip(1)
-        //     .FirstOrDefault() ?? "unknown";
-
-        var assembly = System.Reflection.Assembly.GetAssembly(typeof(Program));
-        string version = assembly.GetName().Version.ToString();
+        // Determine the IceRPC version using the assembly version
+        var assembly = Assembly.GetAssembly(typeof(Telemetry));
+        string version = assembly?.GetName()?.Version?.ToString() ?? "unknown";
 
         // Parse the source
         string source = args

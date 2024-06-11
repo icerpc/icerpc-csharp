@@ -49,22 +49,7 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <!-- Target to retrieve the IceRpc.Protobuf.Tools version -->
-  <Target Name="GetIceRpcProtobufToolsVersion">
-    <!-- Create an item group to capture PackageReferences -->
-    <ItemGroup>
-      <IceRpcProtobufToolsPackageReference
-        Include="@(PackageReference)"
-        Condition="'%(Identity)' == 'IceRpc.Protobuf.Tools'"
-      />
-    </ItemGroup>
-
-    <!-- Extract the version from the PackageReference -->
-    <PropertyGroup>
-      <IceRpcProtobufToolsVersion>%(IceRpcProtobufToolsPackageReference.Version)</IceRpcProtobufToolsVersion>
-    </PropertyGroup>
-  </Target>
-  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" DependsOnTargets="GetIceRpcProtobufToolsVersion" Condition="@(ProtoFile) != ''">
+  <Target Name="ProtoCompile" BeforeTargets="CoreCompile" Condition="@(ProtoFile) != ''">
     <MakeDir Directories="%(ProtoFile.OutputDir)" />
     <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
@@ -91,7 +76,6 @@
     <!-- Run telemetry -->
     <TelemetryTask
       WorkingDirectory="$(TelemetryScriptPath)"
-      Version="$(IceRpcProtobufToolsVersion)"
       CompilationHash="$(Hash)"
       Source="IceRpc.Protobuf.Tools"
       Condition="'$(DisableTelemetry)' != 'true'"
