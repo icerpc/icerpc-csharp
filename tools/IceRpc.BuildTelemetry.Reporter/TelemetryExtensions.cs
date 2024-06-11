@@ -12,11 +12,14 @@ public partial record struct Telemetry
     /// <param name="args">The command-line arguments.</param>
     public Telemetry(string[] args)
     {
-        // Parse the version
-        string version = args
-            .SkipWhile(arg => arg != "--version")
-            .Skip(1)
-            .FirstOrDefault() ?? "unknown";
+        // // Parse the version
+        // string version = args
+        //     .SkipWhile(arg => arg != "--version")
+        //     .Skip(1)
+        //     .FirstOrDefault() ?? "unknown";
+
+        var assembly = System.Reflection.Assembly.GetAssembly(typeof(Program));
+        string version = assembly.GetName().Version.ToString();
 
         // Parse the source
         string source = args

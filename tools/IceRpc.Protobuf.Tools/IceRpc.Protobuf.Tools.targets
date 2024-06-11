@@ -18,6 +18,10 @@
     TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
+  <UsingTask
+    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
+    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+  />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
     <AvailableItemName Include="ProtoFile" />

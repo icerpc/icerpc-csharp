@@ -3,7 +3,7 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-namespace IceRpc.BuildTelemetry.Reporter;
+namespace IceRpc.BuildTelemetry;
 
 /// <summary>
 /// A custom MSBuild task to run telemetry commands.
