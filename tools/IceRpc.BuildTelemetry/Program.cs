@@ -1,13 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Retry;
 using IceRpc.BuildTelemetry;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-const int timeout = 3000; // The timeout for the RPC call in milliseconds.
-const int maxAttempts = 3; // The maximum number of attempts to retry the RPC call.
+const int timeout = 3000; // The timeout for the complete telemetry upload process.
 const string uri = "icerpc://localhost"; // The URI of the server.
 
 // Load the root CA certificate
@@ -27,23 +25,21 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
 
 try
 {
+    // Create a cancellation token source to cancel the telemetry upload if it
+    // takes too long.
+    using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeout));
+
     // Create a client connection
     await using var connection = new ClientConnection(new Uri(uri), clientAuthenticationOptions);
 
-    // Create an invocation pipeline with the retry and deadline interceptors.
-    Pipeline pipeline = new Pipeline()
-        .UseRetry(new RetryOptions { MaxAttempts = maxAttempts })
-        .UseDeadline(defaultTimeout: TimeSpan.FromMilliseconds(timeout))
-        .Into(connection);
-
-    // Create a reporter proxy with this invocation pipeline.
-    var reporter = new ReporterProxy(pipeline);
+    // Create a reporter proxy with this client connection.
+    var reporter = new ReporterProxy(connection);
 
     // Upload the telemetry to the server.
-    await reporter.UploadAsync(new Telemetry(args));
+    await reporter.UploadAsync(new Telemetry(args), cancellationToken: cts.Token);
 
     // Shutdown the connection.
-    await connection.ShutdownAsync();
+    await connection.ShutdownAsync(cts.Token);
 }
 catch (Exception)
 {
