@@ -1,4 +1,4 @@
-[cs::namespace("IceRpc.Telemetry.Internal")]
+[cs::namespace("IceRpc.BuildTelemetry")]
 module TelemetryReporter
 
 /// Represents a simple telemetry reporter that can upload telemetry data to a

@@ -41,13 +41,13 @@
   <ItemGroup>
     <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
     <None
-      Include="../Common/IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/*"
-      Exclude="../IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/*.exe"
+      Include="../IceRpc.BuildTelemetry/bin/$(Configuration)/net8.0/*"
+      Exclude="../IceRpc.BuildTelemetry/bin/$(Configuration)/net8.0/*.exe"
     >
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
-    <None Include="../Common/IceRpc.Telemetry.Internal/certs/">
+    <None Include="../IceRpc.BuildTelemetry/certs/">
       <PackagePath>tools/certs</PackagePath>
       <Pack>true</Pack>
     </None>

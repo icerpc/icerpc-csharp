@@ -2,7 +2,7 @@
 
 using IceRpc;
 using IceRpc.Retry;
-using IceRpc.Telemetry.Internal;
+using IceRpc.BuildTelemetry;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 

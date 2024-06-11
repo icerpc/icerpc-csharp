@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 
-namespace IceRpc.Telemetry.Internal;
+namespace IceRpc.BuildTelemetry;
 
 public partial record struct Telemetry
 {

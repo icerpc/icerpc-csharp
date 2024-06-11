@@ -3,7 +3,7 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-namespace IceRpc.Telemetry.Internal;
+namespace IceRpc.BuildTelemetry;
 
 /// <summary>
 /// A custom MSBuild task to run telemetry commands.
@@ -47,7 +47,7 @@ public class TelemetryTask : ToolTask
     protected override string GenerateCommandLineCommands()
     {
         var commandLine = new CommandLineBuilder();
-        commandLine.AppendFileNameIfNotNull("IceRpc.Telemetry.Internal.dll");
+        commandLine.AppendFileNameIfNotNull("IceRpc.BuildTelemetry.dll");
         commandLine.AppendSwitch("--version");
         commandLine.AppendSwitch(Version);
         commandLine.AppendSwitch("--source");

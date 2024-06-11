@@ -10,7 +10,7 @@
     <IceRpcOSArch
     >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
     <TelemetryScriptPath
-    >$(MSBuildThisFileDirectory)../Common/IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
+    >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
   </PropertyGroup>
   <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../slicec-cs')">
@@ -23,7 +23,7 @@
           Condition="'$(Configuration)' == 'Release'"
         >$(MSBuildThisFileDirectory)../slicec-cs/target/release</SliceCompilerPath>
         <TelemetryScriptPath
-        >$(MSBuildThisFileDirectory)../Common/IceRpc.Telemetry.Internal/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
+        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
       </PropertyGroup>
     </When>
     <Otherwise>

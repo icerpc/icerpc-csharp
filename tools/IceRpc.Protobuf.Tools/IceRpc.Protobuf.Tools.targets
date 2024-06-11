@@ -19,8 +19,8 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
   <UsingTask
-    TaskName="IceRpc.Telemetry.Internal.TelemetryTask"
-    AssemblyFile="$(TelemetryScriptPath)IceRpc.Telemetry.Internal.dll"
+    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
+    AssemblyFile="$(TelemetryScriptPath)IceRpc.BuildTelemetry.dll"
   />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />

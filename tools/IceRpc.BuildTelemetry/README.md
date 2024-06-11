@@ -4,7 +4,7 @@
 telemetry data about general usage. Participation in this anonymous program is
 optional, and you may opt-out if you do not like to share any information.
 
-This package includes the `IceRpc.Telemetry.Internal` client. This client is a
+This package includes the `IceRpc.BuildTelemetry` client. This client is a
 IceRPC C# client that sends anonymous telemetry data over a secure connection
 to the IceRPC telemetry server during the compilation of Slice and Protobuf
 files. This data includes:
