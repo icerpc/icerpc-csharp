@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Slice.Tools", "IceRp
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{10DD2834-E7D1-48ED-97C4-6F8807CF68CF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IceRpc.BuildTelemetry", "IceRpc.BuildTelemetry\IceRpc.BuildTelemetry.csproj", "{A4F12AA3-1B55-4698-970E-FCD5A3FE1322}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IceRpc.BuildTelemetry.Reporter", "IceRpc.BuildTelemetry.Reporter\IceRpc.BuildTelemetry.Reporter.csproj", "{A4F12AA3-1B55-4698-970E-FCD5A3FE1322}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

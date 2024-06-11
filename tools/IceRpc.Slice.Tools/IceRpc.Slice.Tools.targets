@@ -6,10 +6,6 @@
     TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
   />
-  <UsingTask
-    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
-    AssemblyFile="$(TelemetryScriptPath)IceRpc.BuildTelemetry.dll"
-  />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">

@@ -20,7 +20,7 @@
         <IceRpcProtocGenPath
         >$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
         <TelemetryScriptPath
-        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
+        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
       </PropertyGroup>
     </When>
     <Otherwise>

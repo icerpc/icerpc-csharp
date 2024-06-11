@@ -1,5 +1,7 @@
-[cs::namespace("IceRpc.BuildTelemetry")]
-module TelemetryReporter
+// Copyright (c) ZeroC, Inc.
+
+[cs::namespace("IceRpc.BuildTelemetry.Reporter")]
+module BuildTelemetry
 
 /// Represents a simple telemetry reporter that can upload telemetry data to a
 /// remote server.
@@ -15,12 +17,6 @@ struct Telemetry {
 
     /// The operating system that the client is running on.
     OperatingSystem: string
-
-    /// Processor count
-    ProcessorCount: varint32
-
-    /// The amount of memory that the client has.
-    Memory: varint32
 
     /// The source of the telemetry data.
     Source: string

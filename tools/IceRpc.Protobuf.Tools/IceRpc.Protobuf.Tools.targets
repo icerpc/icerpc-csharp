@@ -18,10 +18,6 @@
     TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
-  <UsingTask
-    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
-    AssemblyFile="$(TelemetryScriptPath)IceRpc.BuildTelemetry.dll"
-  />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
     <AvailableItemName Include="ProtoFile" />
@@ -84,8 +80,8 @@
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
     />
-    <OutputHashTask Sources="%(_ProtoFile.Identity)" OutputHash="$(Hash)" Condition="'$(DisableTelemetry)' != 'true'">
-      <Output PropertyName="Hash" TaskParameter="OutputHash" />
+    <OutputHashTask Sources="%(_ProtoFile.Identity)" CompilationHash="$(Hash)" Condition="'$(DisableTelemetry)' != 'true'">
+      <Output PropertyName="Hash" TaskParameter="CompilationHash" />
     </OutputHashTask>
 
     <!-- Run telemetry -->

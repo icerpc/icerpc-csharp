@@ -19,7 +19,7 @@ public class OutputHashTask : Task
 
     /// <summary>The computed SHA-256 hash of the Protobuf files.</summary>
     [Output]
-    public string? OutputHash { get; set; }
+    public string? CompilationHash { get; set; }
 
     /// <inheritdoc/>
     public override bool Execute()
@@ -34,7 +34,7 @@ public class OutputHashTask : Task
             })
             .Aggregate((current, next) => current + next);
 
-        OutputHash = aggregatedHash;
+        CompilationHash = aggregatedHash;
         return true;
     }
 }

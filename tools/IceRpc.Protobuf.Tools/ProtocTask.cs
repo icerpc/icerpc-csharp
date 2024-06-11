@@ -44,9 +44,9 @@ public class ProtocTask : ToolTask
     [Required]
     public string WorkingDirectory { get; set; } = "";
 
-    /// <summary>The computed SHA-256 hash of the Slice files.</summary>
+    /// <summary>The computed SHA-256 hash of the Protobuf files.</summary>
     [Output]
-    public string? OutputHash { get; set; }
+    public string? CompilationHash { get; set; }
 
     /// <inheritdoc/>
     protected override string ToolName =>

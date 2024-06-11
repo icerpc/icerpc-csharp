@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 
-namespace IceRpc.BuildTelemetry;
+namespace IceRpc.BuildTelemetry.Reporter;
 
 public partial record struct Telemetry
 {
@@ -33,8 +33,6 @@ public partial record struct Telemetry
         IceRpcVersion = version;
         Source = source;
         OperatingSystem = Environment.OSVersion.ToString();
-        ProcessorCount = Environment.ProcessorCount;
-        Memory = Process.GetCurrentProcess().Threads.Count;
         CompilationHash = compilationHash;
     }
 }

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.BuildTelemetry;
+using IceRpc.BuildTelemetry.Reporter;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
