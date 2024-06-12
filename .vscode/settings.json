@@ -17,8 +17,7 @@
     },
     // Tools
     {
-      "paths": ["tools/Common/IceRpc.Telemetry.Internal/slice"],
-      "addWellKnownTypes": false
+      "paths": ["tools/Common/IceRpc.Telemetry.Internal/slice"]
     },
     // Slice Tests
     {
