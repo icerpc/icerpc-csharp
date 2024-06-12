@@ -2,7 +2,7 @@
   <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" height="100" width="100" />
 </p>
 
-# IceRPC for C#
+# IceRPC for C\#
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
@@ -201,8 +201,7 @@ Ice server, and you can call services hosted by an IceRPC server from an Ice cli
 
 ## Telemetry
 
-IceRPC collects completely anonymous telemetry data during the build process. Participation in this anonymous program is
-optional, and you may opt-out if you'd not like to share any information. Detailed information about the telemetry
+IceRPC collects completely anonymous telemetry data during the build process. Participation in this anonymous program is optional, and you may opt-out if you do not wish to share any information. Detailed information about the telemetry
 data collected and how to opt-out can be found in the [Telemetry] README.
 
 ## License

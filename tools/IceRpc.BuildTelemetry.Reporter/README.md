@@ -9,17 +9,11 @@ IceRPC C# client that sends anonymous telemetry data over a secure connection
 to the IceRPC telemetry server during the compilation of Slice and Protobuf
 files. This data includes:
 
-- The version of IceRPC that is being used.
-- The operating system of the host machine.
-- The processor count of the host machine.
-- The amount of memory that the client has.
+- The IceRPC version.
+- The system's operating system and version.
 - The source of the telemetry data (either `IceRpc.Slice.Tools or
  `IceRpc.Protobuf.Tools`).
-- The hashed slice files or protobuf files. This is used to determine if
-the compiled files are known to the IceRPC telemetry server, such as the
-example slice files or protobuf files provided in the icerpc-csharp
-repository.
-- If the build requires recompiling any Slice or Protobuf files,
+- A SHA256 hash which is computed from the Slice files or Protobuf files.
 
 This data is used to help the IceRPC team understand how the tools are being
 used and to help prioritize future development efforts. The data is stored in a
