@@ -10,10 +10,8 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Slice.Tools" Version="0.2.1" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Slice" Version="0.2.1" />
-    <PackageReference Include="IceRpc.Deadline" Version="0.2.1" />
-    <PackageReference Include="IceRpc.Retry" Version="0.2.1" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="0.3.*" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice" Version="0.3.*" />
     <PackageReference Include="Microsoft.Build.Framework" Version="17.8.3" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.3" />
   </ItemGroup>
