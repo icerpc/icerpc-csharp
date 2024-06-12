@@ -2,7 +2,8 @@
 
 `IceRpc.Protobuf.Tools` and `IceRpc.Slice.Tools` collect anonymous
 telemetry data about general usage. Participation in this anonymous program is
-optional, and you may opt-out if you'd prefer to not share any information.
+optional, and you may [opt-out](#opting-out) if you'd prefer to not share any
+information.
 
 This package includes the `IceRpc.BuildTelemetry.Reporter` client. This client is an
 IceRPC C# client that sends anonymous telemetry data over a secure connection
