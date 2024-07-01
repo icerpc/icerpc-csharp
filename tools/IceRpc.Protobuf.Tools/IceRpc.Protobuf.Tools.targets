@@ -7,6 +7,10 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
   <UsingTask
+    TaskName="IceRpc.Protobuf.Tools.OutputHashTask"
+    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+  />
+  <UsingTask
     TaskName="IceRpc.Protobuf.Tools.ProtocTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
@@ -14,11 +18,14 @@
     TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
+  <UsingTask
+    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
+    AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+  />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
     <AvailableItemName Include="ProtoFile" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(SetLinkMetadataAutomatically)' != 'false'">
     <ProtoFile Update="@(ProtoFile)">
       <LinkBase Condition="'%(LinkBase)' != ''">$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
@@ -62,6 +69,19 @@
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
     />
+    <OutputHashTask Sources="@(ProtoFile)" Condition="'$(DisableBuildTelemetry)' != 'true'">
+      <Output PropertyName="Hash" TaskParameter="CompilationHash" />
+    </OutputHashTask>
+
+    <!-- Run telemetry -->
+    <TelemetryTask
+      WorkingDirectory="$(TelemetryScriptPath)"
+      CompilationHash="$(Hash)"
+      Condition="'$(DisableBuildTelemetry)' != 'true'"
+      Idl="Protobuf"
+      ContinueOnError="true"
+    />
+
     <!--
             Include all C# generated source items that have not been already included. We delay this until we are
             running the ProtoCompile target so that default includes are already processed.
