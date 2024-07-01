@@ -54,7 +54,7 @@ try
     // Shutdown the connection.
     await connection.ShutdownAsync(cts.Token);
 }
-catch (Exception)
+catch
 {
     // Consume all exceptions.
 }

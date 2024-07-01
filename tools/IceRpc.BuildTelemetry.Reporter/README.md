@@ -1,9 +1,9 @@
-# Telemetry
+# Build Telemetry
 
 `IceRpc.Protobuf.Tools` and `IceRpc.Slice.Tools` collect anonymous
-telemetry data about general usage. Participation in this anonymous program is
-optional, and you may [opt-out](#opting-out) if you'd prefer to not share any
-information.
+build telemetry data about general usage. Participation in this anonymous
+program is optional, and you may [opt-out](#opting-out) if you'd prefer to not
+share any information.
 
 This package includes the `IceRpc.BuildTelemetry.Reporter` client. This client is an
 IceRPC C# client that sends anonymous telemetry data over a secure connection
@@ -27,9 +27,9 @@ csharp project file:
 
 ```xml
 <PropertyGroup>
- <DisableTelemetry>true</DisableTelemetry>
+ <DisableBuildTelemetry>true</DisableBuildTelemetry>
 </PropertyGroup>
 ```
 
-This will prevent the telemetry client from sending any data to the IceRPC
+This will prevent the build telemetry client from sending any data to the IceRPC
 telemetry server.

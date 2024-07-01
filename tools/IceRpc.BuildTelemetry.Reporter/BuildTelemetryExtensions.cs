@@ -7,14 +7,16 @@ namespace IceRpc.BuildTelemetry.Reporter;
 public partial record struct SliceTelemetry
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="SliceTelemetry" /> struct using the specified command-line arguments.
+    /// Initializes a new instance of the <see cref="SliceTelemetry" /> struct using the specified command-line
+    /// arguments.
     /// </summary>
     /// <param name="args">The command-line arguments.</param>
     public SliceTelemetry(string[] args)
     {
-        // Determine the IceRPC version using the assembly version
+        // Determine the IceRPC version using the assembly version. The assembly version is kept in sync with the
+        // IceRPC version.
         var assembly = Assembly.GetAssembly(typeof(SliceTelemetry));
-        string version = assembly?.GetName()?.Version?.ToString() ?? "unknown";
+        string version = assembly!.GetName().Version!.ToString();
 
         // Parse the compilation hash
         string compilationHash = args
@@ -29,6 +31,8 @@ public partial record struct SliceTelemetry
             .FirstOrDefault(), out var result) && result;
 
         IceRpcVersion = version;
+
+        // The source of the build telemetry is C# and the version is the current runtime version.
         Source = new Source.CSharp(Environment.Version.ToString());
         OperatingSystem = Environment.OSVersion.ToString();
         CompilationHash = compilationHash;
@@ -39,14 +43,16 @@ public partial record struct SliceTelemetry
 public partial record struct ProtobufTelemetry
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ProtobufTelemetry" /> struct using the specified command-line arguments.
+    /// Initializes a new instance of the <see cref="ProtobufTelemetry" /> struct using the specified command-line
+    /// arguments.
     /// </summary>
     /// <param name="args">The command-line arguments.</param>
     public ProtobufTelemetry(string[] args)
     {
-        // Determine the IceRPC version using the assembly version
+        // Determine the IceRPC version using the assembly version. The assembly version is kept in sync with the
+        // IceRPC version.
         var assembly = Assembly.GetAssembly(typeof(ProtobufTelemetry));
-        string version = assembly?.GetName()?.Version?.ToString() ?? "unknown";
+        string version = assembly!.GetName().Version!.ToString();
 
         // Parse the compilation hash
         string compilationHash = args
@@ -55,6 +61,8 @@ public partial record struct ProtobufTelemetry
             .FirstOrDefault() ?? "unknown";
 
         IceRpcVersion = version;
+
+        // The source of the build telemetry is C# and the version is the current runtime version.
         Source = new Source.CSharp(Environment.Version.ToString());
         OperatingSystem = Environment.OSVersion.ToString();
         CompilationHash = compilationHash;

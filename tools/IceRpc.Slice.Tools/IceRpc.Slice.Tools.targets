@@ -77,7 +77,7 @@
       CompilationHash="$(Hash)"
       ContainsSlice1="$(ContainsSlice1)"
       Idl="Slice"
-      Condition="'$(DisableTelemetry)' != 'true'"
+      Condition="'$(DisableBuildTelemetry)' != 'true'"
       ContinueOnError="true"
     />
 

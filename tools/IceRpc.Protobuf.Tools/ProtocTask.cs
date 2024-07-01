@@ -5,12 +5,9 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace IceRpc.Protobuf.Tools;
 
@@ -131,7 +128,7 @@ public class ProtocTask : ToolTask
 
             Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
         }
-        catch (Exception)
+        catch
         {
             Log.LogError(singleLine, messageImportance);
         }
@@ -139,18 +136,4 @@ public class ProtocTask : ToolTask
 
     /// <inheritdoc/>
     protected override void LogToolCommand(string message) => Log.LogMessage(MessageImportance.Normal, message);
-}
-
-/// <summary>Converts a byte array to a hexadecimal string.</summary>
-public static class HexStringConverter
-{
-    public static string ToHexString(byte[] bytes)
-    {
-        var sb = new StringBuilder(bytes.Length * 2);
-        foreach (byte b in bytes)
-        {
-            sb.Append(b.ToString("x2"));
-        }
-        return sb.ToString();
-    }
 }

@@ -69,7 +69,7 @@
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
     />
-    <OutputHashTask Sources="%(_ProtoFile.Identity)" CompilationHash="$(Hash)" Condition="'$(DisableTelemetry)' != 'true'">
+    <OutputHashTask Sources="@(ProtoFile)" Condition="'$(DisableBuildTelemetry)' != 'true'">
       <Output PropertyName="Hash" TaskParameter="CompilationHash" />
     </OutputHashTask>
 
@@ -77,7 +77,7 @@
     <TelemetryTask
       WorkingDirectory="$(TelemetryScriptPath)"
       CompilationHash="$(Hash)"
-      Condition="'$(DisableTelemetry)' != 'true'"
+      Condition="'$(DisableBuildTelemetry)' != 'true'"
       Idl="Protobuf"
       ContinueOnError="true"
     />

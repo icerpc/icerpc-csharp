@@ -3,10 +3,10 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace IceRpc.Protobuf.Tools;
 
@@ -25,16 +25,39 @@ public class OutputHashTask : Task
     public override bool Execute()
     {
         using SHA256 sha256 = SHA256.Create();
-        string aggregatedHash = Sources
+
+        // Compute the SHA-256 hash of each file
+        byte[] combinedHashBytes = Sources
             .Select(source =>
             {
                 byte[] fileBytes = File.ReadAllBytes(source.GetMetadata("FullPath"));
                 byte[] hashBytes = sha256.ComputeHash(fileBytes);
-                return HexStringConverter.ToHexString(hashBytes);
+                return hashBytes;
             })
-            .Aggregate((current, next) => current + next);
+            .SelectMany(hashBytes => hashBytes)
+            .ToArray();
+
+        // Compute the SHA-256 hash of the combined hash bytes
+        byte[] aggregatedHashBytes = sha256.ComputeHash(combinedHashBytes);
+
+        // Convert the aggregated hash bytes to a string
+        string aggregatedHash = HexStringConverter.ToHexString(aggregatedHashBytes);
 
         CompilationHash = aggregatedHash;
         return true;
+    }
+
+    /// <summary>Converts a byte array to a hexadecimal string.</summary>
+    private static class HexStringConverter
+    {
+        public static string ToHexString(byte[] bytes)
+        {
+            var sb = new StringBuilder(bytes.Length * 2);
+            foreach (byte b in bytes)
+            {
+                sb.Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+        }
     }
 }

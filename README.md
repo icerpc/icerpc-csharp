@@ -201,8 +201,9 @@ Ice server, and you can call services hosted by an IceRPC server from an Ice cli
 
 ## Telemetry
 
-IceRPC collects anonymous telemetry data during the build process. Participation in this program is optional, and you may opt-out if you do not wish to share any information. Detailed information about what data is
-collected and how to opt-out can be found in the [Telemetry] README.
+IceRPC collects anonymous telemetry data during the build process. Participation in this program is optional, and you
+may opt-out if you do not wish to share any information. Detailed information about what data is collected and how to
+opt-out can be found in the [Telemetry] README.
 
 ## License
 

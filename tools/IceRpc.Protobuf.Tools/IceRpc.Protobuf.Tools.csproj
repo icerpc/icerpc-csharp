@@ -36,7 +36,6 @@
     <PackageReference Include="Microsoft.Build.Framework" Version="17.8.3" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.3" />
     <PackageReference Include="Google.Protobuf.Tools" Version="$(NuGetProtobufVersion)" />
-    <PackageReference Include="System.Text.Json" Version="8.0.3" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />

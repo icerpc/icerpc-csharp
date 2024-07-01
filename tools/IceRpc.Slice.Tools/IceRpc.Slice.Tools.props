@@ -9,8 +9,6 @@
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
     <IceRpcOSArch
     >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
-    <TelemetryScriptPath
-    >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
   </PropertyGroup>
   <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../slicec-cs')">
