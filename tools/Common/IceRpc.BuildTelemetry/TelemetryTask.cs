@@ -17,10 +17,15 @@ public class TelemetryTask : ToolTask
     public string CompilationHash { get; set; } = "";
 
     /// <summary>
-    /// Gets or sets the source.
+    /// Gets or sets the Idl.
     /// </summary>
     [Required]
-    public string Source { get; set; } = "";
+    public string Idl { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the if the compilation contained any Slice1 files.
+    /// </summary>
+    public string? ContainsSlice1 { get; set; } = "";
 
     /// <summary>
     /// Gets or sets the working directory.
@@ -42,10 +47,16 @@ public class TelemetryTask : ToolTask
     {
         var commandLine = new CommandLineBuilder();
         commandLine.AppendFileNameIfNotNull("IceRpc.BuildTelemetry.Reporter.dll");
-        commandLine.AppendSwitch("--source");
-        commandLine.AppendSwitch(Source);
         commandLine.AppendSwitch("--hash");
         commandLine.AppendSwitch(CompilationHash);
+        commandLine.AppendSwitch("--idl");
+        commandLine.AppendSwitch(Idl);
+
+        if (Idl == "Slice")
+        {
+            commandLine.AppendSwitch("--contains-slice1");
+            commandLine.AppendSwitch(ContainsSlice1);
+        }
 
         return commandLine.ToString();
     }

@@ -77,8 +77,8 @@
     <TelemetryTask
       WorkingDirectory="$(TelemetryScriptPath)"
       CompilationHash="$(Hash)"
-      Source="IceRpc.Protobuf.Tools"
       Condition="'$(DisableTelemetry)' != 'true'"
+      Idl="Protobuf"
       ContinueOnError="true"
     />
 

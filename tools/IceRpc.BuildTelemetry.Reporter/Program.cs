@@ -35,8 +35,21 @@ try
     // Create a reporter proxy with this client connection.
     var reporter = new ReporterProxy(connection);
 
+    // Parse the IDL
+    string? idl = args
+        .SkipWhile(arg => arg != "--idl")
+        .Skip(1)
+        .FirstOrDefault() ?? "unknown";
+
+    // Create the appropriate telemetry object based on the IDL
+    BuildTelemetry buildTelemetry = idl switch
+    {
+        "Slice" => new BuildTelemetry.Slice(new SliceTelemetry(args)),
+        _ => new BuildTelemetry.Protobuf(new ProtobufTelemetry(args))
+    };
+
     // Upload the telemetry to the server.
-    await reporter.UploadAsync(new Telemetry(args), cancellationToken: cts.Token);
+    await reporter.UploadAsync(buildTelemetry, cancellationToken: cts.Token);
 
     // Shutdown the connection.
     await connection.ShutdownAsync(cts.Token);

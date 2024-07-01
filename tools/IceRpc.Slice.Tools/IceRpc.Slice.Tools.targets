@@ -65,15 +65,18 @@
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
       CompilationHash="$(Hash)"
+      ContainsSlice1="$(ContainsSlice1)"
     >
       <Output PropertyName="Hash" TaskParameter="CompilationHash" />
+      <Output PropertyName="ContainsSlice1" TaskParameter="ContainsSlice1" />
     </SliceCCSharpTask>
 
     <!-- Run telemetry -->
     <TelemetryTask
       WorkingDirectory="$(TelemetryScriptPath)"
       CompilationHash="$(Hash)"
-      Source="IceRpc.Slice.Tools"
+      ContainsSlice1="$(ContainsSlice1)"
+      Idl="Slice"
       Condition="'$(DisableTelemetry)' != 'true'"
       ContinueOnError="true"
     />
