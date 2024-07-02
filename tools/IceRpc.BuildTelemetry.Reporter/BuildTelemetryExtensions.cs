@@ -1,38 +1,20 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Reflection;
-
 namespace IceRpc.BuildTelemetry.Reporter;
 
 public partial record struct SliceTelemetry
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="SliceTelemetry" /> struct using the specified command-line
-    /// arguments.
+    /// Initializes a new instance of the <see cref="SliceTelemetry" /> struct using the version, compilation hash, and
+    /// whether the Slice compilation contains Slice1 files.
     /// </summary>
-    /// <param name="args">The command-line arguments.</param>
-    public SliceTelemetry(string[] args)
+    /// <param name="version">The version of the IceRPC.</param>
+    /// <param name="compilationHash">The SHA-256 hash of the Slice files.</param>
+    /// <param name="containsSlice1">Whether the Slice compilation contains Slice1 files.</param>
+    public SliceTelemetry(string version, string compilationHash, bool containsSlice1)
     {
-        // Determine the IceRPC version using the assembly version. The assembly version is kept in sync with the
-        // IceRPC version.
-        var assembly = Assembly.GetAssembly(typeof(SliceTelemetry));
-        string version = assembly!.GetName().Version!.ToString();
-
-        // Parse the compilation hash
-        string compilationHash = args
-            .SkipWhile(arg => arg != "--hash")
-            .Skip(1)
-            .FirstOrDefault() ?? "unknown";
-
-        // Parse the compilation hash
-        bool containsSlice1 = bool.TryParse(args
-            .SkipWhile(arg => arg != "--contains-slice1")
-            .Skip(1)
-            .FirstOrDefault(), out var result) && result;
-
-        IceRpcVersion = version;
-
         // The source of the build telemetry is C# and the version is the current runtime version.
+        IceRpcVersion = version;
         Source = new Source.CSharp(Environment.Version.ToString());
         OperatingSystem = Environment.OSVersion.ToString();
         CompilationHash = compilationHash;
@@ -43,26 +25,15 @@ public partial record struct SliceTelemetry
 public partial record struct ProtobufTelemetry
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ProtobufTelemetry" /> struct using the specified command-line
-    /// arguments.
+    /// Initializes a new instance of the <see cref="ProtobufTelemetry" /> struct using the version and compilation
+    /// hash.
     /// </summary>
-    /// <param name="args">The command-line arguments.</param>
-    public ProtobufTelemetry(string[] args)
+    /// <param name="version">The version of the IceRPC.</param>
+    /// <param name="compilationHash">The SHA-256 hash of the Slice files.</param>
+    public ProtobufTelemetry(string version, string compilationHash)
     {
-        // Determine the IceRPC version using the assembly version. The assembly version is kept in sync with the
-        // IceRPC version.
-        var assembly = Assembly.GetAssembly(typeof(ProtobufTelemetry));
-        string version = assembly!.GetName().Version!.ToString();
-
-        // Parse the compilation hash
-        string compilationHash = args
-            .SkipWhile(arg => arg != "--hash")
-            .Skip(1)
-            .FirstOrDefault() ?? "unknown";
-
-        IceRpcVersion = version;
-
         // The source of the build telemetry is C# and the version is the current runtime version.
+        IceRpcVersion = version;
         Source = new Source.CSharp(Environment.Version.ToString());
         OperatingSystem = Environment.OSVersion.ToString();
         CompilationHash = compilationHash;
