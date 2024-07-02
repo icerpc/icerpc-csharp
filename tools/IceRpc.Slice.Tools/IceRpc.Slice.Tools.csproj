@@ -56,6 +56,7 @@
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
+    <!-- TODO: Remove once build telemetry server deployed -->
     <None Include="../IceRpc.BuildTelemetry.Reporter/certs/cacert.der">
       <PackagePath>tools/certs</PackagePath>
       <Pack>true</Pack>
