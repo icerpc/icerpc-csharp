@@ -37,7 +37,7 @@ struct SliceTelemetry {
     /// The source of the telemetry data.
     Source: Source
 
-    /// The hashed slice files or protobuf files.
+    /// The hashed slice files.
     CompilationHash: string
 
     /// Whether the compilation used any Slice1 files.
@@ -55,6 +55,6 @@ struct ProtobufTelemetry {
     /// The source of the telemetry data.
     Source: Source
 
-    /// The hashed slice files or protobuf files.
+    /// The hashed protobuf files.
     CompilationHash: string
 }

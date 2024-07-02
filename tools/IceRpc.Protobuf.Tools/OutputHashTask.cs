@@ -24,7 +24,7 @@ public class OutputHashTask : Task
     /// <inheritdoc/>
     public override bool Execute()
     {
-        using SHA256 sha256 = SHA256.Create();
+        using var sha256 = SHA256.Create();
 
         // Compute the SHA-256 hash of each file
         byte[] combinedHashBytes = Sources

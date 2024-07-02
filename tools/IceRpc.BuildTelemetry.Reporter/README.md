@@ -12,7 +12,7 @@ files. This data includes:
 
 - The IceRPC version.
 - The system's operating system and version.
-- The source of the telemetry data (either `IceRpc.Slice.Tools or
+- The source of the telemetry data (either `IceRpc.Slice.Tools` or
  `IceRpc.Protobuf.Tools`).
 - A SHA256 hash which is computed from the Slice files or Protobuf files.
 
