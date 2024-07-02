@@ -5,9 +5,12 @@ using IceRpc.BuildTelemetry.Reporter;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-const int timeout = 3000; // The timeout for the complete telemetry upload process.
+const var timeout = TimeSpan.FromSeconds(3); // The timeout for the complete telemetry upload process.
+
+// TODO: Update the URI to the build telemetry server once it is deployed.
 const string uri = "icerpc://localhost"; // The URI of the server.
 
+// TODO: Remove loading this test certificate once the build telemetry server is deployed.
 // Load the root CA certificate
 using var rootCA = new X509Certificate2("certs/cacert.der");
 var clientAuthenticationOptions = new SslClientAuthenticationOptions
@@ -27,7 +30,7 @@ try
 {
     // Create a cancellation token source to cancel the telemetry upload if it
     // takes too long.
-    using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeout));
+    using var cts = new CancellationTokenSource(timeout);
 
     // Create a client connection
     await using var connection = new ClientConnection(new Uri(uri), clientAuthenticationOptions);

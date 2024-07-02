@@ -41,23 +41,21 @@ public class OutputHashTask : Task
         byte[] aggregatedHashBytes = sha256.ComputeHash(combinedHashBytes);
 
         // Convert the aggregated hash bytes to a string
-        string aggregatedHash = HexStringConverter.ToHexString(aggregatedHashBytes);
+        string aggregatedHash = ToHexString(aggregatedHashBytes);
 
         CompilationHash = aggregatedHash;
         return true;
     }
 
     /// <summary>Converts a byte array to a hexadecimal string.</summary>
-    private static class HexStringConverter
+    private static string ToHexString(byte[] bytes)
     {
-        public static string ToHexString(byte[] bytes)
+        var sb = new StringBuilder(bytes.Length * 2);
+        foreach (byte b in bytes)
         {
-            var sb = new StringBuilder(bytes.Length * 2);
-            foreach (byte b in bytes)
-            {
-                sb.Append(b.ToString("x2"));
-            }
-            return sb.ToString();
+            sb.Append(b.ToString("x2"));
         }
+        return sb.ToString();
     }
+
 }

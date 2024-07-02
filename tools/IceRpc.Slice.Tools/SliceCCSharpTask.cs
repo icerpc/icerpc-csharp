@@ -99,11 +99,18 @@ public class SliceCCSharpTask : ToolTask
     {
         if (messageImportance == MessageImportance.Low)
         {
-            // Messages from stdout
-            var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
-            CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
-            ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetString();
-            return;
+            try
+            {
+                // Messages from stdout
+                var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
+                CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
+                ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetString();
+                return;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                Log.LogError(singleLine);
+            }
         }
 
         if (DiagnosticParser.Parse(singleLine) is Diagnostic diagnostic)
