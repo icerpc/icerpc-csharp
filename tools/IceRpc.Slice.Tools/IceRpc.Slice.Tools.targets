@@ -64,8 +64,6 @@
       ToolsPath="$(SliceCompilerPath)"
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
-      CompilationHash="$(Hash)"
-      ContainsSlice1="$(ContainsSlice1)"
     >
       <Output PropertyName="Hash" TaskParameter="CompilationHash" />
       <Output PropertyName="ContainsSlice1" TaskParameter="ContainsSlice1" />
