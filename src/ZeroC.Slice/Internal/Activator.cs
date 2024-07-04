@@ -6,10 +6,10 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace ZeroC.Slice.Internal;
+// Instantiates a Slice class or exception.
+using ActivateObject = System.Func<object>;
 
-// Instantiates a Slice class or exception. The message is used only for exceptions; innerException is always null.
-internal delegate object ActivateObject(string? message, Exception? innerException);
+namespace ZeroC.Slice.Internal;
 
 /// <summary>The default implementation of <see cref="IActivator" />, which uses a dictionary.</summary>
 internal class Activator : IActivator
@@ -21,10 +21,10 @@ internal class Activator : IActivator
 
     public object? CreateClassInstance(string typeId) =>
         _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ?
-            factory.Value(message: null, innerException: null) : null;
+            factory.Value() : null;
 
     public object? CreateExceptionInstance(string typeId) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(message: null, null) : null;
+        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value() : null;
 
     /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
     internal static Activator Merge(IEnumerable<Activator> activators)
@@ -101,6 +101,8 @@ internal class ActivatorFactory
             return Activator.Empty;
         }
 
+        // This is a like a compiled version of System.Activator.CreateInstance(Type) that also works with non-public
+        // parameterless constructors.
         static ActivateObject CreateActivateObject(Type type)
         {
             ConstructorInfo constructor = type.GetConstructor(
@@ -108,10 +110,8 @@ internal class ActivatorFactory
                 null,
                 [],
                 null) ?? throw new InvalidOperationException($"Cannot find parameterless constructor for '{type}'.");
-            ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
-            ParameterExpression innerExceptionParam = Expression.Parameter(typeof(Exception), "innerException");
             Expression expression = Expression.New(constructor);
-            return Expression.Lambda<ActivateObject>(expression, messageParam, innerExceptionParam).Compile();
+            return Expression.Lambda<ActivateObject>(expression).Compile();
         }
     }
 
