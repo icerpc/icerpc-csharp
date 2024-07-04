@@ -25,7 +25,6 @@ exception EmptyException {}
 
 interface SliceExceptionOperations {
     opThrowsMultipleExceptions() throws (MyException, EmptyException)
-
     opThrowsMyException() throws MyException
 
     opThrowsNothing()

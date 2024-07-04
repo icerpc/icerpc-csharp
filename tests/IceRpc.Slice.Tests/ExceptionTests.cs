@@ -130,6 +130,17 @@ public sealed partial class ExceptionTests
         Assert.That(exception.InnerException, Is.InstanceOf<MyException>());
     }
 
+    /// <summary>Verifies that the user can define a custom message that uses the exception fields.</summary>
+    [Test]
+    public void Slice_exception_can_have_custom_message()
+    {
+        var invoker = new ColocInvoker(new SliceExceptionOperationsService(new MyException(5, 6)));
+        var proxy = new SliceExceptionOperationsProxy(invoker);
+
+        var exception = Assert.ThrowsAsync<MyException>(() => proxy.OpThrowsMyExceptionAsync());
+        Assert.That(exception.Message, Is.EqualTo("MyException: i=5, j=6"));
+    }
+
     [SliceService]
     private sealed partial class SliceExceptionOperationsService : ISliceExceptionOperationsService
     {
@@ -137,8 +148,9 @@ public sealed partial class ExceptionTests
 
         public SliceExceptionOperationsService(Exception exception) => _exception = exception;
 
-        public ValueTask OpThrowsMultipleExceptionsAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
-            throw _exception;
+        public ValueTask OpThrowsMultipleExceptionsAsync(
+            IFeatureCollection features,
+            CancellationToken cancellationToken) => throw _exception;
 
         public ValueTask OpThrowsMyExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
@@ -146,4 +158,9 @@ public sealed partial class ExceptionTests
         public ValueTask OpThrowsNothingAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw _exception;
     }
+}
+
+public partial class MyException
+{
+    public override string Message => $"MyException: i={I}, j={J}";
 }
