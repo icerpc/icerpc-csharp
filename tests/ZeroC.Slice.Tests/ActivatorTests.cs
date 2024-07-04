@@ -77,7 +77,7 @@ public class ActivatorTests
     {
         var sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
 
-        object? instance = sut.CreateExceptionInstance(typeId, message: null);
+        object? instance = sut.CreateExceptionInstance(typeId);
 
         Assert.That(instance, Is.Null);
     }
@@ -105,7 +105,7 @@ public class ActivatorTests
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         var sut = IActivator.FromAssembly(assembly);
 
-        object? instance = sut.CreateExceptionInstance(typeId, message: null);
+        object? instance = sut.CreateExceptionInstance(typeId);
 
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));

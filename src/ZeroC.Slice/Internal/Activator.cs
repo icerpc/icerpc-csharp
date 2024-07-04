@@ -23,8 +23,8 @@ internal class Activator : IActivator
         _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ?
             factory.Value(message: null, innerException: null) : null;
 
-    public object? CreateExceptionInstance(string typeId, string? message) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(message, null) : null;
+    public object? CreateExceptionInstance(string typeId) =>
+        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(message: null, null) : null;
 
     /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
     internal static Activator Merge(IEnumerable<Activator> activators)
@@ -103,23 +103,14 @@ internal class ActivatorFactory
 
         static ActivateObject CreateActivateObject(Type type)
         {
-            bool isException = type.IsSubclassOf(typeof(SliceException));
-
-            Type[] types = isException ? [typeof(string), typeof(Exception)] : [];
-
             ConstructorInfo constructor = type.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 null,
-                types,
-                null) ?? throw new InvalidOperationException($"Cannot find Slice decoding constructor for '{type}'.");
-
+                [],
+                null) ?? throw new InvalidOperationException($"Cannot find parameterless constructor for '{type}'.");
             ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
             ParameterExpression innerExceptionParam = Expression.Parameter(typeof(Exception), "innerException");
-
-            Expression expression = isException ?
-                Expression.New(constructor, messageParam, innerExceptionParam) :
-                Expression.New(constructor);
-
+            Expression expression = Expression.New(constructor);
             return Expression.Lambda<ActivateObject>(expression, messageParam, innerExceptionParam).Compile();
         }
     }

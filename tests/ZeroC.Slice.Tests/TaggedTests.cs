@@ -541,8 +541,7 @@ public class TaggedTests
         public object? CreateClassInstance(string typeId) =>
             _decoratee.CreateClassInstance(typeId == _typeId ? _replacementTypeId : typeId);
 
-        public object? CreateExceptionInstance(string typeId, string? message) =>
-            _decoratee.CreateExceptionInstance(typeId, message);
+        public object? CreateExceptionInstance(string typeId) => _decoratee.CreateExceptionInstance(typeId);
 
         internal TypeReplacementActivator(IActivator decoratee, string typeId, string replacementTypeId)
         {
