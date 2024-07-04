@@ -18,7 +18,7 @@ public abstract class SliceException : Exception
     /// <summary>Decodes a Slice exception.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected virtual void DecodeCore(ref SliceDecoder decoder) => throw new NotImplementedException();
+    protected abstract void DecodeCore(ref SliceDecoder decoder);
 
     /// <summary>Encodes this Slice exception.</summary>
     /// <param name="encoder">The Slice encoder.</param>

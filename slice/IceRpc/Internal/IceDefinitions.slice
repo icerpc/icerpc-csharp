@@ -97,19 +97,20 @@ enum ReplyStatus {
     /// The target object does not exist.
     ObjectNotExistException = 2
 
-    /// The target object does not support the facet.
+    /// The target object does not support the facet (treated like ObjectNotExistException by IceRPC).
     FacetNotExistException = 3
 
     /// The target object does not support the operation.
     OperationNotExistException = 4
 
-    /// The reply message carries an unknown Ice local exception.
+    /// The dispatch failed with an Ice local exception (not applicable with IceRPC).
     UnknownLocalException = 5
 
-    /// The reply message carries an unknown Ice user exception.
+    /// The dispatch failed with a Slice user exception does not conform to the exception specification of the Slice
+    // operation (not applicable with IceRPC).
     UnknownUserException = 6
 
-    /// The reply message carries an unknown exception.
+    /// The dispatch failed with some other exception.
     UnknownException = 7
 }
 

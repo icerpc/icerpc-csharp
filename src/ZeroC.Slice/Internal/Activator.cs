@@ -19,11 +19,7 @@ internal class Activator : IActivator
 
     private readonly IReadOnlyDictionary<string, Lazy<ActivateObject>> _dict;
 
-    public object? CreateClassInstance(string typeId) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ?
-            factory.Value() : null;
-
-    public object? CreateExceptionInstance(string typeId) =>
+    public object? CreateInstance(string typeId) =>
         _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value() : null;
 
     /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>

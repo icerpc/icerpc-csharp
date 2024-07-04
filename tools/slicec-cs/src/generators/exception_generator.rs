@@ -48,10 +48,10 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
         format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;").into(),
     );
 
-    exception_class_builder.add_block(one_shot_constructor(exception_def));
-
-    // constructor for decoding, generated only if necessary
     if !exception_def.all_fields().is_empty() {
+        exception_class_builder.add_block(one_shot_constructor(exception_def));
+
+        // Also generate a parameterless constructor for decoding.
         exception_class_builder.add_block(
             FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
                 .add_never_editor_browsable_attribute()

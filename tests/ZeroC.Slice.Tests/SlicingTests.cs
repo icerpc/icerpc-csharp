@@ -268,10 +268,7 @@ public class SlicingTests
             _excludeTypeId = excludeTypeId;
         }
 
-        public object? CreateClassInstance(string typeId) =>
-            _excludeTypeId == typeId ? null : _decoratee.CreateClassInstance(typeId);
-
-        public object? CreateExceptionInstance(string typeId) =>
-            _excludeTypeId == typeId ? null : _decoratee.CreateExceptionInstance(typeId);
+        public object? CreateInstance(string typeId) =>
+            _excludeTypeId == typeId ? null : _decoratee.CreateInstance(typeId);
     }
 }

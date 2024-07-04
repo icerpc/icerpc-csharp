@@ -21,9 +21,8 @@ public ref partial struct SliceDecoder
            throw new InvalidDataException("Decoded a null class instance, but expected a non-null instance.");
 
     /// <summary>Decodes a Slice exception.</summary>
-    /// <param name="message">The error message.</param>
     /// <returns>The decoded Slice exception.</returns>
-    public SliceException DecodeException(string? message = null)
+    public SliceException DecodeException()
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -50,14 +49,12 @@ public ref partial struct SliceDecoder
 
             DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-            sliceException = activator.CreateExceptionInstance(typeId) as SliceException;
+            sliceException = activator.CreateInstance(typeId) as SliceException;
             if (sliceException is null && SkipSlice(typeId))
             {
                 // Cannot decode this exception.
                 throw new InvalidDataException(
-                    message is null ?
-                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find." :
-                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
+                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find.");
             }
         }
         while (sliceException is null);
@@ -261,7 +258,7 @@ public ref partial struct SliceDecoder
             // not created yet.
             if (typeId is not null)
             {
-                instance = activator.CreateClassInstance(typeId) as SliceClass;
+                instance = activator.CreateInstance(typeId) as SliceClass;
             }
 
             if (instance is null && SkipSlice(typeId))

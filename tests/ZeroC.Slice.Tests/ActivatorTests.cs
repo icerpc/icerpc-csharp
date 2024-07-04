@@ -67,7 +67,7 @@ public class ActivatorTests
     public void Activator_cannot_create_instances_of_classes_defined_in_unknown_assemblies(string typeId)
     {
         var sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
-        object? instance = sut.CreateClassInstance(typeId);
+        object? instance = sut.CreateInstance(typeId);
 
         Assert.That(instance, Is.Null);
     }
@@ -77,7 +77,7 @@ public class ActivatorTests
     {
         var sut = IActivator.FromAssembly(typeof(SliceDecoder).Assembly);
 
-        object? instance = sut.CreateExceptionInstance(typeId);
+        object? instance = sut.CreateInstance(typeId);
 
         Assert.That(instance, Is.Null);
     }
@@ -90,7 +90,7 @@ public class ActivatorTests
     {
         var sut = IActivator.FromAssembly(assembly);
 
-        object? instance = sut.CreateClassInstance(typeId);
+        object? instance = sut.CreateInstance(typeId);
 
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
@@ -105,7 +105,7 @@ public class ActivatorTests
         var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, SliceEncoding.Slice1);
         var sut = IActivator.FromAssembly(assembly);
 
-        object? instance = sut.CreateExceptionInstance(typeId);
+        object? instance = sut.CreateInstance(typeId);
 
         Assert.That(instance, Is.Not.Null);
         Assert.That(instance!.GetType(), Is.EqualTo(expectedType));
