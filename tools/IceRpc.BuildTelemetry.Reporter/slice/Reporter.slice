@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("IceRpc.BuildTelemetry.Reporter")]
-module BuildTelemetry
+module IceRpc::BuildTelemetry
 
 /// Represents a simple telemetry reporter that can upload telemetry data to a
 /// remote server.
@@ -11,8 +10,8 @@ interface Reporter {
     [oneway] upload(telemetry: BuildTelemetry)
 }
 
-/// Represents the source of the telemetry data.
-enum Source {
+/// Represents the target language of the telemetry data.
+enum TargetLanguage {
     /// The data is coming from icerpc-csharp
     CSharp(dotnetRuntime: string)
 
@@ -22,20 +21,20 @@ enum Source {
 
 /// Represents the telemetry data that can be uploaded.
 enum BuildTelemetry {
-    Slice(data: SliceTelemetry)
-    Protobuf(data: ProtobufTelemetry)
+    Slice(data: SliceTelemetryData)
+    Protobuf(data: ProtobufTelemetryData)
 }
 
 /// Represents telemetry data from an IceRPC + Slice build.
-struct SliceTelemetry {
+struct SliceTelemetryData {
     /// The version of IceRPC that is being used.
     IceRpcVersion: string
 
     /// The operating system that the client is running on.
     OperatingSystem: string
 
-    /// The source of the telemetry data.
-    Source: Source
+    /// The target language of the telemetry data.
+    TargetLanguage: TargetLanguage
 
     /// The hashed slice files.
     CompilationHash: string
@@ -45,15 +44,15 @@ struct SliceTelemetry {
 }
 
 /// Represents telemetry data from an IceRPC + Protobuf build.
-struct ProtobufTelemetry {
+struct ProtobufTelemetryData {
     /// The version of IceRPC that is being used.
     IceRpcVersion: string
 
     /// The operating system that the client is running on.
     OperatingSystem: string
 
-    /// The source of the telemetry data.
-    Source: Source
+    /// The target language of the telemetry data.
+    TargetLanguage: TargetLanguage
 
     /// The hashed protobuf files.
     CompilationHash: string

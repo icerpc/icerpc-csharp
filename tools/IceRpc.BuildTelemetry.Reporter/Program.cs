@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.BuildTelemetry.Reporter;
+using IceRpc.BuildTelemetry;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Reflection;
@@ -47,7 +47,7 @@ try
 
     // Determine the IceRPC version using the assembly version. The assembly version is kept in sync with the
     // IceRPC version.
-    var assembly = Assembly.GetAssembly(typeof(SliceTelemetry));
+    var assembly = Assembly.GetAssembly(typeof(SliceTelemetryData));
     string version = assembly!.GetName().Version!.ToString();
 
     // Parse the compilation hash
@@ -65,8 +65,8 @@ try
     // Create the appropriate telemetry object based on the IDL
     BuildTelemetry buildTelemetry = idl switch
     {
-        "Slice" => new BuildTelemetry.Slice(new SliceTelemetry(version, compilationHash, containsSlice1)),
-        _ => new BuildTelemetry.Protobuf(new ProtobufTelemetry(version, compilationHash))
+        "Slice" => new BuildTelemetry.Slice(new SliceTelemetryData(version, compilationHash, containsSlice1)),
+        _ => new BuildTelemetry.Protobuf(new ProtobufTelemetryData(version, compilationHash))
     };
 
     // Upload the telemetry to the server.

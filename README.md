@@ -199,11 +199,11 @@ Ice server, and you can call services hosted by an IceRPC server from an Ice cli
 
 [IceRPC for Ice users] provides all the details.
 
-## Telemetry
+## Build Telemetry
 
 IceRPC collects anonymous telemetry data during the build process. Participation in this program is optional, and you
 may opt-out if you do not wish to share any information. Detailed information about what data is collected and how to
-opt-out can be found in the [Telemetry] README.
+opt-out can be found in the [Build Telemetry] README.
 
 ## License
 
@@ -237,4 +237,4 @@ in-memory transport for testing). Future releases may add additional transports.
 [Slic]: https://docs.icerpc.dev/icerpc/slic-transport/overview
 [Slice]: https://docs.icerpc.dev/slice2
 [System.IO.Pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
-[Telemetry]: tools/IceRpc.BuildTelemetry.Reporter/README.md
+[Build Telemetry]: tools/IceRpc.BuildTelemetry.Reporter/README.md

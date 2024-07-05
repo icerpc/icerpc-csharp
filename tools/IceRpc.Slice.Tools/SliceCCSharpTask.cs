@@ -107,9 +107,9 @@ public class SliceCCSharpTask : ToolTask
                 ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetString();
                 return;
             }
-            catch (System.Text.Json.JsonException)
+            catch (System.Text.Json.JsonException ex)
             {
-                Log.LogError(singleLine);
+                Log.LogError($"Error parsing JSON: {ex.Message}. JSON content: {singleLine}");
             }
         }
 

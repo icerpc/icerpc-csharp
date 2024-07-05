@@ -2,7 +2,7 @@
 
 `IceRpc.Protobuf.Tools` and `IceRpc.Slice.Tools` collect anonymous
 build telemetry data about general usage. Participation in this program is
-optional, and you may [opt-out](#opting-out) if you'd prefer to not share any 
+optional, and you may [opt-out](#opting-out) if you'd prefer to not share any
 information.
 
 This package includes the `IceRpc.BuildTelemetry.Reporter` client. This is an
@@ -31,4 +31,5 @@ csharp project file:
 </PropertyGroup>
 ```
 
-Setting this property to `true` completely disables the computation and collection of telemetry.
+Setting this property to `true` completely disables the computation and
+collection of telemetry.
