@@ -23,6 +23,7 @@ use cs_compile::{cs_patcher, cs_validator};
 use cs_options::SLICEC_CS;
 use generators::generate_from_slice_file;
 use slicec::diagnostics::{Diagnostic, Error};
+use slicec::grammar::Encoding;
 use slicec::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
@@ -61,7 +62,13 @@ pub fn main() {
     // If the telemetry flag is set, output additional compilation information.
     if cs_options.telemetry {
         let hash = SliceFile::compute_sha256_hash(&compilation_state.files);
-        println!(r#"{{ "hash": "{hash}" }}"#);
+        let contains_slice1 = compilation_state
+            .files
+            .iter()
+            .filter(|f| f.is_source)
+            .any(|f| f.compilation_mode() == Encoding::Slice1);
+
+        println!(r#"{{ "hash": "{hash}", "contains_slice1": "{contains_slice1}" }}"#);
     }
 
     // Emit diagnostics and totals.

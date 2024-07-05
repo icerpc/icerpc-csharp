@@ -45,6 +45,10 @@ public class SliceCCSharpTask : ToolTask
     [Output]
     public string? CompilationHash { get; set; }
 
+    /// <summary>Whether the Slice compilation contained any Slice1 files.</summary>
+    [Output]
+    public string? ContainsSlice1 { get; set; }
+
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
@@ -95,10 +99,18 @@ public class SliceCCSharpTask : ToolTask
     {
         if (messageImportance == MessageImportance.Low)
         {
-            // Messages from stdout
-            var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
-            CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
-            return;
+            try
+            {
+                // Messages from stdout
+                var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
+                CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
+                ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetString();
+                return;
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                Log.LogError($"Error parsing JSON: {ex.Message}. JSON content: {singleLine}");
+            }
         }
 
         if (DiagnosticParser.Parse(singleLine) is Diagnostic diagnostic)

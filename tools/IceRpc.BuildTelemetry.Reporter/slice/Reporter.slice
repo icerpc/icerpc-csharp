@@ -1,0 +1,59 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::BuildTelemetry
+
+/// Represents a simple telemetry reporter that can upload telemetry data to a
+/// remote server.
+interface Reporter {
+    /// Uploads telemetry data.
+    /// @param telemetry: The telemetry data to upload.
+    [oneway] upload(telemetry: BuildTelemetry)
+}
+
+/// Represents the target language of the telemetry data.
+enum TargetLanguage {
+    /// The data is coming from icerpc-csharp
+    CSharp(dotnetRuntime: string)
+
+    // Additional sources can be added along with corresponding data once
+    // needed.
+}
+
+/// Represents the telemetry data that can be uploaded.
+enum BuildTelemetry {
+    Slice(data: SliceTelemetryData)
+    Protobuf(data: ProtobufTelemetryData)
+}
+
+/// Represents telemetry data from an IceRPC + Slice build.
+struct SliceTelemetryData {
+    /// The version of IceRPC that is being used.
+    IceRpcVersion: string
+
+    /// The operating system that the client is running on.
+    OperatingSystem: string
+
+    /// The target language of the telemetry data.
+    TargetLanguage: TargetLanguage
+
+    /// The hashed slice files.
+    CompilationHash: string
+
+    /// Whether the compilation used any Slice1 files.
+    ContainsSlice1: bool
+}
+
+/// Represents telemetry data from an IceRPC + Protobuf build.
+struct ProtobufTelemetryData {
+    /// The version of IceRPC that is being used.
+    IceRpcVersion: string
+
+    /// The operating system that the client is running on.
+    OperatingSystem: string
+
+    /// The target language of the telemetry data.
+    TargetLanguage: TargetLanguage
+
+    /// The hashed protobuf files.
+    CompilationHash: string
+}

@@ -41,6 +41,10 @@ public class ProtocTask : ToolTask
     [Required]
     public string WorkingDirectory { get; set; } = "";
 
+    /// <summary>The computed SHA-256 hash of the Protobuf files.</summary>
+    [Output]
+    public string? CompilationHash { get; set; }
+
     /// <inheritdoc/>
     protected override string ToolName =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "protoc.exe" : "protoc";
@@ -67,6 +71,7 @@ public class ProtocTask : ToolTask
         builder.AppendFileNameIfNotNull(OutputDir);
 
         var searchPath = new List<string>(SearchPath);
+
         // Add the sources directories to the import search path
         var computedSources = new List<ITaskItem>();
         foreach (ITaskItem source in Sources)
@@ -123,7 +128,7 @@ public class ProtocTask : ToolTask
 
             Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
         }
-        catch (Exception)
+        catch
         {
             Log.LogError(singleLine, messageImportance);
         }

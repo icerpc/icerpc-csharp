@@ -15,6 +15,10 @@
       "paths": ["slice"],
       "addWellKnownTypes": false
     },
+    // Tools
+    {
+      "paths": ["tools/IceRpc.BuildTelemetry.Reporter/slice"]
+    },
     // Slice Tests
     {
       "paths": ["tests/ZeroC.Slice.Tests"]

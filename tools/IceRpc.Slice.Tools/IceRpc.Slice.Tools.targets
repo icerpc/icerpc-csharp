@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Copyright (c) ZeroC, Inc. -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- Import SliceCCSharpTask -->
+  <!-- Import Tasks -->
   <UsingTask
     TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
   />
-
+  <UsingTask
+    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
+    AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
+  />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">
@@ -47,10 +50,12 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-
-  <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
+  <Target
+    Name="SliceC"
+    BeforeTargets="CoreCompile"
+    Condition="@(SliceFile) != ''"
+  >
     <MakeDir Directories="%(SliceFile.OutputDir)" />
-
     <!-- Compile the Slice files -->
     <SliceCCSharpTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
@@ -59,6 +64,19 @@
       ToolsPath="$(SliceCompilerPath)"
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
+    >
+      <Output PropertyName="Hash" TaskParameter="CompilationHash" />
+      <Output PropertyName="ContainsSlice1" TaskParameter="ContainsSlice1" />
+    </SliceCCSharpTask>
+
+    <!-- Run telemetry -->
+    <TelemetryTask
+      WorkingDirectory="$(TelemetryScriptPath)"
+      CompilationHash="$(Hash)"
+      ContainsSlice1="$(ContainsSlice1)"
+      Idl="Slice"
+      Condition="'$(DisableBuildTelemetry)' != 'true'"
+      ContinueOnError="true"
     />
 
     <!--

@@ -13,21 +13,21 @@
   </PropertyGroup>
   <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
-      <!-- With a source build:
-                - Use the protoc compiler from Google.Protobuf.Tools dependency.
-                - Use the IceRpc.ProtocGen assembly from the source build. -->
+      <!-- Use the protoc compiler from Google.Protobuf.Tools dependency, and the IceRpc.ProtocGen assembly from the source build. -->
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath
         >$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
+        <TelemetryScriptPath
+        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
       </PropertyGroup>
     </When>
     <Otherwise>
-      <!-- When using the NuGet package:
-                - The protoc compiler and the IceRpc.ProtocGen assembly are in the package's tool directory -->
+      <!-- Use the protoc compiler and the IceRpc.ProtocGen assembly in this NuGet package -->
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
+        <TelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</TelemetryScriptPath>
       </PropertyGroup>
     </Otherwise>
   </Choose>

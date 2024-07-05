@@ -39,6 +39,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
+    <Compile Include="../Common/IceRpc.BuildTelemetry/TelemetryTask.cs" />
+    <None
+      Include="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*"
+      Exclude="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*.exe"
+    >
+      <PackagePath>tools/</PackagePath>
+      <Pack>true</Pack>
+    </None>
+    <!-- TODO: Remove once build telemetry server deployed -->
+    <None Include="../IceRpc.BuildTelemetry.Reporter/certs/cacert.der">
+      <PackagePath>tools/certs</PackagePath>
+      <Pack>true</Pack>
+    </None>
     <Content Include="../../LICENSE">
       <PackagePath />
       <Pack>true</Pack>
