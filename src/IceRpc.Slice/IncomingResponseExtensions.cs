@@ -161,7 +161,7 @@ public static class IncomingResponseExtensions
                 activator,
                 maxDepth: feature.MaxDepth);
 
-            SliceException exception = decoder.DecodeException();
+            SliceException exception = decoder.DecodeException(response.ErrorMessage);
             decoder.CheckEndOfBuffer();
             return exception;
         }

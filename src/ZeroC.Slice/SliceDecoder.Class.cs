@@ -21,8 +21,10 @@ public ref partial struct SliceDecoder
            throw new InvalidDataException("Decoded a null class instance, but expected a non-null instance.");
 
     /// <summary>Decodes a Slice exception.</summary>
+    /// <param name="message">The error message. It's used only when this method fails to find an exception class to
+    /// instantiate.</param>
     /// <returns>The decoded Slice exception.</returns>
-    public SliceException DecodeException()
+    public SliceException DecodeException(string? message = null)
     {
         if (Encoding != SliceEncoding.Slice1)
         {
@@ -52,9 +54,12 @@ public ref partial struct SliceDecoder
             sliceException = activator.CreateInstance(typeId) as SliceException;
             if (sliceException is null && SkipSlice(typeId))
             {
-                // Cannot decode this exception.
+                // Cannot decode this exception. The message should be set only when the exception was received over
+                // icerpc.
                 throw new InvalidDataException(
-                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find.");
+                    message is null || message.Length == 0 ?
+                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find." :
+                    $"The dispatch returned a Slice exception with type ID '{mostDerivedTypeId}' that the configured activator cannot find. Error message = {message}");
             }
         }
         while (sliceException is null);
