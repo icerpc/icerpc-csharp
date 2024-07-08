@@ -151,9 +151,7 @@ public static class IncomingResponseExtensions
 
         SliceException DecodeBuffer(ReadOnlySequence<byte> buffer)
         {
-            // If the error message is empty, we switch to null to get the default System exception message. This would
-            // typically happen when the Slice exception is received over ice.
-            string? errorMessage = response.ErrorMessage!.Length == 0 ? null : response.ErrorMessage;
+            // A Slice exception never sets Message, even when received over icerpc.
 
             var decoder = new SliceDecoder(
                 buffer,
@@ -163,7 +161,7 @@ public static class IncomingResponseExtensions
                 activator,
                 maxDepth: feature.MaxDepth);
 
-            SliceException exception = decoder.DecodeException(errorMessage);
+            SliceException exception = decoder.DecodeException(response.ErrorMessage);
             decoder.CheckEndOfBuffer();
             return exception;
         }

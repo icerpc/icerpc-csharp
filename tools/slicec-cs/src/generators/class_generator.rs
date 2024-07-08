@@ -95,7 +95,8 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
 
     // parameterless constructor for decoding, generated only if the preceding constructors are not parameterless
     if non_nullable_fields.len() + non_nullable_base_fields.len() > 0 {
-        let mut decode_constructor = FunctionBuilder::new(access, "", &class_name, FunctionType::BlockBody);
+        // The constructor needs to be public for System.Activator.CreateInstance.
+        let mut decode_constructor = FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
         decode_constructor.add_never_editor_browsable_attribute();
         decode_constructor.add_comment(
             "summary",

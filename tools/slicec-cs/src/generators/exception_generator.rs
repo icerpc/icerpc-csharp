@@ -48,10 +48,10 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
         format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;").into(),
     );
 
-    exception_class_builder.add_block(one_shot_constructor(exception_def));
-
-    // constructor for decoding, generated only if necessary
     if !exception_def.all_fields().is_empty() {
+        exception_class_builder.add_block(one_shot_constructor(exception_def));
+
+        // Also generate a parameterless constructor for decoding.
         exception_class_builder.add_block(
             FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
                 .add_never_editor_browsable_attribute()
@@ -62,10 +62,6 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
                         &exception_name
                     ),
                 )
-                .add_parameter("string?", "message", None, None)
-                .add_base_parameter("message")
-                .add_parameter("global::System.Exception?", "innerException", None, None)
-                .add_base_parameter("innerException")
                 .set_body(initialize_required_fields(fields))
                 .build(),
         );
@@ -125,9 +121,6 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
 
     let all_fields = exception_def.all_fields();
 
-    let message_parameter_name = escape_parameter_name(&all_fields, "message");
-    let inner_exception_parameter_name = escape_parameter_name(&all_fields, "innerException");
-
     let base_parameters = if let Some(base) = exception_def.base_exception() {
         base.all_fields().iter().map(|m| m.parameter_name()).collect::<Vec<_>>()
     } else {
@@ -150,22 +143,6 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
         );
     }
     ctor_builder.add_base_parameters(&base_parameters);
-
-    ctor_builder
-        .add_parameter(
-            "string?",
-            &message_parameter_name,
-            Some("null"),
-            Some("A message that describes the exception.".to_owned()),
-        )
-        .add_base_parameter(&message_parameter_name)
-        .add_parameter(
-            "global::System.Exception?",
-            &inner_exception_parameter_name,
-            Some("null"),
-            Some("The exception that is the cause of the current exception.".to_owned()),
-        )
-        .add_base_parameter(&inner_exception_parameter_name);
 
     // ctor impl
     let mut ctor_body = CodeBlock::default();

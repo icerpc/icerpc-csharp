@@ -748,8 +748,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             SequencePosition consumed = buffer.GetPosition(headerSize);
 
             return replyStatus == ReplyStatus.Ok ? (StatusCode.Ok, null, consumed) :
-                // Set the error message to the empty string. We will convert this empty string to null when we
-                // decode the exception.
+                // Set the error message to the empty string, because null is not allowed for status code > Ok.
                 (StatusCode.ApplicationError, "", consumed);
         }
         else

@@ -538,11 +538,8 @@ public class TaggedTests
         private readonly string _replacementTypeId;
         private readonly string _typeId;
 
-        public object? CreateClassInstance(string typeId) =>
-            _decoratee.CreateClassInstance(typeId == _typeId ? _replacementTypeId : typeId);
-
-        public object? CreateExceptionInstance(string typeId, string? message) =>
-            _decoratee.CreateExceptionInstance(typeId, message);
+        public object? CreateInstance(string typeId) =>
+            _decoratee.CreateInstance(typeId == _typeId ? _replacementTypeId : typeId);
 
         internal TypeReplacementActivator(IActivator decoratee, string typeId, string replacementTypeId)
         {

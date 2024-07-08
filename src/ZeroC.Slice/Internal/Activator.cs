@@ -3,28 +3,19 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Linq.Expressions;
 using System.Reflection;
 
 namespace ZeroC.Slice.Internal;
 
-// Instantiates a Slice class or exception. The message is used only for exceptions; innerException is always null.
-internal delegate object ActivateObject(string? message, Exception? innerException);
-
 /// <summary>The default implementation of <see cref="IActivator" />, which uses a dictionary.</summary>
 internal class Activator : IActivator
 {
-    internal static Activator Empty { get; } =
-        new Activator(ImmutableDictionary<string, Lazy<ActivateObject>>.Empty);
+    internal static Activator Empty { get; } = new Activator(ImmutableDictionary<string, Type>.Empty);
 
-    private readonly IReadOnlyDictionary<string, Lazy<ActivateObject>> _dict;
+    private readonly IReadOnlyDictionary<string, Type> _dict;
 
-    public object? CreateClassInstance(string typeId) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ?
-            factory.Value(message: null, innerException: null) : null;
-
-    public object? CreateExceptionInstance(string typeId, string? message) =>
-        _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(message, null) : null;
+    public object? CreateInstance(string typeId) =>
+        _dict.TryGetValue(typeId, out Type? type) ? System.Activator.CreateInstance(type) : null;
 
     /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
     internal static Activator Merge(IEnumerable<Activator> activators)
@@ -35,11 +26,11 @@ internal class Activator : IActivator
         }
         else
         {
-            var dict = new Dictionary<string, Lazy<ActivateObject>>();
+            var dict = new Dictionary<string, Type>();
 
             foreach (Activator activator in activators)
             {
-                foreach ((string typeId, Lazy<ActivateObject> factory) in activator._dict)
+                foreach ((string typeId, Type factory) in activator._dict)
                 {
                     dict[typeId] = factory;
                 }
@@ -48,7 +39,7 @@ internal class Activator : IActivator
         }
     }
 
-    internal Activator(IReadOnlyDictionary<string, Lazy<ActivateObject>> dict) => _dict = dict;
+    internal Activator(IReadOnlyDictionary<string, Type> dict) => _dict = dict;
 }
 
 /// <summary>Creates activators from assemblies by processing types in those assemblies.</summary>
@@ -70,20 +61,18 @@ internal class ActivatorFactory
                 assembly,
                 assembly =>
                 {
-                    var dict = new Dictionary<string, Lazy<ActivateObject>>();
+                    var dict = new Dictionary<string, Type>();
 
                     foreach (Type type in assembly.GetTypes())
                     {
                         // We're only interested in generated Slice classes and exceptions.
                         if (type.IsClass && type.GetSliceTypeId() is string typeId)
                         {
-                            var lazy = new Lazy<ActivateObject>(() => CreateActivateObject(type));
-
-                            dict.Add(typeId, lazy);
+                            dict.Add(typeId, type);
 
                             if (type.GetCompactSliceTypeId() is int compactTypeId)
                             {
-                                dict.Add(compactTypeId.ToString(CultureInfo.InvariantCulture), lazy);
+                                dict.Add(compactTypeId.ToString(CultureInfo.InvariantCulture), type);
                             }
                         }
                     }
@@ -99,28 +88,6 @@ internal class ActivatorFactory
         {
             // We don't cache an assembly with no Slice attribute, and don't load/process its referenced assemblies.
             return Activator.Empty;
-        }
-
-        static ActivateObject CreateActivateObject(Type type)
-        {
-            bool isException = type.IsSubclassOf(typeof(SliceException));
-
-            Type[] types = isException ? [typeof(string), typeof(Exception)] : [];
-
-            ConstructorInfo constructor = type.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                null,
-                types,
-                null) ?? throw new InvalidOperationException($"Cannot find Slice decoding constructor for '{type}'.");
-
-            ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
-            ParameterExpression innerExceptionParam = Expression.Parameter(typeof(Exception), "innerException");
-
-            Expression expression = isException ?
-                Expression.New(constructor, messageParam, innerExceptionParam) :
-                Expression.New(constructor);
-
-            return Expression.Lambda<ActivateObject>(expression, messageParam, innerExceptionParam).Compile();
         }
     }
 

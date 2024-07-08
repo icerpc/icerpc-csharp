@@ -29,20 +29,11 @@ public interface IActivator
     public static IActivator FromAssemblies(params Assembly[] assemblies) =>
         Internal.Activator.Merge(assemblies.Select(ActivatorFactory.Instance.Get));
 
-    /// <summary>Creates an instance of a Slice class based on a type ID.</summary>
+    /// <summary>Creates an instance of a Slice class or Slice exception based on a type ID.</summary>
     /// <param name="typeId">The Slice type ID.</param>
     /// <returns>A new instance of the class identified by <paramref name="typeId" />, or null if the implementation
-    /// cannot find the corresponding class..</returns>
+    /// cannot find the corresponding C# class.</returns>
     /// <remarks>This implementation of this method can also throw an exception if the class is found but the activation
     /// of an instance fails.</remarks>
-    object? CreateClassInstance(string typeId);
-
-    /// <summary>Creates an instance of a Slice exception based on a type ID.</summary>
-    /// <param name="typeId">The Slice type ID.</param>
-    /// <param name="message">The exception message.</param>
-    /// <returns>A new instance of the class identified by <paramref name="typeId" />, or null if the implementation
-    /// cannot find the corresponding class..</returns>
-    /// <remarks>This implementation of this method can also throw an exception if the class is found but the activation
-    /// of an instance fails.</remarks>
-    object? CreateExceptionInstance(string typeId, string? message);
+    object? CreateInstance(string typeId);
 }
