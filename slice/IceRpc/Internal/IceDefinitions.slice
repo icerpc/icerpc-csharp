@@ -106,8 +106,8 @@ enum ReplyStatus {
     /// The dispatch failed with an Ice local exception (not applicable with IceRPC).
     UnknownLocalException = 5
 
-    /// The dispatch failed with a Slice user exception that does not conform to the exception specification of the Slice
-    // operation (not applicable with IceRPC).
+    /// The dispatch failed with a Slice user exception that does not conform to the exception specification of the
+    /// operation (not applicable with IceRPC).
     UnknownUserException = 6
 
     /// The dispatch failed with some other exception.
