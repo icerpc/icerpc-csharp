@@ -10,12 +10,16 @@ public partial record struct ProtobufTelemetryData
     /// </summary>
     /// <param name="version">The version of the IceRPC.</param>
     /// <param name="compilationHash">The SHA-256 hash of the Slice files.</param>
-    public ProtobufTelemetryData(string version, string compilationHash)
+    /// <param name="fileCount">The number of source files in the Slice compilation.</param>
+    public ProtobufTelemetryData(string version, string compilationHash, int fileCount)
     {
         // The source of the build telemetry is C# and the version is the current runtime version.
-        IceRpcVersion = version;
+        ToolVersion = version;
         TargetLanguage = new TargetLanguage.CSharp(Environment.Version.ToString());
-        OperatingSystem = Environment.OSVersion.ToString();
+        OperatingSystem = SystemHelpers.GetOperatingSystem();
+        Architecture = SystemHelpers.GetArchitecture();
+        IsCI = SystemHelpers.IsCi();
+        FileCount = fileCount;
         CompilationHash = compilationHash;
     }
 }

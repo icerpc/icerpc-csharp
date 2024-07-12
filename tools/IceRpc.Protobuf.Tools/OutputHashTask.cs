@@ -21,6 +21,10 @@ public class OutputHashTask : Task
     [Output]
     public string? CompilationHash { get; set; }
 
+    /// <summary>The number of protobuf files in the compilation.</summary>
+    [Output]
+    public string? FileCount { get; set; }
+
     /// <inheritdoc/>
     public override bool Execute()
     {
@@ -44,6 +48,7 @@ public class OutputHashTask : Task
         string aggregatedHash = ToHexString(aggregatedHashBytes);
 
         CompilationHash = aggregatedHash;
+        FileCount = Sources.Length.ToString();
         return true;
     }
 

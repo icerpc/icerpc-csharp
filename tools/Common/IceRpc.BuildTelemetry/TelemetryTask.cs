@@ -28,6 +28,21 @@ public class TelemetryTask : ToolTask
     public string? ContainsSlice1 { get; set; } = "";
 
     /// <summary>
+    /// Gets or sets the if the compilation contained any Slice2 files.
+    /// </summary>
+    public string? ContainsSlice2 { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the number of source files in the Slice compilation.
+    /// </summary>
+    public string? SourceFileCount { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the number of reference files in the Slice compilation.
+    /// </summary>
+    public string? ReferenceFileCount { get; set; } = "";
+
+    /// <summary>
     /// Gets or sets the working directory.
     /// </summary>
     [Required]
@@ -56,6 +71,17 @@ public class TelemetryTask : ToolTask
         {
             commandLine.AppendSwitch("--contains-slice1");
             commandLine.AppendSwitch(ContainsSlice1);
+            commandLine.AppendSwitch("--contains-slice2");
+            commandLine.AppendSwitch(ContainsSlice2);
+            commandLine.AppendSwitch("--src-file-count");
+            commandLine.AppendSwitch(SourceFileCount);
+            commandLine.AppendSwitch("--ref-file-count");
+            commandLine.AppendSwitch(ReferenceFileCount);
+        }
+        else if (Idl == "Protobuf")
+        {
+            commandLine.AppendSwitch("--src-file-count");
+            commandLine.AppendSwitch(SourceFileCount);
         }
 
         return commandLine.ToString();

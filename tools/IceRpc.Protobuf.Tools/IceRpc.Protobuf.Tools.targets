@@ -71,12 +71,14 @@
     />
     <OutputHashTask Sources="@(ProtoFile)" Condition="'$(DisableBuildTelemetry)' != 'true'">
       <Output PropertyName="Hash" TaskParameter="CompilationHash" />
+      <Output PropertyName="FileCount" TaskParameter="FileCount" />
     </OutputHashTask>
 
     <!-- Run telemetry -->
     <TelemetryTask
       WorkingDirectory="$(TelemetryScriptPath)"
       CompilationHash="$(Hash)"
+      SourceFileCount="$(FileCount)"
       Condition="'$(DisableBuildTelemetry)' != 'true'"
       Idl="Protobuf"
       ContinueOnError="true"

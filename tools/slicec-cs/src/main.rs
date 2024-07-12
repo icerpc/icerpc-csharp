@@ -61,14 +61,19 @@ pub fn main() {
 
     // If the telemetry flag is set, output additional compilation information.
     if cs_options.telemetry {
-        let hash = SliceFile::compute_sha256_hash(&compilation_state.files);
-        let contains_slice1 = compilation_state
-            .files
-            .iter()
-            .filter(|f| f.is_source)
-            .any(|f| f.compilation_mode() == Encoding::Slice1);
+        let num_total_files = compilation_state.files.len();
+        let src_files: Vec<&SliceFile> = compilation_state.files.iter().filter(|f| f.is_source).collect();
 
-        println!(r#"{{ "hash": "{hash}", "contains_slice1": "{contains_slice1}" }}"#);
+        let hash = SliceFile::compute_sha256_hash(&src_files);
+        let contains_slice1 = src_files.iter().any(|f| f.compilation_mode() == Encoding::Slice1);
+        let contains_slice2 = src_files.iter().any(|f| f.compilation_mode() == Encoding::Slice2);
+
+        let src_file_count = src_files.len();
+        let ref_file_count = num_total_files - src_file_count;
+
+        println!(
+            r#"{{ "hash": "{hash}", "contains_slice1": "{contains_slice1}", "contains_slice2": "{contains_slice2}", "src_file_count": "{src_file_count}", "ref_file_count": "{ref_file_count}" }}"#
+        );
     }
 
     // Emit diagnostics and totals.
