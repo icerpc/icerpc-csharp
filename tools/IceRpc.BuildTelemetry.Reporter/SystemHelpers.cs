@@ -33,14 +33,37 @@ internal static class SystemHelpers
 
     /// <summary> Get the architecture of the current process.</summary>
     /// <returns> The architecture of the current process.</returns>
-    internal static string GetArchitecture()
-    {
-        return RuntimeInformation.ProcessArchitecture.ToString();
-    }
+    internal static string GetArchitecture() => RuntimeInformation.ProcessArchitecture.ToString();
 
     internal static bool IsCi()
     {
-        // If the CI environment variable is set, we are running in a CI environment.
-        return Environment.GetEnvironmentVariable("CI") != null;
+        // CI environment variables as listed in the .csproj file
+        string[] ciEnvironmentVariables = new string[]
+        {
+        "TF_BUILD", // Azure Pipelines / DevOpsServer
+        "GITHUB_ACTIONS", // GitHub Actions
+        "APPVEYOR", // AppVeyor
+        "CI", // General, set by many build agents
+        "TRAVIS", // Travis CI
+        "CIRCLECI", // Circle CI
+        "CODEBUILD_BUILD_ID", // AWS CodeBuild
+        "AWS_REGION", // AWS CodeBuild region
+        "BUILD_ID", // Jenkins, Google Cloud Build
+        "BUILD_URL", // Jenkins
+        "PROJECT_ID", // Google Cloud Build
+        "TEAMCITY_VERSION", // TeamCity
+        "JB_SPACE_API_URL" // JetBrains Space
+        };
+
+        // Check if any of the CI environment variables are set
+        foreach (var envVar in ciEnvironmentVariables)
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(envVar)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

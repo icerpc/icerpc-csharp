@@ -47,11 +47,11 @@ public class SliceCCSharpTask : ToolTask
 
     /// <summary>Whether the Slice compilation contained any Slice1 files.</summary>
     [Output]
-    public string? ContainsSlice1 { get; set; }
+    public bool ContainsSlice1 { get; set; } = false;
 
     /// <summary>Whether the Slice compilation contained any Slice1 files.</summary>
     [Output]
-    public string? ContainsSlice2 { get; set; }
+    public bool ContainsSlice2 { get; set; } = false;
 
     /// <summary>The number of source files in the Slice compilation.</summary>
     [Output]
@@ -116,8 +116,8 @@ public class SliceCCSharpTask : ToolTask
                 // Messages from stdout
                 var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
                 CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
-                ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetString();
-                ContainsSlice2 = jsonDoc.RootElement.GetProperty("contains_slice2").GetString();
+                ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetBoolean();
+                ContainsSlice2 = jsonDoc.RootElement.GetProperty("contains_slice2").GetBoolean();
                 SourceFileCount = jsonDoc.RootElement.GetProperty("src_file_count").GetString();
                 ReferenceFileCount = jsonDoc.RootElement.GetProperty("ref_file_count").GetString();
                 return;

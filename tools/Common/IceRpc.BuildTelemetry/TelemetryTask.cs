@@ -23,14 +23,14 @@ public class TelemetryTask : ToolTask
     public string Idl { get; set; } = "";
 
     /// <summary>
-    /// Gets or sets the if the compilation contained any Slice1 files.
+    /// Gets or sets a value indicating whether the compilation contained any Slice1 files.
     /// </summary>
-    public string? ContainsSlice1 { get; set; } = "";
+    public bool ContainsSlice1 { get; set; } = false;
 
     /// <summary>
-    /// Gets or sets the if the compilation contained any Slice2 files.
+    /// Gets or sets a value indicating whether the compilation contained any Slice2 files.
     /// </summary>
-    public string? ContainsSlice2 { get; set; } = "";
+    public bool ContainsSlice2 { get; set; } = false;
 
     /// <summary>
     /// Gets or sets the number of source files in the Slice compilation.
@@ -62,26 +62,19 @@ public class TelemetryTask : ToolTask
     {
         var commandLine = new CommandLineBuilder();
         commandLine.AppendFileNameIfNotNull("IceRpc.BuildTelemetry.Reporter.dll");
-        commandLine.AppendSwitch("--hash");
-        commandLine.AppendSwitch(CompilationHash);
-        commandLine.AppendSwitch("--idl");
-        commandLine.AppendSwitch(Idl);
+        commandLine.AppendSwitchIfNotNull("--hash", CompilationHash);
+        commandLine.AppendSwitchIfNotNull("--idl", Idl);
 
         if (Idl == "Slice")
         {
-            commandLine.AppendSwitch("--contains-slice1");
-            commandLine.AppendSwitch(ContainsSlice1);
-            commandLine.AppendSwitch("--contains-slice2");
-            commandLine.AppendSwitch(ContainsSlice2);
-            commandLine.AppendSwitch("--src-file-count");
-            commandLine.AppendSwitch(SourceFileCount);
-            commandLine.AppendSwitch("--ref-file-count");
-            commandLine.AppendSwitch(ReferenceFileCount);
+            commandLine.AppendSwitchIfNotNull("--contains-slice1", ContainsSlice1.ToString());
+            commandLine.AppendSwitchIfNotNull("--contains-slice2", ContainsSlice2.ToString());
+            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount);
+            commandLine.AppendSwitchIfNotNull("--ref-file-count", ReferenceFileCount);
         }
         else if (Idl == "Protobuf")
         {
-            commandLine.AppendSwitch("--src-file-count");
-            commandLine.AppendSwitch(SourceFileCount);
+            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount);
         }
 
         return commandLine.ToString();
