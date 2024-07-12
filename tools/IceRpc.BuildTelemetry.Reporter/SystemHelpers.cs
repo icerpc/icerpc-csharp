@@ -40,19 +40,19 @@ internal static class SystemHelpers
         // CI environment variables as listed in the .csproj file
         string[] ciEnvironmentVariables = new string[]
         {
-        "TF_BUILD", // Azure Pipelines / DevOpsServer
-        "GITHUB_ACTIONS", // GitHub Actions
-        "APPVEYOR", // AppVeyor
-        "CI", // General, set by many build agents
-        "TRAVIS", // Travis CI
-        "CIRCLECI", // Circle CI
-        "CODEBUILD_BUILD_ID", // AWS CodeBuild
-        "AWS_REGION", // AWS CodeBuild region
-        "BUILD_ID", // Jenkins, Google Cloud Build
-        "BUILD_URL", // Jenkins
-        "PROJECT_ID", // Google Cloud Build
-        "TEAMCITY_VERSION", // TeamCity
-        "JB_SPACE_API_URL" // JetBrains Space
+            "TF_BUILD", // Azure Pipelines / DevOpsServer
+            "GITHUB_ACTIONS", // GitHub Actions
+            "APPVEYOR", // AppVeyor
+            "CI", // General, set by many build agents
+            "TRAVIS", // Travis CI
+            "CIRCLECI", // Circle CI
+            "CODEBUILD_BUILD_ID", // AWS CodeBuild
+            "AWS_REGION", // AWS CodeBuild region
+            "BUILD_ID", // Jenkins, Google Cloud Build
+            "BUILD_URL", // Jenkins
+            "PROJECT_ID", // Google Cloud Build
+            "TEAMCITY_VERSION", // TeamCity
+            "JB_SPACE_API_URL" // JetBrains Space
         };
 
         // Check if any of the CI environment variables are set
