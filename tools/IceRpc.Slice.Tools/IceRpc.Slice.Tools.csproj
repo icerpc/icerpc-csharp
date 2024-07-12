@@ -68,10 +68,6 @@
       <PackagePath>build/</PackagePath>
       <Pack>true</Pack>
     </Content>
-        <None Include="../IceRpc.BuildTelemetry.Reporter/certs/cacert.der">
-          <PackagePath>tools/certs</PackagePath>
-          <Pack>true</Pack>
-        </None>
     <Content Include="IceRpc.Slice.Tools.targets">
       <PackagePath>build/</PackagePath>
       <Pack>true</Pack>

@@ -8,24 +8,7 @@ using System.Reflection;
 
 var timeout = TimeSpan.FromSeconds(3); // The timeout for the complete telemetry upload process.
 
-// TODO: Update the URI to the build telemetry server once it is deployed.
-const string uri = "icerpc://localhost"; // The URI of the server.
-
-// TODO: Remove loading this test certificate once the build telemetry server is deployed.
-// Load the root CA certificate
-using var rootCA = new X509Certificate2("certs/cacert.der");
-var clientAuthenticationOptions = new SslClientAuthenticationOptions
-{
-    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-    {
-        using var customChain = new X509Chain();
-        customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-        customChain.ChainPolicy.DisableCertificateDownloads = true;
-        customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-        customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-        return customChain.Build((X509Certificate2)certificate!);
-    }
-};
+const string uri = "icerpc://telemetry.icerpc.dev"; // The URI of the server.
 
 try
 {
@@ -34,6 +17,7 @@ try
     using var cts = new CancellationTokenSource(timeout);
 
     // Create a client connection
+    var clientAuthenticationOptions = new SslClientAuthenticationOptions();
     await using var connection = new ClientConnection(new Uri(uri), clientAuthenticationOptions);
 
     // Create a reporter proxy with this client connection.
