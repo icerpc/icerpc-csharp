@@ -25,22 +25,22 @@ public class TelemetryTask : ToolTask
     /// <summary>
     /// Gets or sets a value indicating whether the compilation contained any Slice1 files.
     /// </summary>
-    public bool ContainsSlice1 { get; set; } = false;
+    public bool ContainsSlice1 { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the compilation contained any Slice2 files.
     /// </summary>
-    public bool ContainsSlice2 { get; set; } = false;
+    public bool ContainsSlice2 { get; set; }
 
     /// <summary>
     /// Gets or sets the number of source files in the Slice compilation.
     /// </summary>
-    public string? SourceFileCount { get; set; } = "";
+    public int SourceFileCount { get; set; }
 
     /// <summary>
     /// Gets or sets the number of reference files in the Slice compilation.
     /// </summary>
-    public string? ReferenceFileCount { get; set; } = "";
+    public int ReferenceFileCount { get; set; }
 
     /// <summary>
     /// Gets or sets the working directory.
@@ -69,12 +69,12 @@ public class TelemetryTask : ToolTask
         {
             commandLine.AppendSwitchIfNotNull("--contains-slice1", ContainsSlice1.ToString());
             commandLine.AppendSwitchIfNotNull("--contains-slice2", ContainsSlice2.ToString());
-            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount);
-            commandLine.AppendSwitchIfNotNull("--ref-file-count", ReferenceFileCount);
+            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount.ToString());
+            commandLine.AppendSwitchIfNotNull("--ref-file-count", ReferenceFileCount.ToString());
         }
         else if (Idl == "Protobuf")
         {
-            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount);
+            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount.ToString());
         }
 
         return commandLine.ToString();

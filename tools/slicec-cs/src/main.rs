@@ -72,7 +72,7 @@ pub fn main() {
         let ref_file_count = num_total_files - src_file_count;
 
         println!(
-            r#"{{ "hash": "{hash}", "contains_slice1": {contains_slice1}, "contains_slice2": {contains_slice2}, "src_file_count": "{src_file_count}", "ref_file_count": "{ref_file_count}" }}"#
+            r#"{{ "hash": "{hash}", "contains_slice1": {contains_slice1}, "contains_slice2": {contains_slice2}, "src_file_count": {src_file_count}, "ref_file_count": {ref_file_count} }}"#
         );
     }
 

@@ -47,19 +47,19 @@ public class SliceCCSharpTask : ToolTask
 
     /// <summary>Whether the Slice compilation contained any Slice1 files.</summary>
     [Output]
-    public bool ContainsSlice1 { get; set; } = false;
+    public bool ContainsSlice1 { get; set; }
 
     /// <summary>Whether the Slice compilation contained any Slice1 files.</summary>
     [Output]
-    public bool ContainsSlice2 { get; set; } = false;
+    public bool ContainsSlice2 { get; set; }
 
     /// <summary>The number of source files in the Slice compilation.</summary>
     [Output]
-    public string? SourceFileCount { get; set; }
+    public int SourceFileCount { get; set; }
 
     /// <summary>The number of reference files in the Slice compilation.</summary>
     [Output]
-    public string? ReferenceFileCount { get; set; }
+    public int ReferenceFileCount { get; set; }
 
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
@@ -118,8 +118,8 @@ public class SliceCCSharpTask : ToolTask
                 CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
                 ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetBoolean();
                 ContainsSlice2 = jsonDoc.RootElement.GetProperty("contains_slice2").GetBoolean();
-                SourceFileCount = jsonDoc.RootElement.GetProperty("src_file_count").GetString();
-                ReferenceFileCount = jsonDoc.RootElement.GetProperty("ref_file_count").GetString();
+                SourceFileCount = jsonDoc.RootElement.GetProperty("src_file_count").GetInt32();
+                ReferenceFileCount = jsonDoc.RootElement.GetProperty("ref_file_count").GetInt32();
                 return;
             }
             catch (System.Text.Json.JsonException ex)
