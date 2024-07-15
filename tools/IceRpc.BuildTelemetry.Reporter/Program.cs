@@ -46,11 +46,29 @@ try
         .Skip(1)
         .FirstOrDefault(), out var result) && result;
 
+    // Parse the contains-slice2 argument
+    bool containsSlice2 = bool.TryParse(args
+        .SkipWhile(arg => arg != "--contains-slice2")
+        .Skip(1)
+        .FirstOrDefault(), out result) && result;
+
+    // Parse the src-file-count argument
+    int sourceFileCount = int.TryParse(args
+        .SkipWhile(arg => arg != "--src-file-count")
+        .Skip(1)
+        .FirstOrDefault(), out var sourceFileCountResult) ? sourceFileCountResult : 0;
+
+    // Parse the ref-file-count argument
+    int referenceFileCount = int.TryParse(args
+        .SkipWhile(arg => arg != "--ref-file-count")
+        .Skip(1)
+        .FirstOrDefault(), out var referenceFileCountResult) ? referenceFileCountResult : 0;
+
     // Create the appropriate telemetry object based on the IDL
     BuildTelemetry buildTelemetry = idl switch
     {
-        "Slice" => new BuildTelemetry.Slice(new SliceTelemetryData(version, compilationHash, containsSlice1)),
-        _ => new BuildTelemetry.Protobuf(new ProtobufTelemetryData(version, compilationHash))
+        "Slice" => new BuildTelemetry.Slice(new SliceTelemetryData(version, compilationHash, containsSlice1, containsSlice2, sourceFileCount, referenceFileCount)),
+        _ => new BuildTelemetry.Protobuf(new ProtobufTelemetryData(version, compilationHash, sourceFileCount))
     };
 
     // Upload the telemetry to the server.
