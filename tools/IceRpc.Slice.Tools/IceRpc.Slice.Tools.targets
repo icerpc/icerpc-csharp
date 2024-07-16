@@ -80,7 +80,7 @@
       ContainsSlice2="$(ContainsSlice2)"
       SourceFileCount="$(SourceFileCount)"
       ReferenceFileCount="$(ReferenceFileCount)"
-      Idl="Slice"
+      Idl="slice"
       Condition="'$(DisableBuildTelemetry)' != 'true'"
       ContinueOnError="true"
     />

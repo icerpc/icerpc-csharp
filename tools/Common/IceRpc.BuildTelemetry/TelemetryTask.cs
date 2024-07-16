@@ -62,19 +62,26 @@ public class TelemetryTask : ToolTask
     {
         var commandLine = new CommandLineBuilder();
         commandLine.AppendFileNameIfNotNull("IceRpc.BuildTelemetry.Reporter.dll");
-        commandLine.AppendSwitchIfNotNull("--hash", CompilationHash);
-        commandLine.AppendSwitchIfNotNull("--idl", Idl);
+        commandLine.AppendSwitch("--hash");
+        commandLine.AppendSwitch(CompilationHash);
+        commandLine.AppendSwitch("--idl");
+        commandLine.AppendSwitch(Idl);
 
-        if (Idl == "Slice")
+        if (Idl.ToLower() == "slice")
         {
-            commandLine.AppendSwitchIfNotNull("--contains-slice1", ContainsSlice1.ToString());
-            commandLine.AppendSwitchIfNotNull("--contains-slice2", ContainsSlice2.ToString());
-            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount.ToString());
-            commandLine.AppendSwitchIfNotNull("--ref-file-count", ReferenceFileCount.ToString());
+            commandLine.AppendSwitch("--contains-slice1");
+            commandLine.AppendSwitch(ContainsSlice1.ToString());
+            commandLine.AppendSwitch("--contains-slice2");
+            commandLine.AppendSwitch(ContainsSlice2.ToString());
+            commandLine.AppendSwitch("--src-file-count");
+            commandLine.AppendSwitch(SourceFileCount.ToString());
+            commandLine.AppendSwitch("--ref-file-count");
+            commandLine.AppendSwitch(ReferenceFileCount.ToString());
         }
-        else if (Idl == "Protobuf")
+        else if (Idl.ToLower() == "protobuf")
         {
-            commandLine.AppendSwitchIfNotNull("--src-file-count", SourceFileCount.ToString());
+            commandLine.AppendSwitch("--src-file-count");
+            commandLine.AppendSwitch(SourceFileCount.ToString());
         }
 
         return commandLine.ToString();

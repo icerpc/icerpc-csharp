@@ -64,11 +64,11 @@ try
         .Skip(1)
         .FirstOrDefault(), out var referenceFileCountResult) ? referenceFileCountResult : 0;
 
-    // Create the appropriate telemetry object based on the IDL
-    BuildTelemetry buildTelemetry = idl switch
+    BuildTelemetry buildTelemetry = idl.ToLower() switch
     {
-        "Slice" => new BuildTelemetry.Slice(new SliceTelemetryData(version, compilationHash, containsSlice1, containsSlice2, sourceFileCount, referenceFileCount)),
-        _ => new BuildTelemetry.Protobuf(new ProtobufTelemetryData(version, compilationHash, sourceFileCount))
+        "slice" => new BuildTelemetry.Slice(new SliceTelemetryData(version, compilationHash, containsSlice1, containsSlice2, sourceFileCount, referenceFileCount)),
+        "protobuf" => new BuildTelemetry.Protobuf(new ProtobufTelemetryData(version, compilationHash, sourceFileCount)),
+        _ => throw new ArgumentException($"Unknown IDL: {idl}") // This should never happen
     };
 
     // Upload the telemetry to the server.

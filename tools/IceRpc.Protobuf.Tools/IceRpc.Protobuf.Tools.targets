@@ -80,7 +80,7 @@
       CompilationHash="$(Hash)"
       SourceFileCount="$(FileCount)"
       Condition="'$(DisableBuildTelemetry)' != 'true'"
-      Idl="Protobuf"
+      Idl="protobuf"
       ContinueOnError="true"
     />
 
