@@ -11,6 +11,7 @@
     "struct",
     "structs",
     "Twoway",
+    "typealias",
     "unregisters",
     "varint",
     "varuint",
@@ -19,5 +20,8 @@
   "dictionaries": [
     "softwareTerms",
     "en_US"
+  ],
+  "enableFiletypes": [
+    "slice"
   ]
 }

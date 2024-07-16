@@ -1,3 +1,9 @@
 {
   "cSpell.showStatus": true,
+  "slice.configurations": [
+    {
+      "paths": ["."],
+      "addWellKnownTypes": false
+    }
+  ]
 }
