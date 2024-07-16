@@ -13,10 +13,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-11
+          - os: macos-14
             target: x86_64-apple-darwin
             compiler-exe: slicec-cs
-          - os: macos-11
+          - os: macos-14
             target: aarch64-apple-darwin
             compiler-exe: slicec-cs
           - os: ubuntu-22.04
