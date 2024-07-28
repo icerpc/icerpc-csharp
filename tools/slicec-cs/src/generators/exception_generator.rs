@@ -49,23 +49,21 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
     );
 
     if !exception_def.all_fields().is_empty() {
-        exception_class_builder.add_block(one_shot_constructor(exception_def));
-
-        // Also generate a parameterless constructor for decoding.
+        // Parameterless constructor.
         exception_class_builder.add_block(
             FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-                .add_never_editor_browsable_attribute()
                 .add_comment(
                     "summary",
-                    format!(
-                        r#"Constructs a new instance of <see cref="{}"/> for the Slice decoder."#,
-                        &exception_name
-                    ),
+                    format!(r#"Constructs a new instance of <see cref="{}"/>."#, &exception_name),
                 )
-                .set_body(initialize_required_fields(fields))
                 .build(),
         );
+
+        exception_class_builder.add_block(one_shot_constructor(exception_def));
+
+        // TODO: generate secondary constructor like for classes.
     }
+    // else, we rely on the default parameterless constructor.
 
     exception_class_builder.add_block(
         FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
@@ -128,6 +126,10 @@ fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
     };
 
     let mut ctor_builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
+
+    if all_fields.iter().any(|f| f.is_required()) {
+        ctor_builder.add_attribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers");
+    }
 
     ctor_builder.add_comment(
         "summary",
