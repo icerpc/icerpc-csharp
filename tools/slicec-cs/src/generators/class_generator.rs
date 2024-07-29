@@ -16,6 +16,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
 
     let fields = class_def.fields();
     let base_fields = class_def.base_class().map_or(vec![], Class::all_fields);
+    let all_fields = class_def.all_fields();
 
     let access = class_def.access_modifier();
 
@@ -70,41 +71,38 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
 
     let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
 
-    // The primary constructor (may be parameterless)
-    class_builder.add_block(constructor(
-        &class_name,
-        access,
-        constructor_summary.clone(),
-        &namespace,
-        &fields,
-        &base_fields,
-    ));
+    if !all_fields.is_empty() {
+        // parameterless constructor.
+        // The constructor needs to be public for System.Activator.CreateInstance.
+        let mut parameterless_constructor = FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
+        parameterless_constructor.add_comment("summary", constructor_summary.clone());
+        class_builder.add_block(parameterless_constructor.build());
 
-    // Secondary constructor for all fields minus those with optional types.
-    // This constructor is only generated if necessary
-    if non_nullable_fields.len() + non_nullable_base_fields.len() < fields.len() + base_fields.len() {
+        // The primary constructor.
         class_builder.add_block(constructor(
             &class_name,
             access,
-            constructor_summary,
+            constructor_summary.clone(),
             &namespace,
-            &non_nullable_fields,
-            &non_nullable_base_fields,
+            &fields,
+            &base_fields,
         ));
-    }
 
-    // parameterless constructor for decoding, generated only if the preceding constructors are not parameterless
-    if non_nullable_fields.len() + non_nullable_base_fields.len() > 0 {
-        // The constructor needs to be public for System.Activator.CreateInstance.
-        let mut decode_constructor = FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
-        decode_constructor.add_never_editor_browsable_attribute();
-        decode_constructor.add_comment(
-            "summary",
-            format!(r#"Constructs a new instance of <see cref="{class_name}"/> for the Slice decoder."#),
-        );
-        decode_constructor.set_body(initialize_required_fields(&fields));
-        class_builder.add_block(decode_constructor.build());
+        // Secondary constructor for all fields minus those that are nullable.
+        // This constructor is only generated if necessary.
+        let non_nullable_fields_len = non_nullable_fields.len() + non_nullable_base_fields.len();
+        if non_nullable_fields_len > 0 && non_nullable_fields_len < all_fields.len() {
+            class_builder.add_block(constructor(
+                &class_name,
+                access,
+                constructor_summary,
+                &namespace,
+                &non_nullable_fields,
+                &non_nullable_base_fields,
+            ));
+        }
     }
+    // else, we rely on the default parameterless constructor.
 
     class_builder.add_block(encode_and_decode(class_def));
 
@@ -122,6 +120,10 @@ fn constructor(
     let mut code = CodeBlock::default();
 
     let mut builder = FunctionBuilder::new(access, "", escaped_name, FunctionType::BlockBody);
+
+    if fields.iter().any(|f| f.is_required()) || base_fields.iter().any(|f| f.is_required()) {
+        builder.add_attribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers");
+    }
 
     builder.add_comment("summary", summary_comment);
 

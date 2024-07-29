@@ -40,26 +40,10 @@ pub fn field_declaration(field: &Field) -> String {
     format!(
         "\
 {prelude}
-{access} {type_string} {name} {{ get; {setter}; }}",
+{access}{required} {type_string} {name} {{ get; {setter}; }}",
         access = field.parent().access_modifier(),
+        required = if field.is_required() { " required" } else { "" },
         name = field.field_name(),
         setter = if field.is_cs_readonly() { "init" } else { "set" },
     )
-}
-
-pub fn initialize_required_fields(fields: &[&Field]) -> CodeBlock {
-    // This helper should only be used for classes and exceptions
-
-    let mut code = CodeBlock::default();
-
-    for field in fields {
-        let data_type = field.data_type();
-        if !data_type.is_optional && !data_type.is_value_type() {
-            // This is to suppress compiler warnings for non-nullable fields.
-            // We don't need it for value fields since they are initialized to default.
-            writeln!(code, "this.{} = default!;", field.field_name());
-        }
-    }
-
-    code
 }
