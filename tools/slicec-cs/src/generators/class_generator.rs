@@ -16,6 +16,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
 
     let fields = class_def.fields();
     let base_fields = class_def.base_class().map_or(vec![], Class::all_fields);
+    let all_fields = class_def.all_fields();
 
     let access = class_def.access_modifier();
 
@@ -70,7 +71,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
 
     let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
 
-    if !class_def.all_fields().is_empty() {
+    if !all_fields.is_empty() {
         // parameterless constructor.
         // The constructor needs to be public for System.Activator.CreateInstance.
         let mut parameterless_constructor = FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
@@ -87,11 +88,10 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
             &base_fields,
         ));
 
-        // Secondary constructor for all fields minus those with optional types.
-        // This constructor is only generated if necessary
-        if (non_nullable_fields.len() + non_nullable_base_fields.len() > 0)
-            && (non_nullable_fields.len() + non_nullable_base_fields.len() < fields.len() + base_fields.len())
-        {
+        // Secondary constructor for all fields minus those that are nullable.
+        // This constructor is only generated if necessary.
+        let non_nullable_fields_len = non_nullable_fields.len() + non_nullable_base_fields.len();
+        if non_nullable_fields_len > 0 && non_nullable_fields_len < all_fields.len() {
             class_builder.add_block(constructor(
                 &class_name,
                 access,
