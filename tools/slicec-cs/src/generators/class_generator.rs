@@ -10,15 +10,17 @@ use crate::member_util::*;
 use crate::slicec_ext::*;
 use slicec::grammar::{Class, Encoding, Field};
 
-pub fn generate_class(class_def: &Class) -> CodeBlock {
-    let class_name = class_def.escape_identifier();
-    let namespace = class_def.namespace();
+// Keep this file in sync with exception_generator.rs
 
-    let fields = class_def.fields();
-    let base_fields = class_def.base_class().map_or(vec![], Class::all_fields);
-    let all_fields = class_def.all_fields();
+pub fn generate_class(def: &Class) -> CodeBlock {
+    let class_name = def.escape_identifier();
+    let namespace = def.namespace();
 
-    let access = class_def.access_modifier();
+    let fields = def.fields();
+    let base_fields = def.base_class().map_or(vec![], Class::all_fields);
+    let all_fields = def.all_fields();
+
+    let access = def.access_modifier();
 
     let mut non_nullable_fields = fields.clone();
     non_nullable_fields.retain(|f| !f.data_type.is_optional);
@@ -26,27 +28,27 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
     let mut non_nullable_base_fields = base_fields.clone();
     non_nullable_base_fields.retain(|f| !f.data_type.is_optional);
 
-    let mut class_builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
+    let mut builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
-    if let Some(summary) = class_def.formatted_doc_comment_summary() {
-        class_builder.add_comment("summary", summary);
+    if let Some(summary) = def.formatted_doc_comment_summary() {
+        builder.add_comment("summary", summary);
     }
 
-    class_builder
-        .add_generated_remark("class", class_def)
-        .add_comments(class_def.formatted_doc_comment_seealso())
-        .add_type_id_attribute(class_def)
-        .add_compact_type_id_attribute(class_def)
-        .add_obsolete_attribute(class_def);
+    builder
+        .add_generated_remark("class", def)
+        .add_comments(def.formatted_doc_comment_seealso())
+        .add_type_id_attribute(def)
+        .add_compact_type_id_attribute(def)
+        .add_obsolete_attribute(def);
 
-    if let Some(base) = class_def.base_class() {
-        class_builder.add_base(base.escape_scoped_identifier(&namespace));
+    if let Some(base) = def.base_class() {
+        builder.add_base(base.escape_scoped_identifier(&namespace));
     } else {
-        class_builder.add_base("SliceClass".to_owned());
+        builder.add_base("SliceClass".to_owned());
     }
 
     // Add class fields
-    class_builder.add_block(
+    builder.add_block(
         fields
             .iter()
             .map(|m| field_declaration(m))
@@ -55,13 +57,12 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
             .into(),
     );
 
-    // Class static type ID string
-    class_builder.add_block(
+    builder.add_block(
         format!("private static readonly string SliceTypeId = typeof({class_name}).GetSliceTypeId()!;").into(),
     );
 
-    if class_def.compact_id.is_some() {
-        class_builder.add_block(
+    if def.compact_id.is_some() {
+        builder.add_block(
                 format!(
                     "private static readonly int _compactSliceTypeId = typeof({class_name}).GetCompactSliceTypeId()!.Value;"
                 )
@@ -76,10 +77,10 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
         // The constructor needs to be public for System.Activator.CreateInstance.
         let mut parameterless_constructor = FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
         parameterless_constructor.add_comment("summary", constructor_summary.clone());
-        class_builder.add_block(parameterless_constructor.build());
+        builder.add_block(parameterless_constructor.build());
 
         // The primary constructor.
-        class_builder.add_block(constructor(
+        builder.add_block(constructor(
             &class_name,
             access,
             constructor_summary.clone(),
@@ -92,7 +93,7 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
         // This constructor is only generated if necessary.
         let non_nullable_fields_len = non_nullable_fields.len() + non_nullable_base_fields.len();
         if non_nullable_fields_len > 0 && non_nullable_fields_len < all_fields.len() {
-            class_builder.add_block(constructor(
+            builder.add_block(constructor(
                 &class_name,
                 access,
                 constructor_summary,
@@ -104,9 +105,9 @@ pub fn generate_class(class_def: &Class) -> CodeBlock {
     }
     // else, we rely on the default parameterless constructor.
 
-    class_builder.add_block(encode_and_decode(class_def));
+    builder.add_block(encode_and_decode(def));
 
-    class_builder.build()
+    builder.build()
 }
 
 fn constructor(
@@ -151,11 +152,11 @@ fn constructor(
     code
 }
 
-fn encode_and_decode(class_def: &Class) -> CodeBlock {
+fn encode_and_decode(def: &Class) -> CodeBlock {
     let mut code = CodeBlock::default();
 
-    let fields = class_def.fields();
-    let has_base_class = class_def.base_class().is_some();
+    let fields = def.fields();
+    let has_base = def.base_class().is_some();
 
     let encode_class = FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
         .add_parameter("ref SliceEncoder", "encoder", None, None)
@@ -165,14 +166,14 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             code.writeln(
                 &FunctionCallBuilder::new("encoder.StartSlice")
                     .add_argument("SliceTypeId")
-                    .add_argument_if(class_def.compact_id.is_some(), "_compactSliceTypeId")
+                    .add_argument_if(def.compact_id.is_some(), "_compactSliceTypeId")
                     .build(),
             );
 
-            // classes are Slice1 only
+            // classes and exceptions are Slice1 only
             code.writeln(&encode_fields(&fields, Encoding::Slice1));
 
-            if has_base_class {
+            if has_base {
                 code.writeln("encoder.EndSlice(false);");
                 code.writeln("base.EncodeCore(ref encoder);");
             } else {
@@ -191,10 +192,10 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
             code.writeln("decoder.StartSlice();");
             code.writeln(&decode_fields(
                 &fields,
-                Encoding::Slice1, // classes are Slice1 only
+                Encoding::Slice1, // classes and exceptions are Slice1 only
             ));
             code.writeln("decoder.EndSlice();");
-            if has_base_class {
+            if has_base {
                 code.writeln("base.DecodeCore(ref decoder);");
             }
             code
