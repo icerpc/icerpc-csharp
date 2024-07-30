@@ -8,19 +8,19 @@ use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slicec::grammar::{Encoding, Exception, Field};
+use slicec::grammar::{Encoding, Exception, Field, Member};
 
 // Keep this file in sync with class_generator.rs
 
-pub fn generate_exception(def: &Exception) -> CodeBlock {
-    let class_name = def.escape_identifier();
-    let namespace = def.namespace();
+pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
+    let class_name = exception_def.escape_identifier();
+    let namespace = exception_def.namespace();
 
-    let fields = def.fields();
-    let base_fields = def.base_exception().map_or(vec![], Exception::all_fields);
-    let all_fields = def.all_fields();
+    let fields = exception_def.fields();
+    let base_fields = exception_def.base_exception().map_or(vec![], Exception::all_fields);
+    let all_fields = exception_def.all_fields();
 
-    let access = def.access_modifier();
+    let access = exception_def.access_modifier();
 
     let mut non_nullable_fields = fields.clone();
     non_nullable_fields.retain(|f| !f.data_type.is_optional);
@@ -30,17 +30,17 @@ pub fn generate_exception(def: &Exception) -> CodeBlock {
 
     let mut builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
-    if let Some(summary) = def.formatted_doc_comment_summary() {
+    if let Some(summary) = exception_def.formatted_doc_comment_summary() {
         builder.add_comment("summary", summary);
     }
 
     builder
-        .add_generated_remark("class", def)
-        .add_comments(def.formatted_doc_comment_seealso())
-        .add_type_id_attribute(def)
-        .add_obsolete_attribute(def);
+        .add_generated_remark("class", exception_def)
+        .add_comments(exception_def.formatted_doc_comment_seealso())
+        .add_type_id_attribute(exception_def)
+        .add_obsolete_attribute(exception_def);
 
-    if let Some(base) = def.base_exception() {
+    if let Some(base) = exception_def.base_exception() {
         builder.add_base(base.escape_scoped_identifier(&namespace));
     } else {
         builder.add_base("SliceException".to_owned());
@@ -95,7 +95,7 @@ pub fn generate_exception(def: &Exception) -> CodeBlock {
     }
     // else, we rely on the default parameterless constructor.
 
-    builder.add_block(encode_and_decode(def));
+    builder.add_block(encode_and_decode(exception_def));
 
     builder.build()
 }
@@ -108,8 +108,6 @@ fn constructor(
     fields: &[&Field],
     base_fields: &[&Field],
 ) -> CodeBlock {
-    let mut code = CodeBlock::default();
-
     let mut builder = FunctionBuilder::new(access, "", escaped_name, FunctionType::BlockBody);
 
     if fields.iter().any(|f| f.is_required()) || base_fields.iter().any(|f| f.is_required()) {
@@ -137,16 +135,14 @@ fn constructor(
         code
     });
 
-    code.add_block(builder.build());
-
-    code
+    builder.build()
 }
 
-fn encode_and_decode(def: &Exception) -> CodeBlock {
+fn encode_and_decode(exception_def: &Exception) -> CodeBlock {
     let mut code = CodeBlock::default();
 
-    let fields = def.fields();
-    let has_base = def.base_exception().is_some();
+    let fields = exception_def.fields();
+    let has_base = exception_def.base_exception().is_some();
 
     let encode_class = FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
         .add_parameter("ref SliceEncoder", "encoder", None, None)
