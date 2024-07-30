@@ -132,7 +132,7 @@ fn constructor(
     builder.set_body({
         let mut code = CodeBlock::default();
         for field in fields {
-            writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name(),);
+            writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name());
         }
         code
     });
