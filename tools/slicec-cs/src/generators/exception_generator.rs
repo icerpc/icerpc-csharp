@@ -66,7 +66,7 @@ pub fn generate_exception(def: &Exception) -> CodeBlock {
         // parameterless constructor.
         // The constructor needs to be public for System.Activator.CreateInstance.
         let mut parameterless_constructor = FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
-        parameterless_constructor.add_comment("summary", constructor_summary.clone());
+        parameterless_constructor.add_comment("summary", &constructor_summary);
         builder.add_block(parameterless_constructor.build());
 
         // The primary constructor.
