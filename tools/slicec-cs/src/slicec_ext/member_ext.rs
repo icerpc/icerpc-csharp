@@ -49,9 +49,7 @@ impl FieldExt for Field {
     }
 
     fn is_required(&self) -> bool {
-        return !self.data_type().is_optional
-            && !self.data_type().is_value_type()
-            && !matches!(self.parent().concrete_entity(), Entities::Struct(_));
+        !self.data_type().is_optional && !self.data_type().is_value_type()
     }
 
     fn formatted_param_doc_comment(&self) -> Option<String> {

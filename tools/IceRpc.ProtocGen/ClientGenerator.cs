@@ -131,7 +131,7 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
     /// <param name=""serviceAddress"">The service address. <see langword=""null"" /> is equivalent to an icerpc service
     /// address with path <see cref=""DefaultServicePath"" />.</param>
     /// <param name=""encodeOptions"">The encode options, used to customize the encoding of request payloads.</param>
-    [System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute]
+    [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
     public {clientImplementationName}(
         IceRpc.IInvoker invoker,
         IceRpc.ServiceAddress? serviceAddress = null,
@@ -146,7 +146,7 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
     /// <param name=""invoker"">The invocation pipeline of the proxy.</param>
     /// <param name=""serviceAddressUri"">A URI that represents a service address.</param>
     /// <param name=""encodeOptions"">The encode options, used to customize the encoding of request payloads.</param>
-    [System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute]
+    [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
     public {clientImplementationName}(
         IceRpc.IInvoker invoker,
         System.Uri serviceAddressUri,

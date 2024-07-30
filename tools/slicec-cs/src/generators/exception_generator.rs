@@ -111,7 +111,7 @@ fn constructor(
     let mut builder = FunctionBuilder::new(access, "", escaped_name, FunctionType::BlockBody);
 
     if fields.iter().any(|f| f.is_required()) || base_fields.iter().any(|f| f.is_required()) {
-        builder.add_attribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers");
+        builder.add_sets_required_members_attribute();
     }
 
     builder.add_comment("summary", summary_comment);
