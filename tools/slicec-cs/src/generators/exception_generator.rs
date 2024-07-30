@@ -1,41 +1,53 @@
 // Copyright (c) ZeroC, Inc.
 
-use crate::builders::{AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
+use crate::builders::{
+    AttributeBuilder, Builder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionCallBuilder, FunctionType,
+};
 use crate::code_block::CodeBlock;
 use crate::decoding::decode_fields;
 use crate::encoding::encode_fields;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slicec::grammar::{Encoding, Exception, Member};
+use slicec::grammar::{Encoding, Exception, Field, Member};
+
+// Keep this file in sync with class_generator.rs
 
 pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
-    let exception_name = exception_def.escape_identifier();
-    let has_base = exception_def.base.is_some();
+    let class_name = exception_def.escape_identifier();
+    let namespace = exception_def.namespace();
 
-    let namespace = &exception_def.namespace();
-
-    let fields = &exception_def.fields();
+    let fields = exception_def.fields();
+    let base_fields = exception_def.base_exception().map_or(vec![], Exception::all_fields);
+    let all_fields = exception_def.all_fields();
 
     let access = exception_def.access_modifier();
 
-    let mut exception_class_builder = ContainerBuilder::new(&format!("{access} partial class"), &exception_name);
+    let mut non_nullable_fields = fields.clone();
+    non_nullable_fields.retain(|f| !f.data_type.is_optional);
+
+    let mut non_nullable_base_fields = base_fields.clone();
+    non_nullable_base_fields.retain(|f| !f.data_type.is_optional);
+
+    let mut builder = ContainerBuilder::new(&format!("{access} partial class"), &class_name);
 
     if let Some(summary) = exception_def.formatted_doc_comment_summary() {
-        exception_class_builder.add_comment("summary", summary);
+        builder.add_comment("summary", summary);
     }
-    exception_class_builder
+
+    builder
         .add_generated_remark("class", exception_def)
         .add_comments(exception_def.formatted_doc_comment_seealso())
-        .add_obsolete_attribute(exception_def)
-        .add_type_id_attribute(exception_def);
+        .add_type_id_attribute(exception_def)
+        .add_obsolete_attribute(exception_def);
 
     if let Some(base) = exception_def.base_exception() {
-        exception_class_builder.add_base(base.escape_scoped_identifier(namespace));
+        builder.add_base(base.escape_scoped_identifier(&namespace));
     } else {
-        exception_class_builder.add_base("SliceException".to_owned());
+        builder.add_base("SliceException".to_owned());
     }
 
-    exception_class_builder.add_block(
+    // Add class fields
+    builder.add_block(
         fields
             .iter()
             .map(|m| field_declaration(m))
@@ -44,118 +56,140 @@ pub fn generate_exception(exception_def: &Exception) -> CodeBlock {
             .into(),
     );
 
-    exception_class_builder.add_block(
-        format!("private static readonly string SliceTypeId = typeof({exception_name}).GetSliceTypeId()!;").into(),
+    builder.add_block(
+        format!("private static readonly string SliceTypeId = typeof({class_name}).GetSliceTypeId()!;").into(),
     );
 
-    if !exception_def.all_fields().is_empty() {
-        // Parameterless constructor.
-        exception_class_builder.add_block(
-            FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
-                .add_comment(
-                    "summary",
-                    format!(r#"Constructs a new instance of <see cref="{}"/>."#, &exception_name),
-                )
-                .build(),
-        );
+    let constructor_summary = format!(r#"Constructs a new instance of <see cref="{class_name}" />."#);
 
-        exception_class_builder.add_block(one_shot_constructor(exception_def));
+    if !all_fields.is_empty() {
+        // parameterless constructor.
+        // The constructor needs to be public for System.Activator.CreateInstance.
+        let mut parameterless_constructor = FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
+        parameterless_constructor.add_comment("summary", &constructor_summary);
+        builder.add_block(parameterless_constructor.build());
 
-        // TODO: generate secondary constructor like for classes.
+        // The primary constructor.
+        builder.add_block(constructor(
+            &class_name,
+            access,
+            constructor_summary.clone(),
+            &namespace,
+            &fields,
+            &base_fields,
+        ));
+
+        // Secondary constructor for all fields minus those that are nullable.
+        // This constructor is only generated if necessary.
+        let non_nullable_fields_len = non_nullable_fields.len() + non_nullable_base_fields.len();
+        if non_nullable_fields_len > 0 && non_nullable_fields_len < all_fields.len() {
+            builder.add_block(constructor(
+                &class_name,
+                access,
+                constructor_summary,
+                &namespace,
+                &non_nullable_fields,
+                &non_nullable_base_fields,
+            ));
+        }
     }
     // else, we rely on the default parameterless constructor.
 
-    exception_class_builder.add_block(
-        FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
-            .add_never_editor_browsable_attribute()
-            .add_parameter("ref SliceDecoder", "decoder", None, None)
-            .set_body(
-                format!(
-                    "\
-decoder.StartSlice();
-{decode_fields}
-decoder.EndSlice();
-{decode_base}",
-                    decode_fields = decode_fields(fields, Encoding::Slice1),
-                    decode_base = if has_base { "base.DecodeCore(ref decoder);" } else { "" },
-                )
-                .into(),
-            )
-            .build(),
-    );
+    builder.add_block(encode_and_decode(exception_def));
 
-    exception_class_builder.add_block(encode_core_method(exception_def));
-
-    exception_class_builder.build()
+    builder.build()
 }
 
-fn encode_core_method(exception_def: &Exception) -> CodeBlock {
-    let fields = &exception_def.fields();
-    let has_base = exception_def.base.is_some();
+fn constructor(
+    escaped_name: &str,
+    access: &str,
+    summary_comment: String,
+    namespace: &str,
+    fields: &[&Field],
+    base_fields: &[&Field],
+) -> CodeBlock {
+    let mut builder = FunctionBuilder::new(access, "", escaped_name, FunctionType::BlockBody);
 
-    FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
-        .add_never_editor_browsable_attribute()
-        .add_parameter("ref SliceEncoder", "encoder", None, None)
-        .set_body(
-            format!(
-                "\
-encoder.StartSlice(SliceTypeId);
-{encode_fields}
-encoder.EndSlice(lastSlice: {is_last_slice});
-{encode_base}",
-                encode_fields = encode_fields(fields, Encoding::Slice1),
-                is_last_slice = !has_base,
-                encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
-            )
-            .into(),
-        )
-        .build()
-}
-
-fn one_shot_constructor(exception_def: &Exception) -> CodeBlock {
-    let exception_name = exception_def.escape_identifier();
-
-    let namespace = &exception_def.namespace();
-
-    let all_fields = exception_def.all_fields();
-
-    let base_parameters = if let Some(base) = exception_def.base_exception() {
-        base.all_fields().iter().map(|m| m.parameter_name()).collect::<Vec<_>>()
-    } else {
-        vec![]
-    };
-
-    let mut ctor_builder = FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
-
-    if all_fields.iter().any(|f| f.is_required()) {
-        ctor_builder.add_attribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers");
+    if fields.iter().any(|f| f.is_required()) || base_fields.iter().any(|f| f.is_required()) {
+        builder.add_attribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers");
     }
 
-    ctor_builder.add_comment(
-        "summary",
-        format!(r#"Constructs a new instance of <see cref="{}" />."#, &exception_name),
-    );
+    builder.add_comment("summary", summary_comment);
 
-    for field in &all_fields {
-        ctor_builder.add_parameter(
+    builder.add_base_parameters(&base_fields.iter().map(|m| m.parameter_name()).collect::<Vec<String>>());
+
+    for field in base_fields.iter().chain(fields.iter()) {
+        builder.add_parameter(
             &field.data_type().field_type_string(namespace),
-            field.parameter_name().as_str(),
+            &field.parameter_name(),
             None,
             field.formatted_doc_comment_summary(),
         );
     }
-    ctor_builder.add_base_parameters(&base_parameters);
 
-    // ctor impl
-    let mut ctor_body = CodeBlock::default();
-    for field in exception_def.fields() {
-        let field_name = field.field_name();
-        let parameter_name = field.parameter_name();
+    builder.set_body({
+        let mut code = CodeBlock::default();
+        for field in fields {
+            writeln!(code, "this.{} = {};", field.field_name(), field.parameter_name());
+        }
+        code
+    });
 
-        writeln!(ctor_body, "this.{field_name} = {parameter_name};");
-    }
+    builder.build()
+}
 
-    ctor_builder.set_body(ctor_body);
+fn encode_and_decode(exception_def: &Exception) -> CodeBlock {
+    let mut code = CodeBlock::default();
 
-    ctor_builder.build()
+    let fields = exception_def.fields();
+    let has_base = exception_def.base_exception().is_some();
+
+    let encode_class = FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
+        .add_parameter("ref SliceEncoder", "encoder", None, None)
+        .set_body({
+            let mut code = CodeBlock::default();
+
+            code.writeln(
+                &FunctionCallBuilder::new("encoder.StartSlice")
+                    .add_argument("SliceTypeId")
+                    .build(),
+            );
+
+            // classes and exceptions are Slice1 only
+            code.writeln(&encode_fields(&fields, Encoding::Slice1));
+
+            if has_base {
+                code.writeln("encoder.EndSlice(false);");
+                code.writeln("base.EncodeCore(ref encoder);");
+            } else {
+                code.writeln("encoder.EndSlice(true);"); // last slice
+            }
+
+            code
+        })
+        .add_never_editor_browsable_attribute()
+        .build();
+
+    let decode_class = FunctionBuilder::new("protected override", "void", "DecodeCore", FunctionType::BlockBody)
+        .add_parameter("ref SliceDecoder", "decoder", None, None)
+        .set_body({
+            let mut code = CodeBlock::default();
+            code.writeln("decoder.StartSlice();");
+            code.writeln(&decode_fields(
+                &fields,
+                Encoding::Slice1, // classes and exceptions are Slice1 only
+            ));
+            code.writeln("decoder.EndSlice();");
+            if has_base {
+                code.writeln("base.DecodeCore(ref decoder);");
+            }
+            code
+        })
+        .add_never_editor_browsable_attribute()
+        .build();
+
+    code.add_block(encode_class);
+    code.add_block(decode_class);
+
+    code
 }
