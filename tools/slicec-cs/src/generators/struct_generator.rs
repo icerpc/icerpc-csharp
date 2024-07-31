@@ -6,7 +6,7 @@ use crate::cs_attributes::CsReadonly;
 use crate::decoding::*;
 use crate::encoding::*;
 use crate::member_util::*;
-use crate::slicec_ext::{CommentExt, EntityExt, MemberExt, TypeRefExt};
+use crate::slicec_ext::{CommentExt, EntityExt, FieldExt, MemberExt, TypeRefExt};
 use slicec::grammar::*;
 use slicec::supported_encodings::SupportedEncodings;
 
@@ -39,12 +39,19 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
             .into(),
     );
 
+    let has_required_field = fields.iter().any(|f| f.is_required());
+
     let mut main_constructor = FunctionBuilder::new(
         struct_def.access_modifier(),
         "",
         &escaped_identifier,
         FunctionType::BlockBody,
     );
+
+    if has_required_field {
+        main_constructor.add_sets_required_members_attribute();
+    }
+
     main_constructor.add_comment(
         "summary",
         format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" />."#),
@@ -68,31 +75,37 @@ pub fn generate_struct(struct_def: &Struct) -> CodeBlock {
     builder.add_block(main_constructor.build());
 
     // Decode constructor
+    let mut decode_constructor = FunctionBuilder::new(
+        struct_def.access_modifier(),
+        "",
+        &escaped_identifier,
+        FunctionType::BlockBody,
+    );
+
+    if has_required_field {
+        decode_constructor.add_sets_required_members_attribute();
+    }
+
+    decode_constructor
+        .add_comment(
+            "summary",
+            format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> and decodes its fields from a Slice decoder."#),
+        )
+        .add_parameter(
+            "ref SliceDecoder",
+            "decoder",
+            None,
+            Some("The Slice decoder.".to_owned()),
+        );
+
     let mut decode_body = generate_encoding_blocks(&fields, struct_def.supported_encodings(), decode_fields, "decoder");
 
     if !struct_def.is_compact {
         writeln!(decode_body, "decoder.SkipTagged();");
     }
-    builder.add_block(
-            FunctionBuilder::new(
-                struct_def.access_modifier(),
-                "",
-                &escaped_identifier,
-                FunctionType::BlockBody,
-            )
-            .add_comment(
-                "summary",
-                format!(r#"Constructs a new instance of <see cref="{escaped_identifier}" /> and decodes its fields from a Slice decoder."#),
-            )
-            .add_parameter(
-                "ref SliceDecoder",
-                "decoder",
-                None,
-                Some("The Slice decoder.".to_owned()),
-            )
-            .set_body(decode_body)
-            .build(),
-        );
+
+    decode_constructor.set_body(decode_body);
+    builder.add_block(decode_constructor.build());
 
     // Encode method
     let mut encode_body = generate_encoding_blocks(&fields, struct_def.supported_encodings(), encode_fields, "encoder");

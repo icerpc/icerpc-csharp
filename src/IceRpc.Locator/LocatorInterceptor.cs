@@ -146,7 +146,7 @@ public readonly record struct Location
     public bool IsAdapterId { get; init; }
 
     /// <summary>Gets the adapter ID or path.</summary>
-    public string Value { get; init; }
+    public required string Value { get; init; }
 
     internal string Kind => IsAdapterId ? "adapter ID" : "well-known service address";
 

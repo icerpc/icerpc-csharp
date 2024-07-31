@@ -23,7 +23,7 @@ public class LocationResolverTests
                 TimeSpan.FromSeconds(refreshThreshold),
                 ttl: Timeout.InfiniteTimeSpan);
 
-        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(new Location(), refreshCache: true, default);
+        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
 
         Assert.That(serverAddressFinder.Calls, Is.EqualTo(0));
         Assert.That(resolved, Is.EqualTo(cachedServiceAddress));
@@ -46,7 +46,7 @@ public class LocationResolverTests
                 TimeSpan.FromSeconds(refreshThreshold),
                 ttl: Timeout.InfiniteTimeSpan);
 
-        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(new Location(), refreshCache: true, default);
+        (ServiceAddress? resolved, bool _) = await resolver.ResolveAsync(default, refreshCache: true, default);
 
         Assert.That(serverAddressFinder.Calls, Is.EqualTo(1));
         Assert.That(resolved, Is.EqualTo(resolvedServiceAddress));
@@ -66,7 +66,7 @@ public class LocationResolverTests
                 TimeSpan.FromSeconds(1),
                 ttl: TimeSpan.FromSeconds(30));
 
-        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(new Location(), refreshCache: false, default);
+        (ServiceAddress? resolved, bool fromCache) = await resolver.ResolveAsync(default, refreshCache: false, default);
 
         Assert.That(fromCache, Is.True);
         Assert.That(resolved, Is.EqualTo(cachedServiceAddress));

@@ -240,7 +240,7 @@ public static {proxy_impl} FromPath(string path) =>
 /// <param name="serviceAddress">The service address. <see langword="null" /> is equivalent to an icerpc service address
 /// with path <see cref="DefaultServicePath" />.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
-[System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute]
+[System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
 public {proxy_impl}(
     IceRpc.IInvoker invoker,
     IceRpc.ServiceAddress? serviceAddress = null,
@@ -255,7 +255,7 @@ public {proxy_impl}(
 /// <param name="invoker">The invocation pipeline of the proxy.</param>
 /// <param name="serviceAddressUri">A URI that represents a service address.</param>
 /// <param name="encodeOptions">The encode options, used to customize the encoding of request payloads.</param>
-[System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute]
+[System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
 public {proxy_impl}(IceRpc.IInvoker invoker, System.Uri serviceAddressUri, SliceEncodeOptions? encodeOptions = null)
     : this(invoker, new IceRpc.ServiceAddress(serviceAddressUri), encodeOptions)
 {{

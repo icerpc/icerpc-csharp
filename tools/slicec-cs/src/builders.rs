@@ -307,8 +307,11 @@ impl FunctionBuilder {
     pub fn add_never_editor_browsable_attribute(&mut self) -> &mut Self {
         self.add_attribute(
             "global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)",
-        );
-        self
+        )
+    }
+
+    pub fn add_sets_required_members_attribute(&mut self) -> &mut Self {
+        self.add_attribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers")
     }
 
     pub fn add_operation_parameters(&mut self, operation: &Operation, context: TypeContext) -> &mut Self {
