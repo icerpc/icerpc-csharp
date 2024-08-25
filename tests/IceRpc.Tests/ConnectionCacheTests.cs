@@ -108,6 +108,80 @@ public sealed class ConnectionCacheTests
         await cache.ShutdownAsync();
     }
 
+    /// <summary>Verifies that the connection cache uses the alt-server when the primary server is busy.</summary>
+    [TestCase("icerpc")]
+    [TestCase("ice")]
+    public async Task Get_connection_when_primary_server_busy(string protocolString)
+    {
+        // Arrange
+        using var dispatcher = new TestDispatcher();
+        var colocTransport = new ColocTransport();
+        var protocol = Protocol.Parse(protocolString);
+        var primaryServerAddress = new ServerAddress(protocol) { Host = "primary" };
+        var altServerAddress = new ServerAddress(protocol) { Host = "alt" };
+
+        await using var primaryServer = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                MaxConnections = 1,
+                ServerAddress = primaryServerAddress
+            },
+            duplexServerTransport: colocTransport.ServerTransport,
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        _ = primaryServer.Listen();
+
+        await using var altServer = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = altServerAddress
+            },
+            duplexServerTransport: colocTransport.ServerTransport,
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        _ = altServer.Listen();
+
+        // Make primary busy by using the only connection it accepts
+        await using var clientConnection = new ClientConnection(
+            primaryServerAddress,
+            duplexClientTransport: colocTransport.ClientTransport,
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+        await clientConnection.ConnectAsync();
+
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions(),
+            duplexClientTransport: colocTransport.ClientTransport,
+            multiplexedClientTransport: new SlicClientTransport(colocTransport.ClientTransport));
+
+        ServerAddress? selectedServerAddress = null;
+        Pipeline pipeline = new Pipeline()
+            .Use(next => new InlineInvoker(async (request, cancellationToken) =>
+                {
+                    IncomingResponse response = await next.InvokeAsync(request, cancellationToken);
+                    selectedServerAddress = request.Features.Get<IServerAddressFeature>()?.ServerAddress;
+                    return response;
+                }))
+            .Into(cache);
+
+        // Act
+        await SendEmptyRequestAsync(
+            pipeline,
+            new ServiceAddress(protocol)
+            {
+                ServerAddress = primaryServerAddress,
+                AltServerAddresses = [altServerAddress]
+            });
+
+        // Assert
+        Assert.That(selectedServerAddress, Is.EqualTo(altServerAddress));
+
+        // Cleanup
+        await primaryServer.ShutdownAsync();
+        await altServer.ShutdownAsync();
+        await clientConnection.ShutdownAsync();
+        await cache.ShutdownAsync();
+    }
+
     /// <summary>Verifies that the connection cache prefers connecting to the main server address.</summary>
     [Test]
     public async Task Get_connection_for_main_server_address()
