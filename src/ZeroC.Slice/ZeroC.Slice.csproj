@@ -6,6 +6,8 @@
     <PackageTags>slice;binary;serialization;format</PackageTags>
     <PackageIcon>slice-icon.png</PackageIcon>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- Keep the Dunet-generated files for reportgenerator -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <SliceFile>
