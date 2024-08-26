@@ -67,14 +67,14 @@ public class QuicTransportSslAuthenticationTests
                 {
                     ClientCertificateRequired = true,
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false,
-                    ServerCertificate = X509CertificateLoader.LoadCertificateFromFile("server.p12"),
+                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server.p12", null),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
                 {
                     ClientCertificates =
                     [
-                        X509CertificateLoader.LoadCertificateFromFile("client-untrusted.p12")
+                        X509CertificateLoader.LoadPkcs12FromFile("client-untrusted.p12", null)
                     ],
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
                 })
