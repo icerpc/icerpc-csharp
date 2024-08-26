@@ -69,17 +69,17 @@
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
     />
-    <OutputHashTask Sources="@(ProtoFile)" Condition="'$(DisableBuildTelemetry)' != 'true'">
+    <OutputHashTask Sources="@(ProtoFile)" Condition="'$(IceRpcBuildTelemetry)' != 'false'">
       <Output PropertyName="Hash" TaskParameter="CompilationHash" />
       <Output PropertyName="FileCount" TaskParameter="FileCount" />
     </OutputHashTask>
 
-    <!-- Run telemetry -->
+    <!-- Run build telemetry -->
     <TelemetryTask
-      WorkingDirectory="$(TelemetryScriptPath)"
+      WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
       CompilationHash="$(Hash)"
       SourceFileCount="$(FileCount)"
-      Condition="'$(DisableBuildTelemetry)' != 'true'"
+      Condition="'$(IceRpcBuildTelemetry)' != 'false'"
       Idl="protobuf"
       ContinueOnError="true"
     />

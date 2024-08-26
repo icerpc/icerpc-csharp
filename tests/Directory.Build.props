@@ -7,6 +7,6 @@
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Tests.globalconfig" />
   </ItemGroup>
   <PropertyGroup>
-    <DisableBuildTelemetry>true</DisableBuildTelemetry>
+    <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
   </PropertyGroup>
 </Project>

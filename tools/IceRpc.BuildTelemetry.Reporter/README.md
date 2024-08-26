@@ -27,7 +27,7 @@ csharp project file:
 
 ```xml
 <PropertyGroup>
- <DisableBuildTelemetry>true</DisableBuildTelemetry>
+ <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
 </PropertyGroup>
 ```
 

@@ -18,8 +18,8 @@
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath
         >$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
-        <TelemetryScriptPath
-        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/</TelemetryScriptPath>
+        <IceRpcBuildTelemetryScriptPath
+        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/</IceRpcBuildTelemetryScriptPath>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -27,7 +27,7 @@
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
-        <TelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</TelemetryScriptPath>
+        <IceRpcBuildTelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</IceRpcBuildTelemetryScriptPath>
       </PropertyGroup>
     </Otherwise>
   </Choose>
