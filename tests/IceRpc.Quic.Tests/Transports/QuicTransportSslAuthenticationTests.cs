@@ -32,7 +32,7 @@ public class QuicTransportSslAuthenticationTests
             .AddSingleton(
                 new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = new X509Certificate2("server-untrusted.p12"),
+                    ServerCertificate = X509CertificateLoader.LoadCertificateFromFile("server-untrusted.p12"),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
@@ -67,15 +67,15 @@ public class QuicTransportSslAuthenticationTests
                 {
                     ClientCertificateRequired = true,
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false,
-                    ServerCertificate = new X509Certificate2("server.p12"),
+                    ServerCertificate = X509CertificateLoader.LoadCertificateFromFile("server.p12"),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
                 {
-                    ClientCertificates = new X509CertificateCollection()
-                    {
-                        new X509Certificate2("client-untrusted.p12")
-                    },
+                    ClientCertificates =
+                    [
+                        X509CertificateLoader.LoadCertificateFromFile("client-untrusted.p12")
+                    ],
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
                 })
             .BuildServiceProvider(validateScopes: true);
