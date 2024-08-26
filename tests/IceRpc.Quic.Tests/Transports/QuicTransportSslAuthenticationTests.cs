@@ -32,7 +32,7 @@ public class QuicTransportSslAuthenticationTests
             .AddSingleton(
                 new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = X509CertificateLoader.LoadCertificateFromFile("server-untrusted.p12"),
+                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server-untrusted.p12", null),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
