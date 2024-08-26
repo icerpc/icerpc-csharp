@@ -19,10 +19,10 @@ public static class QuicTransportServiceCollectionExtensions
     {
         services.AddSingleton(provider => new SslClientAuthenticationOptions
         {
-            ClientCertificates = new X509CertificateCollection
-                    {
+            ClientCertificates =
+                    [
                         X509CertificateLoader.LoadCertificateFromFile("client.p12")
-                    },
+                    ],
             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
                 certificate?.Issuer.Contains("IceRPC Tests CA", StringComparison.Ordinal) ?? false
         })
