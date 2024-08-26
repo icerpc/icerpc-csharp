@@ -10,9 +10,6 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      # TODO workaround for https://github.com/icerpc/icerpc-csharp/issues/4020
-      NuGetAudit: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
