@@ -21,6 +21,10 @@
     <PackageReference Include="NUnit" Version="3.14.0" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.Bcl.Cryptography" Version="9.0.0-preview.*" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
     <ProjectReference Include="../../src/IceRpc.Transports.Quic/IceRpc.Transports.Quic.csproj" />

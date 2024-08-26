@@ -39,6 +39,7 @@
     "parameterless",
     "peekable",
     "pingable",
+    "Pkcs",
     "Proto",
     "Protobuf",
     "Protoc",
