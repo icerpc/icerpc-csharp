@@ -21,7 +21,7 @@ public static class QuicTransportServiceCollectionExtensions
         {
             ClientCertificates =
                     [
-                        X509CertificateLoader.LoadPkcs12FromFile("client.p12", null)
+                        X509CertificateLoader.LoadPkcs12FromFile("client.p12", password: null)
                     ],
             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
                 certificate?.Issuer.Contains("IceRPC Tests CA", StringComparison.Ordinal) ?? false
@@ -29,7 +29,7 @@ public static class QuicTransportServiceCollectionExtensions
             .AddSingleton(provider => new SslServerAuthenticationOptions
             {
                 ClientCertificateRequired = false,
-                ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server.p12", null)
+                ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server.p12", password: null)
             })
             .AddSingleton<IMultiplexedServerTransport>(provider =>
                 new QuicServerTransport(
