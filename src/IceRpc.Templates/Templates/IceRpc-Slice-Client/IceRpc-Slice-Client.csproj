@@ -22,6 +22,8 @@
     <!--#if (framework=="net8.0")-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
+    <!-- Required to avoid NuGet Audit error: see #4032 -->
+    <PackageReference Include="System.Text.Json" Version="8.0.*" />
     <!--#else-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.*-preview.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.*-preview.*" />
