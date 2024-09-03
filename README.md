@@ -6,6 +6,7 @@
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
+[![Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=main)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=main)
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
 

@@ -1,0 +1,28 @@
+name: coverage
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+
+        uses: actions/checkout@v4
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Generate Coverage Reports
+        run: dotnet test --collect:"XPlat Code Coverage" -p:RunSettingsFilePath=${{ github.workspace }}/build/Coverlet.runsettings
+        shell: bash
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          files: tests/*/TestResults/*/coverage.cobertura.xml
+          format: cobertura
