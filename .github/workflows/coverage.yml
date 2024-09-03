@@ -18,7 +18,7 @@ jobs:
         uses: ./.github/actions/build
 
       - name: Generate Coverage Reports
-        run: dotnet test --collect:"XPlat Code Coverage" -p:RunSettingsFilePath=build/Coverlet.runsettings
+        run: dotnet test --collect:"XPlat Code Coverage" -p:RunSettingsFilePath=${{ github.workspace }}/build/Coverlet.runsettings
         shell: bash
 
       - name: ReportGenerator
