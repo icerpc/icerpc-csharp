@@ -23,5 +23,7 @@ RUN set -eux \
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Set environment variables
-ENV DOTNET_ROOT=~/.dotnet
+ENV DOTNET_ROOT=/root/.dotnet
 ENV PATH=$DOTNET_ROOT:$DOTNET_ROOT/tools:~/.cargo/bin:$PATH
+
+RUN ln -s "$DOTNET_ROOT/dotnet" /usr/bin/dotnet
