@@ -22,12 +22,6 @@ jobs:
             dotnet tool install --global docfx
             ./build.sh --doc
 
-      - name: Upload Docs
-        uses: actions/upload-artifact@v4
-        with:
-          name: DocFX
-          path: docfx/_site
-
       - name: Sync to S3
         run: aws s3 sync ./docfx/_site s3://${{ secrets.AWS_S3_BUCKET }}/csharp/main/api --delete
         env:
