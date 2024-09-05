@@ -20,7 +20,7 @@ jobs:
       - name: Build Docs
         run: |
             dotnet tool install --global docfx
-            ./build.sh --docs
+            ./build.sh --doc
 
       - name: Upload Docs
         uses: actions/upload-artifact@v4
