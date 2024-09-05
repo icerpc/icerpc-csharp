@@ -6,7 +6,10 @@
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
-[![Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=main)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=main)
+[![Report Generator Coverage](https://code.icerpc.dev/csharp/main/coverage/badge_branchcoverage.svg)](https://code.icerpc.dev/csharp/main/coverage/index.html)
+[![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=main)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=main)
+
+badge_branchcoverage.svg
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
 
