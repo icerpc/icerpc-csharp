@@ -28,12 +28,12 @@ jobs:
           format: cobertura
 
       - name: ReportGenerator
-         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
-         with:
-           reports: tests/*/TestResults/*/coverage.cobertura.xml
-           targetdir: coveragereport
-           reporttypes: Html;Badges
-           license: ${{ secrets.REPORT_GENERATOR_LICENSE }}
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
+        with:
+          reports: tests/*/TestResults/*/coverage.cobertura.xml
+          targetdir: coveragereport
+          reporttypes: Html;Badges
+          license: ${{ secrets.REPORT_GENERATOR_LICENSE }}
 
       - name: Upload coverage report artifact
         uses: actions/upload-artifact@v4
