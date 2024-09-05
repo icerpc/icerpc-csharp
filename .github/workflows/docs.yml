@@ -16,16 +16,19 @@ jobs:
         uses: actions/checkout@v4
       - name: Build
         uses: ./.github/actions/build
-        with:
-          dotnet-build-args: "--docs"
 
-      - name: Upload coverage report artifact
+      - name: Build Docs
+        run: |
+            dotnet tool install --global docfx
+            ./build.sh --docs
+
+      - name: Upload Docs
         uses: actions/upload-artifact@v4
         with:
           name: DocFX
           path: docfx/_site
 
-      - name: Sync Coverage Report to S3
+      - name: Sync to S3
         run: aws s3 sync ./docfx/_site s3://${{ secrets.AWS_S3_BUCKET }}/csharp/main/api --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
