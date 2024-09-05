@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  coverage:
+  docfx:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
