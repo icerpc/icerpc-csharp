@@ -35,12 +35,6 @@ jobs:
           reporttypes: Html;Badges
           license: ${{ secrets.REPORT_GENERATOR_LICENSE }}
 
-      - name: Upload coverage report artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: CoverageReport # Artifact name
-          path: coveragereport # Directory containing files to upload
-
       - name: Sync Coverage Report to S3
         run: aws s3 sync ./coveragereport s3://${{ secrets.AWS_S3_BUCKET }}/csharp/main/coverage --delete
         env:
