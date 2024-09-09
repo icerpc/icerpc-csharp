@@ -48,10 +48,10 @@
     <PackageReference Include="System.Text.Json" Version="8.0.*" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../Common/IceRpc.BuildTelemetry/TelemetryTask.cs" />
     <None
       Include="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*"
       Exclude="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*.exe"
+      Visible="false"
     >
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>

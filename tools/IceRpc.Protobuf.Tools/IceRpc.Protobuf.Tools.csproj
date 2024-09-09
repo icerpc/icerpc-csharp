@@ -39,10 +39,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
-    <Compile Include="../Common/IceRpc.BuildTelemetry/TelemetryTask.cs" />
     <None
       Include="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*"
       Exclude="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*.exe"
+      Visible="false"
     >
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
@@ -76,11 +76,12 @@
     <None
       Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*"
       Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe"
+      Visible="false"
     >
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)obj/tools/**">
+    <None Include="$(MSBuildThisFileDirectory)obj/tools/**" Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
@@ -116,7 +117,7 @@
     />
 
     <!-- We cannot use MSBuild Unzip task because it doesn't preserve the executable permissions, we use our custom
-           extract task instead. -->
+        extract task instead. -->
     <ExtractTask
       SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"

@@ -7,7 +7,7 @@
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
   />
   <UsingTask
-    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
+    TaskName="IceRpc.Slice.Tools.BuildTelemetryTask"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
   />
   <ItemGroup>
@@ -36,9 +36,9 @@
   </ItemGroup>
 
   <!--
-        When EnableDefaultItems property is true, *.slice files are included as "None" items. We remove them here, to
-        include them as "SliceFile" items later.
-    -->
+    When EnableDefaultItems property is true, *.slice files are included as "None" items. We remove them here, to
+    include them as "SliceFile" items later.
+  -->
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
     <None Remove="**/*.slice" />
   </ItemGroup>
@@ -72,36 +72,35 @@
       <Output PropertyName="ReferenceFileCount" TaskParameter="ReferenceFileCount" />
     </SliceCCSharpTask>
 
-    <!-- Run telemetry -->
-    <TelemetryTask
+    <!-- Run build telemetry -->
+    <BuildTelemetryTask
       WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
       CompilationHash="$(Hash)"
       ContainsSlice1="$(ContainsSlice1)"
       ContainsSlice2="$(ContainsSlice2)"
       SourceFileCount="$(SourceFileCount)"
       ReferenceFileCount="$(ReferenceFileCount)"
-      Idl="slice"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
       ContinueOnError="true"
     />
 
     <!--
-            Include all C# generated source items that have not been already included. We delay this until we are
-            running the SliceC target so that default includes are already processed.
+      Include all C# generated source items that have not been already included. We delay this until we are
+      running the SliceC target so that default includes are already processed.
         -->
     <ItemGroup>
       <SliceFile>
         <!--
-                    Add GeneratedPath and IceRpcGeneratedPath metadata with the normalized path, this is required for
-                    excludes below to work with different path separators.
-                -->
+          Add GeneratedPath and IceRpcGeneratedPath metadata with the normalized path, this is required for
+          excludes below to work with different path separators.
+        -->
         <GeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).cs'))</GeneratedPath>
         <IceRpcGeneratedPath>$([MSBuild]::NormalizePath('%(OutputDir)/%(Filename).IceRpc.cs'))</IceRpcGeneratedPath>
       </SliceFile>
       <!--
-                Create a Compile item for each SliceFile item, representing the generated C# files.
-                Use RemoveMetadata to avoid including SliceFile-specific metadata in the generated Compile item.
-            -->
+        Create a Compile item for each SliceFile item, representing the generated C# files.
+        Use RemoveMetadata to avoid including SliceFile-specific metadata in the generated Compile item.
+      -->
       <Compile
         Include="@(SliceFile->'%(GeneratedPath)')"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
@@ -109,8 +108,8 @@
       />
 
       <!--
-                TODO: use a dedicated option instead of "parsing" AdditionalOptions.
-            -->
+          TODO: use a dedicated option instead of "parsing" AdditionalOptions.
+      -->
       <Compile
         Condition="'%(SliceFile.AdditionalOptions)' != '--rpc none'"
         Include="@(SliceFile->'%(IceRpcGeneratedPath)')"

@@ -18,12 +18,12 @@
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath
         >$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
-        <IceRpcBuildTelemetryScriptPath
-        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/</IceRpcBuildTelemetryScriptPath>
+        <!-- Disable build telemetry when using an IceRPC source builds -->
+        <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
       </PropertyGroup>
     </When>
     <Otherwise>
-      <!-- Use the protoc compiler and the IceRpc.ProtocGen assembly in this NuGet package -->
+      <!-- Use the protoc compiler, the IceRpc.ProtocGen assembly, and the build telemetry script in this NuGet package -->
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
