@@ -22,7 +22,7 @@ secure database and is not shared with any third parties.
 
 ## Opting Out
 
-To opt out of the telemetry program, add the following property to your
+To opt out of the build telemetry program, add the following property to your
 csharp project file:
 
 ```xml
@@ -31,5 +31,5 @@ csharp project file:
 </PropertyGroup>
 ```
 
-Setting this property to `true` completely disables the computation and
+Setting this property to `false` completely disables the computation and
 collection of telemetry.
