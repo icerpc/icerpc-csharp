@@ -18,4 +18,5 @@ jobs:
           rustup toolchain install nightly
           rustup component add rustfmt --toolchain nightly
       - name: 🔎 Format using rustfmt
+        working-directory: tools/slicec-cs
         run: cargo +nightly fmt --check
