@@ -20,12 +20,12 @@
         <SliceCompilerPath
           Condition="'$(Configuration)' == 'Release'"
         >$(MSBuildThisFileDirectory)../slicec-cs/target/release</SliceCompilerPath>
-        <IceRpcBuildTelemetryScriptPath
-        >$(MSBuildThisFileDirectory)../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/</IceRpcBuildTelemetryScriptPath>
+        <!-- Build telemetry is not supported with source builds -->
+        <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
       </PropertyGroup>
     </When>
     <Otherwise>
-      <!-- Use the Slice compiler from this NuGet package -->
+      <!-- Use the Slice compiler and build telemetry script from this NuGet package -->
       <PropertyGroup>
         <SliceCompilerPath>$(MSBuildThisFileDirectory)../tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
         <IceRpcBuildTelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</IceRpcBuildTelemetryScriptPath>

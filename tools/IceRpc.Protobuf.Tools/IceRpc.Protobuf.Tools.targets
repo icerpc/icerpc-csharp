@@ -19,7 +19,7 @@
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
   <UsingTask
-    TaskName="IceRpc.BuildTelemetry.TelemetryTask"
+    TaskName="IceRpc.Protobuf.Tools.BuildTelemetryTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
   />
   <ItemGroup>
@@ -75,7 +75,7 @@
     </OutputHashTask>
 
     <!-- Run build telemetry -->
-    <TelemetryTask
+    <BuildTelemetryTask
       WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
       CompilationHash="$(Hash)"
       SourceFileCount="$(FileCount)"

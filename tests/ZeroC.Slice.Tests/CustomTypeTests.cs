@@ -161,7 +161,7 @@ public class CustomTypeTests
         encoder.EncodeTagged(
             1,
             TagFormat.FSize,
-            myCustomType, 
+            myCustomType,
             (ref SliceEncoder encoder, MyCustomType value) =>
                 CustomTypeSliceEncoderExtensions.EncodeNullableCustomType(ref encoder, value));
 

@@ -120,15 +120,13 @@ public class SliceCCSharpTask : ToolTask
                 ContainsSlice2 = jsonDoc.RootElement.GetProperty("contains_slice2").GetBoolean();
                 SourceFileCount = jsonDoc.RootElement.GetProperty("src_file_count").GetInt32();
                 ReferenceFileCount = jsonDoc.RootElement.GetProperty("ref_file_count").GetInt32();
-                return;
             }
             catch (System.Text.Json.JsonException ex)
             {
                 Log.LogError($"Error parsing JSON: {ex.Message}. JSON content: {singleLine}");
             }
         }
-
-        if (DiagnosticParser.Parse(singleLine) is Diagnostic diagnostic)
+        else if (DiagnosticParser.Parse(singleLine) is Diagnostic diagnostic)
         {
             diagnostic.SourceSpan ??= new SourceSpan();
 
@@ -171,7 +169,7 @@ public class SliceCCSharpTask : ToolTask
             }
             else
             {
-                Debug.Assert(diagnostic.Severity == "warning");
+                Debug.Assert(severity == "warning");
                 Log.LogWarning("", code, "", file, start.Row, start.Column, end.Row, end.Column, message);
             }
         }

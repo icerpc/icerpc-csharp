@@ -3,7 +3,6 @@
 using IceRpc;
 using IceRpc.BuildTelemetry;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Reflection;
 
 var timeout = TimeSpan.FromSeconds(3); // The timeout for the complete telemetry upload process.
@@ -66,8 +65,25 @@ try
 
     BuildTelemetry buildTelemetry = idl.ToLower() switch
     {
-        "slice" => new BuildTelemetry.Slice(new SliceTelemetryData(version, compilationHash, containsSlice1, containsSlice2, sourceFileCount, referenceFileCount)),
-        "protobuf" => new BuildTelemetry.Protobuf(new ProtobufTelemetryData(version, compilationHash, sourceFileCount)),
+        "slice" => new BuildTelemetry.Slice(new SliceTelemetryData(
+            version,
+            SystemHelpers.GetOperatingSystem(),
+            SystemHelpers.GetArchitecture(),
+            SystemHelpers.IsCi(),
+            new TargetLanguage.CSharp(Environment.Version.ToString()),
+            compilationHash,
+            containsSlice1,
+            containsSlice2,
+            sourceFileCount,
+            referenceFileCount)),
+        "protobuf" => new BuildTelemetry.Protobuf(new ProtobufTelemetryData(
+            version,
+            SystemHelpers.GetOperatingSystem(),
+            SystemHelpers.GetArchitecture(),
+            SystemHelpers.IsCi(),
+            new TargetLanguage.CSharp(Environment.Version.ToString()),
+            sourceFileCount,
+            compilationHash)),
         _ => throw new ArgumentException($"Unknown IDL: {idl}") // This should never happen
     };
 

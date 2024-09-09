@@ -11,7 +11,7 @@ public partial class ServiceProviderExtensionsTests
     [Test]
     public void Create_protobuf_client_with_no_params()
     {
-        var serviceCollection = 
+        var serviceCollection =
             new ServiceCollection()
                 .AddSingleton(InvalidInvoker.Instance)
                 .AddSingleton<IMyOperations>(provider => provider.CreateProtobufClient<MyOperationsClient>());

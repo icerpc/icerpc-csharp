@@ -3,24 +3,18 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-namespace IceRpc.BuildTelemetry;
+namespace IceRpc.Slice.Tools;
 
 /// <summary>
-/// A custom MSBuild task to run telemetry commands.
+/// A MSBuild task that reports Slice build telemetry data to the IceRPC build telemetry service.
 /// </summary>
-public class TelemetryTask : ToolTask
+public class BuildTelemetryTask : ToolTask
 {
     /// <summary>
     /// Gets or sets the compilation hash.
     /// </summary>
     [Required]
     public string CompilationHash { get; set; } = "";
-
-    /// <summary>
-    /// Gets or sets the Idl.
-    /// </summary>
-    [Required]
-    public string Idl { get; set; } = "";
 
     /// <summary>
     /// Gets or sets a value indicating whether the compilation contained any Slice1 files.
@@ -52,12 +46,6 @@ public class TelemetryTask : ToolTask
     protected override string ToolName => "dotnet";
 
     /// <inheritdoc/>
-    protected override string GetWorkingDirectory() => WorkingDirectory;
-
-    /// <inheritdoc/>
-    protected override string GenerateFullPathToTool() => ToolName;
-
-    /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
         var commandLine = new CommandLineBuilder();
@@ -65,31 +53,25 @@ public class TelemetryTask : ToolTask
         commandLine.AppendSwitch("--hash");
         commandLine.AppendSwitch(CompilationHash);
         commandLine.AppendSwitch("--idl");
-        commandLine.AppendSwitch(Idl);
+        commandLine.AppendSwitch("slice");
 
-        if (Idl.ToLower() == "slice")
-        {
-            commandLine.AppendSwitch("--contains-slice1");
-            commandLine.AppendSwitch(ContainsSlice1.ToString());
-            commandLine.AppendSwitch("--contains-slice2");
-            commandLine.AppendSwitch(ContainsSlice2.ToString());
-            commandLine.AppendSwitch("--src-file-count");
-            commandLine.AppendSwitch(SourceFileCount.ToString());
-            commandLine.AppendSwitch("--ref-file-count");
-            commandLine.AppendSwitch(ReferenceFileCount.ToString());
-        }
-        else if (Idl.ToLower() == "protobuf")
-        {
-            commandLine.AppendSwitch("--src-file-count");
-            commandLine.AppendSwitch(SourceFileCount.ToString());
-        }
+        commandLine.AppendSwitch("--contains-slice1");
+        commandLine.AppendSwitch(ContainsSlice1.ToString());
+        commandLine.AppendSwitch("--contains-slice2");
+        commandLine.AppendSwitch(ContainsSlice2.ToString());
+        commandLine.AppendSwitch("--src-file-count");
+        commandLine.AppendSwitch(SourceFileCount.ToString());
+        commandLine.AppendSwitch("--ref-file-count");
+        commandLine.AppendSwitch(ReferenceFileCount.ToString());
 
         return commandLine.ToString();
     }
 
+    /// <inheritdoc/>
+    protected override string GenerateFullPathToTool() => ToolName;
+
     /// <summary>
     /// Overriding this method to suppress any warnings or errors.
     /// </summary>
-    /// <inheritdoc/>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance) { }
 }
