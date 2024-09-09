@@ -1,0 +1,22 @@
+name: rustfmt
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  rustfmt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: 📦 Install nightly toolchain
+        run: |
+          rustup toolchain install nightly
+          rustup component add rustfmt --toolchain nightly
+      - name: 🔎 Format using rustfmt
+        working-directory: tools/slicec-cs
+        run: cargo +nightly fmt --check

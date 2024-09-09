@@ -55,25 +55,21 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 
     fn incoming_parameter_type_string(&self, namespace: &str) -> String {
         let type_string = match &self.concrete_typeref() {
-            TypeRefs::Sequence(sequence_ref) => {
-                match sequence_ref.find_attribute::<CsType>() {
-                    Some(argument) => argument.type_string.clone(),
-                    None => {
-                        let element_type = sequence_ref.element_type.field_type_string(namespace);
-                        format!("{element_type}[]")
-                    }
+            TypeRefs::Sequence(sequence_ref) => match sequence_ref.find_attribute::<CsType>() {
+                Some(argument) => argument.type_string.clone(),
+                None => {
+                    let element_type = sequence_ref.element_type.field_type_string(namespace);
+                    format!("{element_type}[]")
                 }
-            }
-            TypeRefs::Dictionary(dictionary_ref) => {
-                match dictionary_ref.find_attribute::<CsType>() {
-                    Some(argument) => argument.type_string.clone(),
-                    None => {
-                        let key_type = dictionary_ref.key_type.field_type_string(namespace);
-                        let value_type = dictionary_ref.value_type.field_type_string(namespace);
-                        format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>")
-                    }
+            },
+            TypeRefs::Dictionary(dictionary_ref) => match dictionary_ref.find_attribute::<CsType>() {
+                Some(argument) => argument.type_string.clone(),
+                None => {
+                    let key_type = dictionary_ref.key_type.field_type_string(namespace);
+                    let value_type = dictionary_ref.value_type.field_type_string(namespace);
+                    format!("global::System.Collections.Generic.Dictionary<{key_type}, {value_type}>")
                 }
-            }
+            },
             _ => return self.field_type_string(namespace),
         };
 
