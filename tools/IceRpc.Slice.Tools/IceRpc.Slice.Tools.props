@@ -20,7 +20,7 @@
         <SliceCompilerPath
           Condition="'$(Configuration)' == 'Release'"
         >$(MSBuildThisFileDirectory)../slicec-cs/target/release</SliceCompilerPath>
-        <!-- Build telemetry is not supported with source builds -->
+        <!-- Disable build telemetry when using an IceRPC source builds -->
         <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
       </PropertyGroup>
     </When>

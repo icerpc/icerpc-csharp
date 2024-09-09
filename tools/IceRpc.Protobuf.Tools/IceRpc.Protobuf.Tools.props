@@ -18,7 +18,7 @@
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath
         >$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/</IceRpcProtocGenPath>
-        <!-- Build telemetry is not supported with source builds -->
+        <!-- Disable build telemetry when using an IceRPC source builds -->
         <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
       </PropertyGroup>
     </When>
