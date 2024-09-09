@@ -109,27 +109,23 @@ public class SliceCCSharpTask : ToolTask
     /// </summary>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
     {
+        Console.WriteLine(singleLine);
         if (messageImportance == MessageImportance.Low)
         {
-            try
+            // Messages from stdout
+            if (JSONParser.Parse<BuildTelemetry>(singleLine) is BuildTelemetry buildTelemetry)
             {
-                // Messages from stdout
                 var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
-                CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
-                ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetBoolean();
-                ContainsSlice2 = jsonDoc.RootElement.GetProperty("contains_slice2").GetBoolean();
-                SourceFileCount = jsonDoc.RootElement.GetProperty("src_file_count").GetInt32();
-                ReferenceFileCount = jsonDoc.RootElement.GetProperty("ref_file_count").GetInt32();
-            }
-            catch (System.Text.Json.JsonException ex)
-            {
-                Log.LogError($"Error parsing JSON: {ex.Message}. JSON content: {singleLine}");
+                CompilationHash = buildTelemetry.CompilationHash;
+                ContainsSlice1 = buildTelemetry.ContainsSlice1;
+                ContainsSlice2 = buildTelemetry.ContainsSlice2;
+                SourceFileCount = buildTelemetry.SourceFileCount;
+                ReferenceFileCount = buildTelemetry.ReferenceFileCount;
             }
         }
-        else if (DiagnosticParser.Parse(singleLine) is Diagnostic diagnostic)
+        else if (JSONParser.Parse<Diagnostic>(singleLine) is Diagnostic diagnostic)
         {
             diagnostic.SourceSpan ??= new SourceSpan();
-
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
                 diagnostic.Message,
