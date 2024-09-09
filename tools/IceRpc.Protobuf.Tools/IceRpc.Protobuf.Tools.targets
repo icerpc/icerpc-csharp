@@ -80,7 +80,6 @@
       CompilationHash="$(Hash)"
       SourceFileCount="$(FileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
-      Idl="protobuf"
       ContinueOnError="true"
     />
 
