@@ -27,7 +27,14 @@ pub fn encode_fields(fields: &[&Field], encoding: Encoding) -> CodeBlock {
             true => encode_tagged_type,
             false => encode_type,
         };
-        code.writeln(&encode_fn(field, TypeContext::Field, &namespace, &param, "encoder", encoding));
+        code.writeln(&encode_fn(
+            field,
+            TypeContext::Field,
+            &namespace,
+            &param,
+            "encoder",
+            encoding,
+        ));
     }
 
     code
@@ -487,7 +494,14 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
             true => encode_tagged_type,
             false => encode_type,
         };
-        code.writeln(&encode_fn(parameter, TypeContext::OutgoingParam, namespace, &parameter_name, encoder_param, operation.encoding));
+        code.writeln(&encode_fn(
+            parameter,
+            TypeContext::OutgoingParam,
+            namespace,
+            &parameter_name,
+            encoder_param,
+            operation.encoding,
+        ));
     }
 
     if operation.encoding != Encoding::Slice1 {

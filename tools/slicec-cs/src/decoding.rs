@@ -230,7 +230,10 @@ fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str, encoding: 
     match element_type.concrete_type() {
         Types::Primitive(primitive) if primitive.fixed_wire_size().is_some() && !uses_bit_sequence => {
             builder.set_type_argument(remove_optional_modifier_from(element_type_string));
-            builder.add_argument_if(*primitive == Primitive::Bool, "checkElement: SliceDecoder.CheckBoolValue");
+            builder.add_argument_if(
+                *primitive == Primitive::Bool,
+                "checkElement: SliceDecoder.CheckBoolValue",
+            );
         }
         Types::Enum(enum_def) if enum_def.fixed_wire_size().is_some() && !uses_bit_sequence => {
             if enum_def.is_unchecked {
