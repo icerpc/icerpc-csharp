@@ -36,9 +36,9 @@
   </ItemGroup>
 
   <!--
-        When EnableDefaultItems property is true, *.proto files are included as "None" items. We remove them here, to
-        include them as "ProtoFile" items later.
-    -->
+    When EnableDefaultItems property is true, *.proto files are included as "None" items. We remove them here, to
+    include them as "ProtoFile" items later.
+  -->
   <ItemGroup Condition="'$(EnableDefaultItems)' == 'true'">
     <None Remove="**/*.proto" />
   </ItemGroup>
@@ -55,11 +55,11 @@
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
     <!-- Compile the Proto files
-          The search path determines where protoc compiler locates import files, we add:
-          - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
-          - $(MSBuildProjectDirectory) to import the project own files.
-          - @(ProtoSearchPath) additional search paths specified by the user.
-        -->
+      The search path determines where protoc compiler locates import files, we add:
+      - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
+      - $(MSBuildProjectDirectory) to import the project own files.
+      - @(ProtoSearchPath) additional search paths specified by the user.
+    -->
     <ProtocTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="@(_ProtoFile->'%(OutputDir)')"
@@ -85,9 +85,9 @@
     />
 
     <!--
-            Include all C# generated source items that have not been already included. We delay this until we are
-            running the ProtoCompile target so that default includes are already processed.
-        -->
+      Include all C# generated source items that have not been already included. We delay this until we are
+      running the ProtoCompile target so that default includes are already processed.
+    -->
     <ItemGroup>
       <Compile
         Include="@(_ProtoFile->'%(OutputDir)/%(OutputFileName).cs')"
