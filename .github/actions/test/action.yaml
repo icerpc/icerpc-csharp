@@ -7,5 +7,5 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10m
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 8m
     shell: bash
