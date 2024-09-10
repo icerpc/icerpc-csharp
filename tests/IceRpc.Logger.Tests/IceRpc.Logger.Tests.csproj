@@ -11,9 +11,6 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
-    <!-- Required to avoid NuGet Audit error: see #4032 -->
-    <PackageReference Include="System.Text.Json" Version="8.0.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="NUnit.Analyzers" Version="4.3.0">
       <PrivateAssets>all</PrivateAssets>
