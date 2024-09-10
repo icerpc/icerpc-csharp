@@ -24,7 +24,6 @@ use cs_options::SLICEC_CS;
 use generators::generate_from_slice_file;
 use slicec::diagnostics::{Diagnostic, Error};
 use slicec::grammar::Encoding;
-use slicec::slice_file::SliceFile;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -61,15 +60,15 @@ pub fn main() {
 
     // If the telemetry flag is set, output additional compilation information.
     if cs_options.telemetry {
-        let num_total_files = compilation_state.files.len();
-        let src_files: Vec<&SliceFile> = compilation_state.files.iter().filter(|f| f.is_source).collect();
+        let hash = slicec::slice_file::compute_sha256_hash_of_source_files(&compilation_state.files);
 
-        let hash = SliceFile::compute_sha256_hash(&src_files);
+        let src_files = compilation_state.files.iter().filter(|f| f.is_source).collect::<Vec<_>>();
         let contains_slice1 = src_files.iter().any(|f| f.compilation_mode() == Encoding::Slice1);
         let contains_slice2 = src_files.iter().any(|f| f.compilation_mode() == Encoding::Slice2);
 
+        let total_file_count = compilation_state.files.len();
         let src_file_count = src_files.len();
-        let ref_file_count = num_total_files - src_file_count;
+        let ref_file_count = total_file_count - src_file_count;
 
         println!(
             r#"{{ "hash": "{hash}", "contains_slice1": {contains_slice1}, "contains_slice2": {contains_slice2}, "src_file_count": {src_file_count}, "ref_file_count": {ref_file_count} }}"#
@@ -78,7 +77,6 @@ pub fn main() {
 
     // Emit diagnostics and totals.
     let exit_code = i32::from(compilation_state.emit_diagnostics(slice_options));
-
     std::process::exit(exit_code);
 }
 
