@@ -18,11 +18,14 @@ Router router = new Router()
     .Map<IGreeterService>(new Chatbot());
 
 // Create two servers that share the same dispatch pipeline.
+string certificatePath = "../../../../certs/server.p12";
 await using var quicServer = new Server(
     router,
     new SslServerAuthenticationOptions
     {
-        ServerCertificate = new X509Certificate2("../../../../certs/server.p12")
+        ServerCertificateContext = SslStreamCertificateContext.Create(
+            X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
+            X509CertificateLoader.LoadPkcs12CollectionFromFile(certificatePath, password: null))
     },
     multiplexedServerTransport: new QuicServerTransport(),
     logger: loggerFactory.CreateLogger<Server>());
@@ -33,7 +36,9 @@ await using var tcpServer = new Server(
     router,
     new SslServerAuthenticationOptions
     {
-        ServerCertificate = new X509Certificate2("../../../../certs/server.p12")
+        ServerCertificateContext = SslStreamCertificateContext.Create(
+            X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
+            X509CertificateLoader.LoadPkcs12CollectionFromFile(certificatePath, password: null))
     },
     logger: loggerFactory.CreateLogger<Server>());
 

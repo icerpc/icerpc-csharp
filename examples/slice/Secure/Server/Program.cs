@@ -6,9 +6,12 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 // Create the authentication options using the test server certificate.
+string certificatePath = "../../../../certs/server.p12";
 var serverAuthenticationOptions = new SslServerAuthenticationOptions()
 {
-    ServerCertificate = new X509Certificate2("../../../../certs/server.p12")
+    ServerCertificateContext = SslStreamCertificateContext.Create(
+        X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
+        X509CertificateLoader.LoadPkcs12CollectionFromFile(certificatePath, password: null))
 };
 
 await using var server = new Server(new Chatbot(), serverAuthenticationOptions);
