@@ -62,7 +62,7 @@ pub fn main() {
     if cs_options.telemetry {
         let hash = slicec::slice_file::compute_sha256_hash_of_source_files(&compilation_state.files);
 
-        let src_files = compilation_state.files.iter().filter(|f| f.is_source).collect::<Vec<_>>();
+        let src_files: Vec<_> = compilation_state.files.iter().filter(|f| f.is_source).collect();
         let contains_slice1 = src_files.iter().any(|f| f.compilation_mode() == Encoding::Slice1);
         let contains_slice2 = src_files.iter().any(|f| f.compilation_mode() == Encoding::Slice2);
 
