@@ -17,6 +17,9 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     private readonly MemoryPool<byte> _pool;
     private readonly Socket _socket;
 
+    // Set to 1 when the listener is disposed.
+    private int _disposed;
+
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
         try
@@ -32,13 +35,20 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
         }
         catch (SocketException exception)
         {
+            if (exception.SocketErrorCode == SocketError.OperationAborted)
+            {
+                ObjectDisposedException.ThrowIf(_disposed == 1, this);
+            }
             throw exception.ToIceRpcException();
         }
     }
 
     public ValueTask DisposeAsync()
     {
-        _socket.Dispose();
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        {
+            _socket.Dispose();
+        }
         return default;
     }
 

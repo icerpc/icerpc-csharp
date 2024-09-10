@@ -56,6 +56,7 @@ internal class ColocListener : IListener<IDuplexConnection>
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            ObjectDisposedException.ThrowIf(_disposeCts.IsCancellationRequested, this);
             throw new IceRpcException(IceRpcError.OperationAborted);
         }
     }

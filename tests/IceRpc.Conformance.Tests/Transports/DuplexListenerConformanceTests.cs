@@ -80,7 +80,7 @@ public abstract class DuplexListenerConformanceTests
     }
 
     [Test]
-    public async Task Call_accept_on_a_listener_and_then_dispose_it_fails_with_operation_aborted_error()
+    public async Task Call_accept_on_a_listener_and_then_dispose_it_fails_with_object_disposed_exception()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -92,11 +92,7 @@ public abstract class DuplexListenerConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptTask);
-        Assert.That(
-            exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.OperationAborted),
-            $"The test failed with an unexpected IceRpcError {exception}");
+        Assert.That(async () => await acceptTask, Throws.TypeOf<ObjectDisposedException>());
     }
 
     [Test]

@@ -22,6 +22,6 @@ internal static class SslTransportServiceCollectionExtensions
             })
         .AddSingleton(provider => new SslServerAuthenticationOptions
         {
-            ServerCertificate = new X509Certificate2("server.p12")
+            ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server.p12", password: null)
         });
 }

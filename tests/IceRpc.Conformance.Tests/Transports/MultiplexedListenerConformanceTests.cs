@@ -111,9 +111,11 @@ public abstract class MultiplexedListenerConformanceTests
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
     }
 
+#if NET9_0_OR_GREATER
+    // The QuicListener behavior changed in .NET 9
+    // see: https://github.com/dotnet/runtime/pull/92215
     [Test]
-    [Ignore("TODO: Fix https://github.com/icerpc/icerpc-csharp/issues/3990")]
-    public async Task Call_accept_on_a_listener_and_then_dispose_it_fails_with_operation_aborted_error()
+    public async Task Call_accept_on_a_listener_and_then_dispose_it_fails_with_object_disposed_exception()
     {
         // Arrange
         await using ServiceProvider provider = CreateServiceCollection().BuildServiceProvider(validateScopes: true);
@@ -125,12 +127,9 @@ public abstract class MultiplexedListenerConformanceTests
         await listener.DisposeAsync();
 
         // Assert
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptTask);
-        Assert.That(
-            exception!.IceRpcError,
-            Is.EqualTo(IceRpcError.OperationAborted),
-            $"The test failed with an unexpected IceRpcError {exception}");
+        Assert.That(async () => await acceptTask, Throws.TypeOf<ObjectDisposedException>());
     }
+#endif
 
     [Test]
     public async Task Call_accept_on_a_listener_with_a_canceled_cancellation_token_fails_with_operation_canceled_exception()
