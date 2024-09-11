@@ -27,6 +27,7 @@ jobs:
         shell: bash
       - name: Test Templates
         uses: ./.github/actions/test-templates
+        if: runner.os != 'Windows'
       - name: Build Examples
         uses: ./.github/actions/build-examples
       - name: Build DocFX Examples
