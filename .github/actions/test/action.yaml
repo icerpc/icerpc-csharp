@@ -15,4 +15,4 @@ runs:
     with:
       name: hang-dumps
       path: ${{ inputs.working_directory }}/**/*.dmp
-    if: failed()
+    if: failure()
