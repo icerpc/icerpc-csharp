@@ -14,7 +14,7 @@ await using var server = new Server(
     {
         ServerCertificateContext = SslStreamCertificateContext.Create(
             X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
-            X509CertificateLoader.LoadPkcs12CollectionFromFile(certificatePath, password: null))
+            additionalCertificates: null)
     },
     multiplexedServerTransport: new QuicServerTransport());
 

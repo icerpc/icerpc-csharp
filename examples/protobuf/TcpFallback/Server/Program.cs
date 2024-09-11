@@ -25,7 +25,7 @@ await using var quicServer = new Server(
     {
         ServerCertificateContext = SslStreamCertificateContext.Create(
             X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
-            X509CertificateLoader.LoadPkcs12CollectionFromFile(certificatePath, password: null))
+            additionalCertificates: null)
     },
     multiplexedServerTransport: new QuicServerTransport(),
     logger: loggerFactory.CreateLogger<Server>());
@@ -38,7 +38,7 @@ await using var tcpServer = new Server(
     {
         ServerCertificateContext = SslStreamCertificateContext.Create(
             X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
-            X509CertificateLoader.LoadPkcs12CollectionFromFile(certificatePath, password: null))
+            additionalCertificates: null)
     },
     logger: loggerFactory.CreateLogger<Server>());
 

@@ -11,7 +11,7 @@ var serverAuthenticationOptions = new SslServerAuthenticationOptions()
 {
     ServerCertificateContext = SslStreamCertificateContext.Create(
         X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
-        X509CertificateLoader.LoadPkcs12CollectionFromFile(certificatePath, password: null))
+        additionalCertificates: null)
 };
 
 await using var server = new Server(new Chatbot(), serverAuthenticationOptions);
