@@ -70,6 +70,9 @@ public class BuildTelemetryTask : ToolTask
     /// <inheritdoc/>
     protected override string GenerateFullPathToTool() => ToolName;
 
+    /// <inheritdoc/>
+    protected override string GetWorkingDirectory() => WorkingDirectory;
+
     /// <summary>
     /// Overriding this method to suppress any warnings or errors.
     /// </summary>

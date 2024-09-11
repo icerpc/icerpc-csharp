@@ -12,18 +12,18 @@ public class AssertTraceListener : DefaultTraceListener
     private static readonly AssertTraceListener _instance = new();
 
     /// <summary>Delegate to <see cref="Assert.Fail(string?)"/></summary>
-    public override void Fail(string? message) => Assert.Fail(message);
+    public override void Fail(string? message) => Assert.Fail(message ?? "");
 
-    /// <summary>Delegate to <see cref="Assert.Fail(string?, object?[])"/></summary>
+    /// <summary>Delegate to <see cref="Assert.Fail(string?)"/></summary>
     public override void Fail(string? message, string? detailMessage)
     {
         if (detailMessage is null || detailMessage.Length == 0)
         {
-            Assert.Fail(message);
+            Assert.Fail(message ?? "");
         }
         else
         {
-            Assert.Fail(message, detailMessage);
+            Assert.Fail($"{message}\n{detailMessage}");
         }
     }
 

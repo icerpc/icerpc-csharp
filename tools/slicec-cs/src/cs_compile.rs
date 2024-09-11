@@ -107,7 +107,6 @@ mod test {
                 slice_options.references.push(slice_dir.clone());
                 slice_options.references.push(icerpc_tests_dir.clone());
                 slice_options.references.push(zeroc_tests_dir.clone());
-                println!("{slice_options:?}\n\n");
 
                 // Run the slice compiler with our specifically crafted `slice_options`.
                 let compilation_state = slicec::compile_from_options(slice_options, cs_patcher, cs_validator);
