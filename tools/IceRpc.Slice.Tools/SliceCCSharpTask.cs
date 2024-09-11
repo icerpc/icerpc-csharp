@@ -61,6 +61,8 @@ public class SliceCCSharpTask : ToolTask
     [Output]
     public int ReferenceFileCount { get; set; }
 
+    JsonSerializerOptions _jsonSerializeOptions = new() { PropertyNameCaseInsensitive = true };
+
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
@@ -109,11 +111,12 @@ public class SliceCCSharpTask : ToolTask
     /// </summary>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
     {
-        Console.WriteLine(singleLine);
         if (messageImportance == MessageImportance.Low)
         {
             // Messages from stdout
-            if (JSONParser.Parse<BuildTelemetry>(singleLine) is BuildTelemetry buildTelemetry)
+            if (JsonSerializer.Deserialize<BuildTelemetry>(
+                singleLine,
+                _jsonSerializeOptions) is BuildTelemetry buildTelemetry)
             {
                 var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
                 CompilationHash = buildTelemetry.CompilationHash;
@@ -123,7 +126,7 @@ public class SliceCCSharpTask : ToolTask
                 ReferenceFileCount = buildTelemetry.ReferenceFileCount;
             }
         }
-        else if (JSONParser.Parse<Diagnostic>(singleLine) is Diagnostic diagnostic)
+        else if (JsonSerializer.Deserialize<Diagnostic, _options>(singleLine) is Diagnostic diagnostic)
         {
             diagnostic.SourceSpan ??= new SourceSpan();
             LogSliceCompilerDiagnostic(
