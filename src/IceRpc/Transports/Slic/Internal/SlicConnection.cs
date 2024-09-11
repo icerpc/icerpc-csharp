@@ -111,9 +111,8 @@ internal class SlicConnection : IMultiplexedConnection
         }
         catch (ChannelClosedException exception)
         {
-            Debug.Assert(exception.InnerException is not null);
             ObjectDisposedException.ThrowIf(_disposeTask is not null, this);
-
+            Debug.Assert(exception.InnerException is not null);
             // The exception given to ChannelWriter.Complete(Exception? exception) is the InnerException.
             throw ExceptionUtil.Throw(exception.InnerException);
         }
@@ -463,13 +462,13 @@ internal class SlicConnection : IMultiplexedConnection
         {
             _disposeTask ??= PerformDisposeAsync();
         }
-        TryClose(new IceRpcException(IceRpcError.OperationAborted), "The connection was disposed.");
         return new(_disposeTask);
 
         async Task PerformDisposeAsync()
         {
             // Make sure we execute the code below without holding the mutex lock.
             await Task.Yield();
+            TryClose(new IceRpcException(IceRpcError.OperationAborted), "The connection was disposed.");
 
             _disposedCts.Cancel();
 

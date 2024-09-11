@@ -18,7 +18,7 @@ internal sealed class TcpListener : IListener<IDuplexConnection>
     private readonly Socket _socket;
 
     // Set to 1 when the listener is disposed.
-    private int _disposed;
+    private volatile int _disposed;
 
     public async Task<(IDuplexConnection, EndPoint)> AcceptAsync(CancellationToken cancellationToken)
     {
