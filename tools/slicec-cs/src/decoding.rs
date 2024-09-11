@@ -39,7 +39,7 @@ pub fn decode_enum_fields(fields: &[&Field], enum_class: &str, encoding: Encodin
     let mut new_instance_builder = FunctionCallBuilder::new(format!("new {enum_class}"));
     new_instance_builder.arguments_on_newline(fields.len() > 1);
     let action = |field_name, field_value| {
-        new_instance_builder.add_argument(&format!("{field_name}: {field_value}"));
+        new_instance_builder.add_argument(format!("{field_name}: {field_value}"));
     };
 
     decode_fields_core(fields, encoding, action);
