@@ -7,14 +7,9 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    run: |
-      for  proj in tests/*/*.csproj; do
-        echo "!!! Testing $proj !!!"
-        dotnet test --no-build --verbosity normal --blame-hang-timeout 10s $proj
-      done
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s
     shell: bash
-
-  - name: Upload test logs
+  - name: Upload hang dumps
     uses: actions/upload-artifact@v4
     with:
       name: hang-dumps
