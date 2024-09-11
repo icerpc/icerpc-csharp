@@ -7,5 +7,12 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    run:  dotnet test --no-build --verbosity normal --blame-hang-timeout 10s tests/IceRpc.Tests/IceRpc.Tests.csproj
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s tests/IntegrationTests/IntegrationTests.csproj
     shell: bash
+
+  - name: Upload test logs
+    uses: actions/upload-artifact@v4
+    with:
+      name: hang-dumps
+      path: ${{ inputs.working_directory }}/**/*.dmp
+    if: failed()
