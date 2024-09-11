@@ -75,13 +75,11 @@
     </OutputHashTask>
 
     <!-- Run build telemetry -->
-    <BuildTelemetryTask
+    <Exec
       WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
-      CompilationHash="$(Hash)"
-      SourceFileCount="$(FileCount)"
+      Command="dotnet IceRpc.BuildTelemetry.Reporter.dll --idl protobuf --hash=$(Hash) --src-file-count=$(FileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
-      ContinueOnError="true"
-    />
+      ContinueOnError="true" />
 
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are

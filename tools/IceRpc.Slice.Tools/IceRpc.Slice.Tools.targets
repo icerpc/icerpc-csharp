@@ -73,16 +73,11 @@
     </SliceCCSharpTask>
 
     <!-- Run build telemetry -->
-    <BuildTelemetryTask
+    <Exec
       WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
-      CompilationHash="$(Hash)"
-      ContainsSlice1="$(ContainsSlice1)"
-      ContainsSlice2="$(ContainsSlice2)"
-      SourceFileCount="$(SourceFileCount)"
-      ReferenceFileCount="$(ReferenceFileCount)"
+      Command="dotnet IceRpc.BuildTelemetry.Reporter.dll --idl slice --hash=$(Hash) --contains-slice1=$(ContainsSlice1) --contains-slice2=$(ContainsSlice2) --src-file-count=$(SourceFileCount) --ref-file-count=$(ReferenceFileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
-      ContinueOnError="true"
-    />
+      ContinueOnError="true" />
 
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
