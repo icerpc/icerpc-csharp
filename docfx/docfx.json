@@ -61,6 +61,7 @@
       "_appLogoUrl": "https://docs.icerpc.dev",
       "_appFooter": "© 2024 ZeroC",
       "_enableSearch": true,
+      "_disableContribution": true,
       "_gitContribute": {
         "repo": "https://github.com/icerpc/icerpc-csharp",
         "branch": "main",
