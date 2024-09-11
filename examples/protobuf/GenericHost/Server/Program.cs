@@ -35,12 +35,15 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
             .Bind(hostContext.Configuration.GetSection("Server"))
             .Configure(options =>
             {
+                string certificatePath = Path.Combine(
+                    hostContext.HostingEnvironment.ContentRootPath,
+                    hostContext.Configuration.GetValue<string>("Certificate:File")!);
+
                 options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = new X509Certificate2(
-                        Path.Combine(
-                            hostContext.HostingEnvironment.ContentRootPath,
-                            hostContext.Configuration.GetValue<string>("Certificate:File")!))
+                    ServerCertificateContext = SslStreamCertificateContext.Create(
+                        X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
+                        additionalCertificates: null)
                 };
             });
 
