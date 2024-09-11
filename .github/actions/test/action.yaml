@@ -7,7 +7,7 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --diag ${{ github.workspace }}/diagnostic.log -- NUnit.NumberOfTestWorkers=1
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --diag ${{ github.workspace }}/diagnostic.log
     shell: bash
   - name: Upload dotnet test diagnostic log
     uses: actions/upload-artifact@v4
