@@ -43,7 +43,7 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
                                 hostContext.HostingEnvironment.ContentRootPath,
                                 hostContext.Configuration.GetValue<string>("Certificate:File")!),
                             password: null,
-                            keyStorageFlags: X509KeyStorageFlags.DefaultKeySet),
+                            keyStorageFlags: X509KeyStorageFlags.Exportable),
                         additionalCertificates: null)
                 };
             });

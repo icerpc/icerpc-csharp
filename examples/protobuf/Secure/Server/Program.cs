@@ -12,7 +12,7 @@ var serverAuthenticationOptions = new SslServerAuthenticationOptions()
         X509CertificateLoader.LoadPkcs12FromFile(
             "../../../../certs/server.p12",
             password: null,
-            keyStorageFlags: X509KeyStorageFlags.DefaultKeySet),
+            keyStorageFlags: X509KeyStorageFlags.Exportable),
         additionalCertificates: null)
 };
 
