@@ -37,6 +37,9 @@ runs:
         dotnet-version: |
           8.0.x
           9.0.x
+    - name: Use .NET 8 for running .NET commnads
+      run: dotnet new globaljson --sdk-version 8.0.0 --roll-forward latestFeature
+      shell: bash
     - name: Install libmsquic
       run: |
         wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
