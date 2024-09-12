@@ -8,8 +8,15 @@ runs:
     shell: bash
   - name: 🧪 Test
     # See https://github.com/microsoft/vstest/issues/2080#issuecomment-539879345
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger:"console;noprogress=true"
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger:"console;noprogress=true" --diag ${{ github.workspace }}/diagnostics.log
     shell: bash
+  - name: Upload diagnostic log
+    uses: actions/upload-artifact@v4
+    with:
+      name: diagnostics-${{ runner.os }}
+      path: ${{ github.workspace }}/diagnostics.log
+      if-no-files-found: ignore
+    if: failure()
   - name: Upload hang dumps
     uses: actions/upload-artifact@v4
     with:
