@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace IceRpc.Slice.Tools;
 
@@ -61,6 +62,8 @@ public class SliceCCSharpTask : ToolTask
     [Output]
     public int ReferenceFileCount { get; set; }
 
+    private readonly JsonSerializerOptions _jsonSerializeOptions = new() { PropertyNameCaseInsensitive = true };
+
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
@@ -111,25 +114,22 @@ public class SliceCCSharpTask : ToolTask
     {
         if (messageImportance == MessageImportance.Low)
         {
-            try
+            // Messages from stdout
+            if (JsonSerializer.Deserialize<BuildTelemetry>(
+                singleLine,
+                _jsonSerializeOptions) is BuildTelemetry buildTelemetry)
             {
-                // Messages from stdout
                 var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
-                CompilationHash = jsonDoc.RootElement.GetProperty("hash").GetString();
-                ContainsSlice1 = jsonDoc.RootElement.GetProperty("contains_slice1").GetBoolean();
-                ContainsSlice2 = jsonDoc.RootElement.GetProperty("contains_slice2").GetBoolean();
-                SourceFileCount = jsonDoc.RootElement.GetProperty("src_file_count").GetInt32();
-                ReferenceFileCount = jsonDoc.RootElement.GetProperty("ref_file_count").GetInt32();
-            }
-            catch (System.Text.Json.JsonException ex)
-            {
-                Log.LogError($"Error parsing JSON: {ex.Message}. JSON content: {singleLine}");
+                CompilationHash = buildTelemetry.CompilationHash;
+                ContainsSlice1 = buildTelemetry.ContainsSlice1;
+                ContainsSlice2 = buildTelemetry.ContainsSlice2;
+                SourceFileCount = buildTelemetry.SourceFileCount;
+                ReferenceFileCount = buildTelemetry.ReferenceFileCount;
             }
         }
-        else if (DiagnosticParser.Parse(singleLine) is Diagnostic diagnostic)
+        else if (JsonSerializer.Deserialize<Diagnostic>(singleLine, _jsonSerializeOptions) is Diagnostic diagnostic)
         {
             diagnostic.SourceSpan ??= new SourceSpan();
-
             LogSliceCompilerDiagnostic(
                 diagnostic.Severity,
                 diagnostic.Message,
