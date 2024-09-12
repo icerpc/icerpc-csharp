@@ -87,7 +87,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Protobuf", "src\IceR
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Protobuf.Tests", "tests\IceRpc.Protobuf.Tests\IceRpc.Protobuf.Tests.csproj", "{FA4447E1-09E5-4F0A-B3DD-B0157B62BF0A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IceRpc.BuildTelemetry.Reporter", "tools\IceRpc.BuildTelemetry.Reporter\IceRpc.BuildTelemetry.Reporter.csproj", "{7E0C865A-DE67-43FC-9C42-5B5901D3DB8D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IceRpc.SliceBuildTelemetry.Reporter", "tools\IceRpc.SliceBuildTelemetry.Reporter\IceRpc.SliceBuildTelemetry.Reporter.csproj", "{7E0C865A-DE67-43FC-9C42-5B5901D3DB8D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
