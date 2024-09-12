@@ -647,10 +647,9 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Returns true if the <see cref="IConnectorListener.AcceptAsync" /> failure can be retried.</summary>
     private static bool IsRetryableAcceptException(Exception exception) =>
-        (exception is IceRpcException rpcException) ||
         // Transports such as Quic do the SSL handshake when the connection is accepted, this can throw
         // AuthenticationException if it fails.
-        exception is AuthenticationException;
+        exception is IceRpcException or AuthenticationException;
 
     /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" />.</summary>
     private class LogConnectorListenerDecorator : IConnectorListener
