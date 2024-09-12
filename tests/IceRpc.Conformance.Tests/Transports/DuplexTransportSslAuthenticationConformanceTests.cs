@@ -21,7 +21,10 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
             .AddSingleton(
                 new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server-untrusted.p12", password: null),
+                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                        "server-untrusted.p12",
+                        password: null,
+                        keyStorageFlags: X509KeyStorageFlags.Exportable),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
@@ -65,14 +68,20 @@ public abstract class DuplexTransportSslAuthenticationConformanceTests
                 {
                     ClientCertificateRequired = true,
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false,
-                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server.p12", password: null),
+                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                        "server.p12",
+                        password: null,
+                        keyStorageFlags: X509KeyStorageFlags.Exportable),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
                 {
                     ClientCertificates =
                     [
-                        X509CertificateLoader.LoadPkcs12FromFile("client-untrusted.p12", password: null)
+                        X509CertificateLoader.LoadPkcs12FromFile(
+                            "client-untrusted.p12",
+                            password: null,
+                            keyStorageFlags: X509KeyStorageFlags.Exportable)
                     ],
 #pragma warning disable CA5359 // Do Not Disable Certificate Validation, certificate validation is not required for these tests.
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true

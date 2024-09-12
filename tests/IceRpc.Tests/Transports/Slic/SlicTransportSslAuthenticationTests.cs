@@ -23,7 +23,10 @@ public class SlicTransportSslAuthenticationTests
             .AddSingleton(
                 new SslServerAuthenticationOptions
                 {
-                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server-untrusted.p12", password: null)
+                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                        "server-untrusted.p12",
+                        password: null,
+                        keyStorageFlags: X509KeyStorageFlags.Exportable),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
@@ -71,14 +74,20 @@ public class SlicTransportSslAuthenticationTests
                 {
                     ClientCertificateRequired = true,
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false,
-                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server.p12", password: null),
+                    ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                        "server.p12",
+                        password: null,
+                        keyStorageFlags: X509KeyStorageFlags.Exportable),
                 })
             .AddSingleton(
                 new SslClientAuthenticationOptions
                 {
                     ClientCertificates =
                     [
-                        X509CertificateLoader.LoadPkcs12FromFile("client-untrusted.p12", password: null)
+                        X509CertificateLoader.LoadPkcs12FromFile(
+                            "client-untrusted.p12",
+                            password: null,
+                            keyStorageFlags: X509KeyStorageFlags.Exportable)
                     ],
                     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true
                 })
