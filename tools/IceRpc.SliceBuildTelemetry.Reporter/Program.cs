@@ -17,15 +17,15 @@ var hashOption = new Option<string>(
 };
 rootCommand.AddOption(hashOption);
 
-var containsSlice1Option = new Argument<bool>(
+var containsSlice1Option = new Option<bool>(
     name: "--contains-slice1",
     description: "Whether or not the build contains Slice1 definitions");
-rootCommand.AddArgument(containsSlice1Option);
+rootCommand.AddOption(containsSlice1Option);
 
-var containsSlice2Option = new Argument<bool>(
+var containsSlice2Option = new Option<bool>(
     name: "--contains-slice2",
     description: "Whether or not the build contains Slice2 definitions");
-rootCommand.AddArgument(containsSlice1Option);
+rootCommand.AddOption(containsSlice2Option);
 
 var sourceFileCountOption = new Option<int>(
     name: "--src-file-count",
