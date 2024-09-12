@@ -21,10 +21,13 @@ public class TcpTransportTests
     private static SslClientAuthenticationOptions DefaultSslClientAuthenticationOptions { get; } =
         new SslClientAuthenticationOptions
         {
-            ClientCertificates = new X509CertificateCollection()
-            {
-                new X509Certificate2("client.p12")
-            },
+            ClientCertificates =
+            [
+                X509CertificateLoader.LoadPkcs12FromFile(
+                    "client.p12",
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable)
+            ],
             RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true,
         };
 
@@ -32,7 +35,10 @@ public class TcpTransportTests
         new SslServerAuthenticationOptions
         {
             ClientCertificateRequired = false,
-            ServerCertificate = new X509Certificate2("server.p12")
+            ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                "server.p12",
+                password: null,
+                keyStorageFlags: X509KeyStorageFlags.Exportable),
         };
 
     /// <summary>Verifies that setting <see cref="TcpTransportOptions.ReceiveBufferSize" /> and
@@ -406,7 +412,10 @@ public class TcpTransportTests
         await using IListener<IDuplexConnection> listener = CreateTcpListener(
             authenticationOptions: new SslServerAuthenticationOptions
             {
-                ServerCertificate = new X509Certificate2("server.p12"),
+                ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                    "server.p12",
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable),
                 RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => false
             });
 
