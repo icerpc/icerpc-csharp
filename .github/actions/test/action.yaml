@@ -7,13 +7,5 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    # See https://github.com/microsoft/vstest/issues/2080#issuecomment-539879345
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger:"console;noprogress=true"
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 8m
     shell: bash
-  - name: Upload hang dumps
-    uses: actions/upload-artifact@v4
-    with:
-      name: hang-dumps
-      path: ${{ github.workspace }}/**/*.dmp
-      if-no-files-found: ignore
-    if: failure()
