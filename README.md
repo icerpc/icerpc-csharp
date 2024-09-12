@@ -1,6 +1,8 @@
-<p align="center">
-  <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" height="100" width="100" />
-</p>
+<!-- markdownlint-disable-next-line MD033 MD041 -->
+<div align="center">
+    <!-- markdownlint-disable-next-line MD033 -->
+  <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" alt="IceRPC" height="100" width="100" />
+</div>
 
 # IceRPC for C\#
 
