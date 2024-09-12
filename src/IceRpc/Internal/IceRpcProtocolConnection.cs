@@ -139,9 +139,17 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 transportConnectionInformation = _transportConnectionInformation ??
                     await _transportConnection.ConnectAsync(connectCts.Token).ConfigureAwait(false);
 
-                _controlStream = await _transportConnection.CreateStreamAsync(
-                    false,
-                    connectCts.Token).ConfigureAwait(false);
+                try
+                {
+                    _controlStream = await _transportConnection.CreateStreamAsync(
+                        false,
+                        connectCts.Token).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException)
+                {
+                    connectCts.Token.ThrowIfCancellationRequested();
+                    throw;
+                }
 
                 var settings = new IceRpcSettings(
                     _maxLocalHeaderSize == ConnectionOptions.DefaultMaxIceRpcHeaderSize ?
@@ -383,6 +391,12 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                     // Connection was shutdown or disposed and we did not read the payload at all.
                     throw new IceRpcException(IceRpcError.InvocationRefused, _invocationRefusedMessage);
+                }
+                catch (ObjectDisposedException exception)
+                {
+                    invocationCts.Token.ThrowIfCancellationRequested();
+                    Debug.Fail($"CreateStreamAsync failed with an unexpected exception: {exception}");
+                    throw;
                 }
                 catch (IceRpcException exception)
                 {
