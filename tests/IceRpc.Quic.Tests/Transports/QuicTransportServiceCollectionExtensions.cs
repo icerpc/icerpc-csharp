@@ -18,18 +18,24 @@ public static class QuicTransportServiceCollectionExtensions
     public static IServiceCollection AddQuicTransport(this IServiceCollection services)
     {
         services.AddSingleton(provider => new SslClientAuthenticationOptions
-        {
-            ClientCertificates =
+            {
+                ClientCertificates =
                     [
-                        X509CertificateLoader.LoadPkcs12FromFile("client.p12", password: null)
+                        X509CertificateLoader.LoadPkcs12FromFile(
+                            "client.p12",
+                            password: null,
+                            keyStorageFlags: X509KeyStorageFlags.Exportable)
                     ],
-            RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-                certificate?.Issuer.Contains("IceRPC Tests CA", StringComparison.Ordinal) ?? false
-        })
+                RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
+                    certificate?.Issuer.Contains("IceRPC Tests CA", StringComparison.Ordinal) ?? false
+            })
             .AddSingleton(provider => new SslServerAuthenticationOptions
             {
                 ClientCertificateRequired = false,
-                ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile("server.p12", password: null)
+                ServerCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                    "server.p12",
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable)
             })
             .AddSingleton<IMultiplexedServerTransport>(provider =>
                 new QuicServerTransport(

@@ -426,9 +426,11 @@ public abstract class MultiplexedConnectionConformanceTests
             $"The test failed with an unexpected IceRpcError {exception}");
     }
 
+#if NET9_0_OR_GREATER
+    // The QuicConnection behavior changed in .NET 9
+    // see: https://github.com/dotnet/runtime/pull/92215
     [Test]
-    [Ignore("TODO: Fix https://github.com/icerpc/icerpc-csharp/issues/3990")]
-    public async Task Connection_dispose_aborts_pending_operations_with_operation_aborted_error()
+    public async Task Connection_dispose_aborts_pending_operations_with_object_disposed_exception()
     {
         // Arrange
         IServiceCollection serviceCollection = CreateServiceCollection();
@@ -448,24 +450,16 @@ public abstract class MultiplexedConnectionConformanceTests
 
         // Assert
 
-        IceRpcException? exception = Assert.ThrowsAsync<IceRpcException>(async () => await acceptStreamTask);
-        Assert.That(
-            exception?.IceRpcError,
-            Is.EqualTo(IceRpcError.OperationAborted),
-            $"The test failed with an unexpected IceRpcError {exception}");
+        Assert.That(async () => await acceptStreamTask, Throws.TypeOf<ObjectDisposedException>());
+        Assert.That(async () => await createStreamTask, Throws.TypeOf<ObjectDisposedException>());
 
-        exception = Assert.ThrowsAsync<IceRpcException>(async () => await createStreamTask);
-        Assert.That(
-            exception?.IceRpcError,
-            Is.EqualTo(IceRpcError.OperationAborted),
-            $"The test failed with an unexpected IceRpcError {exception}");
-
-        exception = Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
+        var exception = Assert.ThrowsAsync<IceRpcException>(async () => await readTask);
         Assert.That(
             exception?.IceRpcError,
             Is.EqualTo(IceRpcError.OperationAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
+#endif
 
     [Test]
     public async Task Disposing_the_client_connection_aborts_the_server_connection()

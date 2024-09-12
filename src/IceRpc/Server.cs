@@ -647,12 +647,9 @@ public sealed class Server : IAsyncDisposable
 
     /// <summary>Returns true if the <see cref="IConnectorListener.AcceptAsync" /> failure can be retried.</summary>
     private static bool IsRetryableAcceptException(Exception exception) =>
-        // The AcceptAsync call can fail with OperationAborted during shutdown if it is accepting a connection while the
-        // listener is disposed.
-        (exception is IceRpcException rpcException && rpcException.IceRpcError != IceRpcError.OperationAborted) ||
         // Transports such as Quic do the SSL handshake when the connection is accepted, this can throw
         // AuthenticationException if it fails.
-        exception is AuthenticationException;
+        exception is IceRpcException or AuthenticationException;
 
     /// <summary>Provides a decorator that adds logging to a <see cref="IConnectorListener" />.</summary>
     private class LogConnectorListenerDecorator : IConnectorListener
@@ -674,12 +671,6 @@ public sealed class Server : IAsyncDisposable
                     new LogConnectorDecorator(connector, ServerAddress, remoteNetworkAddress, _logger),
                     remoteNetworkAddress);
             }
-            catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
-            {
-                // Do not log this exception. The AcceptAsync call can fail with OperationAborted during shutdown if it
-                // is accepting a connection while the listener is disposed.
-                throw;
-            }
             catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {
                 // Do not log this exception. The AcceptAsync call can fail with OperationCanceledException during
@@ -689,7 +680,8 @@ public sealed class Server : IAsyncDisposable
             catch (ObjectDisposedException)
             {
                 // Do not log this exception. The AcceptAsync call can fail with ObjectDisposedException during
-                // shutdown once the listener is disposed.
+                // shutdown once the listener is disposed or if it is accepting a connection while the listener is
+                // disposed.
                 throw;
             }
             catch (Exception exception) when (IsRetryableAcceptException(exception))

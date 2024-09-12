@@ -6,11 +6,13 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 // Create the authentication options using the test server certificate.
-string certificatePath = "../../../../certs/server.p12";
 var serverAuthenticationOptions = new SslServerAuthenticationOptions()
 {
     ServerCertificateContext = SslStreamCertificateContext.Create(
-        X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password: null),
+        X509CertificateLoader.LoadPkcs12FromFile(
+            "../../../../certs/server.p12",
+            password: null,
+            keyStorageFlags: X509KeyStorageFlags.Exportable),
         additionalCertificates: null)
 };
 

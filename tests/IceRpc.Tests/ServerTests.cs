@@ -21,7 +21,7 @@ public class ServerTests
 
     public static IEnumerable<Exception> AcceptFatalException { get; } = new Exception[]
     {
-        new IceRpcException(IceRpcError.OperationAborted),
+        new ObjectDisposedException(nameof(ServerTests)),
         new Exception(),
     };
 
