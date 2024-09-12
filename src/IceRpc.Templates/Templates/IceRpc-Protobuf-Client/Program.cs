@@ -17,7 +17,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 
 #if (transport == "quic")
 // Path to the root CA certificate.
-using var rootCA = new X509Certificate2("certs/cacert.der");
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
 
 // Create Client authentication options with custom certificate validation.
 var clientAuthenticationOptions = new SslClientAuthenticationOptions
