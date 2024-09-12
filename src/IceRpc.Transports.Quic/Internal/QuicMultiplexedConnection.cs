@@ -89,6 +89,11 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
         {
             throw exception.ToIceRpcException();
         }
+        catch (ObjectDisposedException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
 
         return new QuicMultiplexedStream(
             stream,
