@@ -77,7 +77,7 @@
     <!-- Run build telemetry -->
     <Exec
       WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
-      Command="dotnet IceRpc.BuildTelemetry.Reporter.dll --file-count $(FileCount) --hash $(Hash)"
+      Command="dotnet IceRpc.ProtobufBuildTelemetry.Reporter.dll --file-count $(FileCount) --hash $(Hash)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
       ContinueOnError="true" />
 
