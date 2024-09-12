@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Net;
@@ -56,7 +57,9 @@ internal class ColocListener : IListener<IDuplexConnection>
         catch (OperationCanceledException)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            throw new IceRpcException(IceRpcError.OperationAborted);
+            // The accept operation was canceled because the listener was disposed.
+            Debug.Assert(_disposeCts.IsCancellationRequested);
+            throw new ObjectDisposedException($"{typeof(ColocListener)}");
         }
     }
 
