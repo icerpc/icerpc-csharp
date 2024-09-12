@@ -74,8 +74,8 @@
 
     <!-- Run build telemetry -->
     <Exec
-      WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
-      Command="dotnet IceRpc.SliceBuildTelemetry.Reporter.dll --hash $(Hash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --src-file-count=$(SourceFileCount) --ref-file-count $(ReferenceFileCount)"
+      WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
+      Command="dotnet IceRpc.SliceBuildTelemetry.Reporter.dll --hash $(Hash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --src-file-count $(SourceFileCount) --ref-file-count $(ReferenceFileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
       ContinueOnError="true" />
 

@@ -28,7 +28,6 @@
       <!-- Use the Slice compiler and the build telemetry script from this NuGet package -->
       <PropertyGroup>
         <SliceCompilerPath>$(MSBuildThisFileDirectory)../tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
-        <IceRpcBuildTelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</IceRpcBuildTelemetryScriptPath>
       </PropertyGroup>
     </Otherwise>
   </Choose>
