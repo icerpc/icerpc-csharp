@@ -28,7 +28,12 @@ Router router = new Router()
 #if (transport == "quic")
 var sslServerAuthenticationOptions = new SslServerAuthenticationOptions
 {
-    ServerCertificate = new X509Certificate2("certs/server.p12")
+    ServerCertificateContext = SslStreamCertificateContext.Create(
+        X509CertificateLoader.LoadPkcs12FromFile(
+            "certs/server.p12",
+            password: null,
+            keyStorageFlags: X509KeyStorageFlags.Exportable),
+        additionalCertificates: null)
 };
 
 await using var server = new Server(

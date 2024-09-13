@@ -70,14 +70,14 @@
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
     />
     <OutputHashTask Sources="@(ProtoFile)" Condition="'$(IceRpcBuildTelemetry)' != 'false'">
-      <Output PropertyName="Hash" TaskParameter="CompilationHash" />
+      <Output PropertyName="CompilationHash" TaskParameter="CompilationHash" />
       <Output PropertyName="FileCount" TaskParameter="FileCount" />
     </OutputHashTask>
 
     <!-- Run build telemetry -->
     <Exec
-      WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
-      Command="dotnet IceRpc.BuildTelemetry.Reporter.dll --idl protobuf --hash $(Hash) --src-file-count $(FileCount)"
+      WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
+      Command="dotnet IceRpc.ProtobufBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --file-count $(FileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
       ContinueOnError="true" />
 

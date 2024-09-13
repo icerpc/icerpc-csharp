@@ -27,7 +27,6 @@
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
-        <IceRpcBuildTelemetryScriptPath>$(MSBuildThisFileDirectory)../tools/</IceRpcBuildTelemetryScriptPath>
       </PropertyGroup>
     </Otherwise>
   </Choose>
