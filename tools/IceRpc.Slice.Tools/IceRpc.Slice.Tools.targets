@@ -58,6 +58,7 @@
       OutputDir="%(SliceFile.OutputDir)"
       References="@(SliceDirectory->'%(FullPath)')"
       ToolsPath="$(SliceCompilerPath)"
+      Rpc="%(SliceFile.Rpc)"
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
     >
@@ -75,7 +76,6 @@
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
       ContinueOnError="true"
     />
-
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
       running the SliceC target so that default includes are already processed.
@@ -99,11 +99,8 @@
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"
       />
 
-      <!--
-        TODO: use a dedicated option instead of "parsing" AdditionalOptions.
-      -->
       <Compile
-        Condition="'%(SliceFile.AdditionalOptions)' != '--rpc none'"
+        Condition="'%(SliceFile.Rpc)' == 'icerpc'"
         Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"
