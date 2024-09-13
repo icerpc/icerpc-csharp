@@ -70,6 +70,21 @@ public class SliceCCSharpTask : ToolTask
 
     private readonly JsonSerializerOptions _jsonSerializeOptions = new() { PropertyNameCaseInsensitive = true };
 
+    protected override bool ValidateParameters()
+    {
+        var validRpcValues = new[] { "icerpc", "none" };
+
+        if (!validRpcValues.Contains(Rpc, StringComparer.OrdinalIgnoreCase))
+        {
+            Log.LogError($"Invalid Rpc value '{Rpc}'. Valid options are 'icerpc' and 'none'.");
+            return false;
+        }
+
+        Rpc = Rpc.ToLowerInvariant();
+
+        return base.ValidateParameters();
+    }
+
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
