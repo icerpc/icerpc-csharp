@@ -114,6 +114,7 @@ runs:
     run: |
       dotnet new icerpc-protobuf-di-client -o templates-test/ProtobufDIClient
       dotnet build templates-test/ProtobufDIClient/ /p:TreatWarningsAsErrors=true
+    shell: bash
 
   - name: 🧪 Test IceRpc + Protobuf DI Client Template .NET 9
     run: |
@@ -141,6 +142,7 @@ runs:
     run: |
       dotnet new icerpc-slice-di-client -o templates-test/SliceDIClient
       dotnet build templates-test/SliceDIClient/ /p:TreatWarningsAsErrors=true
+    shell: bash
 
   - name: 🧪 Test IceRpc + Slice DI Client Template .NET 9
     run: |
