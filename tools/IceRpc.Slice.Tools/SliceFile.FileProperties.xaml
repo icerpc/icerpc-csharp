@@ -86,7 +86,7 @@
     </StringProperty>
 
     <EnumProperty Name="Rpc"
-                  DisplayName="Rpc Provider"
+                  DisplayName="RPC Provider"
                   Description="Generate code for the specified RPC framework.">
         <EnumValue Name="none"
                    DisplayName="None"/>

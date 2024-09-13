@@ -84,13 +84,13 @@ The [ZeroC.Slice][zeroc-slice] NuGet package follows this pattern and provides d
 You can use the following `SliceFile` item metadata to customize the compilation and packaging of your Slice files. Each
 unique set of options results in a separate execution of `slicec-cs`.
 
-| Name              | Default   | Description                                                                                                                         |
-|-------------------|-----------|-------------------------------------------------------------------------------------------------------------------------------------|
-| AdditionalOptions |           | Specifies additional options to pass to [`slicec-cs`][slicec-cs].                                                                   |
-| OutputDir         | generated | Sets the output directory for the generated code. This metadata corresponds to the `--output-dir` option of `slicec-cs`.            |
-| Pack              | `false`   | Specifies whether or not to include the items (Slice files) in the NuGet package.                                                   |
-| PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                           |
-| Rpc               | icerpc    | Specifies the RPC framework to generate code for `icerpc` or `none`. This metadata corresponds to the `--rpc` option of `slicec-cs` |
+| Name              | Default   | Description                                                                                                                                         |
+|-------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| AdditionalOptions |           | Specifies additional options to pass to [`slicec-cs`][slicec-cs].                                                                                   |
+| OutputDir         | generated | Sets the output directory for the generated code. This metadata corresponds to the `--output-dir` option of `slicec-cs`.                            |
+| Pack              | `false`   | Specifies whether or not to include the items (Slice files) in the NuGet package.                                                                   |
+| PackagePath       | slice     | Sets the target path in the NuGet package. Used only when Pack is `true`.                                                                           |
+| Rpc               | `icerpc`  | Specifies the RPC framework to generate code for. Possible values: `icerpc`, `none`. This metadata corresponds to the `--rpc` option of `slicec-cs` |
 
 ## Generated code and NuGet packages
 

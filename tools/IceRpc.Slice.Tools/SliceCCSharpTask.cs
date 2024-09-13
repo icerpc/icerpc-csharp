@@ -76,7 +76,7 @@ public class SliceCCSharpTask : ToolTask
 
         if (!validRpcValues.Contains(Rpc, StringComparer.OrdinalIgnoreCase))
         {
-            Log.LogError($"Invalid Rpc value '{Rpc}'. Valid options are 'icerpc' and 'none'.");
+            Log.LogError($"Invalid Rpc value '{Rpc}'. Valid values are 'icerpc' and 'none'.");
             return false;
         }
 
