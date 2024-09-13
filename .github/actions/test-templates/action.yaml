@@ -20,7 +20,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Protobuf Client Template .NET 9
     run: |
-      dotnet new icerpc-protobuf-client -o templates-test/tcp/ProtobufClient -F net9.0
+      dotnet new icerpc-protobuf-client -o templates-test/net9.0/tcp/ProtobufClient -F net9.0
       dotnet build templates-test/net9.0/tcp/ProtobufClient/ /p:TreatWarningsAsErrors=true
     shell: bash
 
@@ -46,7 +46,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Protobuf Server Template .NET 9
     run: |
-      dotnet new icerpc-protobuf-server -o templates-test/tcp/ProtobufServer -F net9.0
+      dotnet new icerpc-protobuf-server -o templates-test/net9.0/tcp/ProtobufServer -F net9.0
       dotnet build templates-test/net9.0/tcp/ProtobufServer/ /p:TreatWarningsAsErrors=true
     shell: bash
 
@@ -72,7 +72,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Slice Client Template .NET 9
     run: |
-      dotnet new icerpc-slice-client -o templates-test/tcp/SliceClient  -F net9.0
+      dotnet new icerpc-slice-client -o templates-test/net9.0/tcp/SliceClient  -F net9.0
       dotnet build templates-test/net9.0/tcp/SliceClient/ /p:TreatWarningsAsErrors=true
     shell: bash
   
@@ -98,7 +98,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Slice Server Template .NET 9
     run: |
-      dotnet new icerpc-slice-server -o templates-test/tcp/SliceServer -F net9.0
+      dotnet new icerpc-slice-server -o templates-test/net9.0/tcp/SliceServer -F net9.0
       dotnet build templates-test/net9.0/tcp/SliceServer/ /p:TreatWarningsAsErrors=true
     shell: bash
 
@@ -118,7 +118,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Protobuf DI Client Template .NET 9
     run: |
-      dotnet new icerpc-protobuf-di-client -o templates-test/ProtobufDIClient -F net9.0
+      dotnet new icerpc-protobuf-di-client -o templates-test/net9.0/ProtobufDIClient -F net9.0
       dotnet build templates-test/net9.0/ProtobufDIClient/ /p:TreatWarningsAsErrors=true
     shell: bash
 
@@ -132,7 +132,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Protobuf DI Server Template .NET 9
     run: |
-      dotnet new icerpc-protobuf-di-server -o templates-test/ProtobufDIServer -F net9.0
+      dotnet new icerpc-protobuf-di-server -o templates-test/net9.0/ProtobufDIServer -F net9.0
       dotnet build templates-test/net9.0/ProtobufDIServer/ /p:TreatWarningsAsErrors=true
     shell: bash
   
@@ -146,7 +146,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Slice DI Client Template .NET 9
     run: |
-      dotnet new icerpc-slice-di-client -o templates-test/SliceDIClient -F net9.0
+      dotnet new icerpc-slice-di-client -o templates-test/net9.0/SliceDIClient -F net9.0
       dotnet build templates-test/net9.0/SliceDIClient/ /p:TreatWarningsAsErrors=true
     shell: bash
 
@@ -160,6 +160,6 @@ runs:
 
   - name: 🧪 Test IceRpc + Slice DI Server Template .NET 9
     run: |
-      dotnet new icerpc-slice-di-server -o templates-test/SliceDIServer -F net9.0
+      dotnet new icerpc-slice-di-server -o templates-test/net9.0/SliceDIServer -F net9.0
       dotnet build templates-test/net9.0/SliceDIServer/ /p:TreatWarningsAsErrors=true
     shell: bash
