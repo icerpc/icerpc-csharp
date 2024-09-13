@@ -50,11 +50,7 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <Target
-    Name="SliceC"
-    BeforeTargets="CoreCompile"
-    Condition="@(SliceFile) != ''"
-  >
+  <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(SliceFile.OutputDir)" />
     <!-- Compile the Slice files -->
     <SliceCCSharpTask
@@ -77,7 +73,8 @@
       WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
       Command="dotnet IceRpc.SliceBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --ref-file-count $(ReferenceFileCount) --src-file-count $(SourceFileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
-      ContinueOnError="true" />
+      ContinueOnError="true"
+    />
 
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
