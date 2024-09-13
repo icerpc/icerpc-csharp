@@ -1,0 +1,31 @@
+name: 'Test Template'
+description: 'Tests a single template with given parameters'
+
+inputs:
+  template:
+    description: 'The name of the template to test'
+    required: true
+  output:
+    description: 'The output directory for the template'
+    required: true
+  parameters:
+    description: 'template parameters'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Test template
+      shell: bash
+      run: |
+        set -e
+        dotnet new ${{ inputs.template }} -o ${{ inputs.output }} ${{ inputs.parameters }}
+        dotnet build ${{ inputs.output }}/ /p:TreatWarningsAsErrors=true
+      if: runner.os != 'Windows'
+    - name: Test template
+      shell: cmd
+      run: |
+        dotnet new ${{ inputs.template }} -o ${{ inputs.output }} ${{ inputs.parameters }}
+        dotnet build ${{ inputs.output }}/ /p:TreatWarningsAsErrors=true
+      if: runner.os == 'Windows'
