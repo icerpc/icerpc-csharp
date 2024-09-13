@@ -11,6 +11,9 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
+    <SliceFile
+      Include="../slice/BuildTelemetry.slice"
+      OutputDir="$(MSBuildProjectDirectory)/generated" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
   </ItemGroup>

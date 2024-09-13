@@ -9,21 +9,21 @@ using System.Runtime.InteropServices;
 
 var rootCommand = new RootCommand("Protobuf build telemetry reporter");
 
+var compilationHashOption = new Option<string>(
+    name: "--compilation-hash",
+    description: "The compilation hash.")
+{
+    IsRequired = true,
+};
+rootCommand.AddOption(compilationHashOption);
+
 var fileCountOption = new Option<int>(
     name: "--file-count",
     description: "The number of files included in the compilation.");
 rootCommand.AddOption(fileCountOption);
 
-var hashOption = new Option<string>(
-    name: "--hash",
-    description: "The compilation hash.")
-{
-    IsRequired = true,
-};
-rootCommand.AddOption(hashOption);
-
 rootCommand.SetHandler(
-    async (int fileCount, string hash) =>
+    async (string compilationHash, int fileCount) =>
     {
         const string uri = "icerpc://telemetry.icerpc.dev";
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -33,17 +33,17 @@ rootCommand.SetHandler(
         var reporter = new ReporterProxy(connection);
 
         // Determine the IceRPC version using the assembly version.
-        var assembly = Assembly.GetAssembly(typeof(SliceTelemetryData));
-        string version = assembly!.GetName().Version!.ToString();
+        var assembly = Assembly.GetAssembly(typeof(ProtobufTelemetryData));
+        string toolVersion = assembly!.GetName().Version!.ToString();
 
         var protobufTelemetryData = new ProtobufTelemetryData(
-            version,
-            RuntimeInformation.OSDescription,
             RuntimeInformation.ProcessArchitecture.ToString(),
-            IsCi(),
-            new TargetLanguage.CSharp(Environment.Version.ToString()),
+            compilationHash,
             fileCount,
-            hash);
+            IsCi(),
+            RuntimeInformation.OSDescription,
+            new TargetLanguage.CSharp(Environment.Version.ToString()),
+            toolVersion);
 
         // Upload the telemetry to the server.
         await reporter.UploadAsync(new BuildTelemetry.Protobuf(protobufTelemetryData), cancellationToken: cts.Token);
@@ -51,8 +51,8 @@ rootCommand.SetHandler(
         // Shutdown the connection.
         await connection.ShutdownAsync(cts.Token);
     },
-    fileCountOption,
-    hashOption);
+    compilationHashOption,
+    fileCountOption);
 
 return await rootCommand.InvokeAsync(args);
 

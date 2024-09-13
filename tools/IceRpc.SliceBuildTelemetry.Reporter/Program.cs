@@ -9,13 +9,13 @@ using System.Runtime.InteropServices;
 
 var rootCommand = new RootCommand("Slice build telemetry reporter");
 
-var hashOption = new Option<string>(
-    name: "--hash",
+var compilationHashOption = new Option<string>(
+    name: "--compilation-hash",
     description: "The compilation hash.")
 {
     IsRequired = true,
 };
-rootCommand.AddOption(hashOption);
+rootCommand.AddOption(compilationHashOption);
 
 var containsSlice1Option = new Option<bool>(
     name: "--contains-slice1",
@@ -27,18 +27,23 @@ var containsSlice2Option = new Option<bool>(
     description: "Whether or not the build contains Slice2 definitions");
 rootCommand.AddOption(containsSlice2Option);
 
-var sourceFileCountOption = new Option<int>(
-    name: "--src-file-count",
-    description: "The number of source files included in the compilation.");
-rootCommand.AddOption(sourceFileCountOption);
-
 var referenceFileCountOption = new Option<int>(
     name: "--ref-file-count",
     description: "The number of reference files included in the compilation.");
 rootCommand.AddOption(referenceFileCountOption);
 
+var sourceFileCountOption = new Option<int>(
+    name: "--src-file-count",
+    description: "The number of source files included in the compilation.");
+rootCommand.AddOption(sourceFileCountOption);
+
 rootCommand.SetHandler(
-    async (string hash, bool containsSlice1, bool containsSlice2, int sourceFileCount, int referenceFileCount) =>
+    async (
+        string compilationHash,
+        bool containsSlice1,
+        bool containsSlice2,
+        int referenceFileCount,
+        int sourceFileCount) =>
     {
         const string uri = "icerpc://telemetry.icerpc.dev";
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -49,19 +54,19 @@ rootCommand.SetHandler(
 
         // Determine the IceRPC version using the assembly version.
         var assembly = Assembly.GetAssembly(typeof(SliceTelemetryData));
-        string version = assembly!.GetName().Version!.ToString();
+        string toolsVersion = assembly!.GetName().Version!.ToString();
 
         var sliceTelemetryData = new SliceTelemetryData(
-            version,
-            RuntimeInformation.OSDescription,
             RuntimeInformation.ProcessArchitecture.ToString(),
-            IsCi(),
-            new TargetLanguage.CSharp(Environment.Version.ToString()),
-            hash,
+            compilationHash,
             containsSlice1,
             containsSlice2,
+            IsCi(),
+            RuntimeInformation.OSDescription,
+            referenceFileCount,
             sourceFileCount,
-            referenceFileCount);
+            new TargetLanguage.CSharp(Environment.Version.ToString()),
+            toolsVersion);
 
         // Upload the telemetry to the server.
         await reporter.UploadAsync(new BuildTelemetry.Slice(sliceTelemetryData), cancellationToken: cts.Token);
@@ -69,11 +74,11 @@ rootCommand.SetHandler(
         // Shutdown the connection.
         await connection.ShutdownAsync(cts.Token);
     },
-    hashOption,
+    compilationHashOption,
     containsSlice1Option,
     containsSlice2Option,
-    sourceFileCountOption,
-    referenceFileCountOption);
+    referenceFileCountOption,
+    sourceFileCountOption);
 
 return await rootCommand.InvokeAsync(args);
 
