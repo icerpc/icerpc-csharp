@@ -79,7 +79,7 @@
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
       running the SliceC target so that default includes are already processed.
-        -->
+    -->
     <ItemGroup>
       <SliceFile>
         <!--
@@ -100,7 +100,7 @@
       />
 
       <!--
-          TODO: use a dedicated option instead of "parsing" AdditionalOptions.
+        TODO: use a dedicated option instead of "parsing" AdditionalOptions.
       -->
       <Compile
         Condition="'%(SliceFile.AdditionalOptions)' != '--rpc none'"
