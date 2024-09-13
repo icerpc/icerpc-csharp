@@ -7,6 +7,5 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    # See https://github.com/microsoft/vstest/issues/2080#issuecomment-539879345
-    run: dotnet test --no-build --verbosity normal --logger:"console;noprogress=true"
+    run: dotnet test --no-build --verbosity normal
     shell: bash
