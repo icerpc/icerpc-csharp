@@ -9,7 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <!--#if (framework=="net8.0")-->
+    <!--#if (Framework=="net8.0")-->
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.*" />
     <!-- Required to avoid NuGet Audit error: see #4032 -->
