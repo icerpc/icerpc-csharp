@@ -79,7 +79,8 @@
       WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
       Command="dotnet IceRpc.ProtobufBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --file-count $(FileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
-      ContinueOnError="true" />
+      ContinueOnError="true"
+    />
 
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
