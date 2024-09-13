@@ -7,12 +7,14 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    run: dotnet test --blame-hang-timeout 10s
+    run: dotnet test
     shell: bash
-  - name: Upload hang dumps
-    uses: actions/upload-artifact@v4
-    with:
-      name: hang-dumps-${{ runner.os }}
-      path: ${{ github.workspace }}/**/*.dmp
-      if-no-files-found: ignore
-    if: failure()
+
+  # When using --blame-hang-timeout, the following snippet can be used to upload hang dumps
+  # - name: Upload hang dumps
+  #   uses: actions/upload-artifact@v4
+  #   with:
+  #     name: hang-dumps-${{ runner.os }}
+  #     path: ${{ github.workspace }}/**/*.dmp
+  #     if-no-files-found: ignore
+  #   if: failure()
