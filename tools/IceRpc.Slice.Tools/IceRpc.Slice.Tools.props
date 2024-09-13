@@ -25,7 +25,7 @@
       </PropertyGroup>
     </When>
     <Otherwise>
-      <!-- Use the Slice compiler and the build telemetry script from this NuGet package -->
+      <!-- Use the Slice compiler from this NuGet package -->
       <PropertyGroup>
         <SliceCompilerPath>$(MSBuildThisFileDirectory)../tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
       </PropertyGroup>
@@ -49,6 +49,7 @@
   <ItemDefinitionGroup>
     <SliceFile>
       <OutputDir>$(MSBuildProjectDirectory)/generated</OutputDir>
+      <Rpc>icerpc</Rpc>
       <Pack>false</Pack>
       <PackagePath>slice</PackagePath>
     </SliceFile>

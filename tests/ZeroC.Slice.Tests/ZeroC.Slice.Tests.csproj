@@ -9,7 +9,7 @@
 
   <ItemDefinitionGroup>
     <SliceFile>
-      <AdditionalOptions>--rpc none</AdditionalOptions>
+      <Rpc>none</Rpc>
     </SliceFile>
   </ItemDefinitionGroup>
 
