@@ -65,7 +65,7 @@
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
     >
-      <Output PropertyName="Hash" TaskParameter="CompilationHash" />
+      <Output PropertyName="CompilationHash" TaskParameter="CompilationHash" />
       <Output PropertyName="ContainsSlice1" TaskParameter="ContainsSlice1" />
       <Output PropertyName="ContainsSlice2" TaskParameter="ContainsSlice2" />
       <Output PropertyName="SourceFileCount" TaskParameter="SourceFileCount" />
@@ -74,8 +74,8 @@
 
     <!-- Run build telemetry -->
     <Exec
-      WorkingDirectory="$(IceRpcBuildTelemetryScriptPath)"
-      Command="dotnet IceRpc.BuildTelemetry.Reporter.dll --idl slice --hash $(Hash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --src-file-count=$(SourceFileCount) --ref-file-count $(ReferenceFileCount)"
+      WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
+      Command="dotnet IceRpc.SliceBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --ref-file-count $(ReferenceFileCount) --src-file-count $(SourceFileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
       ContinueOnError="true" />
 

@@ -49,8 +49,8 @@
   </ItemGroup>
   <ItemGroup>
     <None
-      Include="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*"
-      Exclude="../IceRpc.BuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*.exe"
+      Include="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*"
+      Exclude="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*.exe"
       Visible="false"
     >
       <PackagePath>tools/</PackagePath>
