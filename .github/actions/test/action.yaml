@@ -9,14 +9,14 @@ runs:
   - name: 🧪 Test
     env:
       VSTEST_TESTHOST_SHUTDOWN_TIMEOUT: 1000
-    run: dotnet test
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s
     shell: bash
 
-  # When using --blame-hang-timeout, the following snippet can be used to upload hang dumps
-  # - name: Upload hang dumps
-  #   uses: actions/upload-artifact@v4
-  #   with:
-  #     name: hang-dumps-${{ runner.os }}
-  #     path: ${{ github.workspace }}/**/*.dmp
-  #     if-no-files-found: ignore
-  #   if: failure()
+  # When using --blame-hang-timeout
+  - name: Upload hang dumps
+    uses: actions/upload-artifact@v4
+    with:
+      name: hang-dumps-${{ runner.os }}
+      path: ${{ github.workspace }}/**/*.dmp
+      if-no-files-found: ignore
+    if: failure()
