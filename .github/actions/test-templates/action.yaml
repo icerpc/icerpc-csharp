@@ -72,7 +72,7 @@ runs:
 
   - name: 🧪 Test IceRpc + Slice Client Template .NET 9
     run: |
-      dotnet new icerpc-slice-client -o templates-test/net9.0/tcp/SliceClient  -F net9.0
+      dotnet new icerpc-slice-client -o templates-test/net9.0/tcp/SliceClient -F net9.0
       dotnet build templates-test/net9.0/tcp/SliceClient/ /p:TreatWarningsAsErrors=true
     shell: bash
   
