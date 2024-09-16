@@ -18,11 +18,11 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.*-preview.*" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.*-preview.*" />
     <!--#endif-->
-    <PackageReference Include="IceRpc.Slice.Tools" Version="0.4.0" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Slice" Version="0.4.0" />
-    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="0.4.0" />
-    <PackageReference Include="IceRpc.Logger" Version="0.4.0" />
-    <PackageReference Include="IceRpc.Deadline" Version="0.4.0" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="0.4.*" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice" Version="0.4.*" />
+    <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="0.4.*" />
+    <PackageReference Include="IceRpc.Logger" Version="0.4.*" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.4.*" />
     <!-- The 1.2 beta version is required for supporting the latest language features.
              See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
