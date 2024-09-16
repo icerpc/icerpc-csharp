@@ -104,7 +104,7 @@ You need to reference the following NuGet packages to compile the generated C# c
 Referencing `IceRpc.Slice` makes your project reference transitively [ZeroC.Slice][zeroc-slice], [IceRpc][icerpc] and
 [System.IO.Pipelines][system-io-pipelines].
 
-## Build Telemetry
+## Build telemetry
 
 The `IceRpc.Slice.Tools` package collects anonymous build telemetry data about general usage. Participation in this
 program is optional, and you may opt out if you’d prefer not to share any information.

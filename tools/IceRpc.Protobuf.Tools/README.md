@@ -87,7 +87,7 @@ This package includes the `protoc` compiler binaries, and the Protobuf well-know
 [Google.Protobuf.Tools][google-protobuf-tools] package. Additionally, it includes the `protoc` ARM64 binaries
 for Linux and macOS from the [Google Protobuf release page][google-protobuf-release].
 
-## Build Telemetry
+## Build telemetry
 
 The `IceRpc.Protobuf.Tools` package collects anonymous build telemetry data about general usage. Participation in this
 program is optional, and you may opt out if you’d prefer not to share any information.
