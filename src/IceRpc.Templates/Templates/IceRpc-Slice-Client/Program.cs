@@ -3,10 +3,8 @@ using IceRpc;
 using IceRpc.Transports.Quic;
 #endif
 using Microsoft.Extensions.Logging;
-#if (transport == "quic")
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-#endif
 using IceRpc_Slice_Client;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
@@ -15,7 +13,6 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Information));
 
-#if (transport == "quic")
 // Path to the root CA certificate.
 using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
 
@@ -33,6 +30,7 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
     }
 };
 
+#if (transport == "quic")
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
@@ -42,6 +40,7 @@ await using var connection = new ClientConnection(
 #else
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
+    clientAuthenticationOptions,
     logger: loggerFactory.CreateLogger<ClientConnection>());
 #endif
 
