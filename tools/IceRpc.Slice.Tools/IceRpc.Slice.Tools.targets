@@ -50,11 +50,7 @@
       Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
     />
   </ItemGroup>
-  <Target
-    Name="SliceC"
-    BeforeTargets="CoreCompile"
-    Condition="@(SliceFile) != ''"
-  >
+  <Target Name="SliceC" BeforeTargets="CoreCompile" Condition="@(SliceFile) != ''">
     <MakeDir Directories="%(SliceFile.OutputDir)" />
     <!-- Compile the Slice files -->
     <SliceCCSharpTask
@@ -62,6 +58,7 @@
       OutputDir="%(SliceFile.OutputDir)"
       References="@(SliceDirectory->'%(FullPath)')"
       ToolsPath="$(SliceCompilerPath)"
+      Rpc="%(SliceFile.Rpc)"
       AdditionalOptions="%(SliceFile.AdditionalOptions)"
       Sources="@(SliceFile)"
     >
@@ -77,12 +74,12 @@
       WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
       Command="dotnet IceRpc.SliceBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --ref-file-count $(ReferenceFileCount) --src-file-count $(SourceFileCount)"
       Condition="'$(IceRpcBuildTelemetry)' != 'false'"
-      ContinueOnError="true" />
-
+      ContinueOnError="true"
+    />
     <!--
       Include all C# generated source items that have not been already included. We delay this until we are
       running the SliceC target so that default includes are already processed.
-        -->
+    -->
     <ItemGroup>
       <SliceFile>
         <!--
@@ -102,11 +99,8 @@
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"
       />
 
-      <!--
-          TODO: use a dedicated option instead of "parsing" AdditionalOptions.
-      -->
       <Compile
-        Condition="'%(SliceFile.AdditionalOptions)' != '--rpc none'"
+        Condition="'%(SliceFile.Rpc)' == 'icerpc'"
         Include="@(SliceFile->'%(IceRpcGeneratedPath)')"
         Exclude="@(Compile->'%(FullPath)');@(Compile->'%(Identity)')"
         RemoveMetadata="OutputDir;AdditionalOptions;GeneratedPath;IceRpcGeneratedPath;PackagePath;Pack"

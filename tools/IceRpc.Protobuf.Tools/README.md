@@ -1,11 +1,11 @@
 # Protobuf Tools for IceRPC
 
-IceRpc.Protobuf.Tools allows you to compile Protobuf definitions (in `.proto` files) into C# code (in `.cs` files)
+The `IceRpc.Protobuf.Tools` NuGet package allows you to compile Protobuf definitions (in `.proto` files) into C# code (in `.cs` files)
 within MSBuild projects.
 
 This package includes the Protobuf compiler, `protoc`, and the `protoc-gen-icerpc-csharp` generator. The `protoc`
-compiler is a native tool with binaries for Linux x64, macOS x64 and Windows x64. The `protoc-gen-icerpc-csharp`
-generator is a .NET program and requires .NET 8 or later.
+compiler is a native tool with binaries for Linux x64, Linux arm64, macOS x64, macOS arm64, and Windows x64. The 
+`protoc-gen-icerpc-csharp` generator is a .NET program and requires .NET 8 or later.
 
 Once you've added the IceRpc.Protobuf.Tools NuGet package to your project, the Protobuf files of your project are
 automatically compiled into C# files every time you build this project.
@@ -86,6 +86,34 @@ You need to reference the `IceRpc.Protobuf` NuGet package to compile the generat
 This package includes the `protoc` compiler binaries, and the Protobuf well-known type definitions from the
 [Google.Protobuf.Tools][google-protobuf-tools] package. Additionally, it includes the `protoc` ARM64 binaries
 for Linux and macOS from the [Google Protobuf release page][google-protobuf-release].
+
+## Build telemetry
+
+The `IceRpc.Protobuf.Tools` package collects anonymous build telemetry data about general usage. Participation in this
+program is optional, and you may opt out if you’d prefer not to share any information.
+
+This package includes the `IceRpc.ProtobufBuildTelemetry.Reporter` client, an IceRPC C# client that sends anonymous build
+telemetry data over a secure connection to the IceRPC build telemetry server during the compilation of Protobuf files.
+This data includes:
+
+- The IceRPC version.
+- The system's operating system, version, and platform architecture.
+- The source of the telemetry data (`IceRpc.Protobuf.Tools`).
+- The number of Protobuf files being compiled.
+- A SHA256 hash computed from the Protobuf files being compiled.
+
+This data is used to help the IceRPC team understand how the tools are being used and to prioritize future development
+efforts. The data is stored in a private database and is not shared with any third parties.
+
+To opt out of the build telemetry program, add the following property to your C# project file:
+
+```xml
+<PropertyGroup>
+ <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
+</PropertyGroup>
+```
+
+Setting this property to `false` completely disables the computation and collection of telemetry.
 
 [default-items]: https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#enabledefaultitems
 [icerpc]: https://www.nuget.org/packages/IceRpc

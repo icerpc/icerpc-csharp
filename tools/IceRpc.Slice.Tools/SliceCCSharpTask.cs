@@ -26,6 +26,12 @@ public class SliceCCSharpTask : ToolTask
     /// to <c>-R</c> slicec-cs compiler option.</summary>
     public string[] References { get; set; } = Array.Empty<string>();
 
+    /// <summary>
+    /// The RPC provider to generate code for, corresponds to the <c>--rpc</c> slicec-cs compiler option.
+    /// </summary>
+    [Required]
+    public string Rpc { get; set; } = "";
+
     /// <summary>The Slice files to compile, these are the input files pass to the slicec-cs compiler.</summary>
     [Required]
     public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
@@ -64,6 +70,21 @@ public class SliceCCSharpTask : ToolTask
 
     private readonly JsonSerializerOptions _jsonSerializeOptions = new() { PropertyNameCaseInsensitive = true };
 
+    protected override bool ValidateParameters()
+    {
+        var validRpcValues = new[] { "icerpc", "none" };
+
+        if (!validRpcValues.Contains(Rpc, StringComparer.OrdinalIgnoreCase))
+        {
+            Log.LogError($"Invalid Rpc value '{Rpc}'. Valid values are 'icerpc' and 'none'.");
+            return false;
+        }
+
+        Rpc = Rpc.ToLowerInvariant();
+
+        return base.ValidateParameters();
+    }
+
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
@@ -87,6 +108,7 @@ public class SliceCCSharpTask : ToolTask
         }
         builder.AppendSwitch("--diagnostic-format=json");
         builder.AppendSwitch("--telemetry");
+        builder.AppendSwitch($"--rpc={Rpc}");
         builder.AppendFileNamesIfNotNull(
             Sources.Select(item => item.GetMetadata("FullPath").ToString()).ToArray(),
             " ");
