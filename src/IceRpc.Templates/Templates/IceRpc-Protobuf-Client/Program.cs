@@ -3,10 +3,8 @@ using IceRpc;
 using IceRpc.Transports.Quic;
 #endif
 using Microsoft.Extensions.Logging;
-#if (transport == "quic")
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-#endif
 using IceRpc_Protobuf_Client;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.

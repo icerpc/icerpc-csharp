@@ -4,10 +4,8 @@ using IceRpc.Slice;
 using IceRpc.Transports.Quic;
 #endif
 using Microsoft.Extensions.Logging;
-#if (transport == "quic")
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-#endif
 
 using IceRpc_Slice_Server;
 
