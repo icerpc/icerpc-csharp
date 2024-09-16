@@ -123,7 +123,7 @@ This data includes:
 - A SHA256 hash computed from the Slice files being compiled.
 
 This data is used to help the IceRPC team understand how the tools are being used and to prioritize future development
-efforts. The data is stored in a secure database and is not shared with any third parties.
+efforts. The data is stored in a private database and is not shared with any third parties.
 
 To opt out of the build telemetry program, add the following property to your C# project file:
 
