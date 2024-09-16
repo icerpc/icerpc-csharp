@@ -13,12 +13,19 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions()
 {
     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
     {
-        using var customChain = new X509Chain();
-        customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-        customChain.ChainPolicy.DisableCertificateDownloads = true;
-        customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-        customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-        return customChain.Build((X509Certificate2)certificate!);
+        if (certificate is X509Certificate2 peerCertificate)
+        {
+            using var customChain = new X509Chain();
+            customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            customChain.ChainPolicy.DisableCertificateDownloads = true;
+            customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+            customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
+            return customChain.Build(peerCertificate);
+        }
+        else
+        {
+            return false;
+        }
     }
 };
 
