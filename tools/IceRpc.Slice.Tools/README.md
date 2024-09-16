@@ -96,10 +96,10 @@ unique set of options results in a separate execution of `slicec-cs`.
 
 You need to reference the following NuGet packages to compile the generated C# code:
 
-| Rpc                         | NuGet package reference      |
-|-----------------------------|------------------------------|
-| `icerpc` or no `Rpc` option | [IceRpc.Slice][icerpc-slice] |
-| `none`                      | [ZeroC.Slice][zeroc-slice]   |
+| Rpc metadata                  | NuGet package reference      |
+|-------------------------------|------------------------------|
+| `icerpc` or no `Rpc` metadata | [IceRpc.Slice][icerpc-slice] |
+| `none`                        | [ZeroC.Slice][zeroc-slice]   |
 
 Referencing `IceRpc.Slice` makes your project reference transitively [ZeroC.Slice][zeroc-slice], [IceRpc][icerpc] and
 [System.IO.Pipelines][system-io-pipelines].
