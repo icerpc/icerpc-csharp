@@ -7,11 +7,8 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    env:
-      VSTEST_TESTHOST_SHUTDOWN_TIMEOUT: 1000
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s -- NUnit.NumberOfTestWorkers=1
     shell: bash
-
   # When using --blame-hang-timeout
   - name: Upload hang dumps
     uses: actions/upload-artifact@v4
