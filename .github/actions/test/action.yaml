@@ -7,8 +7,14 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    run: dotnet test --no-build --blame-hang-timeout 10s
+    run: dotnet test --no-build --blame-crash --blame-hang-timeout 10s --diag ${{ github.workspace}}/diag.log
     shell: bash
+  - name: Upload diag log
+    uses: actions/upload-artifact@v4
+    with:
+      name: diag-log-${{ runner.os }}
+      path: ${{ github.workspace }}/diag.log
+      if-no-files-found: ignore
   # When using --blame-hang-timeout
   - name: Upload hang dumps
     uses: actions/upload-artifact@v4
