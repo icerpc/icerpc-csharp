@@ -18,8 +18,8 @@ public record class ConnectionOptions
     /// fails when this read waits for over <see cref="IceIdleTimeout" /> to receive any byte. When the Ice idle check
     /// is disabled, the <see cref="IceIdleTimeout" /> has no effect on reads: a read on the underlying transport
     /// connection can wait forever to receive a byte.</summary>
-    /// <value><see langword="true"/> if Ice idle check is enabled; otherwise, <see langword="false"/>. Defaults to <see
-    /// langword="true"/>.</value>
+    /// <value><see langword="true"/> if the Ice idle check is enabled; otherwise, <see langword="false"/>. Defaults to
+    /// <see langword="true"/>.</value>
     /// <remarks>Set to <see langword="false"/> when the peer is an Ice application using Ice 3.7 or earlier and you
     /// can't update this application to turn on HeartbeatAlways with
     /// <see href="https://doc.zeroc.com/ice/3.7/property-reference/ice-acm#id-.Ice.ACM.*v3.7-Ice.ACM.Heartbeat"/>.
