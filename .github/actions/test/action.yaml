@@ -8,7 +8,7 @@ runs:
     shell: bash
   - name: 🧪 Test
     # https://github.com/microsoft/vstest/issues/2080#issuecomment-539879345
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s -- NUnit.NumberOfTestWorkers=0
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s < /dev/null
     shell: bash
   # When using --blame-hang-timeout
   - name: Upload hang dumps
