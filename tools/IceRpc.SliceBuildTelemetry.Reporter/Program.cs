@@ -45,7 +45,7 @@ rootCommand.SetHandler(
         int referenceFileCount,
         int sourceFileCount) =>
     {
-        const string uri = "icerpc://telemetry.icerpc.dev";
+        const string uri = "icerpc://build-telemetry.icerpc.dev";
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
         await using var connection = new ClientConnection(new Uri(uri), new SslClientAuthenticationOptions());
 
