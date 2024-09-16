@@ -84,7 +84,7 @@ title: Client-side
 flowchart LR
     subgraph pipeline[Invocation pipeline]
         direction LR
-        di[Deadline\ninterceptor] --> ri[Retry\ninterceptor] --> connection[network\nconnection] --> ri --> di
+        di[`Deadline\ninterceptor`] --> ri[`Retry\ninterceptor`] --> connection[`network\nconnection`] --> ri --> di
     end
     client -- request --> di
     client -- response --- di
@@ -97,10 +97,10 @@ title: Server-side
 flowchart LR
     subgraph pipeline [Dispatch pipeline]
         direction LR
-        lm[Logger\nmiddleware] --> dm[Deadline\nmiddleware] --> service --> dm --> lm
+        lm[`Logger\nmiddleware`] --> dm[`Deadline\nmiddleware`] --> service --> dm --> lm
 
     end
-    connection[network\nconnection] -- request --> lm
+    connection[`network\nconnection`] -- request --> lm
     connection -- response --- lm
 ```
 
