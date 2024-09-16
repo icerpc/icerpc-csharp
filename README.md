@@ -68,7 +68,7 @@ string greeting = await greeter.GreetAsync(name);
 IceRPC leverages [System.IO.Pipelines] for maximum efficiency. This allows IceRPC to rent all its byte buffers from the
 same configurable memory pool.
 
-IceRPC naturally supports cancellation just like all modern C# libraries, with trailing cancellation token parameters.
+IceRPC supports cancellation just like all modern C# libraries, with trailing cancellation token parameters.
 This cancellation works "across the wire": when you cancel an outstanding RPC invocation, the remote service is notified
 and can in turn cancel further processing.
 
@@ -203,11 +203,11 @@ Ice server, and you can call services hosted by an IceRPC server from an Ice cli
 
 [IceRPC for Ice users] provides all the details.
 
-## Build Telemetry
+## Build telemetry
 
-IceRPC collects anonymous telemetry data during the build process. Participation in this program is optional, and you
-may opt-out if you do not wish to share any information. Detailed information about what data is collected and how to
-opt-out can be found in the [Build Telemetry] README.
+IceRPC collects anonymous telemetry data when you compile Slice files or Protobuf files. You can find detailed 
+information about what data is collected and how to opt-out in the READMEs for [IceRpc.Slice.Tools] and
+[IceRpc.Protobuf.Tools].
 
 ## License
 
@@ -231,6 +231,8 @@ in-memory transport for testing). Future releases may add additional transports.
 [HTTP/3]: https://en.wikipedia.org/wiki/HTTP/3
 [Ice]: https://github.com/zeroc-ice/ice
 [IceRPC for Ice users]: https://docs.icerpc.dev/icerpc-for-ice-users
+[IceRpc.Protobuf.Tools]: tools/IceRpc.Protobuf.Tools/README.md#build-telemetry
+[IceRpc.Slice.Tools]: tools/IceRpc.Slice.Tools/README.md#build-telemetry
 [icerpc-protocol]: https://docs.icerpc.dev/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language
@@ -241,4 +243,4 @@ in-memory transport for testing). Future releases may add additional transports.
 [Slic]: https://docs.icerpc.dev/icerpc/slic-transport/overview
 [Slice]: https://docs.icerpc.dev/slice2
 [System.IO.Pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
-[Build Telemetry]: tools/IceRpc.BuildTelemetry.Reporter/README.md
+
