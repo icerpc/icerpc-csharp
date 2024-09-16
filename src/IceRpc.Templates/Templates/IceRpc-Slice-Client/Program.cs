@@ -15,7 +15,6 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Information));
 
-#if (transport == "quic")
 // Path to the root CA certificate.
 using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
 
@@ -33,6 +32,7 @@ var clientAuthenticationOptions = new SslClientAuthenticationOptions
     }
 };
 
+#if (transport == "quic")
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
@@ -42,6 +42,7 @@ await using var connection = new ClientConnection(
 #else
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
+    clientAuthenticationOptions,
     logger: loggerFactory.CreateLogger<ClientConnection>());
 #endif
 
