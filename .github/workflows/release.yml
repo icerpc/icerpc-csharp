@@ -87,7 +87,7 @@ jobs:
         working-directory: tools
         run: dotnet build --configuration Release
       - name: Build IceRPC
-        run: dotnet build --configuration Release --output .
+        run: dotnet build --configuration Release
       - name: Pack IceRPC Tools
         working-directory: tools
         run: dotnet pack --configuration Release --output ../
