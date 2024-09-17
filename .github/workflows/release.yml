@@ -4,8 +4,8 @@ on:
   push:
     # Run on release and preview tags
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-preview[0-9]+"
+      - "v[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?"
+      - "v[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?-preview[0-9]+"
 
 jobs:
   build-compiler:
@@ -80,11 +80,16 @@ jobs:
           # Copy the compiler to the expected location to avoid rebuilding it when creating the NuGet packages
           New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
+      - name: Build IceRPC Tools
+        working-directory: tools
+        run: dotnet build --configuration Release
+        env:
+          SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
+      - name: Build IceRPC
+        run: dotnet build --configuration Release --output .
       - name: Pack IceRPC Tools
         working-directory: tools
-        run: |
-          dotnet build --configuration Release
-          dotnet pack --configuration Release --output ../
+        run: dotnet pack --configuration Release --output ../
         env:
           SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
       - name: Pack IceRPC
