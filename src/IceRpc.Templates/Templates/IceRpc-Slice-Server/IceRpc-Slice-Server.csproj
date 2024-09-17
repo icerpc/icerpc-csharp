@@ -12,12 +12,12 @@
     <!--#endif"-->
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Slice.Tools" Version="0.4.0.1" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Slice" Version="0.4.0.1" />
-    <PackageReference Include="IceRpc.Deadline" Version="0.4.0.1" />
-    <PackageReference Include="IceRpc.Logger" Version="0.4.0.1" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="0.5.0-preview1" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice" Version="0.5.0-preview1" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.5.0-preview1" />
+    <PackageReference Include="IceRpc.Logger" Version="0.5.0-preview1" />
     <!--#if (transport=="quic")-->
-    <PackageReference Include="IceRpc.Transports.Quic" Version="0.4.0.1" />
+    <PackageReference Include="IceRpc.Transports.Quic" Version="0.5.0-preview1" />
     <!--#endif"-->
     <!--#if (Framework=="net8.0")-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />

@@ -2,9 +2,9 @@ name: coverage
 
 on:
   push:
-    branches: ["0.4.x"]
+    branches: ["main"]
   pull_request:
-    branches: ["0.4.x"]
+    branches: ["main"]
 
 jobs:
   coverage:
@@ -36,9 +36,9 @@ jobs:
           license: ${{ secrets.REPORT_GENERATOR_LICENSE }}
 
       - name: Sync Coverage Report to S3
-        run: aws s3 sync ./coveragereport s3://${{ secrets.AWS_S3_BUCKET }}/csharp/0.4.x/coverage --delete
+        run: aws s3 sync ./coveragereport s3://${{ secrets.AWS_S3_BUCKET }}/csharp/main/coverage --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
-        if: github.ref == 'refs/heads/0.4.x' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
