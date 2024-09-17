@@ -7,7 +7,7 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
   - name: 🧪 Test
-    run: dotnet test --no-build --blame-hang-timeout 10s
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s
     shell: bash
   - name: Upload blame hang dumps
     uses: actions/upload-artifact@v4
