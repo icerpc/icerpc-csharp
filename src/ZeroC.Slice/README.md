@@ -31,13 +31,14 @@ struct Person {
 
 public partial record struct Person
 {
-    public string Name;
+    public required string Name { get; set; }
 
-    public int Id;
+    public int Id { get; set; }
 
-    public string? Email;
+    public string? Email { get; set; }
 
     /// <summary>Constructs a new instance of <see cref="Person" />.</summary>
+    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
     public Person(string name, int id, string? email)
     {
         this.Name = name;
@@ -47,6 +48,7 @@ public partial record struct Person
     /// <summary>Constructs a new instance of <see cref="Person" /> and decodes its fields
     /// from a Slice decoder.</summary>
     /// <param name="decoder">The Slice decoder.</param>
+    [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
     public Person(ref SliceDecoder decoder)
     {
         this.Name = decoder.DecodeString();
