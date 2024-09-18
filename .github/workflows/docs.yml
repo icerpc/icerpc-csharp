@@ -23,9 +23,9 @@ jobs:
             ./build.sh --doc
 
       - name: Sync to S3
-        run: aws s3 sync ./docfx/_site s3://${{ secrets.AWS_S3_BUCKET }}/csharp/main/api --delete
+        run: aws s3 sync ./docfx/_site s3://${{ secrets.AWS_S3_BUCKET }}/csharp/${{ github.ref_name }}/api --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.event_name == 'push'
