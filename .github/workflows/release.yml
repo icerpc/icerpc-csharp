@@ -2,12 +2,9 @@ name: release
 
 on:
   push:
-    # Run on release and preview tags
+    # Run on version tags
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-preview[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+.[0-9]+-preview[0-9]+"
+      - "v[0-9]*"
 
 jobs:
   build-compiler:
@@ -130,40 +127,21 @@ jobs:
         with:
           name: packages
           path: packages
-      - name: Install NuGet packages and dotnet new templates
+      - name: Configure NuGet sources
+        run: |
+          dotnet new nugetconfig -o ${{ github.workspace }}
+          dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "Local Packages" ${{ github.workspace }}/packages
+        shell: pwsh
+      - name: Install dotnet new templates
         working-directory: packages
-        run: |
-          dotnet nuget push *.nupkg --source ~/.nuget/packages
-          dotnet new install IceRpc.Templates*.nupkg
-        if: runner.os == 'macOS' || runner.os == 'Linux'
-        shell: bash
-      - name: Install NuGet packages and dotnet new templates
-        working-directory: packages
-        run: |
-          dotnet nuget push *.nupkg --source $env:USERPROFILE/.nuget/packages
-          dotnet new install IceRpc.Templates*.nupkg
-        if: runner.os == 'Windows'
-        shell: powershell
-      - name: Set version from tag
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-        if: runner.os == 'macOS' || runner.os == 'Linux'
-      - name: Set version from tag
         run: |
           $version = $env:GITHUB_REF -replace '^refs/tags/v',''
-          echo "VERSION=$version" >> $env:GITHUB_ENV
-        if: runner.os == 'Windows'
-      - name: 🔨 Build Examples
-        run: |
-          for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
-        if: runner.os == 'macOS' || runner.os == 'Linux'
-        shell: bash
+          dotnet new install IceRpc.Templates::$version
+        shell: pwsh
       - name: 🔨 Build Examples
         run: |
           $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
           foreach ($example in $examples) { dotnet build $example.FullName }
-        if: runner.os == 'Windows'
-        shell: powershell
+        shell: pwsh
       - name: 🧪 Test Templates
         uses: ./.github/actions/test-templates
