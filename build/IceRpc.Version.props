@@ -3,7 +3,7 @@
     <!-- The version of all assembly files built in this repository -->
     <Version Condition="'$(Version)' == ''">0.5.0-preview1</Version>
     <!-- The Protobuf version used by IceRpc.Protobuf -->
-    <ProtobufVersion>28.1</ProtobufVersion>
+    <ProtobufVersion>28.3</ProtobufVersion>
     <NuGetProtobufVersion>3.$(ProtobufVersion)</NuGetProtobufVersion>
   </PropertyGroup>
 </Project>
