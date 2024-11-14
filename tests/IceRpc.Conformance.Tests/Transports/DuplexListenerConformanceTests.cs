@@ -123,31 +123,19 @@ public abstract class DuplexListenerConformanceTests
         // A duplex transport listener might use a backlog to accept client connections (e.g.: TCP). So we need to
         // create and establish client connections until a connection establishment blocks to test cancellation.
         Task<TransportConnectionInformation> connectTask;
-        IDuplexConnection clientConnection;
+        var connections = new List<IDuplexConnection>();
         while (true)
         {
             IDuplexConnection? connection = clientTransport.CreateConnection(
                 listener.ServerAddress,
                 provider.GetService<IOptions<DuplexConnectionOptions>>()?.Value ?? new(),
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
-            try
+            connections.Add(connection);
+            connectTask = connection.ConnectAsync(default);
+            await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromMilliseconds(250)));
+            if (!connectTask.IsCompleted)
             {
-                connectTask = connection.ConnectAsync(default);
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
-                if (connectTask.IsCompleted)
-                {
-                    await connectTask;
-                }
-                else
-                {
-                    clientConnection = connection;
-                    connection = null;
-                    break;
-                }
-            }
-            finally
-            {
-                connection?.Dispose();
+                break;
             }
         }
 
@@ -163,7 +151,11 @@ public abstract class DuplexListenerConformanceTests
             exception!.IceRpcError,
             Is.EqualTo(IceRpcError.ConnectionRefused).Or.EqualTo(IceRpcError.ConnectionAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
-        clientConnection.Dispose();
+
+        foreach (IDuplexConnection connection in connections)
+        {
+            connection.Dispose();
+        }
     }
 
     [Test]
