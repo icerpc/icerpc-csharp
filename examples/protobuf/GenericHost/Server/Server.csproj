@@ -31,8 +31,6 @@
     <ProtoFile Include="../proto/greeter.proto" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.*" />
-    <!-- Required to avoid NuGet Audit error: see #4032 -->
-    <PackageReference Include="System.Text.Json" Version="8.0.*" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Extensions.DependencyInjection" Version="$(IceRpcVersion)" />
