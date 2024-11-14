@@ -193,7 +193,9 @@ public class TcpTransportTests
 
         // Assert
         Assert.That(connections, Has.Count.GreaterThanOrEqualTo(18));
-        Assert.That(connections, Has.Count.LessThanOrEqualTo(25));
+        // The OS may allow a few more connections than specified by the ListenBacklog. This test ensures that
+        // Socket.Listen was called with the ListenBacklog value set in TcpServerTransportOptions.
+        Assert.That(connections, Has.Count.LessThanOrEqualTo(30));
 
         foreach (IDisposable connection in connections)
         {
