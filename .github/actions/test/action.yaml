@@ -3,10 +3,6 @@ name: Run Tests
 runs:
   using: "composite"
   steps:
-  - name: Shutdown build server
-    run: dotnet build-server shutdown
-    shell: bash
-
   - name: 🧪 Test Slice Compiler
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash

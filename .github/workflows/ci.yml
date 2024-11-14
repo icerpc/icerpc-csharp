@@ -11,6 +11,9 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+env:
+  MSBUILDDISABLENODEREUSE: 1
+
 jobs:
   build_and_test:
     strategy:
