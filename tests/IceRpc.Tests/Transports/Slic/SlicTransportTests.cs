@@ -589,6 +589,7 @@ public class SlicTransportTests
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection when there is slow write activity
     /// from client to server.</summary>
     [Test]
+    [NonParallelizable]
     public async Task Connection_with_idle_timeout_and_slow_write_is_not_aborted([Values] bool serverIdleTimeout)
     {
         // Arrange
