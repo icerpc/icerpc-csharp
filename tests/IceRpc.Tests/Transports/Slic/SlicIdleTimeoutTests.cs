@@ -44,6 +44,7 @@ public class SlicIdleTimeoutTests
     }
 
     [Test]
+    [NonParallelizable]
     public async Task Slic_send_pings_are_called()
     {
         // Arrange
