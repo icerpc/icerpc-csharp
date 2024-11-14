@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 namespace IceRpc.Tests.Transports.Tcp;
 
@@ -48,16 +49,24 @@ public class Ipv6TcpListenerConformanceTests : DuplexListenerConformanceTests
 
 internal class Ipv6SupportFixture
 {
+
     public static void FixtureSetUp()
     {
-        using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
-        try
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            socket.Bind(new IPEndPoint(IPAddress.IPv6Loopback, 0));
+            Assert.Ignore("IPv6 is not supported on macOS");
         }
-        catch
+        else
         {
-            Assert.Ignore("IPv6 is not supported on this platform");
+            using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                socket.Bind(new IPEndPoint(IPAddress.IPv6Loopback, 0));
+            }
+            catch
+            {
+                Assert.Ignore("IPv6 is not supported on this platform");
+            }
         }
     }
 }
