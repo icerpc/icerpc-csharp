@@ -22,8 +22,6 @@
     <!--#if (Framework=="net8.0")-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
-    <!-- Required to avoid NuGet Audit error: see #4032 -->
-    <PackageReference Include="System.Text.Json" Version="8.0.*" />
     <!-- Required for X509CertificateLoader with .NET 8-->
     <PackageReference Include="Microsoft.Bcl.Cryptography" Version="9.0.*" />
     <!--#else-->

@@ -13,8 +13,6 @@
     <Compile Include="../Chatbot.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
-    <!-- Required to avoid NuGet Audit error: see #4032 -->
-    <PackageReference Include="System.Text.Json" Version="8.0.*" />
     <PackageReference Include="IceRpc" Version="$(Version)" />
     <PackageReference Include="IceRpc.Logger" Version="$(Version)" />
     <PackageReference Include="IceRpc.Compressor" Version="$(Version)" />
