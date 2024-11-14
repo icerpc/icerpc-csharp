@@ -15,7 +15,5 @@
     <PackageReference Include="IceRpc.Telemetry" Version="$(Version)" />
     <PackageReference Include="IceRpc.Transports.Quic" Version="$(Version)" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.*" />
-    <!-- Required to avoid NuGet Audit error: see #4032 -->
-    <PackageReference Include="System.Text.Json" Version="8.0.*" />
   </ItemGroup>
 </Project>
