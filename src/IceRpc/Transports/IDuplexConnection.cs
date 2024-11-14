@@ -42,6 +42,10 @@ public interface IDuplexConnection : IDisposable
     /// <exception cref="InvalidOperationException">Thrown if this connection is connected, connecting or if a previous
     /// connection attempt failed.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the connection is disposed.</exception>
+    /// <remarks>When you call this method on a client connection, the returned task can complete successfully before
+    /// the server accepts the connection with <see cref="IListener{T}.AcceptAsync" />: a connected client connection
+    /// may be in the server-side listen backlog when the transport has such a backlog. See for example
+    /// <see cref="Tcp.TcpServerTransportOptions.ListenBacklog"/>.</remarks>
     Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken);
 
     /// <summary>Reads data from the connection.</summary>
