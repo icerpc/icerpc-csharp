@@ -12,7 +12,7 @@ runs:
     shell: bash
 
   - name: 🧪 Test
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s -nodereuse:false
+    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s
     shell: bash
 
   - name: Upload blame hang dumps
