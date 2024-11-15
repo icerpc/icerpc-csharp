@@ -588,8 +588,9 @@ public class SlicTransportTests
         Assert.That(async () => await acceptStreamTask, Throws.InstanceOf<IceRpcException>());
     }
 
-    /// <summary>Verifies that setting the idle timeout doesn't abort the connection when there is slow write activity
-    /// from client to server.</summary>
+    /// <summary>Verifies that setting the idle timeout doesn't abort the connection even when there is slow write
+    /// activity from client to server. This slow write-only activity could possibly prevent the sending of Ping frames
+    /// from the client to the server, or prevent the server from reading these Ping frames.</summary>
     [Test]
     [NonParallelizable]
     public async Task Connection_with_idle_timeout_and_slow_write_is_not_aborted([Values] bool serverIdleTimeout)
@@ -626,7 +627,12 @@ public class SlicTransportTests
 
         // Assert
         Assert.That(acceptStreamTask.IsCompleted, Is.True);
-        Assert.That(nextAcceptStreamTask.IsCompleted, Is.False);
+        if (nextAcceptStreamTask.IsCompleted)
+        {
+            // Unexpected. See #4108.
+            Assert.DoesNotThrowAsync(async () => await nextAcceptStreamTask);
+            Assert.Fail("nextAcceptStreamTask should not be completed");
+        }
         await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
         Assert.That(async () => await nextAcceptStreamTask, Throws.InstanceOf<IceRpcException>());
     }
