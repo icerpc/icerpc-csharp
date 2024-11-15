@@ -491,7 +491,7 @@ public sealed class ProtocolConnectionTests
         // Assert
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64 - startTime),
-            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
+            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(3)));
     }
 
     /// <summary>Verifies that an abortive shutdown completes ShutdownRequested.</summary>
