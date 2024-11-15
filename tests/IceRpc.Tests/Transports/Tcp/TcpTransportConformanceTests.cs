@@ -52,6 +52,7 @@ internal class Ipv6SupportFixture
 
     public static void FixtureSetUp()
     {
+        // TODO: remove this if check once https://github.com/dotnet/runtime/issues/102663 makes it to 8.0
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             Assert.Ignore("IPv6 is not supported on macOS");
