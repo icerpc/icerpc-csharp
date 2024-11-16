@@ -100,7 +100,7 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
         // the connection is connected at the ice protocol level.
     }
 
-    /// <summary>Schedules the initial heartbeat. Called by a client IceProtocolConnection once it receives the
+    /// <summary>Schedules the initial heartbeat. Called by a client IceProtocolConnection after it receives the
     /// initial ValidateConnection frame from the server.</summary>
     internal void ScheduleHeartbeat() => RescheduleWriteTimer();
 
