@@ -549,6 +549,43 @@ public sealed class IceProtocolConnectionTests
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionAborted));
     }
 
+    /// <summary>Verifies that a connection where the client does not write anything is not aborted by the server
+    /// connection idle monitor.</summary>
+    /// <remarks>This test also verifies that the client idle monitor does not abort the connection when the server
+    /// does not write anything; it's less interesting since the server always writes a ValidateConnection frame after
+    /// accepting the connection from the client.</remarks>
+    [Test]
+    public async Task Server_idle_monitor_does_not_abort_connection_when_client_does_not_write_anything()
+    {
+        var connectionOptions = new ConnectionOptions
+        {
+            IceIdleTimeout = TimeSpan.FromMilliseconds(100)
+        };
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(
+                Protocol.Ice,
+                dispatcher: null,
+                connectionOptions,
+                connectionOptions)
+            .BuildServiceProvider(validateScopes: true);
+
+        ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
+
+        // Act
+        await Task.Delay(TimeSpan.FromMilliseconds(400)); // plenty of time for the idle monitor to kick in.
+
+        // Assert
+        Assert.That(serverShutdownRequested.IsCompleted, Is.False);
+        Assert.That(clientShutdownRequested.IsCompleted, Is.False);
+
+        // Graceful shutdown.
+        Task clientShutdown = sut.Client.ShutdownAsync();
+        Task serverShutdown = sut.Server.ShutdownAsync();
+        Assert.That(async () => await Task.WhenAll(clientShutdown, serverShutdown), Throws.Nothing);
+    }
+
     /// <summary>Verifies that canceling an invocation while the request is being written does not interrupt the write.
     /// The connection remains active and subsequent request are not affected.</summary>
     [Test]

@@ -117,8 +117,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // Send ValidateConnection frame.
                     await SendControlFrameAsync(EncodeValidateConnectionFrame, connectCts.Token).ConfigureAwait(false);
 
-                    // The SendControlFrameAsync is a "write" that schedules a keep-alive when the idle timeout is not
-                    // infinite.
+                    // The SendControlFrameAsync is a "write" that schedules a heartbeat when the idle timeout is not
+                    // infinite. So no need to call scheduleHeartbeat.
                 }
                 else
                 {
@@ -139,6 +139,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     {
                         throw new InvalidDataException(
                             $"Expected '{nameof(IceFrameType.ValidateConnection)}' frame but received frame type '{validateConnectionFrame.FrameType}'.");
+                    }
+
+                    // The client connection is now connected, so we schedule the first heartbeat.
+                    if (_duplexConnection is IceDuplexConnectionDecorator decorator)
+                    {
+                        decorator.ScheduleHeartbeat();
                     }
                 }
             }
