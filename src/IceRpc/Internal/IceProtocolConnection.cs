@@ -118,7 +118,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     await SendControlFrameAsync(EncodeValidateConnectionFrame, connectCts.Token).ConfigureAwait(false);
 
                     // The SendControlFrameAsync is a "write" that schedules a heartbeat when the idle timeout is not
-                    // infinite. So no need to call scheduleHeartbeat.
+                    // infinite. So no need to call ScheduleHeartbeat.
                 }
                 else
                 {

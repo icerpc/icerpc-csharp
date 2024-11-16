@@ -96,8 +96,8 @@ internal class IceDuplexConnectionDecorator : IDuplexConnection
         _readIdleTimeout = readIdleTimeout; // can be infinite i.e. disabled
         _writeIdleTimeout = writeIdleTimeout;
         _writeTimer = new Timer(_ => sendHeartbeat());
-
-        // We can't schedule a heartbeat right away because the connection is not connected yet.
+        // We can't schedule the initial heartbeat yet. The heartbeat is an ice protocol frame; we can send it only once
+        // the connection is connected at the ice protocol level.
     }
 
     /// <summary>Schedules the initial heartbeat. Called by a client IceProtocolConnection once it receives the
