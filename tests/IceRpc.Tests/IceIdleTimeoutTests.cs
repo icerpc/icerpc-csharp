@@ -84,13 +84,12 @@ public class IceIdleTimeoutTests
     /// <remarks>This test also verifies that the client idle monitor does not abort the connection when the server
     /// does not write anything; it's less interesting since the server always writes a ValidateConnection frame after
     /// accepting the connection from the client.</remarks>
-    [Test]
+    [Test][NonParallelizable]
     public async Task Server_idle_monitor_does_not_abort_connection_when_client_does_not_write_anything()
     {
         var connectionOptions = new ConnectionOptions
         {
-            // We need a fairly long timeout since these tests run in parallel.
-            IceIdleTimeout = TimeSpan.FromMilliseconds(200)
+            IceIdleTimeout = TimeSpan.FromMilliseconds(100)
         };
 
         await using ServiceProvider provider = new ServiceCollection()
@@ -105,7 +104,7 @@ public class IceIdleTimeoutTests
         (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         // Act
-        await Task.Delay(TimeSpan.FromMilliseconds(800)); // plenty of time for the idle monitor to kick in.
+        await Task.Delay(TimeSpan.FromMilliseconds(400)); // plenty of time for the idle monitor to kick in.
 
         // Assert
         Assert.That(serverShutdownRequested.IsCompleted, Is.False);
