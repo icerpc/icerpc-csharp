@@ -559,7 +559,8 @@ public sealed class IceProtocolConnectionTests
     {
         var connectionOptions = new ConnectionOptions
         {
-            IceIdleTimeout = TimeSpan.FromMilliseconds(100)
+            // We need a fairly long timeout since these tests run in parallel.
+            IceIdleTimeout = TimeSpan.FromMilliseconds(200)
         };
 
         await using ServiceProvider provider = new ServiceCollection()
@@ -574,7 +575,7 @@ public sealed class IceProtocolConnectionTests
         (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         // Act
-        await Task.Delay(TimeSpan.FromMilliseconds(400)); // plenty of time for the idle monitor to kick in.
+        await Task.Delay(TimeSpan.FromMilliseconds(800)); // plenty of time for the idle monitor to kick in.
 
         // Assert
         Assert.That(serverShutdownRequested.IsCompleted, Is.False);
