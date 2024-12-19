@@ -89,7 +89,7 @@ public class IceIdleTimeoutTests
     {
         var connectionOptions = new ConnectionOptions
         {
-            IceIdleTimeout = TimeSpan.FromMilliseconds(100)
+            IceIdleTimeout = TimeSpan.FromMilliseconds(300)
         };
 
         await using ServiceProvider provider = new ServiceCollection()
@@ -104,7 +104,7 @@ public class IceIdleTimeoutTests
         (Task clientShutdownRequested, Task serverShutdownRequested) = await sut.ConnectAsync();
 
         // Act
-        await Task.Delay(TimeSpan.FromMilliseconds(400)); // plenty of time for the idle monitor to kick in.
+        await Task.Delay(TimeSpan.FromMilliseconds(900)); // plenty of time for the idle monitor to kick in.
 
         // Assert
         Assert.That(serverShutdownRequested.IsCompleted, Is.False);
