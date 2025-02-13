@@ -82,12 +82,11 @@ and a dispatch pipeline (on the server side):
 title: Client-side
 ---
 flowchart LR
+    client -- request --> di -- response --> client
     subgraph pipeline[Invocation pipeline]
         direction LR
         di[Deadline<br>interceptor] --> ri[Retry<br>interceptor] --> connection[network<br>connection] --> ri --> di
     end
-    client -- request --> di
-    client -- response --- di
 ```
 
 ```mermaid
@@ -95,13 +94,11 @@ flowchart LR
 title: Server-side
 ---
 flowchart LR
+    connection[network<br>connection] -- request --> lm -- response --> connection
     subgraph pipeline [Dispatch pipeline]
         direction LR
         lm[Logger<br>middleware] --> dm[Deadline<br>middleware] --> service --> dm --> lm
-
     end
-    connection[network<br>connection] -- request --> lm
-    connection -- response --- lm
 ```
 
 These pipelines intercept your requests and responses and you decide what they do with them. If you want to log your
@@ -205,7 +202,7 @@ Ice server, and you can call services hosted by an IceRPC server from an Ice cli
 
 ## Build telemetry
 
-IceRPC collects anonymous telemetry data when you compile Slice files or Protobuf files. You can find detailed 
+IceRPC collects anonymous telemetry data when you compile Slice files or Protobuf files. You can find detailed
 information about what data is collected and how to opt-out in the READMEs for [IceRpc.Slice.Tools] and
 [IceRpc.Protobuf.Tools].
 
@@ -243,4 +240,3 @@ in-memory transport for testing). Future releases may add additional transports.
 [Slic]: https://docs.icerpc.dev/icerpc/slic-transport/overview
 [Slice]: https://docs.icerpc.dev/slice2
 [System.IO.Pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
-
