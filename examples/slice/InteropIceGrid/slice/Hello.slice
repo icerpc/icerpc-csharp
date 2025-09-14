@@ -7,7 +7,7 @@ module Demo
 
 /// Represents a recipient of hello greetings.
 interface Hello {
-    /// /// The caller says hello.
+    /// The caller says hello.
     idempotent sayHello()
 
     /// Requests server shutdown.
