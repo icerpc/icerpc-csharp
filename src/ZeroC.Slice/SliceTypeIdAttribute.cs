@@ -3,8 +3,8 @@
 namespace ZeroC.Slice;
 
 /// <summary>Assigns a Slice type ID to a class, interface, or struct.</summary>
-/// <remarks>The Slice compiler assigns Slice type IDs to classes, interfaces and structs it generates from Slice
-/// classes, interfaces, structs, and exceptions.</remarks>
+/// <remarks>The Slice compiler assigns Slice type IDs to interfaces and record structs it generates from Slice
+/// interfaces. It also assigns Slice type IDs to classes generated from Slice classes and exceptions.</remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct, Inherited = false)]
 public sealed class SliceTypeIdAttribute : Attribute
 {
