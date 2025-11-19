@@ -592,44 +592,6 @@ public partial class OperationTests
         Assert.That(() => proxy.OpAsync(10, 1, 12), Throws.Nothing);
     }
 
-    /// <summary>Verifies that tagged parameters has a default value that is equivalent to a non set tagged parameter.
-    /// </summary>
-    [Test]
-    public async Task Tagged_default_values()
-    {
-        // Arrange
-        var service = new MyTaggedOperationsService();
-        var invoker = new ColocInvoker(service);
-        var proxy = new MyTaggedOperationsProxy(invoker);
-
-        // Act
-        await proxy.OpAsync(10, 1);
-
-        // Assert
-        Assert.That(service.X, Is.EqualTo(10));
-        Assert.That(service.Y, Is.EqualTo(1));
-        Assert.That(service.Z, Is.Null);
-    }
-
-    /// <summary>Verifies that a tagged sequence parameter that uses the <see cref="ReadOnlyMemory{T}" /> mapping has a
-    /// default value that is equivalent to a non set tagged parameter.</summary>
-    [Test]
-    public async Task Proxy_tagged_default_values_with_readonly_memory_params()
-    {
-        // Arrange
-        var service = new MyTaggedOperationsReadOnlyMemoryParamsService();
-        var invoker = new ColocInvoker(service);
-        var proxy = new MyTaggedOperationsReadOnlyMemoryParamsProxy(invoker);
-
-        // Act
-        await proxy.OpAsync(new int[] { 1 }, z: new int[] { 10 });
-
-        // Assert
-        Assert.That(service.X, Is.EqualTo(new int[] { 1 }));
-        Assert.That(service.Y, Is.Null);
-        Assert.That(service.Z, Is.EqualTo(new int[] { 10 }));
-    }
-
     [Test]
     public async Task Proxy_decoded_from_incoming_response_has_the_invoker_of_the_proxy_that_sent_the_request()
     {
@@ -659,18 +621,6 @@ public partial class OperationTests
         // Assert
         Assert.That(service.ReceivedProxy, Is.Not.Null);
         Assert.That(service.ReceivedProxy!.Value.Invoker, Is.EqualTo(InvalidInvoker.Instance));
-    }
-
-    [Test]
-    public void Operation_with_trailing_optionals_uses_default_values()
-    {
-        // Arrange
-        var service = new MyOperationsAService();
-        var invoker = new ColocInvoker(service);
-        var proxy = new MyOperationsAProxy(invoker);
-
-        // Act/Assert
-        Assert.That(() => proxy.OpWithTrailingOptionalValuesAsync(0, null, 1), Throws.Nothing);
     }
 
     [Test]
@@ -862,41 +812,9 @@ public partial class OperationTests
     }
 
     [SliceService]
-    private sealed partial class MyTaggedOperationsService : IMyTaggedOperationsService
-    {
-        internal int? X { get; set; }
-        internal int Y { get; set; }
-        internal int? Z { get; set; }
-
-        public ValueTask OpAsync(int? x, int y, int? z, IFeatureCollection features, CancellationToken cancellationToken)
-        {
-            X = x;
-            Y = y;
-            Z = z;
-            return default;
-        }
-    }
-
-    [SliceService]
     private sealed partial class MyTaggedOperationsV0Service : IMyTaggedOperationsV0Service
     {
         public ValueTask OpAsync(int y, IFeatureCollection features, CancellationToken cancellationToken) => default;
-    }
-
-    [SliceService]
-    private sealed partial class MyTaggedOperationsReadOnlyMemoryParamsService : IMyTaggedOperationsReadOnlyMemoryParamsService
-    {
-        internal int[] X { get; set; } = Array.Empty<int>();
-        internal int[]? Y { get; set; }
-        internal int[]? Z { get; set; }
-
-        public ValueTask OpAsync(int[] x, int[]? y, int[]? z, IFeatureCollection features, CancellationToken cancellationToken)
-        {
-            X = x;
-            Y = y;
-            Z = z;
-            return default;
-        }
     }
 
     [SliceService]

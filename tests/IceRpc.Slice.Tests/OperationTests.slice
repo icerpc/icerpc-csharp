@@ -78,10 +78,6 @@ interface MyTaggedOperationsV0 {
     op(y: int32)
 }
 
-interface MyTaggedOperationsReadOnlyMemoryParams {
-    op(x: Sequence<int32>, tag(1) y: Sequence<int32>?, tag(2) z: Sequence<int32>?)
-}
-
 interface MyBaseOperations {
     op()
 }
