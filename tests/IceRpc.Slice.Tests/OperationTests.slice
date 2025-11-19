@@ -85,3 +85,10 @@ interface MyTaggedOperationsReadOnlyMemoryParams {
 interface MyBaseOperations {
     op()
 }
+
+interface NoOperation {}
+
+// Make sure the generated code does not generate a "new" for Request and Response in the service class.
+interface DerivedFromNoOperation : NoOperation {
+    op(x: int32) -> int32
+}

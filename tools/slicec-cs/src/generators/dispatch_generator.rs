@@ -67,8 +67,6 @@ private static readonly IActivator _defaultActivator =
 }
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
-    let bases = interface_def.base_interfaces();
-
     let mut operations = interface_def.operations();
     operations.retain(|o| !o.parameters.is_empty());
 
@@ -76,8 +74,11 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
+    let mut base_operations = interface_def.all_inherited_operations();
+    base_operations.retain(|o| !o.parameters.is_empty());
+
     let mut class_builder = ContainerBuilder::new(
-        if bases.is_empty() {
+        if base_operations.is_empty() {
             "public static class"
         } else {
             "public static new class"
@@ -143,8 +144,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
-    let bases = interface_def.base_interfaces();
-
     let mut operations = interface_def.operations();
     operations.retain(|o| o.has_non_streamed_return_members());
 
@@ -152,8 +151,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
+    let mut base_operations = interface_def.all_inherited_operations();
+    base_operations.retain(|o| o.has_non_streamed_return_members());
+
     let mut class_builder = ContainerBuilder::new(
-        if bases.is_empty() {
+        if base_operations.is_empty() {
             "public static class"
         } else {
             "public static new class"
