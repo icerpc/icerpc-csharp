@@ -111,9 +111,6 @@ public abstract class MultiplexedListenerConformanceTests
         Assert.That(async () => await acceptTask, Throws.TypeOf<OperationCanceledException>());
     }
 
-#if NET9_0_OR_GREATER
-    // The QuicListener behavior changed in .NET 9
-    // see: https://github.com/dotnet/runtime/pull/92215
     [Test]
     public async Task Call_accept_on_a_listener_and_then_dispose_it_fails_with_object_disposed_exception()
     {
@@ -129,7 +126,6 @@ public abstract class MultiplexedListenerConformanceTests
         // Assert
         Assert.That(async () => await acceptTask, Throws.TypeOf<ObjectDisposedException>());
     }
-#endif
 
     [Test]
     public async Task Call_accept_on_a_listener_with_a_canceled_cancellation_token_fails_with_operation_canceled_exception()

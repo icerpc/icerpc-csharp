@@ -8,8 +8,7 @@
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <!-- CA2252: Opt in to preview features before using them. -->
     <NoWarn>CA2252</NoWarn>
-    <!-- Target both .NET 8 and .NET 9 for QUIC to utilize new features in .NET 9 where available. -->
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />

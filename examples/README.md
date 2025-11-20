@@ -8,13 +8,13 @@ demonstrates a specific feature or programming technique.
 The project files for the examples use NuGet packages for IceRPC and Slice. The version of the referenced NuGet packages
 is branch-specific:
 
-| icerpc-csharp branch | Referenced NuGet package version | .NET version |
-|----------------------|----------------------------------|--------------|
-| 0.1.x                | 0.1.*                            | .NET 7.0     |
-| 0.2.x                | 0.2.*                            | .NET 8.0     |
-| 0.3.x                | 0.3.*                            | .NET 8.0     |
+| icerpc-csharp branch | Referenced NuGet package version | .NET version       |
+|----------------------|----------------------------------|--------------------|
+| 0.1.x                | 0.1.*                            | .NET 7.0           |
+| 0.2.x                | 0.2.*                            | .NET 8.0           |
+| 0.3.x                | 0.3.*                            | .NET 8.0           |
 | 0.4.x                | 0.4.*                            | .NET 8.0, .NET 9.0 |
-| main                 | Not yet published on nuget.org   | .NET 8.0, .NET 9.0 |
+| main                 | Not yet published on nuget.org   | .NET 10.0          |
 
 If you want to build the examples for a released version (such as 0.4.x), please checkout the corresponding release
 branch. For example:

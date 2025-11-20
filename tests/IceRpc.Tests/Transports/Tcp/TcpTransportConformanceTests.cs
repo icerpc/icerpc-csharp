@@ -52,22 +52,14 @@ internal class Ipv6SupportFixture
 
     public static void FixtureSetUp()
     {
-        // TODO: remove this if check once https://github.com/dotnet/runtime/issues/102663 makes it to 8.0
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+        try
         {
-            Assert.Ignore("IPv6 is not supported on macOS");
+            socket.Bind(new IPEndPoint(IPAddress.IPv6Loopback, 0));
         }
-        else
+        catch
         {
-            using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
-            try
-            {
-                socket.Bind(new IPEndPoint(IPAddress.IPv6Loopback, 0));
-            }
-            catch
-            {
-                Assert.Ignore("IPv6 is not supported on this platform");
-            }
+            Assert.Ignore("IPv6 is not supported on this platform");
         }
     }
 }

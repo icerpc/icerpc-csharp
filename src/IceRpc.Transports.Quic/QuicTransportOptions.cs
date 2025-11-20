@@ -37,8 +37,6 @@ public sealed record class QuicClientTransportOptions : QuicTransportOptions
     /// This option is a stop-gap: ideally the .NET QUIC implementation would provide a way to automatically send PING
     /// frames to keep the connection alive based on the negotiated idle timeout. See
     /// <see href="https://github.com/microsoft/msquic/issues/3880" />.</remarks>
-    /// <remarks>This option is only implemented for .NET 9.0. With .NET 8.0, neither the client nor the server sends
-    /// PING frames to keep the connection alive.</remarks>
     public TimeSpan KeepAliveInterval { get; set; } = TimeSpan.FromSeconds(15);
 }
 
