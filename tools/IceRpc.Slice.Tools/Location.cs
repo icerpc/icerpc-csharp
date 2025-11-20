@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace IceRpc.Slice.Tools;
 
-public struct Location
+public record struct Location
 {
     public int Row { get; set; }
     [JsonPropertyName("col")]

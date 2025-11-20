@@ -5,12 +5,8 @@
     <Nullable>enable</Nullable>
     <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <!--
-        The target framework is netstandard2.0 to support Visual Studio
-        see https://learn.microsoft.com/en-us/visualstudio/msbuild/tutorial-custom-task-code-generation?view=vs-2022#create-the-appsettingstronglytyped-project.
-      -->
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>10.0</LangVersion>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Title>IceRPC Slice Tools</Title>
     <Authors>ZeroC, Inc.</Authors>
@@ -43,7 +39,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Framework" Version="18.0.2" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" />
-    <PackageReference Include="System.Text.Json" Version="10.0.*" />
   </ItemGroup>
   <ItemGroup>
     <None
@@ -86,9 +81,6 @@
       <PackagePath>/</PackagePath>
     </None>
     <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <None Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <None Include="$(OutputPath)/System.Text.Encodings.Web.dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <None Include="$(OutputPath)/System.Text.Json.dll" Pack="true" PackagePath="tasks/" Visible="false" />
   </ItemGroup>
   <Choose>
     <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">

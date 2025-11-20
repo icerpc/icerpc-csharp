@@ -10,12 +10,15 @@ using System.Text;
 
 namespace IceRpc.Protobuf.Tools;
 
+// Properties should not return arrays, disabled as this is standard for MSBuild tasks.
+#pragma warning disable CA1819
+
 /// <summary>A MSBuild task to compute the SHA-256 hash of the Protobuf files.</summary>
 public class OutputHashTask : Task
 {
     /// <summary>Gets or sets the Protobuf source files.</summary>
     [Required]
-    public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
+    public ITaskItem[] Sources { get; set; } = [];
 
     /// <summary>The computed SHA-256 hash of the Protobuf files.</summary>
     [Output]
@@ -28,21 +31,19 @@ public class OutputHashTask : Task
     /// <inheritdoc/>
     public override bool Execute()
     {
-        using var sha256 = SHA256.Create();
 
         // Compute the SHA-256 hash of each file
-        byte[] combinedHashBytes = Sources
+        byte[] combinedHashBytes = [.. Sources
             .Select(source =>
             {
                 byte[] fileBytes = File.ReadAllBytes(source.GetMetadata("FullPath"));
-                byte[] hashBytes = sha256.ComputeHash(fileBytes);
+                byte[] hashBytes = SHA256.HashData(fileBytes);
                 return hashBytes;
             })
-            .SelectMany(hashBytes => hashBytes)
-            .ToArray();
+            .SelectMany(hashBytes => hashBytes)];
 
         // Compute the SHA-256 hash of the combined hash bytes
-        byte[] aggregatedHashBytes = sha256.ComputeHash(combinedHashBytes);
+        byte[] aggregatedHashBytes = SHA256.HashData(combinedHashBytes);
 
         // Convert the aggregated hash bytes to a string
         string aggregatedHash = ToHexString(aggregatedHashBytes);
@@ -53,14 +54,6 @@ public class OutputHashTask : Task
     }
 
     /// <summary>Converts a byte array to a hexadecimal string.</summary>
-    private static string ToHexString(byte[] bytes)
-    {
-        var sb = new StringBuilder(bytes.Length * 2);
-        foreach (byte b in bytes)
-        {
-            sb.Append(b.ToString("x2"));
-        }
-        return sb.ToString();
-    }
+    private static string ToHexString(byte[] bytes) => string.Concat(bytes.Select(b => $"{b:x2}"));
 
 }

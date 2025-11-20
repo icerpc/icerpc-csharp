@@ -5,22 +5,27 @@
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.OutputFileNamesTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+    Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.OutputHashTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+    Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.ProtocTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+    Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+    Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.BuildTelemetryTask"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
+    Runtime="NET"
   />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />

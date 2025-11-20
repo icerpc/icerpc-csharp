@@ -9,6 +9,9 @@ using System.IO;
 
 namespace IceRpc.Protobuf.Tools;
 
+// Properties should not return arrays, disabled as this is standard for MSBuild tasks.
+#pragma warning disable CA1819
+
 /// <summary>A MSBuild task to compute what Protobuf files have to be rebuild by <c>protoc</c>.</summary>
 public class UpToDateCheckTask : Task
 {
@@ -18,12 +21,12 @@ public class UpToDateCheckTask : Task
 
     /// <summary>Gets or sets the Protobuf source files to compute if they are up to date.</summary>
     [Required]
-    public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
+    public ITaskItem[] Sources { get; set; } = [];
 
     /// <summary>Gets the computed sources, which are equivalent to the <see cref="Sources"/> but carry additional
     /// metadata.</summary>
     [Output]
-    public ITaskItem[] ComputedSources { get; private set; } = Array.Empty<ITaskItem>();
+    public ITaskItem[] ComputedSources { get; private set; } = [];
 
     /// <summary>Computes whether or not an output file is up to date or needs to be rebuilt. After executing this
     /// task, <see cref="ComputedSources"/> contains a task item for each item in <see cref="Sources"/> with two
@@ -68,7 +71,7 @@ public class UpToDateCheckTask : Task
                 upToDate = false;
             }
 
-            ITaskItem computedSource = new TaskItem(source.ItemSpec);
+            var computedSource = new TaskItem(source.ItemSpec);
             source.CopyMetadataTo(computedSource);
             computedSource.SetMetadata("UpToDate", upToDate ? "true" : "false");
             computedSource.SetMetadata("OutputFileName", fileName);
@@ -76,7 +79,7 @@ public class UpToDateCheckTask : Task
             computedSources.Add(computedSource);
         }
 
-        ComputedSources = computedSources.ToArray();
+        ComputedSources = [.. computedSources];
         return true;
 
         static List<string> ProcessDependencies(string dependOutput)
@@ -85,11 +88,11 @@ public class UpToDateCheckTask : Task
             string dependContents = File.ReadAllText(dependOutput);
             // strip everything before Xxx.cs:
             const string outputPrefix = ".cs:";
-            int i = dependContents.IndexOf(outputPrefix);
+            int i = dependContents.IndexOf(outputPrefix, StringComparison.CurrentCultureIgnoreCase);
             if (i != -1 && i + outputPrefix.Length < dependContents.Length)
             {
-                dependContents = dependContents.Substring(i + outputPrefix.Length);
-                foreach (string line in dependContents.Split(new char[] { '\\' }))
+                dependContents = dependContents[(i + outputPrefix.Length)..];
+                foreach (string line in dependContents.Split(['\\']))
                 {
                     string filePath = line.Trim();
                     if (!string.IsNullOrEmpty(filePath))
