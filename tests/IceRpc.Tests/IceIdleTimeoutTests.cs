@@ -8,7 +8,7 @@ using System.Buffers;
 
 namespace IceRpc.Tests;
 
-[Parallelizable(scope: ParallelScope.All)]
+[NonParallelizable]
 public class IceIdleTimeoutTests
 {
     [Test]
@@ -84,7 +84,7 @@ public class IceIdleTimeoutTests
     /// <remarks>This test also verifies that the client idle monitor does not abort the connection when the server
     /// does not write anything; it's less interesting since the server always writes a ValidateConnection frame after
     /// accepting the connection from the client.</remarks>
-    [Test][NonParallelizable]
+    [Test]
     public async Task Server_idle_monitor_does_not_abort_connection_when_client_does_not_write_anything()
     {
         var connectionOptions = new ConnectionOptions
