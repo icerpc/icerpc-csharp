@@ -315,7 +315,7 @@ impl FunctionBuilder {
 
     pub fn add_operation_parameters(&mut self, operation: &Operation, context: TypeContext) -> &mut Self {
         let parameters = operation.parameters();
-        for parameter in parameters.iter() {
+        for parameter in &parameters {
             self.add_parameter(
                 &parameter.cs_type_string(&operation.namespace(), context),
                 &parameter.parameter_name(),
