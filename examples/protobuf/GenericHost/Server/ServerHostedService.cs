@@ -15,8 +15,6 @@ internal class ServerHostedService : IHostedService
     // The IceRPC server accepts connections from IceRPC clients.
     private readonly Server _server;
 
-    internal ServerHostedService(Server server) => _server = server;
-
     public Task StartAsync(CancellationToken cancellationToken)
     {
         // Start listening for client connections.
@@ -27,4 +25,6 @@ internal class ServerHostedService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken) =>
         // Shuts down the IceRPC server when the hosted service is stopped.
         _server.ShutdownAsync(cancellationToken);
+
+    internal ServerHostedService(Server server) => _server = server;
 }
