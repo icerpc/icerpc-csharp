@@ -62,6 +62,7 @@
     "TypeRef",
     "uncategorized",
     "unflushed",
+    "uninstantiated",
     "unregisters",
     "varint",
     "varuint",
