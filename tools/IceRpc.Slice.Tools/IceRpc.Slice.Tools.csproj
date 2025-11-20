@@ -1,16 +1,12 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props" />
   <PropertyGroup>
     <Nullable>enable</Nullable>
     <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <!--
-        The target framework is netstandard2.0 to support Visual Studio
-        see https://learn.microsoft.com/en-us/visualstudio/msbuild/tutorial-custom-task-code-generation?view=vs-2022#create-the-appsettingstronglytyped-project.
-      -->
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>10.0</LangVersion>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Title>IceRPC Slice Tools</Title>
     <Authors>ZeroC, Inc.</Authors>
@@ -21,8 +17,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageIcon>icerpc-icon.png</PackageIcon>
     <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-    <Description
-    >Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
+    <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>IceRPC;RPC;MSBuild;Slice</PackageTags>
@@ -39,20 +34,17 @@
     <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRPC_OSName>
     <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRPC_OSName>
     <IceRPC_OSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRPC_OSName>
-    <IceRPC_OSArch
-    >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRPC_OSArch>
+    <IceRPC_OSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRPC_OSArch>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.48" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.11.48" />
-    <PackageReference Include="System.Text.Json" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Build.Framework" Version="18.0.2" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" />
   </ItemGroup>
   <ItemGroup>
     <None
-      Include="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*"
-      Exclude="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*.exe"
-      Visible="false"
-    >
+      Include="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
+      Exclude="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
+      Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
@@ -89,9 +81,6 @@
       <PackagePath>/</PackagePath>
     </None>
     <None Include="$(OutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <None Include="$(OutputPath)/Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <None Include="$(OutputPath)/System.Text.Encodings.Web.dll" Pack="true" PackagePath="tasks/" Visible="false" />
-    <None Include="$(OutputPath)/System.Text.Json.dll" Pack="true" PackagePath="tasks/" Visible="false" />
   </ItemGroup>
   <Choose>
     <When Condition="Exists('$(SLICEC_CS_STAGING_PATH)')">
@@ -137,20 +126,16 @@
   <Target
     Name="SignCompilers"
     BeforeTargets="SignPackage"
-    Condition="Exists('$(SIGN_CERTIFICATE)') and Exists('$(SLICEC_CS_STAGING_PATH)') and '$(OS)' == 'Windows_NT' and (!Exists('$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log') or $([System.IO.File]::GetLastWriteTime('$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log').Ticks))"
-  >
+    Condition="Exists('$(SIGN_CERTIFICATE)') and Exists('$(SLICEC_CS_STAGING_PATH)') and '$(OS)' == 'Windows_NT' and (!Exists('$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log') or $([System.IO.File]::GetLastWriteTime('$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log').Ticks))">
     <SignTask
       WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
       AdditionalOptions="$(SignCommand)"
-      Files="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe"
-      SignTool="$(SignTool)"
-    />
+      Files="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe" SignTool="$(SignTool)" />
 
     <WriteLinesToFile
       File="$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log"
       Encoding="Unicode"
       Overwrite="true"
-      Lines="Signing $(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe"
-    />
+      Lines="Signing $(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe" />
   </Target>
 </Project>

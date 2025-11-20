@@ -5,10 +5,12 @@
   <UsingTask
     TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
+    Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Slice.Tools.BuildTelemetryTask"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
+    Runtime="NET"
   />
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />

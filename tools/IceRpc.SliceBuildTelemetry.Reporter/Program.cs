@@ -3,50 +3,58 @@
 using IceRpc;
 using IceRpc.BuildTelemetry;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
 var rootCommand = new RootCommand("Slice build telemetry reporter");
 
-var compilationHashOption = new Option<string>(
-    name: "--compilation-hash",
-    description: "The compilation hash.")
+var compilationHashOption = new Option<string>(name: "--compilation-hash")
 {
-    IsRequired = true,
+    Description = "The compilation hash.",
+    Required = true,
 };
-rootCommand.AddOption(compilationHashOption);
+rootCommand.Options.Add(compilationHashOption);
 
-var containsSlice1Option = new Option<bool>(
-    name: "--contains-slice1",
-    description: "Whether or not the build contains Slice1 definitions");
-rootCommand.AddOption(containsSlice1Option);
+var containsSlice1Option = new Option<bool>(name: "--contains-slice1")
+{
+    Description = "Whether or not the build contains Slice1 definitions"
+};
+rootCommand.Options.Add(containsSlice1Option);
 
-var containsSlice2Option = new Option<bool>(
-    name: "--contains-slice2",
-    description: "Whether or not the build contains Slice2 definitions");
-rootCommand.AddOption(containsSlice2Option);
+var containsSlice2Option = new Option<bool>(name: "--contains-slice2")
+{
+    Description = "Whether or not the build contains Slice2 definitions"
+};
+rootCommand.Options.Add(containsSlice2Option);
 
-var referenceFileCountOption = new Option<int>(
-    name: "--ref-file-count",
-    description: "The number of reference files included in the compilation.");
-rootCommand.AddOption(referenceFileCountOption);
+var referenceFileCountOption = new Option<int>(name: "--ref-file-count")
+{
+    Description = "The number of reference files included in the compilation."
+};
+rootCommand.Options.Add(referenceFileCountOption);
 
-var sourceFileCountOption = new Option<int>(
-    name: "--src-file-count",
-    description: "The number of source files included in the compilation.");
-rootCommand.AddOption(sourceFileCountOption);
+var sourceFileCountOption = new Option<int>(name: "--src-file-count")
+{
+    Description = "The number of source files included in the compilation."
+};
+rootCommand.Options.Add(sourceFileCountOption);
 
-rootCommand.SetHandler(
-    async (
-        string compilationHash,
-        bool containsSlice1,
-        bool containsSlice2,
-        int referenceFileCount,
-        int sourceFileCount) =>
+rootCommand.SetAction(
+    async (parseResult, cancellationToken) =>
     {
+        string? compilationHash = parseResult.GetValue(compilationHashOption);
+        Debug.Assert(compilationHash is not null);
+        bool containsSlice1 = parseResult.GetValue(containsSlice1Option);
+        bool containsSlice2 = parseResult.GetValue(containsSlice2Option);
+        int referenceFileCount = parseResult.GetValue(referenceFileCountOption);
+        int sourceFileCount = parseResult.GetValue(sourceFileCountOption);
+
         const string uri = "icerpc://build-telemetry.icerpc.dev";
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken);
+
         await using var connection = new ClientConnection(new Uri(uri), new SslClientAuthenticationOptions());
 
         // Create a reporter proxy with this client connection.
@@ -69,18 +77,15 @@ rootCommand.SetHandler(
             toolsVersion);
 
         // Upload the telemetry to the server.
-        await reporter.UploadAsync(new BuildTelemetry.Slice(sliceTelemetryData), cancellationToken: cts.Token);
+        await reporter.UploadAsync(new BuildTelemetry.Slice(sliceTelemetryData), cancellationToken: linkedCts.Token);
 
         // Shutdown the connection.
-        await connection.ShutdownAsync(cts.Token);
-    },
-    compilationHashOption,
-    containsSlice1Option,
-    containsSlice2Option,
-    referenceFileCountOption,
-    sourceFileCountOption);
+        await connection.ShutdownAsync(linkedCts.Token);
 
-return await rootCommand.InvokeAsync(args);
+        return 0;
+    });
+
+return await rootCommand.Parse(args).InvokeAsync();
 
 static bool IsCi()
 {

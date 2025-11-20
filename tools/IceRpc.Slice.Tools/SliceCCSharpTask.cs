@@ -15,7 +15,7 @@ namespace IceRpc.Slice.Tools;
 public class SliceCCSharpTask : ToolTask
 {
     /// <summary>Additional options to pass to the <c>slicec-cs</c> compiler.</summary>
-    public string[] AdditionalOptions { get; set; } = Array.Empty<string>();
+    public string[] AdditionalOptions { get; set; } = [];
 
     /// <summary>The output directory for the generated code; corresponds to the <c>--output-dir</c> option of the
     /// <c>slicec-cs</c> compiler.</summary>
@@ -24,7 +24,7 @@ public class SliceCCSharpTask : ToolTask
 
     /// <summary>The files that are needed for referencing, but that no code should be generated for them, corresponds
     /// to <c>-R</c> slicec-cs compiler option.</summary>
-    public string[] References { get; set; } = Array.Empty<string>();
+    public string[] References { get; set; } = [];
 
     /// <summary>
     /// The RPC provider to generate code for, corresponds to the <c>--rpc</c> slicec-cs compiler option.
@@ -34,7 +34,7 @@ public class SliceCCSharpTask : ToolTask
 
     /// <summary>The Slice files to compile, these are the input files pass to the slicec-cs compiler.</summary>
     [Required]
-    public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
+    public ITaskItem[] Sources { get; set; } = [];
 
     /// <summary>The directory containing the slicec-cs compiler.</summary>
     [Required]
@@ -72,7 +72,7 @@ public class SliceCCSharpTask : ToolTask
 
     protected override bool ValidateParameters()
     {
-        var validRpcValues = new[] { "icerpc", "none" };
+        string[] validRpcValues = ["icerpc", "none"];
 
         if (!validRpcValues.Contains(Rpc, StringComparer.OrdinalIgnoreCase))
         {
@@ -80,7 +80,9 @@ public class SliceCCSharpTask : ToolTask
             return false;
         }
 
+#pragma warning disable CA1308 // Normalize strings to uppercase
         Rpc = Rpc.ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
         return base.ValidateParameters();
     }
@@ -141,7 +143,6 @@ public class SliceCCSharpTask : ToolTask
                 singleLine,
                 _jsonSerializeOptions) is BuildTelemetry buildTelemetry)
             {
-                var jsonDoc = System.Text.Json.JsonDocument.Parse(singleLine);
                 CompilationHash = buildTelemetry.CompilationHash;
                 ContainsSlice1 = buildTelemetry.ContainsSlice1;
                 ContainsSlice2 = buildTelemetry.ContainsSlice2;

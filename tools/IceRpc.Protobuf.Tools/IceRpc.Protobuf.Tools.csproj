@@ -1,16 +1,12 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(MSBuildThisFileDirectory)../../build/IceRpc.Version.props" />
   <Import Project="$(MSBuildThisFileDirectory)../../build/Extract.targets" />
   <PropertyGroup>
     <Nullable>enable</Nullable>
     <AssemblyName>IceRpc.Protobuf.Tools</AssemblyName>
-    <!--
-        The target framework is netstandard2.0 to support Visual Studio
-        see https://learn.microsoft.com/en-us/visualstudio/msbuild/tutorial-custom-task-code-generation?view=vs-2022#create-the-appsettingstronglytyped-project.
-    -->
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>10.0</LangVersion>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Title>IceRPC Protobuf Tools</Title>
     <Authors>ZeroC, Inc.</Authors>
@@ -21,8 +17,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageIcon>icerpc-icon.png</PackageIcon>
     <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
-    <Description
-    >Provides tools to generate C# code from Protobuf definitions; includes support for MSBuild projects.</Description>
+    <Description>Provides tools to generate C# code from Protobuf definitions; includes support for MSBuild projects.</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>IceRPC;RPC;MSBuild;Protobuf</PackageTags>
@@ -33,17 +28,16 @@
     <NoWarn>NU5100</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.48" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.11.48" />
+    <PackageReference Include="Microsoft.Build.Framework" Version="18.0.2" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" />
     <PackageReference Include="Google.Protobuf.Tools" Version="$(NuGetProtobufVersion)" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
     <None
-      Include="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*"
-      Exclude="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net8.0/*.exe"
-      Visible="false"
-    >
+      Include="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
+      Exclude="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
+      Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
@@ -74,10 +68,9 @@
     <None Include="$(IntermediateOutputPath)/$(AssemblyName).dll" Pack="true" PackagePath="tasks/" Visible="false" />
     <!-- Use the compilers from this source build. -->
     <None
-      Include="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*"
-      Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net8.0/*.exe"
-      Visible="false"
-    >
+      Include="../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/*"
+      Exclude="../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/*.exe"
+      Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
@@ -93,13 +86,11 @@
       <ProtocCompiler Include="$(protoc_tools)/linux_x64/protoc" Prefix="linux_x64" />
       <ProtocCompiler
         Include="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc"
-        Prefix="linux_arm64"
-      />
+        Prefix="linux_arm64" />
       <ProtocCompiler Include="$(protoc_tools)/macosx_x64/protoc" Prefix="macos_x64" />
       <ProtocCompiler
         Include="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
-        Prefix="macos_arm64"
-      />
+        Prefix="macos_arm64" />
     </ItemGroup>
 
     <!-- Download and extract macOS and Linux ARM64 binaries from protobuf release package. The compilers for ARM64
@@ -108,50 +99,42 @@
     <DownloadFile
       SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip')"
-    />
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip')" />
 
     <DownloadFile
       SourceUrl="https://github.com/protocolbuffers/protobuf/releases/download/v$(ProtobufVersion)/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
-      DestinationFolder="$(MSBuildThisFileDirectory)obj"
-    />
+      DestinationFolder="$(MSBuildThisFileDirectory)obj" />
 
     <!-- We cannot use MSBuild Unzip task because it doesn't preserve the executable permissions, we use our custom
         extract task instead. -->
     <ExtractTask
       SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64.zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')"
-    />
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64')" />
 
     <ExtractTask
       SourceFiles="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64.zip"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64"
-      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')"
-    />
+      Condition="!Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64')" />
 
     <!-- Make protoc compiler writeable, otherwise Copy task fails when running inside a container -->
     <Exec
       Command="chmod +w $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc"
-      Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))"
-    />
+      Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-osx-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))" />
 
     <Exec
       Command="chmod +w $(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc"
-      Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))"
-    />
+      Condition="Exists('$(MSBuildThisFileDirectory)obj/protoc-$(ProtobufVersion)-linux-aarch_64/bin/protoc') AND $([MSBuild]::IsOSPlatform('Linux'))" />
 
     <Copy
       SourceFiles="@(GoogleProtobufFiles)"
       DestinationFolder="$(MSBuildThisFileDirectory)obj/tools/google/protobuf"
-      SkipUnchangedFiles="true"
-    />
+      SkipUnchangedFiles="true" />
 
     <Copy
       SourceFiles="@(ProtocCompiler)"
       DestinationFiles="@(ProtocCompiler->'$(MSBuildThisFileDirectory)obj/tools/%(Prefix)/%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true"
-    />
+      SkipUnchangedFiles="true" />
   </Target>
   <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
 </Project>

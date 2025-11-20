@@ -13,7 +13,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddFilter("IceRpc", LogLevel.Information));
 
 // SSL setup
-using var rootCA = new X509Certificate2("../../../../certs/cacert.der");
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
 var clientAuthenticationOptions = new SslClientAuthenticationOptions
 {
     RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>

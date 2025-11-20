@@ -10,6 +10,10 @@ internal class LogTaskExceptionObserver : ITaskExceptionObserver
 {
     private readonly ILogger _logger;
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1873:Avoid potentially expensive logging",
+        Justification = "GetLogLevel is a trivial switch on the exception type and is required to categorize the log.")]
     public void DispatchFailed(
         IncomingRequest request,
         TransportConnectionInformation connectionInformation,
@@ -21,9 +25,17 @@ internal class LogTaskExceptionObserver : ITaskExceptionObserver
             connectionInformation.RemoteNetworkAddress,
             exception);
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1873:Avoid potentially expensive logging",
+        Justification = "GetLogLevel is a trivial switch on the exception type and is required to categorize the log.")]
     public void DispatchRefused(TransportConnectionInformation connectionInformation, Exception exception) =>
         _logger.LogDispatchRefused(GetLogLevel(exception), connectionInformation.RemoteNetworkAddress, exception);
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1873:Avoid potentially expensive logging",
+        Justification = "GetLogLevel is a trivial switch on the exception type and is required to categorize the log.")]
     public void RequestPayloadContinuationFailed(
         OutgoingRequest request,
         TransportConnectionInformation connectionInformation,

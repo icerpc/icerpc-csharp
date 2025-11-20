@@ -9,7 +9,7 @@ namespace IceRpc.Json;
 
 /// <summary>A helper class for serializing and deserializing JSON objects into and from <see cref="PipeReader"/>.
 /// </summary>
-public static class PipeReaderJsonSerializer
+internal static class PipeReaderJsonSerializer
 {
     /// <summary>Write the JSON representation of <paramref name="value"/> and returns a <see cref="PipeReader"/>
     /// that holds the serialized data.</summary>
@@ -47,7 +47,7 @@ public static class PipeReaderJsonSerializer
         static TValue Decode(ReadOnlySequence<byte> buffer, JsonReaderOptions? options)
         {
             var jsonReader = new Utf8JsonReader(buffer, options ?? new());
-            return JsonSerializer.Deserialize(ref jsonReader, typeof(TValue)) is TValue value ?
+            return JsonSerializer.Deserialize<TValue>(ref jsonReader) is TValue value ?
                 value : throw new InvalidDataException($"Unable to decode {typeof(TValue)}.");
         }
     }

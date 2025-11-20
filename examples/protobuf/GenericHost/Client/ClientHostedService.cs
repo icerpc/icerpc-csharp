@@ -7,7 +7,11 @@ using VisitorCenter;
 namespace GenericHostClient;
 
 /// <summary>The hosted client service is ran and managed by the .NET Generic Host.</summary>
-public class ClientHostedService : BackgroundService
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "This class is instantiated dynamically by the dependency injection container.")]
+internal class ClientHostedService : BackgroundService
 {
     // The host application lifetime is used to stop the .NET Generic Host.
     private readonly IHostApplicationLifetime _applicationLifetime;
@@ -18,7 +22,7 @@ public class ClientHostedService : BackgroundService
     private readonly IGreeter _greeter;
 
     // All the parameters are injected by the DI container.
-    public ClientHostedService(
+    internal ClientHostedService(
         IGreeter greeter,
         ClientConnection connection,
         IHostApplicationLifetime applicationLifetime)
