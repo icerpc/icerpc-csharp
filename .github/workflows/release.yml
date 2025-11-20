@@ -12,19 +12,19 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-14
+          - os: macos-26
             target: x86_64-apple-darwin
             compiler-exe: slicec-cs
-          - os: macos-14
+          - os: macos-26
             target: aarch64-apple-darwin
             compiler-exe: slicec-cs
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             compiler-exe: slicec-cs
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-gnu
             compiler-exe: slicec-cs
-          - os: windows-2022
+          - os: windows-2025
             target: x86_64-pc-windows-msvc
             compiler-exe: slicec-cs.exe
     runs-on: ${{ matrix.os }}
@@ -42,7 +42,7 @@ jobs:
           name: slicec-cs-${{ matrix.target }}
           path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
   build-packages:
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 10
     needs: build-compiler
     env:
@@ -108,9 +108,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-14
-          - os: ubuntu-22.04
-          - os: windows-2022
+          - os: macos-26
+          - os: ubuntu-24.04
+          - os: windows-2025
     runs-on: ${{ matrix.os }}
     needs: build-packages
     steps:
