@@ -31,8 +31,8 @@ rootCommand.SetAction(
         int fileCount = parseResult.GetValue(fileCountOption);
 
         const string uri = "icerpc://build-telemetry.icerpc.dev";
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(3));
         await using var connection = new ClientConnection(new Uri(uri), new SslClientAuthenticationOptions());
 
         // Create a reporter proxy with this client connection.
@@ -52,10 +52,10 @@ rootCommand.SetAction(
             toolVersion);
 
         // Upload the telemetry to the server.
-        await reporter.UploadAsync(new BuildTelemetry.Protobuf(protobufTelemetryData), cancellationToken: linkedCts.Token);
+        await reporter.UploadAsync(new BuildTelemetry.Protobuf(protobufTelemetryData), cancellationToken: cts.Token);
 
         // Shutdown the connection.
-        await connection.ShutdownAsync(linkedCts.Token);
+        await connection.ShutdownAsync(cts.Token);
 
         return 0;
     });
