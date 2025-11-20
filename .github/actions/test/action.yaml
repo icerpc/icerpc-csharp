@@ -8,8 +8,16 @@ runs:
     shell: bash
 
   - name: 🧪 Test
+    run: |
+      ulimit -c 1024
+      dotnet test --no-build --verbosity normal --blame-hang-timeout 50s
+    shell: bash
+    if: runner.os == 'macOS'
+
+  - name: 🧪 Test
     run: dotnet test --no-build --verbosity normal --blame-hang-timeout 50s
     shell: bash
+    if: runner.os != 'macOS'
 
   - name: Upload blame hang dumps
     uses: actions/upload-artifact@v4
