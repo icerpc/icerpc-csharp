@@ -100,16 +100,10 @@ public class QuicIdleTimeoutTests
         // Without the keep-alive interval PINGs, the idle timer would abort the connection.
         await Task.Delay(TimeSpan.FromSeconds(2));
 
-#if NET9_0_OR_GREATER
         // Verify the connection and stream still work by sending and receiving a "response".
         await sut.Remote.Output.WriteAsync(data);
         ReadResult incomingResponse = await sut.Local.Input.ReadAsync();
         Assert.That(incomingResponse.Buffer.ToArray(), Is.EqualTo(data));
-#else
-        Assert.That(
-            async () => await sut.Local.Input.ReadAsync().AsTask(),
-            Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionIdle));
-#endif
         Assert.That(incomingRequest.Buffer.ToArray(), Is.EqualTo(data));
     }
 }

@@ -426,9 +426,6 @@ public abstract class MultiplexedConnectionConformanceTests
             $"The test failed with an unexpected IceRpcError {exception}");
     }
 
-#if NET9_0_OR_GREATER
-    // The QuicConnection behavior changed in .NET 9
-    // see: https://github.com/dotnet/runtime/pull/92215
     [Test]
     public async Task Connection_dispose_aborts_pending_operations_with_object_disposed_exception()
     {
@@ -459,7 +456,6 @@ public abstract class MultiplexedConnectionConformanceTests
             Is.EqualTo(IceRpcError.OperationAborted),
             $"The test failed with an unexpected IceRpcError {exception}");
     }
-#endif
 
     [Test]
     public async Task Disposing_the_client_connection_aborts_the_server_connection()

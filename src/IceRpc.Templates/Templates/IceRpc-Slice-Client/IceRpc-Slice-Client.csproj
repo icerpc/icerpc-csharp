@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
@@ -19,15 +19,8 @@
     <!--#if (transport=="quic") -->
     <PackageReference Include="IceRpc.Transports.Quic" Version="0.5.0-preview1" />
     <!--#endif-->
-    <!--#if (Framework=="net8.0")-->
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
-    <!-- Required for X509CertificateLoader with .NET 8-->
-    <PackageReference Include="Microsoft.Bcl.Cryptography" Version="9.0.*" />
-    <!--#else-->
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.*" />
-    <!--#endif-->
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
     <!-- The 1.2 beta version is required for supporting the latest language features.
          See: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187 -->
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">

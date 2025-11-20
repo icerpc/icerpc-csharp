@@ -12,10 +12,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-26
+          - os: macos-15
             target: x86_64-apple-darwin
             compiler-exe: slicec-cs
-          - os: macos-26
+          - os: macos-15
             target: aarch64-apple-darwin
             compiler-exe: slicec-cs
           - os: ubuntu-24.04
@@ -108,7 +108,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-26
+          - os: macos-15
           - os: ubuntu-24.04
           - os: windows-2025
     runs-on: ${{ matrix.os }}
@@ -118,8 +118,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.0.x
-            9.0.x
+            10.0.x
       - name: Initialize NuGet local cache
         run: dotnet restore
       - name: Download packages artifacts

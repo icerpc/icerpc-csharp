@@ -3,30 +3,36 @@
 using IceRpc;
 using IceRpc.BuildTelemetry;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
 var rootCommand = new RootCommand("Protobuf build telemetry reporter");
 
-var compilationHashOption = new Option<string>(
-    name: "--compilation-hash",
-    description: "The compilation hash.")
+var compilationHashOption = new Option<string>(name: "--compilation-hash")
 {
-    IsRequired = true,
+    Description = "The compilation hash.",
+    Required = true,
 };
-rootCommand.AddOption(compilationHashOption);
+rootCommand.Options.Add(compilationHashOption);
 
-var fileCountOption = new Option<int>(
-    name: "--file-count",
-    description: "The number of files included in the compilation.");
-rootCommand.AddOption(fileCountOption);
+var fileCountOption = new Option<int>(name: "--file-count")
+{
+    Description = "The number of files included in the compilation."
+};
+rootCommand.Options.Add(fileCountOption);
 
-rootCommand.SetHandler(
-    async (string compilationHash, int fileCount) =>
+rootCommand.SetAction(
+    async (ParseResult parseResult, CancellationToken cancellationToken) =>
     {
+        string? compilationHash = parseResult.GetValue(compilationHashOption);
+        Debug.Assert(compilationHash is not null);
+        int fileCount = parseResult.GetValue(fileCountOption);
+
         const string uri = "icerpc://build-telemetry.icerpc.dev";
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(3));
         await using var connection = new ClientConnection(new Uri(uri), new SslClientAuthenticationOptions());
 
         // Create a reporter proxy with this client connection.
@@ -50,11 +56,11 @@ rootCommand.SetHandler(
 
         // Shutdown the connection.
         await connection.ShutdownAsync(cts.Token);
-    },
-    compilationHashOption,
-    fileCountOption);
 
-return await rootCommand.InvokeAsync(args);
+        return 0;
+    });
+
+return await rootCommand.Parse(args).InvokeAsync();
 
 static bool IsCi()
 {

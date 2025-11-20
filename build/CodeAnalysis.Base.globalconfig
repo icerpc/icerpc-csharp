@@ -243,3 +243,6 @@ dotnet_diagnostic.IDE0290.severity = none
 
 # CA1859: use concrete types when possible for improved performance
 dotnet_diagnostic.CA1859.severity = none
+
+# CA2025: Do not pass 'IDisposable' instances into unawaited tasks
+dotnet_diagnostic.CA2025.severity = none

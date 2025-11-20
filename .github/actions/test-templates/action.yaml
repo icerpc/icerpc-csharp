@@ -18,18 +18,6 @@ runs:
       dotnet build templates-test/quic/ProtobufClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
-  - name: 🧪 Test IceRpc + Protobuf Client Template .NET 9
-    run: |
-      dotnet new icerpc-protobuf-client -o templates-test/net9.0/tcp/ProtobufClient -F net9.0
-      dotnet build templates-test/net9.0/tcp/ProtobufClient/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
-  - name: 🧪 Test IceRpc + Protobuf Client Template with Quic and .NET9
-    run: |
-      dotnet new icerpc-protobuf-client -o templates-test/net9.0/quic/ProtobufClient --transport quic -F net9.0
-      dotnet build templates-test/net9.0/quic/ProtobufClient/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
   # Protobuf Server template
 
   - name: 🧪 Test IceRpc + Protobuf Server Template
@@ -42,18 +30,6 @@ runs:
     run: |
       dotnet new icerpc-protobuf-server -o templates-test/quic/ProtobufServer --transport quic
       dotnet build templates-test/quic/ProtobufServer/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
-  - name: 🧪 Test IceRpc + Protobuf Server Template .NET 9
-    run: |
-      dotnet new icerpc-protobuf-server -o templates-test/net9.0/tcp/ProtobufServer -F net9.0
-      dotnet build templates-test/net9.0/tcp/ProtobufServer/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
-  - name: 🧪 Test IceRpc + Protobuf Server Template with Quic and .NET9
-    run: |
-      dotnet new icerpc-protobuf-server -o templates-test/net9.0/quic/ProtobufServer --transport quic -F net9.0
-      dotnet build templates-test/net9.0/quic/ProtobufServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Slice Client template
@@ -70,18 +46,6 @@ runs:
       dotnet build templates-test/quic/SliceClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
-  - name: 🧪 Test IceRpc + Slice Client Template .NET 9
-    run: |
-      dotnet new icerpc-slice-client -o templates-test/net9.0/tcp/SliceClient -F net9.0
-      dotnet build templates-test/net9.0/tcp/SliceClient/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-  
-  - name: 🧪 Test IceRpc + Slice Client Template with Quic and .NET9
-    run: |
-      dotnet new icerpc-slice-client -o templates-test/net9.0/quic/SliceClient --transport quic -F net9.0
-      dotnet build templates-test/net9.0/quic/SliceClient/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
   # Slice Server template
 
   - name: 🧪 Test IceRpc + Slice Server Template
@@ -96,30 +60,12 @@ runs:
       dotnet build templates-test/quic/SliceServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
-  - name: 🧪 Test IceRpc + Slice Server Template .NET 9
-    run: |
-      dotnet new icerpc-slice-server -o templates-test/net9.0/tcp/SliceServer -F net9.0
-      dotnet build templates-test/net9.0/tcp/SliceServer/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
-  - name: 🧪 Test IceRpc + Slice Server Template with Quic and .NET9
-    run: |
-      dotnet new icerpc-slice-server -o templates-test/net9.0/quic/SliceServer --transport quic -F net9.0
-      dotnet build templates-test/net9.0/quic/SliceServer/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
   # Protobuf DI Client template
 
   - name: 🧪 Test IceRpc + Protobuf DI Client Template
     run: |
       dotnet new icerpc-protobuf-di-client -o templates-test/ProtobufDIClient
       dotnet build templates-test/ProtobufDIClient/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
-  - name: 🧪 Test IceRpc + Protobuf DI Client Template .NET 9
-    run: |
-      dotnet new icerpc-protobuf-di-client -o templates-test/net9.0/ProtobufDIClient -F net9.0
-      dotnet build templates-test/net9.0/ProtobufDIClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Protobuf DI Server template
@@ -130,12 +76,6 @@ runs:
       dotnet build templates-test/ProtobufDIServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
-  - name: 🧪 Test IceRpc + Protobuf DI Server Template .NET 9
-    run: |
-      dotnet new icerpc-protobuf-di-server -o templates-test/net9.0/ProtobufDIServer -F net9.0
-      dotnet build templates-test/net9.0/ProtobufDIServer/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-  
   # Slice DI Client template
 
   - name: 🧪 Test IceRpc + Slice DI Client Template
@@ -144,22 +84,10 @@ runs:
       dotnet build templates-test/SliceDIClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
-  - name: 🧪 Test IceRpc + Slice DI Client Template .NET 9
-    run: |
-      dotnet new icerpc-slice-di-client -o templates-test/net9.0/SliceDIClient -F net9.0
-      dotnet build templates-test/net9.0/SliceDIClient/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
   # Slice DI Server template
 
   - name: 🧪 Test IceRpc + Slice DI Server Template
     run: |
       dotnet new icerpc-slice-di-server -o templates-test/SliceDIServer
       dotnet build templates-test/SliceDIServer/ /p:TreatWarningsAsErrors=true
-    shell: pwsh
-
-  - name: 🧪 Test IceRpc + Slice DI Server Template .NET 9
-    run: |
-      dotnet new icerpc-slice-di-server -o templates-test/net9.0/SliceDIServer -F net9.0
-      dotnet build templates-test/net9.0/SliceDIServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh

@@ -9,7 +9,7 @@ using IceRpc_Protobuf_DI_Client;
 
 // Configure the host.
 IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
-    // Set the content root path to the build directory of the client (e.g.: Client/bin/Debug/net8.0)
+    // Set the content root path to the build directory of the client (e.g.: Client/bin/Debug/net10.0)
     .UseContentRoot(AppContext.BaseDirectory)
 
     // Configures the .NET Generic Host services.

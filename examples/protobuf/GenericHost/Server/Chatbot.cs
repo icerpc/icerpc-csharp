@@ -8,8 +8,13 @@ namespace GenericHostServer;
 
 /// <summary>A Chatbot is an IceRPC service that implements Protobuf service 'Greeter'.</summary>
 [ProtobufService]
-public partial class Chatbot : IGreeterService
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Justification = "This class is instantiated dynamically by the dependency injection container.")]
+internal partial class Chatbot : IGreeterService
 {
+    /// <inheritdoc/>
     public ValueTask<GreetResponse> GreetAsync(
         GreetRequest message,
         IFeatureCollection features,

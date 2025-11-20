@@ -3,4 +3,4 @@
 namespace VisitorCenter;
 
 /// <summary>The parameters for the greet operation, encoded using JSON.</summary>
-public record struct GreetRequest(string Name);
+internal record struct GreetRequest(string Name);

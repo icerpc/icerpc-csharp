@@ -9,7 +9,7 @@
     <PackageId>IceRpc.Templates</PackageId>
     <PackageTags>icerpc;rpc;templates</PackageTags>
     <PackageType>Template</PackageType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>

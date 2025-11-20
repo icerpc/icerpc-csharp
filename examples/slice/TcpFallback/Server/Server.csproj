@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -11,15 +11,10 @@
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
-  <!-- Required for X509CertificateLoader with .NET 8-->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.Bcl.Cryptography" Version="9.0.*" />
-  </ItemGroup>
-
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Transports.Quic" Version="$(IceRpcVersion)" />

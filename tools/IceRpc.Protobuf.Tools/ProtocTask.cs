@@ -5,11 +5,16 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace IceRpc.Protobuf.Tools;
+
+// Properties should not return arrays, disabled as this is standard for MSBuild tasks.
+#pragma warning disable CA1819
 
 /// <summary>A MSBuild task to generate code from Protobuf files using <c>protoc</c> C# built-in generator and
 /// <c>protoc-gen-icerpc-csharp</c> generator.</summary>
@@ -22,12 +27,12 @@ public class ProtocTask : ToolTask
 
     /// <summary>Gets or sets the directories in which to search for imports, corresponds to <c>-I</c> protoc compiler
     /// option.</summary>
-    public string[] SearchPath { get; set; } = Array.Empty<string>();
+    public string[] SearchPath { get; set; } = [];
 
     /// <summary>Gets or sets the Protobuf source files to compile, these are the input files pass to the protoc
     /// compiler.</summary>
     [Required]
-    public ITaskItem[] Sources { get; set; } = Array.Empty<ITaskItem>();
+    public ITaskItem[] Sources { get; set; } = [];
 
     /// <summary>Gets or sets the directory containing the protoc compiler.</summary>
     [Required]
@@ -39,6 +44,10 @@ public class ProtocTask : ToolTask
 
     /// <summary>Gets or sets the working directory for executing the protoc compiler from.</summary>
     [Required]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Naming", 
+        "CA1721:Property names should not match get methods",
+        Justification = "This is by design, see ToolTask.GetWorkingDirectory documentation.")]
     public string WorkingDirectory { get; set; } = "";
 
     /// <summary>The computed SHA-256 hash of the Protobuf files.</summary>
@@ -77,8 +86,8 @@ public class ProtocTask : ToolTask
         foreach (ITaskItem source in Sources)
         {
             string fullPath = source.GetMetadata("FullPath");
-            string directory = Path.GetDirectoryName(fullPath);
-            if (!searchPath.Contains(directory))
+            string? directory = Path.GetDirectoryName(fullPath);
+            if (directory is not null && !searchPath.Contains(directory))
             {
                 searchPath.Add(directory);
             }
@@ -120,15 +129,16 @@ public class ProtocTask : ToolTask
     {
         try
         {
-            string[] parts = singleLine.Split(new char[] { ':' }, 4);
+            Debug.Assert(singleLine is not null);
+            string[] parts = singleLine.Split([':'], 4);
             string fileName = parts[0];
-            int lineNumber = int.Parse(parts[1]);
-            int columnNumber = int.Parse(parts[2]);
+            int lineNumber = int.Parse(parts[1], CultureInfo.InvariantCulture);
+            int columnNumber = int.Parse(parts[2], CultureInfo.InvariantCulture);
             string errorMessage = parts[3];
 
             Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
         }
-        catch
+        catch (FormatException)
         {
             Log.LogError(singleLine, messageImportance);
         }
