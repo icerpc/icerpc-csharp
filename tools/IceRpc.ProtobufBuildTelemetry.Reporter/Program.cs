@@ -51,11 +51,34 @@ rootCommand.SetAction(
             new TargetLanguage.CSharp(Environment.Version.ToString()),
             toolVersion);
 
-        // Upload the telemetry to the server.
-        await reporter.UploadAsync(new BuildTelemetry.Protobuf(protobufTelemetryData), cancellationToken: cts.Token);
+        try
+        {
+            // Upload the telemetry to the server.
+            await reporter.UploadAsync(new BuildTelemetry.Protobuf(protobufTelemetryData), cancellationToken: cts.Token);
 
-        // Shutdown the connection.
-        await connection.ShutdownAsync(cts.Token);
+            // Shutdown the connection.
+            await connection.ShutdownAsync(cts.Token);
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+        {
+            Console.Error.WriteLine($"Failed to report slice build telemetry: InvocationCanceled");
+            return 0;
+        }
+        catch (IceRpcException ex) when (ex.IceRpcError is IceRpcError.InvocationCanceled or IceRpcError.ServerUnreachable)
+        {
+            Console.Error.WriteLine($"Failed to report slice build telemetry: {ex.IceRpcError}");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            string message = ex.Message;
+            if (ex.InnerException is not null)
+            {
+                message += $"\n  Inner exception: {ex.InnerException.Message}";
+            }
+            Console.Error.WriteLine(message);
+            return 1;
+        }
 
         return 0;
     });
