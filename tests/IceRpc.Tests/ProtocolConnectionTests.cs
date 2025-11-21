@@ -393,8 +393,8 @@ public sealed class ProtocolConnectionTests
             Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
     }
 
-    /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive time has been deferred by the
-    /// reading of the payload.</summary>
+    /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
+    /// deferred by the reading of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task ShutdownRequested_completes_when_inactive_and_inactive_timeout_deferred_by_payload_read(
         Protocol protocol,
@@ -411,11 +411,10 @@ public sealed class ProtocolConnectionTests
                 })
             .BuildServiceProvider(validateScopes: true);
 
-        long startTime = Environment.TickCount64;
-
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
 
+        long startTime = Environment.TickCount64;
         {
             using var request = new OutgoingRequest(new ServiceAddress(protocol))
             {
@@ -429,9 +428,10 @@ public sealed class ProtocolConnectionTests
         await clientShutdownRequested;
 
         // Assert
+        // We remove 40ms to account for timing inaccuracies on CI runners.
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64 - startTime),
-            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
+            Is.GreaterThan(TimeSpan.FromMilliseconds(520 + 500 - 40)).And.LessThan(TimeSpan.FromSeconds(2)));
     }
 
     /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
