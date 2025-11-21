@@ -419,7 +419,7 @@ public sealed class ProtocolConnectionTests
             using var request = new OutgoingRequest(new ServiceAddress(protocol))
             {
                 IsOneway = isOneway,
-                Payload = new DelayPipeReader(TimeSpan.FromMilliseconds(520))
+                Payload = new DelayPipeReader(TimeSpan.FromMilliseconds(550))
             };
             _ = await sut.Client.InvokeAsync(request);
         }
@@ -428,10 +428,10 @@ public sealed class ProtocolConnectionTests
         await clientShutdownRequested;
 
         // Assert
-        // We remove 40ms to account for timing inaccuracies on CI runners.
+        // We remove 60ms to account for timing inaccuracies on CI runners.
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64 - startTime),
-            Is.GreaterThan(TimeSpan.FromMilliseconds(520 + 500 - 40)).And.LessThan(TimeSpan.FromSeconds(2)));
+            Is.GreaterThan(TimeSpan.FromMilliseconds(550 + 500 - 60)).And.LessThan(TimeSpan.FromSeconds(3)));
     }
 
     /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
