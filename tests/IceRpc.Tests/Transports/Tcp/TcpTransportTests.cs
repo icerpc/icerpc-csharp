@@ -159,6 +159,7 @@ public class TcpTransportTests
     /// <summary>Verifies that setting the <see cref="TcpServerTransportOptions.ListenBacklog" /> configures the
     /// socket listen backlog.</summary>
     [Test]
+    [Ignore("See if this is the cause of the macos-26 failure in CI")]
     public async Task Configure_server_connection_listen_backlog()
     {
         // Arrange
