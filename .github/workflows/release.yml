@@ -36,6 +36,24 @@ jobs:
         with:
           cargo-build-args: --release
           target: ${{ matrix.target }}
+      - name: Sign Compiler Artifact
+        if: runner.os == 'Windows'
+        uses: azure/trusted-signing-action@v0
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        with:
+          azure-tenant-id: ${{ env.AZURE_TENANT_ID }}
+          azure-client-id: ${{ env.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ env.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: zeroc
+          certificate-profile-name: zeroc-ice
+          files: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
       - name: Archive Build
         uses: actions/upload-artifact@v4
         with:
