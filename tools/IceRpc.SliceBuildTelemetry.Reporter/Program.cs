@@ -84,14 +84,14 @@ rootCommand.SetAction(
             // Shutdown the connection.
             await connection.ShutdownAsync(cts.Token);
         }
-        catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+        catch (OperationCanceledException)
         {
-            Console.Error.WriteLine($"Failed to report slice build telemetry: InvocationCanceled");
+            Console.Error.WriteLine($"Failed to report Slice build telemetry: OperationCanceledException");
             return 0;
         }
         catch (IceRpcException ex) when (ex.IceRpcError is IceRpcError.InvocationCanceled or IceRpcError.ServerUnreachable)
         {
-            Console.Error.WriteLine($"Failed to report slice build telemetry: {ex.IceRpcError}");
+            Console.Error.WriteLine($"Failed to report Slice build telemetry: {ex.IceRpcError}");
             return 0;
         }
         catch (Exception ex)
@@ -101,7 +101,7 @@ rootCommand.SetAction(
             {
                 message += $"\n  Inner exception: {ex.InnerException.Message}";
             }
-            Console.Error.WriteLine(message);
+            Console.Error.WriteLine($"Failed to report Slice build telemetry: {message}");
             return 1;
         }
 
