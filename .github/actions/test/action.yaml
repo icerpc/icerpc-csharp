@@ -13,6 +13,10 @@ runs:
       dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger "trx" --results-directory TestResults
     shell: bash
 
+  - name: Create test report
+    run: dnx dotnet-trx --yes -- -p TestResults
+    shell: bash
+
   - name: Upload blame hang dumps
     uses: actions/upload-artifact@v4
     with:
