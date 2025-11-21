@@ -136,5 +136,4 @@
       DestinationFiles="@(ProtocCompiler->'$(MSBuildThisFileDirectory)obj/tools/%(Prefix)/%(Filename)%(Extension)')"
       SkipUnchangedFiles="true" />
   </Target>
-  <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
 </Project>

@@ -121,21 +121,4 @@
   <ItemGroup>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
   </ItemGroup>
-  <Import Project="$(MSBuildThisFileDirectory)../../build/Sign.targets" />
-  <!-- Sign the Windows compiler executables when building the release packages and (SLICEC_CS_STAGING_PATH is set) -->
-  <Target
-    Name="SignCompilers"
-    BeforeTargets="SignPackage"
-    Condition="Exists('$(SIGN_CERTIFICATE)') and Exists('$(SLICEC_CS_STAGING_PATH)') and '$(OS)' == 'Windows_NT' and (!Exists('$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log') or $([System.IO.File]::GetLastWriteTime('$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe').Ticks) &gt; $([System.IO.File]::GetLastWriteTime('$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log').Ticks))">
-    <SignTask
-      WorkingDirectory="$(SLICEC_CS_STAGING_PATH)"
-      AdditionalOptions="$(SignCommand)"
-      Files="$(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe" SignTool="$(SignTool)" />
-
-    <WriteLinesToFile
-      File="$(SLICEC_CS_STAGING_PATH)/windows-x64/sign.log"
-      Encoding="Unicode"
-      Overwrite="true"
-      Lines="Signing $(SLICEC_CS_STAGING_PATH)/windows-x64/slicec-cs.exe" />
-  </Target>
 </Project>
