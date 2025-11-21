@@ -49,7 +49,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
     private string? _invocationRefusedMessage;
     private int _lastRequestId;
     private readonly int _maxFrameSize;
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
     private readonly PipeOptions _pipeOptions;
     private Task? _readFramesTask;
 

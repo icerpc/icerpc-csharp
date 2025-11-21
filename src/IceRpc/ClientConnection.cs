@@ -36,7 +36,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
     private readonly CancellationTokenSource _disposedCts = new();
     private Task? _disposeTask;
 
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
 
     // A connection being established and its associated connect task. When non-null, _activeConnection is null.
     private (IProtocolConnection Connection, Task<TransportConnectionInformation> ConnectTask)? _pendingConnection;
