@@ -20,6 +20,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
+      - name: Dump System Information
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          ulimit -a
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build
