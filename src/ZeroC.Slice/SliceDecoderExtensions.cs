@@ -123,7 +123,7 @@ public static class SliceDecoderExtensions
             int elementSize = Unsafe.SizeOf<T>();
             decoder.IncreaseCollectionAllocation(count * elementSize);
             var value = new T[count];
-            Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
+            Span<byte> destination = MemoryMarshal.Cast<T, byte>(value.AsSpan());
             decoder.CopyTo(destination);
 
             if (checkElement is not null)
