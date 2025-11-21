@@ -61,7 +61,7 @@ rootCommand.SetAction(
         }
         catch (OperationCanceledException)
         {
-            Console.Error.WriteLine($"Failed to report Protobuf build telemetry: OperationCanceledException");
+            Console.Error.WriteLine($"Failed to report Protobuf build telemetry: operation canceled");
             return 0;
         }
         catch (IceRpcException ex) when (ex.IceRpcError is IceRpcError.InvocationCanceled or IceRpcError.ServerUnreachable)
