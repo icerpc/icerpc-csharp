@@ -19,7 +19,7 @@ internal partial class ThermoBot : IThermoControlService
     private Stage _cooling;
 
     // Protects all read-write fields.
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
 
     // Used to signal when the server has stopped reading.
     private readonly TaskCompletionSource _readTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -56,7 +56,7 @@ internal class SlicStream : IMultiplexedStream
     private ulong _id = ulong.MaxValue;
     private readonly SlicPipeReader? _inputPipeReader;
     // This mutex protects _writesClosePending, _closeReadsOnWritesClosure.
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
     private readonly SlicPipeWriter? _outputPipeWriter;
     // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
     // locking.

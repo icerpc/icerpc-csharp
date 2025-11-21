@@ -40,7 +40,7 @@ public sealed class Server : IAsyncDisposable
 
     private readonly int _maxPendingConnections;
 
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
 
     private readonly ServerAddress _serverAddress;
 

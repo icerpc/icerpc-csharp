@@ -172,7 +172,7 @@ internal class CacheUpdateServerAddressFinderDecorator : IServerAddressFinder
 internal class CoalesceServerAddressFinderDecorator : IServerAddressFinder
 {
     private readonly IServerAddressFinder _decoratee;
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
     private readonly Dictionary<Location, Task<ServiceAddress?>> _requests = new();
 
     public Task<ServiceAddress?> FindAsync(Location location, CancellationToken cancellationToken)

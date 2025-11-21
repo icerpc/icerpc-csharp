@@ -113,7 +113,7 @@ public sealed class ProtocolConnectionTests
         using var workSemaphore = new SemaphoreSlim(0);
         int count = 0;
         int maxCount = 0;
-        var mutex = new object();
+        var mutex = new Lock();
 
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
