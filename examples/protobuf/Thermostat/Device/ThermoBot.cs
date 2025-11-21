@@ -60,6 +60,7 @@ internal partial class ThermoBot : IThermoControlService
     {
         while (true)
         {
+            Reading reading;
             lock (_mutex)
             {
                 if (_cooling != Stage.Off)
@@ -82,7 +83,7 @@ internal partial class ThermoBot : IThermoControlService
                     }
                 }
 
-                yield return new Reading
+                reading = new Reading
                 {
                     Timestamp = Timestamp.FromDateTime(DateTime.UtcNow),
                     Temperature = _temperature,
@@ -90,6 +91,8 @@ internal partial class ThermoBot : IThermoControlService
                     SetPoint = _setPoint
                 };
             }
+
+            yield return reading;
 
             try
             {
