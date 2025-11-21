@@ -8,7 +8,9 @@ runs:
     shell: bash
 
   - name: 🧪 Test
-    run: dotnet test --no-build --verbosity normal --blame-hang-timeout 10s
+    run: |
+      mkdir -p ${{ github.workspace }}/TestResults
+      dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger "trx" --results-directory ${{ github.workspace }}/TestResults
     shell: bash
 
   - name: Upload blame hang dumps
@@ -18,3 +20,11 @@ runs:
       path: ${{ github.workspace }}/**/*.dmp
       if-no-files-found: ignore
     if: failure()
+
+  - name: Upload test results
+    uses: actions/upload-artifact@v4
+    with:
+      name: test-results-${{ runner.os }}
+      path: ${{ github.workspace }}/TestResults/*.trx
+      if-no-files-found: ignore
+    if: always()
