@@ -555,10 +555,11 @@ public class SlicTransportTests
         Assert.That(async () => await acceptStreamTask, Throws.InstanceOf<IceRpcException>());
     }
 
-    /// <summary>Verifies that setting the idle timeout doesn't abort the connection if it's idle.</summary>
+    /// <summary>Verifies that setting the idle timeout doesn't abort the connection if there is no application-level
+    /// activity.</summary>
     [Test]
     [NonParallelizable]
-    public async Task Connection_with_idle_timeout_is_not_aborted_when_idle([Values] bool serverIdleTimeout)
+    public async Task Connection_with_idle_timeout_is_not_aborted_when_inactive([Values] bool serverIdleTimeout)
     {
         // Arrange
         var services = new ServiceCollection().AddSlicTest();
@@ -583,9 +584,20 @@ public class SlicTransportTests
         await Task.Delay(TimeSpan.FromSeconds(2));
 
         // Assert
-        Assert.That(acceptStreamTask.IsCompleted, Is.False);
+        if (acceptStreamTask.IsCompleted)
+        {
+            // Unexpected.
+            Assert.DoesNotThrowAsync(async () => await acceptStreamTask); // to display the cause of the failure.
+            Assert.Fail("acceptStreamTask should not be completed");
+        }
+
         await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
-        Assert.That(async () => await acceptStreamTask, Throws.InstanceOf<IceRpcException>());
+
+        // Successful completion.
+        Assert.That(
+            async () => await acceptStreamTask,
+            Throws.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionClosedByPeer));
     }
 
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection even when there is slow write
@@ -634,7 +646,12 @@ public class SlicTransportTests
             Assert.Fail("nextAcceptStreamTask should not be completed");
         }
         await sut.Client.CloseAsync(MultiplexedConnectionCloseError.NoError, default);
-        Assert.That(async () => await nextAcceptStreamTask, Throws.InstanceOf<IceRpcException>());
+
+        // Successful completion.
+        Assert.That(
+            async () => await nextAcceptStreamTask,
+            Throws.InstanceOf<IceRpcException>()
+                .With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionClosedByPeer));
     }
 
     /// <summary>Verifies the cancellation token of CloseAsync works when the ShutdownAsync of the underlying server
