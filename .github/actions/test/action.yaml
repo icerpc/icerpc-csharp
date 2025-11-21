@@ -9,8 +9,8 @@ runs:
 
   - name: 🧪 Test
     run: |
-      mkdir -p ${{ github.workspace }}/TestResults
-      dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger "trx" --results-directory ${{ github.workspace }}/TestResults
+      mkdir -p TestResults
+      dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger "trx" --results-directory TestResults
     shell: bash
 
   - name: Upload blame hang dumps
@@ -25,6 +25,6 @@ runs:
     uses: actions/upload-artifact@v4
     with:
       name: test-results-${{ runner.os }}
-      path: ${{ github.workspace }}/TestResults/*.trx
+      path: TestResults/*.trx
       if-no-files-found: ignore
     if: always()
