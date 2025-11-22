@@ -13,13 +13,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: 📦 NuGet Cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
     - name: 📦 Cargo Cache
       uses: actions/cache@v4
       with:
