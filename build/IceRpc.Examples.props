@@ -5,7 +5,7 @@
       The version of the IceRPC NuGet packages used by the examples. It must be available from nuget.org once
       this branch is released.
     -->
-    <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.5.0-preview1</IceRpcVersion>
+    <IceRpcVersion Condition="'$(IceRpcVersion)' == ''">0.5.0-*</IceRpcVersion>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>All</AnalysisMode>
