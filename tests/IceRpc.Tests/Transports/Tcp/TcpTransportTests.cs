@@ -161,11 +161,22 @@ public class TcpTransportTests
     [Test]
     public async Task Configure_server_connection_listen_backlog()
     {
+        // The listen backlog does not work on macos 26.0, so we skip this test. Works on macos 26.1.
+        if (OperatingSystem.IsMacOS() &&
+            Environment.OSVersion.Version.Major == 26 &&
+            Environment.OSVersion.Version.Minor == 0)
+        {
+            Assert.Ignore("Skipping listen backlog test on macOS 26.0 due to listen backlog bug.");
+        }
+
         // Arrange
+        const int backlog = 18;
+        const int hardLimit = 50;
+
         await using IListener<IDuplexConnection> listener = CreateTcpListener(
             options: new TcpServerTransportOptions
             {
-                ListenBacklog = 18
+                ListenBacklog = backlog
             });
 
         IDuplexClientTransport clientTransport = new TcpClientTransport(new TcpClientTransportOptions());
@@ -173,7 +184,7 @@ public class TcpTransportTests
         var connections = new List<IDuplexConnection>();
 
         // Act
-        while (true)
+        while (connections.Count < hardLimit)
         {
             using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
             try
@@ -192,10 +203,11 @@ public class TcpTransportTests
         }
 
         // Assert
-        Assert.That(connections, Has.Count.GreaterThanOrEqualTo(18));
+        Assert.That(connections, Has.Count.GreaterThanOrEqualTo(backlog));
+
         // The OS may allow a few more connections than specified by the ListenBacklog. This test ensures that
         // Socket.Listen was called with the ListenBacklog value set in TcpServerTransportOptions.
-        Assert.That(connections, Has.Count.LessThanOrEqualTo(50));
+        Assert.That(connections, Has.Count.LessThan(hardLimit));
 
         foreach (IDisposable connection in connections)
         {

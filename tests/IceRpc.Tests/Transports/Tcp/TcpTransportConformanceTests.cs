@@ -15,6 +15,8 @@ public class TcpConnectionConformanceTests : DuplexConnectionConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
         new ServiceCollection().AddTcpTest(listenBacklog);
+
+    protected override bool UsesListenBacklog => true;
 }
 
 /// <summary>Conformance tests for the tcp transport listener.</summary>
@@ -23,6 +25,8 @@ public class TcpListenerConformanceTests : DuplexListenerConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
         new ServiceCollection().AddTcpTest(listenBacklog);
+
+    protected override bool UsesListenBacklog => true;
 }
 
 /// <summary>Conformance tests for the tcp transport using IPv6.</summary>
@@ -34,6 +38,8 @@ public class Ipv6TcpConnectionConformanceTests : DuplexConnectionConformanceTest
 
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
         new ServiceCollection().AddTcpTest(listenBacklog, new Uri("icerpc://[::1]:0/"));
+
+    protected override bool UsesListenBacklog => true;
 }
 
 /// <summary>Conformance tests for the tcp transport listener.</summary>
@@ -45,6 +51,8 @@ public class Ipv6TcpListenerConformanceTests : DuplexListenerConformanceTests
 
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
         new ServiceCollection().AddTcpTest(listenBacklog, new Uri("icerpc://[::1]:0/"));
+
+    protected override bool UsesListenBacklog => true;
 }
 
 internal class Ipv6SupportFixture
