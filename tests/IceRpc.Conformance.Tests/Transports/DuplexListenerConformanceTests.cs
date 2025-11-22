@@ -110,9 +110,16 @@ public abstract class DuplexListenerConformanceTests
 
     /// <summary>Verifies that connect fails if the listener is disposed.</summary>
     [Test]
-    [Ignore("See if this is the cause of the macos-26 failure in CI")]
     public async Task Connect_fails_if_listener_is_disposed()
     {
+        // TODO: the listen backlog does not work on macos 26.0, so we skip this test.
+        if (OperatingSystem.IsMacOS() &&
+            Environment.OSVersion.Version.Major == 26 &&
+            Environment.OSVersion.Version.Minor == 0)
+        {
+            Assert.Ignore("Skipping test on macOS 26.0 due to listen backlog bug.");
+        }
+
         // Arrange
 
         // We limit the connection backlog to avoid creating too many connections.

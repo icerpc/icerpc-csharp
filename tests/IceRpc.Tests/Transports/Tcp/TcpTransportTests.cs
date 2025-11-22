@@ -161,6 +161,14 @@ public class TcpTransportTests
     [Test]
     public async Task Configure_server_connection_listen_backlog()
     {
+        // TODO: the listen backlog does not work on macos 26.0, so we skip this test.
+        if (OperatingSystem.IsMacOS() &&
+            Environment.OSVersion.Version.Major == 26 &&
+            Environment.OSVersion.Version.Minor == 0)
+        {
+            Assert.Ignore("Skipping listen backlog test on macOS 26.0 due to listen backlog bug.");
+        }
+
         // Arrange
         const int backlog = 18;
         const int hardLimit = 50;
@@ -197,22 +205,9 @@ public class TcpTransportTests
         // Assert
         Assert.That(connections, Has.Count.GreaterThanOrEqualTo(backlog));
 
-        // TODO: temporary workaround for macOS 26.0 bug (and/or dotnet 10 bug?) where the listen backlog is not
-        // honored.
-        bool isMacOS26 = OperatingSystem.IsMacOS() &&
-            Environment.OSVersion.Version.Major == 26 &&
-            Environment.OSVersion.Version.Minor == 0;
-
-        if (isMacOS26)
-        {
-            Console.WriteLine("*************** Skipping listen backlog upper limit check on macOS 26.0.");
-        }
-        else
-        {
-            // The OS may allow a few more connections than specified by the ListenBacklog. This test ensures that
-            // Socket.Listen was called with the ListenBacklog value set in TcpServerTransportOptions.
-            Assert.That(connections, Has.Count.LessThan(hardLimit));
-        }
+        // The OS may allow a few more connections than specified by the ListenBacklog. This test ensures that
+        // Socket.Listen was called with the ListenBacklog value set in TcpServerTransportOptions.
+        Assert.That(connections, Has.Count.LessThan(hardLimit));
 
         foreach (IDisposable connection in connections)
         {
