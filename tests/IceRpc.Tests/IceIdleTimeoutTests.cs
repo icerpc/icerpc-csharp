@@ -83,7 +83,8 @@ public class IceIdleTimeoutTests
     /// connection idle monitor.</summary>
     /// <remarks>This test also verifies that the client idle monitor does not abort the connection when the server
     /// does not write anything; it's less interesting since the server always writes a ValidateConnection frame after
-    /// accepting the connection from the client.</remarks>
+    /// accepting the connection from the client. "Does not write anything" is at the application level: IceRpc writes
+    /// ValidateConnection frames to keep this connection alive.</remarks>
     [Test]
     public async Task Server_idle_monitor_does_not_abort_connection_when_client_does_not_write_anything()
     {
@@ -107,8 +108,18 @@ public class IceIdleTimeoutTests
         await Task.Delay(TimeSpan.FromMilliseconds(900)); // plenty of time for the idle monitor to kick in.
 
         // Assert
-        Assert.That(serverShutdownRequested.IsCompleted, Is.False);
-        Assert.That(clientShutdownRequested.IsCompleted, Is.False);
+        if (serverShutdownRequested.IsCompleted)
+        {
+            // Unexpected
+            Assert.DoesNotThrowAsync(async () => await sut.Server.ShutdownAsync()); // to retrieve the error
+            Assert.Fail("serverShutdownRequested completed unexpectedly.");
+        }
+        if (clientShutdownRequested.IsCompleted)
+        {
+            // Unexpected
+            Assert.DoesNotThrowAsync(async () => await sut.Client.ShutdownAsync()); // to retrieve the error
+            Assert.Fail("clientShutdownRequested completed unexpectedly.");
+        }
 
         // Graceful shutdown.
         Task clientShutdown = sut.Client.ShutdownAsync();

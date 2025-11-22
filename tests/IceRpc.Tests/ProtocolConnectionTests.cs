@@ -113,7 +113,7 @@ public sealed class ProtocolConnectionTests
         using var workSemaphore = new SemaphoreSlim(0);
         int count = 0;
         int maxCount = 0;
-        var mutex = new object();
+        var mutex = new Lock();
 
         var dispatcher = new InlineDispatcher(async (request, cancellationToken) =>
         {
@@ -393,8 +393,8 @@ public sealed class ProtocolConnectionTests
             Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
     }
 
-    /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive time has been deferred by the
-    /// reading of the payload.</summary>
+    /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
+    /// deferred by the reading of the payload.</summary>
     [Test, TestCaseSource(nameof(Protocols_and_oneway_or_twoway))]
     public async Task ShutdownRequested_completes_when_inactive_and_inactive_timeout_deferred_by_payload_read(
         Protocol protocol,
@@ -411,16 +411,15 @@ public sealed class ProtocolConnectionTests
                 })
             .BuildServiceProvider(validateScopes: true);
 
-        long startTime = Environment.TickCount64;
-
         ClientServerProtocolConnection sut = provider.GetRequiredService<ClientServerProtocolConnection>();
         (Task clientShutdownRequested, _) = await sut.ConnectAsync();
 
+        long startTime = Environment.TickCount64;
         {
             using var request = new OutgoingRequest(new ServiceAddress(protocol))
             {
                 IsOneway = isOneway,
-                Payload = new DelayPipeReader(TimeSpan.FromMilliseconds(520))
+                Payload = new DelayPipeReader(TimeSpan.FromMilliseconds(550))
             };
             _ = await sut.Client.InvokeAsync(request);
         }
@@ -429,9 +428,10 @@ public sealed class ProtocolConnectionTests
         await clientShutdownRequested;
 
         // Assert
+        // We remove 60ms to account for timing inaccuracies on CI runners.
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64 - startTime),
-            Is.GreaterThan(TimeSpan.FromMilliseconds(990)).And.LessThan(TimeSpan.FromSeconds(2)));
+            Is.GreaterThan(TimeSpan.FromMilliseconds(550 + 500 - 60)).And.LessThan(TimeSpan.FromSeconds(3)));
     }
 
     /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been

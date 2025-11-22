@@ -36,6 +36,20 @@ jobs:
         with:
           cargo-build-args: --release
           target: ${{ matrix.target }}
+      - name: Sign slicec-cs compiler on Windows
+        if: runner.os == 'Windows'
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: zeroc
+          certificate-profile-name: zeroc-ice
+          files: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
       - name: Archive Build
         uses: actions/upload-artifact@v4
         with:
@@ -46,22 +60,12 @@ jobs:
     timeout-minutes: 10
     needs: build-compiler
     env:
-      SIGN_CERTIFICATE: ${{ github.workspace }}\certificate.pfx
-      SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
-      SignTool: C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64\signtool.exe
       SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
     steps:
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
+          dotnet-version: 10.0.x
       - uses: actions/checkout@v4
-      - name: Create Code Signing Certificate
-        run: |
-          Set-Content -Path $env:GITHUB_WORKSPACE\certificate.pfx.base64 -Value '${{ secrets.SIGN_CERTIFICATE }}'
-          certutil -decode $env:GITHUB_WORKSPACE\certificate.pfx.base64 $env:GITHUB_WORKSPACE\certificate.pfx
-          Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx.base64
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v4
       - name: Set version from tag
@@ -100,9 +104,6 @@ jobs:
           path: |
             ./*.nupkg
             ./*.snupkg
-      - name: Cleanup
-        if: always()
-        run: Remove-Item $env:GITHUB_WORKSPACE\certificate.pfx -ErrorAction SilentlyContinue
   test-packages:
     timeout-minutes: 10
     strategy:

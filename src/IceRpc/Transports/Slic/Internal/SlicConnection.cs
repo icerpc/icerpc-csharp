@@ -67,7 +67,7 @@ internal class SlicConnection : IMultiplexedConnection
     private readonly int _maxUnidirectionalStreams;
     // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
     // an atomic operation.
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
     private ulong _nextBidirectionalId;
     private ulong _nextUnidirectionalId;
     private IceRpcError? _peerCloseError;
