@@ -112,8 +112,9 @@ public abstract class DuplexListenerConformanceTests
     [Test]
     public async Task Connect_fails_if_listener_is_disposed()
     {
-        // TODO: the listen backlog does not work on macos 26.0, so we skip this test.
-        if (OperatingSystem.IsMacOS() &&
+        // The listen backlog does not work on macos 26.0 with TCP, so we skip this test. Works on macos 26.1.
+        if (UsesListenBacklog &&
+            OperatingSystem.IsMacOS() &&
             Environment.OSVersion.Version.Major == 26 &&
             Environment.OSVersion.Version.Minor == 0)
         {
@@ -198,4 +199,7 @@ public abstract class DuplexListenerConformanceTests
     /// <summary>Creates the service collection used for the duplex listener transport conformance tests.</summary>
     /// <param name="listenBacklog">The length of the server queue for accepting new connections.</param>
     protected abstract IServiceCollection CreateServiceCollection(int? listenBacklog = null);
+
+    /// <summary>Gets whether the transport being tested uses the listen backlog parameter.</summary>
+    protected abstract bool UsesListenBacklog { get; }
 }

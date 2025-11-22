@@ -161,7 +161,7 @@ public class TcpTransportTests
     [Test]
     public async Task Configure_server_connection_listen_backlog()
     {
-        // TODO: the listen backlog does not work on macos 26.0, so we skip this test.
+        // The listen backlog does not work on macos 26.0, so we skip this test. Works on macos 26.1.
         if (OperatingSystem.IsMacOS() &&
             Environment.OSVersion.Version.Major == 26 &&
             Environment.OSVersion.Version.Minor == 0)
