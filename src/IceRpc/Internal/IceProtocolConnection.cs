@@ -1144,6 +1144,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         // _connectTask and as a result this await can't fail.
         await _connectTask!.ConfigureAwait(false);
 
+        if (IsServer)
+        {
+            string now = DateTime.Now.ToString("HH:mm:ss:fff", null);
+            Console.WriteLine($"{now}: Server connected, starting to read frames.");
+        }
+
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -1237,6 +1243,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     case IceFrameType.ValidateConnection:
                     {
+                        if (IsServer)
+                        {
+                            string now = DateTime.Now.ToString("HH:mm:ss:fff", null);
+                            Console.WriteLine($"{now}: Server received ValidateConnection frame.");
+                        }
                         if (prologue.FrameSize != IceDefinitions.PrologueSize)
                         {
                             throw new InvalidDataException(
