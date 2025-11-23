@@ -14,7 +14,7 @@ is branch-specific:
 | 0.2.x                | 0.2.*                            | .NET 8.0           |
 | 0.3.x                | 0.3.*                            | .NET 8.0           |
 | 0.4.x                | 0.4.*                            | .NET 8.0, .NET 9.0 |
-| main                 | Not yet published on nuget.org   | .NET 10.0          |
+| main                 | 0.5.0-nightly.*                  | .NET 10.0          |
 
 If you want to build the examples for a released version (such as 0.4.x), please checkout the corresponding release
 branch. For example:
@@ -25,8 +25,13 @@ git checkout -b 0.4.x origin/0.4.x
 
 Then, when you build an example, the build uses the NuGet packages published on nuget.org.
 
-If you want to build the examples on the `main` branch, you first need to build and publish locally the latest version
-of the NuGet packages, as described in [BUILDING].
+The examples on the main branch are configured to use the IceRPC packages from the ZeroC nightly repository. If you
+want to build the examples on main against a local build of IceRPC instead, you must first build and publish the NuGet
+packages locally, as described in [BUILDING]. Then pass the desired version to the build command, for example:
+
+```shell
+dotnet build /p:IceRpcVersion=0.5.0-preview1
+```
 
 ## Examples
 
