@@ -54,7 +54,8 @@ jobs:
             echo "semver_version=${VERSION}-nightly.${DATE}.${BUILD}" >> $GITHUB_OUTPUT
           else
             # Define version variables as empty for stable channels to use the version from the repository
-            echo "semver_version=" >> $GITHUB_OUTPUT
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "semver_version=${VERSION}" >> $GITHUB_OUTPUT
           fi
 
   build-packages:
@@ -80,7 +81,6 @@ jobs:
     uses: ./.github/workflows/test-release.yml
     with:
       channel: ${{ inputs.channel }}
-      run_id: ${{ github.run_id }}
       icerpc_version: ${{ needs.set-version.outputs.semver_version }}
     needs:
       - set-version
