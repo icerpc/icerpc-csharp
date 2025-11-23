@@ -72,7 +72,7 @@ dotnet_diagnostic.CA1851.severity = none
 # CA1852: Seal internal types
 dotnet_diagnostic.CA1852.severity = none
 
-# CA1859: use concrete types when possible for improved performance
+# CA1859: Use concrete types when possible for improved performance
 dotnet_diagnostic.CA1859.severity = none
 
 # CA2000: Dispose objects before losing scope
