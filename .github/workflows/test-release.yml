@@ -43,7 +43,7 @@ jobs:
       - name: Set IceRPC version
         if: ${{ inputs.channel == 'nightly' }}
         run: |
-          echo "ICERPC_VERSION=$icerpc_version" >> $env:GITHUB_ENV
+          echo "ICERPC_VERSION=${{ inputs.icerpc_version }}" >> $env:GITHUB_ENV
         shell: pwsh
 
       - name: Set version from tag
