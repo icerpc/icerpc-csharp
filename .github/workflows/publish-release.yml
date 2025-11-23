@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: "The channel to publish to (e.g., 3.8, nightly)"
+        description: "The channel to publish to (e.g., stable, nightly)"
         required: true
       run_id:
         description: "The run ID to use for downloading artifacts"
