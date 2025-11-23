@@ -12,6 +12,8 @@ public class ColocConnectionConformanceTests : DuplexConnectionConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
         new ServiceCollection().AddColocTest(listenBacklog);
+
+    protected override bool UsesListenBacklog => false;
 }
 
 /// <summary>Conformance tests for the coloc transport listener.</summary>
@@ -20,4 +22,6 @@ public class ColocListenerConformanceTests : DuplexListenerConformanceTests
 {
     protected override IServiceCollection CreateServiceCollection(int? listenBacklog) =>
         new ServiceCollection().AddColocTest(listenBacklog);
+
+    protected override bool UsesListenBacklog => false;
 }
