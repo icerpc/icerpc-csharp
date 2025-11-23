@@ -103,7 +103,7 @@ dotnet_diagnostic.CA2015.severity = warning
 dotnet_diagnostic.CA2016.severity = warning
 
 # CA2025: Do not pass 'IDisposable' instances into unawaited tasks
-# We often pass Task (an IDisposable) to fire-and-forget async methods that take ownership of their lifetime.
+# We occasionally pass a Task (an IDisposable object) to an un-awaited async method that awaits this task.
 dotnet_diagnostic.CA2025.severity = none
 
 # CA2200: Rethrow to preserve stack details
