@@ -128,10 +128,10 @@ jobs:
         working-directory: src/IceRpc.Templates
         run: dotnet pack --configuration Release --output ../../
 
-      - name: Upload packages
+      - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: nuget-packages
           path: |
             ./*.nupkg
             ./*.snupkg

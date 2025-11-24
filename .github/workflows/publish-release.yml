@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p staging
-          gh run download "$RUN_ID" --repo icerpc/icerpc-csharp --pattern "*-nuget-packages" --dir staging
+          gh run download "$RUN_ID" --repo icerpc/icerpc-csharp --name "nuget-packages" --dir staging
 
       - name: Publish NuGet Packages
         run: |
