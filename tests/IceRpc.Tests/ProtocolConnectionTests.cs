@@ -388,9 +388,10 @@ public sealed class ProtocolConnectionTests
         await clientShutdownRequested;
 
         // Assert
+        // Environment.TickCount64's precision on Windows is 15.6 milliseconds; that's why we subtract 20ms here.
         Assert.That(
             TimeSpan.FromMilliseconds(Environment.TickCount64) - startTime,
-            Is.GreaterThan(TimeSpan.FromMilliseconds(490)));
+            Is.GreaterThan(TimeSpan.FromMilliseconds(500 - 20)));
     }
 
     /// <summary>Verifies that ShutdownRequested completes when inactive and after the inactive timeout has been
