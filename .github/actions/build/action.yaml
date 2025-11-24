@@ -13,30 +13,45 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+    - uses: actions/cache@v4
       with:
-        dotnet-version: |
-          10.0.x
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+        cache: true
+
     - name: Install libmsquic
       run: |
-        wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+        wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
         sudo dpkg -i packages-microsoft-prod.deb
         rm packages-microsoft-prod.deb
         sudo apt update
         sudo apt install libmsquic
       shell: bash
       if: runner.os == 'Linux'
+
     - name: Rust toolchain
       uses: dtolnay/rust-toolchain@stable
+
     - name: 🔨 Build Slice Compiler
       run: |
         cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
       shell: bash
+
     - name: 🔨 Build IceRPC Tools
       working-directory: tools
       run: dotnet build ${{ inputs.dotnet-build-args }}
       shell: bash
+
     - name: 🔨 Build IceRPC
       run: dotnet build ${{ inputs.dotnet-build-args }}
       shell: bash
