@@ -67,11 +67,6 @@ jobs:
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v4
 
-      - name: Set version from tag
-        run: |
-          $version = $env:GITHUB_REF -replace '^refs/tags/v',''
-          echo "VERSION=$version" >> $env:GITHUB_ENV
-
       - name: Copy slicec-cs binaries to staging path
         run: |
           @("macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "windows-x64") | ForEach-Object { New-Item -ItemType Directory -Path $env:GITHUB_WORKSPACE\tools\slicec-cs\staging -Name $_ }
