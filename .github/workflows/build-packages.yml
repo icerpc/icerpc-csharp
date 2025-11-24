@@ -98,6 +98,10 @@ jobs:
             }
             $assemblies | Set-Content -Path "${{ github.workspace }}\catalog.txt" -Encoding UTF8
 
+      # Shutdown the build server before signing to ensure MSBuild tasks are not loaded in the build server process.
+      - name: Shutdown build server
+        run: dotnet build-server shutdown
+
       - name: Sign .NET Assemblies and slicec-cs.exe compiler
         uses: azure/trusted-signing-action@v0
         with:
