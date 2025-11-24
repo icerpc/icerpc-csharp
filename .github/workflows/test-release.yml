@@ -1,0 +1,56 @@
+name: "Test NuGet Packages"
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "The channel to publish to (e.g., stable, nightly)"
+        required: true
+      icerpc_version:
+        description: "The IceRPC version to test for nightly releases"
+        required: false
+  workflow_call:
+    inputs:
+      channel:
+        required: true
+        type: string
+      icerpc_version:
+        required: false
+        type: string
+
+jobs:
+  test-packages:
+    strategy:
+      matrix:
+        include:
+          - os: macos-26
+          - os: ubuntu-24.04
+          - os: windows-2025
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set IceRPC version
+        run: |
+          echo "ICERPC_VERSION=${{ inputs.icerpc_version }}" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Install dotnet new templates
+        working-directory: packages
+        run: |
+          $version = $env:ICERPC_VERSION
+          dotnet new install IceRpc.Templates::$version
+        shell: pwsh
+
+      - name: 🔨 Build Examples
+        run: |
+          $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
+          foreach ($example in $examples) { dotnet build $example.FullName /p:IceRpcVersion=$env:ICERPC_VERSION }
+        shell: pwsh
+
+      - name: 🧪 Test Templates
+        uses: ./.github/actions/test-templates

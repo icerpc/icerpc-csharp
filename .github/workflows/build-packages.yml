@@ -1,10 +1,16 @@
-name: release
+name: "Build .NET Packages"
 
 on:
-  push:
-    # Run on version tags
-    tags:
-      - "v[0-9]*"
+  workflow_call:
+    inputs:
+      icerpc_version:
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      icerpc_version:
+        description: "The IceRPC version to build"
+        required: false
 
 jobs:
   build-compiler:
@@ -31,47 +37,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Build
         uses: ./.github/actions/build-compiler
         with:
           cargo-build-args: --release
           target: ${{ matrix.target }}
-      - name: Sign slicec-cs compiler on Windows
-        if: runner.os == 'Windows'
-        uses: azure/trusted-signing-action@v0
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: https://eus.codesigning.azure.net/
-          trusted-signing-account-name: zeroc
-          certificate-profile-name: zeroc-ice
-          files: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
+
       - name: Archive Build
         uses: actions/upload-artifact@v4
         with:
           name: slicec-cs-${{ matrix.target }}
           path: tools/slicec-cs/target/${{ matrix.target }}/release/${{ matrix.compiler-exe }}
+
   build-packages:
     runs-on: windows-2025
     timeout-minutes: 10
     needs: build-compiler
     env:
       SLICEC_CS_STAGING_PATH: ${{ github.workspace }}\tools\slicec-cs\staging
+      VERSION: ${{ inputs.icerpc_version }}
     steps:
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
+
       - uses: actions/checkout@v4
+
       - name: Download slicec-cs compiler artifacts
         uses: actions/download-artifact@v4
+
       - name: Set version from tag
         run: |
           $version = $env:GITHUB_REF -replace '^refs/tags/v',''
           echo "VERSION=$version" >> $env:GITHUB_ENV
+
       - name: Copy slicec-cs binaries to staging path
         run: |
           @("macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "windows-x64") | ForEach-Object { New-Item -ItemType Directory -Path $env:GITHUB_WORKSPACE\tools\slicec-cs\staging -Name $_ }
@@ -84,19 +84,51 @@ jobs:
           # Copy the compiler to the expected location to avoid rebuilding it when creating the NuGet packages
           New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
+
       - name: Build IceRPC Tools
         working-directory: tools
         run: dotnet build --configuration Release
+
       - name: Build IceRPC
         run: dotnet build --configuration Release
+
+      - name: Collect Files to Sign
+        run: |
+            # For each project in src and tools, we sign the main assembly named after the project.
+            $assemblies = Get-ChildItem -Path src, tools -Directory | ForEach-Object {
+              $name = $_.Name
+              Get-ChildItem -Path $_.FullName -Filter "$name.dll" -Recurse |
+              Where-Object { $_.FullName -like "*\bin\Release\net*\$name.dll" } |
+              ForEach-Object { Resolve-Path -Relative $_.FullName }
+            }
+            $assemblies | Set-Content -Path "${{ github.workspace }}\catalog.txt" -Encoding UTF8
+
+      - name: Sign .NET Assemblies and slicec-cs.exe compiler
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: zeroc
+          certificate-profile-name: zeroc-ice
+          files-catalog: ${{ github.workspace }}\catalog.txt
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      # Use --no-build to avoid rebuilding, we want to use the signed assemblies that were built in the previous step.
       - name: Pack IceRPC Tools
         working-directory: tools
-        run: dotnet pack --configuration Release --output ../
+        run: dotnet pack --no-build --configuration Release --output ../
+
       - name: Pack IceRPC
-        run: dotnet pack --configuration Release --output .
+        run: dotnet pack --no-build --configuration Release --output .
+
       - name: Pack IceRPC Templates
         working-directory: src/IceRpc.Templates
         run: dotnet pack --configuration Release --output ../../
+
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
@@ -104,44 +136,3 @@ jobs:
           path: |
             ./*.nupkg
             ./*.snupkg
-  test-packages:
-    timeout-minutes: 10
-    strategy:
-      matrix:
-        include:
-          - os: macos-26
-          - os: ubuntu-24.04
-          - os: windows-2025
-    runs-on: ${{ matrix.os }}
-    needs: build-packages
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            10.0.x
-      - name: Initialize NuGet local cache
-        run: dotnet restore
-      - name: Download packages artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: packages
-          path: packages
-      - name: Configure NuGet sources
-        run: |
-          dotnet new nugetconfig -o ${{ github.workspace }}
-          dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "Local Packages" ${{ github.workspace }}/packages
-        shell: pwsh
-      - name: Install dotnet new templates
-        working-directory: packages
-        run: |
-          $version = $env:GITHUB_REF -replace '^refs/tags/v',''
-          dotnet new install IceRpc.Templates::$version
-        shell: pwsh
-      - name: 🔨 Build Examples
-        run: |
-          $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
-          foreach ($example in $examples) { dotnet build $example.FullName }
-        shell: pwsh
-      - name: 🧪 Test Templates
-        uses: ./.github/actions/test-templates
