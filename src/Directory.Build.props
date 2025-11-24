@@ -6,6 +6,8 @@
     <AllowedOutputExtensionsInPackageBuildOutputFolder
     >$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
+    <!-- Enable package lock file to ensure consistent package versions across builds -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/StyleCop.json" Link="stylecop.json" />
