@@ -84,7 +84,6 @@ jobs:
       icerpc_version: ${{ needs.set-version.outputs.semver_version }}
     needs:
       - set-version
-      - build-packages
       - publish-test-packages
     secrets: inherit
 
@@ -92,6 +91,7 @@ jobs:
     name: Publish Release
     if: ${{ inputs.publish == true && inputs.channel == 'stable' }}
     needs:
+      - test-release
       - build-packages
     uses: ./.github/workflows/publish-release.yml
     with:
