@@ -38,14 +38,14 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.*, )",
-          "ZeroC.Slice": "[0.5.0-preview1, )"
+          "ZeroC.Slice": "[0.5.0-preview.1, )"
         }
       },
       "icerpc.slice": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0-preview1, )",
-          "ZeroC.Slice": "[0.5.0-preview1, )"
+          "IceRpc": "[0.5.0-preview.1, )",
+          "ZeroC.Slice": "[0.5.0-preview.1, )"
         }
       },
       "zeroc.slice": {

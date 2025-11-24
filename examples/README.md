@@ -30,7 +30,7 @@ want to build the examples on main against a local build of IceRPC instead, you 
 packages locally, as described in [BUILDING]. Then pass the desired version to the build command, for example:
 
 ```shell
-dotnet build /p:IceRpcVersion=0.5.0-preview1
+dotnet build /p:IceRpcVersion=0.5.0-preview.1
 ```
 
 ## Examples
