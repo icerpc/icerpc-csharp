@@ -72,6 +72,9 @@ dotnet_diagnostic.CA1851.severity = none
 # CA1852: Seal internal types
 dotnet_diagnostic.CA1852.severity = none
 
+# CA1859: Use concrete types when possible for improved performance
+dotnet_diagnostic.CA1859.severity = none
+
 # CA2000: Dispose objects before losing scope
 dotnet_diagnostic.CA2000.severity = warning
 
@@ -98,6 +101,10 @@ dotnet_diagnostic.CA2015.severity = warning
 
 # CA2016: Forward the 'CancellationToken' parameter to methods
 dotnet_diagnostic.CA2016.severity = warning
+
+# CA2025: Do not pass 'IDisposable' instances into unawaited tasks
+# We occasionally pass a Task (an IDisposable object) to an un-awaited async method that awaits this task.
+dotnet_diagnostic.CA2025.severity = none
 
 # CA2200: Rethrow to preserve stack details
 dotnet_diagnostic.CA2200.severity = warning
@@ -240,9 +247,3 @@ dotnet_diagnostic.VSSpell001.severity = none
 
 # Use primary constructor
 dotnet_diagnostic.IDE0290.severity = none
-
-# CA1859: use concrete types when possible for improved performance
-dotnet_diagnostic.CA1859.severity = none
-
-# CA2025: Do not pass 'IDisposable' instances into unawaited tasks
-dotnet_diagnostic.CA2025.severity = none
