@@ -88,11 +88,12 @@ public class IceIdleTimeoutTests
     [Test]
     public async Task Server_idle_monitor_does_not_abort_connection_when_client_does_not_write_anything()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         using var timer = new Timer(
             _ =>
             {
-                string now = DateTime.Now.ToString("HH:mm:ss:fff", null);
-                Console.WriteLine($"{now} - Timer tick");
+                Console.WriteLine($"{stopwatch.ElapsedMilliseconds} - Timer tick");
             },
             null,
             TimeSpan.Zero,
