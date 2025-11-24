@@ -602,7 +602,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         int streamCount = 0;
         int streamCountMax = 0;
-        var mutex = new object();
+        var mutex = new Lock();
 
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();
@@ -691,7 +691,7 @@ public abstract class MultiplexedConnectionConformanceTests
 
         int streamCount = 0;
         int streamCountMax = 0;
-        var mutex = new object();
+        var mutex = new Lock();
 
         var streams = new List<IMultiplexedStream>();
         var tasks = new List<Task>();

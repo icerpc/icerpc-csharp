@@ -66,7 +66,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
     private readonly int _maxLocalHeaderSize;
     private int _maxPeerHeaderSize = ConnectionOptions.DefaultMaxIceRpcHeaderSize;
 
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
 
     private Task? _readGoAwayTask;
 

@@ -36,7 +36,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
 
     private Task? _disposeTask;
 
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
 
     // New connections in the process of connecting.
     private readonly Dictionary<ServerAddress, (IProtocolConnection Connection, Task ConnectTask)> _pendingConnections =

@@ -67,7 +67,7 @@ internal sealed class ServerAddressCache : IServerAddressCache
     private readonly int _maxCacheSize;
 
     // _mutex protects _cacheKeys and updates to _cache
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
 
     public void Remove(Location location)
     {

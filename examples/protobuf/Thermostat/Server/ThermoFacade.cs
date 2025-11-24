@@ -21,7 +21,7 @@ internal sealed partial class ThermoFacade : IThermostatService
     private Reading? _latestReading;
 
     // Protects all read-write fields.
-    private readonly object _mutex = new();
+    private readonly Lock _mutex = new();
 
     private CancellationTokenSource? _publishCts;
 
