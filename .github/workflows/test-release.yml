@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-15
+          - os: macos-26
           - os: ubuntu-24.04
           - os: windows-2025
     runs-on: ${{ matrix.os }}
