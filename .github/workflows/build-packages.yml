@@ -6,11 +6,18 @@ on:
       icerpc_version:
         required: false
         type: string
+      channel:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       icerpc_version:
         description: "The IceRPC version to build"
         required: false
+      channel:
+        description: "Release channel (e.g., stable, nightly)"
+        required: true
+        default: "nightly"
 
 jobs:
   build-compiler:
@@ -123,6 +130,18 @@ jobs:
 
       - name: Pack IceRPC
         run: dotnet pack --no-build --configuration Release --output .
+
+      - name: Update IceRPC Templates version
+        run: |
+          $oldVersion = '0.5.0-preview1'
+          $newVersion = '${{ env.VERSION }}'
+          Get-ChildItem -Path 'src/IceRpc.Templates' -Recurse -Filter '*.csproj' |
+            ForEach-Object {
+              $path = $_.FullName
+              Write-Host "Updating $path"
+              (Get-Content $path -Raw) -replace [regex]::Escape($oldVersion), $newVersion | Set-Content $path
+            }
+        if: ${{ inputs.channel == 'nightly' }}
 
       - name: Pack IceRPC Templates
         working-directory: src/IceRpc.Templates

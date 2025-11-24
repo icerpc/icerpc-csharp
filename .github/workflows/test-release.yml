@@ -53,3 +53,5 @@ jobs:
 
       - name: 🧪 Test Templates
         uses: ./.github/actions/test-templates
+        with:
+          add-nuget-config: 'true'
