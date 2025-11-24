@@ -98,6 +98,8 @@ public class IceIdleTimeoutTests
             TimeSpan.Zero,
             TimeSpan.FromMilliseconds(100));
 
+        await Task.Delay(TimeSpan.FromMilliseconds(900));
+
         /*
         var connectionOptions = new ConnectionOptions
         {
