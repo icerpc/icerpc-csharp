@@ -42,7 +42,7 @@ jobs:
       - name: Install dotnet new templates
         run: |
           $version = $env:ICERPC_VERSION
-          dotnet new install IceRpc.Templates::$version
+          dotnet new install IceRpc.Templates::$version --nuget-source https://download.zeroc.com/nexus/repository/nuget-nightly/
         shell: pwsh
 
       - name: 🔨 Build Examples
