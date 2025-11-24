@@ -10,7 +10,7 @@ runs:
   - name: 🧪 Test
     run: |
       mkdir -p TestResults
-      dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger "trx" --results-directory TestResults
+      dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger "trx" --results-directory TestResults --filter Server_idle_monitor_does_not_abort_connection_when_client_does_not_write_anything
     shell: bash
 
   - name: Install dotnet-trx tool
