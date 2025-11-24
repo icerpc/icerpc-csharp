@@ -650,6 +650,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 // Make sure we execute the function without holding the connection mutex lock.
                 await Task.Yield();
 
+                if (!IsServer)
+                {
+                    string now = DateTime.Now.ToString("HH:mm:ss:fff", null);
+                    Console.WriteLine($"{now}: Client sending Heartbeat frame.");
+                }
+
                 try
                 {
                     await SendControlFrameAsync(EncodeValidateConnectionFrame, cancellationToken).ConfigureAwait(false);
@@ -668,6 +674,12 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 {
                     Debug.Fail($"The heartbeat task completed due to an unhandled exception: {exception}");
                     throw;
+                }
+
+                if (!IsServer)
+                {
+                    string now = DateTime.Now.ToString("HH:mm:ss:fff", null);
+                    Console.WriteLine($"{now}: Heartbeat frame sent.");
                 }
 
                 static void EncodeValidateConnectionFrame(IBufferWriter<byte> writer)
