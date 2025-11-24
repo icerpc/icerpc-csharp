@@ -1,0 +1,100 @@
+name: Build Release
+
+on:
+  workflow_call:
+    inputs:
+      build_number:
+        required: false
+        default: "1"
+        type: string
+      channel:
+        required: true
+        type: string
+      publish:
+        required: false
+        type: boolean
+        default: false
+
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Build number for nightly releases"
+        required: false
+        default: "1"
+      channel:
+        description: "Release channel (e.g., stable, nightly)"
+        required: true
+        default: "nightly"
+      publish:
+        description: "Whether to publish the packages"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  set-version:
+    runs-on: ubuntu-24.04
+    outputs:
+      semver_version: ${{ steps.set-vars.outputs.semver_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set version variables
+        id: set-vars
+        run: |
+          if [[ "${{ inputs.channel }}" == "nightly" ]]; then
+            DATE=$(date +%Y%m%d)
+            BUILD=${{ inputs.build_number }}
+            VERSION=0.5.0
+            # Set version variables for nightly packages according to platform conventions:
+
+            # e.g. 0.5.0-nightly.20250625.1
+            echo "semver_version=${VERSION}-nightly.${DATE}.${BUILD}" >> $GITHUB_OUTPUT
+          else
+            # Define version variables as empty for stable channels to use the version from the repository
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "semver_version=${VERSION}" >> $GITHUB_OUTPUT
+          fi
+
+  build-packages:
+    name: Build .NET Packages
+    uses: ./.github/workflows/build-packages.yml
+    needs: set-version
+    with:
+      icerpc_version: ${{ needs.set-version.outputs.semver_version }}
+    secrets: inherit
+
+  publish-test-packages:
+    name: Publish Release Test Packages
+    needs:
+      - build-packages
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      channel: "nightly"
+      run_id: ${{ github.run_id }}
+    secrets: inherit
+
+  test-release:
+    name: Test Release
+    uses: ./.github/workflows/test-release.yml
+    with:
+      channel: ${{ inputs.channel }}
+      icerpc_version: ${{ needs.set-version.outputs.semver_version }}
+    needs:
+      - set-version
+      - publish-test-packages
+    secrets: inherit
+
+  publish-release:
+    name: Publish Release
+    if: ${{ inputs.publish == true && inputs.channel == 'stable' }}
+    needs:
+      - test-release
+      - build-packages
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      channel: ${{ inputs.channel }}
+      run_id: ${{ github.run_id }}
+    secrets: inherit

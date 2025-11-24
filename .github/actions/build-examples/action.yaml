@@ -1,9 +1,0 @@
-name: Build Examples
-
-runs:
-  using: "composite"
-  steps:
-  - name: 🔨 Build Examples
-    run: |
-      for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
-    shell: bash

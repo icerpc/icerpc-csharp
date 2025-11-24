@@ -39,7 +39,11 @@ jobs:
       - name: Test Templates
         uses: ./.github/actions/test-templates
       - name: Build Examples
-        uses: ./.github/actions/build-examples
+        env:
+          IceRpcVersion: "0.5.0-preview1"
+        run: |
+          for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
+        shell: bash
       - name: Build DocFX Examples
         run: dotnet build docfx/examples/Examples.sln
         shell: bash
