@@ -40,7 +40,7 @@ jobs:
         uses: ./.github/actions/test-templates
       - name: Build Examples
         env:
-          # Set IceRpcVersion to use the locally build packages
+          # Set IceRpcVersion to use the locally built packages
           IceRpcVersion: "0.5.0-preview.1"
         run: |
           for solution in examples/*/*/*.sln; do dotnet build "$solution"; done
