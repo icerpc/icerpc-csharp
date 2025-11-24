@@ -98,7 +98,6 @@ public class IceIdleTimeoutTests
             TimeSpan.Zero,
             TimeSpan.FromMilliseconds(100));
 
-
         var connectionOptions = new ConnectionOptions
         {
             IceIdleTimeout = TimeSpan.FromMilliseconds(300)
