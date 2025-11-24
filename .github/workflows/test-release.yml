@@ -40,7 +40,6 @@ jobs:
         shell: pwsh
 
       - name: Install dotnet new templates
-        working-directory: packages
         run: |
           $version = $env:ICERPC_VERSION
           dotnet new install IceRpc.Templates::$version
