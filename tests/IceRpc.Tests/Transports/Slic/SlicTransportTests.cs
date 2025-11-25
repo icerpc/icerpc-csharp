@@ -558,7 +558,7 @@ public class SlicTransportTests
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection if there is no application-level
     /// activity.</summary>
     [Test]
-    [Repeat(10)]
+    [Repeat(20)]
     [NonParallelizable]
     public async Task Connection_with_idle_timeout_is_not_aborted_when_inactive([Values] bool serverIdleTimeout)
     {
