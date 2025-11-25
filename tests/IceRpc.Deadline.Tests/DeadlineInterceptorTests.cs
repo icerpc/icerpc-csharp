@@ -120,8 +120,8 @@ public sealed class DeadlineInterceptorTests
             token = cancellationToken;
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
         });
-        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
+        var timeProvider = new FakeTimeProvider();
         var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false, timeProvider);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
@@ -148,8 +148,8 @@ public sealed class DeadlineInterceptorTests
             await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
             return new IncomingResponse(request, FakeConnectionContext.Instance);
         });
-        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
+        var timeProvider = new FakeTimeProvider();
         var sut = new DeadlineInterceptor(
             invoker,
             defaultTimeout: Timeout.InfiniteTimeSpan,
