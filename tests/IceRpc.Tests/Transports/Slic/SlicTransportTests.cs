@@ -558,7 +558,7 @@ public class SlicTransportTests
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection if there is no application-level
     /// activity.</summary>
     [Test]
-    [Repeat(5)]
+    [Repeat(10)]
     [NonParallelizable]
     public async Task Connection_with_idle_timeout_is_not_aborted_when_inactive([Values] bool serverIdleTimeout)
     {
@@ -582,7 +582,7 @@ public class SlicTransportTests
         ValueTask<IMultiplexedStream> acceptStreamTask = sut.Server.AcceptStreamAsync(default);
 
         // Act
-        await Task.Delay(TimeSpan.FromSeconds(10));
+        await Task.Delay(TimeSpan.FromSeconds(8));
 
         // Assert
         if (acceptStreamTask.IsCompleted)
