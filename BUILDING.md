@@ -38,7 +38,7 @@ build.cmd -help
 1. Rust\
 Install Rust using [rustup](https://rustup.rs/).
 
-2. .NET SDK 8.0 and 9.0 (both are required)\
+2. .NET SDK 10.0\
 Download the .NET SDKs from [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download/dotnet).
 
 3. docfx (optional)\
