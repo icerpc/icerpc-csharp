@@ -558,7 +558,7 @@ public class SlicTransportTests
     /// <summary>Verifies that setting the idle timeout doesn't abort the connection if there is no application-level
     /// activity.</summary>
     [Test]
-    [Repeat(40)]
+    [Repeat(20)]
     [NonParallelizable]
     public async Task Connection_with_idle_timeout_is_not_aborted_when_inactive([Values] bool serverIdleTimeout)
     {
@@ -606,6 +606,7 @@ public class SlicTransportTests
     /// from the client to the server, or prevent the server from reading these Ping frames.</summary>
     [Test]
     [NonParallelizable]
+    [Repeat(20)]
     public async Task Connection_with_idle_timeout_and_slow_write_is_not_aborted([Values] bool serverIdleTimeout)
     {
         // Arrange

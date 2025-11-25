@@ -10,7 +10,7 @@ runs:
   - name: 🧪 Test
     run: |
       mkdir -p TestResults
-      dotnet test --no-build --verbosity normal --logger "trx" --results-directory TestResults --filter Connection_with_idle_timeout_is_not_aborted_when_inactive
+      dotnet test --no-build --verbosity normal --logger "trx" --results-directory TestResults --filter Connection_with_idle_timeout
     shell: bash
 
   - name: Install dotnet-trx tool
