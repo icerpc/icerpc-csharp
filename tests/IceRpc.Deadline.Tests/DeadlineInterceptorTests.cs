@@ -126,7 +126,7 @@ public sealed class DeadlineInterceptorTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
-                new DeadlineFeature(timeProvider.GetUtcNow().DateTime + TimeSpan.FromMilliseconds(100)))
+                new DeadlineFeature(timeProvider.GetUtcNow().UtcDateTime + TimeSpan.FromMilliseconds(100)))
         };
         using var cts = new CancellationTokenSource();
 
