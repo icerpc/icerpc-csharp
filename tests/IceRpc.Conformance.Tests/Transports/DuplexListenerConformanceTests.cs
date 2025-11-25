@@ -110,6 +110,7 @@ public abstract class DuplexListenerConformanceTests
 
     /// <summary>Verifies that connect fails if the listener is disposed.</summary>
     [Test]
+    [NonParallelizable]
     public async Task Connect_fails_if_listener_is_disposed()
     {
         // The listen backlog does not work on macos 26.0 with TCP, so we skip this test. Works on macos 26.1.
@@ -141,11 +142,13 @@ public abstract class DuplexListenerConformanceTests
                 clientAuthenticationOptions: provider.GetService<SslClientAuthenticationOptions>());
             connections.Add(connection);
             connectTask = connection.ConnectAsync(default);
-            await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromMilliseconds(250)));
-            if (!connectTask.IsCompleted)
+            Task completedConnectTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromMilliseconds(250)));
+            if (completedConnectTask != connectTask)
             {
                 break;
             }
+            // Ensure the connect task completed successfully before creating a new one.
+            await connectTask;
         }
 
         // Act
