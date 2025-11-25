@@ -28,21 +28,25 @@ public class DeadlineInterceptor : IInvoker
     private readonly bool _alwaysEnforceDeadline;
     private readonly IInvoker _next;
     private readonly TimeSpan _defaultTimeout;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>Constructs a Deadline interceptor.</summary>
     /// <param name="next">The next invoker in the invocation pipeline.</param>
     /// <param name="defaultTimeout">The default timeout. When not infinite, the interceptor adds a deadline to requests
     /// without a deadline.</param>
+    /// <param name="timeProvider">The optional time provider used to obtain the current time. If <see langword="null"/>, it uses
+    /// <see cref="TimeProvider.System"/>.</param>
     /// <param name="alwaysEnforceDeadline">When <see langword="true" /> and the request carries a deadline, the
     /// interceptor always creates a cancellation token source to enforce this deadline. When <see langword="false" />
     /// and the request carries a deadline, the interceptor creates a cancellation token source to enforce this deadline
     /// only when the invocation's cancellation token cannot be canceled. The default value is <see langword="false" />.
     /// </param>
-    public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline)
+    public DeadlineInterceptor(IInvoker next, TimeSpan defaultTimeout, bool alwaysEnforceDeadline, TimeProvider? timeProvider = null)
     {
         _next = next;
         _alwaysEnforceDeadline = alwaysEnforceDeadline;
         _defaultTimeout = defaultTimeout;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <inheritdoc/>
@@ -51,18 +55,19 @@ public class DeadlineInterceptor : IInvoker
         TimeSpan? timeout = null;
         DateTime deadline = DateTime.MaxValue;
 
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
         if (request.Features.Get<IDeadlineFeature>() is IDeadlineFeature deadlineFeature)
         {
             deadline = deadlineFeature.Value;
             if (deadline != DateTime.MaxValue && (_alwaysEnforceDeadline || !cancellationToken.CanBeCanceled))
             {
-                timeout = deadline - DateTime.UtcNow;
+                timeout = deadline - now;
             }
         }
         else if (_defaultTimeout != Timeout.InfiniteTimeSpan)
         {
             timeout = _defaultTimeout;
-            deadline = DateTime.UtcNow + timeout.Value;
+            deadline = now + timeout.Value;
         }
 
         if (timeout is not null && timeout.Value <= TimeSpan.Zero)

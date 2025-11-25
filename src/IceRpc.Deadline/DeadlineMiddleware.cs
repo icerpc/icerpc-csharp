@@ -14,10 +14,17 @@ namespace IceRpc.Deadline;
 public class DeadlineMiddleware : IDispatcher
 {
     private readonly IDispatcher _next;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>Constructs a deadline middleware.</summary>
     /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-    public DeadlineMiddleware(IDispatcher next) => _next = next;
+    /// <param name="timeProvider">The optional time provider used to obtain the current time. If <see langword="null"/>, it uses
+    /// <see cref="TimeProvider.System"/>.</param>
+    public DeadlineMiddleware(IDispatcher next, TimeProvider? timeProvider = null)
+    {
+        _next = next;
+        _timeProvider = timeProvider ?? TimeProvider.System;
+    }
 
     /// <inheritdoc/>
     public ValueTask<OutgoingResponse> DispatchAsync(
@@ -33,7 +40,7 @@ public class DeadlineMiddleware : IDispatcher
 
         if (deadline != DateTime.MinValue)
         {
-            timeout = deadline - DateTime.UtcNow;
+            timeout = deadline - _timeProvider.GetUtcNow().UtcDateTime;
 
             if (timeout <= TimeSpan.Zero)
             {

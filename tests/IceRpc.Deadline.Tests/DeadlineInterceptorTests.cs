@@ -5,6 +5,7 @@ using IceRpc.Tests.Common;
 using NUnit.Framework;
 using System.IO.Pipelines;
 using ZeroC.Slice;
+using Microsoft.Extensions.Time.Testing;
 
 namespace IceRpc.Deadline.Tests;
 
@@ -120,11 +121,12 @@ public sealed class DeadlineInterceptorTests
             return Task.FromResult(new IncomingResponse(request, FakeConnectionContext.Instance));
         });
 
-        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false);
+        var timeProvider = new FakeTimeProvider();
+        var sut = new DeadlineInterceptor(invoker, Timeout.InfiniteTimeSpan, alwaysEnforceDeadline: false, timeProvider);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
-                DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
+                new DeadlineFeature(timeProvider.GetUtcNow().DateTime + TimeSpan.FromMilliseconds(100)))
         };
         using var cts = new CancellationTokenSource();
 
@@ -147,14 +149,16 @@ public sealed class DeadlineInterceptorTests
             return new IncomingResponse(request, FakeConnectionContext.Instance);
         });
 
+        var timeProvider = new FakeTimeProvider();
         var sut = new DeadlineInterceptor(
             invoker,
             defaultTimeout: Timeout.InfiniteTimeSpan,
-            alwaysEnforceDeadline: true);
+            alwaysEnforceDeadline: true,
+            timeProvider);
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc))
         {
             Features = new FeatureCollection().With<IDeadlineFeature>(
-                DeadlineFeature.FromTimeout(TimeSpan.FromMilliseconds(100)))
+                new DeadlineFeature(timeProvider.GetUtcNow().UtcDateTime + TimeSpan.FromMilliseconds(100)))
         };
         using var tokenSource = new CancellationTokenSource();
 
