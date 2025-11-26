@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="IceRpc.Compressor.Examples/IceRpc.Compressor.Examples.csproj" />
+  <Project Path="IceRpc.Deadline.Examples/IceRpc.Deadline.Examples.csproj" />
+  <Project Path="IceRpc.Examples/IceRpc.Examples.csproj" />
+  <Project Path="IceRpc.Extensions.DependencyInjection.Examples/IceRpc.Extensions.DependencyInjection.Examples.csproj" />
+  <Project Path="IceRpc.Logger.Examples/IceRpc.Logger.Examples.csproj" />
+  <Project Path="IceRpc.Metrics.Examples/IceRpc.Metrics.Examples.csproj" />
+  <Project Path="IceRpc.RequestContext.Examples/IceRpc.RequestContext.Examples.csproj" />
+  <Project Path="IceRpc.Retry.Examples/IceRpc.Retry.Examples.csproj" />
+  <Project Path="IceRpc.Telemetry.Examples/IceRpc.Telemetry.Examples.csproj" />
+</Solution>

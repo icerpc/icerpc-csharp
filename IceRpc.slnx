@@ -1,0 +1,54 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/IceRpc.Compressor/IceRpc.Compressor.csproj" />
+    <Project Path="src/IceRpc.Deadline/IceRpc.Deadline.csproj" />
+    <Project Path="src/IceRpc.Extensions.DependencyInjection/IceRpc.Extensions.DependencyInjection.csproj" />
+    <Project Path="src/IceRpc.Locator/IceRpc.Locator.csproj" />
+    <Project Path="src/IceRpc.Logger/IceRpc.Logger.csproj" />
+    <Project Path="src/IceRpc.Metrics/IceRpc.Metrics.csproj" />
+    <Project Path="src/IceRpc.Protobuf.Generators/IceRpc.Protobuf.Generators.csproj" />
+    <Project Path="src/IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
+    <Project Path="src/IceRpc.RequestContext/IceRpc.RequestContext.csproj" />
+    <Project Path="src/IceRpc.Retry/IceRpc.Retry.csproj" />
+    <Project Path="src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" />
+    <Project Path="src/IceRpc.Slice/IceRpc.Slice.csproj" />
+    <Project Path="src/IceRpc.Telemetry/IceRpc.Telemetry.csproj" />
+    <Project Path="src/IceRpc.Transports.Coloc/IceRpc.Transports.Coloc.csproj" />
+    <Project Path="src/IceRpc.Transports.Quic/IceRpc.Transports.Quic.csproj" />
+    <Project Path="src/IceRpc/IceRpc.csproj" />
+    <Project Path="src/ZeroC.Slice/ZeroC.Slice.csproj" />
+    <Project Path="tools/IceRpc.ProtobufBuildTelemetry.Reporter/IceRpc.ProtobufBuildTelemetry.Reporter.csproj" />
+    <Project Path="tools/IceRpc.SliceBuildTelemetry.Reporter/IceRpc.SliceBuildTelemetry.Reporter.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IceRpc.Compressor.Tests/IceRpc.Compressor.Tests.csproj" />
+    <Project Path="tests/IceRpc.Conformance.Tests/IceRpc.Conformance.Tests.csproj" />
+    <Project Path="tests/IceRpc.Deadline.Tests/IceRpc.Deadline.Tests.csproj" />
+    <Project Path="tests/IceRpc.Extensions.DependencyInjection.Tests/IceRpc.Extensions.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/IceRpc.Locator.Tests/IceRpc.Locator.Tests.csproj" />
+    <Project Path="tests/IceRpc.Logger.Tests/IceRpc.Logger.Tests.csproj" />
+    <Project Path="tests/IceRpc.Metrics.Tests/IceRpc.Metrics.Tests.csproj" />
+    <Project Path="tests/IceRpc.Protobuf.Tests/IceRpc.Protobuf.Tests.csproj" />
+    <Project Path="tests/IceRpc.Quic.Tests/IceRpc.Quic.Tests.csproj" />
+    <Project Path="tests/IceRpc.RequestContext.Tests/IceRpc.RequestContext.Tests.csproj" />
+    <Project Path="tests/IceRpc.Retry.Tests/IceRpc.Retry.Tests.csproj" />
+    <Project Path="tests/IceRpc.Slice.Tests/IceRpc.Slice.Tests.csproj" />
+    <Project Path="tests/IceRpc.Telemetry.Tests/IceRpc.Telemetry.Tests.csproj" />
+    <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
+    <Project Path="tests/IceRpc.Tests/IceRpc.Tests.csproj" />
+    <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
+    <Project Path="tests/ZeroC.Slice.Tests/ZeroC.Slice.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/assemblies/">
+    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/A/A.csproj" />
+    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/B/B.csproj" />
+    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/C/C.csproj" />
+    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/D/D.csproj" />
+    <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
+  </Folder>
+</Solution>

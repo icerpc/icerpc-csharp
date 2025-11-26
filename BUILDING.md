@@ -102,7 +102,7 @@ Select `Tasks: Run Build Task...` from the command palette to run the build scri
 dotnet test
 ```
 
-This command executes all tests known to the `IceRpc.sln` solution. See
+This command executes all tests known to the `IceRpc.slnx` solution. See
 [dotnet-test](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test) for additional options.
 
 ### Rust tests

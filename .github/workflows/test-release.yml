@@ -47,7 +47,7 @@ jobs:
 
       - name: 🔨 Build Examples
         run: |
-          $examples = Get-ChildItem -Path examples -Recurse -Include *.sln
+          $examples = Get-ChildItem -Path examples -Recurse -Include *.slnx
           foreach ($example in $examples) { dotnet build $example.FullName /p:IceRpcVersion=$env:ICERPC_VERSION }
         shell: pwsh
 
