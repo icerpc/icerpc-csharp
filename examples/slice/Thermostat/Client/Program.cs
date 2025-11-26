@@ -36,7 +36,7 @@ setCommand.Arguments.Add(argument);
 setCommand.SetAction(
     async (parseResult, cancellationToken) =>
     {
-        float setPoint = parseResult.GetRequiredValue<float>(argument);
+        float setPoint = parseResult.GetRequiredValue(argument);
         await ChangeSetPointAsync(setPoint, cancellationToken);
     });
 
