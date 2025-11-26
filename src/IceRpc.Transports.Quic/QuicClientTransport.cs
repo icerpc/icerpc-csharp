@@ -50,10 +50,11 @@ public class QuicClientTransport : IMultiplexedClientTransport
 
         clientAuthenticationOptions = clientAuthenticationOptions?.Clone() ?? new();
         clientAuthenticationOptions.TargetHost ??= serverAddress.Host;
-        clientAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> // Mandatory with Quic
-        {
-            new SslApplicationProtocol(serverAddress.Protocol.Name)
-        };
+        clientAuthenticationOptions.ApplicationProtocols ??=
+        [
+            // Mandatory with Quic
+            new(serverAddress.Protocol.Name)
+        ];
 
         EndPoint endpoint = IPAddress.TryParse(serverAddress.Host, out IPAddress? ipAddress) ?
             new IPEndPoint(ipAddress, serverAddress.Port) :
@@ -65,6 +66,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
+            InitialReceiveWindowSizes = _quicTransportOptions.InitialReceiveWindowSizes,
             KeepAliveInterval = _quicTransportOptions.KeepAliveInterval,
             LocalEndPoint = _quicTransportOptions.LocalNetworkAddress,
             RemoteEndPoint = endpoint,
