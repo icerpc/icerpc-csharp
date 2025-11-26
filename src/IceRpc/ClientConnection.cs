@@ -83,6 +83,7 @@ public sealed class ClientConnection : IInvoker, IAsyncDisposable
 
         _clientProtocolConnectionFactory = new ClientProtocolConnectionFactory(
             options,
+            options.ConnectTimeout,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport,

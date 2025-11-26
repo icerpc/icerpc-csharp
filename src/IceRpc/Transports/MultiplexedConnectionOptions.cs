@@ -7,6 +7,14 @@ namespace IceRpc.Transports;
 /// <summary>A property bag used to configure a <see cref="IMultiplexedConnection" />.</summary>
 public record class MultiplexedConnectionOptions
 {
+    /// <summary>Gets or sets the minimum amount of time the multiplexed transport must allow for a connection
+    /// establishment handshake to complete.</summary>
+    /// <value>The handshake timeout. The default is 10 seconds.</value>
+    /// <remarks>The caller is expected to cancel a connection establishment attempt after its own "connect timeout". As
+    /// a result, a multiplexed transport implementation may choose to always provide an infinite handshake timeout,
+    /// regardless of the value of this option.</remarks>
+    public TimeSpan HandshakeTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>Gets or sets the maximum allowed number of simultaneous remote bidirectional streams that can be
     /// opened.</summary>
     /// <value>The maximum number of remote bidirectional streams. Defaults to <c>100</c>.</value>

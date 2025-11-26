@@ -64,6 +64,7 @@ public sealed class ConnectionCache : IInvoker, IAsyncDisposable
     {
         _connectionFactory = new ClientProtocolConnectionFactory(
             options.ConnectionOptions,
+            options.ConnectTimeout,
             options.ClientAuthenticationOptions,
             duplexClientTransport,
             multiplexedClientTransport,

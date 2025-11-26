@@ -65,6 +65,7 @@ public class QuicClientTransport : IMultiplexedClientTransport
             ClientAuthenticationOptions = clientAuthenticationOptions,
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
+            HandshakeTimeout = options.HandshakeTimeout,
             IdleTimeout = _quicTransportOptions.IdleTimeout,
             InitialReceiveWindowSizes = _quicTransportOptions.InitialReceiveWindowSizes,
             KeepAliveInterval = _quicTransportOptions.KeepAliveInterval,
