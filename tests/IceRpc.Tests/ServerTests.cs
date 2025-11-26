@@ -371,4 +371,37 @@ public class ServerTests
             () => clientConnection.ConnectAsync(),
             Throws.InstanceOf<IceRpcException>().With.Property("IceRpcError").EqualTo(IceRpcError.ConnectionRefused));
     }
+
+    /// <summary>Verifies that the Server's ConnectTimeout is transmitted to the multiplexed transport as
+    /// HandshakeTimeout.</summary>
+    [Test]
+    public async Task Server_connect_timeout_is_transmitted_as_handshake_timeout_to_multiplexed_transport()
+    {
+        // Arrange
+        var connectTimeout = TimeSpan.FromSeconds(42);
+        var serverAddress = new ServerAddress(Protocol.IceRpc) { Host = "colochost" };
+
+        var colocTransport = new ColocTransport();
+        var testServerTransport = new TestMultiplexedServerTransportDecorator(
+            new SlicServerTransport(colocTransport.ServerTransport));
+
+        await using var server = new Server(
+            new ServerOptions
+            {
+                ConnectTimeout = connectTimeout,
+                ServerAddress = serverAddress,
+                ConnectionOptions = new()
+                {
+                    Dispatcher = NotFoundDispatcher.Instance
+                }
+            },
+            multiplexedServerTransport: testServerTransport);
+
+        // Act
+        server.Listen();
+
+        // Assert
+        Assert.That(testServerTransport.LastListenOptions, Is.Not.Null);
+        Assert.That(testServerTransport.LastListenOptions!.HandshakeTimeout, Is.EqualTo(connectTimeout));
+    }
 }

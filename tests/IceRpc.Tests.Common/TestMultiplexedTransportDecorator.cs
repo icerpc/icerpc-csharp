@@ -59,6 +59,9 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
     public TestMultiplexedConnectionDecorator LastCreatedConnection =>
         _lastConnection ?? throw new InvalidOperationException("Call CreateConnection first.");
 
+    /// <summary>The connection options used to create the last connection.</summary>
+    public MultiplexedConnectionOptions? LastCreatedConnectionOptions { get; private set; }
+
     /// <inheritdoc/>
     public string Name => _decoratee.Name;
 
@@ -82,6 +85,7 @@ public sealed class TestMultiplexedClientTransportDecorator : IMultiplexedClient
         MultiplexedConnectionOptions options,
         SslClientAuthenticationOptions? clientAuthenticationOptions)
     {
+        LastCreatedConnectionOptions = options;
         var connection = new TestMultiplexedConnectionDecorator(
             _decoratee.CreateConnection(serverAddress, options, clientAuthenticationOptions),
             ConnectionOperationsOptions);
@@ -118,6 +122,9 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
     public TestMultiplexedConnectionDecorator LastAcceptedConnection =>
         _listener?.LastAcceptedConnection ?? throw new InvalidOperationException("Call Listen first.");
 
+    /// <summary>The connection options used for the last Listen call.</summary>
+    public MultiplexedConnectionOptions? LastListenOptions { get; private set; }
+
     /// <inheritdoc/>
     public string Name => _decoratee.Name;
 
@@ -151,6 +158,7 @@ public class TestMultiplexedServerTransportDecorator : IMultiplexedServerTranspo
         {
             throw new InvalidOperationException("Test server transport doesn't support multiple listeners.");
         }
+        LastListenOptions = options;
         _listener = new TestMultiplexedListenerDecorator(
             _decoratee.Listen(serverAddress, options, serverAuthenticationOptions),
             ListenerOperations,
