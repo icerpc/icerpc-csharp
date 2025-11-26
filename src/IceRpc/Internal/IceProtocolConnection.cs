@@ -766,6 +766,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 ReplyStatus.ObjectNotExistException => StatusCode.NotFound,
                 ReplyStatus.FacetNotExistException => StatusCode.NotFound,
                 ReplyStatus.OperationNotExistException => StatusCode.NotImplemented,
+                ReplyStatus.InvalidData => StatusCode.InvalidData,
+                ReplyStatus.Unauthorized => StatusCode.Unauthorized,
                 _ => StatusCode.InternalError
             };
 
@@ -887,6 +889,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     break;
                 case StatusCode.InternalError:
                     encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
+                    encoder.EncodeString(response.ErrorMessage!);
+                    break;
+                case StatusCode.InvalidData:
+                    encoder.EncodeReplyStatus(ReplyStatus.InvalidData);
+                    encoder.EncodeString(response.ErrorMessage!);
+                    break;
+                case StatusCode.Unauthorized:
+                    encoder.EncodeReplyStatus(ReplyStatus.Unauthorized);
                     encoder.EncodeString(response.ErrorMessage!);
                     break;
                 default:

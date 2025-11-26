@@ -22,7 +22,7 @@ public sealed class IceProtocolConnectionTests
                 new InlineDispatcher(
                     (request, cancellationToken) =>
                         new(new OutgoingResponse(request, StatusCode.InvalidData, message: null, invalidDataException))),
-                StatusCode.InternalError,
+                StatusCode.InvalidData,
                 GetErrorMessage(StatusCode.InvalidData, invalidDataException));
 
             var invalidOperationException = new InvalidOperationException("invalid op message");
@@ -841,5 +841,6 @@ public sealed class IceProtocolConnectionTests
     private static string GetErrorMessage(StatusCode statusCode, Exception innerException) =>
         $"The dispatch failed with status code {statusCode}. " +
         $"The failure was caused by an exception of type '{innerException.GetType()}' with message: {innerException.Message}" +
-        (statusCode == StatusCode.InternalError ? "" : $" {{ Original StatusCode = {statusCode} }}");
+        (statusCode is StatusCode.InternalError or StatusCode.InvalidData or StatusCode.Unauthorized ?
+            "" : $" {{ Original StatusCode = {statusCode} }}");
 }
