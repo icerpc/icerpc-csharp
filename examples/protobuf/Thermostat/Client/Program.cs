@@ -28,14 +28,12 @@ var thermostat = new ThermostatClient(pipeline);
 // set <value> changes the set point and exits.
 
 var monitorCommand = new Command("monitor", "Monitor the thermostat (default)");
-monitorCommand.SetAction((parseResult, cancellationToken) => MonitorAsync(cancellationToken));
+monitorCommand.SetAction(MonitorAsync);
 
 var setCommand = new Command("set", "Change the set point");
 var setArgument = new Argument<float>("setPoint");
 setCommand.Arguments.Add(setArgument);
-setCommand.SetAction(
-    (parseResult, cancellationToken) =>
-        ChangeSetPointAsync(parseResult.GetRequiredValue(setArgument), cancellationToken));
+setCommand.SetAction(ChangeSetPointAsync);
 
 var rootCommand = new RootCommand()
 {
@@ -49,8 +47,9 @@ await rootCommand.Parse(args).InvokeAsync();
 // Graceful shutdown
 await connection.ShutdownAsync();
 
-async Task ChangeSetPointAsync(float value, CancellationToken cancellationToken)
+async Task ChangeSetPointAsync(ParseResult parseResult, CancellationToken cancellationToken)
 {
+    float value = parseResult.GetRequiredValue(setArgument);
     try
     {
         await thermostat.ChangeSetPointAsync(
@@ -73,7 +72,7 @@ async Task ChangeSetPointAsync(float value, CancellationToken cancellationToken)
     Console.ResetColor();
 }
 
-async Task MonitorAsync(CancellationToken cancellationToken)
+async Task MonitorAsync(ParseResult parseResult, CancellationToken cancellationToken)
 {
     IAsyncEnumerable<Reading> readings = await thermostat.MonitorAsync(
         new Empty(),
