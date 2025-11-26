@@ -1,6 +1,6 @@
 FROM debian:trixie
 
-# Insall curl for downloading required files
+# Install curl for downloading required files
 RUN set -eux \
     && apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl
