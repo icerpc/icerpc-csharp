@@ -62,6 +62,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
             DefaultStreamErrorCode = 0,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             KeepAliveInterval = Timeout.InfiniteTimeSpan, // the server doesn't send PING frames
+            InitialReceiveWindowSizes = quicTransportOptions.InitialReceiveWindowSizes,
             ServerAuthenticationOptions = authenticationOptions,
             MaxInboundBidirectionalStreams = options.MaxBidirectionalStreams,
             MaxInboundUnidirectionalStreams = options.MaxUnidirectionalStreams

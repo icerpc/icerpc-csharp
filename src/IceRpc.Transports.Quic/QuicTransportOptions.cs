@@ -19,11 +19,7 @@ public record class QuicTransportOptions
     /// <summary>Gets or sets the initial receive window sizes for the connection and individual stream types.
     /// </summary>
     /// <value>The initial receive window sizes.</value>
-    public QuicReceiveWindowSizes InitialReceiveWindowSizes
-    {
-        get => field ??= new QuicReceiveWindowSizes();
-        set => field = value;
-    }
+    public QuicReceiveWindowSizes InitialReceiveWindowSizes { get; set; } = new();
 }
 
 /// <summary>The options class for configuring <see cref="QuicClientTransport"/>.</summary>
