@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Net;
+using System.Net.Quic;
 
 namespace IceRpc.Transports.Quic;
 
@@ -14,6 +15,15 @@ public record class QuicTransportOptions
     /// <remarks>The idle timeout is negotiated by QUIC during connection establishment. The actual idle timeout value
     /// for a connection can be lower than the value you've set here.</remarks>
     public TimeSpan IdleTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>Gets or sets the initial receive window sizes for the connection and individual stream types.
+    /// </summary>
+    /// <value>The initial receive window sizes.</value>
+    public QuicReceiveWindowSizes InitialReceiveWindowSizes
+    {
+        get => field ??= new QuicReceiveWindowSizes();
+        set => field = value;
+    }
 }
 
 /// <summary>The options class for configuring <see cref="QuicClientTransport"/>.</summary>
