@@ -891,6 +891,14 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
                     encoder.EncodeString(response.ErrorMessage!);
                     break;
+                case StatusCode.InvalidData:
+                    encoder.EncodeReplyStatus(ReplyStatus.InvalidData);
+                    encoder.EncodeString(response.ErrorMessage!);
+                    break;
+                case StatusCode.Unauthorized:
+                    encoder.EncodeReplyStatus(ReplyStatus.Unauthorized);
+                    encoder.EncodeString(response.ErrorMessage!);
+                    break;
                 default:
                     encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
                     encoder.EncodeString(
