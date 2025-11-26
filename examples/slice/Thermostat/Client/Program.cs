@@ -28,24 +28,7 @@ var thermostat = new ThermostatProxy(pipeline);
 
 var monitorCommand = new Command("monitor", "Monitor the thermostat (default)");
 monitorCommand.SetAction(
-    async (parseResult, cancellationToken) =>
-    {
-        // We cancel cts when the user presses Ctrl+C.
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Console.CancelKeyPress += (sender, eventArgs) =>
-        {
-            eventArgs.Cancel = true;
-            cts.Cancel();
-        };
-
-        IAsyncEnumerable<Reading> readings = await thermostat.MonitorAsync(cancellationToken: cts.Token);
-
-        // The iteration completes when cts is canceled.
-        await foreach (Reading reading in readings.WithCancellation(cts.Token))
-        {
-            Console.WriteLine(reading);
-        }
-    });
+    async (parseResult, cancellationToken) => await MonitorAsync(cancellationToken));
 
 var setCommand = new Command("set", "Change the set point");
 var argument = new Argument<float>("setPoint");
@@ -54,24 +37,7 @@ setCommand.SetAction(
     async (parseResult, cancellationToken) =>
     {
         float setPoint = parseResult.GetRequiredValue<float>(argument);
-        try
-        {
-            await thermostat.ChangeSetPointAsync(setPoint, cancellationToken: cancellationToken);
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Successfully changed set point to {setPoint}°F.");
-        }
-        catch (DispatchException exception)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(
-                $"Failed to change set point to {setPoint}°F: StatusCode = {exception.StatusCode}, Message = {exception.Message}");
-        }
-        catch (Exception exception)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Failed to change set point to {setPoint}°F: {exception}");
-        }
-        Console.ResetColor();
+        await ChangeSetPointAsync(setPoint, cancellationToken);
     });
 
 var rootCommand = new RootCommand()
@@ -85,3 +51,36 @@ await rootCommand.Parse(args).InvokeAsync();
 
 // Graceful shutdown
 await connection.ShutdownAsync();
+
+async Task ChangeSetPointAsync(float value, CancellationToken cancellationToken)
+{
+    try
+    {
+        await thermostat.ChangeSetPointAsync(value, cancellationToken: cancellationToken);
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"Successfully changed set point to {value}°F.");
+    }
+    catch (DispatchException exception)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine(
+            $"Failed to change set point to {value}°F: StatusCode = {exception.StatusCode}, Message = {exception.Message}");
+    }
+    catch (Exception exception)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"Failed to change set point to {value}°F: {exception}");
+    }
+    Console.ResetColor();
+}
+
+async Task MonitorAsync(CancellationToken cancellationToken)
+{
+    IAsyncEnumerable<Reading> readings = await thermostat.MonitorAsync(cancellationToken: cancellationToken);
+
+    // The iteration completes when cancellationToken is canceled.
+    await foreach (Reading reading in readings.WithCancellation(cancellationToken))
+    {
+        Console.WriteLine(reading);
+    }
+}
