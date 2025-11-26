@@ -28,18 +28,14 @@ var thermostat = new ThermostatClient(pipeline);
 // set <value> changes the set point and exits.
 
 var monitorCommand = new Command("monitor", "Monitor the thermostat (default)");
-monitorCommand.SetAction(
-    async (parseResult, cancellationToken) => await MonitorAsync(cancellationToken));
+monitorCommand.SetAction((parseResult, cancellationToken) => MonitorAsync(cancellationToken));
 
 var setCommand = new Command("set", "Change the set point");
-var argument = new Argument<float>("setPoint");
-setCommand.Arguments.Add(argument);
+var setArgument = new Argument<float>("setPoint");
+setCommand.Arguments.Add(setArgument);
 setCommand.SetAction(
-    async (parseResult, cancellationToken) =>
-    {
-        float value = parseResult.GetRequiredValue(argument);
-        await ChangeSetPointAsync(value, cancellationToken);
-    });
+    (parseResult, cancellationToken) =>
+        ChangeSetPointAsync(parseResult.GetRequiredValue(setArgument), cancellationToken));
 
 var rootCommand = new RootCommand()
 {
