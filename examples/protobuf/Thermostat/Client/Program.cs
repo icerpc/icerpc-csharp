@@ -29,10 +29,7 @@ var thermostat = new ThermostatClient(pipeline);
 
 var monitorCommand = new Command("monitor", "Monitor the thermostat (default)");
 monitorCommand.SetAction(
-    async (parseResult, cancellationToken) =>
-    {
-
-    });
+    async (parseResult, cancellationToken) => await MonitorAsync(cancellationToken));
 
 var setCommand = new Command("set", "Change the set point");
 var argument = new Argument<float>("setPoint");
