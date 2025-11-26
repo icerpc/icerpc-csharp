@@ -766,6 +766,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 ReplyStatus.ObjectNotExistException => StatusCode.NotFound,
                 ReplyStatus.FacetNotExistException => StatusCode.NotFound,
                 ReplyStatus.OperationNotExistException => StatusCode.NotImplemented,
+                ReplyStatus.InvalidData => StatusCode.InvalidData,
+                ReplyStatus.Unauthorized => StatusCode.Unauthorized,
                 _ => StatusCode.InternalError
             };
 
