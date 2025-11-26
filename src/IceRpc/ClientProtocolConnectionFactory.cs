@@ -21,14 +21,17 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
 
     /// <summary>Constructs a client protocol connection factory.</summary>
     /// <param name="connectionOptions">The connection options.</param>
+    /// <param name="connectTimeout">The connect timeout.</param>
     /// <param name="clientAuthenticationOptions">The client authentication options.</param>
     /// <param name="duplexClientTransport">The duplex client transport. <see langword="null" /> is equivalent to <see
     /// cref="IDuplexClientTransport.Default" />.</param>
     /// <param name="multiplexedClientTransport">The multiplexed client transport. <see langword="null" /> is equivalent
     /// to <see cref="IMultiplexedClientTransport.Default" />.</param>
-    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance" />.</param>
+    /// <param name="logger">The logger. <see langword="null" /> is equivalent to <see cref="NullLogger.Instance" />.
+    /// </param>
     public ClientProtocolConnectionFactory(
         ConnectionOptions connectionOptions,
+        TimeSpan connectTimeout,
         SslClientAuthenticationOptions? clientAuthenticationOptions = null,
         IDuplexClientTransport? duplexClientTransport = null,
         IMultiplexedClientTransport? multiplexedClientTransport = null,
@@ -50,6 +53,8 @@ public sealed class ClientProtocolConnectionFactory : IClientProtocolConnectionF
         // which is accepted locally is the control stream created by the peer.
         _multiplexedConnectionOptions = new MultiplexedConnectionOptions
         {
+            HandshakeTimeout = connectTimeout,
+
             MaxBidirectionalStreams = connectionOptions.Dispatcher is null ? 0 :
                 connectionOptions.MaxIceRpcBidirectionalStreams,
 

@@ -116,6 +116,7 @@ public sealed class Server : IAsyncDisposable
                     _serverAddress,
                     new MultiplexedConnectionOptions
                     {
+                        HandshakeTimeout = options.ConnectTimeout,
                         MaxBidirectionalStreams = options.ConnectionOptions.MaxIceRpcBidirectionalStreams,
                         // Add an additional stream for the icerpc protocol control stream.
                         MaxUnidirectionalStreams = options.ConnectionOptions.MaxIceRpcUnidirectionalStreams + 1,

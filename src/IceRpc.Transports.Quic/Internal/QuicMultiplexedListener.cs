@@ -60,6 +60,7 @@ internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
         {
             DefaultCloseErrorCode = (int)MultiplexedConnectionCloseError.Aborted,
             DefaultStreamErrorCode = 0,
+            HandshakeTimeout = options.HandshakeTimeout,
             IdleTimeout = quicTransportOptions.IdleTimeout,
             KeepAliveInterval = Timeout.InfiniteTimeSpan, // the server doesn't send PING frames
             InitialReceiveWindowSizes = quicTransportOptions.InitialReceiveWindowSizes,
