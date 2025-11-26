@@ -112,6 +112,13 @@ enum ReplyStatus {
 
     /// The dispatch failed with some other exception.
     UnknownException = 7
+
+    /// The dispatch failed because the request payload could not be decoded. This is typically due to a mismatch in the
+    /// Slice definitions used by the client and the server.
+    InvalidData = 8
+
+    /// The caller is not authorized to access the requested resource.
+    Unauthorized = 9
 }
 
 /// The data carried by a RequestFailedException (ObjectNotExistException, FacetNotExistException or
