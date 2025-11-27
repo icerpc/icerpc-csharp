@@ -386,4 +386,34 @@ public class ClientConnectionTests
         // Assert
         Assert.That(async () => await shutdownTask, Throws.InstanceOf<OperationCanceledException>());
     }
+
+    /// <summary>Verifies that the ConnectTimeout is transmitted to the multiplexed transport as
+    /// HandshakeTimeout.</summary>
+    [Test]
+    public async Task Connect_timeout_is_transmitted_as_handshake_timeout_to_multiplexed_transport()
+    {
+        // Arrange
+        var connectTimeout = TimeSpan.FromSeconds(42);
+
+        var services = new ServiceCollection();
+        services.AddOptions<ClientConnectionOptions>().Configure(
+            options => options.ConnectTimeout = connectTimeout);
+        await using ServiceProvider provider =
+            services
+                .AddClientServerColocTest(Protocol.IceRpc, NotFoundDispatcher.Instance)
+                .AddTestMultiplexedTransportDecorator()
+                .BuildServiceProvider(validateScopes: true);
+
+        Server server = provider.GetRequiredService<Server>();
+        server.Listen();
+        ClientConnection sut = provider.GetRequiredService<ClientConnection>();
+        var clientTransport = provider.GetRequiredService<TestMultiplexedClientTransportDecorator>();
+
+        // Act
+        await sut.ConnectAsync();
+
+        // Assert
+        Assert.That(clientTransport.LastCreatedConnectionOptions, Is.Not.Null);
+        Assert.That(clientTransport.LastCreatedConnectionOptions!.HandshakeTimeout, Is.EqualTo(connectTimeout));
+    }
 }

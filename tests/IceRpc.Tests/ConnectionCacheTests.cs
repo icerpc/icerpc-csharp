@@ -331,6 +331,43 @@ public sealed class ConnectionCacheTests
         await disposeTask;
     }
 
+    /// <summary>Verifies that the ConnectionCacheOptions.ConnectTimeout is transmitted to the multiplexed transport as
+    /// HandshakeTimeout.</summary>
+    [Test]
+    public async Task Connect_timeout_is_transmitted_as_handshake_timeout_to_multiplexed_transport()
+    {
+        // Arrange
+        var connectTimeout = TimeSpan.FromSeconds(42);
+        using var dispatcher = new TestDispatcher();
+        var colocTransport = new ColocTransport();
+        var multiplexedClientTransport = new TestMultiplexedClientTransportDecorator(
+            new SlicClientTransport(colocTransport.ClientTransport));
+
+        await using var server = new Server(
+            new ServerOptions
+            {
+                ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
+                ServerAddress = new ServerAddress(new Uri("icerpc://foo"))
+            },
+            multiplexedServerTransport: new SlicServerTransport(colocTransport.ServerTransport));
+        server.Listen();
+
+        await using var cache = new ConnectionCache(
+            new ConnectionCacheOptions { ConnectTimeout = connectTimeout },
+            multiplexedClientTransport: multiplexedClientTransport);
+
+        // Act
+        await SendEmptyRequestAsync(cache, new ServiceAddress(new Uri("icerpc://foo")));
+
+        // Assert
+        Assert.That(multiplexedClientTransport.LastCreatedConnectionOptions, Is.Not.Null);
+        Assert.That(multiplexedClientTransport.LastCreatedConnectionOptions!.HandshakeTimeout, Is.EqualTo(connectTimeout));
+
+        // Cleanup
+        await server.ShutdownAsync();
+        await cache.ShutdownAsync();
+    }
+
     private static async Task SendEmptyRequestAsync(IInvoker invoker, ServiceAddress serviceAddress)
     {
         using var request = new OutgoingRequest(serviceAddress)
