@@ -21,13 +21,10 @@ runs:
         --results-directory TestResults
     shell: bash
 
-  - name: Install dotnet-trx tool
-    run: dotnet tool install -g dotnet-trx
-    shell: bash
-    if: always()
-
   - name: Create test report
-    run: trx --path TestResults
+    run: |
+      dotnet tool install -g dotnet-trx
+      trx --path TestResults
     shell: bash
     if: always()
 
