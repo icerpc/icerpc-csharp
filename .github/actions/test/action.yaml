@@ -17,7 +17,7 @@ runs:
         --blame-crash \
         --blame-hang-timeout 300s \
         --diag:"TestResults/vstest.log" \
-        --logger "trx;LogFileName=TestResults.trx" \
+        --logger "trx" \
         --results-directory TestResults
     shell: bash
 
