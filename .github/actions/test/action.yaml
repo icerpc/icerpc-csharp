@@ -7,10 +7,18 @@ runs:
     run: cargo test --manifest-path tools/slicec-cs/Cargo.toml
     shell: bash
 
-  - name: 🧪 Test
+  - name: 🧪 Test .NET
     run: |
       mkdir -p TestResults
-      dotnet test --no-build --verbosity normal --blame-hang-timeout 10s --logger "trx" --results-directory TestResults
+      dotnet test \
+        --no-build \
+        --verbosity normal \
+        --blame \
+        --blame-crash \
+        --blame-hang-timeout 300s \
+        --diag:"TestResults/vstest.log" \
+        --logger "trx;LogFileName=TestResults.trx" \
+        --results-directory TestResults
     shell: bash
 
   - name: Install dotnet-trx tool
@@ -23,13 +31,17 @@ runs:
     shell: bash
     if: always()
 
-  - name: Upload blame hang dumps
+  - name: Upload blame dumps and logs
     uses: actions/upload-artifact@v4
-    with:
-      name: hang-dumps-${{ runner.os }}
-      path: ${{ github.workspace }}/**/*.dmp
-      if-no-files-found: ignore
     if: failure()
+    with:
+      name: blame-and-dumps-${{ runner.os }}
+      path: |
+        TestResults/**/*.dmp
+        TestResults/**/*.xml
+        TestResults/**/*.txt
+        TestResults/**/*.log
+      if-no-files-found: ignore
 
   - name: Upload test results
     uses: actions/upload-artifact@v4
