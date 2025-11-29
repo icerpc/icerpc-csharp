@@ -15,7 +15,7 @@ runs:
         --verbosity normal \
         --blame \
         --blame-crash \
-        --blame-hang-timeout 300s \
+        --blame-hang-timeout 60s \
         --diag:"TestResults/vstest.log" \
         --logger "trx" \
         --results-directory TestResults
