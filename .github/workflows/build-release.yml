@@ -52,11 +52,8 @@ jobs:
 
             # e.g. 0.5.0-nightly.20250625.1
             echo "semver_version=${VERSION}-nightly.${DATE}.${BUILD}" >> $GITHUB_OUTPUT
-          else
-            # Define version variables as empty for stable channels to use the version from the repository
-            VERSION="${GITHUB_REF#refs/tags/v}"
-            echo "semver_version=${VERSION}" >> $GITHUB_OUTPUT
           fi
+          # else do not define version variables to use the version from the repository
 
   build-packages:
     name: Build .NET Packages
