@@ -76,6 +76,7 @@ jobs:
       run_id: ${{ github.run_id }}
     needs:
       - set-version
+      - build-packages
     secrets: inherit
 
   publish-release:
