@@ -74,6 +74,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
+    // Check if any of the base interfaces will already have a 'Request' class generated.
+    // We generate a 'Request' class if and only if one of an interface's operations has a parameter.
     let base_operations = interface_def.all_inherited_operations();
     let has_base_request_class = base_operations.iter().any(|o| !o.parameters().is_empty());
 
@@ -151,6 +153,8 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
+    // Check if any of the base interfaces will already have a 'Response' class generated.
+    // We generate a 'Response' class if and only if one of an interface's operations has a non-streamed return member.
     let base_operations = interface_def.all_inherited_operations();
     let has_base_response_class = base_operations.iter().any(|o| o.has_non_streamed_return_members());
 
