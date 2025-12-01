@@ -67,6 +67,7 @@ jobs:
         run: |
           $version = $env:ICERPC_VERSION
           dotnet new install IceRpc.Templates::$version
+        shell: pwsh
 
       - name: 🔨 Build Examples
         run: |
