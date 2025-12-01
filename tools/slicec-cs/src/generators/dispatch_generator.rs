@@ -74,14 +74,16 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let mut base_operations = interface_def.all_inherited_operations();
-    base_operations.retain(|o| !o.parameters.is_empty());
+    // Check if any of the base interfaces will already have a 'Request' class generated.
+    // We generate a 'Request' class if and only if one of an interface's operations has a parameter.
+    let base_operations = interface_def.all_inherited_operations();
+    let has_base_request_class = base_operations.iter().any(|o| !o.parameters().is_empty());
 
     let mut class_builder = ContainerBuilder::new(
-        if base_operations.is_empty() {
-            "public static class"
-        } else {
+        if has_base_request_class {
             "public static new class"
+        } else {
+            "public static class"
         },
         "Request",
     );
@@ -151,14 +153,16 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let mut base_operations = interface_def.all_inherited_operations();
-    base_operations.retain(|o| o.has_non_streamed_return_members());
+    // Check if any of the base interfaces will already have a 'Response' class generated.
+    // We generate a 'Response' class if and only if one of an interface's operations has a non-streamed return member.
+    let base_operations = interface_def.all_inherited_operations();
+    let has_base_response_class = base_operations.iter().any(|o| o.has_non_streamed_return_members());
 
     let mut class_builder = ContainerBuilder::new(
-        if base_operations.is_empty() {
-            "public static class"
-        } else {
+        if has_base_response_class {
             "public static new class"
+        } else {
+            "public static class"
         },
         "Response",
     );
