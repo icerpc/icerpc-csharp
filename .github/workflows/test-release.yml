@@ -57,7 +57,9 @@ jobs:
       - name: Configure NuGet sources
         run: |
           # Remove existing nuget.config to avoid conflicts
-          rm -Force examples/nuget.config
+          if (Test-Path examples/nuget.config) {
+            Remove-Item examples/nuget.config
+          }
           # Create a new nuget.config that points to the downloaded packages
           dotnet new nugetconfig -o ${{ github.workspace }}
           dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "Local Packages" ${{ github.workspace }}/packages
