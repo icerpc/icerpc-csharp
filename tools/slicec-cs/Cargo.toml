@@ -1,6 +1,6 @@
 [package]
 name = "slicec-cs"
-version = "0.5.0-preview.1"
+version = "0.5.0"
 authors = ["ZeroC Inc."]
 description = """
 The slicec-cs compiler, for compiling Slice files into C# code.

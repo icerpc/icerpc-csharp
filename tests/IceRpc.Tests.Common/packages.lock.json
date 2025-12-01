@@ -135,13 +135,13 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.*, )",
-          "ZeroC.Slice": "[0.5.0-preview.1, )"
+          "ZeroC.Slice": "[0.5.0, )"
         }
       },
       "icerpc.extensions.dependencyinjection": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0-preview.1, )",
+          "IceRpc": "[0.5.0, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.*, )",
           "Microsoft.Extensions.Options": "[10.0.*, )"
         }
@@ -149,14 +149,14 @@
       "icerpc.logger": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0-preview.1, )",
+          "IceRpc": "[0.5.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.*, )"
         }
       },
       "icerpc.transports.coloc": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0-preview.1, )"
+          "IceRpc": "[0.5.0, )"
         }
       },
       "zeroc.slice": {
