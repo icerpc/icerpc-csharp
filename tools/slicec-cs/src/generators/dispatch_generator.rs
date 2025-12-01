@@ -75,10 +75,10 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     }
 
     let base_operations = interface_def.all_inherited_operations();
-    let has_parameters = base_operations.iter().any(|o| !o.parameters().is_empty());
+    let has_base_request_class = base_operations.iter().any(|o| !o.parameters().is_empty());
 
     let mut class_builder = ContainerBuilder::new(
-        if has_parameters {
+        if has_base_request_class {
             "public static new class"
         } else {
             "public static class"
@@ -152,10 +152,10 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     }
 
     let base_operations = interface_def.all_inherited_operations();
-    let has_parameters = base_operations.iter().any(|o| !o.parameters().is_empty());
+    let has_base_response_class = base_operations.iter().any(|o| o.has_non_streamed_return_members());
 
     let mut class_builder = ContainerBuilder::new(
-        if has_parameters {
+        if has_base_response_class {
             "public static new class"
         } else {
             "public static class"
