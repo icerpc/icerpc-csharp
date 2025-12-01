@@ -9,6 +9,9 @@ on:
       icerpc_version:
         description: "The IceRPC version to test for nightly releases"
         required: false
+      run_id:
+        description: "The run ID to use for downloading artifacts"
+        required: true
   workflow_call:
     inputs:
       channel:
@@ -16,6 +19,9 @@ on:
         type: string
       icerpc_version:
         required: false
+        type: string
+      run_id:
+        required: true
         type: string
 
 jobs:
@@ -39,11 +45,28 @@ jobs:
           echo "ICERPC_VERSION=${{ inputs.icerpc_version }}" >> $env:GITHUB_ENV
         shell: pwsh
 
+      - name: Download NuGet artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          mkdir packages -Force
+          gh run download "$RUN_ID" --repo icerpc/icerpc-csharp --name "nuget-packages" --dir packages
+        shell: pwsh
+
+      - name: Configure NuGet sources
+        run: |
+          # Remove existing nuget.config to avoid conflicts
+          rm -Force examples/nuget.config
+          # Create a new nuget.config that points to the downloaded packages
+          dotnet new nugetconfig -o ${{ github.workspace }}
+          dotnet nuget add source --configfile ${{ github.workspace }}/nuget.config -n "Local Packages" ${{ github.workspace }}/packages
+        shell: pwsh
+
       - name: Install dotnet new templates
         run: |
           $version = $env:ICERPC_VERSION
-          dotnet new install IceRpc.Templates::$version --nuget-source https://download.zeroc.com/nexus/repository/nuget-nightly/
-        shell: pwsh
+          dotnet new install IceRpc.Templates::$version
 
       - name: 🔨 Build Examples
         run: |
