@@ -1,15 +1,15 @@
 <!-- markdownlint-disable-next-line MD033 MD041 -->
 <div align="center">
     <!-- markdownlint-disable-next-line MD033 -->
-  <img src="https://github.com/icerpc/icerpc-csharp/raw/main/.github/assets/icerpc-banner.svg" alt="IceRPC" height="100" width="100" />
+  <img src="https://github.com/icerpc/icerpc-csharp/raw/0.5.x/.github/assets/icerpc-banner.svg" alt="IceRPC" height="100" width="100" />
 </div>
 
 # IceRPC for C\#
 
 [![CI](https://github.com/icerpc/icerpc-csharp/actions/workflows/ci.yml/badge.svg)][ci-home]
 [![License](https://img.shields.io/github/license/icerpc/icerpc-csharp?color=blue)][license]
-[![Report Generator Coverage](https://code.icerpc.dev/csharp/main/coverage/badge_branchcoverage.svg)](https://code.icerpc.dev/csharp/main/coverage/index.html)
-[![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=main)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=main)
+[![Report Generator Coverage](https://code.icerpc.dev/csharp/0.5.x/coverage/badge_branchcoverage.svg)](https://code.icerpc.dev/csharp/0.5.x/coverage/index.html)
+[![coveralls.io Coverage Status](https://coveralls.io/repos/github/icerpc/icerpc-csharp/badge.svg?branch=0.5.x)](https://coveralls.io/github/icerpc/icerpc-csharp?branch=0.5.x)
 
 [Getting started] | [Examples] | [NuGet packages] | [Documentation] | [API reference] | [Building from source]
 
