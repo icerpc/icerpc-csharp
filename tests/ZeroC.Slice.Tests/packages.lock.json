@@ -124,37 +124,37 @@
       "a": {
         "type": "Project",
         "dependencies": {
-          "ZeroC.Slice": "[0.5.0-preview.1, )"
+          "ZeroC.Slice": "[0.6.0-preview.1, )"
         }
       },
       "b": {
         "type": "Project",
         "dependencies": {
-          "A": "[0.5.0-preview.1, )",
-          "ZeroC.Slice": "[0.5.0-preview.1, )"
+          "A": "[0.6.0-preview.1, )",
+          "ZeroC.Slice": "[0.6.0-preview.1, )"
         }
       },
       "c": {
         "type": "Project",
         "dependencies": {
-          "A": "[0.5.0-preview.1, )",
-          "ZeroC.Slice": "[0.5.0-preview.1, )"
+          "A": "[0.6.0-preview.1, )",
+          "ZeroC.Slice": "[0.6.0-preview.1, )"
         }
       },
       "d": {
         "type": "Project",
         "dependencies": {
-          "B": "[0.5.0-preview.1, )",
-          "C": "[0.5.0-preview.1, )",
-          "ZeroC.Slice": "[0.5.0-preview.1, )"
+          "B": "[0.6.0-preview.1, )",
+          "C": "[0.6.0-preview.1, )",
+          "ZeroC.Slice": "[0.6.0-preview.1, )"
         }
       },
       "dprime": {
         "type": "Project",
         "dependencies": {
-          "B": "[0.5.0-preview.1, )",
-          "C": "[0.5.0-preview.1, )",
-          "ZeroC.Slice": "[0.5.0-preview.1, )"
+          "B": "[0.6.0-preview.1, )",
+          "C": "[0.6.0-preview.1, )",
+          "ZeroC.Slice": "[0.6.0-preview.1, )"
         }
       },
       "zeroc.slice": {
