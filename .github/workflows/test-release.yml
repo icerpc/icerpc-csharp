@@ -42,7 +42,7 @@ jobs:
 
       - name: Set IceRPC version
         run: |
-          echo "ICERPC_VERSION=${{ inputs.icerpc_version }}" >> $env:GITHUB_ENV
+          echo "IceRpcVersion=${{ inputs.icerpc_version }}" >> $env:GITHUB_ENV
         shell: pwsh
 
       - name: Download NuGet artifacts
@@ -67,14 +67,14 @@ jobs:
 
       - name: Install dotnet new templates
         run: |
-          $version = $env:ICERPC_VERSION
+          $version = $env:IceRpcVersion
           dotnet new install IceRpc.Templates::$version
         shell: pwsh
 
       - name: 🔨 Build Examples
         run: |
           $examples = Get-ChildItem -Path examples -Recurse -Include *.slnx
-          foreach ($example in $examples) { dotnet build $example.FullName /p:IceRpcVersion=$env:ICERPC_VERSION }
+          foreach ($example in $examples) { dotnet build $example.FullName }
         shell: pwsh
 
       - name: 🧪 Test Templates
