@@ -54,7 +54,7 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.*, )",
-          "ZeroC.Slice": "[0.5.0-preview.1, )"
+          "ZeroC.Slice": "[0.6.0-preview.1, )"
         }
       },
       "zeroc.slice": {
