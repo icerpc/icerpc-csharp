@@ -1,21 +1,8 @@
 name: Test Templates
 
-inputs:
-  add-nuget-config:
-    description: "Add a nuget.config file from the examples directory."
-    required: false
-    default: ""
-
 runs:
   using: "composite"
   steps:
-
-  - name: Add nuget.config from the examples directory
-    if: ${{ inputs.add-nuget-config == 'true' }}
-    shell: pwsh
-    run: |
-      New-Item -ItemType Directory -Path 'templates-test' -Force | Out-Null
-      Copy-Item 'examples/nuget.config' 'templates-test/nuget.config'
 
   # Protobuf Client template
   - name: 🧪 Test IceRpc + Protobuf Client Template

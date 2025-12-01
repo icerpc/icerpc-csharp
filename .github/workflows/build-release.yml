@@ -67,30 +67,21 @@ jobs:
       channel: ${{ inputs.channel }}
     secrets: inherit
 
-  publish-test-packages:
-    name: Publish Release Test Packages
-    needs:
-      - build-packages
-    uses: ./.github/workflows/publish-release.yml
-    with:
-      channel: "nightly"
-      run_id: ${{ github.run_id }}
-    secrets: inherit
-
   test-release:
     name: Test Release
     uses: ./.github/workflows/test-release.yml
     with:
       channel: ${{ inputs.channel }}
       icerpc_version: ${{ needs.set-version.outputs.semver_version }}
+      run_id: ${{ github.run_id }}
     needs:
       - set-version
-      - publish-test-packages
+      - build-packages
     secrets: inherit
 
   publish-release:
     name: Publish Release
-    if: ${{ inputs.publish == true && inputs.channel == 'stable' }}
+    if: ${{ inputs.publish == true }}
     needs:
       - test-release
       - build-packages
