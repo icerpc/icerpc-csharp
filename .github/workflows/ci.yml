@@ -2,9 +2,9 @@ name: ci
 
 on:
   push:
-    branches: ["main"]
+    branches: ["0.5.x"]
   pull_request:
-    branches: ["main"]
+    branches: ["0.5.x"]
 
 # See https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
@@ -41,7 +41,7 @@ jobs:
       - name: Build Examples
         env:
           # Set IceRpcVersion to use the locally built packages
-          IceRpcVersion: "0.5.0-preview.1"
+          IceRpcVersion: "0.5.0"
         run: |
           for solution in examples/*/*/*.slnx; do dotnet build "$solution"; done
         shell: bash
