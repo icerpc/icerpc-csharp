@@ -9,11 +9,11 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace IceRpc.Deadline.Tests;
 
+[NonParallelizable]
 public sealed class DeadlineInterceptorTests
 {
     /// <summary>Verifies that the invocation throws TimeoutException when the invocation deadline expires.</summary>
     [Test]
-    [NonParallelizable]
     public void Invocation_fails_after_the_deadline_expires()
     {
         // Arrange
@@ -24,7 +24,7 @@ public sealed class DeadlineInterceptorTests
         {
             hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
             token = cancellationToken;
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             return new IncomingResponse(request, FakeConnectionContext.Instance);
         });
 
@@ -35,7 +35,7 @@ public sealed class DeadlineInterceptorTests
         using var request = new OutgoingRequest(new ServiceAddress(Protocol.IceRpc));
 
         // Act
-        Assert.ThrowsAsync<TimeoutException>(async () => await sut.InvokeAsync(request, CancellationToken.None));
+        Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, CancellationToken.None));
 
         // Assert
         Assert.That(hasDeadline, Is.True);
@@ -47,7 +47,6 @@ public sealed class DeadlineInterceptorTests
     /// <summary>Verifies that the deadline value set in the <see cref="IDeadlineFeature" /> prevails over
     /// the default timeout value configured when installing the <see cref="DeadlineInterceptor" />.</summary>
     [Test]
-    [NonParallelizable]
     public async Task Deadline_feature_value_prevails_over_default_timeout()
     {
         // Arrange
@@ -84,7 +83,6 @@ public sealed class DeadlineInterceptorTests
 
     /// <summary>Verifies that the deadline interceptor encodes the expected deadline value.</summary>
     [Test]
-    [NonParallelizable]
     public async Task Deadline_interceptor_sets_the_deadline_feature_from_timeout_value()
     {
         // Arrange
@@ -139,13 +137,12 @@ public sealed class DeadlineInterceptorTests
     }
 
     [Test]
-    [NonParallelizable]
     public void Deadline_interceptor_can_enforce_application_deadline()
     {
         // Arrange
         var invoker = new InlineInvoker(async (request, cancellationToken) =>
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             return new IncomingResponse(request, FakeConnectionContext.Instance);
         });
 
@@ -163,7 +160,7 @@ public sealed class DeadlineInterceptorTests
         using var tokenSource = new CancellationTokenSource();
 
         // Act/Assert
-        Assert.ThrowsAsync<TimeoutException>(async () => await sut.InvokeAsync(request, tokenSource.Token));
+        Assert.ThrowsAsync<TimeoutException>(() => sut.InvokeAsync(request, tokenSource.Token));
     }
 
     private static DateTime ReadDeadline(OutgoingFieldValue field)

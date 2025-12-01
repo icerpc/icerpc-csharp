@@ -9,11 +9,11 @@ using ZeroC.Slice;
 
 namespace IceRpc.Deadline.Tests;
 
+[NonParallelizable]
 public sealed class DeadlineMiddlewareTests
 {
     /// <summary>Verifies that the dispatch throws DispatchException when the deadline expires.</summary>
     [Test]
-    [NonParallelizable]
     public async Task Dispatch_fails_after_the_deadline_expires()
     {
         // Arrange
@@ -24,7 +24,7 @@ public sealed class DeadlineMiddlewareTests
         {
             hasDeadline = request.Fields.ContainsKey(RequestFieldKey.Deadline);
             token = cancellationToken;
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             return new OutgoingResponse(request);
         });
 
