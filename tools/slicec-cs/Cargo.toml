@@ -11,7 +11,7 @@ edition = "2021"
 rust-version = "1.82"
 
 [dependencies]
-clap = { version = "~4.5.53", features = ["derive"] }
+clap = { version = "4.5.53", features = ["derive"] }
 convert_case = "0.10.0"
 in_definite = "1.1.2"
 slicec = "0.3.3"
