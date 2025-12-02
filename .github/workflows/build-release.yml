@@ -47,10 +47,10 @@ jobs:
           if [[ "${{ inputs.channel }}" == "nightly" ]]; then
             DATE=$(date +%Y%m%d)
             BUILD=${{ inputs.build_number }}
-            VERSION=0.5.0
+            VERSION=0.6.0
             # Set version variables for nightly packages according to platform conventions:
 
-            # e.g. 0.5.0-nightly.20250625.1
+            # e.g. 0.6.0-nightly.20250625.1
             echo "semver_version=${VERSION}-nightly.${DATE}.${BUILD}" >> $GITHUB_OUTPUT
           fi
           # else do not define version variables to use the version from the repository
