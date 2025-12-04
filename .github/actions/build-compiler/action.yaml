@@ -13,6 +13,7 @@ inputs:
 runs:
   using: "composite"
   steps:
+
     - name: 📦 Cargo Cache
       uses: actions/cache@v4
       with:
@@ -25,15 +26,20 @@ runs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-
+
     - name: Install Cross Tools
       if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
-      run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
+      run: |
+        sudo apt-get update
+        sudo apt-get install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu --yes
       shell: bash
+
     - name: Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
         targets: ${{ inputs.target }}
+
     - name: Build Slice Compiler
       env:
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
