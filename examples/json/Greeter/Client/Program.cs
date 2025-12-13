@@ -16,7 +16,7 @@ await connection.ShutdownAsync();
 // Create the request to the greeter and then await and decode the response.
 async Task<string> GreetAsync(string name)
 {
-    // Create a PipeReader holding the JSON response message.
+    // Create a PipeReader holding the JSON request message.
     var pipe = new Pipe();
     var greetRequest = new GreetRequest { Name = name };
     await JsonSerializer.SerializeAsync(pipe.Writer, greetRequest);
