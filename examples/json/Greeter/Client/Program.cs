@@ -23,7 +23,7 @@ async Task<string> GreetAsync(string name)
     pipe.Writer.Complete();
 
     // Construct an outgoing request to the icerpc:/greeter service.
-    // The payload is the PiperReader of our pipe.
+    // The payload is the PipeReader of our pipe.
     using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/greeter")))
     {
         Operation = "greet",
