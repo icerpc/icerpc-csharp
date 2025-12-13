@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Json;
 using System.Diagnostics;
-using VisitorCenter;
+using System.IO.Pipelines;
+using System.Text.Json;
+using VisitorCenter; // for GreetRequest and GreetResponse
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
@@ -15,12 +16,18 @@ await connection.ShutdownAsync();
 // Create the request to the greeter and then await and decode the response.
 async Task<string> GreetAsync(string name)
 {
+    // Create a PipeReader holding the JSON response message.
+    var pipe = new Pipe();
+    var greetRequest = new GreetRequest { Name = name };
+    await JsonSerializer.SerializeAsync(pipe.Writer, greetRequest);
+    pipe.Writer.Complete();
+
     // Construct an outgoing request to the icerpc:/greeter service.
+    // The payload is the PiperReader of our pipe.
     using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/greeter")))
     {
         Operation = "greet",
-        // Use a PipeReader holding the JSON message as the request payload.
-        Payload = PipeReaderJsonSerializer.SerializeToPipeReader(new GreetRequest { Name = name })
+        Payload = pipe.Reader // request takes ownership of the PipeReader
     };
 
     // Make the invocation: we send the request using the connection and then wait for the response.
@@ -28,8 +35,10 @@ async Task<string> GreetAsync(string name)
 
     if (response.StatusCode == StatusCode.Ok)
     {
-        GreetResponse greeterResponse = await PipeReaderJsonSerializer.DeserializeAsync<GreetResponse>(
-            response.Payload);
+        // Deserialize the response payload.
+        GreetResponse greeterResponse = await JsonSerializer.DeserializeAsync<GreetResponse>(response.Payload);
+        response.Payload.Complete(); // DeserializeAsync reads to completion but does not complete the PipeReader.
+
         return greeterResponse.Greeting;
     }
     else
