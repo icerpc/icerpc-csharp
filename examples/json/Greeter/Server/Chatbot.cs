@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Json;
-using VisitorCenter;
+using System.IO.Pipelines;
+using System.Text.Json;
+using VisitorCenter; // for GreetRequest and GreetResponse
 
 namespace GreeterServer;
 
@@ -13,15 +14,29 @@ internal class Chatbot : IDispatcher
     {
         if (request.Operation == "greet")
         {
-            GreetRequest greetRequest = await PipeReaderJsonSerializer.DeserializeAsync<GreetRequest>(
+            // Deserialize the request payload.
+            GreetRequest greetRequest = await JsonSerializer.DeserializeAsync<GreetRequest>(
                 request.Payload,
                 cancellationToken: cancellationToken);
+            request.Payload.Complete(); // DeserializeAsync reads to completion but does not complete the PipeReader.
+
             Console.WriteLine($"Dispatching Greet request {{ name = '{greetRequest.Name}' }}");
+
+            // Create the greet response.
+            var greetResponse = new GreetResponse
+            {
+                Greeting = $"Hello, {greetRequest.Name}!"
+            };
+
+            // Create a PipeReader holding the JSON response message.
+            var pipe = new Pipe();
+            await JsonSerializer.SerializeAsync(pipe.Writer, greetResponse, cancellationToken: cancellationToken);
+            pipe.Writer.Complete();
+
+            // Return the response.
             return new OutgoingResponse(request)
             {
-                // Use a PipeReader holding the JSON message as the response payload.
-                Payload = PipeReaderJsonSerializer.SerializeToPipeReader(
-                    new GreetResponse { Greeting = $"Hello, {greetRequest.Name}!" })
+                Payload = pipe.Reader // the OutgoingResponse takes ownership of the PipeReader
             };
         }
         else

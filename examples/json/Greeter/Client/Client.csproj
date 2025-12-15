@@ -11,7 +11,6 @@
   <ItemGroup>
     <Compile Include="../GreetRequest.cs" />
     <Compile Include="../GreetResponse.cs" />
-    <Compile Include="../../../common/PipeReaderJsonSerializer.cs" Link="PipeReaderJsonSerializer.cs" />
     <PackageReference Include="IceRpc" Version="$(IceRpcVersion)" />
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
