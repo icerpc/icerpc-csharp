@@ -48,6 +48,7 @@ internal class WebService : IDispatcher
 
         // Decode the query string from the request payload.
         string query = _utf8.GetString(readResult.Buffer);
+        request.Payload.AdvanceTo(readResult.Buffer.End); // Reading a PipeReader is a two-step process.
         request.Payload.Complete(); // Done with the request payload.
 
         // Create the request URI.
