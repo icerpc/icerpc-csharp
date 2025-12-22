@@ -1,19 +1,24 @@
 // Copyright (c) ZeroC, Inc.
 
+using CurrentWeatherServer;
 using IceRpc;
-using Spider;
 
+// Create our WebService dispatchers.
 using var httpClient = new HttpClient();
-var router = new Router();
+var geoService = new WebService(httpClient, new Uri("https://geocoding-api.open-meteo.com/v1/search"));
+var weatherService = new WebService(httpClient, new Uri("https://api.open-meteo.com/v1/forecast"));
 
-router.Map("/v1/search", new WebService(httpClient, new Uri("https://geocoding-api.open-meteo.com/v1/search")));
-router.Map("/v1/forecast", new WebService(httpClient, new Uri("https://api.open-meteo.com/v1/forecast")));
+// Create a router that maps service paths to these web services.
+Router router = new Router()
+    .Map("/v1/search", geoService)
+    .Map("/v1/forecast", weatherService);
 
 // Create a server that dispatches requests to router.
 await using var server = new Server(router);
 
+// Start listening for incoming connections on tcp port 4061.
 server.Listen();
 
-// Wait until the console receives a Ctrl+C.
+// Wait until the user presses Ctrl+C.
 await CancelKeyPressed;
 await server.ShutdownAsync();

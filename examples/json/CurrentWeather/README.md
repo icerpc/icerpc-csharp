@@ -1,6 +1,25 @@
-# Greeter
+# Current Weather
 
-A simple Greeter that uses the core IceRPC APIs - and encodes request/response payloads with JSON.
+This demo retrieves and displays the current weather conditions for a city or other named location.
+
+This demo illustrates how to transport a JSON-encoded payload in an IceRPC response. This JSON-encoded payload is itself
+returned by a REST service.
+
+The server is essentially an IceRPC/HTTP bridge: it implements two IceRPC services by calling [Open Meteo] REST APIs.
+All the "business logic" is in the client.
+
+```mermaid
+flowchart LR
+    subgraph Server
+       GeoService
+       WeatherService
+    end
+
+    Client --icerpc --> GeoService
+    Client --icerpc --> WeatherService
+    GeoService -- https --> OpenGeo[OpenMeteo Geo Service]
+    WeatherService --https --> OpenWeather[OpenMeteo Weather Forecast Service]
+```
 
 You can build the client and server applications with:
 
@@ -15,9 +34,11 @@ cd Server
 dotnet run
 ```
 
-In a separate terminal, start the Client program:
+In a separate terminal, start the Client program and supply a city name, such as:
 
 ```shell
 cd Client
-dotnet run
+dotnet run Paris
 ```
+
+[Open Meteo]: https://open-meteo.com/

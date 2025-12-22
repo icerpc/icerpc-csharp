@@ -1,22 +1,22 @@
 // Copyright (c) ZeroC, Inc.
 
-#pragma warning disable CA1812 // We use reflection to deserialize JSON into these types.
+// We use reflection to deserialize JSON into the types below.
+#pragma warning disable CA1812 // Avoid uninstantiated internal classes.
+
+using System.Text.Json.Serialization;
 
 namespace OpenMeteo;
 
-/// <summary>Represents the JSON-encoded response returned by a successful GET on the GeoCoding API at
-/// https://geocoding-api.open-meteo.com/v1/search.</summary>
-internal class GeoCodingResponse
+/// <summary>The response returned by a successful GET on the OpenMeteo GeoCoding API.</summary>
+internal record struct GeoCodingResponse
 {
-    public List<LocationInfo> Results { get; set; } = [];
+    public List<LocationInfo>? Results { get; set; }
 }
 
-/// <summary>Represents a subset of the location details returned by the GeoCoding API.</summary>
-internal class LocationInfo
+/// <summary>A subset of the location details returned by the GeoCoding API.</summary>
+internal record struct LocationInfo
 {
     public required string Name { get; set; }
-
-    public int Population { get; set; }
 
     public string? Country { get; set; }
 
@@ -25,4 +25,20 @@ internal class LocationInfo
     public double Latitude { get; set; }
 
     public double Longitude { get; set; }
+}
+
+/// <summary>The response returned by a successful GET on the OpenMeteo Weather Forecast API.</summary>
+internal record struct CurrentWeatherResponse
+{
+    public required CurrentWeather Current { get; set; }
+}
+
+/// <summary>A subset of the current weather conditions returned by the Weather Forecast API.</summary>
+internal record struct CurrentWeather
+{
+    [JsonPropertyName("temperature_2m")]
+    public double Temperature { get; set; }
+
+    [JsonPropertyName("relative_humidity_2m")]
+    public double RelativeHumidity { get; set; }
 }

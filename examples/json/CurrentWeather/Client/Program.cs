@@ -1,51 +1,40 @@
 // Copyright (c) ZeroC, Inc.
 
+using CurrentWeatherClient;
 using IceRpc;
 using OpenMeteo;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Text;
-using System.Text.Json;
 
-#pragma warning disable CA1869
+// The geographical name we're searching for.
+string geoName = args.Length > 0 ? args[0] : "Jupiter"; // ZeroC's home town
 
 await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
 
-string query = "?name=Jupiter&count=2";
-var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+// The client for the GeoCoding API.
+var geoClient = new RpcClient(connection, new ServiceAddress(new Uri("icerpc:/v1/search")));
 
-// Create a PipeReader holding the query.
-var pipe = new Pipe();
-await pipe.Writer.WriteAsync(utf8.GetBytes(query));
-pipe.Writer.Complete();
+// The client for the main Weather Forecast API.
+var weatherClient = new RpcClient(connection, new ServiceAddress(new Uri("icerpc:/v1/forecast")));
 
-using var request = new OutgoingRequest(new ServiceAddress(new Uri("icerpc:/v1/search")))
+// Use the GeoCoding API to find locations that match the specified name.
+GeoCodingResponse geoCodingResponse = await geoClient.GetAsync<GeoCodingResponse>($"?name={geoName}&count=3");
+if (geoCodingResponse.Results is null || geoCodingResponse.Results.Count == 0)
 {
-    Operation = "GET",
-    Payload = pipe.Reader // request takes ownership of the PipeReader
-};
-
-// Make the invocation: we send the request using the connection and then wait for the response.
-IncomingResponse response = await connection.InvokeAsync(request);
-
-if (response.StatusCode == StatusCode.Ok)
-{
-    GeoCodingResponse? geoCodingResponse = await JsonSerializer.DeserializeAsync<GeoCodingResponse>(response.Payload, options);
-    response.Payload.Complete(); // DeserializeAsync reads to completion but does not complete the PipeReader.
-
-    Debug.Assert(geoCodingResponse is not null);
-
-    Console.WriteLine($"Found {geoCodingResponse.Results.Count} locations:");
-
-    foreach (LocationInfo location in geoCodingResponse.Results)
-    {
-        Console.WriteLine($"{location.Name} ({location.Admin1}, {location.Country}) POP: {location.Population} LAT: {location.Latitude} LONG: {location.Longitude}");
-    }
+    Console.WriteLine($"No location found for '{geoName}'.");
+    await connection.ShutdownAsync();
+    return 1;
 }
-else
+
+Console.WriteLine($"Current weather conditions for {geoName}:");
+foreach (LocationInfo location in geoCodingResponse.Results)
 {
-    Console.WriteLine($"Error: {response.StatusCode}");
+    // Use the latitude and longitude in location to find the current weather conditions.
+    CurrentWeatherResponse weatherResponse = await weatherClient.GetAsync<CurrentWeatherResponse>(
+        $"?latitude={location.Latitude}&longitude={location.Longitude}&current=temperature_2m,relative_humidity_2m");
+
+    // Display the current weather conditions.
+    CurrentWeather current = weatherResponse.Current;
+    Console.WriteLine($"{location.Name}, {location.Admin1}, {location.Country}: {current.Temperature}°C {current.RelativeHumidity}% RH");
 }
 
 await connection.ShutdownAsync();
+return 0;
