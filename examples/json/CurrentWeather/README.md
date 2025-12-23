@@ -15,10 +15,10 @@ flowchart LR
        WeatherService
     end
 
-    Client --icerpc --> GeoService
-    Client --icerpc --> WeatherService
+    Client -- icerpc --> GeoService
+    Client -- icerpc --> WeatherService
     GeoService -- https --> OpenGeo[OpenMeteo Geo Service]
-    WeatherService --https --> OpenWeather[OpenMeteo Weather Forecast Service]
+    WeatherService -- https --> OpenWeather[OpenMeteo Weather Forecast Service]
 ```
 
 You can build the client and server applications with:
