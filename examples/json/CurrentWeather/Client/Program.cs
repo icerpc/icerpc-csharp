@@ -12,7 +12,7 @@ await using var connection = new ClientConnection(new Uri("icerpc://localhost"))
 // The client for the GeoCoding API.
 var geoClient = new RpcClient(connection, new ServiceAddress(new Uri("icerpc:/v1/search")));
 
-// The client for the main Weather Forecast API.
+// The client for the Weather Forecast API.
 var weatherClient = new RpcClient(connection, new ServiceAddress(new Uri("icerpc:/v1/forecast")));
 
 // Use the GeoCoding API to find locations that match the specified name.
