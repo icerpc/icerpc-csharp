@@ -16,7 +16,7 @@ Router router = new Router()
 // Create a server that dispatches requests to the router.
 await using var server = new Server(router);
 
-// Start listening for incoming connections on the default TCP port 4062)
+// Start listening for incoming connections on the default TCP port 4062.
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
