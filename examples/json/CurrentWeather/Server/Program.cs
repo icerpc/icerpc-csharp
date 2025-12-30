@@ -6,12 +6,12 @@ using IceRpc;
 // Create our WebService dispatchers.
 using var httpClient = new HttpClient();
 var geoService = new WebService(httpClient, new Uri("https://geocoding-api.open-meteo.com/v1/search"));
-var weatherService = new WebService(httpClient, new Uri("https://api.open-meteo.com/v1/forecast"));
+var forecastService = new WebService(httpClient, new Uri("https://api.open-meteo.com/v1/forecast"));
 
 // Create a router that maps service paths to these web services.
 Router router = new Router()
     .Map("/v1/search", geoService)
-    .Map("/v1/forecast", weatherService);
+    .Map("/v1/forecast", forecastService);
 
 // Create a server that dispatches requests to the router.
 await using var server = new Server(router);
