@@ -9,6 +9,8 @@ namespace CurrentWeatherClient;
 
 /// <summary>Represents a client for an IceRPC service that implements a single GET operation.</summary>
 /// <remarks>This class must be kept in sync with the server's WebService class.</remarks>
+/// <seealso cref="ForecastClient"/>
+/// <seealso cref="GeoClient"/>
 internal class RpcClient
 {
     // We need a case-insensitive mapping since all OpenMeteo JSON property names are lowercase or snake-case.

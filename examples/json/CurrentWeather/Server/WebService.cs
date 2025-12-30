@@ -12,6 +12,7 @@ namespace CurrentWeatherServer;
 /// <remarks>This class must be kept in sync with the client's RpcClient class.</remarks>
 internal class WebService : IDispatcher
 {
+    private const int MaxQueryLength = 256;
     private static readonly UTF8Encoding _utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
     private readonly HttpClient _httpClient;
     private readonly Uri _baseUri;
@@ -42,9 +43,12 @@ internal class WebService : IDispatcher
     /// <returns>The outgoing IceRPC response.</returns>
     private async ValueTask<OutgoingResponse> GetAsync(IncomingRequest request, CancellationToken cancellationToken)
     {
-        // Read the entire payload.
-        ReadResult readResult = await request.Payload.ReadAtLeastAsync(int.MaxValue, cancellationToken);
-        Debug.Assert(readResult.IsCompleted);
+        // Read the query string.
+        ReadResult readResult = await request.Payload.ReadAtLeastAsync(MaxQueryLength, cancellationToken);
+        if (!readResult.IsCompleted)
+        {
+            throw new DispatchException(StatusCode.InvalidData, "Query string too long.");
+        }
 
         // Decode the query string from the request payload.
         string query = _utf8.GetString(readResult.Buffer);
@@ -64,7 +68,8 @@ internal class WebService : IDispatcher
         }
         catch (HttpRequestException e)
         {
-            throw new DispatchException(StatusCode.InternalError, $"HTTP request failed: {e.Message}");
+            Console.WriteLine($"HTTP request failed: {e.Message}");
+            throw new DispatchException(StatusCode.InternalError, "HTTP request failed");
         }
 
         // Create and return the IceRPC response.
