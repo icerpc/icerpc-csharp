@@ -12,13 +12,13 @@ All the "business logic" is in the client.
 flowchart LR
     subgraph Server
        GeoService
-       WeatherService
+       ForecastService
     end
 
     Client -- icerpc --> GeoService
-    Client -- icerpc --> WeatherService
+    Client -- icerpc --> ForecastService
     GeoService -- https --> OpenGeo[OpenMeteo Geo Service]
-    WeatherService -- https --> OpenWeather[OpenMeteo Weather Forecast Service]
+    ForecastService -- https --> OpenWeather[OpenMeteo Weather Forecast Service]
 ```
 
 You can build the client and server applications with:
