@@ -13,7 +13,7 @@ Router router = new Router()
     .Map("/v1/search", geoService)
     .Map("/v1/forecast", weatherService);
 
-// Create a server that dispatches requests to router.
+// Create a server that dispatches requests to the router.
 await using var server = new Server(router);
 
 // Start listening for incoming connections on tcp port 4061.
