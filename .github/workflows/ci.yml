@@ -23,8 +23,7 @@ jobs:
       - name: Dump System Information
         if: runner.os != 'Windows'
         shell: bash
-        run: |
-          ulimit -a
+        run: ulimit -a
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build
