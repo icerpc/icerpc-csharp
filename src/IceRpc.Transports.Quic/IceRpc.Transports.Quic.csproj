@@ -4,10 +4,6 @@
     <Description>QUIC transport for IceRPC</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>icerpc;rpc;quic</PackageTags>
-    <!-- Properties for .NET QUIC -->
-    <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <!-- CA2252: Opt in to preview features before using them. -->
-    <NoWarn>CA2252</NoWarn>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
