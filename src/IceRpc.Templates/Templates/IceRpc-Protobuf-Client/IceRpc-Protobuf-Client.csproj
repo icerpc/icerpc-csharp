@@ -7,9 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-    <!--#if (transport=="quic")-->
-    <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <!--#endif"-->
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.5.0" PrivateAssets="All" />
