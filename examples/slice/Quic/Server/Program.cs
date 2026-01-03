@@ -17,7 +17,8 @@ await using var server = new Server(
                 password: null,
                 keyStorageFlags: X509KeyStorageFlags.Exportable),
             additionalCertificates: null)
-    });
+    },
+    multiplexedServerTransport: new QuicServerTransport());
 
 server.Listen();
 
