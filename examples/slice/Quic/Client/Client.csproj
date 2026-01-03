@@ -7,8 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-    <!-- Enable preview features to use the QUIC transport -->
-    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
