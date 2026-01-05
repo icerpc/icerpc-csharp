@@ -3,7 +3,6 @@ using IceRpc;
 using IceRpc.Transports.Quic;
 #endif
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using IceRpc_Protobuf_Client;
 
@@ -14,40 +13,19 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddFilter("IceRpc", LogLevel.Information));
 
 // Path to the root CA certificate.
-using var rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
+using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
 
-// Create Client authentication options with custom certificate validation.
-var clientAuthenticationOptions = new SslClientAuthenticationOptions
-{
-    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-    {
-        if (certificate is X509Certificate2 peerCertificate)
-        {
-            using var customChain = new X509Chain();
-            customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-            customChain.ChainPolicy.DisableCertificateDownloads = true;
-            customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-            customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-            return customChain.Build(peerCertificate);
-        }
-        else
-        {
-            return false;
-        }
-    }
-};
-
-#if (transport == "quic")
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
+#if (transport == "quic")
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
-    clientAuthenticationOptions,
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
     multiplexedClientTransport: new QuicClientTransport(),
     logger: loggerFactory.CreateLogger<ClientConnection>());
 #else
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
-    clientAuthenticationOptions,
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
     logger: loggerFactory.CreateLogger<ClientConnection>());
 #endif
 
