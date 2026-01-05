@@ -7,7 +7,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
@@ -28,22 +27,22 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
         string workingDirectory = Directory.GetCurrentDirectory();
         Console.WriteLine(workingDirectory);
 
+        // Load and register the server certificate as a singleton so it stays alive and gets disposed.
+        services.AddSingleton<X509Certificate2>(sp =>
+            X509CertificateLoader.LoadPkcs12FromFile(
+                Path.Combine(
+                    hostContext.HostingEnvironment.ContentRootPath,
+                    hostContext.Configuration.GetValue<string>("Certificate:File")!),
+                password: null,
+                keyStorageFlags: X509KeyStorageFlags.Exportable));
+
         // Bind the server options to the "appsettings.json" configuration "Server" section, and add a Configure
         // callback to configure its authentication options.
         services
             .AddOptions<ServerOptions>()
             .Bind(hostContext.Configuration.GetSection("Server"))
-            .Configure(options =>
-            {
-                X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
-                    Path.Combine(
-                        hostContext.HostingEnvironment.ContentRootPath,
-                        hostContext.Configuration.GetValue<string>("Certificate:File")!),
-                    password: null,
-                    keyStorageFlags: X509KeyStorageFlags.Exportable);
-
-                options.ServerAuthenticationOptions = CreateServerAuthenticationOptions(serverCertificate);
-            });
+            .Configure<X509Certificate2>((options, serverCertificate) =>
+                options.ServerAuthenticationOptions = CreateServerAuthenticationOptions(serverCertificate));
 
         // Add the Slice service that implements Slice interface `Greeter`, as a singleton.
         services.AddSingleton<IGreeterService, Chatbot>();
