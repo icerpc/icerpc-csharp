@@ -3,7 +3,6 @@
 using IceRpc;
 using IceRpc.Transports.Quic;
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
@@ -12,32 +11,12 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Information));
 
-// SSL setup
-using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
-var clientAuthenticationOptions = new SslClientAuthenticationOptions
-{
-    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-    {
-        if (certificate is X509Certificate2 peerCertificate)
-        {
-            using var customChain = new X509Chain();
-            customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-            customChain.ChainPolicy.DisableCertificateDownloads = true;
-            customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-            customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-            return customChain.Build(peerCertificate);
-        }
-        else
-        {
-            return false;
-        }
-    }
-};
+using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
 
 // Use our own factory method (see below) to create a client connection using QUIC with a fallback to TCP.
 await using ClientConnection connection = await CreateClientConnectionAsync(
     new Uri("icerpc://localhost"),
-    clientAuthenticationOptions,
+    rootCA,
     loggerFactory.CreateLogger<ClientConnection>());
 
 // Create an invocation pipeline and install the logger interceptor.
@@ -59,7 +38,7 @@ await connection.ShutdownAsync();
 // fails, fall back to a TCP connection. The caller must dispose the returned connection.
 static async Task<ClientConnection> CreateClientConnectionAsync(
     Uri serverAddressUri,
-    SslClientAuthenticationOptions clientAuthenticationOptions,
+    X509Certificate2 rootCA,
     ILogger logger)
 {
 #pragma warning disable CA2000 // Dispose objects before losing scope
@@ -67,7 +46,7 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
     // ConnectAsync fails.
     var quicConnection = new ClientConnection(
         serverAddressUri,
-        clientAuthenticationOptions,
+        clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
         multiplexedClientTransport: new QuicClientTransport(),
         logger: logger);
 #pragma warning restore CA2000
@@ -84,6 +63,9 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
     }
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
-    return new ClientConnection(serverAddressUri, clientAuthenticationOptions, logger: logger);
+    return new ClientConnection(
+        serverAddressUri,
+        clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
+        logger: logger);
 #pragma warning restore CA2000
 }
