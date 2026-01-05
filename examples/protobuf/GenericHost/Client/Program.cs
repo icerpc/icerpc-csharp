@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
@@ -30,33 +29,12 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
             .Bind(hostContext.Configuration.GetSection("Client"))
             .Configure(options =>
             {
-                // Configure the authentication options
                 var rootCA = X509CertificateLoader.LoadCertificateFromFile(
                     Path.Combine(
                         hostContext.HostingEnvironment.ContentRootPath,
                         hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile")!));
 
-                options.ClientAuthenticationOptions = new SslClientAuthenticationOptions
-                {
-                    // A certificate validation callback that uses the configured certificate authorities file to
-                    // validate the peer certificates.
-                    RemoteCertificateValidationCallback = (sender, certificate, chain, errors) =>
-                    {
-                        if (certificate is X509Certificate2 peerCertificate)
-                        {
-                            using var customChain = new X509Chain();
-                            customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                            customChain.ChainPolicy.DisableCertificateDownloads = true;
-                            customChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                            customChain.ChainPolicy.CustomTrustStore.Add(rootCA);
-                            return customChain.Build(peerCertificate);
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                };
+                options.ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA);
             });
 
         services
