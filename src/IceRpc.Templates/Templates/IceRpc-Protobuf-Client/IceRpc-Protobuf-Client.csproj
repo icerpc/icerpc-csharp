@@ -10,7 +10,7 @@
     <!--#if (transport=="quic")-->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <GenerateRequiresPreviewFeaturesAttribute>True</GenerateRequiresPreviewFeaturesAttribute>
-    <!--#endif"-->
+    <!--#endif-->
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.4.*" PrivateAssets="All" />
@@ -19,13 +19,13 @@
     <PackageReference Include="IceRpc.Logger" Version="0.4.*" />
     <!--#if (transport=="quic")-->
     <PackageReference Include="IceRpc.Transports.Quic" Version="0.4.*" />
-    <!--#endif"-->
+    <!--#endif-->
     <!--#if (Framework=="net8.0")-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
     <!-- Required for X509CertificateLoader with .NET 8-->
     <PackageReference Include="Microsoft.Bcl.Cryptography" Version="9.0.*" />
-    <!--#else"-->
+    <!--#else-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.*" />
     <!--#endif-->
