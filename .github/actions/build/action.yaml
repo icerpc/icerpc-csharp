@@ -37,7 +37,8 @@ runs:
       with:
         dotnet-version: 10.0.x
 
-    - name: Install libmsquic
+    - name: Install libmsquic on Linux
+      if: runner.os == 'Linux'
       run: |
         wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
         sudo dpkg -i packages-microsoft-prod.deb
@@ -45,7 +46,13 @@ runs:
         sudo apt update
         sudo apt install libmsquic
       shell: bash
-      if: runner.os == 'Linux'
+
+    - name: Install libmsquic on macOS
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew install libmsquic
+        echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
 
     - name: 🔨 Build Slice Compiler
       run: |
