@@ -21,6 +21,17 @@ internal class ClientHostedService : BackgroundService
     // The IGreeter managed by the DI container.
     private readonly IGreeter _greeter;
 
+    // All the parameters are injected by the DI container.
+    public ClientHostedService(
+        IGreeter greeter,
+        ClientConnection connection,
+        IHostApplicationLifetime applicationLifetime)
+    {
+        _applicationLifetime = applicationLifetime;
+        _connection = connection;
+        _greeter = greeter;
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -36,16 +47,5 @@ internal class ClientHostedService : BackgroundService
 
         // Stop the generic host once the invocation is done.
         _applicationLifetime.StopApplication();
-    }
-
-    // All the parameters are injected by the DI container.
-    internal ClientHostedService(
-        IGreeter greeter,
-        ClientConnection connection,
-        IHostApplicationLifetime applicationLifetime)
-    {
-        _applicationLifetime = applicationLifetime;
-        _connection = connection;
-        _greeter = greeter;
     }
 }
