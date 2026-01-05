@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The following versions of IceRPC are currently supported with security updates.
+The following versions of IceRPC for C# are currently supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
