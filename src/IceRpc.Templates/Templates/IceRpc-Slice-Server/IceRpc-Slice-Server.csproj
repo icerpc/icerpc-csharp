@@ -9,6 +9,7 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
     <!--#if (transport=="quic")-->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <GenerateRequiresPreviewFeaturesAttribute>True</GenerateRequiresPreviewFeaturesAttribute>
     <!--#endif"-->
   </PropertyGroup>
   <ItemGroup>
