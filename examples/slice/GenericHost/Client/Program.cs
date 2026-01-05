@@ -22,20 +22,20 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
         // Add the ClientHostedService to the hosted services of the .NET Generic Host.
         services.AddHostedService<ClientHostedService>();
 
+        // Load and register the root CA certificate as a singleton so it stays alive and gets disposed.
+        services.AddSingleton<X509Certificate2>(sp =>
+            X509CertificateLoader.LoadCertificateFromFile(
+                Path.Combine(
+                    hostContext.HostingEnvironment.ContentRootPath,
+                    hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile")!)));
+
         // Bind the client connection options to the "appsettings.json" configuration "Client" section,
         // and add a Configure callback to configure its authentication options.
         services
             .AddOptions<ClientConnectionOptions>()
             .Bind(hostContext.Configuration.GetSection("Client"))
-            .Configure(options =>
-            {
-                var rootCA = X509CertificateLoader.LoadCertificateFromFile(
-                    Path.Combine(
-                        hostContext.HostingEnvironment.ContentRootPath,
-                        hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile")!));
-
-                options.ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA);
-            });
+            .Configure<X509Certificate2>((options, rootCA) =>
+                options.ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA));
 
         services
             // The activity source used by the telemetry interceptor.
