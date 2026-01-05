@@ -2,21 +2,17 @@
 
 using IceRpc;
 using SecureServer;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-// Create the authentication options using the test server certificate.
-var serverAuthenticationOptions = new SslServerAuthenticationOptions()
-{
-    ServerCertificateContext = SslStreamCertificateContext.Create(
-        X509CertificateLoader.LoadPkcs12FromFile(
-            "../../../../certs/server.p12",
-            password: null,
-            keyStorageFlags: X509KeyStorageFlags.Exportable),
-        additionalCertificates: null)
-};
+using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+    "../../../../certs/server.p12",
+    password: null,
+    keyStorageFlags: X509KeyStorageFlags.Exportable);
 
-await using var server = new Server(new Chatbot(), serverAuthenticationOptions);
+// Create a server that uses the test server certificate.
+await using var server = new Server(
+    new Chatbot(),
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.

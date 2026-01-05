@@ -7,7 +7,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
@@ -35,17 +34,14 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
             .Bind(hostContext.Configuration.GetSection("Server"))
             .Configure(options =>
             {
-                options.ServerAuthenticationOptions = new SslServerAuthenticationOptions
-                {
-                    ServerCertificateContext = SslStreamCertificateContext.Create(
-                        X509CertificateLoader.LoadPkcs12FromFile(
-                            Path.Combine(
-                                hostContext.HostingEnvironment.ContentRootPath,
-                                hostContext.Configuration.GetValue<string>("Certificate:File")!),
-                            password: null,
-                            keyStorageFlags: X509KeyStorageFlags.Exportable),
-                        additionalCertificates: null)
-                };
+                X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                    Path.Combine(
+                        hostContext.HostingEnvironment.ContentRootPath,
+                        hostContext.Configuration.GetValue<string>("Certificate:File")!),
+                    password: null,
+                    keyStorageFlags: X509KeyStorageFlags.Exportable);
+
+                options.ServerAuthenticationOptions = CreateServerAuthenticationOptions(serverCertificate);
             });
 
         // Add the Chatbot service, which implements the Protobuf `Greeter` service, as a singleton.
