@@ -4,7 +4,6 @@ using IceRpc.Protobuf;
 using IceRpc.Transports.Quic;
 #endif
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 using IceRpc_Protobuf_Server;
@@ -22,27 +21,22 @@ Router router = new Router()
     .UseDeadline()
     .Map<IGreeterService>(new Chatbot());
 
-var sslServerAuthenticationOptions = new SslServerAuthenticationOptions
-{
-    ServerCertificateContext = SslStreamCertificateContext.Create(
-        X509CertificateLoader.LoadPkcs12FromFile(
-            "certs/server.p12",
-            password: null,
-            keyStorageFlags: X509KeyStorageFlags.Exportable),
-        additionalCertificates: null)
-};
+using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+    "certs/server.p12",
+    password: null,
+    keyStorageFlags: X509KeyStorageFlags.Exportable);
 
 // Create a server that logs message to a logger with category `IceRpc.Server`.
 #if (transport == "quic")
 await using var server = new Server(
     router,
-    sslServerAuthenticationOptions,
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
     multiplexedServerTransport: new QuicServerTransport(),
     logger: loggerFactory.CreateLogger<Server>());
 #else
 await using var server = new Server(
     router,
-    sslServerAuthenticationOptions,
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
     logger: loggerFactory.CreateLogger<Server>());
 #endif
 
