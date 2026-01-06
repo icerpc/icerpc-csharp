@@ -21,7 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
-    <ProjectReference Include="../../src/IceRpc.Transports.Quic/IceRpc.Transports.Quic.csproj" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <ProjectReference Include="../IceRpc.Conformance.Tests/IceRpc.Conformance.Tests.csproj" />
   </ItemGroup>

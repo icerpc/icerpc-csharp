@@ -2,10 +2,14 @@
 
 using System.Net;
 using System.Net.Quic;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic;
 
 /// <summary>The base options class for QUIC transports.</summary>
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 public record class QuicTransportOptions
 {
     /// <summary>Gets or sets the idle timeout. This timeout is used to monitor the transport connection health. If no

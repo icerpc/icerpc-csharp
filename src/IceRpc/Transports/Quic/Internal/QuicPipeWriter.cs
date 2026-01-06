@@ -5,9 +5,13 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Quic;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic.Internal;
 
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 internal class QuicPipeWriter : ReadOnlySequencePipeWriter
 {
     public override bool CanGetUnflushedBytes => true;

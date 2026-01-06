@@ -4,10 +4,14 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Quic;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic.Internal;
 
 /// <summary>Implements a PipeReader over a QuicStream.</summary>
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {
     private bool _isCompleted;

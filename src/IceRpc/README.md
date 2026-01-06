@@ -5,6 +5,13 @@ and package represent the base assembly and package for the [C# implementation o
 
 [Package][package] | [Source code][source] | [Getting started][getting-started] | [Examples][examples] | [Documentation][docs] | [API reference][api]
 
+## QUIC Transport
+
+IceRPC's preferred transport is QUIC, a new UDP-based multiplexed transport used by HTTP/3 and other modern application
+protocols.
+
+IceRPC has the same platform dependencies as `System.Net.Quic`. See .NET's [QUIC Platform dependencies][platform].
+
 ## Sample Code
 
 ```csharp
@@ -94,4 +101,5 @@ internal class Chatbot : IDispatcher
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples
 [package]: https://www.nuget.org/packages/IceRpc
+[platform]: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/quic/quic-overview#platform-dependencies
 [source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/IceRpc
