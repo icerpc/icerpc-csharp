@@ -5,9 +5,13 @@ using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic.Internal;
 
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 {
     public ServerAddress ServerAddress { get; }

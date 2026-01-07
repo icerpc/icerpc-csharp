@@ -16,7 +16,6 @@
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Logger" Version="$(IceRpcVersion)" />
-    <PackageReference Include="IceRpc.Transports.Quic" Version="$(IceRpcVersion)" />
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -4,10 +4,14 @@ using IceRpc.Transports.Quic.Internal;
 using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic;
 
 /// <summary>Implements <see cref="IMultiplexedClientTransport"/> using QUIC.</summary>
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 public class QuicClientTransport : IMultiplexedClientTransport
 {
     /// <inheritdoc/>

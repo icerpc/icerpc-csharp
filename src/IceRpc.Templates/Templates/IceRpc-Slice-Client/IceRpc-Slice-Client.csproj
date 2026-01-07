@@ -13,9 +13,6 @@
     <PackageReference Include="IceRpc.Slice" Version="0.6.0-preview.1" />
     <PackageReference Include="IceRpc.Deadline" Version="0.6.0-preview.1" />
     <PackageReference Include="IceRpc.Logger" Version="0.6.0-preview.1" />
-    <!--#if (transport=="quic") -->
-    <PackageReference Include="IceRpc.Transports.Quic" Version="0.6.0-preview.1" />
-    <!--#endif-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
     <!-- The 1.2 beta version is required for supporting the latest language features.

@@ -3,10 +3,14 @@
 using IceRpc.Transports.Quic.Internal;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic;
 
 /// <summary>Implements <see cref="IMultiplexedServerTransport"/> using QUIC.</summary>
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 public class QuicServerTransport : IMultiplexedServerTransport
 {
     /// <inheritdoc/>

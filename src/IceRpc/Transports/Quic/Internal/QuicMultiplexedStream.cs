@@ -3,10 +3,14 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Quic;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic.Internal;
 
 /// <summary>The Quic multiplexed stream implements an <see cref="IMultiplexedStream"/>.</summary>
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 internal class QuicMultiplexedStream : IMultiplexedStream
 {
     public ulong Id { get; }

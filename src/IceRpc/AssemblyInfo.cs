@@ -12,5 +12,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Slice.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Conformance.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
+[assembly: InternalsVisibleTo("IceRpc.Quic.Tests")]
 
 [assembly: InternalsVisibleTo("IceRpc.Compressor.Tests")] // For GetPayloadWriter

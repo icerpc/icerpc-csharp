@@ -1,9 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
 using System.Net.Quic;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic.Internal;
 
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("windows")]
 internal static class QuicExceptionExtensions
 {
     /// <summary>Converts a <see cref="QuicException"/> into an <see cref="IceRpcException"/>.</summary>
