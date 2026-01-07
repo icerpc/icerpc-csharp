@@ -1,6 +1,6 @@
-# Secure
+# TCP
 
-This example application illustrates how to configure the client and server to use SSL secured connections.
+This example application illustrates how to use the TCP transport with IceRPC.
 
 You can build the client and server applications with:
 

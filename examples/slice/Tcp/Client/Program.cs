@@ -1,18 +1,17 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using System.Security.Cryptography.X509Certificates;
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using VisitorCenter;
 
-using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
-
-// Create a secure connection that uses the test root CA.
+// Create a connection that uses for the TCP client transport.
+// Since TcpClientTransport is a duplex transport, we wrap it in a SlicClientTransport to get a multiplexed transport.
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
-    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
+    multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
 
 var greeter = new GreeterProxy(connection);
-
 string greeting = await greeter.GreetAsync(Environment.UserName);
 
 Console.WriteLine(greeting);
