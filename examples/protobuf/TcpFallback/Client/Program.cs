@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Transports.Quic;
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
@@ -47,7 +48,6 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
     var quicConnection = new ClientConnection(
         serverAddressUri,
         clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
-        multiplexedClientTransport: new QuicClientTransport(),
         logger: logger);
 #pragma warning restore CA2000
 
@@ -66,6 +66,7 @@ static async Task<ClientConnection> CreateClientConnectionAsync(
     return new ClientConnection(
         serverAddressUri,
         clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
+        multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()),
         logger: logger);
 #pragma warning restore CA2000
 }
