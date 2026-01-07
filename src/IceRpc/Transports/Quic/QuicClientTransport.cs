@@ -37,13 +37,13 @@ public class QuicClientTransport : IMultiplexedClientTransport
     {
         if (!QuicConnection.IsSupported)
         {
-            throw new NotSupportedException("The Quic client transport is not supported on this platform.");
+            throw new PlatformNotSupportedException("The QUIC client transport is not supported on this platform.");
         }
 
         if ((serverAddress.Transport is string transport && transport != Name) || !CheckParams(serverAddress))
         {
             throw new ArgumentException(
-                $"The server address '{serverAddress}' contains parameters that are not valid for the Quic client transport.",
+                $"The server address '{serverAddress}' contains parameters that are not valid for the QUIC client transport.",
                 nameof(serverAddress));
         }
 

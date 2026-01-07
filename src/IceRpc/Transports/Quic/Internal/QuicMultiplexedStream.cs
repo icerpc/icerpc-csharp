@@ -7,7 +7,7 @@ using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic.Internal;
 
-/// <summary>The Quic multiplexed stream implements an <see cref="IMultiplexedStream"/>.</summary>
+/// <summary>The QUIC multiplexed stream implements an <see cref="IMultiplexedStream"/>.</summary>
 [SupportedOSPlatform("linux")]
 [SupportedOSPlatform("macOS")]
 [SupportedOSPlatform("windows")]

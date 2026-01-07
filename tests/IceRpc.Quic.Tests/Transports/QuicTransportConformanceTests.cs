@@ -15,11 +15,11 @@ public class QuicConnectionConformanceTests : MultiplexedConnectionConformanceTe
     {
         if (!QuicConnection.IsSupported)
         {
-            Assert.Ignore("Quic is not supported on this platform");
+            Assert.Ignore("QUIC is not supported on this platform");
         }
     }
 
-    /// <summary>Creates the service collection used for Quic connection conformance testing.</summary>
+    /// <summary>Creates the service collection used for QUIC connection conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
 
@@ -31,11 +31,11 @@ public class QuicStreamConformanceTests : MultiplexedStreamConformanceTests
     {
         if (!QuicConnection.IsSupported)
         {
-            Assert.Ignore("Quic is not supported on this platform");
+            Assert.Ignore("QUIC is not supported on this platform");
         }
     }
 
-    /// <summary>Creates the service collection used for Quic stream conformance testing.</summary>
+    /// <summary>Creates the service collection used for QUIC stream conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }
 
@@ -47,10 +47,10 @@ public class QuicListenerConformanceTests : MultiplexedListenerConformanceTests
     {
         if (!QuicConnection.IsSupported)
         {
-            Assert.Ignore("Quic is not supported on this platform");
+            Assert.Ignore("QUIC is not supported on this platform");
         }
     }
 
-    /// <summary>Creates the service collection used for Quic listener conformance testing.</summary>
+    /// <summary>Creates the service collection used for QUIC listener conformance testing.</summary>
     protected override IServiceCollection CreateServiceCollection() => new ServiceCollection().AddQuicTest();
 }

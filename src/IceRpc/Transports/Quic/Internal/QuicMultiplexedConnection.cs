@@ -7,7 +7,7 @@ using System.Runtime.Versioning;
 
 namespace IceRpc.Transports.Quic.Internal;
 
-/// <summary>The Quic multiplexed connection implements an <see cref="IMultiplexedConnection" />.</summary>
+/// <summary>The QUIC multiplexed connection implements an <see cref="IMultiplexedConnection" />.</summary>
 [SupportedOSPlatform("linux")]
 [SupportedOSPlatform("macOS")]
 [SupportedOSPlatform("windows")]
@@ -29,7 +29,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         if (_connection is null)
         {
-            throw new InvalidOperationException("The Quic connection is not connected.");
+            throw new InvalidOperationException("The QUIC connection is not connected.");
         }
 
         try
@@ -75,7 +75,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
     {
         if (_connection is null)
         {
-            throw new InvalidOperationException("The Quic connection is not connected.");
+            throw new InvalidOperationException("The QUIC connection is not connected.");
         }
 
         QuicStream stream;
@@ -146,7 +146,7 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
 
     public override async Task<TransportConnectionInformation> ConnectAsync(CancellationToken cancellationToken)
     {
-        // Establish the Quic connection.
+        // Establish the QUIC connection.
         try
         {
             _connection = await QuicConnection.ConnectAsync(
