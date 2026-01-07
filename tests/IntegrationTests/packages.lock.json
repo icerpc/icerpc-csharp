@@ -235,13 +235,13 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.*, )",
-          "ZeroC.Slice": "[0.5.0, )"
+          "ZeroC.Slice": "[0.5.1, )"
         }
       },
       "icerpc.extensions.dependencyinjection": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0, )",
+          "IceRpc": "[0.5.1, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.*, )",
           "Microsoft.Extensions.Options": "[10.0.*, )"
         }
@@ -249,30 +249,30 @@
       "icerpc.logger": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0, )",
+          "IceRpc": "[0.5.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.*, )"
         }
       },
       "icerpc.requestcontext": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0, )"
+          "IceRpc": "[0.5.1, )"
         }
       },
       "icerpc.slice": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0, )",
-          "ZeroC.Slice": "[0.5.0, )"
+          "IceRpc": "[0.5.1, )",
+          "ZeroC.Slice": "[0.5.1, )"
         }
       },
       "icerpc.tests.common": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0, )",
-          "IceRpc.Extensions.DependencyInjection": "[0.5.0, )",
-          "IceRpc.Logger": "[0.5.0, )",
-          "IceRpc.Transports.Coloc": "[0.5.0, )",
+          "IceRpc": "[0.5.1, )",
+          "IceRpc.Extensions.DependencyInjection": "[0.5.1, )",
+          "IceRpc.Logger": "[0.5.1, )",
+          "IceRpc.Transports.Coloc": "[0.5.1, )",
           "Microsoft.Extensions.Logging": "[10.0.*, )",
           "Microsoft.Extensions.Logging.Console": "[10.0.*, )",
           "NUnit": "[4.4.0, )"
@@ -281,7 +281,7 @@
       "icerpc.transports.coloc": {
         "type": "Project",
         "dependencies": {
-          "IceRpc": "[0.5.0, )"
+          "IceRpc": "[0.5.1, )"
         }
       },
       "zeroc.slice": {

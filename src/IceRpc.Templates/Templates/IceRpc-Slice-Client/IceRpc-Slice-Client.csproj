@@ -9,12 +9,12 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IceRpc.Slice.Tools" Version="0.5.0" PrivateAssets="All" />
-    <PackageReference Include="IceRpc.Slice" Version="0.5.0" />
-    <PackageReference Include="IceRpc.Deadline" Version="0.5.0" />
-    <PackageReference Include="IceRpc.Logger" Version="0.5.0" />
+    <PackageReference Include="IceRpc.Slice.Tools" Version="0.5.1" PrivateAssets="All" />
+    <PackageReference Include="IceRpc.Slice" Version="0.5.1" />
+    <PackageReference Include="IceRpc.Deadline" Version="0.5.1" />
+    <PackageReference Include="IceRpc.Logger" Version="0.5.1" />
     <!--#if (transport=="quic") -->
-    <PackageReference Include="IceRpc.Transports.Quic" Version="0.5.0" />
+    <PackageReference Include="IceRpc.Transports.Quic" Version="0.5.1" />
     <!--#endif-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
