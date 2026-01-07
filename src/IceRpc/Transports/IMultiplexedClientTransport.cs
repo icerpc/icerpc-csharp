@@ -25,7 +25,7 @@ public interface IMultiplexedClientTransport
     }
 
     [SupportedOSPlatform("linux")]
-    [SupportedOSPlatform("macOS")]
+    [SupportedOSPlatform("macos")]
     [SupportedOSPlatform("windows")]
     private static readonly QuicClientTransport _quicClientTransport = new();
 

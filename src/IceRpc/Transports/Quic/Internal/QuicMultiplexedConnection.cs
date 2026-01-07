@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Quic.Internal;
 
 /// <summary>The Quic multiplexed connection implements an <see cref="IMultiplexedConnection" />.</summary>
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 {
@@ -138,7 +138,7 @@ internal abstract class QuicMultiplexedConnection : IMultiplexedConnection
 }
 
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
 {
@@ -175,7 +175,7 @@ internal class QuicMultiplexedClientConnection : QuicMultiplexedConnection
 }
 
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 internal class QuicMultiplexedServerConnection : QuicMultiplexedConnection
 {

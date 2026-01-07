@@ -10,7 +10,7 @@ using System.Runtime.Versioning;
 namespace IceRpc.Transports.Quic.Internal;
 
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 internal class QuicMultiplexedListener : IListener<IMultiplexedConnection>
 {

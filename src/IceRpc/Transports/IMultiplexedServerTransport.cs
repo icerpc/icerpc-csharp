@@ -25,7 +25,7 @@ public interface IMultiplexedServerTransport
     }
 
     [SupportedOSPlatform("linux")]
-    [SupportedOSPlatform("macOS")]
+    [SupportedOSPlatform("macos")]
     [SupportedOSPlatform("windows")]
     private static readonly QuicServerTransport _quicServerTransport = new();
 
