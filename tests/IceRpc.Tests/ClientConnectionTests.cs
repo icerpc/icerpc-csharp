@@ -107,12 +107,19 @@ public class ClientConnectionTests
     public async Task Connection_can_reconnect_after_underlying_connection_shutdown()
     {
         // Arrange
-        var server = new Server(NotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        var server = new Server(
+            NotFoundDispatcher.Instance,
+            new Uri("icerpc://127.0.0.1:0"),
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         ServerAddress serverAddress = server.Listen();
-        await using var connection = new ClientConnection(serverAddress);
+        await using var connection = new ClientConnection(serverAddress,
+            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
         await connection.ConnectAsync();
         await server.DisposeAsync();
-        server = new Server(NotFoundDispatcher.Instance, serverAddress);
+        server = new Server(
+            NotFoundDispatcher.Instance,
+            serverAddress,
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         server.Listen();
 
         // Act/Assert
@@ -125,12 +132,20 @@ public class ClientConnectionTests
     public async Task Connection_can_reconnect_after_peer_abort()
     {
         // Arrange
-        var server = new Server(NotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        var server = new Server(
+            NotFoundDispatcher.Instance,
+            new Uri("icerpc://127.0.0.1:0"),
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         ServerAddress serverAddress = server.Listen();
-        await using var connection = new ClientConnection(serverAddress);
+        await using var connection = new ClientConnection(
+            serverAddress,
+            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
         await connection.ConnectAsync();
         await server.DisposeAsync();
-        server = new Server(NotFoundDispatcher.Instance, serverAddress);
+        server = new Server(
+            NotFoundDispatcher.Instance,
+            serverAddress,
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         server.Listen();
 
         // Act/Assert
@@ -143,13 +158,21 @@ public class ClientConnectionTests
     public async Task Connection_invoke_reconnect_after_underlying_connection_shutdown(Protocol protocol)
     {
         // Arrange
-        var server = new Server(NotFoundDispatcher.Instance, new Uri($"{protocol.Name}://127.0.0.1:0"));
+        var server = new Server(
+            NotFoundDispatcher.Instance,
+            new Uri($"{protocol.Name}://127.0.0.1:0"),
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         ServerAddress serverAddress = server.Listen();
-        await using var connection = new ClientConnection(serverAddress);
+        await using var connection = new ClientConnection(
+            serverAddress,
+            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
         await connection.ConnectAsync();
         await server.ShutdownAsync();
         await server.DisposeAsync();
-        server = new Server(NotFoundDispatcher.Instance, serverAddress);
+        server = new Server(
+            NotFoundDispatcher.Instance,
+            serverAddress,
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         server.Listen();
 
         {
