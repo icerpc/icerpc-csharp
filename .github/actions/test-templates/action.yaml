@@ -1,4 +1,5 @@
 name: Test Templates
+description: "Tests the IceRPC project templates"
 
 runs:
   using: "composite"

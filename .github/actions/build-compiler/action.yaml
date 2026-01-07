@@ -1,4 +1,6 @@
-name: Build Dist
+name: Build Compiler
+description: "Builds the Slice Compiler"
+
 
 inputs:
   cargo-build-args:
