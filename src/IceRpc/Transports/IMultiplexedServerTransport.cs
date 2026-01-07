@@ -20,7 +20,7 @@ public interface IMultiplexedServerTransport
                 return _quicServerTransport;
             }
             throw new PlatformNotSupportedException(
-                "The default Quic server transport is not supported on this platform.");
+                "The default QUIC server transport is not supported on this platform.");
         }
     }
 
