@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../slice/Greeter.slice" />
+    <Compile Include="../../../common/Program.Authentication.cs" Link="Program.Authentication.cs" />
     <PackageReference Include="IceRpc.Slice.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Slice" Version="$(IceRpcVersion)" />
     <PackageReference Include="IceRpc.RequestContext" Version="$(IceRpcVersion)" />

@@ -3,6 +3,7 @@
 using IceRpc;
 using LoggerServer;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
 // Create a simple console logger factory and configure the log level for category IceRpc.
@@ -11,6 +12,12 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Debug));
 
+// The default transport (QUIC) requires a server certificate. We use a test certificate here.
+using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+    "../../../../certs/server.p12",
+    password: null,
+    keyStorageFlags: X509KeyStorageFlags.Exportable);
+
 // Create a router (dispatch pipeline) and install the logger middleware. This middleware logs dispatches using category
 // `IceRpc.Logger.LoggerMiddleware`.
 Router router = new Router()
@@ -18,7 +25,10 @@ Router router = new Router()
     .Map<IGreeterService>(new Chatbot());
 
 // Create a server that logs message to a logger with category `IceRpc.Server`.
-await using var server = new Server(router, logger: loggerFactory.CreateLogger<Server>());
+await using var server = new Server(
+    router,
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
+    logger: loggerFactory.CreateLogger<Server>());
 
 server.Listen();
 

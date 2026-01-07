@@ -4,15 +4,20 @@ using IceRpc;
 using Igloo;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
+using System.Security.Cryptography.X509Certificates;
 
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Information));
 
-// Create a client connection to Server.
+// Load the test root CA certificate in order to connect to the server that uses a test server certificate.
+using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+// Create a secure client connection to Server using the default transport (QUIC).
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
     logger: loggerFactory.CreateLogger<ClientConnection>());
 
 Pipeline pipeline = new Pipeline()
