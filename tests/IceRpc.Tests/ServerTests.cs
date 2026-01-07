@@ -5,6 +5,7 @@ using IceRpc.Tests.Common;
 using IceRpc.Transports;
 using IceRpc.Transports.Coloc;
 using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using NUnit.Framework;
 using System.Security.Authentication;
 
@@ -30,7 +31,10 @@ public class ServerTests
     [Test]
     public async Task Cannot_call_listen_twice()
     {
-        await using var server = new Server(NotFoundDispatcher.Instance, new Uri("icerpc://127.0.0.1:0"));
+        await using var server = new Server(
+            NotFoundDispatcher.Instance,
+            new Uri("icerpc://127.0.0.1:0"),
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
         server.Listen();
 
         Assert.Throws<InvalidOperationException>(() => server.Listen());
@@ -60,7 +64,8 @@ public class ServerTests
                 ConnectionOptions = new ConnectionOptions { Dispatcher = dispatcher },
                 MaxConnections = 1,
                 ServerAddress = new ServerAddress(serverAddressUri),
-            });
+            },
+            multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()));
 
         ServerAddress serverAddress = server.Listen();
 
@@ -68,13 +73,15 @@ public class ServerTests
             new ClientConnectionOptions
             {
                 ServerAddress = serverAddress,
-            });
+            },
+            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
 
         await using var connection2 = new ClientConnection(
             new ClientConnectionOptions
             {
                 ServerAddress = serverAddress,
-            });
+            },
+            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
 
         await connection1.ConnectAsync();
 

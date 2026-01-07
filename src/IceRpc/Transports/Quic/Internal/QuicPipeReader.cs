@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Quic.Internal;
 
 /// <summary>Implements a PipeReader over a QuicStream.</summary>
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 internal class QuicPipeReader : PipeReader
 {

@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Quic.Internal;
 
 /// <summary>The Quic multiplexed stream implements an <see cref="IMultiplexedStream"/>.</summary>
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 internal class QuicMultiplexedStream : IMultiplexedStream
 {

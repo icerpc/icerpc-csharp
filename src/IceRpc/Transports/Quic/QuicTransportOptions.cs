@@ -8,7 +8,7 @@ namespace IceRpc.Transports.Quic;
 
 /// <summary>The base options class for QUIC transports.</summary>
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 public record class QuicTransportOptions
 {

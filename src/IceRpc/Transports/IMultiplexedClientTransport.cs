@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Transports.Slic;
-using IceRpc.Transports.Tcp;
+using IceRpc.Transports.Quic;
 using System.Net.Security;
+using System.Runtime.Versioning;
 
 namespace IceRpc.Transports;
 
@@ -10,8 +10,24 @@ namespace IceRpc.Transports;
 public interface IMultiplexedClientTransport
 {
     /// <summary>Gets the default multiplexed client transport.</summary>
-    /// <value>The default multiplexed client transport is the <see cref="SlicClientTransport" />.</value>
-    public static IMultiplexedClientTransport Default { get; } = new SlicClientTransport(new TcpClientTransport());
+    /// <value>The default multiplexed client transport is the <see cref="QuicClientTransport" />.</value>
+    public static IMultiplexedClientTransport Default
+    {
+        get
+        {
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
+            {
+                return _quicClientTransport;
+            }
+            throw new PlatformNotSupportedException(
+                "The default QUIC client transport is not supported on this platform.");
+        }
+    }
+
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("macos")]
+    [SupportedOSPlatform("windows")]
+    private static readonly QuicClientTransport _quicClientTransport = new();
 
     /// <summary>Gets the transport's name.</summary>
     string Name { get; }

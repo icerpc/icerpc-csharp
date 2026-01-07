@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Quic;
 
 /// <summary>Implements <see cref="IMultiplexedClientTransport"/> using QUIC.</summary>
 [SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macOS")]
+[SupportedOSPlatform("macos")]
 [SupportedOSPlatform("windows")]
 public class QuicClientTransport : IMultiplexedClientTransport
 {
