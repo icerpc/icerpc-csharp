@@ -9,7 +9,8 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
     <!--#if (transport=="quic")-->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <!--#endif"-->
+    <GenerateRequiresPreviewFeaturesAttribute>True</GenerateRequiresPreviewFeaturesAttribute>
+    <!--#endif-->
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.4.*" PrivateAssets="All" />
@@ -24,7 +25,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.*" />
     <!-- Required for X509CertificateLoader with .NET 8-->
     <PackageReference Include="Microsoft.Bcl.Cryptography" Version="9.0.*" />
-    <!--#else"-->
+    <!--#else-->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.*" />
     <!--#endif-->

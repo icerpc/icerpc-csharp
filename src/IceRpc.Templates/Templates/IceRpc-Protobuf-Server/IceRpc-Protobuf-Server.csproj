@@ -9,7 +9,8 @@
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
     <!--#if (transport=="quic")-->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <!--#endif"-->
+    <GenerateRequiresPreviewFeaturesAttribute>True</GenerateRequiresPreviewFeaturesAttribute>
+    <!--#endif-->
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="0.4.*" PrivateAssets="All" />
