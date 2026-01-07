@@ -2,11 +2,17 @@
 
 using CurrentWeatherClient;
 using IceRpc;
+using System.Security.Cryptography.X509Certificates;
 
 // The geographical name we're searching for.
 string geoName = args.Length > 0 ? args[0] : "Jupiter"; // ZeroC's home town
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 // The client for the GeoCoding API.
 var geoClient = new GeoClient(connection);

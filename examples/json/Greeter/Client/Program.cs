@@ -3,10 +3,16 @@
 using IceRpc;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using VisitorCenter; // for GreetRequest and GreetResponse
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 string greeting = await GreetAsync(Environment.UserName);
 Console.WriteLine(greeting);

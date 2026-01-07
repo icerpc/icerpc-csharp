@@ -2,9 +2,15 @@
 
 using IceRpc;
 using IceRpc.Features;
+using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 // Add the request context interceptor to the invocation pipeline.
 Pipeline pipeline = new Pipeline().UseRequestContext().Into(connection);

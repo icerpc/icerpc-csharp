@@ -5,6 +5,7 @@ using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
 // The activity source used by the telemetry interceptor.
@@ -18,7 +19,12 @@ using TracerProvider? tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddZipkinExporter()
    .Build();
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 // Create an invocation pipeline and add the telemetry interceptor to it.
 Pipeline pipeline = new Pipeline().UseTelemetry(activitySource).Into(connection);
 

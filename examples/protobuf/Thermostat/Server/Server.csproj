@@ -10,6 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProtoFile Include="../proto/*.proto" />
+    <Compile Include="../../../common/Program.Authentication.cs" Link="Program.Authentication.cs" />
+    <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.*" />
     <PackageReference Include="IceRpc.Deadline" Version="$(IceRpcVersion)" />
@@ -20,6 +22,5 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <Compile Include="../../../common/Program.CancelKeyPressed.cs" Link="Program.CancelKeyPressed.cs" />
   </ItemGroup>
 </Project>
