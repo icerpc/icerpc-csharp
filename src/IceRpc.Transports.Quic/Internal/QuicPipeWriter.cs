@@ -48,7 +48,7 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
             if (exception is null)
             {
                 // Unlike Slic, it's important to complete the writes and not abort the stream. Data might still be
-                // buffered for send on the Quic stream and aborting the stream would discard this data.
+                // buffered for send on the QUIC stream and aborting the stream would discard this data.
                 _stream.CompleteWrites();
             }
             else
@@ -201,13 +201,13 @@ internal class QuicPipeWriter : ReadOnlySequencePipeWriter
         _minSegmentSize = minSegmentSize;
         _completeCallback = completeCallback;
 
-        // This callback is used to check if the connection is closed or disposed before calling WriteAsync on the Quic
+        // This callback is used to check if the connection is closed or disposed before calling WriteAsync on the QUIC
         // stream. This check works around the use of the QuicError.OperationAborted error code for both reporting the
         // abortion of the in-progress write call and for reporting a closed connection before the operation process
         // starts. In this latter case, we want to report ConnectionAborted.
         _throwIfConnectionClosedOrDisposed = throwIfConnectionClosedOrDisposed;
 
-        // Create a pipe that never pauses on flush or write. The Quic _stream.WriteAsync will block if the Quic flow
+        // Create a pipe that never pauses on flush or write. The QUIC _stream.WriteAsync will block if the QUIC flow
         // control doesn't permit sending more data.
         // The readerScheduler doesn't matter (we don't call _pipe.Reader.ReadAsync) and the writerScheduler doesn't
         // matter (_pipe.Writer.FlushAsync never blocks).

@@ -18,7 +18,7 @@ public class QuicIdleTimeoutTests
     {
         if (!QuicConnection.IsSupported)
         {
-            Assert.Ignore("Quic is not supported on this platform");
+            Assert.Ignore("QUIC is not supported on this platform");
         }
     }
 

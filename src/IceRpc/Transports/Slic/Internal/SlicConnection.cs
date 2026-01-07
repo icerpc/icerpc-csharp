@@ -559,7 +559,7 @@ internal class SlicConnection : IMultiplexedConnection
             options.Pool,
             options.MinSegmentSize);
 
-        // We use the same stream ID numbering scheme as Quic.
+        // We use the same stream ID numbering scheme as QUIC.
         if (IsServer)
         {
             _nextBidirectionalId = 1;

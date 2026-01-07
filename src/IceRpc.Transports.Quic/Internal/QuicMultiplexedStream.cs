@@ -6,7 +6,7 @@ using System.Net.Quic;
 
 namespace IceRpc.Transports.Quic.Internal;
 
-/// <summary>The Quic multiplexed stream implements an <see cref="IMultiplexedStream"/>.</summary>
+/// <summary>The QUIC multiplexed stream implements an <see cref="IMultiplexedStream"/>.</summary>
 internal class QuicMultiplexedStream : IMultiplexedStream
 {
     public ulong Id { get; }

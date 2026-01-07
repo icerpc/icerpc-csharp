@@ -11,7 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports;
 
-/// <summary>Test Ssl authentication with Quic transport.</summary>
+/// <summary>Test SSL authentication with the QUIC transport.</summary>
 [NonParallelizable]
 public class QuicTransportSslAuthenticationTests
 {
@@ -20,7 +20,7 @@ public class QuicTransportSslAuthenticationTests
     {
         if (!QuicConnection.IsSupported)
         {
-            Assert.Ignore("Quic is not supported on this platform");
+            Assert.Ignore("QUIC is not supported on this platform");
         }
     }
 
