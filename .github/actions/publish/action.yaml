@@ -1,4 +1,5 @@
-name: Run Tests
+name: Publish Packages
+description: "Publishes IceRPC packages locally"
 
 runs:
   using: "composite"
