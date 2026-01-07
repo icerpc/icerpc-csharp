@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Transports.Tcp;
 
-/// <summary>Conformance tests for the Ssl transport.</summary>
+/// <summary>Conformance tests for the SSL transport.</summary>
 [Parallelizable(ParallelScope.All)]
 public class SslConnectionConformanceTests : TcpConnectionConformanceTests
 {
@@ -13,7 +13,7 @@ public class SslConnectionConformanceTests : TcpConnectionConformanceTests
         new ServiceCollection().AddSslTest(listenBacklog);
 }
 
-/// <summary>Conformance tests for the Ssl transport listener.</summary>
+/// <summary>Conformance tests for the SSL transport listener.</summary>
 [Parallelizable(ParallelScope.All)]
 public class SslListenerConformanceTests : TcpListenerConformanceTests
 {

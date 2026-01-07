@@ -20,7 +20,7 @@ public class QuicTransportTests
     {
         if (!QuicConnection.IsSupported)
         {
-            Assert.Ignore("Quic is not supported on this platform");
+            Assert.Ignore("QUIC is not supported on this platform");
         }
         Trace.Listeners.Add(new ConsoleTraceListener());
     }

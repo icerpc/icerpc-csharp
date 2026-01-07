@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Transports.Tcp;
 
-/// <summary>Conformance tests for the Ssl duplex transport.</summary>
+/// <summary>Conformance tests for the SSL duplex transport.</summary>
 [Parallelizable(ParallelScope.All)]
 public class SslTransportSslAuthenticationConformanceTests : DuplexTransportSslAuthenticationConformanceTests
 {

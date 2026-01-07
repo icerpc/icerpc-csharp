@@ -691,7 +691,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
                 }
 
                 // Wait for the peer notification that on its side all the streams are completed. It's important to wait
-                // for this notification before closing the connection. In particular with Quic where closing the
+                // for this notification before closing the connection. In particular with QUIC where closing the
                 // connection before all the streams are processed could lead to a stream failure.
                 try
                 {

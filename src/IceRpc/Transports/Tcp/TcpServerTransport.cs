@@ -53,7 +53,7 @@ public class TcpServerTransport : IDuplexServerTransport
         {
             throw new ArgumentNullException(
                 nameof(serverAuthenticationOptions),
-                "The Ssl server transport requires the Ssl server authentication options to be set.");
+                "The SSL server transport requires the SSL server authentication options to be set.");
         }
 
         return new TcpListener(serverAddress, options, serverAuthenticationOptions, _options);

@@ -600,7 +600,7 @@ public abstract class MultiplexedStreamConformanceTests
         }
         catch (IceRpcException exception) when (exception.IceRpcError == IceRpcError.OperationAborted)
         {
-            // acceptable behavior (and that's what Quic does)
+            // acceptable behavior (and that's what QUIC does)
             // we get OperationAborted because we locally "aborted" the stream by calling CancelPendingRead.
         }
 
@@ -697,7 +697,7 @@ public abstract class MultiplexedStreamConformanceTests
         // Act
         await sut.Local.Output.WriteAsync(ReadOnlyMemory<byte>.Empty);
 
-        // We read at least 2 (instead of a plain read) otherwise with Quic, readResult.IsCompleted is false because
+        // We read at least 2 (instead of a plain read) otherwise with QUIC, readResult.IsCompleted is false because
         // we get IsCompleted=true only when a _second_ call reads 0 bytes from the underlying QuicStream.
         Task<ReadResult> task = sut.Remote.Input.ReadAtLeastAsync(2).AsTask();
         await ((ReadOnlySequencePipeWriter)sut.Local.Output)

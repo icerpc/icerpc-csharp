@@ -11,7 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Transports.Slic;
 
-/// <summary>Test Ssl authentication with Slic transport.</summary>
+/// <summary>Test SSL authentication with the Slic transport.</summary>
 [Parallelizable(ParallelScope.All)]
 public class SlicTransportSslAuthenticationTests
 {
