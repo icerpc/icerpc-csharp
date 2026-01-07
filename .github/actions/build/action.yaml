@@ -1,4 +1,5 @@
 name: Build Dist
+description: "Builds IceRPC"
 
 inputs:
   cargo-build-args:

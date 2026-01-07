@@ -1,4 +1,5 @@
 name: Run Tests
+description: "Runs tests for Slice Compiler and .NET projects"
 
 runs:
   using: "composite"
