@@ -36,8 +36,12 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 // Load the root CA certificate.
 using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
 
+// Create a connection cache.
 await using var connectionCache = new ConnectionCache(
-    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
+    new ConnectionCacheOptions
+    {
+        ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA)
+    });
 
 // Create an invocation pipeline with the retry and logger interceptors.
 Pipeline pipeline = new Pipeline()

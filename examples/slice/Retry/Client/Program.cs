@@ -37,10 +37,12 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 // Load the test root CA certificate in order to connect to the server that uses a test server certificate.
 using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
 
-// Create a connection cache with certificate authentication for the default transport (QUIC).
+// Create a connection cache.
 await using var connectionCache = new ConnectionCache(
-    new ConnectionCacheOptions(),
-    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
+    new ConnectionCacheOptions
+    {
+        ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA)
+    });
 
 // Create an invocation pipeline with the retry and logger interceptors.
 Pipeline pipeline = new Pipeline()
