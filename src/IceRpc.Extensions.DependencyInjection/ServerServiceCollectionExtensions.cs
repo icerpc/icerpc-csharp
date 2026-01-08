@@ -25,9 +25,9 @@ public static class ServerServiceCollectionExtensions
     /// The following code adds a Server singleton to the service collection.
     /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcServerExamples.cs"
     /// region="DefaultServer" lang="csharp" />
-    /// The resulting singleton is a default server: it uses the default server address, the default multiplexed
-    /// transport (TCP) and <c>null</c> for its authentication options (so no TLS). If you want to customize this
-    /// server, add an <see cref="IOptions{T}" /> of <see cref="ServerOptions" /> to your DI container:
+    /// The resulting singleton is a default server: it uses the default server address and the default multiplexed
+    /// transport (QUIC). If you want to customize this server, add an <see cref="IOptions{T}" /> of
+    /// <see cref="ServerOptions" /> to your DI container:
     /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcServerExamples.cs"
     /// region="ServerWithOptions" lang="csharp" />
     /// You can also inject a server transport:

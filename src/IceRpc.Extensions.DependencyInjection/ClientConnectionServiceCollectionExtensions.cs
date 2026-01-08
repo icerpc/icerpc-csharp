@@ -32,7 +32,7 @@ public static class ClientConnectionServiceCollectionExtensions
     /// For example, you can add a Slic over TCP client connection as follows:
     /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcClientConnectionExamples.cs"
     /// region="ClientConnectionWithSlic" lang="csharp" />
-    /// If you want to customize the options of the default transport (QUIC), you just need to inject an
+    /// If you want to customize the options of the default multiplexed transport (QUIC), you just need to inject an
     /// <see cref="IOptions{T}" /> of <see cref="QuicClientTransportOptions" />.
     /// </example>
     public static IServiceCollection AddIceRpcClientConnection(this IServiceCollection services) =>

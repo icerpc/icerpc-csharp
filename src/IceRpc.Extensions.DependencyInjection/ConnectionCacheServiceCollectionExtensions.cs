@@ -35,8 +35,8 @@ public static class ConnectionCacheServiceCollectionExtensions
     /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcConnectionCacheExamples.cs"
     /// region="ConnectionCacheWithSlic"
     /// lang="csharp" />
-    /// If you want to customize the options of the default duplex transport (TCP), you just need to inject an
-    /// <see cref="IOptions{T}" /> of <see cref="TcpClientTransportOptions" />.
+    /// If you want to customize the options of the default multiplexed transport (QUIC), you just need to inject an
+    /// <see cref="IOptions{T}" /> of <see cref="QuicClientTransportOptions" />.
     /// </example>
     public static IServiceCollection AddIceRpcConnectionCache(this IServiceCollection services) =>
         services
