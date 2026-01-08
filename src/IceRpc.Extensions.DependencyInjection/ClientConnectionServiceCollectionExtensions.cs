@@ -68,8 +68,8 @@ public static class ClientConnectionServiceCollectionExtensions
         else
         {
             // Use Slic over TCP on other platforms.
-            services.
-                TryAddSingleton<IMultiplexedClientTransport>(
+            services
+                .TryAddSingleton<IMultiplexedClientTransport>(
                     provider => new SlicClientTransport(
                         provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
                         provider.GetRequiredService<IDuplexClientTransport>()));
