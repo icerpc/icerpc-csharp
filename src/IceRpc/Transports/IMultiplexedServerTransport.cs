@@ -18,7 +18,7 @@ public interface IMultiplexedServerTransport
         {
             if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
             {
-                if (QuicConnection.IsSupported)
+                if (QuicListener.IsSupported)
                 {
                     return _quicServerTransport;
                 }
