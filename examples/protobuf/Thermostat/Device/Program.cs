@@ -11,7 +11,7 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Debug));
 
-// Load the root CA certificate.
+// Load the test root CA certificate in order to connect to the server that uses a test server certificate.
 using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
 
 var thermoBot = new ThermoBot();

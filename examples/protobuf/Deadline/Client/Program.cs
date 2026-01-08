@@ -5,7 +5,7 @@ using IceRpc.Features;
 using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
-// Load the root CA certificate.
+// Load the test root CA certificate in order to connect to the server that uses a test server certificate.
 using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
 
 await using var connection = new ClientConnection(
