@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports.Quic;
+using System.Net.Quic;
 using System.Net.Security;
 using System.Runtime.Versioning;
 
@@ -17,7 +18,12 @@ public interface IMultiplexedServerTransport
         {
             if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
             {
-                return _quicServerTransport;
+                if (QuicConnection.IsSupported)
+                {
+                    return _quicServerTransport;
+                }
+                throw new NotSupportedException(
+                    "The default QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
             }
             throw new PlatformNotSupportedException(
                 "The default QUIC server transport is not supported on this platform.");

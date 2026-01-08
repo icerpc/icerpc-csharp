@@ -37,7 +37,8 @@ public class QuicClientTransport : IMultiplexedClientTransport
     {
         if (!QuicConnection.IsSupported)
         {
-            throw new PlatformNotSupportedException("The QUIC client transport is not supported on this platform.");
+            throw new NotSupportedException(
+                "The QUIC client transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
         if ((serverAddress.Transport is string transport && transport != Name) || !CheckParams(serverAddress))
