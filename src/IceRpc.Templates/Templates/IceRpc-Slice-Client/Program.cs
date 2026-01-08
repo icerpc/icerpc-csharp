@@ -1,6 +1,7 @@
 using IceRpc;
-#if (transport == "quic")
-using IceRpc.Transports.Quic;
+#if (transport == "tcp")
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 #endif
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
@@ -16,11 +17,11 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
 using X509Certificate2 rootCA = X509CertificateLoader.LoadCertificateFromFile("certs/cacert.der");
 
 // Create a client connection that logs messages to a logger with category IceRpc.ClientConnection.
-#if (transport == "quic")
+#if (transport == "tcp")
 await using var connection = new ClientConnection(
     new Uri("icerpc://localhost"),
     clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA),
-    multiplexedClientTransport: new QuicClientTransport(),
+    multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()),
     logger: loggerFactory.CreateLogger<ClientConnection>());
 #else
 await using var connection = new ClientConnection(

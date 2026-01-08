@@ -1,7 +1,8 @@
 using IceRpc;
 using IceRpc.Protobuf;
-#if (transport == "quic")
-using IceRpc.Transports.Quic;
+#if (transport == "tcp")
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 #endif
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
@@ -27,11 +28,11 @@ using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromF
     keyStorageFlags: X509KeyStorageFlags.Exportable);
 
 // Create a server that logs message to a logger with category `IceRpc.Server`.
-#if (transport == "quic")
+#if (transport == "tcp")
 await using var server = new Server(
     router,
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
-    multiplexedServerTransport: new QuicServerTransport(),
+    multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
     logger: loggerFactory.CreateLogger<Server>());
 #else
 await using var server = new Server(

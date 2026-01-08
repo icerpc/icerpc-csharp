@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports;
+using IceRpc.Transports.Quic;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,17 +48,32 @@ public static class ClientConnectionServiceCollectionExtensions
 
     internal static IServiceCollection TryAddIceRpcClientTransport(this IServiceCollection services)
     {
+        // The default duplex transport is TCP.
         services
             .AddOptions()
             .TryAddSingleton<IDuplexClientTransport>(
                 provider => new TcpClientTransport(
                     provider.GetRequiredService<IOptions<TcpClientTransportOptions>>().Value));
 
-        services.
-            TryAddSingleton<IMultiplexedClientTransport>(
-                provider => new SlicClientTransport(
-                    provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
-                    provider.GetRequiredService<IDuplexClientTransport>()));
+        // The default multiplexed transport is QUIC on most platforms.
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            services
+                .TryAddSingleton<IMultiplexedClientTransport>(
+                    provider => new QuicClientTransport(
+                        provider.GetRequiredService<IOptions<QuicClientTransportOptions>>().Value));
+#pragma warning restore CA1416 // Validate platform compatibility
+        }
+        else
+        {
+            // Use Slic over TCP on other platforms.
+            services.
+                TryAddSingleton<IMultiplexedClientTransport>(
+                    provider => new SlicClientTransport(
+                        provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
+                        provider.GetRequiredService<IDuplexClientTransport>()));
+        }
 
         return services;
     }
