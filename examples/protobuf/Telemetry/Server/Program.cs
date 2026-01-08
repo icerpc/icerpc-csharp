@@ -20,7 +20,7 @@ using TracerProvider? tracerProvider = Sdk.CreateTracerProviderBuilder()
    .AddZipkinExporter()
    .Build();
 
-// Load the server certificate.
+// The default transport (QUIC) requires a server certificate. We use a test certificate here.
 using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
     "../../../../certs/server.p12",
     password: null,
