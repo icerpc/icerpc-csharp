@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Quic;
+using IceRpc.Transports.Slic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -28,20 +28,23 @@ public static class AddIceRpcConnectionCacheExamples
                 .AddOptions<ConnectionCacheOptions>()
                 .Configure(options =>
                     options.ConnectTimeout = TimeSpan.FromSeconds(30));
+                // options.ClientAuthenticationOptions remains null which means we'll use the system certificates for
+                // QUIC connections created by this cache.
 
             services.AddIceRpcConnectionCache();
         });
         #endregion
     }
 
-    public static void AddConnectionCacheWithQuic(string[] args)
+    public static void AddConnectionCacheWithSlic(string[] args)
     {
-        #region ConnectionCacheWithQuic
+        #region ConnectionCacheWithSlic
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.ConfigureServices(services =>
             services
-                // The IMultiplexedClientTransport singleton is implemented by QUIC.
-                .AddSingleton<IMultiplexedClientTransport>(provider => new QuicClientTransport())
+                // The IMultiplexedClientTransport singleton is implemented by Slic.
+                .AddSingleton<IMultiplexedClientTransport>(
+                    provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()))
                 .AddIceRpcConnectionCache());
         #endregion
     }

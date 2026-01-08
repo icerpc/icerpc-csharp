@@ -3,7 +3,7 @@
 using GreeterExample;
 using IceRpc.Slice;
 using IceRpc.Transports;
-using IceRpc.Transports.Quic;
+using IceRpc.Transports.Slic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -40,16 +40,17 @@ public static class AddIceRpcServerExamples
         #endregion
     }
 
-    public static void AddServerWithQuic(string[] args)
+    public static void AddServerWithSlic(string[] args)
     {
-        #region ServerWithQuic
+        #region ServerWithSlic
         var router = new Router(); // the dispatch pipeline
 
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.ConfigureServices(services =>
-            // Inject an IMultiplexedServerTransport singleton implemented by QUIC.
+            // Inject an IMultiplexedServerTransport singleton implemented by Slic.
             services
-                .AddSingleton<IMultiplexedServerTransport>(provider => new QuicServerTransport())
+                .AddSingleton<IMultiplexedServerTransport>(
+                    provider => new SlicServerTransport(provider.GetRequiredService<IDuplexServerTransport>()))
                 .AddIceRpcServer(router));
         #endregion
     }

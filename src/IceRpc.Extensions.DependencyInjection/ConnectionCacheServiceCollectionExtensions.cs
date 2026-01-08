@@ -30,12 +30,12 @@ public static class ConnectionCacheServiceCollectionExtensions
     /// <item><description>an <see cref="IDuplexClientTransport" /> for the ice protocol</description></item>
     /// <item><description>an <see cref="IMultiplexedClientTransport" /> for the icerpc protocol</description></item>
     /// </list>
-    /// The following example shows a connection cache that uses QUIC for icerpc connections and keeps the default
-    /// duplex transport (tcp) for ice connections.
+    /// The following example shows a connection cache that uses Slic over TCP for icerpc connections and keeps the
+    /// default duplex transport (TCP) for ice connections.
     /// <code source="../../docfx/examples/IceRpc.Extensions.DependencyInjection.Examples/AddIceRpcConnectionCacheExamples.cs"
-    /// region="ConnectionCacheWithQuic"
+    /// region="ConnectionCacheWithSlic"
     /// lang="csharp" />
-    /// If you want to customize the options of the default transport (tcp), you just need to inject an
+    /// If you want to customize the options of the default duplex transport (TCP), you just need to inject an
     /// <see cref="IOptions{T}" /> of <see cref="TcpClientTransportOptions" />.
     /// </example>
     public static IServiceCollection AddIceRpcConnectionCache(this IServiceCollection services) =>
