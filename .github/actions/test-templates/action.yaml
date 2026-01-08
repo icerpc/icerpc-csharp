@@ -6,57 +6,57 @@ runs:
   steps:
 
   # Protobuf Client template
-  - name: 🧪 Test IceRpc + Protobuf Client Template
+  - name: 🧪 Test IceRpc + Protobuf Client Template with TCP
     run: |
-      dotnet new icerpc-protobuf-client -o templates-test/tcp/ProtobufClient
+      dotnet new icerpc-protobuf-client -o templates-test/tcp/ProtobufClient --transport tcp
       dotnet build templates-test/tcp/ProtobufClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
-  - name: 🧪 Test IceRpc + Protobuf Client Template with Quic
+  - name: 🧪 Test IceRpc + Protobuf Client Template with QUIC
     run: |
-      dotnet new icerpc-protobuf-client -o templates-test/quic/ProtobufClient --transport quic
+      dotnet new icerpc-protobuf-client -o templates-test/quic/ProtobufClient
       dotnet build templates-test/quic/ProtobufClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Protobuf Server template
 
-  - name: 🧪 Test IceRpc + Protobuf Server Template
+  - name: 🧪 Test IceRpc + Protobuf Server Template with TCP
     run: |
-      dotnet new icerpc-protobuf-server -o templates-test/tcp/ProtobufServer
+      dotnet new icerpc-protobuf-server -o templates-test/tcp/ProtobufServer --transport tcp
       dotnet build templates-test/tcp/ProtobufServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
-  
-  - name: 🧪 Test IceRpc + Protobuf Server Template with Quic
+
+  - name: 🧪 Test IceRpc + Protobuf Server Template with QUIC
     run: |
-      dotnet new icerpc-protobuf-server -o templates-test/quic/ProtobufServer --transport quic
+      dotnet new icerpc-protobuf-server -o templates-test/quic/ProtobufServer
       dotnet build templates-test/quic/ProtobufServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Slice Client template
 
-  - name: 🧪 Test IceRpc + Slice Client Template
+  - name: 🧪 Test IceRpc + Slice Client Template with TCP
     run: |
-      dotnet new icerpc-slice-client -o templates-test/tcp/SliceClient
+      dotnet new icerpc-slice-client -o templates-test/tcp/SliceClient --transport tcp
       dotnet build templates-test/tcp/SliceClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
-  - name: 🧪 Test IceRpc + Slice Client Template with Quic
+  - name: 🧪 Test IceRpc + Slice Client Template with QUIC
     run: |
-      dotnet new icerpc-slice-client -o templates-test/quic/SliceClient --transport quic
+      dotnet new icerpc-slice-client -o templates-test/quic/SliceClient
       dotnet build templates-test/quic/SliceClient/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 
   # Slice Server template
 
-  - name: 🧪 Test IceRpc + Slice Server Template
+  - name: 🧪 Test IceRpc + Slice Server Template with TCP
     run: |
-      dotnet new icerpc-slice-server -o templates-test/tcp/SliceServer
+      dotnet new icerpc-slice-server -o templates-test/tcp/SliceServer --transport tcp
       dotnet build templates-test/tcp/SliceServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
-  
-  - name: 🧪 Test IceRpc + Slice Server Template with Quic
+
+  - name: 🧪 Test IceRpc + Slice Server Template with QUIC
     run: |
-      dotnet new icerpc-slice-server -o templates-test/quic/SliceServer --transport quic
+      dotnet new icerpc-slice-server -o templates-test/quic/SliceServer
       dotnet build templates-test/quic/SliceServer/ /p:TreatWarningsAsErrors=true
     shell: pwsh
 

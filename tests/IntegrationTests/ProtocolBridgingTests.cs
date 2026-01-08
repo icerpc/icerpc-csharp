@@ -34,6 +34,7 @@ public sealed partial class ProtocolBridgingTests
 
         IServiceCollection services = new ServiceCollection()
             .AddColocTransport()
+            .AddSlicTransport()
             .AddIceRpcConnectionCache()
             .AddSingleton<IProtocolBridgingTestService>(targetService)
             .AddSingleton(_ => new Forwarder(targetProxy))

@@ -4,6 +4,7 @@ using IceRpc.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Security.Cryptography.X509Certificates;
 
 using IceRpc_Protobuf_DI_Client;
 
@@ -18,10 +19,20 @@ IHostBuilder hostBuilder = Host.CreateDefaultBuilder(args)
         // Add the ClientHostedService to the hosted services of the .NET Generic Host.
         services.AddHostedService<ClientHostedService>();
 
-        // Bind the client connection options to the "appsettings.json" configuration "Client" section.
+        // Load and register the root CA certificate as a singleton so it stays alive and gets disposed.
+        services.AddSingleton<X509Certificate2>(sp =>
+            X509CertificateLoader.LoadCertificateFromFile(
+                Path.Combine(
+                    hostContext.HostingEnvironment.ContentRootPath,
+                    hostContext.Configuration.GetValue<string>("CertificateAuthoritiesFile")!)));
+
+        // Bind the client connection options to the "appsettings.json" configuration "Client" section,
+        // and add a Configure callback to configure its authentication options.
         services
             .AddOptions<ClientConnectionOptions>()
-            .Bind(hostContext.Configuration.GetSection("Client"));
+            .Bind(hostContext.Configuration.GetSection("Client"))
+            .Configure<X509Certificate2>((options, rootCA) =>
+                options.ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA));
 
         services
             // Add a ClientConnection singleton. This ClientConnections uses the ClientConnectionOptions provided by the

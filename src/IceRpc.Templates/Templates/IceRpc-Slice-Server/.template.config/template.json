@@ -38,8 +38,8 @@
                     "description": "Use the TCP transport"
                 }
             ],
-            "defaultValue": "tcp",
-            "replaces": "tcp"
+            "defaultValue": "quic",
+            "replaces": "quic"
         }
     },
     "sources": [

@@ -3,6 +3,7 @@
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Transports;
 using IceRpc.Transports.Coloc;
+using IceRpc.Transports.Slic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
@@ -24,8 +25,10 @@ public static class ServiceCollectionExtensions
 
         var serverAddress = new ServerAddress(protocol) { Host = host };
 
-        // Note: the multiplexed transport is added by IceRpcServer/IceRpcClientConnection.
-        services.AddColocTransport().AddIceRpcClientConnection();
+        services
+            .AddColocTransport()
+            .AddSlicTransport()
+            .AddIceRpcClientConnection();
 
         services.AddOptions<ServerOptions>().Configure(
             options =>
@@ -44,6 +47,25 @@ public static class ServiceCollectionExtensions
         .AddSingleton(provider => new ColocTransport(provider.GetRequiredService<ColocTransportOptions>()))
         .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ClientTransport)
         .AddSingleton(provider => provider.GetRequiredService<ColocTransport>().ServerTransport);
+
+    /// <summary>Installs the Slic multiplexed transport.</summary>
+    public static IServiceCollection AddSlicTransport(this IServiceCollection serviceCollection)
+    {
+        IServiceCollection services = serviceCollection
+            .AddSingleton<IMultiplexedServerTransport>(
+                provider => new SlicServerTransport(
+                    provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("server"),
+                    provider.GetRequiredService<IDuplexServerTransport>()))
+            .AddSingleton<IMultiplexedClientTransport>(
+                provider => new SlicClientTransport(
+                    provider.GetRequiredService<IOptionsMonitor<SlicTransportOptions>>().Get("client"),
+                    provider.GetRequiredService<IDuplexClientTransport>()));
+
+        services.AddOptions<SlicTransportOptions>("client");
+        services.AddOptions<SlicTransportOptions>("server");
+
+        return services;
+    }
 
     /// <summary>Adds Listener and ClientServerDuplexConnection singletons, with the listener listening on the
     /// specified server address.</summary>
