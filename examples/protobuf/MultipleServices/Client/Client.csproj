@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProtoFile Include="../proto/greeter.proto" />
     <ProtoFile Include="../proto/request_counter.proto" />
+    <Compile Include="../../../common/Program.Authentication.cs" Link="Program.Authentication.cs" />
     <PackageReference Include="IceRpc.Protobuf.Tools" Version="$(IceRpcVersion)" PrivateAssets="All" />
     <PackageReference Include="IceRpc.Protobuf" Version="$(IceRpcVersion)" />
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">

@@ -16,11 +16,10 @@ This folder contains example applications that showcase the IceRPC + Slice integ
 | [Logger](./Loggger/)                       | Shows how to enable logging.                                                                                                        |
 | [Metrics](./Metrics/)                      | Shows how to use the metrics interceptor and middleware.                                                                            |
 | [MultipleInterfaces](./MultipleInterfaces) | Shows how a service can implement multiple interfaces.                                                                              |
-| [Quic](./Quic/)                            | Shows how to use the QUIC transport.                                                                                                |
 | [RequestContext](./RequestContext/)        | Shows how to attach information to an invocation and retrieve this information from the dispatch in the server.                     |
 | [Retry](./Retry/)                          | Shows how to use the retry interceptor to retry failed requests.                                                                    |
-| [Secure](./Secure/)                        | Shows how to secure TCP connections with TLS.                                                                                       |
 | [Stream](./Stream/)                        | Shows how to stream data from a client to a server.                                                                                 |
+| [Tcp](./Tcp/)                              | Shows how to use the TCP transport.                                                                                                 |
 | [TcpFallback](./TcpFallback/)              | Shows how to create client and server applications that communicate over QUIC when possible but can fall back to TCP.               |
 | [Telemetry](./Telemetry/)                  | Shows how to use the telemetry interceptor and middleware.                                                                          |
 | [Thermostat](./Thermostat/)                | Shows how to send requests via an intermediary server; includes sending requests the "other way around", from a server to a client. |

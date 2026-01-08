@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
-using IceRpc.Transports.Quic;
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
 using TcpFallbackServer;
@@ -25,7 +26,6 @@ using X509Certificate2 serverCertificate = X509CertificateLoader.LoadPkcs12FromF
 await using var quicServer = new Server(
     router,
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
-    multiplexedServerTransport: new QuicServerTransport(),
     logger: loggerFactory.CreateLogger<Server>());
 
 quicServer.Listen();
@@ -33,6 +33,7 @@ quicServer.Listen();
 await using var tcpServer = new Server(
     router,
     serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
+    multiplexedServerTransport: new SlicServerTransport(new TcpServerTransport()),
     logger: loggerFactory.CreateLogger<Server>());
 
 tcpServer.Listen();

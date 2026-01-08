@@ -4,6 +4,7 @@ using IceRpc;
 using IceRpc.Retry;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
+using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
 if (args.Length < 1)
@@ -32,7 +33,15 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
     });
 
-await using var connectionCache = new ConnectionCache();
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+// Create a connection cache.
+await using var connectionCache = new ConnectionCache(
+    new ConnectionCacheOptions
+    {
+        ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA)
+    });
 
 // Create an invocation pipeline with the retry and logger interceptors.
 Pipeline pipeline = new Pipeline()

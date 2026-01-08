@@ -3,12 +3,19 @@
 using IceRpc;
 using Igloo;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
 using ThermostatServer;
 
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Information));
+
+// Load the server certificate.
+using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+    "../../../../certs/server.p12",
+    password: null,
+    keyStorageFlags: X509KeyStorageFlags.Exportable);
 
 using var shutdownCts = new CancellationTokenSource();
 
@@ -27,7 +34,10 @@ Router frontEndRouter = new Router()
     .UseLogger(loggerFactory)
     .Map<IThermostatService>(thermoFacade); // use default path
 
-await using var frontEnd = new Server(frontEndRouter, logger: loggerFactory.CreateLogger<Server>());
+await using var frontEnd = new Server(
+    frontEndRouter,
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
+    logger: loggerFactory.CreateLogger<Server>());
 
 // Back-end, device-facing.
 
@@ -39,6 +49,7 @@ Router backEndRouter = new Router()
 await using var backEnd = new Server(
     backEndRouter,
     new Uri("icerpc://[::0]:10000"),
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate),
     logger: loggerFactory.CreateLogger<Server>());
 
 // Start

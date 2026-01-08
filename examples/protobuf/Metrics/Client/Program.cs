@@ -1,9 +1,15 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
+using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 Pipeline pipeline = new Pipeline().UseMetrics().Into(connection);
 
 var greeter = new GreeterClient(pipeline);

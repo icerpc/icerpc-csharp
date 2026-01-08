@@ -3,9 +3,15 @@
 using Google.Protobuf.WellKnownTypes;
 using IceRpc;
 using Metrics;
+using System.Security.Cryptography.X509Certificates;
 using VisitorCenter;
 
-await using var connection = new ClientConnection(new Uri("icerpc://localhost"));
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
+
+await using var connection = new ClientConnection(
+    new Uri("icerpc://localhost"),
+    clientAuthenticationOptions: CreateClientAuthenticationOptions(rootCA));
 
 var greeter = new GreeterClient(connection);
 var requestCounter = new RequestCounterClient(connection);

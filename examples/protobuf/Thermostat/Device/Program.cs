@@ -3,12 +3,16 @@
 using IceRpc;
 using Igloo;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
 using ThermostatDevice;
 
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
     builder
         .AddSimpleConsole()
         .AddFilter("IceRpc", LogLevel.Debug));
+
+// Load the root CA certificate.
+using var rootCA = X509CertificateLoader.LoadCertificateFromFile("../../../../certs/cacert.der");
 
 var thermoBot = new ThermoBot();
 
@@ -18,6 +22,7 @@ Router router = new Router().UseLogger(loggerFactory).Map<IThermoControlService>
 await using var connection = new ClientConnection(
     new ClientConnectionOptions
     {
+        ClientAuthenticationOptions = CreateClientAuthenticationOptions(rootCA),
         Dispatcher = router,
         ServerAddress = new ServerAddress(new Uri("icerpc://localhost:10000"))
     },

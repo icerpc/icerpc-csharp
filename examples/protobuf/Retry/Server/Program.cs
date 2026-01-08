@@ -2,6 +2,7 @@
 
 using IceRpc;
 using RetryServer;
+using System.Security.Cryptography.X509Certificates;
 
 if (args.Length < 1)
 {
@@ -16,9 +17,18 @@ if (!int.TryParse(args[0], out number))
     return;
 }
 
+// Load the server certificate.
+using var serverCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+    "../../../../certs/server.p12",
+    password: null,
+    keyStorageFlags: X509KeyStorageFlags.Exportable);
+
 var serverAddress = new ServerAddress(new Uri($"icerpc://[::0]:{10000 + number}/"));
 
-await using var server = new Server(new Chatbot(number), serverAddress);
+await using var server = new Server(
+    new Chatbot(number),
+    serverAddress,
+    serverAuthenticationOptions: CreateServerAuthenticationOptions(serverCertificate));
 server.Listen();
 
 // Wait until the console receives a Ctrl+C.
