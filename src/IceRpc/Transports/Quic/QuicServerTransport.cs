@@ -34,9 +34,10 @@ public class QuicServerTransport : IMultiplexedServerTransport
         MultiplexedConnectionOptions options,
         SslServerAuthenticationOptions? serverAuthenticationOptions)
     {
-        if (!QuicConnection.IsSupported)
+        if (!QuicListener.IsSupported)
         {
-            throw new PlatformNotSupportedException("The QUIC server transport is not supported on this platform.");
+            throw new NotSupportedException(
+                "The QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
         }
 
         if ((serverAddress.Transport is string transport && transport != Name) || serverAddress.Params.Count > 0)

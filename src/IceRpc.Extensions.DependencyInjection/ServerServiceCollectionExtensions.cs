@@ -3,12 +3,12 @@
 using IceRpc.Extensions.DependencyInjection.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Quic;
-using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net.Quic;
 
 namespace IceRpc.Extensions.DependencyInjection;
 
@@ -158,25 +158,23 @@ public static class ServerServiceCollectionExtensions
                provider => new TcpServerTransport(
                    provider.GetRequiredService<IOptions<TcpServerTransportOptions>>().Value));
 
-        // The default multiplexed transport is QUIC on most platforms.
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
-        {
-#pragma warning disable CA1416 // Validate platform compatibility
-            services
-                .TryAddSingleton<IMultiplexedServerTransport>(
-                    provider => new QuicServerTransport(
-                        provider.GetRequiredService<IOptions<QuicServerTransportOptions>>().Value));
-#pragma warning restore CA1416 // Validate platform compatibility
-        }
-        else
-        {
-            // Use Slic over TCP on other platforms.
-            services
-                .TryAddSingleton<IMultiplexedServerTransport>(
-                    provider => new SlicServerTransport(
-                        provider.GetRequiredService<IOptions<SlicTransportOptions>>().Value,
-                        provider.GetRequiredService<IDuplexServerTransport>()));
-        }
+        services
+            .TryAddSingleton<IMultiplexedServerTransport>(
+                provider =>
+                {
+                    if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows())
+                    {
+                        if (QuicListener.IsSupported)
+                        {
+                            return new QuicServerTransport(
+                                provider.GetRequiredService<IOptions<QuicServerTransportOptions>>().Value);
+                        }
+                        throw new NotSupportedException(
+                            "The default QUIC server transport is not available on this system. Please review the Platform Dependencies for QUIC in the .NET documentation.");
+                    }
+                    throw new PlatformNotSupportedException(
+                        "The default QUIC server transport is not supported on this platform. You need to register an IMultiplexedServerTransport implementation in the service collection.");
+                });
 
         return services;
     }
