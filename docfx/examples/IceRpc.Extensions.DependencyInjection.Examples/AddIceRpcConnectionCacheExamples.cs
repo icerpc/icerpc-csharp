@@ -28,8 +28,8 @@ public static class AddIceRpcConnectionCacheExamples
                 .AddOptions<ConnectionCacheOptions>()
                 .Configure(options =>
                     options.ConnectTimeout = TimeSpan.FromSeconds(30));
-                // options.ClientAuthenticationOptions remains null which means we'll use the system certificates for
-                // QUIC connections created by this cache.
+                // options.ClientAuthenticationOptions remains null: this cache uses the Trusted Root CAs to validate
+                // the server certificates when establishing secure QUIC connections.
 
             services.AddIceRpcConnectionCache();
         });

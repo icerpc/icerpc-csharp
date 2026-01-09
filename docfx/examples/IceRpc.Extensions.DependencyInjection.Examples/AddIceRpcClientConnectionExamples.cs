@@ -21,8 +21,8 @@ public static class AddIceRpcClientConnectionExamples
                 // We need to set at least ServerAddress in the options.
                 .Configure(options =>
                     options.ServerAddress = new ServerAddress(new Uri("icerpc://localhost")));
-                // options.ClientAuthenticationOptions remains null which means we'll use the system certificates for
-                // this secure QUIC connection.
+                // options.ClientAuthenticationOptions remains null: this client connection uses the Trusted Root CAs
+                // to validate the server certificate when establishing the underlying secure QUIC connection.
 
             services.AddIceRpcClientConnection();
         });
