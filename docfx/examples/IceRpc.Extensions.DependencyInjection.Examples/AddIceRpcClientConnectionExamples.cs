@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Quic;
+using IceRpc.Transports.Slic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -21,27 +21,29 @@ public static class AddIceRpcClientConnectionExamples
                 // We need to set at least ServerAddress in the options.
                 .Configure(options =>
                     options.ServerAddress = new ServerAddress(new Uri("icerpc://localhost")));
+                // options.ClientAuthenticationOptions remains null: this client connection uses the Trusted Root CAs
+                // to validate the server certificate when establishing the underlying secure QUIC connection.
 
             services.AddIceRpcClientConnection();
         });
         #endregion
     }
 
-    public static void AddClientConnectionWithQuic(string[] args)
+    public static void AddClientConnectionWithSlic(string[] args)
     {
-        #region ClientConnectionWithQuic
+        #region ClientConnectionWithSlic
         IHostBuilder builder = Host.CreateDefaultBuilder(args);
         builder.ConfigureServices(services =>
         {
             services
                 .AddOptions<ClientConnectionOptions>()
-                // options.ClientAuthenticationOptions remains null which means we'll use the system certificates for this
-                // secure QUIC connection.
+                // Since options.ClientAuthenticationOptions is null, we use plain TCP (no TLS).
                 .Configure(options =>
                     options.ServerAddress = new ServerAddress(new Uri("icerpc://localhost")));
             services
-                // The IMultiplexedClientTransport singleton is implemented by QUIC.
-                .AddSingleton<IMultiplexedClientTransport>(provider => new QuicClientTransport())
+                // The IMultiplexedClientTransport singleton is implemented by Slic.
+                .AddSingleton<IMultiplexedClientTransport>(
+                    provider => new SlicClientTransport(provider.GetRequiredService<IDuplexClientTransport>()))
                 .AddIceRpcClientConnection();
         });
         #endregion
