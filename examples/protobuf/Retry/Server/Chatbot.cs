@@ -25,12 +25,12 @@ internal partial class Chatbot : IGreeterService
         if (RandomNumberGenerator.GetInt32(10) < 5)
         {
             Console.WriteLine(
-                $"Dispatching Greet request {{ name = '{message.name}' }} => DispatchException(StatusCode.Unavailable)");
+                $"Dispatching Greet request {{ name = '{message.Name}' }} => DispatchException(StatusCode.Unavailable)");
             throw new DispatchException(StatusCode.Unavailable);
         }
         else
         {
-            Console.WriteLine($"Dispatching Greet request {{ name = '{message.name}' }} => greeting");
+            Console.WriteLine($"Dispatching Greet request {{ name = '{message.Name}' }} => greeting");
             return new(new GreetResponse { Greeting = $"Hello, {message.Name}, from server #{_serverNumber}!" });
         }
     }
