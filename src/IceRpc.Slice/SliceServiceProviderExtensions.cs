@@ -1,52 +1,59 @@
 // Copyright (c) ZeroC, Inc.
 
+// TODO: temporary, for paramref. See #4220.
+#pragma warning disable CS1734 // XML comment has a type parameter reference that is not valid.
+
 namespace IceRpc.Slice;
 
 /// <summary>Provides extension methods for <see cref="IServiceProvider" /> to create Slice proxies.</summary>
 public static class SliceServiceProviderExtensions
 {
-    /// <summary>Creates a Slice proxy with this service provider.</summary>
-    /// <typeparam name="TProxy">The Slice proxy struct.</typeparam>
+    /// <summary>Extension methods for <see cref="IServiceProvider" />.</summary>
     /// <param name="provider">The service provider.</param>
-    /// <param name="serviceAddress">The service address of the new proxy; null is equivalent to the default service
-    /// address for the proxy type.</param>
-    /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
-    /// <remarks>The new proxy uses the <see cref="IInvoker" /> retrieved from <paramref name="provider" /> as its
-    /// invocation pipeline, and the <see cref="SliceEncodeOptions" /> retrieved from <paramref name="provider" /> as
-    /// its encode options.</remarks>
-    public static TProxy CreateSliceProxy<TProxy>(this IServiceProvider provider, ServiceAddress? serviceAddress = null)
-        where TProxy : struct, IProxy
+    extension(IServiceProvider provider)
     {
-        var invoker = (IInvoker?)provider.GetService(typeof(IInvoker));
-        if (invoker is null)
+        /// <summary>Creates a Slice proxy with this service provider.</summary>
+        /// <typeparam name="TProxy">The Slice proxy struct.</typeparam>
+        /// <param name="serviceAddress">The service address of the new proxy; null is equivalent to the default
+        /// service address for the proxy type.</param>
+        /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
+        /// <remarks>The new proxy uses the <see cref="IInvoker" /> retrieved from <paramref name="provider" />
+        /// as its invocation pipeline, and the <see cref="SliceEncodeOptions" /> retrieved from
+        /// <paramref name="provider" /> as its encode options.</remarks>
+        public TProxy CreateSliceProxy<TProxy>(ServiceAddress? serviceAddress = null)
+            where TProxy : struct, IProxy
         {
-            throw new InvalidOperationException("Could not find service of type 'IInvoker' in the service container.");
+            var invoker = (IInvoker?)provider.GetService(typeof(IInvoker));
+            if (invoker is null)
+            {
+                throw new InvalidOperationException(
+                    "Could not find service of type 'IInvoker' in the service container.");
+            }
+
+            return serviceAddress is null ?
+                new TProxy
+                {
+                    EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
+                    Invoker = invoker
+                }
+                :
+                new TProxy
+                {
+                    EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
+                    Invoker = invoker,
+                    ServiceAddress = serviceAddress
+                };
         }
 
-        return serviceAddress is null ?
-            new TProxy
-            {
-                EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
-                Invoker = invoker
-            }
-            :
-            new TProxy
-            {
-                EncodeOptions = (SliceEncodeOptions?)provider.GetService(typeof(SliceEncodeOptions)),
-                Invoker = invoker,
-                ServiceAddress = serviceAddress
-            };
+        /// <summary>Creates a Slice proxy with this service provider.</summary>
+        /// <typeparam name="TProxy">The Slice proxy struct.</typeparam>
+        /// <param name="serviceAddressUri">The service address of the proxy as a URI.</param>
+        /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
+        /// <remarks>The new proxy uses the <see cref="IInvoker" /> retrieved from <paramref name="provider" />
+        /// as its invocation pipeline, and the <see cref="SliceEncodeOptions" /> retrieved from
+        /// <paramref name="provider" /> as its encode options.</remarks>
+        public TProxy CreateSliceProxy<TProxy>(Uri serviceAddressUri)
+            where TProxy : struct, IProxy =>
+            provider.CreateSliceProxy<TProxy>(new ServiceAddress(serviceAddressUri));
     }
-
-    /// <summary>Creates a Slice proxy with this service provider.</summary>
-    /// <typeparam name="TProxy">The Slice proxy struct.</typeparam>
-    /// <param name="provider">The service provider.</param>
-    /// <param name="serviceAddressUri">The service address of the proxy as a URI.</param>
-    /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
-    /// <remarks>The new proxy uses the <see cref="IInvoker" /> retrieved from <paramref name="provider" /> as its
-    /// invocation pipeline, and the <see cref="SliceEncodeOptions" /> retrieved from <paramref name="provider" /> as
-    /// its encode options.</remarks>
-    public static TProxy CreateSliceProxy<TProxy>(this IServiceProvider provider, Uri serviceAddressUri)
-        where TProxy : struct, IProxy =>
-        provider.CreateSliceProxy<TProxy>(new ServiceAddress(serviceAddressUri));
 }

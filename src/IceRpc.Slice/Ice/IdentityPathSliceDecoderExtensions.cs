@@ -9,8 +9,12 @@ namespace IceRpc.Slice.Ice;
 /// identity.</summary>
 public static class IdentityPathSliceDecoderExtensions
 {
-    /// <summary>Decodes a path encoded as an Ice identity.</summary>
+    /// <summary>Extension methods for <see cref="SliceDecoder" />.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    /// <returns>The decoded identity path.</returns>
-    public static string DecodeIdentityPath(this ref SliceDecoder decoder) => new Identity(ref decoder).ToPath();
+    extension(ref SliceDecoder decoder)
+    {
+        /// <summary>Decodes a path encoded as an Ice identity.</summary>
+        /// <returns>The decoded identity path.</returns>
+        public string DecodeIdentityPath() => new Identity(ref decoder).ToPath();
+    }
 }

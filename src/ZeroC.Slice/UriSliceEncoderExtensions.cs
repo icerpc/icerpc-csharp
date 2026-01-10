@@ -6,8 +6,12 @@ namespace ZeroC.Slice;
 /// <c>WellKnownTypes::Uri</c>.</summary>
 public static class UriSliceEncoderExtensions
 {
-    /// <summary>Encodes a URI.</summary>
+    /// <summary>Extension methods for <see cref="SliceEncoder" />.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    /// <param name="value">The value to encode.</param>
-    public static void EncodeUri(this ref SliceEncoder encoder, Uri value) => encoder.EncodeString(value.ToString());
+    extension(ref SliceEncoder encoder)
+    {
+        /// <summary>Encodes a URI.</summary>
+        /// <param name="value">The value to encode.</param>
+        public void EncodeUri(Uri value) => encoder.EncodeString(value.ToString());
+    }
 }

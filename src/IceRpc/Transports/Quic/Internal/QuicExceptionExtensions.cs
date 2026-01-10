@@ -10,8 +10,12 @@ namespace IceRpc.Transports.Quic.Internal;
 [SupportedOSPlatform("windows")]
 internal static class QuicExceptionExtensions
 {
-    /// <summary>Converts a <see cref="QuicException"/> into an <see cref="IceRpcException"/>.</summary>
-    internal static IceRpcException ToIceRpcException(this QuicException exception) =>
+    /// <summary>Extension methods for <see cref="QuicException" />.</summary>
+    /// <param name="exception">The exception to convert.</param>
+    extension(QuicException exception)
+    {
+        /// <summary>Converts a <see cref="QuicException"/> into an <see cref="IceRpcException"/>.</summary>
+        internal IceRpcException ToIceRpcException() =>
         exception.QuicError switch
         {
             QuicError.ConnectionAborted =>
@@ -30,7 +34,8 @@ internal static class QuicExceptionExtensions
                                 "The connection was aborted by the peer."),
                         _ => new IceRpcException(
                                 IceRpcError.ConnectionAborted,
-                                $"The connection was aborted by the peer with an unknown application error code: '{applicationErrorCode}'"),
+                                "The connection was aborted by the peer with an unknown application error code: " +
+                                $"'{applicationErrorCode}'"),
                     } :
                     // An application error code should always be set with QuicError.ConnectionAborted.
                     new IceRpcException(IceRpcError.IceRpcError, exception),
@@ -45,9 +50,11 @@ internal static class QuicExceptionExtensions
                         new IceRpcException(IceRpcError.TruncatedData, exception) :
                         new IceRpcException(
                             IceRpcError.TruncatedData,
-                            $"The stream was aborted by the peer with an unknown application error code: '{applicationErrorCode}'") :
+                            "The stream was aborted by the peer with an unknown application error code: " +
+                            $"'{applicationErrorCode}'") :
                     // An application error code should always be set with QuicError.StreamAborted.
                     new IceRpcException(IceRpcError.IceRpcError, exception),
             _ => new IceRpcException(IceRpcError.IceRpcError, exception)
         };
+    }
 }

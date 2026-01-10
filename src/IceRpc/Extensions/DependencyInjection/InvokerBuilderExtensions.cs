@@ -8,28 +8,31 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// pipeline or to add a middleware that sets a feature.</summary>
 public static class InvokerBuilderExtensions
 {
-    /// <summary>Sets the last invoker of the invocation pipeline to be a DI service managed by the service provider.
-    /// </summary>
-    /// <typeparam name="TService">The type of the DI service.</typeparam>
+    /// <summary>Extension methods for <see cref="IInvokerBuilder" />.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <returns>This builder.</returns>
-    public static IInvokerBuilder Into<TService>(this IInvokerBuilder builder) where TService : IInvoker
+    extension(IInvokerBuilder builder)
     {
-        object? into = builder.ServiceProvider.GetService(typeof(TService));
-        return into is not null ? builder.Into((IInvoker)into) :
-            throw new InvalidOperationException(
-                $"Could not find service of type '{typeof(TService)}' in the service container.");
-    }
-
-    /// <summary>Adds an interceptor that sets a feature in all requests.</summary>
-    /// <typeparam name="TFeature">The type of the feature.</typeparam>
-    /// <param name="builder">The builder being configured.</param>
-    /// <param name="feature">The value of the feature to set.</param>
-    /// <returns>The builder.</returns>
-    public static IInvokerBuilder UseFeature<TFeature>(this IInvokerBuilder builder, TFeature feature) =>
-        builder.Use(next => new InlineInvoker((request, cancellationToken) =>
+        /// <summary>Sets the last invoker of the invocation pipeline to be a DI service managed by the service
+        /// provider.</summary>
+        /// <typeparam name="TService">The type of the DI service.</typeparam>
+        /// <returns>This builder.</returns>
+        public IInvokerBuilder Into<TService>() where TService : IInvoker
         {
-            request.Features = request.Features.With(feature);
-            return next.InvokeAsync(request, cancellationToken);
-        }));
+            object? into = builder.ServiceProvider.GetService(typeof(TService));
+            return into is not null ? builder.Into((IInvoker)into) :
+                throw new InvalidOperationException(
+                    $"Could not find service of type '{typeof(TService)}' in the service container.");
+        }
+
+        /// <summary>Adds an interceptor that sets a feature in all requests.</summary>
+        /// <typeparam name="TFeature">The type of the feature.</typeparam>
+        /// <param name="feature">The value of the feature to set.</param>
+        /// <returns>The builder.</returns>
+        public IInvokerBuilder UseFeature<TFeature>(TFeature feature) =>
+            builder.Use(next => new InlineInvoker((request, cancellationToken) =>
+            {
+                request.Features = request.Features.With(feature);
+                return next.InvokeAsync(request, cancellationToken);
+            }));
+    }
 }

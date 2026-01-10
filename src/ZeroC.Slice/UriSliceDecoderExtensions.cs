@@ -6,19 +6,23 @@ namespace ZeroC.Slice;
 /// <see cref="Uri" />.</summary>
 public static class UriSliceDecoderExtensions
 {
-    /// <summary>Decodes a URI.</summary>
+    /// <summary>Extension methods for <see cref="SliceDecoder" />.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    /// <returns>The URI decoded as a <see cref="Uri"/>.</returns>
-    public static Uri DecodeUri(this ref SliceDecoder decoder)
+    extension(ref SliceDecoder decoder)
     {
-        string value = decoder.DecodeString();
-        try
+        /// <summary>Decodes a URI.</summary>
+        /// <returns>The URI decoded as a <see cref="Uri"/>.</returns>
+        public Uri DecodeUri()
         {
-            return new Uri(value, UriKind.RelativeOrAbsolute);
-        }
-        catch (UriFormatException exception)
-        {
-            throw new InvalidDataException(message: null, exception);
+            string value = decoder.DecodeString();
+            try
+            {
+                return new Uri(value, UriKind.RelativeOrAbsolute);
+            }
+            catch (UriFormatException exception)
+            {
+                throw new InvalidDataException(message: null, exception);
+            }
         }
     }
 }

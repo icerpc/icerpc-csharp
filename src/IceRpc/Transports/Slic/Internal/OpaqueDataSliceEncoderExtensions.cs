@@ -8,8 +8,12 @@ namespace IceRpc.Transports.Slic.Internal;
 /// 64-bit opaque data value.</summary>
 internal static class OpaqueDataSliceEncoderExtensions
 {
-    /// <summary>Encodes a <see langword="long" /> as a 64-bit opaque data value.</summary>
+    /// <summary>Extension methods for <see cref="SliceEncoder" />.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    /// <param name="value">The value to encode.</param>
-    internal static void EncodeOpaqueData(this ref SliceEncoder encoder, long value) => encoder.EncodeInt64(value);
+    extension(ref SliceEncoder encoder)
+    {
+        /// <summary>Encodes a <see langword="long" /> as a 64-bit opaque data value.</summary>
+        /// <param name="value">The value to encode.</param>
+        internal void EncodeOpaqueData(long value) => encoder.EncodeInt64(value);
+    }
 }

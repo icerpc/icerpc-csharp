@@ -6,18 +6,23 @@ namespace IceRpc.Transports.Tcp.Internal;
 
 internal static class SocketExtensions
 {
-    /// <summary>Configures a socket.</summary>
-    internal static void Configure(this Socket socket, TcpTransportOptions options)
+    /// <summary>Extension methods for <see cref="Socket" />.</summary>
+    /// <param name="socket">The socket to configure.</param>
+    extension(Socket socket)
     {
-        socket.NoDelay = options.NoDelay;
+        /// <summary>Configures a socket.</summary>
+        internal void Configure(TcpTransportOptions options)
+        {
+            socket.NoDelay = options.NoDelay;
 
-        if (options.ReceiveBufferSize is int receiveSize)
-        {
-            socket.ReceiveBufferSize = receiveSize;
-        }
-        if (options.SendBufferSize is int sendSize)
-        {
-            socket.SendBufferSize = sendSize;
+            if (options.ReceiveBufferSize is int receiveSize)
+            {
+                socket.ReceiveBufferSize = receiveSize;
+            }
+            if (options.SendBufferSize is int sendSize)
+            {
+                socket.SendBufferSize = sendSize;
+            }
         }
     }
 }

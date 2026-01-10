@@ -9,12 +9,16 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// </summary>
 public static class TelemetryDispatcherBuilderExtensions
 {
-    /// <summary>Adds a <see cref="TelemetryMiddleware" /> to the dispatcher builder.</summary>
+    /// <summary>Extension methods for <see cref="IDispatcherBuilder" />.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <returns>The builder being configured.</returns>
-    public static IDispatcherBuilder UseTelemetry(this IDispatcherBuilder builder) =>
-        builder.ServiceProvider.GetService(typeof(ActivitySource)) is ActivitySource activitySource ?
-        builder.Use(next => new TelemetryMiddleware(next, activitySource)) :
-        throw new InvalidOperationException(
-            $"Could not find service of type '{nameof(ActivitySource)}' in the service container.");
+    extension(IDispatcherBuilder builder)
+    {
+        /// <summary>Adds a <see cref="TelemetryMiddleware" /> to the dispatcher builder.</summary>
+        /// <returns>The builder being configured.</returns>
+        public IDispatcherBuilder UseTelemetry() =>
+            builder.ServiceProvider.GetService(typeof(ActivitySource)) is ActivitySource activitySource ?
+            builder.Use(next => new TelemetryMiddleware(next, activitySource)) :
+            throw new InvalidOperationException(
+                $"Could not find service of type '{nameof(ActivitySource)}' in the service container.");
+    }
 }

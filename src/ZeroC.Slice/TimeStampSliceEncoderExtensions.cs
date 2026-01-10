@@ -6,9 +6,13 @@ namespace ZeroC.Slice;
 /// <c>WellKnownTypes::TimeStamp</c>.</summary>
 public static class TimeStampSliceEncoderExtensions
 {
-    /// <summary>Encodes a DateTime as a time stamp.</summary>
+    /// <summary>Extension methods for <see cref="SliceEncoder" />.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    /// <param name="value">The value to encode.</param>
-    public static void EncodeTimeStamp(this ref SliceEncoder encoder, DateTime value) =>
-        encoder.EncodeInt64(value.ToUniversalTime().Ticks);
+    extension(ref SliceEncoder encoder)
+    {
+        /// <summary>Encodes a DateTime as a time stamp.</summary>
+        /// <param name="value">The value to encode.</param>
+        public void EncodeTimeStamp(DateTime value) =>
+            encoder.EncodeInt64(value.ToUniversalTime().Ticks);
+    }
 }

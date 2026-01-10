@@ -8,13 +8,17 @@ namespace IceRpc.Internal;
 /// underlying buffer is reached.</summary>
 internal static class SliceDecoderExtensions
 {
-    /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
+    /// <summary>Extension methods for <see cref="SliceDecoder" />.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    internal static void CheckEndOfBuffer(this ref SliceDecoder decoder)
+    extension(ref SliceDecoder decoder)
     {
-        if (!decoder.End)
+        /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
+        internal void CheckEndOfBuffer()
         {
-            throw new InvalidDataException($"There are {decoder.Remaining} bytes remaining in the buffer.");
+            if (!decoder.End)
+            {
+                throw new InvalidDataException($"There are {decoder.Remaining} bytes remaining in the buffer.");
+            }
         }
     }
 }

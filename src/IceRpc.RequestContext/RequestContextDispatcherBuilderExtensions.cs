@@ -8,9 +8,13 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// </summary>
 public static class RequestContextDispatcherBuilderExtensions
 {
-    /// <summary>Adds a <see cref="RequestContextMiddleware" /> to this dispatcher builder.</summary>
+    /// <summary>Extension methods for <see cref="IDispatcherBuilder" />.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <returns>The builder being configured.</returns>
-    public static IDispatcherBuilder UseRequestContext(this IDispatcherBuilder builder) =>
-        builder.Use(next => new RequestContextMiddleware(next));
+    extension(IDispatcherBuilder builder)
+    {
+        /// <summary>Adds a <see cref="RequestContextMiddleware" /> to this dispatcher builder.</summary>
+        /// <returns>The builder being configured.</returns>
+        public IDispatcherBuilder UseRequestContext() =>
+            builder.Use(next => new RequestContextMiddleware(next));
+    }
 }

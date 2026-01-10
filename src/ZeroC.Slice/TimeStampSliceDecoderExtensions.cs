@@ -6,19 +6,23 @@ namespace ZeroC.Slice;
 /// <c>WellKnownTypes::TimeStamp</c> into a <see cref="DateTime" />.</summary>
 public static class TimeStampSliceDecoderExtensions
 {
-    /// <summary>Decodes a time stamp.</summary>
+    /// <summary>Extension methods for <see cref="SliceDecoder" />.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    /// <returns>The time stamp decoded as a <see cref="DateTime"/>.</returns>
-    public static DateTime DecodeTimeStamp(this ref SliceDecoder decoder)
+    extension(ref SliceDecoder decoder)
     {
-        long value = decoder.DecodeInt64();
-        try
+        /// <summary>Decodes a time stamp.</summary>
+        /// <returns>The time stamp decoded as a <see cref="DateTime"/>.</returns>
+        public DateTime DecodeTimeStamp()
         {
-            return new DateTime(value, DateTimeKind.Utc);
-        }
-        catch (ArgumentOutOfRangeException exception)
-        {
-            throw new InvalidDataException(message: null, exception);
+            long value = decoder.DecodeInt64();
+            try
+            {
+                return new DateTime(value, DateTimeKind.Utc);
+            }
+            catch (ArgumentOutOfRangeException exception)
+            {
+                throw new InvalidDataException(message: null, exception);
+            }
         }
     }
 }

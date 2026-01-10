@@ -213,7 +213,11 @@ public class CustomTypeTests
         Assert.That(CustomTypeSliceDecoderExtensions.DecodeNullableCustomType(ref decoder), Is.Null);
         Assert.That(new StructWithCustomTypeField(ref decoder), Is.EqualTo(structWithCustomTypeField));
         Assert.That(
-            decoder.DecodeTagged(1, TagFormat.FSize, CustomTypeSliceDecoderExtensions.DecodeNullableCustomType, useTagEndMarker: false),
+            decoder.DecodeTagged(
+                1,
+                TagFormat.FSize,
+                CustomTypeSliceDecoderExtensions.DecodeNullableCustomType,
+                useTagEndMarker: false),
             Is.EqualTo(myCustomType));
 
         Assert.That(decoder.DecodeUInt8(), Is.EqualTo(Slice1Definitions.TagEndMarker));
@@ -229,43 +233,49 @@ public record struct MyCustomType
 
 public static class CustomTypeSliceEncoderExtensions
 {
-    public static void EncodeCustomType(this ref SliceEncoder encoder, MyCustomType myCustom)
+    extension(ref SliceEncoder encoder)
     {
-        encoder.EncodeBool(myCustom.Flag);
-        encoder.EncodeInt32(myCustom.Value);
-    }
-
-    public static void EncodeNullableCustomType(this ref SliceEncoder encoder, MyCustomType? myCustom)
-    {
-        Assert.That(encoder.Encoding, Is.EqualTo(SliceEncoding.Slice1));
-
-        encoder.EncodeString(myCustom is null ? "nope" : "yep!");
-        if (myCustom is not null)
+        public void EncodeCustomType(MyCustomType myCustom)
         {
-            encoder.EncodeCustomType(myCustom.Value);
+            encoder.EncodeBool(myCustom.Flag);
+            encoder.EncodeInt32(myCustom.Value);
+        }
+
+        public void EncodeNullableCustomType(MyCustomType? myCustom)
+        {
+            Assert.That(encoder.Encoding, Is.EqualTo(SliceEncoding.Slice1));
+
+            encoder.EncodeString(myCustom is null ? "nope" : "yep!");
+            if (myCustom is not null)
+            {
+                encoder.EncodeCustomType(myCustom.Value);
+            }
         }
     }
 }
 
 public static class CustomTypeSliceDecoderExtensions
 {
-    public static MyCustomType DecodeCustomType(this ref SliceDecoder decoder)
+    extension(ref SliceDecoder decoder)
     {
-        MyCustomType myCustom;
-        myCustom.Flag = decoder.DecodeBool();
-        myCustom.Value = decoder.DecodeInt32();
-        return myCustom;
-    }
-
-    public static MyCustomType? DecodeNullableCustomType(this ref SliceDecoder decoder)
-    {
-        Assert.That(decoder.Encoding, Is.EqualTo(SliceEncoding.Slice1));
-
-        return decoder.DecodeString() switch
+        public MyCustomType DecodeCustomType()
         {
-            "nope" => null,
-            "yep!" => (MyCustomType?)decoder.DecodeCustomType(),
-            _ => throw new InvalidDataException("decoded invalid custom type"),
-        };
+            MyCustomType myCustom;
+            myCustom.Flag = decoder.DecodeBool();
+            myCustom.Value = decoder.DecodeInt32();
+            return myCustom;
+        }
+
+        public MyCustomType? DecodeNullableCustomType()
+        {
+            Assert.That(decoder.Encoding, Is.EqualTo(SliceEncoding.Slice1));
+
+            return decoder.DecodeString() switch
+            {
+                "nope" => null,
+                "yep!" => (MyCustomType?)decoder.DecodeCustomType(),
+                _ => throw new InvalidDataException("decoded invalid custom type"),
+            };
+        }
     }
 }

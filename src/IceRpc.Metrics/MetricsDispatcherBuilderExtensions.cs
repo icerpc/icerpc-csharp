@@ -8,9 +8,13 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// </summary>
 public static class MetricsDispatcherBuilderExtensions
 {
-    /// <summary>Adds a <see cref="MetricsMiddleware" /> to this dispatcher builder.</summary>
+    /// <summary>Extension methods for <see cref="IDispatcherBuilder" />.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <returns>The builder being configured.</returns>
-    public static IDispatcherBuilder UseMetrics(this IDispatcherBuilder builder) =>
-        builder.Use(next => new MetricsMiddleware(next));
+    extension(IDispatcherBuilder builder)
+    {
+        /// <summary>Adds a <see cref="MetricsMiddleware" /> to this dispatcher builder.</summary>
+        /// <returns>The builder being configured.</returns>
+        public IDispatcherBuilder UseMetrics() =>
+            builder.Use(next => new MetricsMiddleware(next));
+    }
 }

@@ -206,10 +206,19 @@ public static class ProxyExtensions
         }
     }
 
-    /// <summary>Converts a proxy into a proxy struct. This conversion always succeeds.</summary>
-    /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
+    /// <summary>Extension methods for <see cref="IProxy" />.</summary>
     /// <param name="proxy">The source proxy.</param>
-    /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
-    public static TProxy ToProxy<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
-        new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
+    extension(IProxy proxy)
+    {
+        /// <summary>Converts a proxy into a proxy struct. This conversion always succeeds.</summary>
+        /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
+        /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
+        public TProxy ToProxy<TProxy>() where TProxy : struct, IProxy =>
+            new()
+            {
+                EncodeOptions = proxy.EncodeOptions,
+                Invoker = proxy.Invoker,
+                ServiceAddress = proxy.ServiceAddress
+            };
+    }
 }

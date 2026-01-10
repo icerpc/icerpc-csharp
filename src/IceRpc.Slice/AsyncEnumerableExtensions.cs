@@ -6,33 +6,36 @@ using ZeroC.Slice;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a <see
-/// cref="PipeReader"/>.</summary>
+/// <summary>Provides an extension method for <see cref="IAsyncEnumerable{T}" /> to encode elements into a
+/// <see cref="PipeReader"/>.</summary>
 public static class AsyncEnumerableExtensions
 {
-    /// <summary>Encodes an async enumerable into a stream of bytes represented by a <see cref="PipeReader"/>.</summary>
-    /// <typeparam name="T">The async enumerable element type.</typeparam>
+    /// <summary>Extension methods for <see cref="IAsyncEnumerable{T}" />.</summary>
     /// <param name="asyncEnumerable">The async enumerable to encode into a stream of bytes.</param>
-    /// <param name="encodeAction">The action used to encode one element.</param>
-    /// <param name="useSegments"><see langword="true" /> if an element can be encoded on a variable number of bytes;
-    /// otherwise, <see langword="false" />.</param>
-    /// <param name="encoding">The Slice encoding to use.</param>
-    /// <param name="encodeOptions">The Slice encode options.</param>
-    /// <returns>A pipe reader that represents the encoded stream of bytes.</returns>
-    /// <remarks>This extension method is used to encode streaming parameters and streaming return values with the
-    /// Slice2 encoding.</remarks>
-    public static PipeReader ToPipeReader<T>(
-        this IAsyncEnumerable<T> asyncEnumerable,
-        EncodeAction<T> encodeAction,
-        bool useSegments,
-        SliceEncoding encoding = SliceEncoding.Slice2,
-        SliceEncodeOptions? encodeOptions = null) =>
-        new AsyncEnumerablePipeReader<T>(
-            asyncEnumerable,
-            encodeAction,
-            useSegments,
-            encoding,
-            encodeOptions);
+    extension<T>(IAsyncEnumerable<T> asyncEnumerable)
+    {
+        /// <summary>Encodes an async enumerable into a stream of bytes represented by a
+        /// <see cref="PipeReader"/>.</summary>
+        /// <param name="encodeAction">The action used to encode one element.</param>
+        /// <param name="useSegments"><see langword="true" /> if an element can be encoded on a variable number
+        /// of bytes; otherwise, <see langword="false" />.</param>
+        /// <param name="encoding">The Slice encoding to use.</param>
+        /// <param name="encodeOptions">The Slice encode options.</param>
+        /// <returns>A pipe reader that represents the encoded stream of bytes.</returns>
+        /// <remarks>This extension method is used to encode streaming parameters and streaming return values with the
+        /// Slice2 encoding.</remarks>
+        public PipeReader ToPipeReader(
+            EncodeAction<T> encodeAction,
+            bool useSegments,
+            SliceEncoding encoding = SliceEncoding.Slice2,
+            SliceEncodeOptions? encodeOptions = null) =>
+            new AsyncEnumerablePipeReader<T>(
+                asyncEnumerable,
+                encodeAction,
+                useSegments,
+                encoding,
+                encodeOptions);
+    }
 
     // Overriding ReadAtLeastAsyncCore or CopyToAsync methods for this reader is not critical since this reader is
     // mostly used by the IceRPC core to copy the encoded data for the enumerable to the network stream. This copy
@@ -157,7 +160,8 @@ public static class AsyncEnumerableExtensions
                     else
                     {
                         throw new NotSupportedException(
-                            "Cannot resume reading an AsyncEnumerablePipeReader after canceling a ReadAsync or calling CancelPendingRead.");
+                            "Cannot resume reading an AsyncEnumerablePipeReader after canceling a ReadAsync " +
+                            "or calling CancelPendingRead.");
                     }
                 }
             }

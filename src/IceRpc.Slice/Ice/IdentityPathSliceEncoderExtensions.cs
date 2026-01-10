@@ -8,9 +8,13 @@ namespace IceRpc.Slice.Ice;
 /// <summary>Provides an extension for <see cref="SliceEncoder" /> to encode a path as an Ice identity.</summary>
 public static class IdentityPathSliceEncoderExtensions
 {
-    /// <summary>Encodes a path as an Ice identity.</summary>
+    /// <summary>Extension methods for <see cref="SliceEncoder" />.</summary>
     /// <param name="encoder">The Slice encoder.</param>
-    /// <param name="value">The path to encode as an Ice identity.</param>
-    public static void EncodeIdentityPath(this ref SliceEncoder encoder, string value) =>
-        Identity.Parse(value).Encode(ref encoder);
+    extension(ref SliceEncoder encoder)
+    {
+        /// <summary>Encodes a path as an Ice identity.</summary>
+        /// <param name="value">The path to encode as an Ice identity.</param>
+        public void EncodeIdentityPath(string value) =>
+            Identity.Parse(value).Encode(ref encoder);
+    }
 }

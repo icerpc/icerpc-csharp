@@ -9,15 +9,20 @@ namespace IceRpc;
 /// </summary>
 public static class TelemetryPipelineExtensions
 {
-    /// <summary>Adds the <see cref="TelemetryInterceptor" /> to the pipeline.</summary>
+    /// <summary>Extension methods for <see cref="Pipeline" />.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="activitySource">The <see cref="ActivitySource" /> used to start the request activity.</param>
-    /// <returns>The pipeline being configured.</returns>
-    /// <example>
-    /// The following code adds the telemetry interceptor to the invocation pipeline.
-    /// <code source="../../docfx/examples/IceRpc.Telemetry.Examples/TelemetryInterceptorExamples.cs" region="UseTelemetry" lang="csharp" />
-    /// </example>
-    /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Telemetry"/>
-    public static Pipeline UseTelemetry(this Pipeline pipeline, ActivitySource activitySource) =>
-        pipeline.Use(next => new TelemetryInterceptor(next, activitySource));
+    extension(Pipeline pipeline)
+    {
+        /// <summary>Adds the <see cref="TelemetryInterceptor" /> to the pipeline.</summary>
+        /// <param name="activitySource">The <see cref="ActivitySource" /> used to start the request activity.</param>
+        /// <returns>The pipeline being configured.</returns>
+        /// <example>
+        /// The following code adds the telemetry interceptor to the invocation pipeline.
+        /// <code source="../../docfx/examples/IceRpc.Telemetry.Examples/TelemetryInterceptorExamples.cs"
+        /// region="UseTelemetry" lang="csharp" />
+        /// </example>
+        /// <seealso href="https://github.com/icerpc/icerpc-csharp/tree/main/examples/Telemetry"/>
+        public Pipeline UseTelemetry(ActivitySource activitySource) =>
+            pipeline.Use(next => new TelemetryInterceptor(next, activitySource));
+    }
 }

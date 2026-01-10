@@ -60,7 +60,11 @@ internal class SlicStream : IMultiplexedStream
     private readonly SlicPipeWriter? _outputPipeWriter;
     // FlagEnumExtensions operations are used to update the state. These operations are atomic and don't require mutex
     // locking.
+
+    #pragma warning disable 0649 // State is set using FlagEnumExtensions methods.
     private int _state;
+    #pragma warning restore 0649
+
     private readonly TaskCompletionSource _writesClosedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _writesClosePending;
 

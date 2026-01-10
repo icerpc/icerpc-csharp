@@ -10,32 +10,33 @@ namespace IceRpc;
 /// <summary>Provides extension methods for <see cref="Pipeline" /> to add the locator interceptor.</summary>
 public static class LocatorPipelineExtensions
 {
-    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator.</summary>
+    /// <summary>Extension methods for <see cref="Pipeline" />.</summary>
     /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="locator">The locator used for the resolutions.</param>
-    /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocator locator) =>
-        UseLocator(pipeline, locator, NullLoggerFactory.Instance);
+    extension(Pipeline pipeline)
+    {
+        /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator.</summary>
+        /// <param name="locator">The locator used for the resolutions.</param>
+        /// <returns>The pipeline being configured.</returns>
+        public Pipeline UseLocator(ILocator locator) =>
+            pipeline.UseLocator(locator, NullLoggerFactory.Instance);
 
-    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator.</summary>
-    /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="locator">The locator used for the resolutions.</param>
-    /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
-    /// <see cref="LocatorInterceptor" />.</param>
-    /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocator locator, ILoggerFactory loggerFactory) =>
-        UseLocator(
-            pipeline,
-            new LocatorLocationResolver(
-                locator,
-                new LocatorOptions(),
-                loggerFactory.CreateLogger<LocatorInterceptor>()));
+        /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified locator.</summary>
+        /// <param name="locator">The locator used for the resolutions.</param>
+        /// <param name="loggerFactory">The logger factory used to create a <see cref="ILogger{TCategoryName}" /> for
+        /// <see cref="LocatorInterceptor" />.</param>
+        /// <returns>The pipeline being configured.</returns>
+        public Pipeline UseLocator(ILocator locator, ILoggerFactory loggerFactory) =>
+            pipeline.UseLocator(
+                new LocatorLocationResolver(
+                    locator,
+                    new LocatorOptions(),
+                    loggerFactory.CreateLogger<LocatorInterceptor>()));
 
-    /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified location resolver.
-    /// </summary>
-    /// <param name="pipeline">The pipeline being configured.</param>
-    /// <param name="locationResolver">The location resolver instance.</param>
-    /// <returns>The pipeline being configured.</returns>
-    public static Pipeline UseLocator(this Pipeline pipeline, ILocationResolver locationResolver) =>
-        pipeline.Use(next => new LocatorInterceptor(next, locationResolver));
+        /// <summary>Adds a <see cref="LocatorInterceptor" /> to the pipeline, using the specified location resolver.
+        /// </summary>
+        /// <param name="locationResolver">The location resolver instance.</param>
+        /// <returns>The pipeline being configured.</returns>
+        public Pipeline UseLocator(ILocationResolver locationResolver) =>
+            pipeline.Use(next => new LocatorInterceptor(next, locationResolver));
+    }
 }

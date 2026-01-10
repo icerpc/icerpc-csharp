@@ -8,9 +8,13 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// middleware.</summary>
 public static class DeadlineDispatcherBuilderExtensions
 {
-    /// <summary>Adds a <see cref="DeadlineMiddleware" /> to this dispatcher builder.</summary>
+    /// <summary>Extension methods for <see cref="IDispatcherBuilder" />.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <returns>The builder being configured.</returns>
-    public static IDispatcherBuilder UseDeadline(this IDispatcherBuilder builder) =>
-        builder.Use(next => new DeadlineMiddleware(next));
+    extension(IDispatcherBuilder builder)
+    {
+        /// <summary>Adds a <see cref="DeadlineMiddleware" /> to this dispatcher builder.</summary>
+        /// <returns>The builder being configured.</returns>
+        public IDispatcherBuilder UseDeadline() =>
+            builder.Use(next => new DeadlineMiddleware(next));
+    }
 }

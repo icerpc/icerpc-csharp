@@ -8,9 +8,13 @@ namespace IceRpc.Extensions.DependencyInjection;
 /// </summary>
 public static class RequestContextInvokerBuilderExtensions
 {
-    /// <summary>Adds a <see cref="RequestContextInterceptor" /> to this builder.</summary>
+    /// <summary>Extension methods for <see cref="IInvokerBuilder" />.</summary>
     /// <param name="builder">The builder being configured.</param>
-    /// <returns>The builder being configured.</returns>
-    public static IInvokerBuilder UseRequestContext(this IInvokerBuilder builder) =>
-        builder.Use(next => new RequestContextInterceptor(next));
+    extension(IInvokerBuilder builder)
+    {
+        /// <summary>Adds a <see cref="RequestContextInterceptor" /> to this builder.</summary>
+        /// <returns>The builder being configured.</returns>
+        public IInvokerBuilder UseRequestContext() =>
+            builder.Use(next => new RequestContextInterceptor(next));
+    }
 }

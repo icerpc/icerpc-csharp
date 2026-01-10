@@ -8,18 +8,23 @@ namespace IceRpc.Internal;
 /// />.</summary>
 internal static class BufferWriterExtensions
 {
-    /// <summary>Writes a sequence of bytes to a buffer writer.</summary>
-    internal static void Write(this IBufferWriter<byte> writer, ReadOnlySequence<byte> sequence)
+    /// <summary>Extension methods for <see cref="IBufferWriter{T}" />.</summary>
+    /// <param name="writer">The buffer writer.</param>
+    extension(IBufferWriter<byte> writer)
     {
-        if (sequence.IsSingleSegment)
+        /// <summary>Writes a sequence of bytes to a buffer writer.</summary>
+        internal void Write(ReadOnlySequence<byte> sequence)
         {
-            writer.Write(sequence.FirstSpan);
-        }
-        else
-        {
-            foreach (ReadOnlyMemory<byte> segment in sequence)
+            if (sequence.IsSingleSegment)
             {
-                writer.Write(segment.Span);
+                writer.Write(sequence.FirstSpan);
+            }
+            else
+            {
+                foreach (ReadOnlyMemory<byte> segment in sequence)
+                {
+                    writer.Write(segment.Span);
+                }
             }
         }
     }

@@ -8,14 +8,18 @@ namespace ZeroC.Slice;
 /// <see cref="Guid" />.</summary>
 public static class UuidSliceDecoderExtensions
 {
-    /// <summary>Decodes a <c>WellKnownTypes::Uuid</c>.</summary>
+    /// <summary>Extension methods for <see cref="SliceDecoder" />.</summary>
     /// <param name="decoder">The Slice decoder.</param>
-    /// <returns>The Uuid decoded as a <see cref="Guid"/>.</returns>
-    public static Guid DecodeUuid(this ref SliceDecoder decoder)
+    extension(ref SliceDecoder decoder)
     {
-        using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(16);
-        Span<byte> span = owner.Memory.Span[..16];
-        decoder.CopyTo(span);
-        return new Guid(span);
+        /// <summary>Decodes a <c>WellKnownTypes::Uuid</c>.</summary>
+        /// <returns>The Uuid decoded as a <see cref="Guid"/>.</returns>
+        public Guid DecodeUuid()
+        {
+            using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(16);
+            Span<byte> span = owner.Memory.Span[..16];
+            decoder.CopyTo(span);
+            return new Guid(span);
+        }
     }
 }
