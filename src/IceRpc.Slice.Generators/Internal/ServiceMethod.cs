@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice.Generators.Internal;
 
-/// <summary>Represents an RPC operation annotated with the <c>IceRpc.Slice.SliceOperationAttribute</c> attribute.
+/// <summary>Represents an RPC operation annotated with the <c>IceRpc.Slice.SliceDOperationAttribute</c> attribute.
 /// </summary>
 internal readonly record struct ServiceMethod
 {
@@ -14,9 +14,27 @@ internal readonly record struct ServiceMethod
     // "findObjectById"
     internal string OperationName { get; }
 
-    internal ServiceMethod(string dispatchMethodName, string operationName)
+    internal bool CompressReturnValue { get; }
+
+    internal SliceEncoding Encoding { get; }
+
+    internal string[] ExceptionSpecification { get; }
+
+    internal bool Idempotent { get; }
+
+    internal ServiceMethod(
+        string dispatchMethodName,
+        string operationName,
+        bool compressReturnValue,
+        SliceEncoding encoding,
+        string[] exceptionSpecification,
+        bool idempotent)
     {
         DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
+        CompressReturnValue = compressReturnValue;
+        Encoding = encoding;
+        ExceptionSpecification = exceptionSpecification;
+        Idempotent = idempotent;
     }
 }

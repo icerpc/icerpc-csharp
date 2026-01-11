@@ -328,7 +328,36 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
     builder
         .add_operation_parameters(operation, TypeContext::IncomingParam)
         .add_comments(operation.formatted_doc_comment_seealso())
+        .add_attribute(operation_attribute(operation))
         .build()
+}
+
+fn operation_attribute(operation: &Operation) -> String {
+    if operation.exception_specification.is_empty() {
+        format!(
+            r#"SliceOperation("{name}", Idempotent = {is_idempotent}, Encoding = {encoding}, CompressReturnValue = {compress_return_value})"#,
+            name = operation.identifier(),
+            is_idempotent = operation.is_idempotent,
+            encoding = operation.encoding.to_cs_encoding(),
+            compress_return_value = operation.compress_return(),
+        )
+    } else {
+        let exceptions = operation
+            .exception_specification
+            .iter()
+            .map(|ex| format!("typeof({})", ex.escape_scoped_identifier(&operation.namespace())))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        format!(
+            r#"SliceOperation("{name}", Idempotent = {is_idempotent}, Encoding = {encoding}, CompressReturnValue = {compress_return_value}, ExceptionSpecification = new System.Type[] {{ {exceptions} }})"#,
+            name = operation.identifier(),
+            is_idempotent = operation.is_idempotent,
+            encoding = operation.encoding.to_cs_encoding(),
+            compress_return_value = operation.compress_return(),
+            exceptions = exceptions,
+        )
+    }
 }
 
 fn operation_dispatch(operation: &Operation) -> CodeBlock {
@@ -337,7 +366,6 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
 
     format!(
         r#"
-[SliceOperation("{name}")]
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
     {service_name} target,
@@ -347,7 +375,6 @@ protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingR
     {dispatch_body}
 }}
 "#,
-        name = operation.identifier(),
         service_name = operation.parent().service_name(),
         dispatch_body = operation_dispatch_body(operation).indent(),
     )
@@ -360,20 +387,6 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     let return_parameters = operation.return_members();
 
     let mut check_and_decode = CodeBlock::default();
-
-    if !operation.is_idempotent {
-        check_and_decode.writeln("request.CheckNonIdempotent();");
-    }
-
-    if operation.compress_return() {
-        check_and_decode.writeln(
-            "\
-request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
-    request.Features,
-    IceRpc.Features.CompressFeature.Compress);
-            ",
-        )
-    }
 
     let encoding = operation.encoding.to_cs_encoding();
 

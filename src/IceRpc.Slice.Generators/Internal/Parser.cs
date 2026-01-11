@@ -188,7 +188,59 @@ internal sealed class Parser
                 items.Length == 1,
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
-            serviceMethods.Add(new ServiceMethod(dispatchMethodName: GetFullName(method), operationName));
+
+            bool compressReturnValue = false;
+            bool idempotent = false;
+            SliceEncoding encoding = SliceEncoding.Slice2;
+            string[] exceptionSpecification = [];
+
+            foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
+            {
+                switch (namedArgument.Key)
+                {
+                    case "CompressReturnValue":
+                        if (namedArgument.Value.Value is bool c)
+                        {
+                            compressReturnValue = c;
+                        }
+                        break;
+                    case "Idempotent":
+                        if (namedArgument.Value.Value is bool b)
+                        {
+                            idempotent = b;
+                        }
+                        break;
+                    case "Encoding":
+                        if (namedArgument.Value.Value is byte encodingByte)
+                        {
+                            encoding = (SliceEncoding)encodingByte;
+                        }
+                        break;
+                    case "ExceptionSpecification":
+                        if (namedArgument.Value.Values is ImmutableArray<TypedConstant> exceptionTypes)
+                        {
+                            var exceptions = new List<string>();
+                            foreach (TypedConstant exceptionType in exceptionTypes)
+                            {
+                                if (exceptionType.Value is INamedTypeSymbol exceptionSymbol)
+                                {
+                                    exceptions.Add(GetFullName(exceptionSymbol));
+                                }
+                            }
+                            exceptionSpecification = [.. exceptions];
+                        }
+                        break;
+                }
+            }
+
+            serviceMethods.Add(
+                new ServiceMethod(
+                    dispatchMethodName: $"{GetFullName(interfaceSymbol)}.SliceD{method.Name}",
+                    operationName,
+                    compressReturnValue,
+                    encoding,
+                    exceptionSpecification,
+                    idempotent));
         }
         return serviceMethods;
     }

@@ -4,6 +4,8 @@ namespace IceRpc.Slice.Generators.Internal;
 
 internal class Emitter
 {
+    private const string IndentSpaces = "    ";
+
     internal string Emit(IReadOnlyList<ServiceClass> serviceClasses, CancellationToken cancellationToken)
     {
         var generatedClasses = new List<string>();
@@ -24,24 +26,86 @@ internal class Emitter
                 {
                     string operationName = serviceMethod.OperationName;
                     string dispatchMethodName = serviceMethod.DispatchMethodName;
+                    string indent = IndentSpaces;
+                    dispatchImplementation += $"case \"{operationName}\"" + ":\n";
+                    dispatchImplementation += $"{indent}// Encoding = Slice.{serviceMethod.Encoding}\n";
+                    if (serviceMethod.ExceptionSpecification.Length > 0)
+                    {
+                        string exceptions = string.Join(
+                            ", ",
+                            serviceMethod.ExceptionSpecification.Select(e => $"{e}"));
+                        dispatchImplementation += $"{indent}// Exception specification = {exceptions}\n";
+                    }
+
+                    if (!serviceMethod.Idempotent)
+                    {
+                        dispatchImplementation += $"{indent}IceRpc.Slice.IncomingRequestExtensions.CheckNonIdempotent(request);\n";
+                    }
+                    if (serviceMethod.CompressReturnValue)
+                    {
+                        dispatchImplementation +=
+                            @$"{indent}request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
+    {indent}request.Features,
+    {indent}IceRpc.Features.CompressFeature.Compress);
+";
+                    }
+
+                    /*
+                    This does not work because we need to await the call to handle the exceptions.
+                    if (serviceMethod.ExceptionSpecification.Length > 0)
+                    {
+                        dispatchImplementation += $"{indent}try\n";
+                        dispatchImplementation += $"{indent}{{\n";
+                        indent += IndentSpaces;
+                    }
+                    */
+
                     dispatchImplementation +=
-                        $"\"{operationName}\" => global::{dispatchMethodName}(this, request, cancellationToken),\n";
+                        $"{indent}return global::{dispatchMethodName}(this, request, cancellationToken);\n";
+
+                    /*
+                    if (serviceMethod.ExceptionSpecification.Length > 0)
+                    {
+                        indent = IndentSpaces; // TODO: this is not good
+                        dispatchImplementation += $"{indent}}}\n";
+                        if (serviceMethod.ExceptionSpecification.Length == 1)
+                        {
+                            dispatchImplementation +=
+                                $"{indent}catch (global::{serviceMethod.ExceptionSpecification[0]} sliceException)";
+                        }
+                        else
+                        {
+                            string exceptionList = string.Join(
+                                " or ",
+                                serviceMethod.ExceptionSpecification.Select(e => $"global::{e}"));
+
+                            dispatchImplementation +=
+                                $"{indent}catch (SliceException sliceException) when (sliceException is {exceptionList})";
+                        }
+                        dispatchImplementation += $@"{indent}
+    {{
+    {indent}return IceRpc.Slice.IncomingRequestExtensions.CreateSliceExceptionResponse(request,sliceException, SliceEncoding.Slice1);
+    }}
+";
+                    }
+                    */
                 }
 
+                dispatchImplementation += "default:\n";
                 if (serviceClass.HasBaseServiceClass)
                 {
-                    dispatchImplementation += "_ => base.DispatchAsync(request, cancellationToken)";
+                    dispatchImplementation += $"{IndentSpaces}return base.DispatchAsync(request, cancellationToken);\n";
                 }
                 else
                 {
                     dispatchImplementation +=
-                        "_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))";
+                        $"{IndentSpaces}return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));\n";
                 }
 
                 dispatchImplementation = @$"
-return request.Operation switch
+switch (request.Operation)
 {{
-    {dispatchImplementation.WithIndent("    ")}
+    {dispatchImplementation.WithIndent(IndentSpaces)}
 }};".Trim();
             }
             else
@@ -95,6 +159,8 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 #pragma warning disable CS0612 // Type or member is obsolete
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CS0619 // Type or member is obsolete
+
+using ZeroC.Slice;
 
 ";
         generated += string.Join("\n\n", generatedClasses).Trim();
