@@ -561,7 +561,7 @@ int startPos_ = encoder_.EncodedByteCount;",
 
 // Dispatch-only for now
 pub fn encode_operation_stream(operation: &Operation) -> CodeBlock {
-    let namespace = &operation.namespace();
+    let namespace = operation.namespace();
     let return_values = operation.return_members();
     let encoding = operation.encoding.to_cs_encoding();
 
