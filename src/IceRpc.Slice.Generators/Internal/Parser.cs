@@ -189,19 +189,19 @@ internal sealed class Parser
                 "Unexpected number of arguments in attribute constructor.");
             string operationName = (string)items[0].Value!;
 
-            bool compressReturnValue = false;
-            bool idempotent = false;
+            bool compressReturn = false;
             bool encodedReturn = false;
             string[] exceptionSpecification = [];
+            bool idempotent = false;
 
             foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
             {
                 switch (namedArgument.Key)
                 {
-                    case "CompressReturnValue":
+                    case "CompressReturn":
                         if (namedArgument.Value.Value is bool c)
                         {
-                            compressReturnValue = c;
+                            compressReturn = c;
                         }
                         break;
                     case "EncodedReturn":
@@ -235,9 +235,10 @@ internal sealed class Parser
 
             serviceMethods.Add(
                 new ServiceMethod(
-                    dispatchMethodName: $"{GetFullName(interfaceSymbol)}.SliceD{method.Name}",
+                    method.Name,
                     operationName,
-                    compressReturnValue,
+                    GetFullName(interfaceSymbol),
+                    compressReturn,
                     encodedReturn,
                     exceptionSpecification,
                     idempotent));

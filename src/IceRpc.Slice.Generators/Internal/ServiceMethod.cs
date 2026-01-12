@@ -6,15 +6,15 @@ namespace IceRpc.Slice.Generators.Internal;
 /// </summary>
 internal readonly record struct ServiceMethod
 {
-    // The fully qualified name of the generated dispatch helper method, for example:
-    // "IceRpc.Slice.Ice.ILocatorService.SliceDFindObjectByIdAsync"
+    // The name of the C# method, for example: "FindObjectByIdAsync"
     internal string DispatchMethodName { get; }
 
-    // The name of the service operation as defined in Slice interface, for example:
-    // "findObjectById"
+    // The name of the service operation as defined in Slice interface, for example: "findObjectById"
     internal string OperationName { get; }
 
-    internal bool CompressReturnValue { get; }
+    internal string FullInterfaceName { get; }
+
+    internal bool CompressReturn { get; }
 
     internal bool EncodedReturn { get; }
 
@@ -25,6 +25,7 @@ internal readonly record struct ServiceMethod
     internal ServiceMethod(
         string dispatchMethodName,
         string operationName,
+        string fullInterfaceName,
         bool compressReturnValue,
         bool encodedReturn,
         string[] exceptionSpecification,
@@ -32,7 +33,8 @@ internal readonly record struct ServiceMethod
     {
         DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
-        CompressReturnValue = compressReturnValue;
+        FullInterfaceName = fullInterfaceName;
+        CompressReturn = compressReturnValue;
         EncodedReturn = encodedReturn;
         ExceptionSpecification = exceptionSpecification;
         Idempotent = idempotent;
