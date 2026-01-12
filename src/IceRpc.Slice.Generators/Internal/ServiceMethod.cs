@@ -16,7 +16,7 @@ internal readonly record struct ServiceMethod
 
     internal bool CompressReturnValue { get; }
 
-    internal SliceEncoding Encoding { get; }
+    internal bool EncodedReturn { get; }
 
     internal string[] ExceptionSpecification { get; }
 
@@ -26,14 +26,14 @@ internal readonly record struct ServiceMethod
         string dispatchMethodName,
         string operationName,
         bool compressReturnValue,
-        SliceEncoding encoding,
+        bool encodedReturn,
         string[] exceptionSpecification,
         bool idempotent)
     {
         DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
         CompressReturnValue = compressReturnValue;
-        Encoding = encoding;
+        EncodedReturn = encodedReturn;
         ExceptionSpecification = exceptionSpecification;
         Idempotent = idempotent;
     }

@@ -333,15 +333,21 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
 }
 
 fn operation_attribute(operation: &Operation) -> String {
-    if operation.exception_specification.is_empty() {
-        format!(
-            r#"SliceOperation("{name}", Idempotent = {is_idempotent}, Encoding = {encoding}, CompressReturnValue = {compress_return_value})"#,
-            name = operation.identifier(),
-            is_idempotent = operation.is_idempotent,
-            encoding = operation.encoding.to_cs_encoding(),
-            compress_return_value = operation.compress_return(),
-        )
-    } else {
+    let mut attribute = format!(r#"SliceOperation("{name}""#, name = operation.identifier());
+
+    if operation.compress_return() {
+        attribute.push_str(", CompressReturn = true");
+    }
+
+    if operation.has_attribute::<CsEncodedReturn>() {
+        attribute.push_str(", EncodedReturn = true");
+    }
+
+    if operation.is_idempotent {
+        attribute.push_str(", Idempotent = true");
+    }
+
+    if !operation.exception_specification.is_empty() {
         let exceptions = operation
             .exception_specification
             .iter()
@@ -349,15 +355,14 @@ fn operation_attribute(operation: &Operation) -> String {
             .collect::<Vec<_>>()
             .join(", ");
 
-        format!(
-            r#"SliceOperation("{name}", Idempotent = {is_idempotent}, Encoding = {encoding}, CompressReturnValue = {compress_return_value}, ExceptionSpecification = new System.Type[] {{ {exceptions} }})"#,
-            name = operation.identifier(),
-            is_idempotent = operation.is_idempotent,
-            encoding = operation.encoding.to_cs_encoding(),
-            compress_return_value = operation.compress_return(),
+        attribute.push_str(&format!(
+            ", ExceptionSpecification = new System.Type[] {{ {exceptions} }}",
             exceptions = exceptions,
-        )
+        ));
     }
+
+    attribute.push(')');
+    attribute
 }
 
 fn operation_dispatch(operation: &Operation) -> CodeBlock {

@@ -191,7 +191,7 @@ internal sealed class Parser
 
             bool compressReturnValue = false;
             bool idempotent = false;
-            SliceEncoding encoding = SliceEncoding.Slice2;
+            bool encodedReturn = false;
             string[] exceptionSpecification = [];
 
             foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
@@ -204,16 +204,10 @@ internal sealed class Parser
                             compressReturnValue = c;
                         }
                         break;
-                    case "Idempotent":
-                        if (namedArgument.Value.Value is bool b)
+                    case "EncodedReturn":
+                        if (namedArgument.Value.Value is bool encodedReturnBool)
                         {
-                            idempotent = b;
-                        }
-                        break;
-                    case "Encoding":
-                        if (namedArgument.Value.Value is byte encodingByte)
-                        {
-                            encoding = (SliceEncoding)encodingByte;
+                            encodedReturn = encodedReturnBool;
                         }
                         break;
                     case "ExceptionSpecification":
@@ -230,6 +224,12 @@ internal sealed class Parser
                             exceptionSpecification = [.. exceptions];
                         }
                         break;
+                    case "Idempotent":
+                        if (namedArgument.Value.Value is bool b)
+                        {
+                            idempotent = b;
+                        }
+                        break;
                 }
             }
 
@@ -238,7 +238,7 @@ internal sealed class Parser
                     dispatchMethodName: $"{GetFullName(interfaceSymbol)}.SliceD{method.Name}",
                     operationName,
                     compressReturnValue,
-                    encoding,
+                    encodedReturn,
                     exceptionSpecification,
                     idempotent));
         }

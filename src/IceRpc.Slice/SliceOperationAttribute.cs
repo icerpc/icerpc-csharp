@@ -18,11 +18,13 @@ public sealed class SliceOperationAttribute : Attribute
     /// <summary>Gets a value indicating whether the return value needs to be compressed.</summary>
     /// <value><see langword="true"/> if the return values needs to be compressed; otherwise, <see langword="false"/>.
     /// </value>
-    public bool CompressReturnValue { get; init; }
+    public bool CompressReturn { get; init; }
 
-    /// <summary>Gets the encoding used to encode the request and response payloads of this operation.</summary>
-    /// <value>The Slice encoding.</value>
-    public SliceEncoding Encoding { get; init; } = SliceEncoding.Slice2;
+    /// <summary>Gets a value indicating whether the non-stream portion of the return value is pre-encoded by the
+    /// application.</summary>
+    /// <value><see langword="true"/> if the non-stream portion of the return value is pre-encoded; otherwise,
+    /// <see langword="false"/>.</value>
+    public bool EncodedReturn { get; init; }
 
     /// <summary>Gets the exception specification of the operation.</summary>
     /// <value>An array of Slice exception types that the operation may throw.</value>

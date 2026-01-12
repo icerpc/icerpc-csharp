@@ -28,7 +28,7 @@ internal class Emitter
                     string dispatchMethodName = serviceMethod.DispatchMethodName;
                     string indent = IndentSpaces;
                     dispatchImplementation += $"case \"{operationName}\"" + ":\n";
-                    dispatchImplementation += $"{indent}// Encoding = Slice.{serviceMethod.Encoding}\n";
+                    dispatchImplementation += $"{indent}// EncodedReturn = {serviceMethod.EncodedReturn}\n";
                     if (serviceMethod.ExceptionSpecification.Length > 0)
                     {
                         string exceptions = string.Join(

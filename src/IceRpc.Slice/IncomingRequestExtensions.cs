@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Slice.Internal;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using ZeroC.Slice;
 
@@ -126,6 +127,8 @@ public static class IncomingRequestExtensions
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
     /// <param name="encodeReturnValueStream">A function that encodes the stream portion of the return value.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
     public static async ValueTask<OutgoingResponse> DispatchOperationAsync<TArgs, TReturnValue>(
@@ -134,15 +137,23 @@ public static class IncomingRequestExtensions
         Func<TReturnValue, PipeReader> encodeReturnValue,
         Func<TReturnValue, PipeReader>? encodeReturnValueStream,
         Func<TArgs, IFeatureCollection, CancellationToken, ValueTask<TReturnValue>> method,
+        Func<SliceException, bool>? inExceptionSpecification,
         CancellationToken cancellationToken)
     {
         TArgs args = await decodeArgs(request, cancellationToken).ConfigureAwait(false);
-        TReturnValue returnValue = await method(args, request.Features, cancellationToken).ConfigureAwait(false);
-        return new OutgoingResponse(request)
+        try
         {
-            Payload = encodeReturnValue(returnValue),
-            PayloadContinuation = encodeReturnValueStream?.Invoke(returnValue)
-        };
+            TReturnValue returnValue = await method(args, request.Features, cancellationToken).ConfigureAwait(false);
+            return new OutgoingResponse(request)
+            {
+                Payload = encodeReturnValue(returnValue),
+                PayloadContinuation = encodeReturnValueStream?.Invoke(returnValue)
+            };
+        }
+        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        {
+            return request.CreateSliceExceptionResponse(sliceException, SliceEncoding.Slice1);
+        }
     }
 
     /// <summary>Dispatches an incoming request to a method that matches the request's operation name. The operation
@@ -153,6 +164,8 @@ public static class IncomingRequestExtensions
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
     /// <param name="encodeReturnValueStream">A function that encodes the stream portion of the return value.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
     public static async ValueTask<OutgoingResponse> DispatchOperationAsync<TReturnValue>(
@@ -161,15 +174,23 @@ public static class IncomingRequestExtensions
         Func<TReturnValue, PipeReader> encodeReturnValue,
         Func<TReturnValue, PipeReader>? encodeReturnValueStream,
         Func<IFeatureCollection, CancellationToken, ValueTask<TReturnValue>> method,
+        Func<SliceException, bool>? inExceptionSpecification,
         CancellationToken cancellationToken)
     {
         await decodeEmptyArgs(request, cancellationToken).ConfigureAwait(false);
-        TReturnValue returnValue = await method(request.Features, cancellationToken).ConfigureAwait(false);
-        return new OutgoingResponse(request)
+        try
         {
-            Payload = encodeReturnValue(returnValue),
-            PayloadContinuation = encodeReturnValueStream?.Invoke(returnValue)
-        };
+            TReturnValue returnValue = await method(request.Features, cancellationToken).ConfigureAwait(false);
+            return new OutgoingResponse(request)
+            {
+                Payload = encodeReturnValue(returnValue),
+                PayloadContinuation = encodeReturnValueStream?.Invoke(returnValue)
+            };
+        }
+        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        {
+            return request.CreateSliceExceptionResponse(sliceException, SliceEncoding.Slice1);
+        }
     }
 
     /// <summary>Dispatches an incoming request to a method that matches the request's operation name. The operation
@@ -178,17 +199,27 @@ public static class IncomingRequestExtensions
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeArgs">A function that decodes the arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
     public static async ValueTask<OutgoingResponse> DispatchOperationAsync<TArgs>(
         this IncomingRequest request,
         Func<IncomingRequest, CancellationToken, ValueTask<TArgs>> decodeArgs,
         Func<TArgs, IFeatureCollection, CancellationToken, ValueTask> method,
+        Func<SliceException, bool>? inExceptionSpecification,
         CancellationToken cancellationToken)
     {
         TArgs args = await decodeArgs(request, cancellationToken).ConfigureAwait(false);
-        await method(args, request.Features, cancellationToken).ConfigureAwait(false);
-        return new OutgoingResponse(request);
+        try
+        {
+            await method(args, request.Features, cancellationToken).ConfigureAwait(false);
+            return new OutgoingResponse(request);
+        }
+        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        {
+            return request.CreateSliceExceptionResponse(sliceException, SliceEncoding.Slice1);
+        }
     }
 
     /// <summary>Dispatches an incoming request to a method that matches the request's operation name. The operation
@@ -196,17 +227,27 @@ public static class IncomingRequestExtensions
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeEmptyArgs">A function that decodes the empty arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
+    /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
+    /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
     public static async ValueTask<OutgoingResponse> DispatchOperationAsync(
         this IncomingRequest request,
         Func<IncomingRequest, CancellationToken, ValueTask> decodeEmptyArgs,
         Func<IFeatureCollection, CancellationToken, ValueTask> method,
+        Func<SliceException, bool>? inExceptionSpecification,
         CancellationToken cancellationToken)
     {
         await decodeEmptyArgs(request, cancellationToken).ConfigureAwait(false);
-        await method(request.Features, cancellationToken).ConfigureAwait(false);
-        return new OutgoingResponse(request);
+        try
+        {
+            await method(request.Features, cancellationToken).ConfigureAwait(false);
+            return new OutgoingResponse(request);
+        }
+        catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
+        {
+            return request.CreateSliceExceptionResponse(sliceException, SliceEncoding.Slice1);
+        }
     }
 
     // The error message includes the inner exception type and message because we don't transmit this inner exception
