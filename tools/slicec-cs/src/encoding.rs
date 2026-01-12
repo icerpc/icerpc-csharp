@@ -512,8 +512,22 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
 }
 
 pub fn encode_operation(operation: &Operation, is_dispatch: bool) -> CodeBlock {
-    format!(
-        "\
+    // TODO: for now we only implement the empty logic for dispatch.
+    if is_dispatch && operation.non_streamed_return_members().is_empty() {
+        if operation.streamed_return_member().is_some() {
+            // Stream-only operation
+            format!(
+                "{encoding}.CreateEmptyStructPayload()",
+                encoding = operation.encoding.to_cs_encoding()
+            )
+            .into()
+        } else {
+            // Void operation
+            "IceRpc.EmptyPipeReader.Instance".into()
+        }
+    } else {
+        format!(
+            "\
 var pipe_ = new global::System.IO.Pipelines.Pipe(
     encodeOptions?.PipeOptions ?? SliceEncodeOptions.Default.PipeOptions);
 var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
@@ -526,22 +540,52 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 
 pipe_.Writer.Complete();
 return pipe_.Reader;",
-        size_placeholder_and_start_position = match operation.encoding {
-            Encoding::Slice1 => "",
-            _ =>
-                "\
+            size_placeholder_and_start_position = match operation.encoding {
+                Encoding::Slice1 => "",
+                _ =>
+                    "\
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;",
-        },
-        rewrite_size = match operation.encoding {
-            Encoding::Slice1 => "",
-            _ => "SliceEncoder.EncodeVarUInt62((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
-        },
-        encoding = operation.encoding.to_cs_encoding(),
-        class_format = operation.get_class_format(is_dispatch),
-        encode_returns = encode_operation_parameters(operation, is_dispatch, "encoder_"),
-    )
-    .into()
+            },
+            rewrite_size = match operation.encoding {
+                Encoding::Slice1 => "",
+                _ => "SliceEncoder.EncodeVarUInt62((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);",
+            },
+            encoding = operation.encoding.to_cs_encoding(),
+            class_format = operation.get_class_format(is_dispatch),
+            encode_returns = encode_operation_parameters(operation, is_dispatch, "encoder_"),
+        )
+        .into()
+    }
+}
+
+// Dispatch-only for now
+pub fn encode_operation_stream(operation: &Operation) -> CodeBlock {
+    let namespace = operation.namespace();
+    let encoding = operation.encoding.to_cs_encoding();
+
+    let stream_return = operation
+        .streamed_return_member()
+        .expect("encode_operation_stream called on an operation without a streamed return");
+
+    let stream_type = stream_return.data_type();
+    let stream_arg = stream_return.parameter_name();
+
+    match stream_type.concrete_type() {
+        Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => stream_arg.into(),
+        _ => format!(
+            "\
+{stream_arg}.ToPipeReader(
+    {encode_stream_parameter},
+    {use_segments},
+    {encoding},
+    {encode_options})",
+            encode_stream_parameter = encode_stream_parameter(stream_type, &namespace, operation.encoding).indent(),
+            use_segments = stream_type.fixed_wire_size().is_none(),
+            encode_options = "encodeOptions",
+        )
+        .into(),
+    }
 }
 
 // TODO temporary bridging code while cleaning up the type_string functions.
