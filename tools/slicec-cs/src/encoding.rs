@@ -562,37 +562,29 @@ int startPos_ = encoder_.EncodedByteCount;",
 // Dispatch-only for now
 pub fn encode_operation_stream(operation: &Operation) -> CodeBlock {
     let namespace = operation.namespace();
-    let return_values = operation.return_members();
     let encoding = operation.encoding.to_cs_encoding();
 
-    match operation.streamed_return_member() {
-        None => "null".into(), // TODO: should never happen
-        Some(stream_return) => {
-            let stream_type = stream_return.data_type();
+    let stream_return = operation
+        .streamed_return_member()
+        .expect("encode_operation_stream called on an operation without a streamed return");
 
-            let stream_arg = if return_values.len() == 1 {
-                "returnValue".to_owned()
-            } else {
-                stream_return.parameter_name()
-            };
+    let stream_type = stream_return.data_type();
+    let stream_arg = stream_return.parameter_name();
 
-            match stream_type.concrete_type() {
-                Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => stream_arg.into(),
-                _ => format!(
-                    "\
+    match stream_type.concrete_type() {
+        Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => stream_arg.into(),
+        _ => format!(
+            "\
 {stream_arg}.ToPipeReader(
     {encode_stream_parameter},
     {use_segments},
     {encoding},
     {encode_options})",
-                    encode_stream_parameter =
-                        encode_stream_parameter(stream_type, &namespace, operation.encoding).indent(),
-                    use_segments = stream_type.fixed_wire_size().is_none(),
-                    encode_options = "encodeOptions",
-                )
-                .into(),
-            }
-        }
+            encode_stream_parameter = encode_stream_parameter(stream_type, &namespace, operation.encoding).indent(),
+            use_segments = stream_type.fixed_wire_size().is_none(),
+            encode_options = "encodeOptions",
+        )
+        .into(),
     }
 }
 

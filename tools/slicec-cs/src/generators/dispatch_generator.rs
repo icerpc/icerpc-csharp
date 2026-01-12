@@ -482,7 +482,8 @@ request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
         match operation.streamed_return_member() {
             None => "returnValue",
             Some(_) => "returnValue.Payload",
-        }.into()
+        }
+        .into()
     } else {
         dispatch_return_payload(operation)
     };
