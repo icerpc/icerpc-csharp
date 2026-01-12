@@ -67,8 +67,7 @@ private static readonly IActivator _defaultActivator =
 }
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
-    let mut operations = interface_def.operations();
-    operations.retain(|o| !o.parameters.is_empty());
+    let operations = interface_def.operations();
 
     if operations.is_empty() {
         return "".into();
@@ -77,7 +76,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     // Check if any of the base interfaces will already have a 'Request' class generated.
     // We generate a 'Request' class if and only if one of an interface's operations has a parameter.
     let base_operations = interface_def.all_inherited_operations();
-    let has_base_request_class = base_operations.iter().any(|o| !o.parameters().is_empty());
+    let has_base_request_class = !base_operations.is_empty();
 
     let mut class_builder = ContainerBuilder::new(
         if has_base_request_class {
@@ -103,16 +102,22 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             FunctionType::ExpressionBody
         };
 
+        let return_type = if parameters.is_empty() {
+            "global::System.Threading.Tasks.ValueTask".to_owned()
+        } else {
+            format!(
+                "global::System.Threading.Tasks.ValueTask<{}>",
+                parameters.to_tuple_type(namespace, TypeContext::IncomingParam),
+            )
+        };
+
         let mut builder = FunctionBuilder::new(
             if function_type == FunctionType::BlockBody {
                 "public static async"
             } else {
                 "public static"
             },
-            &format!(
-                "global::System.Threading.Tasks.ValueTask<{}>",
-                &parameters.to_tuple_type(namespace, TypeContext::IncomingParam),
-            ),
+            &return_type,
             &operation.escape_identifier_with_prefix_and_suffix("Decode", "Async"),
             function_type,
         );
@@ -146,8 +151,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
-    let mut operations = interface_def.operations();
-    operations.retain(|o| o.has_non_streamed_return_members());
+    let operations = interface_def.operations();
 
     if operations.is_empty() {
         return "".into();
@@ -156,7 +160,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     // Check if any of the base interfaces will already have a 'Response' class generated.
     // We generate a 'Response' class if and only if one of an interface's operations has a non-streamed return member.
     let base_operations = interface_def.all_inherited_operations();
-    let has_base_response_class = base_operations.iter().any(|o| o.has_non_streamed_return_members());
+    let has_base_response_class = !base_operations.is_empty();
 
     let mut class_builder = ContainerBuilder::new(
         if has_base_response_class {
@@ -184,7 +188,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             "public static",
             "global::System.IO.Pipelines.PipeReader",
             format!("Encode{operation_name}").as_str(),
-            FunctionType::BlockBody,
+            if non_streamed_returns.is_empty() {
+                FunctionType::ExpressionBody
+            } else {
+                FunctionType::BlockBody
+            },
         );
 
         builder.add_comment(
@@ -228,6 +236,50 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.set_body(encode_operation(operation, true));
 
         class_builder.add_block(builder.build());
+
+        // EncodeStreamOfXxx for the payload continuation if the operation has a streamed return member.
+        if let Some(stream_return) = operation.streamed_return_member() {
+            let mut builder = FunctionBuilder::new(
+                "public static",
+                "global::System.IO.Pipelines.PipeReader",
+                format!("EncodeStreamOf{operation_name}").as_str(),
+                FunctionType::ExpressionBody,
+            );
+
+            builder.add_comment(
+                "summary",
+                format!(
+                    "Encodes the stream returned by operation <c>{}</c> into a response payload continuation.",
+                    operation.identifier(),
+                ),
+            );
+
+            let stream_arg = if non_streamed_returns.is_empty() {
+                "returnValue".to_owned()
+            } else {
+                stream_return.parameter_name()
+            };
+
+            builder.add_parameter(
+                &stream_return.cs_type_string(namespace, TypeContext::OutgoingParam),
+                &stream_arg,
+                None,
+                Some("The stream returned by the operation.".to_owned()),
+            );
+
+            builder.add_parameter(
+                "SliceEncodeOptions?",
+                "encodeOptions",
+                Some("null"),
+                Some("The Slice encode options.".to_owned()),
+            );
+
+            builder.add_comment("returns", "A new response payload continuation.");
+
+            builder.set_body(encode_operation_stream(operation));
+
+            class_builder.add_block(builder.build());
+        }
     }
 
     class_builder.build()
@@ -298,19 +350,27 @@ var {stream_parameter_name} = {decode_operation_stream}
             writeln!(code, "return {};", operation.parameters().to_argument_tuple());
         }
     } else {
-        writeln!(
-            code,
-            "\
+        if non_streamed_parameters.is_empty() {
+            writeln!(
+                code,
+                "request.DecodeEmptyArgsAsync({encoding}, cancellationToken)",
+                encoding = encoding.to_cs_encoding(),
+            );
+        } else {
+            writeln!(
+                code,
+                "\
 request.DecodeArgsAsync(
     {encoding},
     {decode_func},
     defaultActivator: {default_activator},
     cancellationToken)
 ",
-            encoding = encoding.to_cs_encoding(),
-            decode_func = decode_non_streamed_parameters_func(&non_streamed_parameters, encoding).indent(),
-            default_activator = default_activator(encoding),
-        );
+                encoding = encoding.to_cs_encoding(),
+                decode_func = decode_non_streamed_parameters_func(&non_streamed_parameters, encoding).indent(),
+                default_activator = default_activator(encoding),
+            );
+        }
     }
     code
 }
@@ -379,13 +439,11 @@ request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
 
     match parameters.as_slice() {
         [] => {
-            // Verify the payload is indeed empty (it can contain tagged params that we have to
-            // skip).
+            // DecodeXxx returns a plain ValueTask.
             writeln!(
                 check_and_decode,
-                "\
-await request.DecodeEmptyArgsAsync({encoding}, cancellationToken).ConfigureAwait(false);",
-            );
+                "await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
+            )
         }
         [parameter] => {
             writeln!(
