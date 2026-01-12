@@ -571,7 +571,7 @@ fn dispatch_return_payload_continuation(operation: &Operation) -> CodeBlock {
             };
             format!(
                 "Response.EncodeStreamOf{operation_name}({stream_arg}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
-                operation_name = &operation.escape_identifier()
+                operation_name = operation.escape_identifier()
             )
             .into()
         }
