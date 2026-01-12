@@ -586,7 +586,7 @@ pub fn encode_operation_stream(operation: &Operation) -> CodeBlock {
     {encoding},
     {encode_options})",
                     encode_stream_parameter =
-                        encode_stream_parameter(stream_type, namespace, operation.encoding).indent(),
+                        encode_stream_parameter(stream_type, &namespace, operation.encoding).indent(),
                     use_segments = stream_type.fixed_wire_size().is_none(),
                     encode_options = "encodeOptions",
                 )
