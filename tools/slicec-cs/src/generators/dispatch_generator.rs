@@ -480,9 +480,9 @@ request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
 
     let payload = if operation.has_attribute::<CsEncodedReturn>() {
         match operation.streamed_return_member() {
-            None => "returnValue".into(),
-            Some(_) => "returnValue.Payload".into(),
-        }
+            None => "returnValue",
+            Some(_) => "returnValue.Payload",
+        }.into()
     } else {
         dispatch_return_payload(operation)
     };
