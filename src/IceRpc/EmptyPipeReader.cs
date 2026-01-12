@@ -3,15 +3,15 @@
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace IceRpc.Internal;
+namespace IceRpc;
 
 /// <summary>Implements a stateless and therefore shareable PipeReader over an empty sequence.</summary>
 /// <remarks>Because this implementation is stateless, it does not implement CancelPendingRead correctly; in
 /// practice this discrepancy should not be noticeable.</remarks>
-internal sealed class EmptyPipeReader : PipeReader
+public sealed class EmptyPipeReader : PipeReader
 {
     /// <summary>Gets the shared instance of the empty pipe reader.</summary>
-    internal static PipeReader Instance { get; } = new EmptyPipeReader();
+    public static PipeReader Instance { get; } = new EmptyPipeReader();
 
     /// <summary>The ReadResult returned by all read methods.</summary>
     private readonly ReadResult _readResult =
