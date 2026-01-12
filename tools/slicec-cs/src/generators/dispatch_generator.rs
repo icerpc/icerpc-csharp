@@ -155,7 +155,8 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     }
 
     // Check if any of the base interfaces will already have a 'Response' class generated.
-    // We generate a 'Response' class if and only if one of an interface's operations has a non-streamed return member.
+    // A 'Response' class is generated for any interface that defines at least one operation,
+    // regardless of whether its operations have non-streamed return members.
     let mut class_builder = ContainerBuilder::new(
         if !interface_def.all_inherited_operations().is_empty() {
             "public static new class"
