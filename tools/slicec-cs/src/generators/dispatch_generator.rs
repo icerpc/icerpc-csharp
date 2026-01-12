@@ -75,11 +75,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
     // Check if any of the base interfaces will already have a 'Request' class generated.
     // We generate a 'Request' class if and only if one of an interface's operations has a parameter.
-    let base_operations = interface_def.all_inherited_operations();
-    let has_base_request_class = !base_operations.is_empty();
-
     let mut class_builder = ContainerBuilder::new(
-        if has_base_request_class {
+        if !interface_def.all_inherited_operations().is_empty() {
             "public static new class"
         } else {
             "public static class"
@@ -159,11 +156,8 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
     // Check if any of the base interfaces will already have a 'Response' class generated.
     // We generate a 'Response' class if and only if one of an interface's operations has a non-streamed return member.
-    let base_operations = interface_def.all_inherited_operations();
-    let has_base_response_class = !base_operations.is_empty();
-
     let mut class_builder = ContainerBuilder::new(
-        if has_base_response_class {
+        if !interface_def.all_inherited_operations().is_empty() {
             "public static new class"
         } else {
             "public static class"
@@ -483,42 +477,25 @@ request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
         args = args.join(", "),
     );
 
-    #[allow(clippy::collapsible_else_if)] // We preserve the 'if' and 'else' blocks because they're symmetric.
-    if operation.has_attribute::<CsEncodedReturn>() {
-        if operation.streamed_return_member().is_none() {
-            writeln!(
-                dispatch_and_return,
-                "return new IceRpc.OutgoingResponse(request) {{ Payload = returnValue }};",
-            );
-        } else {
-            writeln!(
-                dispatch_and_return,
-                "\
-return new IceRpc.OutgoingResponse(request)
-{{
-    Payload = returnValue.Payload,
-    PayloadContinuation = {payload_continuation}
-}};",
-                payload_continuation = payload_continuation(operation, encoding).indent(),
-            );
+    let payload = if operation.has_attribute::<CsEncodedReturn>() {
+        match operation.streamed_return_member() {
+            None => "returnValue".into(),
+            Some(_) => "returnValue.Payload".into(),
         }
     } else {
-        if operation.return_type.is_empty() {
-            writeln!(dispatch_and_return, "return new IceRpc.OutgoingResponse(request);")
-        } else {
-            writeln!(
-                dispatch_and_return,
-                "\
+        dispatch_return_payload(operation)
+    };
+
+    writeln!(
+        dispatch_and_return,
+        "\
 return new IceRpc.OutgoingResponse(request)
 {{
     Payload = {payload},
     PayloadContinuation = {payload_continuation}
 }};",
-                payload = dispatch_return_payload(operation, encoding),
-                payload_continuation = payload_continuation(operation, encoding).indent(),
-            );
-        }
-    }
+        payload_continuation = dispatch_return_payload_continuation(operation),
+    );
 
     let mut code = CodeBlock::default();
     writeln!(code, "{check_and_decode}");
@@ -556,62 +533,46 @@ catch ({catch_expression})
     code
 }
 
-// only called for non-void operations
-fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
+fn dispatch_return_payload(operation: &Operation) -> CodeBlock {
     let non_streamed_return_values = operation.non_streamed_return_members();
 
-    let mut returns = vec![];
+    let mut args = "".to_owned();
 
-    returns.push(match operation.return_members().len() {
-        1 => "returnValue".to_owned(),
-        _ => non_streamed_return_values
-            .iter()
-            .map(|r| format!("returnValue.{}", &r.field_name()))
-            .collect::<Vec<_>>()
-            .join(", "),
-    });
+    if !non_streamed_return_values.is_empty() {
+        let mut returns = vec![];
+        returns.push(match operation.return_members().len() {
+            1 => "returnValue".to_owned(),
+            _ => non_streamed_return_values
+                .iter()
+                .map(|r| format!("returnValue.{}", &r.field_name()))
+                .collect::<Vec<_>>()
+                .join(", "),
+        });
 
-    match non_streamed_return_values.len() {
-        0 => format!("{encoding}.CreateEmptyStructPayload()"),
-        _ => format!(
-            "Response.Encode{operation_name}({args}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
-            operation_name = operation.escape_identifier(),
-            args = returns.join(", "),
-        ),
+        args = returns.join(", ") + ", ";
     }
+
+    format!(
+        "Response.Encode{operation_name}({args}request.Features.Get<ISliceFeature>()?.EncodeOptions)",
+        operation_name = &operation.escape_identifier()
+    )
     .into()
 }
 
-fn payload_continuation(operation: &Operation, encoding: &str) -> CodeBlock {
-    let namespace = &operation.namespace();
-    let return_values = operation.return_members();
+fn dispatch_return_payload_continuation(operation: &Operation) -> CodeBlock {
     match operation.streamed_return_member() {
         None => "null".into(),
         Some(stream_return) => {
-            let stream_type = stream_return.data_type();
-
-            let stream_arg = if return_values.len() == 1 {
+            let stream_arg = if operation.return_members().len() == 1 {
                 "returnValue".to_owned()
             } else {
                 format!("returnValue.{}", &stream_return.field_name())
             };
-
-            match stream_type.concrete_type() {
-                Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => stream_arg.into(),
-                _ => format!(
-                    "\
-{stream_arg}.ToPipeReader(
-    {encode_stream_parameter},
-    {use_segments},
-    {encoding},
-    {encode_options})",
-                    encode_stream_parameter =
-                        encode_stream_parameter(stream_type, namespace, operation.encoding).indent(),
-                    use_segments = stream_type.fixed_wire_size().is_none(),
-                    encode_options = "request.Features.Get<ISliceFeature>()?.EncodeOptions",
-                )
-                .into(),
-            }
+            format!(
+                "Response.EncodeStreamOf{operation_name}({stream_arg}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
+                operation_name = &operation.escape_identifier()
+            )
+            .into()
         }
     }
 }

@@ -512,6 +512,7 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
 }
 
 pub fn encode_operation(operation: &Operation, is_dispatch: bool) -> CodeBlock {
+    // TODO: for now we only implement the empty logic for dispatch.
     if is_dispatch && operation.non_streamed_return_members().is_empty() {
         if operation.streamed_return_member().is_some() {
             // Stream-only operation
@@ -522,7 +523,7 @@ pub fn encode_operation(operation: &Operation, is_dispatch: bool) -> CodeBlock {
             .into()
         } else {
             // Void operation
-            "null!".into() // temporary, provide empty PipeReader instead.
+            "IceRpc.EmptyPipeReader.Instance".into()
         }
     } else {
         format!(
