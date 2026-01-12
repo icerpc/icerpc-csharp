@@ -555,7 +555,7 @@ fn dispatch_return_payload(operation: &Operation) -> CodeBlock {
 
     format!(
         "Response.Encode{operation_name}({args}request.Features.Get<ISliceFeature>()?.EncodeOptions)",
-        operation_name = &operation.escape_identifier()
+        operation_name = operation.escape_identifier()
     )
     .into()
 }
