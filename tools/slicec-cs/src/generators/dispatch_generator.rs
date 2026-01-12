@@ -74,7 +74,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     }
 
     // Check if any of the base interfaces will already have a 'Request' class generated.
-    // We generate a 'Request' class if and only if one of an interface's operations has a parameter.
+    // We generate a 'Request' class for any interface that has operations, even if they have no parameters.
     let mut class_builder = ContainerBuilder::new(
         if !interface_def.all_inherited_operations().is_empty() {
             "public static new class"
