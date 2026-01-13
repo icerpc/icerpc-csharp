@@ -67,29 +67,18 @@ internal class Emitter
     {Indent}method: {method},";
                     if (serviceMethod.ReturnCount > 0)
                     {
-                        if (serviceMethod.EncodedReturn)
-                        {
-                            if (serviceMethod.StreamReturn)
-                            {
-                                string payloadField = $"returnValue.{serviceMethod.ReturnFieldNames[0]}";
-                                string encodeStreamArg = $"returnValue.{serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1]}";
-                                dispatchImplementation += @$"
-    {Indent}encodeReturnValue: (returnValue, _) => {payloadField},
-    {Indent}encodeReturnValueStream: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}({encodeStreamArg}, encodeOptions),";
-                            }
-                            else
-                            {
-                                dispatchImplementation += @$"
-    {Indent}encodeReturnValue: (returnValue, _) => returnValue,";
-                            }
-                        }
-                        else if (serviceMethod.ReturnCount == 1)
+                        if (serviceMethod.ReturnCount == 1)
                         {
                             if (serviceMethod.StreamReturn)
                             {
                                 dispatchImplementation += @$"
     {Indent}encodeReturnValue: (_, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions),
     {Indent}encodeReturnValueStream: global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName},";
+                            }
+                            else if (serviceMethod.EncodedReturn)
+                            {
+                                  dispatchImplementation += @$"
+    {Indent}encodeReturnValue: (returnValue, _) => returnValue,";
                             }
                             else
                             {
@@ -110,8 +99,16 @@ internal class Emitter
                                 ", ",
                                 nonStreamReturnNames.Select(name => $"returnValue.{name}"));
 
-                            dispatchImplementation += @$"
+                            if (serviceMethod.EncodedReturn)
+                            {
+                                dispatchImplementation += @$"
+    {Indent}encodeReturnValue: (returnValue, _) => {encodeArgs},";
+                            }
+                            else
+                            {
+                                dispatchImplementation += @$"
     {Indent}encodeReturnValue: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}({encodeArgs}, encodeOptions),";
+                            }
 
                             if (serviceMethod.StreamReturn)
                             {
