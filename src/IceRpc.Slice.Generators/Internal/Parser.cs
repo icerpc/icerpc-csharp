@@ -13,9 +13,11 @@ internal sealed class Parser
     internal const string OperationAttribute = "IceRpc.Slice.SliceOperationAttribute";
     internal const string ServiceAttribute = "IceRpc.Slice.SliceServiceAttribute";
 
+    private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
     private readonly INamedTypeSymbol? _operationAttribute;
+    private readonly INamedTypeSymbol? _pipeReaderSymbol;
     private readonly Action<Diagnostic> _reportDiagnostic;
     private readonly INamedTypeSymbol? _serviceAttribute;
 
@@ -28,7 +30,9 @@ internal sealed class Parser
         _reportDiagnostic = reportDiagnostic;
         _cancellationToken = cancellationToken;
 
+        _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
         _operationAttribute = _compilation.GetTypeByMetadataName(OperationAttribute);
+        _pipeReaderSymbol = _compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
         _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
     }
 
@@ -301,32 +305,32 @@ internal sealed class Parser
                     lastFieldType = methodReturnTypeArg;
                 }
 
-                // TODO better type comparison
-                if (lastFieldType.Name == "IAsyncEnumerable")
+                if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, _asyncEnumerableSymbol))
                 {
                     streamReturn = true;
                 }
-                else if (lastFieldType.Name == "PipeReader")
+                else if (SymbolEqualityComparer.Default.Equals(lastFieldType.OriginalDefinition, _pipeReaderSymbol))
                 {
                     streamReturn = !encodedReturn || returnCount > 1;
-                    // else, the single parameter is the encoded return
+                    // else, the single parameter is the encoded return, and there is no stream
                 }
             }
             // else: It's ValueTask (non-generic), returnCount stays 0
 
             serviceMethods.Add(
-                new ServiceMethod(dispatchMethodName, operationName, GetFullName(interfaceSymbol))
-                {
-                    CompressReturn = compressReturn,
-                    EncodedReturn = encodedReturn,
-                    ExceptionSpecification = exceptionSpecification,
-                    Idempotent = idempotent,
-                    ParameterCount = parameterCount,
-                    ParameterFieldNames = parameterFieldNames,
-                    ReturnCount = returnCount,
-                    ReturnFieldNames = returnFieldNames,
-                    ReturnStream = streamReturn,
-                });
+                new ServiceMethod(
+                    dispatchMethodName: dispatchMethodName,
+                    operationName: operationName,
+                    fullInterfaceName: GetFullName(interfaceSymbol),
+                    parameterCount: parameterCount,
+                    parameterFieldNames: parameterFieldNames,
+                    returnCount: returnCount,
+                    returnFieldNames: returnFieldNames,
+                    returnStream: streamReturn,
+                    compressReturn: compressReturn,
+                    encodedReturn: encodedReturn,
+                    exceptionSpecification: exceptionSpecification,
+                    idempotent: idempotent));
         }
         return serviceMethods;
     }

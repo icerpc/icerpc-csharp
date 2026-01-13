@@ -16,34 +16,55 @@ internal readonly record struct ServiceMethod
     internal string FullInterfaceName { get; }
 
     /// <summary>Gets the arity of the operation.</summary>
-    internal int ParameterCount { get; init; }
+    internal int ParameterCount { get; }
 
     /// <summary>Gets the capitalized names of the operation parameters.</summary>
     /// <remarks>This field is empty when <see cref="ParameterCount"/> is 0 or 1.</remarks>
-    internal string[] ParameterFieldNames { get; init; } = [];
+    internal string[] ParameterFieldNames { get; }
 
     /// <summary>Gets the number of elements in the return value.</summary>
-    internal int ReturnCount { get; init; }
+    internal int ReturnCount { get; }
 
     /// <summary>Gets the capitalized names of the operation return value fields.</summary>
     /// <remarks>This field is empty when <see cref="ReturnCount"/> is 0 or 1.</remarks>
-    internal string[] ReturnFieldNames { get; init; } = [];
+    internal string[] ReturnFieldNames { get; }
 
     /// <summary>Gets a value indicating whether the operation return value has a stream element.</summary>
-    internal bool ReturnStream { get; init; }
+    internal bool ReturnStream { get; }
 
-    internal bool CompressReturn { get; init; }
+    internal bool CompressReturn { get; }
 
-    internal bool EncodedReturn { get; init; }
+    internal bool EncodedReturn { get; }
 
-    internal string[] ExceptionSpecification { get; init; } = [];
+    internal string[] ExceptionSpecification { get; }
 
-    internal bool Idempotent { get; init; }
+    internal bool Idempotent { get; }
 
-    internal ServiceMethod(string dispatchMethodName, string operationName, string fullInterfaceName)
+    internal ServiceMethod(
+        string dispatchMethodName,
+        string operationName,
+        string fullInterfaceName,
+        int parameterCount,
+        string[] parameterFieldNames,
+        int returnCount,
+        string[] returnFieldNames,
+        bool returnStream,
+        bool compressReturn,
+        bool encodedReturn,
+        string[] exceptionSpecification,
+        bool idempotent)
     {
         DispatchMethodName = dispatchMethodName;
         OperationName = operationName;
         FullInterfaceName = fullInterfaceName;
+        ParameterCount = parameterCount;
+        ParameterFieldNames = parameterFieldNames;
+        ReturnCount = returnCount;
+        ReturnFieldNames = returnFieldNames;
+        ReturnStream = returnStream;
+        CompressReturn = compressReturn;
+        EncodedReturn = encodedReturn;
+        ExceptionSpecification = exceptionSpecification;
+        Idempotent = idempotent;
     }
 }

@@ -53,6 +53,9 @@ switch (request.Operation)
                     "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
 
+            // We need to implement IDispatcher all the time, even when there is a base class. The base class may or
+            // may not implement IDispatcher.
+
             string dispatcherClass = $@"
 /// <summary>Implements <see cref=""IceRpc.IDispatcher"" /> for the Slice interface(s) implemented by this class.
 /// </summary>
@@ -216,7 +219,9 @@ case ""{serviceMethod.OperationName}"":";
 
         if (serviceMethod.ExceptionSpecification.Length > 0)
         {
-            string exceptionList = string.Join(" or ", serviceMethod.ExceptionSpecification);
+            string exceptionList =
+                string.Join(" or ", serviceMethod.ExceptionSpecification.Select(ex => $"global::{ex}"));
+
             codeBlock += @$"
         inExceptionSpecification: sliceException => sliceException is {exceptionList},";
         }
