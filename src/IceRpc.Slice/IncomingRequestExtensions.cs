@@ -124,9 +124,9 @@ public static class IncomingRequestExtensions
     /// <typeparam name="TReturnValue">The type of the operation return value.</typeparam>
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeArgs">A function that decodes the arguments from the request payload.</param>
+    /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
     /// <param name="encodeReturnValueStream">A function that encodes the stream portion of the return value.</param>
-    /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -134,11 +134,11 @@ public static class IncomingRequestExtensions
     public static async ValueTask<OutgoingResponse> DispatchOperationAsync<TArgs, TReturnValue>(
         this IncomingRequest request,
         Func<IncomingRequest, CancellationToken, ValueTask<TArgs>> decodeArgs,
-        Func<TReturnValue, PipeReader> encodeReturnValue,
-        Func<TReturnValue, PipeReader>? encodeReturnValueStream,
         Func<TArgs, IFeatureCollection, CancellationToken, ValueTask<TReturnValue>> method,
-        Func<SliceException, bool>? inExceptionSpecification,
-        CancellationToken cancellationToken)
+        Func<TReturnValue, SliceEncodeOptions?, PipeReader> encodeReturnValue,
+        Func<TReturnValue, SliceEncodeOptions?, PipeReader>? encodeReturnValueStream = null,
+        Func<SliceException, bool>? inExceptionSpecification = null,
+        CancellationToken cancellationToken = default)
     {
         TArgs args = await decodeArgs(request, cancellationToken).ConfigureAwait(false);
         try
@@ -146,8 +146,9 @@ public static class IncomingRequestExtensions
             TReturnValue returnValue = await method(args, request.Features, cancellationToken).ConfigureAwait(false);
             return new OutgoingResponse(request)
             {
-                Payload = encodeReturnValue(returnValue),
-                PayloadContinuation = encodeReturnValueStream?.Invoke(returnValue)
+                Payload = encodeReturnValue(returnValue, request.Features.Get<ISliceFeature>()?.EncodeOptions),
+                PayloadContinuation =
+                    encodeReturnValueStream?.Invoke(returnValue, request.Features.Get<ISliceFeature>()?.EncodeOptions)
             };
         }
         catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
@@ -160,31 +161,31 @@ public static class IncomingRequestExtensions
     /// does not accept any arguments.</summary>
     /// <typeparam name="TReturnValue">The type of the operation return value.</typeparam>
     /// <param name="request">The incoming request.</param>
-    /// <param name="decodeEmptyArgs">A function that decodes the empty arguments from the request payload.</param>
+    /// <param name="decodeArgs">A function that decodes the empty arguments from the request payload.</param>
+    /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
     /// <param name="encodeReturnValueStream">A function that encodes the stream portion of the return value.</param>
-    /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the outgoing response.</returns>
     public static async ValueTask<OutgoingResponse> DispatchOperationAsync<TReturnValue>(
         this IncomingRequest request,
-        Func<IncomingRequest, CancellationToken, ValueTask> decodeEmptyArgs,
-        Func<TReturnValue, PipeReader> encodeReturnValue,
-        Func<TReturnValue, PipeReader>? encodeReturnValueStream,
+        Func<IncomingRequest, CancellationToken, ValueTask> decodeArgs,
         Func<IFeatureCollection, CancellationToken, ValueTask<TReturnValue>> method,
-        Func<SliceException, bool>? inExceptionSpecification,
-        CancellationToken cancellationToken)
+        Func<TReturnValue, SliceEncodeOptions?, PipeReader> encodeReturnValue,
+        Func<TReturnValue, SliceEncodeOptions?, PipeReader>? encodeReturnValueStream = null,
+        Func<SliceException, bool>? inExceptionSpecification = null,
+        CancellationToken cancellationToken = default)
     {
-        await decodeEmptyArgs(request, cancellationToken).ConfigureAwait(false);
+        await decodeArgs(request, cancellationToken).ConfigureAwait(false);
         try
         {
             TReturnValue returnValue = await method(request.Features, cancellationToken).ConfigureAwait(false);
             return new OutgoingResponse(request)
             {
-                Payload = encodeReturnValue(returnValue),
-                PayloadContinuation = encodeReturnValueStream?.Invoke(returnValue)
+                Payload = encodeReturnValue(returnValue, request.Features.Get<ISliceFeature>()?.EncodeOptions),
+                PayloadContinuation = encodeReturnValueStream?.Invoke(returnValue, request.Features.Get<ISliceFeature>()?.EncodeOptions)
             };
         }
         catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)
@@ -207,8 +208,8 @@ public static class IncomingRequestExtensions
         this IncomingRequest request,
         Func<IncomingRequest, CancellationToken, ValueTask<TArgs>> decodeArgs,
         Func<TArgs, IFeatureCollection, CancellationToken, ValueTask> method,
-        Func<SliceException, bool>? inExceptionSpecification,
-        CancellationToken cancellationToken)
+        Func<SliceException, bool>? inExceptionSpecification = null,
+        CancellationToken cancellationToken = default)
     {
         TArgs args = await decodeArgs(request, cancellationToken).ConfigureAwait(false);
         try
@@ -225,7 +226,7 @@ public static class IncomingRequestExtensions
     /// <summary>Dispatches an incoming request to a method that matches the request's operation name. The operation
     /// does not accept any arguments and does not return anything.</summary>
     /// <param name="request">The incoming request.</param>
-    /// <param name="decodeEmptyArgs">A function that decodes the empty arguments from the request payload.</param>
+    /// <param name="decodeArgs">A function that decodes the empty arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
@@ -233,12 +234,12 @@ public static class IncomingRequestExtensions
     /// <returns>A value task that holds the outgoing response.</returns>
     public static async ValueTask<OutgoingResponse> DispatchOperationAsync(
         this IncomingRequest request,
-        Func<IncomingRequest, CancellationToken, ValueTask> decodeEmptyArgs,
+        Func<IncomingRequest, CancellationToken, ValueTask> decodeArgs,
         Func<IFeatureCollection, CancellationToken, ValueTask> method,
-        Func<SliceException, bool>? inExceptionSpecification,
-        CancellationToken cancellationToken)
+        Func<SliceException, bool>? inExceptionSpecification = null,
+        CancellationToken cancellationToken = default)
     {
-        await decodeEmptyArgs(request, cancellationToken).ConfigureAwait(false);
+        await decodeArgs(request, cancellationToken).ConfigureAwait(false);
         try
         {
             await method(request.Features, cancellationToken).ConfigureAwait(false);

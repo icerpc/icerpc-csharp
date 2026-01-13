@@ -24,10 +24,9 @@ internal class Emitter
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    string operationName = serviceMethod.OperationName;
-                    string dispatchMethodName = serviceMethod.DispatchMethodName;
-                    dispatchImplementation += $"case \"{operationName}\"" + ":\n";
+                    dispatchImplementation += $"case \"{serviceMethod.OperationName}\"" + ":\n";
                     dispatchImplementation += $"{Indent}// EncodedReturn = {serviceMethod.EncodedReturn}\n";
+                    dispatchImplementation += $"{Indent}// StreamReturn = {serviceMethod.StreamReturn}\n";
                     if (serviceMethod.ExceptionSpecification.Length > 0)
                     {
                         string exceptions = string.Join(
@@ -49,28 +48,91 @@ internal class Emitter
 ";
                     }
 
-                    // Splat the value returned by DecodeXxxAsync into individual arguments.
-                    string args = "";
+                    string thisInterface = $"((global::{serviceMethod.FullInterfaceName})this)";
 
-                    string encodeReturnValueStream = "null";
+                    string method;
+                    if (serviceMethod.ParameterCount <= 1)
+                    {
+                        method = $"{thisInterface}.{serviceMethod.DispatchMethodName}Async";
+                    }
+                    else
+                    {
+                        string splattedArgs = string.Join(", ", serviceMethod.ParameterFieldNames.Select(name => $"args.{name}"));
+                        method = $"(args, features, cancellationToken) => {thisInterface}.{serviceMethod.DispatchMethodName}Async({splattedArgs}, features, cancellationToken)";
+                    }
+
+                    dispatchImplementation +=
+                    @$"{Indent}return request.DispatchOperationAsync(
+    {Indent}decodeArgs: global::{serviceMethod.FullInterfaceName}.Request.Decode{serviceMethod.DispatchMethodName}Async,
+    {Indent}method: {method},";
+                    if (serviceMethod.ReturnCount > 0)
+                    {
+                        if (serviceMethod.EncodedReturn)
+                        {
+                            if (serviceMethod.StreamReturn)
+                            {
+                                string payloadField = $"returnValue.{serviceMethod.ReturnFieldNames[0]}";
+                                string encodeStreamArg = $"returnValue.{serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1]}";
+                                dispatchImplementation += @$"
+    {Indent}encodeReturnValue: (returnValue, _) => {payloadField},
+    {Indent}encodeReturnValueStream: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}({encodeStreamArg}, encodeOptions),";
+                            }
+                            else
+                            {
+                                dispatchImplementation += @$"
+    {Indent}encodeReturnValue: (returnValue, _) => returnValue,";
+                            }
+                        }
+                        else if (serviceMethod.ReturnCount == 1)
+                        {
+                            if (serviceMethod.StreamReturn)
+                            {
+                                dispatchImplementation += @$"
+    {Indent}encodeReturnValue: (_, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions),
+    {Indent}encodeReturnValueStream: global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName},";
+                            }
+                            else
+                            {
+                                dispatchImplementation += @$"
+    {Indent}encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName},";
+                            }
+                        }
+                        else
+                        {
+                            // Splatting required.
+                            var nonStreamReturnNames = new List<string>(serviceMethod.ReturnFieldNames);
+                            if (serviceMethod.StreamReturn)
+                            {
+                                nonStreamReturnNames.RemoveAt(serviceMethod.ReturnFieldNames.Length - 1);
+                            }
+
+                            string encodeArgs = string.Join(
+                                ", ",
+                                nonStreamReturnNames.Select(name => $"returnValue.{name}"));
+
+                            dispatchImplementation += @$"
+    {Indent}encodeReturnValue: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}({encodeArgs}, encodeOptions),";
+
+                            if (serviceMethod.StreamReturn)
+                            {
+                                string encodeStreamArg = $"returnValue.{serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1]}";
+                                dispatchImplementation += @$"
+    {Indent}encodeReturnValueStream: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}({encodeStreamArg}, encodeOptions),";
+                            }
+                        }
+                    }
 
                     string inExceptionSpecification = "null";
                     if (serviceMethod.ExceptionSpecification.Length > 0)
                     {
                         inExceptionSpecification = "sliceException => sliceException is " +
                             string.Join(" or ", serviceMethod.ExceptionSpecification);
+
+                        dispatchImplementation += @$"
+    {Indent}inExceptionSpecification: {inExceptionSpecification},";
                     }
 
-                    string asyncLessDispatchMethodName =
-                        dispatchMethodName.Substring(0, dispatchMethodName.Length - "Async".Length);
-
-                    dispatchImplementation +=
-                    @$"{Indent}return request.DispatchOperationAsync(
-    {Indent}decodeArgs: global::{serviceMethod.FullInterfaceName}.Request.Decode{serviceMethod.DispatchMethodName},
-    {Indent}encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{asyncLessDispatchMethodName},
-    {Indent}encodeReturnValueStream: {encodeReturnValueStream},
-    {Indent}method: (features, cancellationToken) => {serviceMethod.DispatchMethodName}Async({args}features, cancellationToken),
-    {Indent}inExceptionSpecification: {inExceptionSpecification},
+                    dispatchImplementation += @$"
     {Indent}cancellationToken: cancellationToken);
 ";
                 }
