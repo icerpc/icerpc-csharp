@@ -25,8 +25,6 @@ internal class Emitter
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
                     dispatchImplementation += $"case \"{serviceMethod.OperationName}\"" + ":\n";
-                    dispatchImplementation += $"{Indent}// EncodedReturn = {serviceMethod.EncodedReturn}\n";
-                    dispatchImplementation += $"{Indent}// StreamReturn = {serviceMethod.StreamReturn}\n";
                     if (serviceMethod.ExceptionSpecification.Length > 0)
                     {
                         string exceptions = string.Join(
@@ -69,7 +67,7 @@ internal class Emitter
                     {
                         if (serviceMethod.ReturnCount == 1)
                         {
-                            if (serviceMethod.StreamReturn)
+                            if (serviceMethod.ReturnStream)
                             {
                                 dispatchImplementation += @$"
     {Indent}encodeReturnValue: (_, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions),
@@ -90,7 +88,7 @@ internal class Emitter
                         {
                             // Splatting required.
                             var nonStreamReturnNames = new List<string>(serviceMethod.ReturnFieldNames);
-                            if (serviceMethod.StreamReturn)
+                            if (serviceMethod.ReturnStream)
                             {
                                 nonStreamReturnNames.RemoveAt(serviceMethod.ReturnFieldNames.Length - 1);
                             }
@@ -110,7 +108,7 @@ internal class Emitter
     {Indent}encodeReturnValue: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}({encodeArgs}, encodeOptions),";
                             }
 
-                            if (serviceMethod.StreamReturn)
+                            if (serviceMethod.ReturnStream)
                             {
                                 string encodeStreamArg = $"returnValue.{serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1]}";
                                 dispatchImplementation += @$"

@@ -325,7 +325,7 @@ internal sealed class Parser
                     ParameterFieldNames = parameterFieldNames,
                     ReturnCount = returnCount,
                     ReturnFieldNames = returnFieldNames,
-                    StreamReturn = streamReturn,
+                    ReturnStream = streamReturn,
                 });
         }
         return serviceMethods;

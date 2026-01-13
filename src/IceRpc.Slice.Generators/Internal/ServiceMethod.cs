@@ -30,7 +30,7 @@ internal readonly record struct ServiceMethod
     internal string[] ReturnFieldNames { get; init; } = [];
 
     /// <summary>Gets a value indicating whether the operation return value has a stream element.</summary>
-    internal bool StreamReturn { get; init; }
+    internal bool ReturnStream { get; init; }
 
     internal bool CompressReturn { get; init; }
 
