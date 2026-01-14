@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>

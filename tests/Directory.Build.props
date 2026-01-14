@@ -8,6 +8,7 @@
   </ItemGroup>
   <PropertyGroup>
     <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <!-- Enable package lock file to ensure consistent package versions across builds -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode>true</RestoreLockedMode>
