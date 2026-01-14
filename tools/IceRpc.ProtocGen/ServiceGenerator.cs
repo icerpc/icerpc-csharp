@@ -44,7 +44,7 @@ internal class ServiceGenerator
     [global::System.Obsolete]";
             }
             methods += $@"
-    [ProtobufMethod(""{method.Name}"")]
+    [ProtobufServiceMethod(""{method.Name}"")]
     global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
         {inputType} {inputParam},
         IceRpc.Features.IFeatureCollection features,

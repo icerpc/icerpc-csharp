@@ -384,7 +384,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
 }
 
 fn operation_attribute(operation: &Operation) -> String {
-    let mut attribute = format!(r#"SliceOperation("{}""#, operation.identifier());
+    let mut attribute = format!(r#"SliceServiceMethod("{}""#, operation.identifier());
 
     if operation.compress_return() {
         attribute += ", CompressReturn = true";
