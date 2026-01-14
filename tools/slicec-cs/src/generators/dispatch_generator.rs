@@ -59,10 +59,6 @@ private static readonly IActivator _defaultActivator =
         }
     }
 
-    for operation in interface_def.operations() {
-        interface_builder.add_block(operation_dispatch(operation));
-    }
-
     interface_builder.build()
 }
 
@@ -383,198 +379,36 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
     builder
         .add_operation_parameters(operation, TypeContext::IncomingParam)
         .add_comments(operation.formatted_doc_comment_seealso())
+        .add_attribute(operation_attribute(operation))
         .build()
 }
 
-fn operation_dispatch(operation: &Operation) -> CodeBlock {
-    let operation_name = &operation.escape_identifier();
-    let internal_name = format!("SliceD{}Async", &operation_name);
-
-    format!(
-        r#"
-[SliceOperation("{name}")]
-[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
-    {service_name} target,
-    IceRpc.IncomingRequest request,
-    global::System.Threading.CancellationToken cancellationToken)
-{{
-    {dispatch_body}
-}}
-"#,
-        name = operation.identifier(),
-        service_name = operation.parent().service_name(),
-        dispatch_body = operation_dispatch_body(operation).indent(),
-    )
-    .into()
-}
-
-fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
-    let async_operation_name = &operation.escape_identifier_with_suffix("Async");
-    let parameters = operation.parameters();
-    let return_parameters = operation.return_members();
-
-    let mut check_and_decode = CodeBlock::default();
-
-    if !operation.is_idempotent {
-        check_and_decode.writeln("request.CheckNonIdempotent();");
-    }
+fn operation_attribute(operation: &Operation) -> String {
+    let mut attribute = format!(r#"SliceOperation("{}""#, operation.identifier());
 
     if operation.compress_return() {
-        check_and_decode.writeln(
-            "\
-request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
-    request.Features,
-    IceRpc.Features.CompressFeature.Compress);
-            ",
-        )
+        attribute += ", CompressReturn = true";
     }
 
-    let encoding = operation.encoding.to_cs_encoding();
-
-    match parameters.as_slice() {
-        [] => {
-            // DecodeXxx returns a plain ValueTask.
-            writeln!(
-                check_and_decode,
-                "await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
-            )
-        }
-        [parameter] => {
-            writeln!(
-                check_and_decode,
-                "var {var_name} = await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
-                var_name = parameter.parameter_name_with_prefix(),
-            )
-        }
-        _ => {
-            // > 1 parameter
-            writeln!(
-                check_and_decode,
-                "var args = await Request.Decode{async_operation_name}(request, cancellationToken).ConfigureAwait(false);",
-            )
-        }
-    };
-
-    let mut dispatch_and_return = CodeBlock::default();
-
-    let mut args = match parameters.as_slice() {
-        [parameter] => vec![parameter.parameter_name_with_prefix()],
-        _ => parameters
-            .into_iter()
-            .map(|parameter| "args.".to_owned() + &parameter.field_name())
-            .collect(),
-    };
-    args.push("request.Features".to_owned());
-    args.push("cancellationToken".to_owned());
-    writeln!(
-        dispatch_and_return,
-        "{return_value}await target.{async_operation_name}({args}).ConfigureAwait(false);",
-        return_value = if !return_parameters.is_empty() {
-            "var returnValue = "
-        } else {
-            ""
-        },
-        args = args.join(", "),
-    );
-
-    let payload = if operation.has_attribute::<CsEncodedReturn>() {
-        match operation.streamed_return_member() {
-            None => "returnValue",
-            Some(_) => "returnValue.Payload",
-        }
-        .into()
-    } else {
-        dispatch_return_payload(operation)
-    };
-
-    writeln!(
-        dispatch_and_return,
-        "\
-return new IceRpc.OutgoingResponse(request)
-{{
-    Payload = {payload},
-    PayloadContinuation = {payload_continuation}
-}};",
-        payload_continuation = dispatch_return_payload_continuation(operation),
-    );
-
-    let mut code = CodeBlock::default();
-    writeln!(code, "{check_and_decode}");
-
-    if operation.exception_specification.is_empty() {
-        writeln!(code, "{dispatch_and_return}");
-    } else {
-        let catch_expression = match operation.exception_specification.as_slice() {
-            [] => unreachable!(),
-            [single_exception] => {
-                let exception = single_exception.escape_scoped_identifier(&operation.namespace());
-                format!("{exception} sliceException")
-            }
-            multiple_exceptions => {
-                let exceptions = multiple_exceptions.iter();
-                let cs_exceptions = exceptions.map(|ex| ex.escape_scoped_identifier(&operation.namespace()));
-                let exception_list = cs_exceptions.collect::<Vec<_>>().join(" or ");
-                format!("SliceException sliceException) when (sliceException is {exception_list}")
-            }
-        };
-        write!(
-            code,
-            "
-try
-{{
-    {dispatch_and_return}
-}}
-catch ({catch_expression})
-{{
-    return request.CreateSliceExceptionResponse(sliceException, {encoding});
-}}",
-            dispatch_and_return = dispatch_and_return.indent(),
-        );
-    }
-    code
-}
-
-fn dispatch_return_payload(operation: &Operation) -> CodeBlock {
-    let non_streamed_return_values = operation.non_streamed_return_members();
-
-    let mut args = "".to_owned();
-
-    if !non_streamed_return_values.is_empty() {
-        let mut returns = vec![];
-        returns.push(match operation.return_members().len() {
-            1 => "returnValue".to_owned(),
-            _ => non_streamed_return_values
-                .iter()
-                .map(|r| format!("returnValue.{}", &r.field_name()))
-                .collect::<Vec<_>>()
-                .join(", "),
-        });
-
-        args = returns.join(", ") + ", ";
+    if operation.has_attribute::<CsEncodedReturn>() {
+        attribute += ", EncodedReturn = true";
     }
 
-    format!(
-        "Response.Encode{operation_name}({args}request.Features.Get<ISliceFeature>()?.EncodeOptions)",
-        operation_name = operation.escape_identifier()
-    )
-    .into()
-}
-
-fn dispatch_return_payload_continuation(operation: &Operation) -> CodeBlock {
-    match operation.streamed_return_member() {
-        None => "null".into(),
-        Some(stream_return) => {
-            let stream_arg = if operation.return_members().len() == 1 {
-                "returnValue".to_owned()
-            } else {
-                format!("returnValue.{}", &stream_return.field_name())
-            };
-            format!(
-                "Response.EncodeStreamOf{operation_name}({stream_arg}, request.Features.Get<ISliceFeature>()?.EncodeOptions)",
-                operation_name = operation.escape_identifier()
-            )
-            .into()
-        }
+    if operation.is_idempotent {
+        attribute += ", Idempotent = true";
     }
+
+    if !operation.exception_specification.is_empty() {
+        let exceptions = operation
+            .exception_specification
+            .iter()
+            .map(|ex| format!("typeof({})", ex.escape_scoped_identifier(&operation.namespace())))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        attribute += &format!(", ExceptionSpecification = new System.Type[] {{ {exceptions} }}");
+    }
+
+    attribute += ")";
+    attribute
 }

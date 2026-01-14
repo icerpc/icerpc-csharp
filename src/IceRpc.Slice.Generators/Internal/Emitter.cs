@@ -1,9 +1,13 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Text;
+
 namespace IceRpc.Slice.Generators.Internal;
 
 internal class Emitter
 {
+    private const string Indent = "    ";
+
     internal string Emit(IReadOnlyList<ServiceClass> serviceClasses, CancellationToken cancellationToken)
     {
         var generatedClasses = new List<string>();
@@ -22,27 +26,27 @@ internal class Emitter
                 dispatchImplementation = "";
                 foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
                 {
-                    string operationName = serviceMethod.OperationName;
-                    string dispatchMethodName = serviceMethod.DispatchMethodName;
-                    dispatchImplementation +=
-                        $"\"{operationName}\" => global::{dispatchMethodName}(this, request, cancellationToken),\n";
+                    dispatchImplementation += GenerateDispatchCase(serviceMethod);
                 }
-
+                dispatchImplementation += $"\ndefault:";
                 if (serviceClass.HasBaseServiceClass)
                 {
-                    dispatchImplementation += "_ => base.DispatchAsync(request, cancellationToken)";
+                    dispatchImplementation += @"
+    return base.DispatchAsync(request, cancellationToken);
+";
                 }
                 else
                 {
-                    dispatchImplementation +=
-                        "_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))";
+                    dispatchImplementation += @"
+    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));
+";
                 }
 
                 dispatchImplementation = @$"
-return request.Operation switch
+switch (request.Operation)
 {{
-    {dispatchImplementation.WithIndent("    ")}
-}};".Trim();
+    {dispatchImplementation.WithIndent(Indent)}
+}}".Trim();
             }
             else
             {
@@ -50,6 +54,9 @@ return request.Operation switch
                     "return base.DispatchAsync(request, cancellationToken);" :
                     "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
+
+            // We need to implement IDispatcher all the time, even when there is a base class that itself implements
+            // IDispatcher.
 
             string dispatcherClass = $@"
 /// <summary>Implements <see cref=""IceRpc.IDispatcher"" /> for the Slice interface(s) implemented by this class.
@@ -96,6 +103,9 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CS0619 // Type or member is obsolete
 
+using IceRpc.Slice;
+using ZeroC.Slice;
+
 ";
         generated += string.Join("\n\n", generatedClasses).Trim();
         generated += "\n";
@@ -107,7 +117,121 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
         return $@"
 {header}
 {{
-    {body.WithIndent("    ")}
+    {body.WithIndent(Indent)}
 }}".Trim();
+    }
+
+    private string GenerateDispatchCase(ServiceMethod serviceMethod)
+    {
+        var codeBlock = new StringBuilder();
+        codeBlock.Append(@$"
+case ""{serviceMethod.OperationName}"":");
+
+        if (!serviceMethod.Idempotent)
+        {
+            codeBlock.Append(@"
+    request.CheckNonIdempotent();");
+        }
+        if (serviceMethod.CompressReturn)
+        {
+            codeBlock.Append(@"
+    request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
+        request.Features,
+        IceRpc.Features.CompressFeature.Compress);");
+        }
+
+        string thisInterface = $"((global::{serviceMethod.FullInterfaceName})this)";
+
+        string method;
+        if (serviceMethod.ParameterCount <= 1)
+        {
+            method = $"{thisInterface}.{serviceMethod.DispatchMethodName}Async";
+        }
+        else
+        {
+            string splattedArgs = string.Join(", ", serviceMethod.ParameterFieldNames.Select(name => $"args.{name}"));
+            method = @$"(args, features, cancellationToken) =>
+            {thisInterface}.{serviceMethod.DispatchMethodName}Async({splattedArgs}, features, cancellationToken)";
+        }
+
+        codeBlock.Append(@$"
+    return request.DispatchOperationAsync(
+        decodeArgs: global::{serviceMethod.FullInterfaceName}.Request.Decode{serviceMethod.DispatchMethodName}Async,
+        method: {method},");
+
+        // We don't use the generated Response.EncodeXxx method when ReturnCount is 0. So we could not generate it.
+        if (serviceMethod.ReturnCount > 0)
+        {
+            if (serviceMethod.ReturnCount == 1)
+            {
+                if (serviceMethod.ReturnStream)
+                {
+                    codeBlock.Append(@$"
+        encodeReturnValue: (_, encodeOptions) =>
+            global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions),
+        encodeReturnValueStream:
+            global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName},");
+                }
+                else if (serviceMethod.EncodedReturn)
+                {
+                    codeBlock.Append(@$"
+        encodeReturnValue: (returnValue, _) => returnValue,");
+                }
+                else
+                {
+                    codeBlock.Append(@$"
+        encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName},");
+                }
+            }
+            else
+            {
+                // Splatting required.
+                var nonStreamReturnNames = new List<string>(serviceMethod.ReturnFieldNames);
+                if (serviceMethod.ReturnStream)
+                {
+                    nonStreamReturnNames.RemoveAt(serviceMethod.ReturnFieldNames.Length - 1);
+                }
+
+                string encodeArgs = string.Join(
+                    ", ",
+                    nonStreamReturnNames.Select(name => $"returnValue.{name}"));
+
+                if (serviceMethod.EncodedReturn)
+                {
+                    codeBlock.Append(@$"
+        encodeReturnValue: (returnValue, _) => {encodeArgs},");
+                }
+                else
+                {
+                    codeBlock.Append(@$"
+        encodeReturnValue: (returnValue, encodeOptions) =>
+            global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}({encodeArgs}, encodeOptions),");
+                }
+
+                if (serviceMethod.ReturnStream)
+                {
+                    string encodeStreamArg =
+                        $"returnValue.{serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1]}";
+
+                    codeBlock.Append(@$"
+        encodeReturnValueStream: (returnValue, encodeOptions) =>
+            global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}({encodeStreamArg}, encodeOptions),");
+                }
+            }
+        }
+
+        if (serviceMethod.ExceptionSpecification.Length > 0)
+        {
+            string exceptionList =
+                string.Join(" or ", serviceMethod.ExceptionSpecification.Select(ex => $"global::{ex}"));
+
+            codeBlock.Append(@$"
+        inExceptionSpecification: sliceException => sliceException is {exceptionList},");
+        }
+
+        codeBlock.Append(@$"
+        cancellationToken: cancellationToken);");
+
+        return codeBlock.ToString();
     }
 }

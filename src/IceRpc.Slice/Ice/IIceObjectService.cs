@@ -18,6 +18,7 @@ public partial interface IIceObjectService
     /// <param name="features">The dispatch features.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The Slice type IDs of all these interfaces, sorted alphabetically.</returns>
+    [SliceOperation("ice_ids", Idempotent = true)]
     public ValueTask<IEnumerable<string>> IceIdsAsync(IFeatureCollection features, CancellationToken cancellationToken)
     {
         var sortedSet = new SortedSet<string>(StringComparer.Ordinal);
@@ -36,6 +37,7 @@ public partial interface IIceObjectService
     /// <param name="features">The dispatch features.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>True when the target service implements this interface; otherwise, false.</returns>
+    [SliceOperation("ice_isA", Idempotent = true)]
     public ValueTask<bool> IceIsAAsync(
         string id,
         IFeatureCollection features,
@@ -55,5 +57,6 @@ public partial interface IIceObjectService
     /// <param name="features">The dispatch features.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that completes when this implementation completes.</returns>
+    [SliceOperation("ice_ping", Idempotent = true)]
     public ValueTask IcePingAsync(IFeatureCollection features, CancellationToken cancellationToken) => default;
 }
