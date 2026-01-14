@@ -496,7 +496,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             builder.add_comment(
                 "summary",
                 format!(
-                    "Encodes the stream argument of operation <c>{operation_name}</c> into a response payload continuation."
+                    "Encodes the stream argument of operation <c>{operation_name}</c> into a request payload continuation."
                 ),
             );
 
