@@ -4,21 +4,18 @@ namespace IceRpc.Protobuf.Generators.Internal;
 
 internal class Emitter
 {
-    internal string Emit(IReadOnlyList<ServiceClass> serviceClasses, CancellationToken cancellationToken)
+    internal string Emit(ServiceClass serviceClass, CancellationToken cancellationToken)
     {
-        var generatedClasses = new List<string>();
-        foreach (ServiceClass serviceClass in serviceClasses)
-        {
-            // stop if we're asked to.
-            cancellationToken.ThrowIfCancellationRequested();
+        // Stop if we're asked to.
+        cancellationToken.ThrowIfCancellationRequested();
 
-            string dispatchImplementation;
-            if (serviceClass.ServiceMethods.Count > 0)
+        string dispatchImplementation;
+        if (serviceClass.ServiceMethods.Count > 0)
+        {
+            dispatchImplementation = "";
+            foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
             {
-                dispatchImplementation = "";
-                foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
-                {
-                    dispatchImplementation += @$"
+                dispatchImplementation += @$"
     ""{serviceMethod.OperationName}"" =>
         request.Dispatch{serviceMethod.MethodKind}Async(
             {serviceMethod.InputTypeName}.Parser,
@@ -27,38 +24,38 @@ internal class Emitter
                 service.{serviceMethod.MethodName}(input, features, cancellationToken),
             cancellationToken),".Trim();
 
-                    dispatchImplementation += "\n\n";
-                }
+                dispatchImplementation += "\n\n";
+            }
 
-                if (serviceClass.HasBaseServiceClass)
-                {
-                    dispatchImplementation += @$"
+            if (serviceClass.HasBaseServiceClass)
+            {
+                dispatchImplementation += @$"
 _ => base.DispatchAsync(request, cancellationToken)".Trim();
-                }
-                else
-                {
-                    dispatchImplementation += @$"
+            }
+            else
+            {
+                dispatchImplementation += @$"
 _ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))".Trim();
-                }
+            }
 
-                dispatchImplementation = @$"
+            dispatchImplementation = @$"
 request.Operation switch
 {{
     {dispatchImplementation.WithIndent("    ")}
 }};".Trim();
-            }
-            else
-            {
-                dispatchImplementation = serviceClass.HasBaseServiceClass ?
-                    "base.DispatchAsync(request, cancellationToken);" :
-                    "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
-            }
+        }
+        else
+        {
+            dispatchImplementation = serviceClass.HasBaseServiceClass ?
+                "base.DispatchAsync(request, cancellationToken);" :
+                "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+        }
 
-            string methodModifier =
-                serviceClass.HasBaseServiceClass ? "public override" :
-                serviceClass.IsSealed ? "public" : "public virtual";
+        string methodModifier =
+            serviceClass.HasBaseServiceClass ? "public override" :
+            serviceClass.IsSealed ? "public" : "public virtual";
 
-            string dispatcherClass = $@"
+        string dispatcherClass = $@"
 /// <summary>Implements <see cref=""IceRpc.IDispatcher"" /> for the Protobuf service(s) implemented by this class.
 /// </summary>
 partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
@@ -77,19 +74,12 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
         {dispatchImplementation.WithIndent("        ")}
 }}";
 
-            string container = dispatcherClass;
-            ContainerDefinition? containerDefinition = serviceClass;
-            while (containerDefinition.Enclosing is ContainerDefinition parent)
-            {
-                container = GenerateContainer($"partial {parent.Keyword} {parent.Name}", container);
-                containerDefinition = parent;
-            }
-
-            if (serviceClass.ContainingNamespace is not null)
-            {
-                container = GenerateContainer($"namespace {serviceClass.ContainingNamespace}", container);
-            }
-            generatedClasses.Add(container);
+        string container = dispatcherClass;
+        ContainerDefinition? containerDefinition = serviceClass;
+        while (containerDefinition.Enclosing is ContainerDefinition parent)
+        {
+            container = GenerateContainer($"partial {parent.Keyword} {parent.Name}", container);
+            containerDefinition = parent;
         }
 
         string generated = @$"
@@ -105,7 +95,12 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 using IceRpc.Protobuf;
 
 ";
-        generated += string.Join("\n\n", generatedClasses).Trim();
+        if (serviceClass.ContainingNamespace is not null)
+        {
+            generated += $"namespace {serviceClass.ContainingNamespace};\n\n";
+        }
+
+        generated += container.Trim();
         generated += "\n";
         return generated.ReplaceLineEndings();
     }
