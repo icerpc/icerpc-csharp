@@ -27,7 +27,7 @@ internal sealed class Parser
         _cancellationToken = cancellationToken;
 
         _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
-        _methodAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufMethodAttribute");
+        _methodAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufServiceMethodAttribute");
         _serviceAttribute = _compilation.GetTypeByMetadataName("IceRpc.Protobuf.ProtobufServiceAttribute");
     }
 
@@ -207,7 +207,7 @@ internal sealed class Parser
                 inputTypeName = GetFullName(inputType);
             }
 
-            // Methods with the ProtobufMethodAttribute always have a generic ValueTask return type.
+            // Methods with the ProtobufServiceMethodAttribute always have a generic ValueTask return type.
             // For server-streaming, the return type's generic argument is IAsyncEnumerable.
             Debug.Assert(method.ReturnType is INamedTypeSymbol);
             var genericReturnType = (INamedTypeSymbol)method.ReturnType;

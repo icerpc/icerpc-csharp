@@ -9,11 +9,11 @@ namespace IceRpc.Slice;
 /// interfaces.</summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class SliceOperationAttribute : Attribute
+public sealed class SliceMethodAttribute : Attribute
 {
     /// <summary>Gets the operation name.</summary>
     /// <value>The operation name.</value>
-    public string Name { get; }
+    public string OperationName { get; }
 
     /// <summary>Gets a value indicating whether the return value needs to be compressed.</summary>
     /// <value><see langword="true"/> if the return value needs to be compressed; otherwise, <see langword="false"/>.
@@ -36,7 +36,7 @@ public sealed class SliceOperationAttribute : Attribute
     /// <value><see langword="true"/> if the operation is idempotent; otherwise, <see langword="false"/>.</value>
     public bool Idempotent { get; init; }
 
-    /// <summary>Constructs a Slice operation attribute.</summary>
-    /// <param name="name">The operation name.</param>
-    public SliceOperationAttribute(string name) => Name = name;
+    /// <summary>Constructs a Slice method attribute.</summary>
+    /// <param name="operationName">The operation name.</param>
+    public SliceMethodAttribute(string operationName) => OperationName = operationName;
 }
