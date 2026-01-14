@@ -42,15 +42,16 @@ public class ServiceGenerator : IIncrementalGenerator
             return;
         }
 
-        IEnumerable<ClassDeclarationSyntax> distinctClasses = classes.Distinct();
-
         var parser = new Parser(compilation, context.ReportDiagnostic, context.CancellationToken);
-        IReadOnlyList<ServiceClass> serviceClasses = parser.GetServiceDefinitions(distinctClasses);
-        if (serviceClasses.Count > 0)
+        var emitter = new Emitter();
+        foreach (ServiceClass serviceClass in parser.GetServiceDefinitions(classes.Distinct()))
         {
-            var emitter = new Emitter();
-            string result = emitter.Emit(serviceClasses, context.CancellationToken);
-            context.AddSource("Service.g.cs", SourceText.From(result, Encoding.UTF8));
+            string result = emitter.Emit(serviceClass, context.CancellationToken);
+            string fullName = serviceClass.ContainingNamespace is null ?
+                serviceClass.FullName :
+                $"{serviceClass.ContainingNamespace}.{serviceClass.FullName}";
+
+            context.AddSource($"{fullName}.g.cs", SourceText.From(result, Encoding.UTF8));
         }
     }
 }
