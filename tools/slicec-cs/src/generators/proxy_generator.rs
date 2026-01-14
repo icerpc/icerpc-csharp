@@ -333,28 +333,20 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
     // Stream parameter (if any)
     if let Some(stream_parameter) = operation.streamed_parameter() {
-        invocation_builder.add_argument(format!(
-            "payloadContinuation: Request.EncodeStreamOf{operation_name}({stream_parameter_name}, encodeOptions: EncodeOptions)",
-            stream_parameter_name = stream_parameter.parameter_name(),
-        ));
+        invocation_builder.add_argument(
+            format!(
+                "payloadContinuation: Request.EncodeStreamOf{operation_name}({stream_parameter_name}, encodeOptions: EncodeOptions)",
+                stream_parameter_name = stream_parameter.parameter_name(),
+            )
+        );
     } else {
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    // For Slice2 operations without a return type we use the IncomingResponseExtensions.DecodeVoidReturnValueAsync
-    // method, otherwise call the generated decode method in the Response class.
-    if operation.return_members().is_empty() && operation.encoding != Encoding::Slice1 {
-        invocation_builder.add_argument("IceRpc.Slice.IncomingResponseExtensions.DecodeVoidReturnValueAsync");
-    } else {
-        invocation_builder.add_argument(format!("Response.Decode{async_operation_name}"));
-    }
-
+    invocation_builder.add_argument(format!("Response.Decode{async_operation_name}"));
     invocation_builder.add_argument(features_parameter);
-
     invocation_builder.add_argument_if(operation.is_idempotent, "idempotent: true");
-
     invocation_builder.add_argument_if(operation.has_attribute::<Oneway>(), "oneway: true");
-
     invocation_builder.add_argument(format!("cancellationToken: {cancellation_token_parameter}"));
 
     let invocation = invocation_builder.build();
@@ -504,8 +496,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             builder.add_comment(
                 "summary",
                 format!(
-                    "Encodes the stream argument of operation <c>{}</c> into a response payload continuation.",
-                    operation.identifier(),
+                    "Encodes the stream argument of operation <c>{operation_name}</c> into a response payload continuation."
                 ),
             );
 
@@ -524,7 +515,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             );
 
             builder.add_comment("returns", "A new request payload continuation.");
-
             builder.set_body(encode_operation_parameter_stream(operation));
 
             class_builder.add_block(builder.build());
@@ -535,12 +525,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
-    let mut operations = interface_def.operations();
-    operations.retain(|o| {
-        // We need to generate a method to decode the responses of any operations with return members or any Slice1
-        // operations (to correctly setup the activator used for decoding Slice1 exceptions).
-        !o.return_members().is_empty() || o.encoding == Encoding::Slice1
-    });
+    let operations = interface_def.operations();
 
     if operations.is_empty() {
         return "".into();
