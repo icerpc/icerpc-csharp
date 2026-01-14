@@ -16,7 +16,7 @@ public sealed class SliceOperationAttribute : Attribute
     public string Name { get; }
 
     /// <summary>Gets a value indicating whether the return value needs to be compressed.</summary>
-    /// <value><see langword="true"/> if the return values needs to be compressed; otherwise, <see langword="false"/>.
+    /// <value><see langword="true"/> if the return value needs to be compressed; otherwise, <see langword="false"/>.
     /// </value>
     public bool CompressReturn { get; init; }
 
