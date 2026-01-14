@@ -512,18 +512,27 @@ fn encode_operation_parameters(operation: &Operation, return_type: bool, encoder
 }
 
 pub fn encode_operation(operation: &Operation, is_dispatch: bool) -> CodeBlock {
-    // TODO: for now we only implement the empty logic for dispatch.
-    if is_dispatch && operation.non_streamed_return_members().is_empty() {
-        if operation.streamed_return_member().is_some() {
-            // Stream-only operation
-            format!(
+    let is_parameterless = if is_dispatch {
+        operation.non_streamed_return_members().is_empty()
+    } else {
+        operation.non_streamed_parameters().is_empty()
+    };
+
+    if is_parameterless {
+        let has_stream = if is_dispatch {
+            operation.streamed_return_member().is_some()
+        } else {
+            operation.streamed_parameter().is_some()
+        };
+        if has_stream {
+            // Stream-only param or return.
+            return format!(
                 "{encoding}.CreateEmptyStructPayload()",
                 encoding = operation.encoding.to_cs_encoding()
             )
-            .into()
+            .into();
         } else {
-            // Void operation
-            "IceRpc.EmptyPipeReader.Instance".into()
+            return "IceRpc.EmptyPipeReader.Instance".into();
         }
     } else {
         format!(
@@ -559,14 +568,40 @@ int startPos_ = encoder_.EncodedByteCount;",
     }
 }
 
-// Dispatch-only for now
-pub fn encode_operation_stream(operation: &Operation) -> CodeBlock {
+pub fn encode_operation_parameter_stream(operation: &Operation) -> CodeBlock {
+    let namespace = operation.namespace();
+    let encoding = operation.encoding.to_cs_encoding();
+
+    let stream_parameter = operation
+        .streamed_parameter()
+        .expect("encode_operation_parameter_stream called on an operation without a streamed parameter");
+
+    let stream_type = stream_parameter.data_type();
+    let stream_arg = stream_parameter.parameter_name();
+    match stream_type.concrete_type() {
+        Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => stream_arg.into(),
+        _ => format!(
+            "\
+{stream_arg}.ToPipeReader(
+    {encode_stream_parameter},
+    {use_segments},
+    {encoding},
+    {encode_options})",
+            encode_stream_parameter = encode_stream_parameter(stream_type, &namespace, operation.encoding).indent(),
+            use_segments = stream_type.fixed_wire_size().is_none(),
+            encode_options = "encodeOptions",
+        )
+        .into(),
+    }
+}
+
+pub fn encode_operation_return_stream(operation: &Operation) -> CodeBlock {
     let namespace = operation.namespace();
     let encoding = operation.encoding.to_cs_encoding();
 
     let stream_return = operation
         .streamed_return_member()
-        .expect("encode_operation_stream called on an operation without a streamed return");
+        .expect("encode_operation_return_stream called on an operation without a streamed return");
 
     let stream_type = stream_return.data_type();
     let stream_arg = stream_return.parameter_name();

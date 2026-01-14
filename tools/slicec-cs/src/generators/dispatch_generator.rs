@@ -267,7 +267,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
             builder.add_comment("returns", "A new response payload continuation.");
 
-            builder.set_body(encode_operation_stream(operation));
+            builder.set_body(encode_operation_return_stream(operation));
 
             class_builder.add_block(builder.build());
         }
