@@ -311,7 +311,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         ));
     }
 
-    let mut invocation_builder = FunctionCallBuilder::new("this.InvokeAsync");
+    let mut invocation_builder = FunctionCallBuilder::new("this.InvokeOperationAsync");
     invocation_builder.use_semicolon(false);
     invocation_builder.arguments_on_newline(true);
 

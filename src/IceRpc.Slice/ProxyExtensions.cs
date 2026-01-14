@@ -60,7 +60,7 @@ public static class ProxyExtensions
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
-    public static Task<T> InvokeAsync<TProxy, T>(
+    public static Task<T> InvokeOperationAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
         PipeReader? payload,
@@ -140,7 +140,7 @@ public static class ProxyExtensions
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
-    public static Task InvokeAsync<TProxy>(
+    public static Task InvokeOperationAsync<TProxy>(
         this TProxy proxy,
         string operation,
         PipeReader? payload,
