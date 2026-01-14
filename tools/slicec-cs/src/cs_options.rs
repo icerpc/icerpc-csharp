@@ -12,7 +12,7 @@ pub const SLICEC_CS: &str = "SLICEC_CS";
 /// This struct is responsible for parsing the command line options specific to 'slicec-cs'.
 /// The option parsing capabilities are generated on the struct by the `clap` macro.
 #[derive(Debug, Parser)]
-#[command(author, version, about, long_about=DESCRIPTION, rename_all = "kebab-case")]
+#[command(author, version, about, long_about = DESCRIPTION, rename_all = "kebab-case")]
 pub struct CsOptions {
     /// Generate code for the specified RPC framework.
     #[arg(long = "rpc", value_enum, default_value_t = RpcProvider::IceRpc, ignore_case = true)]
