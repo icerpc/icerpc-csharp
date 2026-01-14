@@ -9,7 +9,7 @@ namespace IceRpc.Slice;
 /// interfaces.</summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class SliceMethodAttribute : Attribute
+public sealed class SliceServiceMethodAttribute : Attribute
 {
     /// <summary>Gets the operation name.</summary>
     /// <value>The operation name.</value>
@@ -36,7 +36,7 @@ public sealed class SliceMethodAttribute : Attribute
     /// <value><see langword="true"/> if the operation is idempotent; otherwise, <see langword="false"/>.</value>
     public bool Idempotent { get; init; }
 
-    /// <summary>Constructs a Slice method attribute.</summary>
+    /// <summary>Constructs a Slice service method attribute.</summary>
     /// <param name="operationName">The operation name.</param>
-    public SliceMethodAttribute(string operationName) => OperationName = operationName;
+    public SliceServiceMethodAttribute(string operationName) => OperationName = operationName;
 }

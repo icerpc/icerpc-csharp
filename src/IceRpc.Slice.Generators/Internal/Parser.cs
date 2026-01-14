@@ -10,13 +10,13 @@ namespace IceRpc.Slice.Generators.Internal;
 
 internal sealed class Parser
 {
-    internal const string MethodAttribute = "IceRpc.Slice.SliceMethodAttribute";
+    internal const string ServiceMethodAttribute = "IceRpc.Slice.SliceServiceMethodAttribute";
     internal const string ServiceAttribute = "IceRpc.Slice.SliceServiceAttribute";
 
     private readonly INamedTypeSymbol? _asyncEnumerableSymbol;
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
-    private readonly INamedTypeSymbol? _methodAttribute;
+    private readonly INamedTypeSymbol? _serviceMethodAttribute;
     private readonly INamedTypeSymbol? _pipeReaderSymbol;
     private readonly Action<Diagnostic> _reportDiagnostic;
     private readonly INamedTypeSymbol? _serviceAttribute;
@@ -31,14 +31,14 @@ internal sealed class Parser
         _cancellationToken = cancellationToken;
 
         _asyncEnumerableSymbol = _compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
-        _methodAttribute = _compilation.GetTypeByMetadataName(MethodAttribute);
+        _serviceMethodAttribute = _compilation.GetTypeByMetadataName(ServiceMethodAttribute);
         _pipeReaderSymbol = _compilation.GetTypeByMetadataName("System.IO.Pipelines.PipeReader");
         _serviceAttribute = _compilation.GetTypeByMetadataName(ServiceAttribute);
     }
 
     internal IReadOnlyList<ServiceClass> GetServiceDefinitions(IEnumerable<ClassDeclarationSyntax> classes)
     {
-        if (_methodAttribute is null || _serviceAttribute is null)
+        if (_serviceMethodAttribute is null || _serviceAttribute is null)
         {
             // nothing to do if these types aren't available
             return Array.Empty<ServiceClass>();
@@ -159,7 +159,7 @@ internal sealed class Parser
 
     private IReadOnlyList<ServiceMethod> GetServiceMethods(ImmutableArray<INamedTypeSymbol> allInterfaces)
     {
-        Debug.Assert(_methodAttribute is not null);
+        Debug.Assert(_serviceMethodAttribute is not null);
         var allServiceMethods = new List<ServiceMethod>();
         foreach (INamedTypeSymbol interfaceSymbol in allInterfaces)
         {
@@ -173,7 +173,7 @@ internal sealed class Parser
         var serviceMethods = new List<ServiceMethod>();
         foreach (IMethodSymbol method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
-            if (GetAttribute(method, _methodAttribute!) is not AttributeData attribute)
+            if (GetAttribute(method, _serviceMethodAttribute!) is not AttributeData attribute)
             {
                 continue;
             }
