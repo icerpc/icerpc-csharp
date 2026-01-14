@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using System.Text;
+
 namespace IceRpc.Slice.Generators.Internal;
 
 internal class Emitter
@@ -121,20 +123,21 @@ using ZeroC.Slice;
 
     private string GenerateDispatchCase(ServiceMethod serviceMethod)
     {
-        string codeBlock = @$"
-case ""{serviceMethod.OperationName}"":";
+        var codeBlock = new StringBuilder();
+        codeBlock.Append(@$"
+case ""{serviceMethod.OperationName}"":");
 
         if (!serviceMethod.Idempotent)
         {
-            codeBlock += @"
-    request.CheckNonIdempotent();";
+            codeBlock.Append(@"
+    request.CheckNonIdempotent();");
         }
         if (serviceMethod.CompressReturn)
         {
-            codeBlock += @"
+            codeBlock.Append(@"
     request.Features = IceRpc.Features.FeatureCollectionExtensions.With(
         request.Features,
-        IceRpc.Features.CompressFeature.Compress);";
+        IceRpc.Features.CompressFeature.Compress);");
         }
 
         string thisInterface = $"((global::{serviceMethod.FullInterfaceName})this)";
@@ -151,10 +154,10 @@ case ""{serviceMethod.OperationName}"":";
             {thisInterface}.{serviceMethod.DispatchMethodName}Async({splattedArgs}, features, cancellationToken)";
         }
 
-        codeBlock += @$"
+        codeBlock.Append(@$"
     return request.DispatchOperationAsync(
         decodeArgs: global::{serviceMethod.FullInterfaceName}.Request.Decode{serviceMethod.DispatchMethodName}Async,
-        method: {method},";
+        method: {method},");
 
         // We don't use the generated Response.EncodeXxx method when ReturnCount is 0. So we could not generate it.
         if (serviceMethod.ReturnCount > 0)
@@ -163,21 +166,21 @@ case ""{serviceMethod.OperationName}"":";
             {
                 if (serviceMethod.ReturnStream)
                 {
-                    codeBlock += @$"
+                    codeBlock.Append(@$"
         encodeReturnValue: (_, encodeOptions) =>
             global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions),
         encodeReturnValueStream:
-            global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName},";
+            global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName},");
                 }
                 else if (serviceMethod.EncodedReturn)
                 {
-                    codeBlock += @$"
-        encodeReturnValue: (returnValue, _) => returnValue,";
+                    codeBlock.Append(@$"
+        encodeReturnValue: (returnValue, _) => returnValue,");
                 }
                 else
                 {
-                    codeBlock += @$"
-        encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName},";
+                    codeBlock.Append(@$"
+        encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName},");
                 }
             }
             else
@@ -195,14 +198,14 @@ case ""{serviceMethod.OperationName}"":";
 
                 if (serviceMethod.EncodedReturn)
                 {
-                    codeBlock += @$"
-        encodeReturnValue: (returnValue, _) => {encodeArgs},";
+                    codeBlock.Append(@$"
+        encodeReturnValue: (returnValue, _) => {encodeArgs},");
                 }
                 else
                 {
-                    codeBlock += @$"
+                    codeBlock.Append(@$"
         encodeReturnValue: (returnValue, encodeOptions) =>
-            global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}({encodeArgs}, encodeOptions),";
+            global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}({encodeArgs}, encodeOptions),");
                 }
 
                 if (serviceMethod.ReturnStream)
@@ -210,9 +213,9 @@ case ""{serviceMethod.OperationName}"":";
                     string encodeStreamArg =
                         $"returnValue.{serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1]}";
 
-                    codeBlock += @$"
+                    codeBlock.Append(@$"
         encodeReturnValueStream: (returnValue, encodeOptions) =>
-            global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}({encodeStreamArg}, encodeOptions),";
+            global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}({encodeStreamArg}, encodeOptions),");
                 }
             }
         }
@@ -222,13 +225,13 @@ case ""{serviceMethod.OperationName}"":";
             string exceptionList =
                 string.Join(" or ", serviceMethod.ExceptionSpecification.Select(ex => $"global::{ex}"));
 
-            codeBlock += @$"
-        inExceptionSpecification: sliceException => sliceException is {exceptionList},";
+            codeBlock.Append(@$"
+        inExceptionSpecification: sliceException => sliceException is {exceptionList},");
         }
 
-        codeBlock += @$"
-        cancellationToken: cancellationToken);";
+        codeBlock.Append(@$"
+        cancellationToken: cancellationToken);");
 
-        return codeBlock;
+        return codeBlock.ToString();
     }
 }

@@ -217,15 +217,11 @@ internal sealed class Parser
                     case "ExceptionSpecification":
                         if (namedArgument.Value.Values is ImmutableArray<TypedConstant> exceptionTypes)
                         {
-                            var exceptions = new List<string>();
-                            foreach (TypedConstant exceptionType in exceptionTypes)
-                            {
-                                if (exceptionType.Value is INamedTypeSymbol exceptionSymbol)
-                                {
-                                    exceptions.Add(GetFullName(exceptionSymbol));
-                                }
-                            }
-                            exceptionSpecification = [.. exceptions];
+                            exceptionSpecification = exceptionTypes
+                                .Select(et => et.Value)
+                                .OfType<INamedTypeSymbol>()
+                                .Select(GetFullName)
+                                .ToArray();
                         }
                         break;
                     case "Idempotent":

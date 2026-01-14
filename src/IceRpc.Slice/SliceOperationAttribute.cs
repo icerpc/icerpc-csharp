@@ -37,6 +37,6 @@ public sealed class SliceOperationAttribute : Attribute
     public bool Idempotent { get; init; }
 
     /// <summary>Constructs a Slice operation attribute.</summary>
-    /// <param name="name">The operation name.</param>>
+    /// <param name="name">The operation name.</param>
     public SliceOperationAttribute(string name) => Name = name;
 }

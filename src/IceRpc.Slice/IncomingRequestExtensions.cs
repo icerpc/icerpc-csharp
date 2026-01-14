@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using IceRpc.Slice.Internal;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using ZeroC.Slice;
 
