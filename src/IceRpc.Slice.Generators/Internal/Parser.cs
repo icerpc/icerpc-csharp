@@ -315,7 +315,7 @@ internal sealed class Parser
                     // else, the single parameter is the encoded return, and there is no stream
                 }
             }
-            // else: It's ValueTask (non-generic), returnCount stays 0
+            // else: It's ValueTask (non-generic), returnCount remains 0 and streamReturn remains false.
 
             serviceMethods.Add(
                 new ServiceMethod(

@@ -44,7 +44,7 @@ internal class Emitter
 switch (request.Operation)
 {{
     {dispatchImplementation.WithIndent(Indent)}
-}};".Trim();
+}}".Trim();
             }
             else
             {

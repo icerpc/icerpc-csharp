@@ -384,18 +384,18 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
 }
 
 fn operation_attribute(operation: &Operation) -> String {
-    let mut attribute = format!(r#"SliceOperation("{name}""#, name = operation.identifier());
+    let mut attribute = format!(r#"SliceOperation("{}""#, operation.identifier());
 
     if operation.compress_return() {
-        attribute.push_str(", CompressReturn = true");
+        attribute += ", CompressReturn = true";
     }
 
     if operation.has_attribute::<CsEncodedReturn>() {
-        attribute.push_str(", EncodedReturn = true");
+        attribute += ", EncodedReturn = true";
     }
 
     if operation.is_idempotent {
-        attribute.push_str(", Idempotent = true");
+        attribute += ", Idempotent = true";
     }
 
     if !operation.exception_specification.is_empty() {
@@ -406,12 +406,9 @@ fn operation_attribute(operation: &Operation) -> String {
             .collect::<Vec<_>>()
             .join(", ");
 
-        attribute.push_str(&format!(
-            ", ExceptionSpecification = new System.Type[] {{ {exceptions} }}",
-            exceptions = exceptions,
-        ));
+        attribute += &format!(", ExceptionSpecification = new System.Type[] {{ {exceptions} }}");
     }
 
-    attribute.push(')');
+    attribute += ")";
     attribute
 }

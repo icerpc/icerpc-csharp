@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice.Generators.Internal;
 
-/// <summary>Represents an RPC operation annotated with the <c>IceRpc.Slice.SliceDOperationAttribute</c> attribute.
+/// <summary>Represents an RPC operation annotated with the <c>IceRpc.Slice.SliceOperationAttribute</c> attribute.
 /// </summary>
 internal readonly record struct ServiceMethod
 {
