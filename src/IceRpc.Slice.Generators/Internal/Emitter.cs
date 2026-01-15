@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using System.Text;
 using ZeroC.CodeBuilder;
 
 namespace IceRpc.Slice.Generators.Internal;
@@ -26,7 +25,7 @@ internal class Emitter
                 .AddComment(
                     "summary",
                     "Implements <see cref=\"IceRpc.IDispatcher\" /> for the Slice interface(s) implemented by this class.")
-                .AddBlock(GenerateDispatch(serviceClass).Indent())
+                .AddBlock(GenerateDispatch(serviceClass))
                 .Build();
 
         ContainerDefinition? containerDefinition = serviceClass;
@@ -45,19 +44,18 @@ internal class Emitter
 
     private static CodeBlock GenerateDispatch(ServiceClass serviceClass)
     {
-        string methodModifier =
-            serviceClass.HasBaseServiceClass ? "public override" :
-            serviceClass.IsSealed ? "public" : "public virtual";
-
         FunctionBuilder dispatchFunctionBuilder =
             new FunctionBuilder(
-                methodModifier,
+                access: serviceClass.HasBaseServiceClass ?
+                    "public override" :
+                    serviceClass.IsSealed ? "public" : "public virtual",
                 "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>",
-                $"DispatchAsync",
+                "DispatchAsync",
                 FunctionType.BlockBody)
             .AddComment(
                 "summary",
-                $"Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name carried by the request.")
+                @$"Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name
+carried by the request.")
             .AddParameter(
                 "IceRpc.IncomingRequest",
                 "request",
@@ -74,55 +72,56 @@ internal class Emitter
                 @"Thrown if the operation name carried by the request does not correspond to any method implemented by this class.
 The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.");
 
-        dispatchFunctionBuilder.SetBody(GenerateDispatchBody(serviceClass).Indent());
+        dispatchFunctionBuilder.SetBody(GenerateDispatchBody(serviceClass));
         return dispatchFunctionBuilder.Build();
     }
 
     private static CodeBlock GenerateDispatchBody(ServiceClass serviceClass)
     {
-        var codeBlock = new CodeBlock();
-
         if (serviceClass.ServiceMethods.Count > 0)
         {
-            codeBlock.WriteLine("switch (request.Operation)");
-            codeBlock.WriteLine("{");
+            var cases = new CodeBlock();
             foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
             {
-                codeBlock.WriteLine(GenerateDispatchCase(serviceMethod).Indent());
+                cases.AddBlock(GenerateDispatchCase(serviceMethod).Indent());
             }
-            codeBlock.WriteLine("default:");
+            cases = cases.Indent();
+
+            var fallback = new CodeBlock();
             if (serviceClass.HasBaseServiceClass)
             {
-                codeBlock.WriteLine("    return base.DispatchAsync(request, cancellationToken);");
+                fallback.WriteLine(@"default:
+    return base.DispatchAsync(request, cancellationToken);");
             }
             else
             {
-                codeBlock.WriteLine("    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));");
+                fallback.WriteLine(@"default:
+    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));");
             }
-            codeBlock.WriteLine("}");
+            fallback = fallback.Indent();
+
+            return @$"switch (request.Operation)
+{{
+    {cases}
+
+    {fallback}
+}}";
+        }
+        else if (serviceClass.HasBaseServiceClass)
+        {
+            return "return base.DispatchAsync(request, cancellationToken);";
         }
         else
         {
-            if (serviceClass.HasBaseServiceClass)
-            {
-                codeBlock.WriteLine("return base.DispatchAsync(request, cancellationToken);");
-            }
-            else
-            {
-                codeBlock.WriteLine("return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));");
-            }
+            return "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
         }
-
-        return codeBlock;
     }
 
     private static CodeBlock GenerateDispatchCase(ServiceMethod serviceMethod)
     {
         var codeBlock = new CodeBlock();
         codeBlock.WriteLine(@$"case ""{serviceMethod.OperationName}"":
-    {{
-        {GenerateDispatchCaseBody(serviceMethod).Indent()}
-    }}");
+{GenerateDispatchCaseBody(serviceMethod)}");
 
         return codeBlock;
     }
