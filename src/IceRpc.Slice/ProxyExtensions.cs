@@ -50,8 +50,7 @@ public static class ProxyExtensions
     /// <typeparam name="T">The response type.</typeparam>
     /// <param name="proxy">A proxy to the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
-    /// <param name="payload">The payload of the request. <see langword="null" /> is equivalent to an empty
-    /// payload.</param>
+    /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
     /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
@@ -60,10 +59,10 @@ public static class ProxyExtensions
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
-    public static Task<T> InvokeAsync<TProxy, T>(
+    public static Task<T> InvokeOperationAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
-        PipeReader? payload,
+        PipeReader payload,
         PipeReader? payloadContinuation,
         ResponseDecodeFunc<T> responseDecodeFunc,
         IFeatureCollection? features = null,
@@ -75,20 +74,12 @@ public static class ProxyExtensions
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
-        if (payload is null && payloadContinuation is not null)
-        {
-            throw new ArgumentNullException(
-                nameof(payload),
-                $"When {nameof(payloadContinuation)} is not null, {nameof(payload)} cannot be null.");
-        }
-
         var request = new OutgoingRequest(proxy.ServiceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
-            Fields = idempotent ?
-                _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
+            Fields = idempotent ? _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             Operation = operation,
-            Payload = payload ?? EmptyPipeReader.Instance,
+            Payload = payload,
             PayloadContinuation = payloadContinuation
         };
 
@@ -128,8 +119,7 @@ public static class ProxyExtensions
     /// <typeparam name="TProxy">The type of the proxy struct.</typeparam>
     /// <param name="proxy">A proxy for the remote service.</param>
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
-    /// <param name="payload">The payload of the request. <see langword="null" /> is equivalent to an empty
-    /// payload.</param>
+    /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The payload continuation of the request.</param>
     /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
     /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
@@ -140,10 +130,10 @@ public static class ProxyExtensions
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
     /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
-    public static Task InvokeAsync<TProxy>(
+    public static Task InvokeOperationAsync<TProxy>(
         this TProxy proxy,
         string operation,
-        PipeReader? payload,
+        PipeReader payload,
         PipeReader? payloadContinuation,
         ResponseDecodeFunc responseDecodeFunc,
         IFeatureCollection? features = null,
@@ -156,20 +146,13 @@ public static class ProxyExtensions
             throw new InvalidOperationException("Cannot send requests using a proxy with a null invoker.");
         }
 
-        if (payload is null && payloadContinuation is not null)
-        {
-            throw new ArgumentNullException(
-                nameof(payload),
-                $"When {nameof(payloadContinuation)} is not null, {nameof(payload)} cannot be null.");
-        }
-
         var request = new OutgoingRequest(proxy.ServiceAddress)
         {
             Features = features ?? FeatureCollection.Empty,
             Fields = idempotent ? _idempotentFields : ImmutableDictionary<RequestFieldKey, OutgoingFieldValue>.Empty,
             IsOneway = oneway,
             Operation = operation,
-            Payload = payload ?? EmptyPipeReader.Instance,
+            Payload = payload,
             PayloadContinuation = payloadContinuation
         };
 

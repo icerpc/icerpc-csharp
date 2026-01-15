@@ -8,11 +8,11 @@ using ZeroC.Slice;
 namespace IceRpc.Slice.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
-public class InvokeAsyncTests
+public class InvokeOperationAsyncTests
 {
-    /// <summary>Verifies that InvokeAsync completes the outgoing request and incoming response payloads.</summary>
+    /// <summary>Verifies that InvokeOperationAsync completes the outgoing request and incoming response payloads.</summary>
     [Test]
-    public async Task InvokeAsync_completes_all_payloads()
+    public async Task InvokeOperationAsync_completes_all_payloads()
     {
         var responsePayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
@@ -27,7 +27,7 @@ public class InvokeAsyncTests
         var requestPayload = new PayloadPipeReaderDecorator(EmptyPipeReader.Instance);
 
         // Act
-        await sut.InvokeAsync(
+        await sut.InvokeOperationAsync(
             "",
             payload: requestPayload,
             payloadContinuation: null,
@@ -46,10 +46,10 @@ public class InvokeAsyncTests
         Assert.That(await responsePayload.Completed, Is.Null);
     }
 
-    /// <summary>Verifies that InvokeAsync completes the request payload and payload continuation when an exception is thrown
+    /// <summary>Verifies that InvokeOperationAsync completes the request payload and payload continuation when an exception is thrown
     /// "on the way out".</summary>
     [Test]
-    public void InvokeAsync_completes_all_payloads_on_outgoing_exception()
+    public void InvokeOperationAsync_completes_all_payloads_on_outgoing_exception()
     {
         var sut = new PingableProxy
         {
@@ -62,7 +62,7 @@ public class InvokeAsyncTests
 
         // Act/Assert
         Assert.That(
-            async () => await sut.InvokeAsync(
+            async () => await sut.InvokeOperationAsync(
                 "",
                 payload: requestPayload,
                 payloadContinuation: requestPayloadContinuation,

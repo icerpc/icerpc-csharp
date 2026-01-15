@@ -272,7 +272,6 @@ public {proxy_impl}()
 
 /// The actual implementation of the proxy operation.
 fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
-    let namespace = &operation.namespace();
     let operation_name = operation.escape_identifier();
     let async_operation_name = operation.escape_identifier_with_suffix("Async");
     let return_task = operation.invocation_return_task("Task");
@@ -281,8 +280,6 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 
     let features_parameter = escape_parameter_name(&operation.parameters(), "features");
     let cancellation_token_parameter = escape_parameter_name(&operation.parameters(), "cancellationToken");
-
-    let encoding = operation.encoding.to_cs_encoding();
 
     let body_type = if operation.compress_arguments() {
         FunctionType::BlockBody
@@ -311,7 +308,7 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
         ));
     }
 
-    let mut invocation_builder = FunctionCallBuilder::new("this.InvokeAsync");
+    let mut invocation_builder = FunctionCallBuilder::new("this.InvokeOperationAsync");
     invocation_builder.use_semicolon(false);
     invocation_builder.arguments_on_newline(true);
 
@@ -319,13 +316,13 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
     invocation_builder.add_argument(format!(r#""{}""#, operation.identifier()));
 
     // The payload argument
-    if operation.parameters.is_empty() {
-        invocation_builder.add_argument("payload: null");
-    } else if parameters.is_empty() {
-        invocation_builder.add_argument(format!("{encoding}.CreateEmptyStructPayload()"));
+    if parameters.is_empty() {
+        invocation_builder.add_argument(format!(
+            "payload: Request.Encode{operation_name}(encodeOptions: EncodeOptions)"
+        ));
     } else {
         invocation_builder.add_argument(format!(
-            "Request.Encode{operation_name}({}, encodeOptions: EncodeOptions)",
+            "payload: Request.Encode{operation_name}({}, encodeOptions: EncodeOptions)",
             parameters
                 .iter()
                 .map(|p| p.parameter_name())
@@ -336,46 +333,20 @@ if ({features_parameter}?.Get<IceRpc.Features.ICompressFeature>() is null)
 
     // Stream parameter (if any)
     if let Some(stream_parameter) = operation.streamed_parameter() {
-        let stream_parameter_name = stream_parameter.parameter_name();
-        let stream_type = stream_parameter.data_type();
-
-        match stream_type.concrete_type() {
-            Types::Primitive(Primitive::UInt8) if !stream_type.is_optional => {
-                invocation_builder.add_argument(stream_parameter_name);
-            }
-            _ => {
-                invocation_builder.add_argument(
-                    FunctionCallBuilder::new(format!(
-                        "{stream_parameter_name}.ToPipeReader<{}>",
-                        stream_type.outgoing_parameter_type_string(namespace),
-                    ))
-                    .use_semicolon(false)
-                    .add_argument(encode_stream_parameter(stream_type, namespace, operation.encoding).indent())
-                    .add_argument(stream_type.fixed_wire_size().is_none())
-                    .add_argument(encoding)
-                    .add_argument("this.EncodeOptions")
-                    .build(),
-                );
-            }
-        }
+        invocation_builder.add_argument(
+            format!(
+                "payloadContinuation: Request.EncodeStreamOf{operation_name}({stream_parameter_name}, encodeOptions: EncodeOptions)",
+                stream_parameter_name = stream_parameter.parameter_name(),
+            )
+        );
     } else {
         invocation_builder.add_argument("payloadContinuation: null");
     }
 
-    // For Slice2 operations without a return type we use the IncomingResponseExtensions.DecodeVoidReturnValueAsync
-    // method, otherwise call the generated decode method in the Response class.
-    if operation.return_members().is_empty() && operation.encoding != Encoding::Slice1 {
-        invocation_builder.add_argument("IceRpc.Slice.IncomingResponseExtensions.DecodeVoidReturnValueAsync");
-    } else {
-        invocation_builder.add_argument(format!("Response.Decode{async_operation_name}"));
-    }
-
+    invocation_builder.add_argument(format!("Response.Decode{async_operation_name}"));
     invocation_builder.add_argument(features_parameter);
-
     invocation_builder.add_argument_if(operation.is_idempotent, "idempotent: true");
-
     invocation_builder.add_argument_if(operation.has_attribute::<Oneway>(), "oneway: true");
-
     invocation_builder.add_argument(format!("cancellationToken: {cancellation_token_parameter}"));
 
     let invocation = invocation_builder.build();
@@ -446,9 +417,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
 
 fn request_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
-
-    let mut operations = interface_def.operations();
-    operations.retain(|o| o.has_non_streamed_parameters());
+    let operations = interface_def.operations();
 
     if operations.is_empty() {
         return "".into();
@@ -465,14 +434,17 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
     for operation in operations {
         let non_streamed_parameters = operation.non_streamed_parameters();
-
-        assert!(!non_streamed_parameters.is_empty());
+        let operation_name = &operation.escape_identifier();
 
         let mut builder = FunctionBuilder::new(
             "public static",
             "global::System.IO.Pipelines.PipeReader",
             &operation.escape_identifier_with_prefix("Encode"),
-            FunctionType::BlockBody,
+            if non_streamed_parameters.is_empty() {
+                FunctionType::ExpressionBody
+            } else {
+                FunctionType::BlockBody
+            },
         );
 
         builder.add_comment(
@@ -511,18 +483,49 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         builder.set_body(encode_operation(operation, false));
 
         class_builder.add_block(builder.build());
+
+        // EncodeStreamOfXxx for the payload continuation if the operation has a streamed parameter.
+        if let Some(stream_parameter) = operation.streamed_parameter() {
+            let mut builder = FunctionBuilder::new(
+                "public static",
+                "global::System.IO.Pipelines.PipeReader",
+                format!("EncodeStreamOf{operation_name}").as_str(),
+                FunctionType::ExpressionBody,
+            );
+
+            builder.add_comment(
+                "summary",
+                format!(
+                    "Encodes the stream argument of operation <c>{operation_name}</c> into a request payload continuation."
+                ),
+            );
+
+            builder.add_parameter(
+                &stream_parameter.cs_type_string(namespace, TypeContext::OutgoingParam),
+                &stream_parameter.parameter_name(),
+                None,
+                stream_parameter.formatted_param_doc_comment(),
+            );
+
+            builder.add_parameter(
+                "SliceEncodeOptions?",
+                "encodeOptions",
+                Some("null"),
+                Some("The Slice encode options.".to_owned()),
+            );
+
+            builder.add_comment("returns", "A new request payload continuation.");
+            builder.set_body(encode_operation_parameter_stream(operation));
+
+            class_builder.add_block(builder.build());
+        }
     }
 
     class_builder.build()
 }
 
 fn response_class(interface_def: &Interface) -> CodeBlock {
-    let mut operations = interface_def.operations();
-    operations.retain(|o| {
-        // We need to generate a method to decode the responses of any operations with return members or any Slice1
-        // operations (to correctly setup the activator used for decoding Slice1 exceptions).
-        !o.return_members().is_empty() || o.encoding == Encoding::Slice1
-    });
+    let operations = interface_def.operations();
 
     if operations.is_empty() {
         return "".into();
