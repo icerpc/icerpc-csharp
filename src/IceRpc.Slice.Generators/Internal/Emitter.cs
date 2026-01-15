@@ -83,9 +83,10 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
             var cases = new CodeBlock();
             foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
             {
+                // The Indent is intentional: we want to indent the code in the case body.
                 cases.AddBlock(GenerateDispatchCase(serviceMethod).Indent());
             }
-            cases = cases.Indent();
+            cases = cases.Indent(); // This indents all the case statements in the switch.
 
             var fallback = new CodeBlock();
             if (serviceClass.HasBaseServiceClass)
@@ -179,7 +180,7 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
                 {
                     dispatchCallBuilder.AddArgument(
                         @$"encodeReturnValue: (_, encodeOptions) =>
-                global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions)");
+        global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions)");
 
                     dispatchCallBuilder.AddArgument(
                         $"encodeReturnValueStream: global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}");
