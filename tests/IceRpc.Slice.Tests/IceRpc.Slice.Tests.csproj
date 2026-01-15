@@ -24,6 +24,8 @@
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
     <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
     <ProjectReference Include="../../src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <!-- Generator dependency - required for IceRpc.Slice.Generators to work -->
+    <ProjectReference Include="../../src/ZeroC.CodeBuilder/ZeroC.CodeBuilder.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <!-- Reference the built-in Slice files -->
     <SliceDirectory Include="../../slice" />

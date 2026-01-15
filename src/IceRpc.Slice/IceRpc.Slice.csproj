@@ -54,6 +54,12 @@
       Pack="true"
       PackagePath="analyzers/dotnet/cs"
     />
+    <!-- Include generator dependencies -->
+    <Content
+      Include="../ZeroC.CodeBuilder/bin/$(Configuration)/netstandard2.0/ZeroC.CodeBuilder.dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+    />
   </ItemGroup>
   <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>
