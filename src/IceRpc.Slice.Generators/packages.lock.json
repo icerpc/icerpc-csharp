@@ -129,6 +129,9 @@
         "dependencies": {
           "System.Runtime.CompilerServices.Unsafe": "6.1.0"
         }
+      },
+      "zeroc.codebuilder": {
+        "type": "Project"
       }
     }
   }
