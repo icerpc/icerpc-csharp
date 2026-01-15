@@ -75,16 +75,10 @@ public sealed class FunctionCallBuilder : IBuilder
     {
         string typeArg = _typeArgument is not null ? $"<{_typeArgument}>" : string.Empty;
 
-        string functionCall;
-        if (_argumentsOnNewline && _arguments.Count > 0)
-        {
-            functionCall =
-                $"{_callable}{typeArg}(\n    {string.Join($",\n    ", _arguments)})";
-        }
-        else
-        {
-            functionCall = $"{_callable}{typeArg}({string.Join(", ", _arguments)})";
-        }
+        string functionCall =
+            _argumentsOnNewline && _arguments.Count > 0
+                ? $"{_callable}{typeArg}(\n    {string.Join($",\n    ", _arguments)})"
+                : $"{_callable}{typeArg}({string.Join(", ", _arguments)})";
 
         if (_useSemicolon)
         {
