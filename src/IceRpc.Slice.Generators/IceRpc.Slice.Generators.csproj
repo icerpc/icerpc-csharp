@@ -5,8 +5,6 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsPackable>false</IsPackable>
     <developmentDependency>true</developmentDependency>
-    <!-- Copy dependencies to output directory so they're available when used as analyzer -->
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../ZeroC.CodeBuilder/ZeroC.CodeBuilder.csproj" ExactVersion="true" />
