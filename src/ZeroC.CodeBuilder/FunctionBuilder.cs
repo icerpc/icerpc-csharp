@@ -150,7 +150,7 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
 
         if (_parameters.Count > 1)
         {
-            code.Write($"{_name}({Environment.NewLine}    {string.Join($",{Environment.NewLine}    ", _parameters)})");
+            code.Write($"{_name}(\n    {string.Join($",\n    ", _parameters)})");
         }
         else
         {
@@ -160,7 +160,7 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
         // Add base constructor call if present
         if (_baseArguments.Count > 0)
         {
-            code.Write($"{Environment.NewLine}    : base({string.Join(", ", _baseArguments)})");
+            code.Write($"\n    : base({string.Join(", ", _baseArguments)})");
         }
 
         // Add the body based on function type
@@ -177,7 +177,7 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
                 }
                 else
                 {
-                    code.WriteLine($" =>{Environment.NewLine}    {_body.Indent()};");
+                    code.WriteLine($" =>\n    {_body.Indent()};");
                 }
                 break;
 

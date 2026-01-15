@@ -153,9 +153,15 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
         }
         else
         {
-            string splattedArgs = string.Join(", ", serviceMethod.ParameterFieldNames.Select(name => $"args.{name}"));
+            var methodCallBuilder = new FunctionCallBuilder($"{thisInterface}.{serviceMethod.DispatchMethodName}Async")
+                .UseSemicolon(false);
+
+            methodCallBuilder.AddArguments(serviceMethod.ParameterFieldNames.Select(name => $"args.{name}"))
+                .AddArgument("features")
+                .AddArgument("cancellationToken");
+
             method = @$"(args, features, cancellationToken) =>
-            {thisInterface}.{serviceMethod.DispatchMethodName}Async({splattedArgs}, features, cancellationToken)";
+        {methodCallBuilder.Build()}";
         }
 
         FunctionCallBuilder dispatchCallBuilder = new FunctionCallBuilder("request.DispatchOperationAsync")
@@ -172,7 +178,9 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
                 if (serviceMethod.ReturnStream)
                 {
                     dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: (_, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions)");
+                        @$"encodeReturnValue: (_, encodeOptions) =>
+                global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions)");
+
                     dispatchCallBuilder.AddArgument(
                         $"encodeReturnValueStream: global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}");
                 }
@@ -183,7 +191,7 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
                 else
                 {
                     dispatchCallBuilder.AddArgument(
-                         $"encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}");
+                        $"encodeReturnValue: global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}");
                 }
             }
             else
@@ -195,27 +203,37 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
                     nonStreamReturnNames.RemoveAt(serviceMethod.ReturnFieldNames.Length - 1);
                 }
 
-                string encodeArgs = string.Join(
-                    ", ",
-                    nonStreamReturnNames.Select(name => $"returnValue.{name}"));
-
                 if (serviceMethod.EncodedReturn)
                 {
-                    dispatchCallBuilder.AddArgument($"encodeReturnValue: (returnValue, _) => {encodeArgs}");
+                    dispatchCallBuilder.AddArgument(
+                        $"encodeReturnValue: (returnValue, _) => returnValue.{nonStreamReturnNames[0]}");
                 }
                 else
                 {
+                    var encodeBuilder = new FunctionCallBuilder(
+                        $"global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}")
+                            .UseSemicolon(false)
+                            .AddArguments(nonStreamReturnNames.Select(name => $"returnValue.{name}"))
+                            .AddArgument("encodeOptions");
+
                     dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}({encodeArgs}, encodeOptions)");
+                        @$"encodeReturnValue: (returnValue, encodeOptions) =>
+        {encodeBuilder.Build()}");
                 }
 
                 if (serviceMethod.ReturnStream)
                 {
-                    string encodeStreamArg =
-                        $"returnValue.{serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1]}";
+                    string streamFieldName =
+                        serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1];
+
+                    var encodeBuilder = new FunctionCallBuilder(
+                        $"global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}")
+                            .UseSemicolon(false)
+                            .AddArgument($"returnValue.{streamFieldName}")
+                            .AddArgument("encodeOptions");
 
                     dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: (returnValue, encodeOptions) => global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}({encodeStreamArg}, encodeOptions)");
+                        $"encodeReturnValueStream: (returnValue, encodeOptions) => {encodeBuilder.Build()}");
                 }
             }
         }
@@ -225,7 +243,8 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
             string exceptionList =
                 string.Join(" or ", serviceMethod.ExceptionSpecification.Select(ex => $"global::{ex}"));
 
-            dispatchCallBuilder.AddArgument($"inExceptionSpecification: sliceException => sliceException is {exceptionList}");
+            dispatchCallBuilder.AddArgument(
+                $"inExceptionSpecification: sliceException => sliceException is {exceptionList}");
         }
 
         dispatchCallBuilder.AddArgument("cancellationToken: cancellationToken");

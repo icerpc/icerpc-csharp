@@ -6,7 +6,7 @@ namespace ZeroC.CodeBuilder;
 public sealed class FunctionCallBuilder : IBuilder
 {
     private readonly string _callable;
-    private readonly List<string> _arguments = new();
+    private readonly List<string> _arguments = [];
     private string? _typeArgument;
     private bool _argumentsOnNewline;
     private bool _useSemicolon = true;
@@ -53,6 +53,15 @@ public sealed class FunctionCallBuilder : IBuilder
     public FunctionCallBuilder AddArgument<T>(T argument)
     {
         _arguments.Add(argument?.ToString() ?? string.Empty);
+        return this;
+    }
+
+    /// <summary>Adds a list of arguments to the function call.</summary>
+    /// <param name="arguments">The arguments to add.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    public FunctionCallBuilder AddArguments(IEnumerable<string> arguments)
+    {
+        _arguments.AddRange(arguments);
         return this;
     }
 
@@ -107,7 +116,7 @@ public sealed class FunctionCallBuilder : IBuilder
         if (_argumentsOnNewline && _arguments.Count > 0)
         {
             functionCall =
-                $"{_callable}{typeArg}({Environment.NewLine}    {string.Join($",{Environment.NewLine}    ", _arguments)})";
+                $"{_callable}{typeArg}(\n    {string.Join($",\n    ", _arguments)})";
         }
         else
         {

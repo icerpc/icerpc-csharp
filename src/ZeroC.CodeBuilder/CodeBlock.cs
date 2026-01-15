@@ -61,20 +61,20 @@ public sealed class CodeBlock
     /// <returns>A new <see cref="CodeBlock"/> with indented content.</returns>
     public CodeBlock Indent()
     {
-        string indented = _content.ToString().Replace(Environment.NewLine, $"{Environment.NewLine}    ");
+        string indented = _content.ToString().Replace("\n", "\n    ");
         return new CodeBlock(indented);
     }
 
     /// <summary>Adds another code block to this one, separated by newlines.</summary>
     /// <param name="block">The block to add.</param>
-    public void AddBlock(CodeBlock block) => Write($"{Environment.NewLine}{block}{Environment.NewLine}");
+    public void AddBlock(CodeBlock block) => Write($"\n{block}\n");
 
     /// <inheritdoc/>
     public override string ToString()
     {
         bool lastLineWasEmpty = false;
         var lines = _content.ToString()
-            .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
+            .Split('\n')
             .Select(line =>
             {
                 // Trim whitespace-only lines and remove trailing whitespace from non-empty lines
@@ -97,7 +97,7 @@ public sealed class CodeBlock
             })
             .ToList();
 
-        return string.Join(Environment.NewLine, lines).Trim();
+        return string.Join("\n", lines).Trim();
     }
 
     /// <summary>Converts a string to a <see cref="CodeBlock"/>.</summary>

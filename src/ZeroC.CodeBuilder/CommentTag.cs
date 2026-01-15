@@ -50,10 +50,10 @@ public sealed class CommentTag
             ? $" {AttributeName}=\"{AttributeValue}\""
             : string.Empty;
 
-        if (Content.Contains(Environment.NewLine))
+        if (Content.Contains('\n'))
         {
             sb.AppendLine($"/// <{Tag}{attribute}>");
-            foreach (string line in Content.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
+            foreach (string line in Content.Split('\n'))
             {
                 sb.AppendLine($"/// {line}");
             }
