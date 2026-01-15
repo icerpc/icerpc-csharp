@@ -11,7 +11,7 @@ public sealed class CodeBlock
     public string Content => _content.ToString();
 
     /// <summary>Gets a value indicating whether the code block is empty or contains only whitespace.</summary>
-    public bool IsEmpty => string.IsNullOrWhiteSpace(_content.ToString());
+    public bool IsEmpty => _content.Length == 0 || string.IsNullOrWhiteSpace(_content.ToString());
 
     /// <summary>Combines multiple code blocks into a single code block, separated by newlines.</summary>
     /// <param name="blocks">The blocks to combine.</param>
