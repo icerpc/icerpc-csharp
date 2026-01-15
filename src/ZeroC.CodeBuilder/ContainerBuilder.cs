@@ -5,13 +5,13 @@ namespace ZeroC.CodeBuilder;
 /// <summary>A builder for creating C# container types (classes, structs, records, interfaces).</summary>
 public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuilder>, ICommentBuilder<ContainerBuilder>
 {
+    private readonly List<string> _attributes = [];
+    private readonly List<string> _bases = [];
+    private readonly List<CommentTag> _comments = [];
     private readonly string _containerType;
+    private readonly List<CodeBlock> _contents = [];
+    private readonly List<string> _fields = [];
     private readonly string _name;
-    private readonly List<string> _bases = new();
-    private readonly List<string> _fields = new();
-    private readonly List<CodeBlock> _contents = new();
-    private readonly List<string> _attributes = new();
-    private readonly List<CommentTag> _comments = new();
 
     /// <summary>Initializes a new instance of the <see cref="ContainerBuilder"/> class.</summary>
     /// <param name="containerType">The container type (e.g., "class", "struct", "record", "interface").</param>
@@ -20,6 +20,13 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
     {
         _containerType = containerType;
         _name = name;
+    }
+
+    /// <inheritdoc/>
+    public ContainerBuilder AddAttribute(string attribute)
+    {
+        _attributes.Add(attribute);
+        return this;
     }
 
     /// <summary>Adds a base type or interface to the container.</summary>
@@ -49,28 +56,6 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
         return this;
     }
 
-    /// <summary>Adds a primary constructor field to the container.</summary>
-    /// <param name="fieldName">The name of the field.</param>
-    /// <param name="fieldType">The type of the field.</param>
-    /// <param name="docComment">An optional documentation comment for the field.</param>
-    /// <returns>This builder instance for method chaining.</returns>
-    public ContainerBuilder AddField(string fieldName, string fieldType, string? docComment = null)
-    {
-        if (docComment is not null)
-        {
-            AddComment("param", "name", fieldName, docComment);
-        }
-        _fields.Add($"{fieldType} {fieldName}");
-        return this;
-    }
-
-    /// <inheritdoc/>
-    public ContainerBuilder AddAttribute(string attribute)
-    {
-        _attributes.Add(attribute);
-        return this;
-    }
-
     /// <inheritdoc/>
     public ContainerBuilder AddComment(string tag, string content)
     {
@@ -89,6 +74,21 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
     public ContainerBuilder AddComments(IEnumerable<CommentTag> comments)
     {
         _comments.AddRange(comments);
+        return this;
+    }
+
+    /// <summary>Adds a primary constructor field to the container.</summary>
+    /// <param name="fieldName">The name of the field.</param>
+    /// <param name="fieldType">The type of the field.</param>
+    /// <param name="docComment">An optional documentation comment for the field.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    public ContainerBuilder AddField(string fieldName, string fieldType, string? docComment = null)
+    {
+        if (docComment is not null)
+        {
+            AddComment("param", "name", fieldName, docComment);
+        }
+        _fields.Add($"{fieldType} {fieldName}");
         return this;
     }
 

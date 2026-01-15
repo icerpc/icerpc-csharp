@@ -20,7 +20,6 @@
     <Project Path="src/IceRpc.Telemetry/IceRpc.Telemetry.csproj" />
     <Project Path="src/IceRpc.Transports.Coloc/IceRpc.Transports.Coloc.csproj" />
     <Project Path="src/IceRpc/IceRpc.csproj" />
-    <Project Path="src/ZeroC.CodeBuilder/ZeroC.CodeBuilder.csproj" />
     <Project Path="src/ZeroC.Slice/ZeroC.Slice.csproj" />
     <Project Path="tools/IceRpc.ProtobufBuildTelemetry.Reporter/IceRpc.ProtobufBuildTelemetry.Reporter.csproj" />
     <Project Path="tools/IceRpc.SliceBuildTelemetry.Reporter/IceRpc.SliceBuildTelemetry.Reporter.csproj" />

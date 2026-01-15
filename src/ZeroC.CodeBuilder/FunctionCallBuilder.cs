@@ -5,10 +5,10 @@ namespace ZeroC.CodeBuilder;
 /// <summary>A builder for creating function call expressions.</summary>
 public sealed class FunctionCallBuilder : IBuilder
 {
-    private readonly string _callable;
     private readonly List<string> _arguments = [];
-    private string? _typeArgument;
+    private readonly string _callable;
     private bool _argumentsOnNewline;
+    private string? _typeArgument;
     private bool _useSemicolon = true;
 
     /// <summary>Initializes a new instance of the <see cref="FunctionCallBuilder"/> class.</summary>
@@ -18,41 +18,37 @@ public sealed class FunctionCallBuilder : IBuilder
         _callable = callable;
     }
 
-    /// <summary>Sets whether arguments should be placed on separate lines.</summary>
-    /// <param name="argumentsOnNewline">True to place arguments on new lines.</param>
-    /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder ArgumentsOnNewline(bool argumentsOnNewline)
-    {
-        _argumentsOnNewline = argumentsOnNewline;
-        return this;
-    }
-
-    /// <summary>Sets whether to append a semicolon after the call.</summary>
-    /// <param name="useSemicolon">True to append a semicolon.</param>
-    /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder UseSemicolon(bool useSemicolon)
-    {
-        _useSemicolon = useSemicolon;
-        return this;
-    }
-
-    /// <summary>Sets the type argument for a generic method call.</summary>
-    /// <typeparam name="T">The type that can be converted to string.</typeparam>
-    /// <param name="typeArgument">The type argument.</param>
-    /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder SetTypeArgument<T>(T typeArgument)
-    {
-        _typeArgument = typeArgument?.ToString();
-        return this;
-    }
-
     /// <summary>Adds an argument to the function call.</summary>
-    /// <typeparam name="T">The type that can be converted to string.</typeparam>
     /// <param name="argument">The argument to add.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder AddArgument<T>(T argument)
+    public FunctionCallBuilder AddArgument(string argument)
     {
-        _arguments.Add(argument?.ToString() ?? string.Empty);
+        _arguments.Add(argument);
+        return this;
+    }
+
+    /// <summary>Adds an argument to the function call if the condition is true.</summary>
+    /// <param name="condition">The condition to check.</param>
+    /// <param name="argument">The argument to add if condition is true.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    public FunctionCallBuilder AddArgumentIf(bool condition, string argument)
+    {
+        if (condition)
+        {
+            AddArgument(argument);
+        }
+        return this;
+    }
+
+    /// <summary>Adds an argument to the function call if it is not null.</summary>
+    /// <param name="argument">The optional argument to add.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    public FunctionCallBuilder AddArgumentIfPresent(string? argument)
+    {
+        if (argument is not null)
+        {
+            AddArgument(argument);
+        }
         return this;
     }
 
@@ -65,45 +61,12 @@ public sealed class FunctionCallBuilder : IBuilder
         return this;
     }
 
-    /// <summary>Adds an argument to the function call if the condition is true.</summary>
-    /// <typeparam name="T">The type that can be converted to string.</typeparam>
-    /// <param name="condition">The condition to check.</param>
-    /// <param name="argument">The argument to add if condition is true.</param>
+    /// <summary>Sets whether arguments should be placed on separate lines.</summary>
+    /// <param name="argumentsOnNewline">True to place arguments on new lines.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder AddArgumentIf<T>(bool condition, T argument)
+    public FunctionCallBuilder ArgumentsOnNewline(bool argumentsOnNewline)
     {
-        if (condition)
-        {
-            AddArgument(argument);
-        }
-        return this;
-    }
-
-    /// <summary>Adds an argument to the function call if it is not null.</summary>
-    /// <typeparam name="T">The type that can be converted to string.</typeparam>
-    /// <param name="argument">The optional argument to add.</param>
-    /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder AddArgumentIfPresent<T>(T? argument)
-        where T : class
-    {
-        if (argument is not null)
-        {
-            AddArgument(argument);
-        }
-        return this;
-    }
-
-    /// <summary>Adds an argument to the function call if it has a value.</summary>
-    /// <typeparam name="T">The value type.</typeparam>
-    /// <param name="argument">The optional argument to add.</param>
-    /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder AddArgumentIfPresent<T>(T? argument)
-        where T : struct
-    {
-        if (argument.HasValue)
-        {
-            AddArgument(argument.Value);
-        }
+        _argumentsOnNewline = argumentsOnNewline;
         return this;
     }
 
@@ -129,5 +92,23 @@ public sealed class FunctionCallBuilder : IBuilder
         }
 
         return new CodeBlock(functionCall);
+    }
+
+    /// <summary>Sets the type argument for a generic method call.</summary>
+    /// <param name="typeArgument">The type argument.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    public FunctionCallBuilder SetTypeArgument(string typeArgument)
+    {
+        _typeArgument = typeArgument;
+        return this;
+    }
+
+    /// <summary>Sets whether to append a semicolon after the call.</summary>
+    /// <param name="useSemicolon">True to append a semicolon.</param>
+    /// <returns>This builder instance for method chaining.</returns>
+    public FunctionCallBuilder UseSemicolon(bool useSemicolon)
+    {
+        _useSemicolon = useSemicolon;
+        return this;
     }
 }

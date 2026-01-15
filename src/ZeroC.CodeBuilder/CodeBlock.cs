@@ -7,22 +7,11 @@ namespace ZeroC.CodeBuilder;
 /// <summary>Represents a block of generated code that can be manipulated and formatted.</summary>
 public sealed class CodeBlock
 {
-    private readonly StringBuilder _content = new();
-
     /// <summary>Gets the raw content of the code block.</summary>
     public string Content => _content.ToString();
 
     /// <summary>Gets a value indicating whether the code block is empty or contains only whitespace.</summary>
     public bool IsEmpty => string.IsNullOrWhiteSpace(_content.ToString());
-
-    /// <summary>Initializes a new instance of the <see cref="CodeBlock"/> class.</summary>
-    public CodeBlock()
-    {
-    }
-
-    /// <summary>Initializes a new instance of the <see cref="CodeBlock"/> class with the specified content.</summary>
-    /// <param name="content">The initial content of the code block.</param>
-    public CodeBlock(string content) => _content.Append(content);
 
     /// <summary>Combines multiple code blocks into a single code block, separated by newlines.</summary>
     /// <param name="blocks">The blocks to combine.</param>
@@ -37,25 +26,24 @@ public sealed class CodeBlock
         return result;
     }
 
-    /// <summary>Writes the specified value to the code block if it is not empty or whitespace.</summary>
-    /// <typeparam name="T">The type of value to write.</typeparam>
-    /// <param name="value">The value to write.</param>
-    public void Write<T>(T value)
+    private readonly StringBuilder _content = new();
+
+    /// <summary>Converts a string to a <see cref="CodeBlock"/>.</summary>
+    /// <param name="content">The string content.</param>
+    public static implicit operator CodeBlock(string content) => new(content);
+
+    /// <summary>Initializes a new instance of the <see cref="CodeBlock"/> class.</summary>
+    public CodeBlock()
     {
-        string str = value?.ToString() ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(str))
-        {
-            _content.Append(str);
-        }
     }
 
-    /// <summary>Writes the specified value followed by a newline to the code block.</summary>
-    /// <typeparam name="T">The type of value to write.</typeparam>
-    /// <param name="value">The value to write.</param>
-    public void WriteLine<T>(T value) => _content.AppendLine(value?.ToString());
+    /// <summary>Initializes a new instance of the <see cref="CodeBlock"/> class with the specified content.</summary>
+    /// <param name="content">The initial content of the code block.</param>
+    public CodeBlock(string content) => _content.Append(content);
 
-    /// <summary>Writes a newline to the code block.</summary>
-    public void WriteLine() => _content.AppendLine();
+    /// <summary>Adds another code block to this one, separated by newlines.</summary>
+    /// <param name="block">The block to add.</param>
+    public void AddBlock(CodeBlock block) => Write($"\n{block}\n");
 
     /// <summary>Creates a new code block with the content indented by 4 spaces.</summary>
     /// <returns>A new <see cref="CodeBlock"/> with indented content.</returns>
@@ -64,10 +52,6 @@ public sealed class CodeBlock
         string indented = _content.ToString().Replace("\n", "\n    ");
         return new CodeBlock(indented);
     }
-
-    /// <summary>Adds another code block to this one, separated by newlines.</summary>
-    /// <param name="block">The block to add.</param>
-    public void AddBlock(CodeBlock block) => Write($"\n{block}\n");
 
     /// <inheritdoc/>
     public override string ToString()
@@ -100,7 +84,20 @@ public sealed class CodeBlock
         return string.Join("\n", lines).Trim();
     }
 
-    /// <summary>Converts a string to a <see cref="CodeBlock"/>.</summary>
-    /// <param name="content">The string content.</param>
-    public static implicit operator CodeBlock(string content) => new(content);
+    /// <summary>Writes the specified value to the code block if it is not empty or whitespace.</summary>
+    /// <param name="value">The value to write.</param>
+    public void Write(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            _content.Append(value);
+        }
+    }
+
+    /// <summary>Writes a newline to the code block.</summary>
+    public void WriteLine() => _content.AppendLine();
+
+    /// <summary>Writes the specified value followed by a newline to the code block.</summary>
+    /// <param name="value">The value to write.</param>
+    public void WriteLine(string value) => _content.AppendLine(value);
 }

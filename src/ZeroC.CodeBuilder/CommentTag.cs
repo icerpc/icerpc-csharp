@@ -10,14 +10,14 @@ public sealed class CommentTag
     /// <summary>Gets the tag name (e.g., "summary", "param", "returns").</summary>
     public string Tag { get; }
 
-    /// <summary>Gets the tag content.</summary>
-    public string Content { get; }
-
     /// <summary>Gets the optional attribute name.</summary>
     public string? AttributeName { get; }
 
     /// <summary>Gets the optional attribute value.</summary>
     public string? AttributeValue { get; }
+
+    /// <summary>Gets the tag content.</summary>
+    public string Content { get; }
 
     /// <summary>Initializes a new instance of the <see cref="CommentTag"/> class.</summary>
     /// <param name="tag">The tag name.</param>
