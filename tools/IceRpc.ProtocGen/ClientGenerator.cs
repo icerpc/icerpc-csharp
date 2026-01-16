@@ -2,49 +2,50 @@
 
 using Google.Protobuf.Reflection;
 using IceRpc.CaseConverter.Internal;
+using ZeroC.CodeBuilder;
 
 namespace IceRpc.ProtocGen;
 
 internal class ClientGenerator
 {
-    internal static string GenerateInterface(ServiceDescriptor service)
+    internal static CodeBlock GenerateInterface(ServiceDescriptor service)
     {
-        string methods = "";
-        string scope = service.File.GetCsharpNamespace();
+        var methods = new CodeBlock();
         foreach (MethodDescriptor method in service.Methods)
         {
-            string inputType = method.InputType.GetType(scope, method.IsClientStreaming);
-            string inputParam = method.IsClientStreaming ? "stream" : "message";
-            string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
-            string methodName = $"{method.Name.ToPascalCase()}Async";
-
-            if (method.GetOptions()?.Deprecated ?? false)
-            {
-                methods += @$"
-    [global::System.Obsolete]";
-            }
-            methods += @$"
-    global::System.Threading.Tasks.Task<{returnType}> {methodName}(
-        {inputType} {inputParam},
-        IceRpc.Features.IFeatureCollection? features = null,
-        global::System.Threading.CancellationToken cancellationToken = default);";
-            methods += "\n";
+            methods.AddBlock(GenerateInterfaceMethod(method, service.File.GetCsharpNamespace()));
         }
 
-        string clientInterface = @$"
-/// <remarks>protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.FullName}</c>.
-/// It's implemented by <c>{service.Name.ToPascalCase()}Client</c></remarks>";
-        if (service.GetOptions()?.Deprecated ?? false)
-        {
-            clientInterface += @"
-[global::System.Obsolete]";
-        }
-        clientInterface += @$"
-public partial interface I{service.Name.ToPascalCase()}
-{{
-    {methods.Trim()}
-}}";
-        return clientInterface;
+        return
+            new ContainerBuilder(
+                "public partial interface",
+                $"I{service.Name.ToPascalCase()}")
+            .AddComment(
+                "remarks",
+                @$"protoc-gen-icerpc-csharp generated this client-side interface from Protobuf service <c>{service.FullName}</c>.
+It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
+        .AddObsoleteAttribute(condition: service.GetOptions()?.Deprecated ?? false)
+        .AddBlock(methods)
+        .Build();
+    }
+
+    private static CodeBlock GenerateInterfaceMethod(MethodDescriptor method, string scope)
+    {
+        string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
+
+        return
+            new FunctionBuilder(
+                access: "",
+                $"global::System.Threading.Tasks.Task<{returnType}>",
+                $"{method.Name.ToPascalCase()}Async",
+                FunctionType.Declaration)
+            .AddParameter(
+                method.InputType.GetType(scope, method.IsClientStreaming),
+                method.IsClientStreaming ? "stream" : "message")
+            .AddParameter("IceRpc.Features.IFeatureCollection?", "features", "null")
+            .AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default")
+            .AddObsoleteAttribute(condition: method.GetOptions()?.Deprecated ?? false)
+            .Build();
     }
 
     internal static string GenerateImplementation(ServiceDescriptor service)
@@ -163,5 +164,50 @@ public readonly partial record struct {clientImplementationName} : I{service.Nam
     {methods.Trim()}
 }}";
         return clientImplementation;
+    }
+
+    private static CodeBlock GenerateProxyMethod(MethodDescriptor method, string scope)
+    {
+        string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
+
+        FunctionBuilder functionBuilder =
+            new FunctionBuilder(
+                access: "public override",
+                $"global::System.Threading.Tasks.ValueTask<{returnType}>",
+                $"{method.Name.ToPascalCase()}Async",
+                FunctionType.ExpressionBody)
+            .AddParameter(
+                method.InputType.GetType(scope, method.IsClientStreaming),
+                method.IsClientStreaming ? "stream" : "message")
+            .AddParameter("IceRpc.Features.IFeatureCollection?", "features", "null")
+            .AddParameter("global::System.Threading.CancellationToken", "cancellationToken", "default")
+            .AddObsoleteAttribute(condition: method.GetOptions()?.Deprecated ?? false);
+
+        string invokeAsyncMethod = (method.IsClientStreaming, method.IsServerStreaming) switch
+        {
+            (false, false) => "InvokeUnaryAsync",
+            (true, false) => "InvokeClientStreamingAsync",
+            (false, true) => "InvokeServerStreamingAsync",
+            (true, true) => "InvokeBidiStreamingAsync",
+        };
+
+        MethodOptions? methodOptions = method.GetOptions();
+        bool idempotent =
+            (methodOptions?.HasIdempotencyLevel ?? false) &&
+            (methodOptions.IdempotencyLevel == MethodOptions.Types.IdempotencyLevel.NoSideEffects ||
+             methodOptions.IdempotencyLevel == MethodOptions.Types.IdempotencyLevel.Idempotent);
+
+        FunctionCallBuilder functionCallBuilder =
+            new FunctionCallBuilder($"Invoker.{invokeAsyncMethod}")
+                .AddArgument("ServiceAddress")
+                .AddArgument($@"""{method.Name}""")
+                .AddArgument(method.IsClientStreaming ? "stream" : "message")
+                .AddArgument(method.OutputType.GetParserType(scope))
+                .AddArgument("EncodeOptions")
+                .AddArgument("features")
+                .AddArgument($"idempotent: {idempotent}")
+                .AddArgument("cancellationToken");
+
+        return functionBuilder.SetBody(functionCallBuilder.Build()).Build();
     }
 }

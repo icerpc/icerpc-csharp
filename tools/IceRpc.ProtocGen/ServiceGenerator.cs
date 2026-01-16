@@ -43,14 +43,14 @@ public partial interface I{service.Name.ToPascalCase()}Service
         if (method.IsClientStreaming)
         {
             functionBuilder.AddParameter(
-                method.InputType.GetType(scope, method.IsClientStreaming),
+                method.InputType.GetType(scope, streaming: true),
                 "stream",
                 docComment: "The stream of input messages.");
         }
         else
         {
             functionBuilder.AddParameter(
-                method.InputType.GetType(scope, method.IsClientStreaming),
+                method.InputType.GetType(scope, streaming: false),
                 "message",
                 docComment: "The input message.");
         }
