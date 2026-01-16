@@ -4,7 +4,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -43,7 +42,6 @@ public class SliceCCSharpTask : ToolTask
 
     /// <summary>The working directory for executing the slicec-cs compiler from.</summary>
     [Required]
-    [SuppressMessage("Naming", "CA1721:PropertyNamesShouldNotMatchGetMethods", Justification = "Part of the public API")]
     public string WorkingDirectory { get; set; } = "";
 
     /// <inheritdoc/>

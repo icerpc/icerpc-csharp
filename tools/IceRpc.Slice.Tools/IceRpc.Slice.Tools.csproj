@@ -117,4 +117,7 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
+  <ItemGroup>
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
+  </ItemGroup>
 </Project>
