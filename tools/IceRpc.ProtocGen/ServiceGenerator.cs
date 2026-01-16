@@ -38,11 +38,6 @@ internal class ServiceGenerator
     /// <param name=""features"">The dispatch features.</param>
     /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
     /// <returns>{returnTypeDocComment}</returns>";
-            if (method.GetOptions()?.Deprecated ?? false)
-            {
-                methods += @"
-    [global::System.Obsolete]";
-            }
             methods += $@"
     [ProtobufServiceMethod(""{method.Name}"")]
     global::System.Threading.Tasks.ValueTask<{returnType}> {methodName}(
@@ -57,11 +52,6 @@ internal class ServiceGenerator
 /// with IceRPC.</summary>
 /// <remarks>protoc-gen-icerpc-csharp generated this server-side interface.</remarks>
 /// <seealso cref=""IceRpc.Protobuf.ProtobufServiceAttribute"" />";
-        if (service.GetOptions()?.Deprecated ?? false)
-        {
-            serviceInterface += @"
-[global::System.Obsolete]";
-        }
         serviceInterface += @$"
 [IceRpc.DefaultServicePath(""/{service.FullName}"")]
 public partial interface I{service.Name.ToPascalCase()}Service
