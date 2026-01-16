@@ -1,3 +1,5 @@
+[*.cs]
+
 # CA2007: Consider calling ConfigureAwait on awaited tasks
 # Not necessary for console applications
 dotnet_diagnostic.CA2007.severity = none

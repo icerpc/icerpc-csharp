@@ -1,0 +1,11 @@
+[*.cs]
+
+# Mark assemblies with CLSCompliant
+dotnet_diagnostic.CA1014.severity = none
+
+# Validate arguments of public methods
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1819 PropertiesShouldNotReturnArrays
+# The MSBuild task model requires the use of arrays for properties that are collections.
+dotnet_diagnostic.CA1819.severity = none

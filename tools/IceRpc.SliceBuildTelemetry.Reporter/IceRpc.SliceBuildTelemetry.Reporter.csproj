@@ -15,8 +15,5 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0" />
     <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)CodeAnalysis.config" />
-  </ItemGroup>
   <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>
