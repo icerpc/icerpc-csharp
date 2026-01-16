@@ -39,7 +39,7 @@ internal class Emitter
         }
 
         codeBlock.AddBlock(container);
-        return codeBlock.ToString();
+        return codeBlock.ToString().ReplaceLineEndings();
     }
 
     private static CodeBlock GenerateDispatch(ServiceClass serviceClass)
