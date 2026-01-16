@@ -11,7 +11,7 @@ internal static class StringExtensions
     // TODO Once generators can target .NET 8 we can use String.ReplaceLineEndings and remove this implementation.
     internal static string ReplaceLineEndings(this string contents)
     {
-        if (contents.IndexOf("\r\n") != -1)
+        if (contents.Contains("\r\n", StringComparison.Ordinal))
         {
             contents = contents.Replace("\r\n", "\n");
         }
@@ -21,10 +21,4 @@ internal static class StringExtensions
         }
         return contents;
     }
-
-    internal static string TrimTrailingWhiteSpaces(this string contents) =>
-        string.Join("\n", contents.Split('\n').Select(value => value.TrimEnd()));
-
-    internal static string WithIndent(this string contents, string indent) =>
-        string.Join("\n", contents.Split('\n').Select(value => $"{indent}{value}")).Trim();
 }
