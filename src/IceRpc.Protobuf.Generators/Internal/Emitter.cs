@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using ZeroC.CodeBuilder;
+
 namespace IceRpc.Protobuf.Generators.Internal;
 
 internal class Emitter
@@ -9,80 +11,104 @@ internal class Emitter
         // Stop if we're asked to.
         cancellationToken.ThrowIfCancellationRequested();
 
-        string dispatchImplementation;
+        CodeBlock codeBlock = Preamble();
+
+        if (serviceClass.ContainingNamespace is not null)
+        {
+            codeBlock.AddBlock($"namespace {serviceClass.ContainingNamespace};");
+        }
+
+        // We need to implement IDispatcher all the time, even when there is a base class that itself implements
+        // IDispatcher.
+        CodeBlock container = new ContainerBuilder($"partial {serviceClass.Keyword}", serviceClass.Name)
+            .AddBase("IceRpc.IDispatcher")
+            .AddComment(
+                "summary",
+                @"Implements <see cref=""IceRpc.IDispatcher"" /> for the Protobuf service(s) implemented by this class")
+            .AddBlock(GenerateDispatch(serviceClass))
+            .Build();
+
+        ContainerDefinition? containerDefinition = serviceClass;
+        while (containerDefinition.Enclosing is ContainerDefinition enclosing)
+        {
+            container = new ContainerBuilder($"partial {enclosing.Keyword}", enclosing.Name)
+                .AddBlock(container)
+                .Build();
+
+            containerDefinition = enclosing;
+        }
+
+        codeBlock.AddBlock(container);
+        return codeBlock.Content.ReplaceLineEndings();
+    }
+
+    private static CodeBlock GenerateDispatch(ServiceClass serviceClass)
+    {
+        string methodModifier = serviceClass.HasBaseServiceClass
+            ? "public override"
+            : serviceClass.IsSealed ? "public" : "public virtual";
+
+        return @$"
+/// <summary>Dispatches an incoming request to a method of <see cref=""{serviceClass.Name}"" /> based on
+/// the operation name carried by the request. With IceRPC + Protobuf, operation names are the same as
+/// Protobuf rpc method names.</summary>
+/// <param name=""request"">The incoming request.</param>
+/// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
+/// <returns>The outgoing response.</returns>
+{methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
+    IceRpc.IncomingRequest request,
+    global::System.Threading.CancellationToken cancellationToken) =>
+        {GenerateDispatchBody(serviceClass).Indent().Indent()};";
+    }
+
+    private static CodeBlock GenerateDispatchBody(ServiceClass serviceClass)
+    {
         if (serviceClass.ServiceMethods.Count > 0)
         {
-            dispatchImplementation = "";
+            var arms = new CodeBlock();
+
             foreach (ServiceMethod serviceMethod in serviceClass.ServiceMethods)
             {
-                dispatchImplementation += @$"
-    ""{serviceMethod.OperationName}"" =>
-        request.Dispatch{serviceMethod.MethodKind}Async(
-            {serviceMethod.InputTypeName}.Parser,
-            ({serviceMethod.InterfaceName})this,
-            static (service, input, features, cancellationToken) =>
-                service.{serviceMethod.MethodName}(input, features, cancellationToken),
-            cancellationToken),".Trim();
-
-                dispatchImplementation += "\n\n";
+                arms.AddBlock(GenerateDispatchSwitchArm(serviceMethod));
             }
+            arms = arms.Indent(); // This indents all the arms in the switch.
 
+            CodeBlock fallback;
             if (serviceClass.HasBaseServiceClass)
             {
-                dispatchImplementation += @$"
-_ => base.DispatchAsync(request, cancellationToken)".Trim();
+                fallback = "_ => base.DispatchAsync(request, cancellationToken)";
             }
             else
             {
-                dispatchImplementation += @$"
-_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))".Trim();
+                fallback = "_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))";
             }
+            fallback = fallback.Indent();
 
-            dispatchImplementation = @$"
-request.Operation switch
+            return @$"request.Operation switch
 {{
-    {dispatchImplementation.WithIndent("    ")}
-}};".Trim();
+    {arms}
+
+    {fallback}
+}}";
         }
         else
         {
-            dispatchImplementation = serviceClass.HasBaseServiceClass ?
-                "base.DispatchAsync(request, cancellationToken);" :
-                "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+            return serviceClass.HasBaseServiceClass ?
+                "base.DispatchAsync(request, cancellationToken)" :
+                "new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))";
         }
+    }
 
-        string methodModifier =
-            serviceClass.HasBaseServiceClass ? "public override" :
-            serviceClass.IsSealed ? "public" : "public virtual";
+    private static CodeBlock GenerateDispatchSwitchArm(ServiceMethod serviceMethod) =>
+        @$"""{serviceMethod.OperationName}"" =>
+    request.Dispatch{serviceMethod.MethodKind}Async(
+        {serviceMethod.InputTypeName}.Parser,
+        ({serviceMethod.InterfaceName})this,
+        static (service, input, features, cancellationToken) =>
+            service.{serviceMethod.MethodName}(input, features, cancellationToken),
+            cancellationToken),";
 
-        string dispatcherClass = $@"
-/// <summary>Implements <see cref=""IceRpc.IDispatcher"" /> for the Protobuf service(s) implemented by this class.
-/// </summary>
-partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
-{{
-    /// <summary>Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name carried
-    /// by the request. With IceRPC + Protobuf, operation names are the same as Protobuf rpc method names.</summary>
-    /// <param name=""request"">The incoming request.</param>
-    /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
-    /// <returns>The outgoing response.</returns>
-    /// <exception cref=""IceRpc.DispatchException"">Thrown if the rpc method name carried by the request does not
-    /// correspond to any method implemented by this class. The exception status code is
-    /// <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.</exception>
-    {methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
-        IceRpc.IncomingRequest request,
-        global::System.Threading.CancellationToken cancellationToken) =>
-        {dispatchImplementation.WithIndent("        ")}
-}}";
-
-        string container = dispatcherClass;
-        ContainerDefinition? containerDefinition = serviceClass;
-        while (containerDefinition.Enclosing is ContainerDefinition parent)
-        {
-            container = GenerateContainer($"partial {parent.Keyword} {parent.Name}", container);
-            containerDefinition = parent;
-        }
-
-        string generated = @$"
+    private static CodeBlock Preamble() => @$"
 // <auto-generated/>
 // IceRpc.Protobuf.Generators version: {typeof(ServiceGenerator).Assembly.GetName().Version!.ToString(3)}
 
@@ -93,24 +119,5 @@ partial {serviceClass.Keyword} {serviceClass.Name} : IceRpc.IDispatcher
 #pragma warning disable CS0619 // Type or member is obsolete
 
 using IceRpc.Protobuf;
-
 ";
-        if (serviceClass.ContainingNamespace is not null)
-        {
-            generated += $"namespace {serviceClass.ContainingNamespace};\n\n";
-        }
-
-        generated += container.Trim();
-        generated += "\n";
-        return generated.ReplaceLineEndings();
-    }
-
-    private static string GenerateContainer(string header, string body)
-    {
-        return $@"
-{header}
-{{
-    {body.WithIndent("    ")}
-}}".Trim();
-    }
 }

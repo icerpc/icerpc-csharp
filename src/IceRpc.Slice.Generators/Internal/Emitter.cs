@@ -39,7 +39,7 @@ internal class Emitter
         }
 
         codeBlock.AddBlock(container);
-        return codeBlock.ToString().ReplaceLineEndings();
+        return codeBlock.Content.ReplaceLineEndings();
     }
 
     private static CodeBlock GenerateDispatch(ServiceClass serviceClass)
@@ -49,14 +49,11 @@ internal class Emitter
             : serviceClass.IsSealed ? "public" : "public virtual";
 
         return @$"
-/// <summary>Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name
-/// carried by the request.</summary>
+/// <summary>Dispatches an incoming request to a method of <see cref=""{serviceClass.Name}"" /> based on
+/// the operation name carried by the request.</summary>
 /// <param name=""request"">The incoming request.</param>
 /// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
 /// <returns>The outgoing response.</returns>
-/// <exception cref=""IceRpc.DispatchException"">Thrown if the operation name carried by the request does not
-/// correspond to any method implemented by this class. The exception status code is
-/// <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.</exception>
 {methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
     IceRpc.IncomingRequest request,
     global::System.Threading.CancellationToken cancellationToken)
@@ -78,16 +75,16 @@ internal class Emitter
             }
             cases = cases.Indent(); // This indents all the case statements in the switch.
 
-            var fallback = new CodeBlock();
+            CodeBlock fallback;
             if (serviceClass.HasBaseServiceClass)
             {
-                fallback.WriteLine(@"default:
-    return base.DispatchAsync(request, cancellationToken);");
+                fallback = @"default:
+    return base.DispatchAsync(request, cancellationToken);";
             }
             else
             {
-                fallback.WriteLine(@"default:
-    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));");
+                fallback = @"default:
+    return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
             }
             fallback = fallback.Indent();
 
@@ -98,13 +95,11 @@ internal class Emitter
     {fallback}
 }}";
         }
-        else if (serviceClass.HasBaseServiceClass)
-        {
-            return "return base.DispatchAsync(request, cancellationToken);";
-        }
         else
         {
-            return "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
+            return serviceClass.HasBaseServiceClass ?
+                "return base.DispatchAsync(request, cancellationToken);" :
+                "return new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented));";
         }
     }
 
@@ -164,7 +159,7 @@ internal class Emitter
                 if (serviceMethod.ReturnStream)
                 {
                     dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: (_, encodeOptions) =>
+                        @$"encodeReturnValue: static (_, encodeOptions) =>
         global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions)");
 
                     dispatchCallBuilder.AddArgument(
@@ -203,7 +198,7 @@ internal class Emitter
                             .AddArgument("encodeOptions");
 
                     dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: (returnValue, encodeOptions) =>
+                        @$"encodeReturnValue: static (returnValue, encodeOptions) =>
         {encodeBuilder.Build()}");
                 }
 
@@ -219,7 +214,7 @@ internal class Emitter
                             .AddArgument("encodeOptions");
 
                     dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: (returnValue, encodeOptions) => {encodeBuilder.Build()}");
+                        $"encodeReturnValueStream: static (returnValue, encodeOptions) => {encodeBuilder.Build()}");
                 }
             }
         }
@@ -251,6 +246,5 @@ internal class Emitter
 
 using IceRpc.Slice;
 using ZeroC.Slice;
-
 ";
 }
