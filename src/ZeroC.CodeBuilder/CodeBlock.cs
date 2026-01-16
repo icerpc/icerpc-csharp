@@ -10,8 +10,8 @@ public sealed class CodeBlock
     /// <summary>Gets the raw content of the code block.</summary>
     public string Content => _content.ToString();
 
-    /// <summary>Gets a value indicating whether the code block is empty or contains only whitespace.</summary>
-    public bool IsEmpty => _content.Length == 0 || string.IsNullOrWhiteSpace(_content.ToString());
+    /// <summary>Gets a value indicating whether the code block is empty.</summary>
+    public bool IsEmpty => _content.Length == 0;
 
     /// <summary>Combines multiple code blocks into a single code block, separated by newlines.</summary>
     /// <param name="blocks">The blocks to combine.</param>
@@ -94,10 +94,7 @@ public sealed class CodeBlock
         }
     }
 
-    /// <summary>Writes a newline to the code block.</summary>
-    public void WriteLine() => _content.AppendLine();
-
     /// <summary>Writes the specified value followed by a newline to the code block.</summary>
     /// <param name="value">The value to write.</param>
-    public void WriteLine(string value) => _content.AppendLine(value);
+    public void WriteLine(string value) => Write($"{value}\n");
 }

@@ -43,7 +43,7 @@ public sealed class FunctionCallBuilder : IBuilder
     /// <summary>Adds an argument to the function call if it is not null.</summary>
     /// <param name="argument">The optional argument to add.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder AddArgumentIfPresent(string? argument)
+    public FunctionCallBuilder AddArgumentIfNotNull(string? argument)
     {
         if (argument is not null)
         {

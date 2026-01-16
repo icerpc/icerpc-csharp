@@ -68,11 +68,9 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
 
     /// <summary>Adds the EditorBrowsable(Never) attribute.</summary>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionBuilder AddNeverEditorBrowsableAttribute()
-    {
-        return AddAttribute(
+    public FunctionBuilder AddNeverEditorBrowsableAttribute() =>
+        AddAttribute(
             "global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)");
-    }
 
     /// <summary>Adds a parameter to the function.</summary>
     /// <param name="paramType">The parameter type.</param>
@@ -99,10 +97,8 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
 
     /// <summary>Adds the SetsRequiredMembers attribute.</summary>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionBuilder AddSetsRequiredMembersAttribute()
-    {
-        return AddAttribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers");
-    }
+    public FunctionBuilder AddSetsRequiredMembersAttribute() =>
+        AddAttribute("global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers");
 
     /// <inheritdoc/>
     public CodeBlock Build()
@@ -164,19 +160,9 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
                 break;
 
             case FunctionType.BlockBody:
-                if (_body.IsEmpty)
-                {
-                    code.WriteLine("");
-                    code.WriteLine("{");
-                    code.WriteLine("}");
-                }
-                else
-                {
-                    code.WriteLine("");
-                    code.WriteLine("{");
-                    code.WriteLine($"    {_body.Indent()}");
-                    code.WriteLine("}");
-                }
+                code.WriteLine("\n{");
+                code.WriteLine($"    {_body.Indent()}");
+                code.WriteLine("}");
                 break;
         }
 

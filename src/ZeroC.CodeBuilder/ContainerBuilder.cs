@@ -119,17 +119,9 @@ public sealed class ContainerBuilder : IBuilder, IAttributeBuilder<ContainerBuil
 
         var bodyContent = CodeBlock.FromBlocks(_contents);
 
-        if (bodyContent.IsEmpty)
-        {
-            code.WriteLine("{");
-            code.WriteLine("}");
-        }
-        else
-        {
-            code.WriteLine("{");
-            code.WriteLine($"    {bodyContent.Indent()}");
-            code.WriteLine("}");
-        }
+        code.WriteLine("{");
+        code.WriteLine($"    {bodyContent.Indent()}");
+        code.WriteLine("}");
 
         return code;
     }

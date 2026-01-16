@@ -21,12 +21,12 @@ internal class Emitter
         // We need to implement IDispatcher all the time, even when there is a base class that itself implements
         // IDispatcher.
         CodeBlock container = new ContainerBuilder($"partial {serviceClass.Keyword}", serviceClass.Name)
-                .AddBase("IceRpc.IDispatcher")
-                .AddComment(
-                    "summary",
-                    "Implements <see cref=\"IceRpc.IDispatcher\" /> for the Slice interface(s) implemented by this class.")
-                .AddBlock(GenerateDispatch(serviceClass))
-                .Build();
+            .AddBase("IceRpc.IDispatcher")
+            .AddComment(
+                "summary",
+                @"Implements <see cref=""IceRpc.IDispatcher"" /> for the Slice interface(s) implemented by this class.")
+            .AddBlock(GenerateDispatch(serviceClass))
+            .Build();
 
         ContainerDefinition? containerDefinition = serviceClass;
         while (containerDefinition.Enclosing is ContainerDefinition enclosing)
@@ -44,36 +44,26 @@ internal class Emitter
 
     private static CodeBlock GenerateDispatch(ServiceClass serviceClass)
     {
-        FunctionBuilder dispatchFunctionBuilder =
-            new FunctionBuilder(
-                access: serviceClass.HasBaseServiceClass ?
-                    "public override" :
-                    serviceClass.IsSealed ? "public" : "public virtual",
-                "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>",
-                "DispatchAsync",
-                FunctionType.BlockBody)
-            .AddComment(
-                "summary",
-                @$"Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name
-carried by the request.")
-            .AddParameter(
-                "IceRpc.IncomingRequest",
-                "request",
-                docComment: "The incoming request.")
-            .AddParameter(
-                "global::System.Threading.CancellationToken",
-                "cancellationToken",
-                docComment: "A cancellation token that receives the cancellation requests.")
-            .AddComment("returns", "The outgoing response.")
-            .AddComment(
-                "exception",
-                "cref",
-                "IceRpc.DispatchException",
-                @"Thrown if the operation name carried by the request does not correspond to any method implemented by this class.
-The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.");
+        string methodModifier = serviceClass.HasBaseServiceClass
+            ? "public override"
+            : serviceClass.IsSealed ? "public" : "public virtual";
 
-        dispatchFunctionBuilder.SetBody(GenerateDispatchBody(serviceClass));
-        return dispatchFunctionBuilder.Build();
+        return @$"
+/// <summary>Dispatches an incoming request to a method of {serviceClass.Name} based on the operation name
+/// carried by the request.</summary>
+/// <param name=""request"">The incoming request.</param>
+/// <param name=""cancellationToken"">A cancellation token that receives the cancellation requests.</param>
+/// <returns>The outgoing response.</returns>
+/// <exception cref=""IceRpc.DispatchException"">Thrown if the operation name carried by the request does not
+/// correspond to any method implemented by this class. The exception status code is
+/// <see cref=""IceRpc.StatusCode.NotImplemented"" /> in this case.</exception>
+{methodModifier} global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> DispatchAsync(
+    IceRpc.IncomingRequest request,
+    global::System.Threading.CancellationToken cancellationToken)
+{{
+    {GenerateDispatchBody(serviceClass).Indent()}
+}}
+";
     }
 
     private static CodeBlock GenerateDispatchBody(ServiceClass serviceClass)
@@ -118,14 +108,9 @@ The exception status code is <see cref=""IceRpc.StatusCode.NotImplemented"" /> i
         }
     }
 
-    private static CodeBlock GenerateDispatchCase(ServiceMethod serviceMethod)
-    {
-        var codeBlock = new CodeBlock();
-        codeBlock.WriteLine(@$"case ""{serviceMethod.OperationName}"":
-{GenerateDispatchCaseBody(serviceMethod)}");
-
-        return codeBlock;
-    }
+    private static CodeBlock GenerateDispatchCase(ServiceMethod serviceMethod) =>
+        @$"case ""{serviceMethod.OperationName}"":
+{GenerateDispatchCaseBody(serviceMethod)}";
 
     private static CodeBlock GenerateDispatchCaseBody(ServiceMethod serviceMethod)
     {
