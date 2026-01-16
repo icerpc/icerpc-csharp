@@ -9,6 +9,8 @@
     <IsPackable>false</IsPackable>
     <!-- Copy the PDBs from the NuGet packages to get file names and line numbers in stack traces. -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
+    <!-- Disable CA2007 for console applications where ConfigureAwait is not necessary -->
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <SliceFile Include="../slice/BuildTelemetry.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
