@@ -149,7 +149,8 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
                 }
                 else
                 {
-                    code.WriteLine($" =>\n    {_body.Indent()};");
+                    code.WriteLine(@$" =>
+        {_body.Indent()};");
                 }
                 break;
 

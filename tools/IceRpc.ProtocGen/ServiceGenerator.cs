@@ -33,11 +33,12 @@ public partial interface I{service.Name.ToPascalCase()}Service
     {
         string returnType = method.OutputType.GetType(scope, method.IsServerStreaming);
 
-        FunctionBuilder functionBuilder = new FunctionBuilder(
-            access: "", // abstract interface methods are implicitly public
-            $"global::System.Threading.Tasks.ValueTask<{returnType}>",
-            $"{method.Name.ToPascalCase()}Async",
-            FunctionType.Declaration)
+        FunctionBuilder functionBuilder =
+            new FunctionBuilder(
+                access: "", // abstract interface methods are implicitly public
+                $"global::System.Threading.Tasks.ValueTask<{returnType}>",
+                $"{method.Name.ToPascalCase()}Async",
+                FunctionType.Declaration)
             .AddComment("summary", $"Implements rpc method <c>{method.Name}</c>.");
 
         if (method.IsClientStreaming)
@@ -55,7 +56,7 @@ public partial interface I{service.Name.ToPascalCase()}Service
                 docComment: "The input message.");
         }
 
-        functionBuilder
+        return functionBuilder
             .AddParameter(
                 "IceRpc.Features.IFeatureCollection",
                 "features",
@@ -68,8 +69,7 @@ public partial interface I{service.Name.ToPascalCase()}Service
                 "returns",
                 method.IsServerStreaming ?
                     "A value task holding the stream of output messages." : "A value task holding the output message.")
-            .AddAttribute($@"ProtobufServiceMethod(""{method.Name}"")");
-
-        return functionBuilder.Build();
+            .AddAttribute($@"ProtobufServiceMethod(""{method.Name}"")")
+            .Build();
     }
 }

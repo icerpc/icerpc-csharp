@@ -45,14 +45,15 @@ foreach (FileDescriptor descriptor in descriptors)
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CS0619 // Type or member is obsolete
 
-using IceRpc.Protobuf;");
+using IceRpc.Protobuf;
+");
 
     codeBlock.AddBlock($"namespace {descriptor.GetCsharpNamespace()};");
 
     foreach (ServiceDescriptor service in descriptor.Services)
     {
         codeBlock.AddBlock(ClientGenerator.GenerateInterface(service));
-        codeBlock.AddBlock(ClientGenerator.GenerateImplementation(service));
+        codeBlock.AddBlock(ClientGenerator.GenerateClient(service));
         codeBlock.AddBlock(ServiceGenerator.GenerateInterface(service));
     }
 

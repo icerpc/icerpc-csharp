@@ -64,7 +64,7 @@ public sealed class FunctionCallBuilder : IBuilder
     /// <summary>Sets whether arguments should be placed on separate lines.</summary>
     /// <param name="argumentsOnNewline">True to place arguments on new lines.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder ArgumentsOnNewline(bool argumentsOnNewline)
+    public FunctionCallBuilder ArgumentsOnNewline(bool argumentsOnNewline = true)
     {
         _argumentsOnNewline = argumentsOnNewline;
         return this;
@@ -100,7 +100,7 @@ public sealed class FunctionCallBuilder : IBuilder
     /// <summary>Sets whether to append a semicolon after the call.</summary>
     /// <param name="useSemicolon">True to append a semicolon.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder UseSemicolon(bool useSemicolon)
+    public FunctionCallBuilder UseSemicolon(bool useSemicolon = true)
     {
         _useSemicolon = useSemicolon;
         return this;
