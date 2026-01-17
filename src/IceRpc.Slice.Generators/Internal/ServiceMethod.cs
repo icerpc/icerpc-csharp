@@ -3,7 +3,7 @@
 namespace IceRpc.Slice.Generators.Internal;
 
 /// <summary>Represents an abstract method in a generated XxxService interface marked with the
-/// <c>IceRpc.Slice.SliceServiceMethodAttribute</c> attribute.</summary>
+/// <c>IceRpc.Slice.SliceOperationAttribute</c> attribute.</summary>
 internal readonly record struct ServiceMethod
 {
     /// <summary>Gets the name of the C# method minus the Async suffix. For example: "FindObjectById".</summary>
