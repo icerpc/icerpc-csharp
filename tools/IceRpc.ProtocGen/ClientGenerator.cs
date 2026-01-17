@@ -148,7 +148,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
                 .AddArgument("EncodeOptions")
                 .AddArgument("features")
                 .AddArgument($"idempotent: {idempotent.ToString().ToLowerInvariant()}")
-                .AddArgument("cancellationToken")
+                .AddArgument("cancellationToken: cancellationToken")
                 .UseSemicolon(false);
 
         return functionBuilder.SetBody(functionCallBuilder.Build().Indent()).Build();
