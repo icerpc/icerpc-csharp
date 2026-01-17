@@ -61,7 +61,7 @@ using IceRpc.Protobuf;
         new CodeGeneratorResponse.Types.File
         {
             Name = $"{Path.GetFileNameWithoutExtension(descriptor.Name).ToPascalCase()}.IceRpc.cs",
-            Content = codeBlock.Content.ReplaceLineEndings()
+            Content = codeBlock.ToString().ReplaceLineEndings()
         });
 }
 
