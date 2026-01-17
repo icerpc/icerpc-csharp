@@ -21,10 +21,4 @@ internal static class StringExtensions
         }
         return contents;
     }
-
-    internal static string TrimTrailingWhiteSpaces(this string contents) =>
-        string.Join("\n", contents.Split('\n').Select(value => value.TrimEnd()));
-
-    internal static string WithIndent(this string contents, string indent) =>
-        string.Join("\n", contents.Split('\n').Select(value => $"{indent}{value}")).Trim();
 }

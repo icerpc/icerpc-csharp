@@ -7,9 +7,6 @@ namespace ZeroC.CodeBuilder;
 /// <summary>Represents a block of generated code that can be manipulated and formatted.</summary>
 public sealed class CodeBlock
 {
-    /// <summary>Gets the raw content of the code block.</summary>
-    public string Content => _content.ToString();
-
     /// <summary>Gets a value indicating whether the code block is empty.</summary>
     public bool IsEmpty => _content.Length == 0;
 
