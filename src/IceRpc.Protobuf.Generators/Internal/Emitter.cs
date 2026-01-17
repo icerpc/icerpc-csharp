@@ -24,7 +24,7 @@ internal class Emitter
             .AddBase("IceRpc.IDispatcher")
             .AddComment(
                 "summary",
-                @"Implements <see cref=""IceRpc.IDispatcher"" /> for the Protobuf service(s) implemented by this class")
+                @"Implements <see cref=""IceRpc.IDispatcher"" /> for the Protobuf service(s) implemented by this class.")
             .AddBlock(GenerateDispatch(serviceClass))
             .Build();
 
