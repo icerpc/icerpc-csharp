@@ -73,16 +73,10 @@ internal class Emitter
             }
             arms = arms.Indent(); // This indents all the arms in the switch.
 
-            CodeBlock fallback;
-            if (serviceClass.HasBaseServiceClass)
-            {
-                fallback = "_ => base.DispatchAsync(request, cancellationToken)";
-            }
-            else
-            {
-                fallback = "_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))";
-            }
-            fallback = fallback.Indent();
+            var fallback = new CodeBlock(
+                serviceClass.HasBaseServiceClass ?
+                    "_ => base.DispatchAsync(request, cancellationToken)" :
+                    "_ => new(new IceRpc.OutgoingResponse(request, IceRpc.StatusCode.NotImplemented))").Indent();
 
             return @$"request.Operation switch
 {{
