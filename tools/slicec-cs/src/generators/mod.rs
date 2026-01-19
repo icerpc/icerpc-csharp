@@ -69,7 +69,7 @@ pub fn generate_from_slice_file(slice_file: &SliceFile, for_interfaces: bool, _o
             .iter()
             .any(|definition| matches!(definition, Definition::Class(_) | Definition::Exception(_)));
         if has_slice_classes {
-            generated_code.add_block("[assembly:HasSliceClasses]");
+            generated_code.add_block("[assembly: HasSliceClasses]");
         }
     }
 
