@@ -66,12 +66,6 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
         return this;
     }
 
-    /// <summary>Adds the EditorBrowsable(Never) attribute.</summary>
-    /// <returns>This builder instance for method chaining.</returns>
-    public FunctionBuilder AddNeverEditorBrowsableAttribute() =>
-        AddAttribute(
-            "global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)");
-
     /// <summary>Adds a parameter to the function.</summary>
     /// <param name="paramType">The parameter type.</param>
     /// <param name="paramName">The parameter name.</param>
@@ -155,7 +149,8 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
                 }
                 else
                 {
-                    code.WriteLine($" =>\n    {_body.Indent()};");
+                    code.WriteLine(@$" =>
+        {_body.Indent()};");
                 }
                 break;
 
