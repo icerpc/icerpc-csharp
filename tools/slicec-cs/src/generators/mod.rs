@@ -58,13 +58,19 @@ pub fn generate_from_slice_file(slice_file: &SliceFile, for_interfaces: bool, _o
     // Write the preamble at the top of the generated file.
     let mut generated_code = preamble(slice_file);
 
-    let filename = &slice_file.filename;
-
     if for_interfaces {
         generated_code.add_block("using IceRpc.Slice;\nusing ZeroC.Slice;");
     } else {
         generated_code.add_block("using ZeroC.Slice;");
-        generated_code.add_block(format!("[assembly:Slice(\"{filename}.slice\")]"));
+
+        // Generate the HasSliceClasses assembly attribute only if the file defines classes or exceptions.
+        let has_slice_classes = slice_file
+            .contents
+            .iter()
+            .any(|definition| matches!(definition, Definition::Class(_) | Definition::Exception(_)));
+        if has_slice_classes {
+            generated_code.add_block("[assembly:HasSliceClasses]");
+        }
     }
 
     // If the slice file wasn't empty, generate code for its contents.

@@ -55,7 +55,7 @@ internal class ActivatorFactory
         {
             return activator;
         }
-        else if (assembly.GetCustomAttributes<SliceAttribute>().Any())
+        else if (assembly.GetCustomAttribute<HasSliceClassesAttribute>() is not null)
         {
             return _cache.GetOrAdd(
                 assembly,
