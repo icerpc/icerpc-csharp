@@ -140,7 +140,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
 
         FunctionCallBuilder functionCallBuilder =
             new FunctionCallBuilder($"Invoker.{invokeAsyncMethod}")
-                .ArgumentsOnNewline()
+                .ArgumentsOnNewLine()
                 .AddArgument("ServiceAddress")
                 .AddArgument($@"""{method.Name}""")
                 .AddArgument(method.IsClientStreaming ? "stream" : "message")
