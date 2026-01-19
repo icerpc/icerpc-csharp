@@ -7,7 +7,7 @@ public sealed class FunctionCallBuilder : IBuilder
 {
     private readonly List<string> _arguments = [];
     private readonly string _callable;
-    private bool _argumentsOnNewline;
+    private bool _argumentsOnNewLine;
     private string? _typeArgument;
     private bool _useSemicolon = true;
 
@@ -62,11 +62,11 @@ public sealed class FunctionCallBuilder : IBuilder
     }
 
     /// <summary>Sets whether arguments should be placed on separate lines.</summary>
-    /// <param name="argumentsOnNewline">True to place arguments on new lines.</param>
+    /// <param name="argumentsOnNewLine">True to place arguments on new lines.</param>
     /// <returns>This builder instance for method chaining.</returns>
-    public FunctionCallBuilder ArgumentsOnNewline(bool argumentsOnNewline = true)
+    public FunctionCallBuilder ArgumentsOnNewLine(bool argumentsOnNewLine = true)
     {
-        _argumentsOnNewline = argumentsOnNewline;
+        _argumentsOnNewLine = argumentsOnNewLine;
         return this;
     }
 
@@ -76,7 +76,7 @@ public sealed class FunctionCallBuilder : IBuilder
         string typeArg = _typeArgument is not null ? $"<{_typeArgument}>" : string.Empty;
 
         string functionCall =
-            _argumentsOnNewline && _arguments.Count > 0
+            _argumentsOnNewLine && _arguments.Count > 0
                 ? $"{_callable}{typeArg}(\n    {string.Join($",\n    ", _arguments)})"
                 : $"{_callable}{typeArg}({string.Join(", ", _arguments)})";
 

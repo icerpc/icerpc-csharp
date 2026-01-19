@@ -112,7 +112,7 @@ internal class Emitter
         {
             FunctionCallBuilder withCallBuilder =
                 new FunctionCallBuilder("IceRpc.Features.FeatureCollectionExtensions.With")
-                .ArgumentsOnNewline(true)
+                .ArgumentsOnNewLine(true)
                 .AddArgument("request.Features")
                 .AddArgument("IceRpc.Features.CompressFeature.Compress");
 
@@ -140,7 +140,7 @@ internal class Emitter
         }
 
         FunctionCallBuilder dispatchCallBuilder = new FunctionCallBuilder("request.DispatchOperationAsync")
-            .ArgumentsOnNewline(true)
+            .ArgumentsOnNewLine(true)
             .AddArgument(
                 $"decodeArgs: global::{serviceMethod.FullInterfaceName}.Request.Decode{serviceMethod.DispatchMethodName}Async")
             .AddArgument($"method: {method}");
