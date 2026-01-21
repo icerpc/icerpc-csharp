@@ -5,17 +5,12 @@
     <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>12.0</LangVersion>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Title>IceRPC Slice Tools</Title>
-    <Authors>ZeroC, Inc.</Authors>
     <PackageId>$(AssemblyName)</PackageId>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://zeroc.com/icerpc</PackageProjectUrl>
     <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageIcon>icerpc-icon.png</PackageIcon>
-    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
     <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

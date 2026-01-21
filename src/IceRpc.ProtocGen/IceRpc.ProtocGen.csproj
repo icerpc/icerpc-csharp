@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../../tools/Common/IceRpc.CaseConverter.Internal/Converter.cs" />
+    <Compile Include="../IceRpc.Protobuf.Tools/Converter.cs" />
     <Compile Include="../ZeroC.CodeBuilder/*.cs" />
     <PackageReference Include="Google.Protobuf" Version="$(NuGetProtobufVersion)" />
     <None Include="protoc-gen-icerpc-csharp.bat">

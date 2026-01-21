@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <Description>IceRpc.Slice for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
@@ -33,6 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
     <ProjectReference Include="../ZeroC.Slice/ZeroC.Slice.csproj" ExactVersion="true" />
+    <ProjectReference Include="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
     <!-- Includes the analyzer in the package without consuming it. -->
     <ProjectReference
       Include="../IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"
@@ -55,5 +56,5 @@
       PackagePath="analyzers/dotnet/cs"
     />
   </ItemGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

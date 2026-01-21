@@ -25,7 +25,6 @@
     <PackageReference Include="Google.Protobuf.Tools" Version="$(NuGetProtobufVersion)" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../../tools/Common/IceRpc.CaseConverter.Internal/Converter.cs" />
     <None
       Include="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
       Exclude="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"

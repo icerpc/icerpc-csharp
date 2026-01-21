@@ -31,10 +31,6 @@ function Build($config) {
 
     $dotnetConfiguration = DotnetConfiguration($config)
 
-    Push-Location "tools"
-    RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
-    Pop-Location
-
     RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
@@ -44,10 +40,6 @@ function Clean($config) {
     Pop-Location
 
     $dotnetConfiguration = DotnetConfiguration($config)
-
-    Push-Location "tools"
-    RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
-    Pop-Location
 
     RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 
@@ -95,10 +87,6 @@ function Publish($config) {
     Build $config
     $dotnetConfiguration = DotnetConfiguration($config)
 
-    Push-Location "tools"
-    RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
-    Pop-Location
-
     RunCommand "dotnet"  @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
 
     Push-Location "src\IceRpc.Templates"
@@ -108,14 +96,13 @@ function Publish($config) {
     $global_packages = dotnet nuget locals -l global-packages
     $global_packages = $global_packages.replace("global-packages: ", "")
     Remove-Item $global_packages"\IceRpc.Slice.Tools\$version" -Recurse -Force -ErrorAction Ignore
-    $packages = Get-Childitem -Path "." -Include *.$version.nupkg -Recurse
+    $packages = Get-ChildItem -Path "." -Include *.$version.nupkg -Recurse
     foreach ($package in $packages)
     {
         $package_name = (Get-Item $package).Basename
         $package_name = $package_name.Substring(0, $package_name.Length - ".$version".Length)
         Remove-Item $global_packages"\$package_name\$version" -Recurse -Force -ErrorAction Ignore
     }
-    RunCommand "dotnet" @('nuget', 'push', "tools\**\$dotnetConfiguration\*.$version.nupkg", '--source', $global_packages)
     RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.$version.nupkg", '--source', $global_packages)
 }
 

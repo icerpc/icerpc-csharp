@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -14,6 +14,7 @@
     <SliceFile Include="../IceRpc.SliceBuildTelemetry.Reporter/BuildTelemetry.slice" />
     <PackageReference Include="System.CommandLine" Version="2.0.0" />
     <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" />
+    <ProjectReference Include="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>
