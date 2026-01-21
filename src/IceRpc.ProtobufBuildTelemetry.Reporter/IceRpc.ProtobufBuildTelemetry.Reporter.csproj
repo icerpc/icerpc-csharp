@@ -13,7 +13,7 @@
   <ItemGroup>
     <SliceFile Include="../IceRpc.SliceBuildTelemetry.Reporter/BuildTelemetry.slice" />
     <PackageReference Include="System.CommandLine" Version="2.0.0" />
-    <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
+    <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" />
   </ItemGroup>
   <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>
