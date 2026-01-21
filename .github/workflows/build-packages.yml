@@ -87,17 +87,13 @@ jobs:
           New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
           Copy-Item "slicec-cs-x86_64-pc-windows-msvc\slicec-cs.exe" -Destination "$env:GITHUB_WORKSPACE\tools\slicec-cs\target\release"
 
-      - name: Build IceRPC Tools
-        working-directory: tools
-        run: dotnet build --configuration Release
-
       - name: Build IceRPC
         run: dotnet build --configuration Release
 
       - name: Collect Files to Sign
         run: |
-            # For each project in src and tools, we sign the main assembly named after the project.
-            $assemblies = Get-ChildItem -Path src, tools -Directory | ForEach-Object {
+            # For each project in src, we sign the main assembly named after the project.
+            $assemblies = Get-ChildItem -Path src -Directory | ForEach-Object {
               $name = $_.Name
               Get-ChildItem -Path $_.FullName -Filter "$name.dll" -Recurse |
               Where-Object { $_.FullName -like "*\bin\Release\net*\$name.dll" } |
@@ -124,10 +120,6 @@ jobs:
           timestamp-digest: SHA256
 
       # Use --no-build to avoid rebuilding, we want to use the signed assemblies that were built in the previous step.
-      - name: Pack IceRPC Tools
-        working-directory: tools
-        run: dotnet pack --no-build --configuration Release --output ../
-
       - name: Pack IceRPC
         run: dotnet pack --no-build --configuration Release --output .
 
