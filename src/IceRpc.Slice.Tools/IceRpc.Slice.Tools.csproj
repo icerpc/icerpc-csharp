@@ -105,7 +105,7 @@
     <Otherwise>
       <ItemGroup>
         <!-- Use the compilers from this source build. -->
-        <Content Include="../slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
+        <Content Include="../../tools/slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
           <PackagePath>tools/$(IceRPC_OSName)-$(IceRPC_OSArch)/</PackagePath>
           <Pack>true</Pack>
         </Content>
