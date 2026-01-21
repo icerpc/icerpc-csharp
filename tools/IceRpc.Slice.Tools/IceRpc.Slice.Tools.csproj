@@ -41,8 +41,8 @@
   </ItemGroup>
   <ItemGroup>
     <None
-      Include="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
-      Exclude="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
+      Include="../../src/IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
+      Exclude="../../src/IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>

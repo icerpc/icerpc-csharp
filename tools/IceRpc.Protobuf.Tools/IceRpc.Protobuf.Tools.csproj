@@ -34,8 +34,8 @@
   <ItemGroup>
     <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
     <None
-      Include="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
-      Exclude="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
+      Include="../../src/IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
+      Exclude="../../src/IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
