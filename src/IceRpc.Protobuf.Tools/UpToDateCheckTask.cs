@@ -13,7 +13,7 @@ namespace IceRpc.Protobuf.Tools;
 #pragma warning disable CA1819
 
 /// <summary>A MSBuild task to compute what Protobuf files have to be rebuild by <c>protoc</c>.</summary>
-public class UpToDateCheckTask : Task
+public class UpToDateCheckTask : Microsoft.Build.Utilities.Task
 {
     /// <summary>Gets or sets the output directory for the generated code.</summary>
     [Required]

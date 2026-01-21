@@ -13,7 +13,7 @@ namespace IceRpc.Protobuf.Tools;
 #pragma warning disable CA1819
 
 /// <summary>A MSBuild task to compute the C# file name generated from a given proto file.</summary>
-public class OutputFileNamesTask : Task
+public class OutputFileNamesTask : Microsoft.Build.Utilities.Task
 {
     /// <summary>Gets or sets the Protobuf source files.</summary>
     [Required]
@@ -24,6 +24,7 @@ public class OutputFileNamesTask : Task
     [Output]
     public ITaskItem[] ComputedSources { get; private set; } = [];
 
+    /// <inheritdoc/>
     public override bool Execute()
     {
         var computedSources = new List<ITaskItem>();

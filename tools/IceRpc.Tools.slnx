@@ -1,5 +1,3 @@
 <Solution>
-  <Project Path="IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.csproj" />
-  <Project Path="IceRpc.ProtocGen/IceRpc.ProtocGen.csproj" />
   <Project Path="IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" />
 </Solution>

@@ -19,10 +19,12 @@
       -->
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
-        <IceRpcProtocGenPath
-        >$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
+        <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
         <!-- Disable build telemetry when using an IceRPC source builds -->
         <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
+
+        <!-- Use local build of IceRpc.Protobuf.Tools -->
+        <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</IceRpcProtobufToolsTaskAssembliesPath>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -32,22 +34,7 @@
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
-    <When
-      Condition="Exists('$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/IceRpc.Protobuf.Tools.dll')"
-    >
-      <PropertyGroup>
-        <IceRpcProtobufToolsTaskAssembliesPath
-        >$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</IceRpcProtobufToolsTaskAssembliesPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup>
-        <IceRpcProtobufToolsTaskAssembliesPath
-        >$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
+        <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
       </PropertyGroup>
     </Otherwise>
   </Choose>
