@@ -20,8 +20,6 @@
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
-        <!-- Disable build telemetry when using an IceRPC source builds -->
-        <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
 
         <!-- Use local build of IceRpc.Protobuf.Tools -->
         <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</IceRpcProtobufToolsTaskAssembliesPath>

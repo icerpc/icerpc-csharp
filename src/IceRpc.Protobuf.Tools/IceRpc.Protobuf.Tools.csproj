@@ -8,7 +8,6 @@
     <Title>IceRPC Protobuf Tools</Title>
     <PackageId>$(AssemblyName)</PackageId>
     <PackageIcon>icerpc-icon.png</PackageIcon>
-    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
     <Description>Provides tools to generate C# code from Protobuf definitions; includes support for MSBuild projects.</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
