@@ -28,6 +28,7 @@
     Runtime="NET"
   />
   <ItemGroup Condition="'$(IceRpcProtobufToolsSourceBuild)' == 'true'">
+    <!-- Add a reference to the Tools project to ensure it's built before we use its tasks -->
     <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
