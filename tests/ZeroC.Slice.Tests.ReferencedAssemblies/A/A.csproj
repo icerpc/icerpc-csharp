@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
-    <ProjectReference Include="../../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <Import Project="../../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

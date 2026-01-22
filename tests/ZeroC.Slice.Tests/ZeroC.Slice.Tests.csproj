@@ -28,7 +28,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
-    <ProjectReference Include="../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/A/A.csproj" />
     <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/B/B.csproj" />
     <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/C/C.csproj" />

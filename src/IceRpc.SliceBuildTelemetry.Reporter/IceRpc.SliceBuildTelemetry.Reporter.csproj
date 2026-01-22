@@ -13,7 +13,6 @@
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0" />
     <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" />
-    <ProjectReference Include="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

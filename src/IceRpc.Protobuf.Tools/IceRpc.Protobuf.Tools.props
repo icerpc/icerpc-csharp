@@ -18,6 +18,7 @@
         source build.
       -->
       <PropertyGroup>
+        <IceRpcProtobufToolsSourceBuild>true</IceRpcProtobufToolsSourceBuild>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
 

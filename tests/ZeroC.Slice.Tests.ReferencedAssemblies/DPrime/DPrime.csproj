@@ -11,7 +11,6 @@
   <ItemGroup>
     <SliceDirectory Include="../A;../B;../C" />
     <ProjectReference Include="../../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
-    <ProjectReference Include="../../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../B/B.csproj" />
     <ProjectReference Include="../C/C.csproj" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">
