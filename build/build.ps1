@@ -31,7 +31,7 @@ function Build($config) {
 
     $dotnetConfiguration = DotnetConfiguration($config)
 
-    RunCommand "dotnet" @('build', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('build', $versionProperty, '--configuration', $dotnetConfiguration)
 }
 
 function Clean($config) {
@@ -41,7 +41,7 @@ function Clean($config) {
 
     $dotnetConfiguration = DotnetConfiguration($config)
 
-    RunCommand "dotnet" @('clean', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('clean', $versionProperty, '--configuration', $dotnetConfiguration)
 
     Push-Location "src\IceRpc.Templates"
     RunCommand "dotnet" @('clean', $versionProperty, '--configuration', $dotnetConfiguration)
@@ -87,10 +87,10 @@ function Publish($config) {
     Build $config
     $dotnetConfiguration = DotnetConfiguration($config)
 
-    RunCommand "dotnet"  @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet"  @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
 
     Push-Location "src\IceRpc.Templates"
-    RunCommand "dotnet" @('pack', '-nr:false', $versionProperty, '--configuration', $dotnetConfiguration)
+    RunCommand "dotnet" @('pack', $versionProperty, '--configuration', $dotnetConfiguration)
     Pop-Location
 
     $global_packages = dotnet nuget locals -l global-packages

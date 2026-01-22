@@ -40,7 +40,7 @@ build()
     run_command cargo "${arguments[@]}"
     popd
 
-    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
+    run_command dotnet "build"$version_property "-c" "$dotnet_config"
 }
 
 clean()
@@ -49,10 +49,10 @@ clean()
     run_command cargo clean
     popd
 
-    run_command dotnet "clean" "-nr:false"$version_property
+    run_command dotnet "clean"$version_property
 
     pushd src/IceRpc.Templates
-    run_command dotnet "clean"$version_property "-nr:false"
+    run_command dotnet "clean"$version_property
     popd
 }
 
@@ -68,10 +68,10 @@ publish()
 {
     build
 
-    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
+    run_command dotnet "pack"$version_property "-c" "$dotnet_config"
 
     pushd src/IceRpc.Templates
-    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
+    run_command dotnet "pack"$version_property "-c" "$dotnet_config"
     popd
 
     global_packages=$(dotnet nuget locals -l global-packages)

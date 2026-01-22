@@ -30,7 +30,6 @@ build.cmd -help
     - [Slice tools](#slice-tools)
   - [Generating the API reference](#generating-the-api-reference)
   - [Generating the code coverage reports](#generating-the-code-coverage-reports)
-  - [Shutting down background MSBuild servers](#shutting-down-background-msbuild-servers)
   - [Updating Slice files](#updating-slice-files)
 
 ## Prerequisites
@@ -182,15 +181,6 @@ Windows
 
 ```shell
 build.cmd -coverage
-```
-
-## Shutting down background MSBuild servers
-
-You may occasionally encounter errors when cleaning and building because background MSBuild servers use/lock the
-`IceRpc.Slice.Tools` assembly. When this happens, you can shutdown these MSBuild servers with:
-
-```shell
-dotnet build-server shutdown
 ```
 
 ## Updating Slice files

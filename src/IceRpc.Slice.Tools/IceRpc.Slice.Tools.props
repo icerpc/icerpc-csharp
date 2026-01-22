@@ -19,6 +19,9 @@
 
         <!-- Use tools assembly built from source -->
         <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</SliceToolsTaskAssembliesPath>
+
+        <!-- Force task to run out of process to avoid issues with files in use -->
+        <SliceToolsTaskFactory>TaskHostFactory</SliceToolsTaskFactory>
       </PropertyGroup>
     </When>
     <Otherwise>
