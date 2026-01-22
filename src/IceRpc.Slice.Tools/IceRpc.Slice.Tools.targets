@@ -4,11 +4,13 @@
   <!-- Import Tasks -->
   <UsingTask
     TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
+    TaskFactory="$(SliceToolsTaskFactory)"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Slice.Tools.BuildTelemetryTask"
+    TaskFactory="$(SliceToolsTaskFactory)"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
   />

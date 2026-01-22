@@ -4,26 +4,31 @@
   <!-- Import Tasks -->
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.OutputFileNamesTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.OutputHashTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.ProtocTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.BuildTelemetryTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
