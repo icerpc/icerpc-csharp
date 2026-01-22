@@ -3,8 +3,8 @@
   <Import Project="$(MSBuildThisFileDirectory)../build/IceRpc.Src.props" />
   <PropertyGroup>
     <!-- Include PDB in the built .nupkg -->
-    <AllowedOutputExtensionsInPackageBuildOutputFolder
-    >$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <!-- Disable build telemetry -->
     <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
     <!-- Enable package lock file to ensure consistent package versions across builds -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>

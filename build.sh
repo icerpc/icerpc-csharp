@@ -40,10 +40,6 @@ build()
     run_command cargo "${arguments[@]}"
     popd
 
-    pushd tools
-    run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
-    popd
-
     run_command dotnet "build" "-nr:false"$version_property "-c" "$dotnet_config"
 }
 
@@ -51,10 +47,6 @@ clean()
 {
     pushd tools/slicec-cs
     run_command cargo clean
-    popd
-
-    pushd tools
-    run_command dotnet "clean" "-nr:false"$version_property "-c" "$dotnet_config"
     popd
 
     run_command dotnet "clean" "-nr:false"$version_property
@@ -76,10 +68,6 @@ publish()
 {
     build
 
-    pushd tools
-    run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
-    popd
-
     run_command dotnet "pack" "-nr:false"$version_property "-c" "$dotnet_config"
 
     pushd src/IceRpc.Templates
@@ -89,7 +77,6 @@ publish()
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
     run_command rm "-rf" "$global_packages/zeroc.slice/$version" "$global_packages/icerpc/$version" "$global_packages"/icerpc.*/"$version"
-    run_command dotnet "nuget" "push" "tools/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
     run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.$version.nupkg" "--source" "$global_packages"
 }
 

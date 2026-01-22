@@ -60,11 +60,6 @@ runs:
         cargo build --manifest-path tools/slicec-cs/Cargo.toml ${{ inputs.cargo-build-args }}
       shell: bash
 
-    - name: 🔨 Build IceRPC Tools
-      working-directory: tools
-      run: dotnet build ${{ inputs.dotnet-build-args }}
-      shell: bash
-
     - name: 🔨 Build IceRPC
       run: dotnet build ${{ inputs.dotnet-build-args }}
       shell: bash
