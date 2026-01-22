@@ -14,6 +14,7 @@
     <When Condition="Exists('$(MSBuildThisFileDirectory)../../tools/slicec-cs')">
       <!-- Use the Slice compiler from this source build -->
       <PropertyGroup>
+        <SliceToolsSourceBuild>true</SliceToolsSourceBuild>
         <SliceCompilerPath Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)../../tools/slicec-cs/target/debug</SliceCompilerPath>
         <SliceCompilerPath Condition="'$(Configuration)' == 'Release'">$(MSBuildThisFileDirectory)../../tools/slicec-cs/target/release</SliceCompilerPath>
 

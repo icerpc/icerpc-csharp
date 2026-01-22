@@ -33,7 +33,6 @@
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
     <ProjectReference Include="../ZeroC.Slice/ZeroC.Slice.csproj" ExactVersion="true" />
-    <ProjectReference Include="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
     <!-- Includes the analyzer in the package without consuming it. -->
     <ProjectReference
       Include="../IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"
