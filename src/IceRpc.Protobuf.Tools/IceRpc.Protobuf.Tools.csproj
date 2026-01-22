@@ -2,17 +2,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(MSBuildThisFileDirectory)../../build/Extract.targets" />
   <PropertyGroup>
-    <Nullable>enable</Nullable>
     <AssemblyName>IceRpc.Protobuf.Tools</AssemblyName>
     <TargetFramework>net10.0</TargetFramework>
     <Title>IceRPC Protobuf Tools</Title>
     <PackageId>$(AssemblyName)</PackageId>
-    <PackageIcon>icerpc-icon.png</PackageIcon>
     <Description>Provides tools to generate C# code from Protobuf definitions; includes support for MSBuild projects.</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>IceRPC;RPC;MSBuild;Protobuf</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageType>Dependency</PackageType>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>

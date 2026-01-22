@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <!--Because an application's API isn't typically referenced from outside the assembly, types can be made internal -->
     <NoWarn>CA1515</NoWarn>
     <TargetFramework>net10.0</TargetFramework>
