@@ -151,7 +151,7 @@ It's implemented by <c>{service.Name.ToPascalCase()}Client</c>.")
                 .AddArgument("cancellationToken: cancellationToken")
                 .UseSemicolon(false);
 
-        return functionBuilder.SetBody(functionCallBuilder.Build().Indent()).Build();
+        return functionBuilder.SetBody(functionCallBuilder.Build()).Build();
     }
 
     private static CodeBlock GenerateInterfaceMethod(MethodDescriptor method, string scope)

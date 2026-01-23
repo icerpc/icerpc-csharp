@@ -149,8 +149,13 @@ public sealed class FunctionBuilder : IBuilder, IAttributeBuilder<FunctionBuilde
                 }
                 else
                 {
+                    // When there is more than 1 parameter, they are written on separate lines with 1 level
+                    // of indentation. The body must be indented further (2 levels) to distinguish it from
+                    // the parameters. With a single parameter on the same line, only 1 level is needed.
+                    CodeBlock body = _parameters.Count > 1 ? _body.Indent().Indent() : _body.Indent();
+                    string indent = new(' ', (_parameters.Count > 1 ? 2 : 1) * 4);
                     code.WriteLine(@$" =>
-        {_body.Indent()};");
+{indent}{body};");
                 }
                 break;
 
