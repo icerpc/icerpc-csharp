@@ -37,6 +37,9 @@
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
         <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
+
+         <!-- AssemblyTaskFactory is the default value when no TaskFactory is specified -->
+        <IceRpcProtobufToolsTaskFactory>AssemblyTaskFactory</IceRpcProtobufToolsTaskFactory>
       </PropertyGroup>
     </Otherwise>
   </Choose>

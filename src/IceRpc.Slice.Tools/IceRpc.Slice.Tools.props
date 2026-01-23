@@ -30,6 +30,9 @@
       <PropertyGroup>
         <SliceCompilerPath>$(MSBuildThisFileDirectory)../tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
         <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</SliceToolsTaskAssembliesPath>
+
+         <!-- AssemblyTaskFactory is the default value when no TaskFactory is specified -->
+         <SliceToolsTaskFactory>AssemblyTaskFactory</SliceToolsTaskFactory>
       </PropertyGroup>
     </Otherwise>
   </Choose>
