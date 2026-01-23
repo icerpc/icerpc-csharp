@@ -50,6 +50,8 @@ public sealed class CodeBlock
 
     /// <summary>Creates a new code block with the content indented by 4 spaces.</summary>
     /// <returns>A new <see cref="CodeBlock"/> with indented content.</returns>
+    /// <remarks>Only newlines within the content are indented. The beginning of the string is not indented,
+    /// allowing the caller to control the initial indentation level.</remarks>
     public CodeBlock Indent()
     {
         #pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
