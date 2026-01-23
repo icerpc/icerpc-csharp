@@ -1,26 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Nullable>enable</Nullable>
     <AssemblyName>IceRpc.Slice.Tools</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>12.0</LangVersion>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Title>IceRPC Slice Tools</Title>
-    <Authors>ZeroC, Inc.</Authors>
     <PackageId>$(AssemblyName)</PackageId>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://zeroc.com/icerpc</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageIcon>icerpc-icon.png</PackageIcon>
-    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
     <Description>Provides tools to generate C# code from Slice definitions; includes support for MSBuild projects.</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>IceRPC;RPC;MSBuild;Slice</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageType>Dependency</PackageType>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
@@ -41,8 +29,8 @@
   </ItemGroup>
   <ItemGroup>
     <None
-      Include="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
-      Exclude="../IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
+      Include="../../src/IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
+      Exclude="../../src/IceRpc.SliceBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"
       Visible="false">
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
@@ -110,7 +98,7 @@
     <Otherwise>
       <ItemGroup>
         <!-- Use the compilers from this source build. -->
-        <Content Include="../slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
+        <Content Include="../../tools/slicec-cs/target/$(RustConfiguration)/$(SliceCompilerExe)">
           <PackagePath>tools/$(IceRPC_OSName)-$(IceRPC_OSArch)/</PackagePath>
           <Pack>true</Pack>
         </Content>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <Description>IceRPC for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
@@ -45,5 +45,5 @@
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
     <Content Include="IceRpc.props" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

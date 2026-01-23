@@ -90,7 +90,6 @@ jobs:
       shell: bash
       run: |
         cargo build --manifest-path tools/slicec-cs/Cargo.toml
-        dotnet build tools/IceRpc.Tools.slnx
         dotnet build IceRpc.slnx
 
     - name: Perform CodeQL Analysis

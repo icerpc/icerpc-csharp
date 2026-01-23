@@ -5,24 +5,27 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/src/">
+    <Project Path="src/IceRpc/IceRpc.csproj" />
     <Project Path="src/IceRpc.Compressor/IceRpc.Compressor.csproj" />
     <Project Path="src/IceRpc.Deadline/IceRpc.Deadline.csproj" />
     <Project Path="src/IceRpc.Extensions.DependencyInjection/IceRpc.Extensions.DependencyInjection.csproj" />
     <Project Path="src/IceRpc.Locator/IceRpc.Locator.csproj" />
     <Project Path="src/IceRpc.Logger/IceRpc.Logger.csproj" />
     <Project Path="src/IceRpc.Metrics/IceRpc.Metrics.csproj" />
-    <Project Path="src/IceRpc.Protobuf.Generators/IceRpc.Protobuf.Generators.csproj" />
     <Project Path="src/IceRpc.Protobuf/IceRpc.Protobuf.csproj" />
+    <Project Path="src/IceRpc.Protobuf.Generators/IceRpc.Protobuf.Generators.csproj" />
+    <Project Path="src/IceRpc.Protobuf.Tools/IceRpc.Protobuf.Tools.csproj" />
+    <Project Path="src/IceRpc.ProtobufBuildTelemetry.Reporter/IceRpc.ProtobufBuildTelemetry.Reporter.csproj" />
+    <Project Path="src/IceRpc.ProtocGen/IceRpc.ProtocGen.csproj" />
     <Project Path="src/IceRpc.RequestContext/IceRpc.RequestContext.csproj" />
     <Project Path="src/IceRpc.Retry/IceRpc.Retry.csproj" />
-    <Project Path="src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" />
     <Project Path="src/IceRpc.Slice/IceRpc.Slice.csproj" />
+    <Project Path="src/IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj" />
+    <Project Path="src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.csproj" />
+    <Project Path="src/IceRpc.SliceBuildTelemetry.Reporter/IceRpc.SliceBuildTelemetry.Reporter.csproj" />
     <Project Path="src/IceRpc.Telemetry/IceRpc.Telemetry.csproj" />
     <Project Path="src/IceRpc.Transports.Coloc/IceRpc.Transports.Coloc.csproj" />
-    <Project Path="src/IceRpc/IceRpc.csproj" />
     <Project Path="src/ZeroC.Slice/ZeroC.Slice.csproj" />
-    <Project Path="tools/IceRpc.ProtobufBuildTelemetry.Reporter/IceRpc.ProtobufBuildTelemetry.Reporter.csproj" />
-    <Project Path="tools/IceRpc.SliceBuildTelemetry.Reporter/IceRpc.SliceBuildTelemetry.Reporter.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/IceRpc.Compressor.Tests/IceRpc.Compressor.Tests.csproj" />
@@ -38,8 +41,8 @@
     <Project Path="tests/IceRpc.Retry.Tests/IceRpc.Retry.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Tests/IceRpc.Slice.Tests.csproj" />
     <Project Path="tests/IceRpc.Telemetry.Tests/IceRpc.Telemetry.Tests.csproj" />
-    <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <Project Path="tests/IceRpc.Tests/IceRpc.Tests.csproj" />
+    <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
     <Project Path="tests/ZeroC.Slice.Tests/ZeroC.Slice.Tests.csproj" />
   </Folder>

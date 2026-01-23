@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <!--Because an application's API isn't typically referenced from outside the assembly, types can be made internal -->
+    <NoWarn>CA1515</NoWarn>
     <TargetFramework>net10.0</TargetFramework>
     <RollForward>major</RollForward>
     <!-- We don't generate a NuGet package for IceRpc.ProtocGen. The generator is packaged with IceRpc.Protobuf.Tools -->
@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
-    <Compile Include="../../src/ZeroC.CodeBuilder/*.cs" />
+    <Compile Include="../IceRpc.Protobuf.Tools/Converter.cs" />
+    <Compile Include="../ZeroC.CodeBuilder/*.cs" />
     <PackageReference Include="Google.Protobuf" Version="$(NuGetProtobufVersion)" />
     <None Include="protoc-gen-icerpc-csharp.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
+  <Import Project="../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
@@ -31,5 +31,5 @@
     <!-- Missing XML comment for publicly visible type or member. -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
-  <Import Project="../../tools/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
+  <Import Project="../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

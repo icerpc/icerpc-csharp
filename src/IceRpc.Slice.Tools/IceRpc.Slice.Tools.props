@@ -11,40 +11,32 @@
     >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
   </PropertyGroup>
   <Choose>
-    <When Condition="Exists('$(MSBuildThisFileDirectory)../slicec-cs')">
+    <When Condition="Exists('$(MSBuildThisFileDirectory)../../tools/slicec-cs')">
       <!-- Use the Slice compiler from this source build -->
       <PropertyGroup>
-        <SliceCompilerPath
-          Condition="'$(Configuration)' == 'Debug'"
-        >$(MSBuildThisFileDirectory)../slicec-cs/target/debug</SliceCompilerPath>
-        <SliceCompilerPath
-          Condition="'$(Configuration)' == 'Release'"
-        >$(MSBuildThisFileDirectory)../slicec-cs/target/release</SliceCompilerPath>
-        <!-- Disable build telemetry when using an IceRPC source builds -->
-        <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
+        <SliceToolsSourceBuild>true</SliceToolsSourceBuild>
+        <SliceCompilerPath Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)../../tools/slicec-cs/target/debug</SliceCompilerPath>
+        <SliceCompilerPath Condition="'$(Configuration)' == 'Release'">$(MSBuildThisFileDirectory)../../tools/slicec-cs/target/release</SliceCompilerPath>
+
+        <!-- Use tools assembly built from source -->
+        <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</SliceToolsTaskAssembliesPath>
+
+        <!-- Force task to run out of process to avoid issues with files in use -->
+        <SliceToolsTaskFactory>TaskHostFactory</SliceToolsTaskFactory>
       </PropertyGroup>
     </When>
     <Otherwise>
       <!-- Use the Slice compiler from this NuGet package -->
       <PropertyGroup>
         <SliceCompilerPath>$(MSBuildThisFileDirectory)../tools/$(IceRpcOSName)-$(IceRpcOSArch)</SliceCompilerPath>
+        <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</SliceToolsTaskAssembliesPath>
+
+         <!-- AssemblyTaskFactory is the default value when no TaskFactory is specified -->
+         <SliceToolsTaskFactory>AssemblyTaskFactory</SliceToolsTaskFactory>
       </PropertyGroup>
     </Otherwise>
   </Choose>
 
-  <Choose>
-    <When Condition="Exists('$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/IceRpc.Slice.Tools.dll')">
-      <PropertyGroup>
-        <SliceToolsTaskAssembliesPath
-        >$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</SliceToolsTaskAssembliesPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup>
-        <SliceToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</SliceToolsTaskAssembliesPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
   <!-- default values -->
   <ItemDefinitionGroup>
     <SliceFile>

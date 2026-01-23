@@ -7,6 +7,7 @@
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.Tests.globalconfig" />
   </ItemGroup>
   <PropertyGroup>
+     <!-- Turn off build telemetry -->
     <IceRpcBuildTelemetry>false</IceRpcBuildTelemetry>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <!-- Enable package lock file to ensure consistent package versions across builds -->

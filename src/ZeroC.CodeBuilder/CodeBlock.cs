@@ -27,7 +27,13 @@ public sealed class CodeBlock
 
     /// <summary>Converts a string to a <see cref="CodeBlock"/>.</summary>
     /// <param name="content">The string content.</param>
-    public static implicit operator CodeBlock(string content) => new(content);
+    /// <returns>A new <see cref="CodeBlock"/>.</returns>
+    public static implicit operator CodeBlock(string content) => FromString(content);
+
+    /// <summary>Creates a <see cref="CodeBlock"/> from a string.</summary>
+    /// <param name="content">The string content.</param>
+    /// <returns>A new <see cref="CodeBlock"/>.</returns>
+    public static CodeBlock FromString(string content) => new(content);
 
     /// <summary>Initializes a new instance of the <see cref="CodeBlock"/> class.</summary>
     public CodeBlock()
@@ -48,7 +54,9 @@ public sealed class CodeBlock
     /// allowing the caller to control the initial indentation level.</remarks>
     public CodeBlock Indent()
     {
+        #pragma warning disable CA1307 // Specify StringComparison - not compatible with netstandard2.0
         string indented = _content.ToString().Replace("\n", "\n    ");
+        #pragma warning restore CA1307
         return new CodeBlock(indented);
     }
 

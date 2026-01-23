@@ -4,14 +4,20 @@
   <!-- Import Tasks -->
   <UsingTask
     TaskName="IceRpc.Slice.Tools.SliceCCSharpTask"
+    TaskFactory="$(SliceToolsTaskFactory)"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Slice.Tools.BuildTelemetryTask"
+    TaskFactory="$(SliceToolsTaskFactory)"
     AssemblyFile="$(SliceToolsTaskAssembliesPath)IceRpc.Slice.Tools.dll"
     Runtime="NET"
   />
+  <ItemGroup Condition="'$(SliceToolsSourceBuild)' == 'true'">
+    <!-- Add a reference to the Tools project to ensure it's built before we use its tasks-->
+    <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Slice.Tools.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ItemDefinition.xaml" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SliceFile.ProjectProperties.xaml">

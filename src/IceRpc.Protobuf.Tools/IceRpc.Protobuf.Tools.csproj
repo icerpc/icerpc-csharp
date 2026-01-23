@@ -2,25 +2,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(MSBuildThisFileDirectory)../../build/Extract.targets" />
   <PropertyGroup>
-    <Nullable>enable</Nullable>
     <AssemblyName>IceRpc.Protobuf.Tools</AssemblyName>
     <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>12.0</LangVersion>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Title>IceRPC Protobuf Tools</Title>
-    <Authors>ZeroC, Inc.</Authors>
     <PackageId>$(AssemblyName)</PackageId>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/icerpc/icerpc-csharp</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/icerpc/icerpc-csharp</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageIcon>icerpc-icon.png</PackageIcon>
-    <Copyright>Copyright (c) ZeroC, Inc.</Copyright>
     <Description>Provides tools to generate C# code from Protobuf definitions; includes support for MSBuild projects.</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageTags>IceRPC;RPC;MSBuild;Protobuf</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageType>Dependency</PackageType>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
@@ -32,7 +20,6 @@
     <PackageReference Include="Google.Protobuf.Tools" Version="$(NuGetProtobufVersion)" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../Common/IceRpc.CaseConverter.Internal/Converter.cs" />
     <None
       Include="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*"
       Exclude="../IceRpc.ProtobufBuildTelemetry.Reporter/bin/$(Configuration)/net10.0/*.exe"

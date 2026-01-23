@@ -14,7 +14,7 @@ namespace IceRpc.Protobuf.Tools;
 #pragma warning disable CA1819
 
 /// <summary>A MSBuild task to compute the SHA-256 hash of the Protobuf files.</summary>
-public class OutputHashTask : Task
+public class OutputHashTask : Microsoft.Build.Utilities.Task
 {
     /// <summary>Gets or sets the Protobuf source files.</summary>
     [Required]

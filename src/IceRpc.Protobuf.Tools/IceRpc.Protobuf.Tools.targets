@@ -4,29 +4,38 @@
   <!-- Import Tasks -->
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.OutputFileNamesTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.OutputHashTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.ProtocTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.UpToDateCheckTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
   <UsingTask
     TaskName="IceRpc.Protobuf.Tools.BuildTelemetryTask"
+    TaskFactory="$(IceRpcProtobufToolsTaskFactory)"
     AssemblyFile="$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll"
     Runtime="NET"
   />
+  <ItemGroup Condition="'$(IceRpcProtobufToolsSourceBuild)' == 'true'">
+    <!-- Add a reference to the Tools project to ensure it's built before we use its tasks -->
+    <ProjectReference Include="$(MSBuildThisFileDirectory)IceRpc.Protobuf.Tools.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProtoFile.ItemDefinition.xaml" />
     <AvailableItemName Include="ProtoFile" />
