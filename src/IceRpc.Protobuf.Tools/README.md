@@ -4,7 +4,7 @@ The `IceRpc.Protobuf.Tools` NuGet package allows you to compile Protobuf definit
 within MSBuild projects.
 
 This package includes the Protobuf compiler, `protoc`, and the `protoc-gen-icerpc-csharp` generator. The `protoc`
-compiler is a native tool with binaries for Linux x64, Linux arm64, macOS x64, macOS arm64, and Windows x64. The 
+compiler is a native tool with binaries for Linux x64, Linux arm64, macOS x64, macOS arm64, and Windows x64. The
 `protoc-gen-icerpc-csharp` generator is a .NET program and requires .NET 8 or later.
 
 Once you've added the IceRpc.Protobuf.Tools NuGet package to your project, the Protobuf files of your project are
@@ -92,7 +92,7 @@ for Linux and macOS from the [Google Protobuf release page][google-protobuf-rele
 The `IceRpc.Protobuf.Tools` package collects anonymous build telemetry data about general usage. Participation in this
 program is optional, and you may opt out if you’d prefer not to share any information.
 
-This package includes the `IceRpc.ProtobufBuildTelemetry.Reporter` client, an IceRPC C# client that sends anonymous build
+This package includes the `IceRpc.ProtocGen.BuildTelemetry` plug-in, a protoc plug--in that sends anonymous build
 telemetry data over a secure connection to the IceRPC build telemetry server during the compilation of Protobuf files.
 This data includes:
 

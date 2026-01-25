@@ -68,32 +68,24 @@
     <UpToDateCheckTask OutputDir="%(ProtoFile.OutputDir)" Sources="@(ProtoFile)">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </UpToDateCheckTask>
+
     <!-- Compile the Proto files
       The search path determines where protoc compiler locates import files, we add:
       - $(IceRpcProtocPath) to import google well-known files from IceRpc.Protobuf.Tools.
       - $(MSBuildProjectDirectory) to import the project own files.
       - @(ProtoSearchPath) additional search paths specified by the user.
+      We run a separate protoc for each ProtoFile; this is necessary to have a dependency file for each ProtoFile.
     -->
     <ProtocTask
       WorkingDirectory="$(MSBuildProjectDirectory)"
       OutputDir="@(_ProtoFile->'%(OutputDir)')"
       SearchPath="@(ProtoSearchPath->'%(FullPath)');$(IceRpcProtocPath);$(MSBuildProjectDirectory)"
       ToolsPath="$(IceRpcProtocPath)$(IceRpcProtocPrefix)"
-      ScriptPath="$(IceRpcProtocGenPath)"
+      GenPath="$(IceRpcProtocGenPath)"
+      BuildTelemetryPath="$(IceRpcProtocBuildTelemetryPath)"
+      RunBuildTelemetry="$(IceRpcBuildTelemetry)"
       Sources="%(_ProtoFile.Identity)"
       Condition="'%(_ProtoFile.UpToDate)' != 'true'"
-    />
-    <OutputHashTask Sources="@(ProtoFile)" Condition="'$(IceRpcBuildTelemetry)' != 'false'">
-      <Output PropertyName="CompilationHash" TaskParameter="CompilationHash" />
-      <Output PropertyName="FileCount" TaskParameter="FileCount" />
-    </OutputHashTask>
-
-    <!-- Run build telemetry -->
-    <Exec
-      WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
-      Command="dotnet IceRpc.ProtobufBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --file-count $(FileCount)"
-      Condition="'$(IceRpcBuildTelemetry)' != 'false'"
-      ContinueOnError="true"
     />
 
     <!--

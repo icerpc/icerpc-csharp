@@ -10,6 +10,9 @@
     <IceRpcOSArch
     >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
     <IceRpcProtocPrefix>$(IceRpcOSName)_$(IceRpcOSArch)</IceRpcProtocPrefix>
+
+    <!-- Report build telemetry by default -->
+    <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
   </PropertyGroup>
   <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../IceRpc.ProtocGen')">
@@ -21,6 +24,7 @@
         <IceRpcProtobufToolsSourceBuild>true</IceRpcProtobufToolsSourceBuild>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)obj/tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen/bin/$(Configuration)/net10.0/</IceRpcProtocGenPath>
+        <IceRpcProtocBuildTelemetryPath>$(MSBuildThisFileDirectory)../IceRpc.ProtocGen.BuildTelemetry/bin/$(Configuration)/net10.0/</IceRpcProtocBuildTelemetryPath>
 
         <!-- Use local build of IceRpc.Protobuf.Tools -->
         <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)bin/$(Configuration)/net10.0/</IceRpcProtobufToolsTaskAssembliesPath>
@@ -36,6 +40,7 @@
       <PropertyGroup>
         <IceRpcProtocPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocPath>
         <IceRpcProtocGenPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocGenPath>
+        <IceRpcProtocBuildTelemetryPath>$(MSBuildThisFileDirectory)../tools/</IceRpcProtocBuildTelemetryPath>
         <IceRpcProtobufToolsTaskAssembliesPath>$(MSBuildThisFileDirectory)../tasks/</IceRpcProtobufToolsTaskAssembliesPath>
 
          <!-- AssemblyTaskFactory is the default value when no TaskFactory is specified -->

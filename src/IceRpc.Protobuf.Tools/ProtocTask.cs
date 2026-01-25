@@ -40,12 +40,20 @@ public class ProtocTask : ToolTask
 
     /// <summary>Gets or sets the directory containing the protoc-gen-icerpc-csharp scripts.</summary>
     [Required]
-    public string ScriptPath { get; set; } = "";
+    public string GenPath { get; set; } = "";
+
+    /// <summary>Gets or sets the directory containing the protoc-gen-icerpc-build-telemetry scripts.</summary>
+    [Required]
+    public string BuildTelemetryPath { get; set; } = "";
+
+    /// <summary>Gets or sets a value indicating whether to run the build telemetry plug-in.</summary>
+    [Required]
+    public bool RunBuildTelemetry { get; set; }
 
     /// <summary>Gets or sets the working directory for executing the protoc compiler from.</summary>
     [Required]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Naming", 
+        "Naming",
         "CA1721:Property names should not match get methods",
         Justification = "This is by design, see ToolTask.GetWorkingDirectory documentation.")]
     public string WorkingDirectory { get; set; } = "";
@@ -61,15 +69,15 @@ public class ProtocTask : ToolTask
     /// <inheritdoc/>
     protected override string GenerateCommandLineCommands()
     {
-        string scriptName =
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
-                "protoc-gen-icerpc-csharp.bat" : "protoc-gen-icerpc-csharp.sh";
-
         var builder = new CommandLineBuilder(false);
 
         // Specify the full path to the protoc-gen-icerpc-csharp script.
+
+        string genScriptName =
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
+                "protoc-gen-icerpc-csharp.bat" : "protoc-gen-icerpc-csharp.sh";
         builder.AppendSwitch("--plugin");
-        builder.AppendFileNameIfNotNull($"protoc-gen-icerpc-csharp={Path.Combine(ScriptPath, scriptName)}");
+        builder.AppendFileNameIfNotNull($"protoc-gen-icerpc-csharp={Path.Combine(GenPath, genScriptName)}");
 
         // Add --csharp_out to generate Protobuf C# code
         builder.AppendSwitch("--csharp_out");
@@ -78,6 +86,24 @@ public class ProtocTask : ToolTask
         // Add --icerpc-csharp_out to generate IceRPC + Protobuf integration code
         builder.AppendSwitch("--icerpc-csharp_out");
         builder.AppendFileNameIfNotNull(OutputDir);
+
+        if (RunBuildTelemetry)
+        {
+            // Enable build telemetry
+            string buildTelemetryScriptName =
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ?
+                    "protoc-gen-icerpc-build-telemetry.bat" : "protoc-gen-icerpc-build-telemetry.sh";
+
+            // Specify the full path to the protoc-gen-icerpc-build-telemetry script.
+            builder.AppendSwitch("--plugin");
+            builder.AppendFileNameIfNotNull(
+                $"protoc-gen-icerpc-build-telemetry={Path.Combine(BuildTelemetryPath, buildTelemetryScriptName)}");
+
+            // Add --icerpc-build-telemetry_out to enable build telemetry, even though the build telemetry doesn't
+            // generate any output files.
+            builder.AppendSwitch("--icerpc-build-telemetry_out");
+            builder.AppendFileNameIfNotNull(OutputDir);
+        }
 
         var searchPath = new List<string>(SearchPath);
 
@@ -130,13 +156,21 @@ public class ProtocTask : ToolTask
         try
         {
             Debug.Assert(singleLine is not null);
-            string[] parts = singleLine.Split([':'], 4);
-            string fileName = parts[0];
-            int lineNumber = int.Parse(parts[1], CultureInfo.InvariantCulture);
-            int columnNumber = int.Parse(parts[2], CultureInfo.InvariantCulture);
-            string errorMessage = parts[3];
+            if (singleLine.Contains(':', StringComparison.Ordinal))
+            {
+                // We assume it's about a file.
+                string[] parts = singleLine.Split([':'], 4);
+                string fileName = parts[0];
+                int lineNumber = int.Parse(parts[1], CultureInfo.InvariantCulture);
+                int columnNumber = int.Parse(parts[2], CultureInfo.InvariantCulture);
+                string errorMessage = parts[3];
 
-            Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
+                Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
+            }
+            else
+            {
+                Log.LogMessage(singleLine);
+            }
         }
         catch (FormatException)
         {
