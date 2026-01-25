@@ -54,6 +54,7 @@
       <PackagePath>tools/</PackagePath>
       <Pack>true</Pack>
     </None>
+    <!-- We need to exclude Google.Protobuf.dll because it's already included by IceRpc.ProtocGen above. -->
     <None
       Include="../IceRpc.ProtocGen.BuildTelemetry/bin/$(Configuration)/net10.0/*"
       Exclude="../IceRpc.ProtocGen.BuildTelemetry/bin/$(Configuration)/net10.0/Google.Protobuf.dll"
