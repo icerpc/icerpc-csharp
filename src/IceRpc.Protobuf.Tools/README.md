@@ -92,8 +92,8 @@ for Linux and macOS from the [Google Protobuf release page][google-protobuf-rele
 The `IceRpc.Protobuf.Tools` package collects anonymous build telemetry data about general usage. Participation in this
 program is optional, and you may opt out if you’d prefer not to share any information.
 
-This package includes the `IceRpc.ProtocGen.BuildTelemetry` plug-in, a protoc plug--in that sends anonymous build
-telemetry data over a secure connection to the IceRPC build telemetry server during the compilation of Protobuf files.
+This package includes `protoc-gen-icerpc-build-telemetry`, a protoc plug-in that sends anonymous build telemetry data
+over a secure connection to the IceRPC build telemetry server during the compilation of Protobuf files.
 This data includes:
 
 - The IceRPC version.
