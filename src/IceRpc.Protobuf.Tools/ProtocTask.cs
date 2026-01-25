@@ -99,8 +99,8 @@ public class ProtocTask : ToolTask
             builder.AppendFileNameIfNotNull(
                 $"protoc-gen-icerpc-build-telemetry={Path.Combine(BuildTelemetryPath, buildTelemetryScriptName)}");
 
-            // Add --icerpc-build-telemetry_out to enable build telemetry, even though the build telemetry doesn't
-            // generate any output files.
+            // Add --icerpc-build-telemetry_out to enable build telemetry, even though the build telemetry plug-in
+            // doesn't need to generate any output files.
             builder.AppendSwitch("--icerpc-build-telemetry_out");
             builder.AppendFileNameIfNotNull(OutputDir);
         }
