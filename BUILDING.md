@@ -60,8 +60,7 @@ install ReportGenerator as follows:
 
 ```mermaid
 flowchart LR
-    compiler(slicec-cs) --> slice-tools(IceRpc.Slice.Tools) --> icerpc(ZeroC.Slice<br>IceRpc.*)
-    protobuf-tools(IceRpc.Protobuf.Tools) --> icerpc
+    compiler(slicec-cs) --> icerpc(ZeroC.Slice<br>IceRpc.*)
     icerpc -- doc --> api(API reference)
     icerpc -- publish --> nuget(NuGet packages) --> examples(Examples)
     icerpc --> tests(Tests) -- coverage --> cov(Code coverage reports)

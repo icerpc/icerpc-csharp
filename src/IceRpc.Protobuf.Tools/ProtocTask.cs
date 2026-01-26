@@ -153,28 +153,23 @@ public class ProtocTask : ToolTask
     /// </summary>
     protected override void LogEventsFromTextOutput(string singleLine, MessageImportance messageImportance)
     {
-        try
+        Debug.Assert(singleLine is not null);
+        int colonCount = singleLine.Count(c => c == ':');
+        if (colonCount >= 3)
         {
-            Debug.Assert(singleLine is not null);
-            if (singleLine.Contains(':', StringComparison.Ordinal))
-            {
-                // We assume it's about a file.
-                string[] parts = singleLine.Split([':'], 4);
-                string fileName = parts[0];
-                int lineNumber = int.Parse(parts[1], CultureInfo.InvariantCulture);
-                int columnNumber = int.Parse(parts[2], CultureInfo.InvariantCulture);
-                string errorMessage = parts[3];
+            // protoc returned a diagnostic in the form "file:line:column: message", parse it and log it
+            // For example: greeter.proto:9:1: Expected top-level statement (e.g. "message").
+            string[] parts = singleLine.Split([':'], 4);
+            string fileName = parts[0];
+            int lineNumber = int.Parse(parts[1], CultureInfo.InvariantCulture);
+            int columnNumber = int.Parse(parts[2], CultureInfo.InvariantCulture);
+            string errorMessage = parts[3];
 
-                Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
-            }
-            else
-            {
-                Log.LogMessage(singleLine);
-            }
+            Log.LogError("", "", "", fileName, lineNumber, columnNumber, -1, -1, errorMessage);
         }
-        catch (FormatException)
+        else
         {
-            Log.LogError(singleLine, messageImportance);
+            Log.LogMessage(singleLine);
         }
     }
 

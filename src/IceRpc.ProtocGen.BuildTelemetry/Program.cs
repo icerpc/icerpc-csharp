@@ -30,7 +30,7 @@ foreach (FileDescriptorProto? proto in request.ProtoFile)
 IReadOnlyList<FileDescriptor> descriptors = FileDescriptor.BuildFromByteStrings(sources);
 
 int fileCount = 0;
-IEnumerable<byte> hashBytes = [];
+byte[] hashBytes = [];
 
 foreach (FileDescriptor descriptor in descriptors)
 {
@@ -39,7 +39,16 @@ foreach (FileDescriptor descriptor in descriptors)
         // This descriptor represents a reference file for which we are not generating code.
         continue;
     }
-    hashBytes = hashBytes.Concat(SHA256.HashData(descriptor.SerializedData.Memory.Span));
+
+    byte[] newHash = SHA256.HashData(descriptor.SerializedData.Memory.Span);
+    if (hashBytes.Length > 0)
+    {
+        hashBytes = SHA256.HashData(newHash.Concat(hashBytes).ToArray());
+    }
+    else
+    {
+        hashBytes = newHash;
+    }
     fileCount++;
 }
 
@@ -47,10 +56,10 @@ var response = new CodeGeneratorResponse();
 
 if (fileCount > 0)
 {
-    string compilationHash = Convert.ToHexString(SHA256.HashData(hashBytes.ToArray())).ToLowerInvariant();
+    string compilationHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
 
     // Determine the IceRPC version using the assembly version.
-    var assembly = Assembly.GetAssembly(typeof(Program));
+    var assembly = Assembly.GetExecutingAssembly();
     string toolVersion = assembly!.GetName().Version!.ToString();
 
     var protobufTelemetryData = new ProtobufTelemetryData(
