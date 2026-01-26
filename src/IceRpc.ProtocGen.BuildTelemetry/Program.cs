@@ -56,15 +56,13 @@ var response = new CodeGeneratorResponse();
 
 if (fileCount > 0)
 {
-    string compilationHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
-
     // Determine the IceRPC version using the assembly version.
     var assembly = Assembly.GetExecutingAssembly();
     string toolVersion = assembly!.GetName().Version!.ToString();
 
     var protobufTelemetryData = new ProtobufTelemetryData(
         RuntimeInformation.ProcessArchitecture.ToString(),
-        compilationHash,
+        compilationHash: Convert.ToHexString(hashBytes).ToLowerInvariant(),
         fileCount,
         IsCi(),
         RuntimeInformation.OSDescription,
