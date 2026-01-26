@@ -58,10 +58,6 @@ public class ProtocTask : ToolTask
         Justification = "This is by design, see ToolTask.GetWorkingDirectory documentation.")]
     public string WorkingDirectory { get; set; } = "";
 
-    /// <summary>The computed SHA-256 hash of the Protobuf files.</summary>
-    [Output]
-    public string? CompilationHash { get; set; }
-
     /// <inheritdoc/>
     protected override string ToolName =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "protoc.exe" : "protoc";
