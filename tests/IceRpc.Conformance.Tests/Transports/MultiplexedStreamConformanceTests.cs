@@ -223,14 +223,11 @@ public abstract class MultiplexedStreamConformanceTests
         Assert.That(
             async () =>
             {
-                while (true)
+                FlushResult result = await sut.Local.Output.WriteAsync(new byte[1024]);
+                if (!result.IsCompleted)
                 {
-                    FlushResult result = await sut.Local.Output.WriteAsync(new byte[1024]);
-                    if (result.IsCompleted)
-                    {
-                        return;
-                    }
-                    await Task.Delay(TimeSpan.FromMilliseconds(20));
+                    throw new Exception(
+                        "Expected the write to return IsCompleted == true after remote read is aborted");
                 }
             },
             Throws.Nothing);
