@@ -81,7 +81,7 @@
     <Exec
       WorkingDirectory="$(MSBuildThisFileDirectory)../tools/"
       Command="dotnet IceRpc.SliceBuildTelemetry.Reporter.dll --compilation-hash $(CompilationHash) --contains-slice1 $(ContainsSlice1) --contains-slice2 $(ContainsSlice2) --ref-file-count $(ReferenceFileCount) --src-file-count $(SourceFileCount)"
-      Condition="'$(IceRpcBuildTelemetry)' != 'false'"
+      Condition="$(IceRpcBuildTelemetry)"
       ContinueOnError="true"
     />
     <!--

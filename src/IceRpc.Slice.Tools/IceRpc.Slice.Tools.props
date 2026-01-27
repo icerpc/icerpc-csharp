@@ -7,8 +7,10 @@
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</IceRpcOSName>
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</IceRpcOSName>
     <IceRpcOSName Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</IceRpcOSName>
-    <IceRpcOSArch
-    >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
+    <IceRpcOSArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower())</IceRpcOSArch>
+
+    <!-- Report build telemetry by default -->
+    <IceRpcBuildTelemetry Condition="'$(IceRpcBuildTelemetry)' == ''">true</IceRpcBuildTelemetry>
   </PropertyGroup>
   <Choose>
     <When Condition="Exists('$(MSBuildThisFileDirectory)../../tools/slicec-cs')">
