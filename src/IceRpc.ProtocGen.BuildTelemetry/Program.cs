@@ -78,6 +78,8 @@ if (fileCount > 0)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
+        // Create a client connection to the telemetry server. We use QUIC when supported,
+        // otherwise we use Slic over TCP.
         await using var connection = new ClientConnection(
             new Uri(uri),
             new SslClientAuthenticationOptions(),
