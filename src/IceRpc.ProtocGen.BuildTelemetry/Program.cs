@@ -1,16 +1,18 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc;
-using IceRpc.BuildTelemetry;
-using IceRpc.Transports.Slic;
-using IceRpc.Transports.Tcp;
 using Google.Protobuf;
 using Google.Protobuf.Compiler;
 using Google.Protobuf.Reflection;
+using IceRpc;
+using IceRpc.BuildTelemetry;
+using IceRpc.Transports.Quic;
+using IceRpc.Transports.Slic;
+using IceRpc.Transports.Tcp;
+using System.Net.Quic;
 using System.Net.Security;
-using System.Security.Cryptography;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
 
@@ -76,10 +78,13 @@ if (fileCount > 0)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
+        // Create a client connection to the telemetry server. We use QUIC when supported,
+        // otherwise we use Slic over TCP.
         await using var connection = new ClientConnection(
             new Uri(uri),
             new SslClientAuthenticationOptions(),
-            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
+            multiplexedClientTransport: QuicConnection.IsSupported ?
+                new QuicClientTransport() : new SlicClientTransport(new TcpClientTransport()));
 
         // Create a reporter proxy with this client connection.
         var reporter = new ReporterProxy(connection);
