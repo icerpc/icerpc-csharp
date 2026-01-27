@@ -59,6 +59,8 @@ rootCommand.SetAction(
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(3));
 
+        // Create a client connection to the telemetry server. We use QUIC when supported,
+        // otherwise we use Slic over TCP.
         await using var connection = new ClientConnection(
             new Uri(uri),
             new SslClientAuthenticationOptions(),
