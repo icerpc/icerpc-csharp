@@ -2,10 +2,12 @@
 
 using IceRpc;
 using IceRpc.BuildTelemetry;
+using IceRpc.Transports.Quic;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
 using System.CommandLine;
 using System.Diagnostics;
+using System.Net.Quic;
 using System.Net.Security;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -35,10 +37,12 @@ rootCommand.SetAction(
         const string uri = "icerpc://build-telemetry.icerpc.dev";
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(TimeSpan.FromSeconds(3));
+
         await using var connection = new ClientConnection(
             new Uri(uri),
             new SslClientAuthenticationOptions(),
-            multiplexedClientTransport: new SlicClientTransport(new TcpClientTransport()));
+            multiplexedClientTransport: QuicConnection.IsSupported ?
+                new QuicClientTransport() : new SlicClientTransport(new TcpClientTransport()));
 
         // Create a reporter proxy with this client connection.
         var reporter = new ReporterProxy(connection);
