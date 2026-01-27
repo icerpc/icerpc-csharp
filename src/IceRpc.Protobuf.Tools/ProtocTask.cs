@@ -165,7 +165,7 @@ public class ProtocTask : ToolTask
         }
         else
         {
-            Log.LogMessage(singleLine);
+            Log.LogError(singleLine);
         }
     }
 
