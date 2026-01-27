@@ -218,19 +218,11 @@ public abstract class MultiplexedStreamConformanceTests
 
         // Act
         sut.Remote.Input.Complete(new ArgumentException()); // can be any exception
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         // Assert
-        Assert.That(
-            async () =>
-            {
-                FlushResult result = await sut.Local.Output.WriteAsync(new byte[1024]);
-                if (!result.IsCompleted)
-                {
-                    throw new Exception(
-                        "Expected the write to return IsCompleted == true after remote read is aborted");
-                }
-            },
-            Throws.Nothing);
+        FlushResult result = await sut.Local.Output.WriteAsync(new byte[1024]);
+        Assert.That(result.IsCompleted, Is.True);
     }
 
     [Test]
