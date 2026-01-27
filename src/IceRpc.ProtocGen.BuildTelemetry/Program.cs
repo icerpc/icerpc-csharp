@@ -1,18 +1,18 @@
 // Copyright (c) ZeroC, Inc.
 
+using Google.Protobuf;
+using Google.Protobuf.Compiler;
+using Google.Protobuf.Reflection;
 using IceRpc;
 using IceRpc.BuildTelemetry;
 using IceRpc.Transports.Quic;
 using IceRpc.Transports.Slic;
 using IceRpc.Transports.Tcp;
-using Google.Protobuf;
-using Google.Protobuf.Compiler;
-using Google.Protobuf.Reflection;
 using System.Net.Quic;
 using System.Net.Security;
-using System.Security.Cryptography;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 // The protoc compiler executes this program and writes the Protobuf serialized CodeGeneratorRequest to standard input.
 
