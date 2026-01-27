@@ -228,8 +228,8 @@ in-memory transport for testing). Future releases may add additional transports.
 [HTTP/3]: https://en.wikipedia.org/wiki/HTTP/3
 [Ice]: https://github.com/zeroc-ice/ice
 [IceRPC for Ice users]: https://docs.icerpc.dev/icerpc-for-ice-users
-[IceRpc.Protobuf.Tools]: tools/IceRpc.Protobuf.Tools/README.md#build-telemetry
-[IceRpc.Slice.Tools]: tools/IceRpc.Slice.Tools/README.md#build-telemetry
+[IceRpc.Protobuf.Tools]: src/IceRpc.Protobuf.Tools/README.md#build-telemetry
+[IceRpc.Slice.Tools]: src/IceRpc.Slice.Tools/README.md#build-telemetry
 [icerpc-protocol]: https://docs.icerpc.dev/icerpc/icerpc-protocol/mapping-rpcs-to-streams
 [icerpc-with-di]: https://docs.icerpc.dev/icerpc/dependency-injection/di-and-icerpc-for-csharp
 [IDL]: https://en.wikipedia.org/wiki/Interface_description_language

@@ -24,6 +24,10 @@ on:
         required: true
         type: string
 
+env:
+  # Disable IceRpc build telemetry
+  IceRpcBuildTelemetry: false
+
 jobs:
   test-packages:
     strategy:
