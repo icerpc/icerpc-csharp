@@ -80,7 +80,7 @@ fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> C
             Types::CustomType(custom_type_ref) if encoding == Encoding::Slice1 => {
                 write!(
                     code,
-                    "{decoder_extensions_class}.DecodeNullable{name}(ref decoder);",
+                    "{decoder_extensions_class}.DecodeNullable{name}(ref decoder)",
                     decoder_extensions_class =
                         custom_type_ref.escape_scoped_identifier_with_suffix("SliceDecoderExtensions", namespace),
                     name = custom_type_ref.cs_identifier(Case::Pascal),
@@ -89,7 +89,7 @@ fn decode_member(member: &impl Member, namespace: &str, encoding: Encoding) -> C
             }
             _ if data_type.is_class_type() => {
                 // does not use bit sequence
-                writeln!(code, "decoder.DecodeNullableClass<{type_string}>();");
+                writeln!(code, "decoder.DecodeNullableClass<{type_string}>()");
                 return code;
             }
             _ => {
