@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
+using GameOfTheGoose;
+
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 

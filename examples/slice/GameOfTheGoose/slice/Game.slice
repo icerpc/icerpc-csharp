@@ -6,10 +6,10 @@ module GameOfTheGoose
 enum GameStatus
 {
     /// Waiting for players to join the game
-    WaitingForPlayers,
+    WaitingForPlayers
 
     /// The game has started and is in progress, no winner has been determined yet
-    Started,
+    Started
 
     /// The game has finished, a winner has been determined
     Finished
@@ -41,37 +41,37 @@ struct GameState
 enum GameEvent
 {
     /// A new player has joined the game
-    PlayerJoined(player: Player),
+    PlayerJoined(player: Player)
 
     /// The dice have been rolled by the player whose turn it is, and the result of the roll is available.
-    DiceRolled(roll: uint8),
+    DiceRolled(roll: uint8)
 
     /// A player has moved to a new position on the board.
     /// @param player: The index of the player who moved (0-based index into the players sequence)
     /// @param oldPosition: The player's previous position on the board (0-39)
     /// @param newPosition: The player's new position on the board (0-39)
-    PlayerMoved(player: uint8, oldPosition: uint8, newPosition: uint8),
+    PlayerMoved(player: uint8, oldPosition: uint8, newPosition: uint8)
 
     /// The player landed on a goose space and bounced forward (to the next goose space or to the end).
     /// @param player: The index of the player who moved (0-based index into the players sequence)
     /// @param oldPosition: The goose space the player landed on
     /// @param newPosition: The position the player bounced to
-    GooseMoved(player: uint8, oldPosition: uint8, newPosition: uint8),
+    GooseMoved(player: uint8, oldPosition: uint8, newPosition: uint8)
 
     /// The player landed on a goose space and gets an extra turn.
     /// @param player: The index of the player who landed on the goose space.
-    ExtraTurn(player: uint8),
+    ExtraTurn(player: uint8)
 
     /// A player's turn is being skipped because they previously landed on a trap space.
     /// @param player: The index of the player whose turn is skipped.
-    SkipTurn(player: uint8),
+    SkipTurn(player: uint8)
 
     /// The turn has advanced to the next player
     /// @param nextPlayer: The index of the player whose turn it is now (0-based index into the players sequence)
-    TurnAdvanced(nextPlayer: uint8),
+    TurnAdvanced(nextPlayer: uint8)
 
     /// The game has started
-    GameStarted,
+    GameStarted
 
     /// The game has finished, a winner has been determined
     /// @param player: The index of the player who won the game (0-based index into the players sequence)
@@ -115,21 +115,17 @@ interface GameSession
     rollDice() -> Result<uint8, GameError>
 }
 
-// A proxy to a service that implements GameSession; it's encoded as a service address.
-[cs::type("GameOfTheGoose.GameSessionProxy")]
-custom GameSessionProxy
-
 /// Represents the error conditions that can occur in our game.
 enum GameError
 {
     /// The player attempted to join a game that has already started.
-    GameAlreadyStarted,
+    GameAlreadyStarted
 
     /// The player attempted to make a move but the game is not in progress.
-    GameNotInProgress,
+    GameNotInProgress
 
     /// The player attempted to join a game that has already finished.
-    GameAlreadyFinished,
+    GameAlreadyFinished
 
     /// The player attempted to roll the dice when it is not their turn.
     NotPlayerTurn
