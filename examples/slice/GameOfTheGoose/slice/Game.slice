@@ -1,0 +1,159 @@
+// Copyright (c) ZeroC, Inc.
+
+module GameOfTheGoose
+
+/// The status of the game
+enum GameStatus
+{
+    /// Waiting for players to join the game
+    WaitingForPlayers,
+
+    /// The game has started and is in progress, no winner has been determined yet
+    Started,
+
+    /// The game has finished, a winner has been determined
+    Finished
+}
+
+/// Represents a player in the game
+struct Player
+{
+    /// The player's name
+    name: string
+
+    /// The player's current position on the board (0-39)
+    position: uint8
+}
+
+/// Represents the current state of the game
+struct GameState
+{
+    /// The list of players already in the game, in the order they joined
+    players: [cs::type("List<Player>")] Sequence<Player>
+
+    /// The current status of the game
+    status: GameStatus
+
+    /// The index of the player whose turn it is to play (0-based index into the players sequence)
+    turn: uint8
+}
+
+enum GameEvent
+{
+    /// A new player has joined the game
+    PlayerJoined(player: Player),
+
+    /// The dice have been rolled by the player whose turn it is, and the result of the roll is available.
+    DiceRolled(roll: uint8),
+
+    /// A player has moved to a new position on the board.
+    /// @param player: The index of the player who moved (0-based index into the players sequence)
+    /// @param oldPosition: The player's previous position on the board (0-39)
+    /// @param newPosition: The player's new position on the board (0-39)
+    PlayerMoved(player: uint8, oldPosition: uint8, newPosition: uint8),
+
+    /// The player landed on a goose space and bounced forward (to the next goose space or to the end).
+    /// @param player: The index of the player who moved (0-based index into the players sequence)
+    /// @param oldPosition: The goose space the player landed on
+    /// @param newPosition: The position the player bounced to
+    GooseMoved(player: uint8, oldPosition: uint8, newPosition: uint8),
+
+    /// The player landed on a goose space and gets an extra turn.
+    /// @param player: The index of the player who landed on the goose space.
+    ExtraTurn(player: uint8),
+
+    /// A player's turn is being skipped because they previously landed on a trap space.
+    /// @param player: The index of the player whose turn is skipped.
+    SkipTurn(player: uint8),
+
+    /// The turn has advanced to the next player
+    /// @param nextPlayer: The index of the player whose turn it is now (0-based index into the players sequence)
+    TurnAdvanced(nextPlayer: uint8),
+
+    /// The game has started
+    GameStarted,
+
+    /// The game has finished, a winner has been determined
+    /// @param player: The index of the player who won the game (0-based index into the players sequence)
+    GameFinished(player: uint8)
+}
+
+/// A snapshot of the game state at a particular point in time, along with the sequence number of the last
+/// event included in that snapshot
+struct GameSnapshot
+{
+    /// The game state at the time of the snapshot
+    state: GameState
+
+    /// Last event included in this snapshot
+    lastSeq: uint64
+}
+
+/// Represents an update to the game state.
+struct GameUpdate
+{
+    /// The sequence number of this update, which is used to ensure that updates are applied in the correct order.
+    seq: uint64
+
+    /// The game event that occurred, which describes the change to the game state.
+    gameEvent: GameEvent
+}
+
+interface GameUpdateSink
+{
+    /// Receive the initial game state snapshot followed by a stream of incremental updates.
+    /// @param snapshot: The game state at the time the player joined.
+    /// @param event: A stream of game events that occurred after the snapshot. The first event
+    /// has a sequence number of snapshot.lastSeq + 1.
+    onGameUpdate(snapshot: GameSnapshot, event: stream GameUpdate)
+}
+
+/// Represents a game session for a single player, allowing them to interact with the game.
+interface GameSession
+{
+    /// Rolls the dice for the current player and applies the result to the game board.
+    rollDice() -> Result<uint8, GameError>
+}
+
+// A proxy to a service that implements GameSession; it's encoded as a service address.
+[cs::type("GameOfTheGoose.GameSessionProxy")]
+custom GameSessionProxy
+
+/// Represents the error conditions that can occur in our game.
+enum GameError
+{
+    /// The player attempted to join a game that has already started.
+    GameAlreadyStarted,
+
+    /// The player attempted to make a move but the game is not in progress.
+    GameNotInProgress,
+
+    /// The player attempted to join a game that has already finished.
+    GameAlreadyFinished,
+
+    /// The player attempted to roll the dice when it is not their turn.
+    NotPlayerTurn
+
+    /// The player attempted to rejoin a game with an invalid session ID.
+    InvalidSessionId
+}
+
+/// The result of a join operation.
+enum JoinResult
+{
+    /// The player successfully joined the game.
+    Success(sessionId: string, playerIndex: uint8),
+
+    /// The player could not join the game.
+    Failure(error: GameError)
+}
+
+/// The game lobby. Players join through this interface and receive a session for gameplay.
+interface GameRoom
+{
+    /// Joins the game. The server creates a callback proxy from the connection's invoker to
+    /// stream game updates back to the client.
+    /// @param playerName: The name of the player joining the game.
+    /// @returns: On success, the session ID and player index. On failure, a GameError.
+    join(playerName: string) -> JoinResult
+}

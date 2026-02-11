@@ -9,6 +9,7 @@ This folder contains example applications that showcase the IceRPC + Slice integ
 | [Deadline](./Deadline/)                    | Shows how to use the deadline interceptor to set the invocation deadline.                                                           |
 | [DiscriminatedUnion](./DiscriminatedUnion/)| Shows how to define and use discriminated unions in Slice.                                                                          |
 | [Download](./Download/)                    | Shows how to download a file from a server by streaming this file.                                                                  |
+| [GameOfTheGoose](./GameOfTheGoose/)        | Shows real-time state synchronization with bidirectional streaming, snapshot + deltas, and discriminated unions.                     |
 | [GenericHost](./GenericHost/)              | Shows how to create client and server applications using Microsoft's Dependency Injection container.                                |
 | [Greeter](./Greeter/)                      | Shows how to call and implement a canonical Greeter service using the IceRPC + Slice integration.                                   |
 | [InteropIceGrid](./InteropIceGrid/)        | Shows how an IceRPC client can call services hosted by servers managed by [IceGrid].                                                |
