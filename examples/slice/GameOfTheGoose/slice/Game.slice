@@ -62,6 +62,10 @@ enum GameEvent
     /// @param player: The index of the player who landed on the goose space.
     ExtraTurn(player: uint8)
 
+    /// A player landed on a trap space and their next turn will be skipped.
+    /// @param player: The index of the player who landed on the trap.
+    Trapped(player: uint8)
+
     /// A player's turn is being skipped because they previously landed on a trap space.
     /// @param player: The index of the player whose turn is skipped.
     SkipTurn(player: uint8)

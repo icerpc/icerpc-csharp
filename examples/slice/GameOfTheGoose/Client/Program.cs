@@ -137,8 +137,11 @@ string FormatEvent(GameEvent gameEvent) => gameEvent switch
     GameEvent.ExtraTurn extra =>
         $"{state.Players[extra.Player].Name} gets an extra turn (goose)",
 
+    GameEvent.Trapped trapped =>
+        $"{state.Players[trapped.Player].Name} landed on a trap (next turn will be skipped)",
+
     GameEvent.SkipTurn skip =>
-        $"{state.Players[skip.Player].Name}'s turn will be skipped (trap)",
+        $"{state.Players[skip.Player].Name}'s turn is skipped (trap)",
 
     GameEvent.TurnAdvanced turned =>
         turned.NextPlayer == myPlayerIndex

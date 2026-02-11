@@ -106,7 +106,7 @@ internal class Game
             if (Board.SkipTurnSpaces.Contains(playerNewPosition))
             {
                 _skipTurnPlayers.Add(playerIndex);
-                events.Add(new GameEvent.SkipTurn(playerIndex));
+                events.Add(new GameEvent.Trapped(playerIndex));
             }
             events.Add(new GameEvent.PlayerMoved(playerIndex, oldPosition, playerNewPosition));
             player.Position = playerNewPosition;
