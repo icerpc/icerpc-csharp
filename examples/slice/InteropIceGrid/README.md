@@ -9,8 +9,8 @@ You can build the client applications with:
 dotnet build
 ```
 
-First, start an IceGrid registry and mode by following the instructions provided in any of the following `greeter`
-IceGrid example applications:
+First, start an IceGrid registry and node by following the instructions provided in any of the following `greeter`
+IceGrid demo applications:
 
 - [cpp][1]
 - [csharp][2]
