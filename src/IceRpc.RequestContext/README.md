@@ -84,7 +84,7 @@ The ice protocol can send and receive request context fields. They correspond to
 [request contexts][ice_request_contexts] in Ice.
 
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.RequestContext.html
-[ice_request_contexts]: https://doc.zeroc.com/ice/3.7/client-side-features/request-contexts
+[ice_request_contexts]: https://docs.zeroc.com/ice/3.8/csharp/request-contexts
 [icerpc-csharp]: https://github.com/icerpc/icerpc-csharp
 [interceptor]: https://docs.icerpc.dev/icerpc/invocation/interceptor
 [example]: https://github.com/icerpc/icerpc-csharp/tree/main/examples/RequestContext
