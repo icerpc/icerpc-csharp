@@ -1,4 +1,4 @@
-# IceGrid
+# Interop IceGrid
 
 This example application illustrates how an IceRPC client can call services in a Ice server managed by IceGrid.
 The server application uses ZeroC Ice, and the client application uses IceRPC.
@@ -9,14 +9,13 @@ You can build the client applications with:
 dotnet build
 ```
 
-First, start an IceGrid registry by following the instructions provided in any of the following `simple` IceGrid example
-applications:
+First, start an IceGrid registry and mode by following the instructions provided in any of the following `greeter`
+IceGrid example applications:
 
-- [cpp11][1]
-- [cpp98][2]
-- [csharp][3]
-- [java][4]
-- [python][5]
+- [cpp][1]
+- [csharp][2]
+- [java][3]
+- [python][4]
 
 In a separate terminal, start the Client program:
 
@@ -25,8 +24,7 @@ cd Client
 dotnet run
 ```
 
-[1]: https://github.com/zeroc-ice/ice-demos/tree/3.7/cpp11/IceGrid/simple
-[2]: https://github.com/zeroc-ice/ice-demos/tree/3.7/cpp98/IceGrid/simple
-[3]: https://github.com/zeroc-ice/ice-demos/tree/3.7/csharp/IceGrid/simple
-[4]: https://github.com/zeroc-ice/ice-demos/tree/3.7/java/IceGrid/simple
-[5]: https://github.com/zeroc-ice/ice-demos/tree/3.7/python/IceGrid/simple
+[1]: https://github.com/zeroc-ice/ice-demos/tree/3.8/cpp/IceGrid/greeter
+[2]: https://github.com/zeroc-ice/ice-demos/tree/3.8/csharp/IceGrid/Greeter
+[3]: https://github.com/zeroc-ice/ice-demos/tree/3.8/java/IceGrid/greeter
+[4]: https://github.com/zeroc-ice/ice-demos/tree/3.8/python/IceGrid/greeter

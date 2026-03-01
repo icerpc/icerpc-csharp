@@ -1,16 +1,16 @@
 // Copyright (c) ZeroC, Inc.
 
-using Demo;
 using IceRpc;
 using IceRpc.Retry;
 using IceRpc.Slice.Ice;
 using Microsoft.Extensions.Logging;
+using VisitorCenter;
 
 // Create an invocation pipeline for all our proxies.
 var pipeline = new Pipeline();
 
 // Create a locator proxy with the invocation pipeline as its invoker.
-var locator = new LocatorProxy(pipeline, new Uri("ice://localhost/DemoIceGrid/Locator"));
+var locator = new LocatorProxy(pipeline, new Uri("ice://localhost/IceGrid/Locator"));
 
 // Create a logger factory that logs to the console.
 using ILoggerFactory loggerFactory = LoggerFactory.Create(
@@ -31,53 +31,18 @@ pipeline = pipeline
     .UseLogger(loggerFactory)
     .Into(connectionCache);
 
-// Create a hello proxy with the invocation pipeline as its invoker. Note that this proxy has no server address.
-var hello = new HelloProxy(pipeline, new Uri("ice:/hello"));
+// Create a greeter proxy with the invocation pipeline as its invoker. Note that this proxy has no server address.
+var greeter = new GreeterProxy(pipeline, new Uri("ice:/greeter"));
 
-Menu();
-string? line = null;
-do
-{
-    try
-    {
-        Console.Write("==> ");
-        await Console.Out.FlushAsync();
-        line = await Console.In.ReadLineAsync();
+// Send a request to the remote object and get the response.
+// The locator interceptor calls the locator during this invocation to resolve `/greeter` into one or more
+// server addresses; the locator interceptor caches successful resolutions.
+string greeting = await greeter.GreetAsync(Environment.UserName);
+Console.WriteLine(greeting);
 
-        switch (line)
-        {
-            case "t":
-                // The locator interceptor calls the locator during this invocation to resolve `/hello` into one or more
-                // server addresses; the locator interceptor caches successful resolutions.
-                await hello.SayHelloAsync();
-                break;
-            case "s":
-                await hello.ShutdownAsync();
-                break;
-            case "x":
-                break;
-            case "?":
-                Menu();
-                break;
-            default:
-                Console.WriteLine($"unknown command '{line}'");
-                Menu();
-                break;
-        }
-    }
-    catch (Exception exception)
-    {
-        await Console.Error.WriteLineAsync(exception.ToString());
-    }
-}
-while (line != "x");
+// Send another request to the remote object to demonstrate that the locator interceptor caches the server address
+// resolved during the previous invocation.
+greeting = await greeter.GreetAsync("alice");
+Console.WriteLine(greeting);
 
 await connectionCache.ShutdownAsync();
-
-static void Menu() =>
-    Console.WriteLine(
-        "usage:\n" +
-        "t: send greeting\n" +
-        "s: shutdown server\n" +
-        "x: exit\n" +
-        "?: help\n");
