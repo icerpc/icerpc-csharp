@@ -9,8 +9,8 @@ First, build the client and server applications for IceRPC with:
 dotnet build
 ```
 
-Then, build the client and/or server for the Ice 3.8 `greeter` demo in the language of your choice, for example
-the [Ice C++ Greeter].
+Then, build the client and/or server for the Ice 3.8 `Greeter` demo in the language of your choice, for example
+the [Ice C# Greeter].
 
 You can then run any combination of Ice-based and IceRPC-based client and server applications.
 
@@ -28,4 +28,4 @@ cd Server
 dotnet run
 ```
 
-[Ice C++ Greeter]: https://github.com/zeroc-ice/ice-demos/tree/3.8/cpp/Ice/greeter
+[Ice C# Greeter]: https://github.com/zeroc-ice/ice-demos/tree/3.8/csharp/Ice/Greeter
