@@ -25,7 +25,7 @@ public partial class ProxyTests
         var decoder = new SliceDecoder(buffer.WrittenMemory, SliceEncoding.Slice1);
 
         // Act
-        PingableProxy? decoded = decoder.DecodeNullablePingableProxy();
+        AnotherPingableProxy? decoded = decoder.DecodeNullableAnotherPingableProxy();
 
         // Assert
         Assert.That(decoded?.ServiceAddress, Is.EqualTo(expected));
@@ -226,11 +226,6 @@ public partial class ProxyTests
     [SliceService]
     private sealed partial class ReceiveProxyTestService : IReceiveProxyTestService
     {
-        public ValueTask<IceObjectProxy> ReceiveObjectProxyAsync(
-            IFeatureCollection features,
-            CancellationToken cancellationToken) =>
-            new(new IceObjectProxy(InvalidInvoker.Instance, new Uri("icerpc:/hello")));
-
         public ValueTask<ReceiveProxyTestProxy> ReceiveProxyAsync(
             IFeatureCollection features,
             CancellationToken cancellationToken) =>
@@ -240,18 +235,7 @@ public partial class ProxyTests
     [SliceService]
     private sealed partial class SendProxyTestService : ISendProxyTestService
     {
-        public IceObjectProxy? ReceivedObjectProxy { get; private set; }
-
         public SendProxyTestProxy? ReceivedProxy { get; private set; }
-
-        public ValueTask SendObjectProxyAsync(
-            IceObjectProxy proxy,
-            IFeatureCollection features,
-            CancellationToken cancellationToken)
-        {
-            ReceivedObjectProxy = proxy;
-            return default;
-        }
 
         public ValueTask SendProxyAsync(
             SendProxyTestProxy proxy,

@@ -15,6 +15,9 @@
     <StyleCopAnalyzersVersion>1.2.0-beta.556</StyleCopAnalyzersVersion>
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
+
+     <!-- The version of ZeroC.Ice.Slice.Tools used to compile .ice files -->
+    <IceSliceToolsVersion>3.9.0-alpha0</IceSliceToolsVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Ice;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
@@ -192,7 +193,7 @@ public static class ServiceAddressSliceDecoderExtensions
         //     - a sequence of server addresses (can be empty)
         //     - an adapter ID string present only when the sequence of server addresses is empty
 
-        string fragment = decoder.DecodeFragment();
+        string fragment = decoder.DecodeFacet().ToFragment();
         _ = decoder.DecodeInvocationMode();
         _ = decoder.DecodeBool();
         byte protocolMajor = decoder.DecodeUInt8();

@@ -69,7 +69,7 @@ public class LocatorServerAddressFinderTests
     {
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new FakeLocator(expectedServiceAddress, adapterId: false));
-        var location = new Location { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "/good" };
 
         ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
@@ -84,7 +84,7 @@ public class LocatorServerAddressFinderTests
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(expectedServiceAddress, adapterId: false));
-        var location = new Location { IsAdapterId = false, Value = "bad" };
+        var location = new Location { IsAdapterId = false, Value = "/bad" };
 
         ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
@@ -97,7 +97,7 @@ public class LocatorServerAddressFinderTests
     public async Task Find_object_by_id_not_found_exception()
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(new NotFoundLocator());
-        var location = new Location { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "/good" };
 
         ServiceAddress? serviceAddress = await serverAddressFinder.FindAsync(location, default);
 
@@ -110,7 +110,7 @@ public class LocatorServerAddressFinderTests
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(new ServiceAddress(new Uri("ice:/dummy")), adapterId: false));
-        var location = new Location { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "/good" };
 
         Assert.That(
             async () => await serverAddressFinder.FindAsync(location, default),
@@ -123,7 +123,7 @@ public class LocatorServerAddressFinderTests
     {
         IServerAddressFinder serverAddressFinder = new LocatorServerAddressFinder(
             new FakeLocator(new ServiceAddress(new Uri("icerpc://localhost/dummy:10000")), adapterId: false));
-        var location = new Location { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "/good" };
 
         Assert.That(
             async () => await serverAddressFinder.FindAsync(location, default),
@@ -136,7 +136,7 @@ public class LocatorServerAddressFinderTests
     public async Task Cache_decorator_adds_found_entries_to_the_server_address_cache()
     {
         var serverAddressCache = new ServerAddressCache();
-        var location = new Location { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "/good" };
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
         IServerAddressFinder serverAddressFinder = new CacheUpdateServerAddressFinderDecorator(
             new LocatorServerAddressFinder(new FakeLocator(expectedServiceAddress, adapterId: false)),
@@ -155,7 +155,7 @@ public class LocatorServerAddressFinderTests
     public async Task Cache_decorator_removes_not_found_entries_from_the_server_address_cache()
     {
         var serverAddressCache = new ServerAddressCache();
-        var location = new Location { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "/good" };
         var expectedServiceAddress = new ServiceAddress(new Uri("ice://localhost/dummy:10000"));
         serverAddressCache.Cache[location] = expectedServiceAddress;
 
@@ -176,7 +176,7 @@ public class LocatorServerAddressFinderTests
         // Arrange
         using var blockingServerAddressFinder = new BlockingServerAddressFinder();
         IServerAddressFinder serverAddressFinder = new CoalesceServerAddressFinderDecorator(blockingServerAddressFinder);
-        var location = new Location { IsAdapterId = false, Value = "good" };
+        var location = new Location { IsAdapterId = false, Value = "/good" };
 
         var t1 = serverAddressFinder.FindAsync(location, default);
         var t2 = serverAddressFinder.FindAsync(location, default);

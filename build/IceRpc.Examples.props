@@ -11,5 +11,8 @@
     <AnalysisMode>All</AnalysisMode>
     <!-- TODO update to 1.2 stable release https://github.com/DotNetAnalyzers/StyleCopAnalyzers/pull/3187#issuecomment-1043221630 -->
     <StyleCopAnalyzersVersion>1.2.0-beta.556</StyleCopAnalyzersVersion>
+
+    <!-- The version of ZeroC.Ice.Slice.Tools used to compile .ice files -->
+    <IceSliceToolsVersion>3.9.0-alpha0</IceSliceToolsVersion>
   </PropertyGroup>
 </Project>

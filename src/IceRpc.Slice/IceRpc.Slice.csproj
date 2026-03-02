@@ -7,9 +7,21 @@
     <PackageTags>icerpc;slice;binary;serialization;format</PackageTags>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <SliceCompile>
+      <Rpc>icerpc</Rpc>
+    </SliceCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <SliceFile
-      Include="../../slice/Ice/IdentityPath.slice;../../slice/Ice/Object.slice"
+      Include="../../slice/Ice/IdentityPath.slice"
+      OutputDir="$(MSBuildProjectDirectory)/generated"
+      Pack="true"
+      PackagePath="slice/Ice"
+    />
+
+    <SliceCompile
+      Include="../../slice/Ice/Object.ice;../../slice/Ice/Identity.ice"
       OutputDir="$(MSBuildProjectDirectory)/generated"
       Pack="true"
       PackagePath="slice/Ice"
@@ -22,8 +34,8 @@
       PackagePath="slice/IceRpc"
     />
 
-    <SliceFile
-      Include="../../slice/IceRpc/Slice/Internal/*.slice"
+    <SliceCompile
+      Include="../../slice/IceRpc/Slice/Internal/*.ice"
       OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
     />
 
@@ -38,6 +50,9 @@
       Include="../IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"
       ReferenceOutputAssembly="false"
     />
+
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
+
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

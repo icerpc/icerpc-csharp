@@ -23,12 +23,12 @@ internal sealed class FakeLocator : ILocator
     }
 
     public Task<ServiceAddress?> FindObjectByIdAsync(
-        string id,
+        Identity id,
         IFeatureCollection? features,
         CancellationToken cancellationToken)
     {
         ResolvedCount++;
-        return Task.FromResult(id == "good" && !_adapterId ? _serviceAddress : null);
+        return Task.FromResult(id.Name == "good" && !_adapterId ? _serviceAddress : null);
     }
 
     Task<LocatorRegistryProxy?> ILocator.GetRegistryAsync(

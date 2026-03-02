@@ -14,7 +14,7 @@ internal sealed class NotFoundLocator : ILocator
         throw new AdapterNotFoundException();
 
     public Task<ServiceAddress?> FindObjectByIdAsync(
-        string id,
+        Identity id,
         IFeatureCollection? features,
         CancellationToken cancellationToken) =>
         throw new ObjectNotFoundException();
