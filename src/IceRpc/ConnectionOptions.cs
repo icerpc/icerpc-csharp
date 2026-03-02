@@ -22,7 +22,7 @@ public record class ConnectionOptions
     /// <see langword="true"/>.</value>
     /// <remarks>Set to <see langword="false"/> when the peer is an Ice application using Ice 3.7 or earlier and you
     /// can't update this application to turn on HeartbeatAlways with
-    /// <see href="https://doc.zeroc.com/ice/3.7/property-reference/ice-acm#id-.Ice.ACM.*v3.7-Ice.ACM.Heartbeat"/>.
+    /// <see href="https://archive.zeroc.com/ice/3.7/property-reference/ice-acm#id-.Ice.ACM.*v3.7-Ice.ACM.Heartbeat"/>.
     /// When this value is set to <see langword="true"/>, make sure the peer's idle timeout is equal to
     /// <see cref="IceIdleTimeout" />.</remarks>
     public bool EnableIceIdleCheck { get; set; } = true;
