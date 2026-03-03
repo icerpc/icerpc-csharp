@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <Description>IceRpc.Slice for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
@@ -13,13 +12,6 @@
     </SliceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <SliceFile
-      Include="../../slice/Ice/IdentityPath.slice"
-      OutputDir="$(MSBuildProjectDirectory)/generated"
-      Pack="true"
-      PackagePath="slice/Ice"
-    />
-
     <SliceCompile
       Include="../../slice/Ice/Object.ice;../../slice/Ice/Identity.ice"
       OutputDir="$(MSBuildProjectDirectory)/generated"
@@ -27,20 +19,10 @@
       PackagePath="slice/Ice"
     />
 
-    <SliceFile
-      Include="../../slice/IceRpc/ServiceAddress.slice"
-      OutputDir="$(MSBuildProjectDirectory)/generated"
-      Pack="true"
-      PackagePath="slice/IceRpc"
-    />
-
     <SliceCompile
       Include="../../slice/IceRpc/Slice/Internal/*.ice"
       OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
     />
-
-    <!-- Reference the built-in Slice files -->
-    <SliceDirectory Include="$(MSBuildThisFileDirectory)../../slice" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
@@ -70,5 +52,4 @@
       PackagePath="analyzers/dotnet/cs"
     />
   </ItemGroup>
-  <Import Project="../IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>
