@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout icerpc/slicec
+        uses: actions/checkout@v4
+        with:
+          repository: icerpc/slicec
+          path: slicec
+
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          path: icerpc-slice
+
+      - name: Compile Slice files
+        working-directory: slicec
+        run: |
+          find ../icerpc-slice -name '*.slice' -print0 | xargs -0 -r cargo run --release --bin slicec -- > /dev/null
