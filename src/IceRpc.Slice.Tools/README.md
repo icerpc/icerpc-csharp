@@ -76,8 +76,8 @@ For example, if you pack Slice files into the `slice` directory of your NuGet pa
 </ItemGroup>
 ```
 
-The [ZeroC.Slice.Codec][zeroc-slice-codec] NuGet package follows this pattern and provides definitions for common Slice types such as
-`WellKnownTypes::Duration`, `WellKnownTypes::TimeStamp` and `WellKnownTypes::Uri`.
+The [ZeroC.Slice.Codec][zeroc-slice-codec] NuGet package follows this pattern and provides definitions for common Slice
+types such as `WellKnownTypes::Duration`, `WellKnownTypes::TimeStamp` and `WellKnownTypes::Uri`.
 
 ## SliceFile item metadata
 
@@ -96,13 +96,13 @@ unique set of options results in a separate execution of `slicec-cs`.
 
 You need to reference the following NuGet packages to compile the generated C# code:
 
-| Rpc metadata                  | NuGet package reference      |
-|-------------------------------|------------------------------|
-| `icerpc` or no `Rpc` metadata | [IceRpc.Slice][icerpc-slice] |
-| none                        | [ZeroC.Slice.Codec][zeroc-slice-codec]   |
+| Rpc metadata                  | NuGet package reference                |
+|-------------------------------|----------------------------------------|
+| `icerpc` or no `Rpc` metadata | [IceRpc.Slice][icerpc-slice]           |
+| none                          | [ZeroC.Slice.Codec][zeroc-slice-codec] |
 
-Referencing `IceRpc.Slice` makes your project reference transitively [ZeroC.Slice.Codec][zeroc-slice-codec], [IceRpc][icerpc] and
-[System.IO.Pipelines][system-io-pipelines].
+Referencing `IceRpc.Slice` makes your project reference transitively [ZeroC.Slice.Codec][zeroc-slice-codec],
+[IceRpc][icerpc] and [System.IO.Pipelines][system-io-pipelines].
 
 ## Build telemetry
 
