@@ -7,11 +7,6 @@
     <PackageTags>icerpc;rpc</PackageTags>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <SliceCompile>
-      <Rpc>icerpc</Rpc>
-    </SliceCompile>
-  </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
     <ProjectReference Include="../IceRpc.Slice/IceRpc.Slice.csproj" ExactVersion="true" />
