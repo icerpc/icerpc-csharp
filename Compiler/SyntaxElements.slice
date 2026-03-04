@@ -18,13 +18,13 @@ typealias TypeId = string
 
 struct EntityInfo {
     identifier: string
-    tag(0) attributes: Sequence<Attribute>?
+    attributes: Sequence<Attribute>
     tag(1) comment: DocComment?
 }
 
 struct Module {
     identifier: string
-    tag(0) attributes: Sequence<Attribute>?
+    attributes: Sequence<Attribute>
 }
 
 struct Struct {
@@ -38,7 +38,7 @@ struct Field {
     \tag: varint32?
     typeId: TypeId
     typeIsOptional: bool
-    tag(0) typeAttributes: Sequence<Attribute>?
+    typeAttributes: Sequence<Attribute>
 }
 
 struct Interface {
@@ -82,7 +82,7 @@ struct CustomType {
 struct TypeAlias {
     entityInfo: EntityInfo
     underlying: TypeId
-    tag(0) underlyingAttributes: Sequence<Attribute>?
+    underlyingAttributes: Sequence<Attribute>
 }
 
 struct SequenceType {

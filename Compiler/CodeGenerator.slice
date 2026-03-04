@@ -11,7 +11,7 @@ interface CodeGenerator {
 struct SliceFile {
     path: string
     moduleDeclaration: Module
-    tag(0) attributes: Sequence<Attribute>?
+    attributes: Sequence<Attribute>
     contents: Sequence<Definition>
 }
 
