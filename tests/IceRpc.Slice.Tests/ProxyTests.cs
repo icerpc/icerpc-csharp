@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice.Ice;
+using IceRpc.Ice;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
 using ZeroC.Slice.Codec;

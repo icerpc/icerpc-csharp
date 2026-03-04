@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
+using IceRpc.Slice;
 using System.Diagnostics.CodeAnalysis;
 using ZeroC.Slice.Codec;
 
-namespace IceRpc.Slice.Ice;
+namespace IceRpc.Ice;
 
 /// <remarks>The IceRpc + Slice integration provides a default implementation for all methods of this interface.
 /// </remarks>

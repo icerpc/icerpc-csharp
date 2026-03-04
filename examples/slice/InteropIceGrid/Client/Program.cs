@@ -2,7 +2,7 @@
 
 using IceRpc;
 using IceRpc.Retry;
-using IceRpc.Slice.Ice;
+using IceRpc.Ice;
 using Microsoft.Extensions.Logging;
 using VisitorCenter;
 
