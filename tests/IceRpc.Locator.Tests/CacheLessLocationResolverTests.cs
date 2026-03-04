@@ -17,7 +17,7 @@ public class CacheLessLocationResolverTests
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
-                new Location { IsAdapterId = isAdapterId, Value = "good" },
+                new Location { IsAdapterId = isAdapterId, Value = isAdapterId ? "good" : "/good" },
                 refreshCache: refreshCache,
                 cancellationToken: default);
 
@@ -38,7 +38,7 @@ public class CacheLessLocationResolverTests
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
-                new Location { IsAdapterId = false, Value = "good" },
+                new Location { IsAdapterId = false, Value = "/good" },
                 refreshCache: refreshCache,
                 cancellationToken: default);
 
@@ -55,7 +55,7 @@ public class CacheLessLocationResolverTests
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
-                new Location { IsAdapterId = isAdapterId, Value = "bad" },
+                new Location { IsAdapterId = isAdapterId, Value = isAdapterId ? "bad" : "/bad" },
                 refreshCache: refreshCache,
                 cancellationToken: default);
 
@@ -73,7 +73,7 @@ public class CacheLessLocationResolverTests
 
         (ServiceAddress? serviceAddress, bool fromCache) =
             await locationResolver.ResolveAsync(
-                new Location { IsAdapterId = false, Value = "any" },
+                new Location { IsAdapterId = false, Value = "/any" },
                 refreshCache: refreshCache,
                 cancellationToken: default);
 
@@ -90,7 +90,7 @@ public class CacheLessLocationResolverTests
         {
             if (_intermediary is null)
             {
-                return Task.FromResult(location.Value == "good" ? _target : null);
+                return Task.FromResult(location.Value == "good" || location.Value == "/good" ? _target : null);
             }
             else if (location.IsAdapterId)
             {

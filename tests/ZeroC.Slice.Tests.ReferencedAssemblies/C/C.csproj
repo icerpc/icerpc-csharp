@@ -1,22 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemDefinitionGroup>
-    <SliceFile>
+    <SliceCompile>
       <Rpc>none</Rpc>
-    </SliceFile>
+    </SliceCompile>
   </ItemDefinitionGroup>
 
   <ItemGroup>
     <SliceDirectory Include="../A" />
-    <ProjectReference Include="../../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
+      <ProjectReference Include="../../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
+
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
+
     <ProjectReference Include="../A/A.csproj" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  <Import Project="../../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

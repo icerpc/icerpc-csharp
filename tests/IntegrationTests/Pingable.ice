@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc.
 
-mode = Slice1
-
 module IceRpc::IntegrationTests
-
-interface Pingable {
-    ping()
+{
+    interface Pingable
+    {
+        void ping();
+    }
 }

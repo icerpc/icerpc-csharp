@@ -10,6 +10,9 @@
     <SliceFile>
       <Rpc>none</Rpc>
     </SliceFile>
+    <SliceCompile>
+      <Rpc>none</Rpc>
+    </SliceCompile>
   </ItemDefinitionGroup>
 
   <ItemGroup>
@@ -28,6 +31,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
+
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
+
     <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/A/A.csproj" />
     <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/B/B.csproj" />
     <ProjectReference Include="../ZeroC.Slice.Tests.ReferencedAssemblies/C/C.csproj" />

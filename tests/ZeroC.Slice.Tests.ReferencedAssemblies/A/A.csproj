@@ -1,12 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.props" />
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemDefinitionGroup>
-    <SliceFile>
+    <SliceCompile>
       <Rpc>none</Rpc>
-    </SliceFile>
+    </SliceCompile>
   </ItemDefinitionGroup>
 
   <ItemGroup>
@@ -18,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
+
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
   </ItemGroup>
-  <Import Project="../../../src/IceRpc.Slice.Tools/IceRpc.Slice.Tools.targets" />
 </Project>

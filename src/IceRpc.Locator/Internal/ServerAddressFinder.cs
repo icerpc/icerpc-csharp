@@ -79,7 +79,7 @@ internal class LocatorServerAddressFinder : IServerAddressFinder
             try
             {
                 ServiceAddress? serviceAddress = await _locator.FindObjectByIdAsync(
-                    location.Value,
+                    Identity.Parse(location.Value),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 if (serviceAddress is not null)

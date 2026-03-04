@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Ice;
 using IceRpc.Slice.Internal;
 using System.Diagnostics;
 using System.Globalization;
@@ -44,7 +45,7 @@ public static class ServiceAddressSliceEncoderExtensions
             }
             identity.Encode(ref encoder);
 
-            encoder.EncodeFragment(value.Fragment);
+            encoder.EncodeFragmentAsFacet(value.Fragment);
             encoder.EncodeInvocationMode(InvocationMode.Twoway);
             encoder.EncodeBool(false);               // Secure
             encoder.EncodeUInt8(protocol.ByteValue); // Protocol Major

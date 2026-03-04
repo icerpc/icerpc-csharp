@@ -2,17 +2,16 @@
 
 namespace IceRpc.Internal;
 
-internal readonly partial record struct Identity
+public partial record struct IceIdentity
 {
-    /// <summary>Gets the null identity.</summary>
-    internal static Identity Empty { get; } = new("", "");
-
-    public override string ToString() => ToPath();
+    /// <summary>Converts this identity into a path string.</summary>
+    /// <returns>The identity converted into a path string.</returns>
+    public override readonly string ToString() => ToPath();
 
     /// <summary>Parses a path into an identity, including the null/empty identity.</summary>
     /// <param name="path">The path (percent escaped).</param>
     /// <returns>The corresponding identity.</returns>
-    internal static Identity Parse(string path)
+    internal static IceIdentity Parse(string path)
     {
         if (path.Length == 0 || path[0] != '/')
         {
@@ -42,11 +41,11 @@ internal readonly partial record struct Identity
             category = Uri.UnescapeDataString(workingPath[0..firstSlash]);
         }
 
-        return name.Length == 0 ? Empty : new(name, category);
+        return name.Length == 0 ? new("", "") : new(name, category);
     }
 
     /// <summary>Converts this identity into a path.</summary>
-    internal string ToPath()
+    internal readonly string ToPath()
     {
         if (Name.Length == 0)
         {

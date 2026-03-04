@@ -105,7 +105,8 @@
     Visible="true"
     Category="SliceTools"
   >
-    <StringListProperty.DataSource>
+
+  <StringListProperty.DataSource>
       <DataSource
         Persistence="ProjectFile"
         ItemType="SliceFile"

@@ -11,6 +11,9 @@
     <SliceFile>
       <Rpc>none</Rpc>
     </SliceFile>
+    <SliceCompile>
+      <Rpc>none</Rpc>
+    </SliceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <SliceFile
@@ -21,7 +24,7 @@
       PackagePath="slice/$(AssemblyName)"
     />
     <SliceFile
-      Include="../../slice/IceRpc/Internal/*.slice"
+      Include="../../slice/IceRpc/Internal/IceRpcDefinitions.slice"
       OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
     />
     <SliceFile
@@ -29,9 +32,17 @@
       OutputDir="$(MSBuildProjectDirectory)/Transports/Slic/Internal/generated"
     />
     <SliceDirectory Include="../../slice/IceRpc/" />
+
+    <SliceCompile
+      Include="../../slice/IceRpc/Internal/*.ice"
+      OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+    />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../ZeroC.Slice/ZeroC.Slice.csproj" ExactVersion="true" />
+
+    <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
+
     <PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopAnalyzersVersion)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

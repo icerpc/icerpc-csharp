@@ -24,12 +24,12 @@ public class LocatorLocationResolverTests
             NullLogger.Instance);
 
         (var resolvedAddress1, _) = await locatorLocationResolver.ResolveAsync(
-            new Location { Value = "good", IsAdapterId = false },
+            new Location { Value = "/good", IsAdapterId = false },
             refreshCache: false,
             CancellationToken.None);
 
         (var resolvedAddress2, _) = await locatorLocationResolver.ResolveAsync(
-            new Location { Value = "good", IsAdapterId = false },
+            new Location { Value = "/good", IsAdapterId = false },
             refreshCache: false,
             CancellationToken.None);
 

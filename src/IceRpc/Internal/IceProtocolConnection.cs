@@ -687,6 +687,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         int requestId = decoder.DecodeInt32();
 
         var requestHeader = new IceRequestHeader(ref decoder);
+        requestHeader.Facet.CheckFacetCount();
 
         Pipe? contextPipe = null;
         long pos = decoder.Consumed;
@@ -782,8 +783,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
                     var requestFailed = new RequestFailedExceptionData(ref decoder);
 
-                    string target = requestFailed.Fragment.Length > 0 ?
-                        $"{requestFailed.Identity.ToPath()}#{requestFailed.Fragment}" : requestFailed.Identity.ToPath();
+                    string target = requestFailed.Facet.Count > 0 ?
+                        $"{requestFailed.Identity.ToPath()}#{requestFailed.Facet.ToFragment()}" : requestFailed.Identity.ToPath();
 
                     message =
                         $"The dispatch failed with status code {statusCode} while dispatching '{requestFailed.Operation}' on '{target}'.";
@@ -819,8 +820,8 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
         // Request header.
         var requestHeader = new IceRequestHeader(
-            Identity.Parse(request.ServiceAddress.Path),
-            request.ServiceAddress.Fragment,
+            IceIdentity.Parse(request.ServiceAddress.Path),
+            request.ServiceAddress.Fragment.ToFacet(),
             request.Operation,
             request.Fields.ContainsKey(RequestFieldKey.Idempotent) ? OperationMode.Idempotent : OperationMode.Normal);
         requestHeader.Encode(ref encoder);
@@ -884,8 +885,10 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     encoder.EncodeReplyStatus(response.StatusCode == StatusCode.NotFound ?
                         ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
-                    new RequestFailedExceptionData(Identity.Parse(request.Path), request.Fragment, request.Operation)
-                        .Encode(ref encoder);
+                    new RequestFailedExceptionData(
+                        IceIdentity.Parse(request.Path),
+                        request.Fragment.ToFacet(),
+                        request.Operation).Encode(ref encoder);
                     break;
                 case StatusCode.InternalError:
                     encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
@@ -1482,7 +1485,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     using var request = new IncomingRequest(Protocol.Ice, _connectionContext!)
                     {
                         Fields = fields,
-                        Fragment = requestHeader.Fragment,
+                        Fragment = requestHeader.Facet.ToFragment(),
                         IsOneway = requestId == 0,
                         Operation = requestHeader.Operation,
                         Path = requestHeader.Identity.ToPath(),

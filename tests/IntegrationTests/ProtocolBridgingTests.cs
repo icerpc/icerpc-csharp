@@ -104,8 +104,9 @@ public sealed partial class ProtocolBridgingTests
 
             Assert.That(dispatchException!.StatusCode, Is.EqualTo(StatusCode.NotFound));
 
-            ProtocolBridgingTestProxy newProxy = await proxy.OpNewProxyAsync();
-            return newProxy;
+            ProtocolBridgingTestProxy? newProxy = await proxy.OpNewProxyAsync();
+            Assert.That(newProxy, Is.Not.Null);
+            return newProxy.Value;
         }
     }
 
@@ -130,7 +131,7 @@ public sealed partial class ProtocolBridgingTests
         public ValueTask OpExceptionAsync(IFeatureCollection features, CancellationToken cancellationToken) =>
             throw new ProtocolBridgingException(42);
 
-        public ValueTask<ProtocolBridgingTestProxy> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancellationToken)
+        public ValueTask<ProtocolBridgingTestProxy?> OpNewProxyAsync(IFeatureCollection features, CancellationToken cancellationToken)
         {
             IDispatchInformationFeature dispatchInformation = features.Get<IDispatchInformationFeature>()!;
 
