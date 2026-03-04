@@ -1,11 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-mode = Slice1
-
 [cs::namespace("IceRpc.Slice")]
 module IceRpc
 
-/// Represents the address of an RPC service that can be called using ice or icerpc. This custom type is compatible with
-/// both Slice1 and Slice2.
+/// Represents the address of an RPC service that can be called using ice or icerpc.
 [cs::type("IceRpc.ServiceAddress")]
 custom ServiceAddress
