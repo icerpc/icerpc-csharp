@@ -2,13 +2,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-
-
   <ItemGroup>
     <ProjectReference Include="../../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
-
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
-
     <ProjectReference Include="../A/A.csproj" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
