@@ -15,8 +15,6 @@
     <SliceCompile
       Include="../../slice/Ice/Object.ice;../../slice/Ice/Identity.ice"
       OutputDir="$(MSBuildProjectDirectory)/generated"
-      Pack="true"
-      PackagePath="slice/Ice"
     />
 
     <SliceCompile
@@ -45,7 +43,6 @@
     <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
     <Content Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    <Content Include="IceRpc.Slice.props" Pack="true" PackagePath="buildTransitive" />
     <Content
       Include="../IceRpc.Slice.Generators/bin/$(Configuration)/netstandard2.0/IceRpc.Slice.Generators.dll"
       Pack="true"

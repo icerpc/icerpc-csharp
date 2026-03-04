@@ -19,8 +19,6 @@
     <SliceCompile
       Include="../../slice/Ice/Locator.ice;../../slice/Ice/LocatorRegistry.ice;../../slice/Ice/Process.ice"
       OutputDir="$(MSBuildProjectDirectory)/generated"
-      Pack="true"
-      PackagePath="slice/Ice"
     />
 
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
