@@ -6,11 +6,6 @@
     <PackageTags>icerpc;slice;binary;serialization;format</PackageTags>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <SliceCompile>
-      <Rpc>icerpc</Rpc>
-    </SliceCompile>
-  </ItemDefinitionGroup>
   <ItemGroup>
     <SliceCompile
       Include="../../slice/Ice/Object.ice;../../slice/Ice/Identity.ice"

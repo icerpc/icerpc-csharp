@@ -4,12 +4,6 @@
     <NoWarn>CS1591</NoWarn>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <SliceCompile>
-      <Rpc>icerpc</Rpc>
-    </SliceCompile>
-  </ItemDefinitionGroup>
-
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
