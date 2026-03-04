@@ -4,7 +4,8 @@ This directory provides [Slice] definitions shared by all IceRPC implementations
 
 | Subdirectory       | Description                                                                                                                                                                                                                                                                    |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Ice                | Interfaces and exceptions provided for interop with [Ice] applications.                                                                                                                                                                                                        |
+| Compiler           | Types used by Slice compilers (such as [slicec]) to describe Slice definitions. A Slice compiler serializes these types to `stdout`; code generators later read and decode this output.                                                                                        |
+| Ice                | Types and interfaces provided for interop with [Ice] applications.                                                                                                                                                                                                             |
 | IceRpc             | Types provided by all IceRPC implementations. These types are IceRPC-specific.                                                                                                                                                                                                 |
 | IceRpc/**/Internal | Types used by IceRPC implementations to implement the [ice][ice-protocol] protocol, the [icerpc][icerpc-protocol] protocol, the [Slic] protocol and more. These are internal IceRPC implementation details—applications built with IceRPC don't need to see these definitions. |
 | WellKnownTypes     | Custom types such as Uri and TimeStamp. These well-known types are RPC-independent.                                                                                                                                                                                            |
@@ -20,3 +21,4 @@ of the [icerpc-csharp] repository is a git subtree clone of icerpc-slice.
 [icerpc-slice]: https://github.com/icerpc/icerpc-slice
 [Slic]: https://docs.icerpc.dev/icerpc/slic-transport/protocol-frames
 [Slice]: https://docs.icerpc.dev/slice2
+[slicec]: https://github.com/icerpc/slicec/
