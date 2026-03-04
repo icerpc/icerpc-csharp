@@ -4,7 +4,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Target Name="_IceRpc_ExcludeSliceCompileGenerated" DependsOnTargets="SliceCompile" BeforeTargets="CoreCompile">
     <ItemGroup>
-        <Compile Remove="@(Compile)" Condition="$([System.String]::Copy('%(Filename)').EndsWith('.IceRpc'))" />
+        <Compile Remove="@(Compile)" Condition="$([MSBuild]::ValueOrDefault('%(Filename)', '').EndsWith('.IceRpc'))" />
     </ItemGroup>
   </Target>
 </Project>
