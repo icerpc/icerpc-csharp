@@ -73,4 +73,4 @@ public partial record struct Person
 [package]: https://www.nuget.org/packages/ZeroC.Slice.Codec
 [pipelines]: https://learn.microsoft.com/en-us/dotnet/standard/io/pipelines
 [slicec-cs]: https://github.com/icerpc/icerpc-csharp/tree/main/tools/IceRpc.Slice.Tools
-[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/ZeroC.Slice
+[source]: https://github.com/icerpc/icerpc-csharp/tree/main/src/ZeroC.Slice.Codec
