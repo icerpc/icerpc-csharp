@@ -239,6 +239,6 @@ internal class Emitter
 #pragma warning disable CS0619 // Type or member is obsolete
 
 using IceRpc.Slice;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 ";
 }

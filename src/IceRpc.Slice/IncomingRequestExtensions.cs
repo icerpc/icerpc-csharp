@@ -3,7 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Slice.Internal;
 using System.IO.Pipelines;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice;
 

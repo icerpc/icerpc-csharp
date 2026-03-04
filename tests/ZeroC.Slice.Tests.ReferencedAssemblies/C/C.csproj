@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceDirectory Include="../A" />
-    <ProjectReference Include="../../../src/ZeroC.Slice/ZeroC.Slice.csproj" />
+    <ProjectReference Include="../../../src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
     <ProjectReference Include="../A/A.csproj" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">

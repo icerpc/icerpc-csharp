@@ -1,13 +1,13 @@
 apiRules:
 - exclude:
-    uidRegex: ^ZeroC\.Slice\.ResultMatchExtensions
+    uidRegex: ^ZeroC\.Slice\.Codec\.ResultMatchExtensions
     type: Type
 - exclude:
-    uidRegex: '^ZeroC\.Slice\.Result`2\.(Match|Unwrap).+$'
+    uidRegex: '^ZeroC\.Slice\.Codec\.Result`2\.(Match|Unwrap).+$'
     type: Method
 - exclude:
-    uidRegex: '^ZeroC\.Slice\.Result`2\.Failure\.(Match|Unwrap).+$'
+    uidRegex: '^ZeroC\.Slice\.Codec\.Result`2\.Failure\.(Match|Unwrap).+$'
     type: Method
 - exclude:
-    uidRegex: '^ZeroC\.Slice\.Result`2\.Success\.(Match|Unwrap).+$'
+    uidRegex: '^ZeroC\.Slice\.Codec\.Result`2\.Success\.(Match|Unwrap).+$'
     type: Method

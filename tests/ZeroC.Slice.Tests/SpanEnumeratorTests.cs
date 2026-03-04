@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using ZeroC.Slice.Internal;
+using ZeroC.Slice.Codec.Internal;
 
 namespace ZeroC.Slice.Tests;
 

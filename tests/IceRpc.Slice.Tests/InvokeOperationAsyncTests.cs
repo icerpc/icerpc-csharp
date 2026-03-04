@@ -3,7 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice.Tests;
 

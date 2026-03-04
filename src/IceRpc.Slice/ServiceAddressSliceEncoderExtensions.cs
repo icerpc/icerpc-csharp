@@ -5,7 +5,7 @@ using IceRpc.Slice.Ice;
 using IceRpc.Slice.Internal;
 using System.Diagnostics;
 using System.Globalization;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice;
 

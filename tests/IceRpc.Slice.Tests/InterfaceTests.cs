@@ -2,7 +2,7 @@
 
 using IceRpc.Slice.Ice;
 using NUnit.Framework;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice.Tests;
 
