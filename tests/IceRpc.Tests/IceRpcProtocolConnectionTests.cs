@@ -8,7 +8,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Security.Authentication;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Tests;
 

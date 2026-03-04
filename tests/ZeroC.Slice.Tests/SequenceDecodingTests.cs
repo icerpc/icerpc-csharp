@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System.Runtime.CompilerServices;
+using ZeroC.Slice.Codec;
 
 namespace ZeroC.Slice.Tests;
 

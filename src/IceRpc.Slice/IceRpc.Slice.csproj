@@ -24,7 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-    <ProjectReference Include="../ZeroC.Slice/ZeroC.Slice.csproj" ExactVersion="true" />
+    <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
     <!-- Includes the analyzer in the package without consuming it. -->
     <ProjectReference
       Include="../IceRpc.Slice.Generators/IceRpc.Slice.Generators.csproj"

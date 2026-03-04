@@ -2,7 +2,7 @@
 
 using IceRpc.Extensions.DependencyInjection;
 using IceRpc.Features;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Deadline;
 

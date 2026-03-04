@@ -2,7 +2,7 @@
 
 using IceRpc.Internal;
 using System.Buffers;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc;
 

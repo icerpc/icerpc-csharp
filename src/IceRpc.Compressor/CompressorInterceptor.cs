@@ -7,7 +7,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.IO.Pipelines;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Compressor;
 

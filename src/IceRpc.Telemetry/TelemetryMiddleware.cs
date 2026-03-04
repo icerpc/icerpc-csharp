@@ -3,7 +3,7 @@
 using IceRpc.Extensions.DependencyInjection;
 using System.Buffers;
 using System.Diagnostics;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Telemetry;
 

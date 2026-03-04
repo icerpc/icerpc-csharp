@@ -25,7 +25,7 @@ layout: landing
 | [IceRpc.Transports.Quic]                | Provides the QUIC multiplexed transport. It implements the multiplexed transport abstractions using QUIC.                                          |
 | [IceRpc.Transports.Slic]                | Provides the Slic multiplexing adapter. Slic implements the multiplexed transport abstractions over the duplex transport abstractions.             |
 | [IceRpc.Transports.Tcp]                 | Provides the TCP duplex transport. It implements the duplex transport abstractions using plain TCP and TCP + SSL.                                  |
-| [ZeroC.Slice]                           | Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler for C# generates code that relies on these APIs.  |
+| [ZeroC.Slice.Codec]                     | Supports encoding/decoding structured data to/from bytes in the Slice format. The Slice compiler for C# generates code that relies on these APIs.  |
 
 [IceRpc]: api/IceRpc.yml
 [IceRpc.Compressor]: api/IceRpc.Compressor.yml
@@ -47,4 +47,4 @@ layout: landing
 [IceRpc.Transports.Slic]: api/IceRpc.Transports.Slic.yml
 [IceRpc.Transports.Tcp]: api/IceRpc.Transports.Tcp.yml
 [OpenTelemetry]: https://opentelemetry.io
-[ZeroC.Slice]: api/ZeroC.Slice.yml
+[ZeroC.Slice.Codec]: api/ZeroC.Slice.Codec.yml

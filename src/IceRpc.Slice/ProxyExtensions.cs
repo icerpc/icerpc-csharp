@@ -4,7 +4,7 @@ using IceRpc.Features;
 using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice;
 

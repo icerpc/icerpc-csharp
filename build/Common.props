@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
 
      <!-- The version of ZeroC.Ice.Slice.Tools used to compile .ice files -->
-    <IceSliceToolsVersion>3.9.0-nightly.*</IceSliceToolsVersion>
+    <IceSliceToolsVersion>3.9.0-alpha0</IceSliceToolsVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">

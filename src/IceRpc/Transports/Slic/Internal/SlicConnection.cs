@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Security.Authentication;
 using System.Threading.Channels;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Transports.Slic.Internal;
 

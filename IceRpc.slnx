@@ -25,7 +25,7 @@
     <Project Path="src/IceRpc.SliceBuildTelemetry.Reporter/IceRpc.SliceBuildTelemetry.Reporter.csproj" />
     <Project Path="src/IceRpc.Telemetry/IceRpc.Telemetry.csproj" />
     <Project Path="src/IceRpc.Transports.Coloc/IceRpc.Transports.Coloc.csproj" />
-    <Project Path="src/ZeroC.Slice/ZeroC.Slice.csproj" />
+    <Project Path="src/ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/IceRpc.Compressor.Tests/IceRpc.Compressor.Tests.csproj" />

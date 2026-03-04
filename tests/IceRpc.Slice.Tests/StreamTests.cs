@@ -6,7 +6,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice.Tests;
 

@@ -2,7 +2,7 @@
 
 using IceRpc.Features;
 using System.Diagnostics.CodeAnalysis;
-using ZeroC.Slice;
+using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice.Ice;
 
