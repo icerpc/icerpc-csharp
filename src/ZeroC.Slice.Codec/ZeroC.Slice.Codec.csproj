@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Slice for C#.</Description>
+    <Description>Slice serialization library for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
     <PackageTags>slice;binary;serialization;format</PackageTags>
     <PackageIcon>slice-icon.png</PackageIcon>
