@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
-[cs::namespace("ZeroC.Slice")]
+[cs::namespace("ZeroC.Slice.Codec")]
 module WellKnownTypes
 
 /// Represents a length of time, encoded as a varint62.

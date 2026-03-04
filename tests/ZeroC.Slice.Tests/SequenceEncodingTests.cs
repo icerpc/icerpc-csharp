@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
+using ZeroC.Slice.Codec;
 
 namespace ZeroC.Slice.Tests;
 

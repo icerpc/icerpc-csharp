@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using Slice.Tests.ReferencedAssemblies;
 using System.Reflection;
+using ZeroC.Slice.Codec;
 
 namespace ZeroC.Slice.Tests;
 

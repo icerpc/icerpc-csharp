@@ -61,9 +61,9 @@ pub fn generate_from_slice_file(slice_file: &SliceFile, for_interfaces: bool, _o
     let filename = &slice_file.filename;
 
     if for_interfaces {
-        generated_code.add_block("using IceRpc.Slice;\nusing ZeroC.Slice;");
+        generated_code.add_block("using IceRpc.Slice;\nusing ZeroC.Slice.Codec;");
     } else {
-        generated_code.add_block("using ZeroC.Slice;");
+        generated_code.add_block("using ZeroC.Slice.Codec;");
         generated_code.add_block(format!("[assembly:Slice(\"{filename}.slice\")]"));
     }
 
