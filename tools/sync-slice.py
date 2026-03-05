@@ -69,7 +69,6 @@ def collect_files(base_dir: Path, patterns: list[str]) -> list[str]:
     return sorted(matches)
 
 
-
 def fetch_source(name: str, config: dict, tmp_base: Path) -> tuple[Path, list[str]]:
     """Clone a source and return (source_dir, matched_relpaths)."""
     repo = config["repo"]

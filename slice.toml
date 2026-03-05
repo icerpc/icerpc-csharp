@@ -1,4 +1,4 @@
-# slice.toml — provenance for vendored IDL files
+# slice.toml — provenance for vendored Slice files
 #
 # Each [source.<name>] section describes an upstream repository and which files
 # to vendor into this repo.  Run `python tools/sync-slice.py` to synchronize.
