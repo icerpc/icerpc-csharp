@@ -31,7 +31,8 @@
     <SliceDirectory Include="../../slice/IceRpc/" />
 
     <SliceCompile
-      Include="../../slice/IceRpc/Internal/*.ice"
+      Include="../../slice/IceRpc/Internal/*.ice;../../slice/Ice/OperationMode.ice;../../slice/Ice/ReplyStatus.ice"
+      IncludeDirectories="../../slice"
       OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
     />
   </ItemGroup>
