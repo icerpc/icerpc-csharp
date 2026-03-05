@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice;
 using IceRpc.Ice;
+using IceRpc.Slice;
 using VisitorCenter;
 
 namespace InteropGreeterServer;
