@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc.Features;
-using IceRpc.Slice.Ice;
+using IceRpc.Ice;
 
 namespace IceRpc.Locator.Tests;
 

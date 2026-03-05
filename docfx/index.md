@@ -11,6 +11,7 @@ layout: landing
 | [IceRpc.Deadline]                       | Provides the deadline interceptor and middleware.                                                                                                  |
 | [IceRpc.Extensions.DependencyInjection] | Provides APIs related to Dependency Injection.                                                                                                     |
 | [IceRpc.Features]                       | Provides the feature collection API and the core request features.                                                                                 |
+| [IceRpc.Ice]                            | Provides Ice-specific APIs, for interop with Ice applications.                                                                                     |
 | [IceRpc.Locator]                        | Provides the locator interceptor. This interceptor enables interop with Ice servers registered with a locator such as IceGrid.                     |
 | [IceRpc.Logger]                         | Provides the logger interceptor and middleware, for logging requests and responses to an ILogger.                                                  |
 | [IceRpc.Metrics]                        | Provides the metrics interceptor and middleware.                                                                                                   |
@@ -18,7 +19,6 @@ layout: landing
 | [IceRpc.RequestContext]                 | Provides the request context interceptor and middleware.                                                                                           |
 | [IceRpc.Retry]                          | Provides the retry interceptor.                                                                                                                    |
 | [IceRpc.Slice]                          | Provides support for the IceRPC + Slice integration. The Slice compiler for C# generates code for Slice interfaces that relies on these APIs.      |
-| [IceRpc.Slice.Ice]                      | Provides Ice-specific APIs, for interop with Ice applications.                                                                                     |
 | [IceRpc.Telemetry]                      | Provides the telemetry interceptor and middleware; they add [OpenTelemetry] support to IceRPC.                                                     |
 | [IceRpc.Transports]                     | Provides the duplex and multiplexed transport abstractions.                                                                                        |
 | [IceRpc.Transports.Coloc]               | Provides the coloc duplex transport. It implements the duplex transport abstractions for "colocated" communications within the same address space. |
@@ -32,6 +32,7 @@ layout: landing
 [IceRpc.Deadline]: api/IceRpc.Deadline.yml
 [IceRpc.Extensions.DependencyInjection]: api/IceRpc.Extensions.DependencyInjection.yml
 [IceRpc.Features]: api/IceRpc.Features.yml
+[IceRpc.Ice]: api/IceRpc.Ice.yml
 [IceRpc.Locator]: api/IceRpc.Locator.yml
 [IceRpc.Logger]: api/IceRpc.Logger.yml
 [IceRpc.Metrics]: api/IceRpc.Metrics.yml
@@ -39,7 +40,6 @@ layout: landing
 [IceRpc.RequestContext]: api/IceRpc.RequestContext.yml
 [IceRpc.Retry]: api/IceRpc.Retry.yml
 [IceRpc.Slice]: api/IceRpc.Slice.yml
-[IceRpc.Slice.Ice]: api/IceRpc.Slice.Ice.yml
 [IceRpc.Telemetry]: api/IceRpc.Telemetry.yml
 [IceRpc.Transports]: api/IceRpc.Transports.yml
 [IceRpc.Transports.Coloc]: api/IceRpc.Transports.Coloc.yml

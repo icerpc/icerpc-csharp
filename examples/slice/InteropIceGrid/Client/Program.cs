@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
 using IceRpc;
+using IceRpc.Ice;
 using IceRpc.Retry;
-using IceRpc.Slice.Ice;
 using Microsoft.Extensions.Logging;
 using VisitorCenter;
 

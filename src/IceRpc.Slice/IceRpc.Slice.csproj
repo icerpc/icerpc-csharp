@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceCompile
-      Include="../../slice/Ice/Object.ice;../../slice/Ice/Identity.ice"
+      Include="../../slice/Ice/Identity.ice;../../slice/IceRpc/Ice/Object.ice"
       OutputDir="$(MSBuildProjectDirectory)/generated"
     />
 

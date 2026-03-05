@@ -2,7 +2,7 @@
 
 using IceRpc.Internal;
 
-namespace IceRpc.Slice.Ice;
+namespace IceRpc.Ice;
 
 public partial record struct Identity
 {
