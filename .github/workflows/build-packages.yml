@@ -9,6 +9,10 @@ on:
       channel:
         required: true
         type: string
+      authenticode_sign:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       icerpc_version:
@@ -18,6 +22,11 @@ on:
         description: "Release channel (e.g., stable, nightly)"
         required: true
         default: "nightly"
+      authenticode_sign:
+        description: "Whether to authenticode sign the assemblies"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-compiler:
@@ -91,6 +100,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Collect Files to Sign
+        if: inputs.authenticode_sign
         run: |
             # For each project in src, we sign the main assembly named after the project.
             $assemblies = Get-ChildItem -Path src -Directory | ForEach-Object {
@@ -103,9 +113,11 @@ jobs:
 
       # Shutdown the build server before signing to ensure MSBuild tasks are not loaded in the build server process.
       - name: Shutdown build server
+        if: inputs.authenticode_sign
         run: dotnet build-server shutdown
 
       - name: Sign .NET Assemblies and slicec-cs.exe compiler
+        if: inputs.authenticode_sign
         uses: azure/trusted-signing-action@v0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}

@@ -14,6 +14,10 @@ on:
         required: false
         type: boolean
         default: false
+      authenticode_sign:
+        required: false
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -30,12 +34,18 @@ on:
         required: false
         default: false
         type: boolean
+      authenticode_sign:
+        description: "Whether to authenticode sign the assemblies"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  set-version:
+  configure:
     runs-on: ubuntu-24.04
     outputs:
       semver_version: ${{ steps.set-vars.outputs.semver_version }}
+      authenticode_sign: ${{ steps.set-vars.outputs.authenticode_sign }}
 
     steps:
       - name: Checkout repository
@@ -55,13 +65,21 @@ jobs:
           fi
           # else do not define version variables to use the version from the repository
 
+          # Always sign stable releases; otherwise honor the authenticode_sign input.
+          if [[ "${{ inputs.channel }}" == "stable" ]] || [[ "${{ inputs.authenticode_sign }}" == "true" ]]; then
+            echo "authenticode_sign=true" >> $GITHUB_OUTPUT
+          else
+            echo "authenticode_sign=false" >> $GITHUB_OUTPUT
+          fi
+
   build-packages:
     name: Build .NET Packages
     uses: ./.github/workflows/build-packages.yml
-    needs: set-version
+    needs: configure
     with:
-      icerpc_version: ${{ needs.set-version.outputs.semver_version }}
+      icerpc_version: ${{ needs.configure.outputs.semver_version }}
       channel: ${{ inputs.channel }}
+      authenticode_sign: ${{ needs.configure.outputs.authenticode_sign == 'true' }}
     secrets: inherit
 
   test-release:
@@ -69,10 +87,10 @@ jobs:
     uses: ./.github/workflows/test-release.yml
     with:
       channel: ${{ inputs.channel }}
-      icerpc_version: ${{ needs.set-version.outputs.semver_version }}
+      icerpc_version: ${{ needs.configure.outputs.semver_version }}
       run_id: ${{ github.run_id }}
     needs:
-      - set-version
+      - configure
       - build-packages
     secrets: inherit
 

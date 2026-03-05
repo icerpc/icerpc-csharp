@@ -1,0 +1,17 @@
+# slice.toml — provenance for vendored Slice files
+#
+# Each [source.<name>] section describes an upstream repository and which files
+# to vendor into this repo.  Run `python tools/sync-slice.py` to synchronize.
+
+[source.ice]
+repo    = "https://github.com/zeroc-ice/ice"
+ref     = "main"
+source  = "slice"
+dest    = "slice"
+include = ["Ice/Identity.ice", "Ice/Locator.ice", "Ice/LocatorRegistry.ice", "Ice/Process.ice"]
+
+[source.icerpc]
+repo    = "https://github.com/icerpc/icerpc-slice"
+ref     = "main"
+dest    = "slice"
+include = ["**/*.slice", "**/*.ice"]
