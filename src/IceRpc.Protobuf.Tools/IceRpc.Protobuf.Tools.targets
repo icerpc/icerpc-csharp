@@ -103,7 +103,7 @@
       />
     </ItemGroup>
   </Target>
-  <Target Name="ProtoClean" BeforeTargets="Clean">
+  <Target Name="ProtoClean" BeforeTargets="Clean" Condition="Exists('$(IceRpcProtobufToolsTaskAssembliesPath)IceRpc.Protobuf.Tools.dll')">
     <OutputFileNamesTask Sources="@(ProtoFile)">
       <Output ItemName="_ProtoFile" TaskParameter="ComputedSources" />
     </OutputFileNamesTask>
