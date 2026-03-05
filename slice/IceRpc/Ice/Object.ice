@@ -2,6 +2,9 @@
 
 #pragma once
 
+// This Slice file should be considered internal to IceRPC, but with public generated code.
+// It allows us to use the code generator to map the operations of the pseudo base interface Object.
+
 ["cs:identifier:IceRpc.Ice"]
 module Ice
 {
