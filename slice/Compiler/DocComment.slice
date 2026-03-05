@@ -5,20 +5,12 @@ module Compiler
 
 struct DocComment {
     overview: Message
-    see: Sequence<SeeTag>
-}
-
-struct SeeTag {
-    linkTo: EntityId
-}
-
-struct LinkTag {
-    linkTo: EntityId
+    see: Sequence<EntityId>
 }
 
 enum MessageComponent {
     Text(v: string)
-    Link(v: LinkTag)
+    Link(v: EntityId)
 }
 
 typealias Message = Sequence<MessageComponent>

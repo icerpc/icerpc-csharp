@@ -8,7 +8,7 @@ repo    = "https://github.com/zeroc-ice/ice"
 ref     = "main"
 source  = "slice"
 dest    = "slice"
-include = ["Ice/Identity.ice", "Ice/Locator.ice", "Ice/LocatorRegistry.ice", "Ice/Process.ice"]
+include = ["Ice/Identity.ice", "Ice/Locator.ice", "Ice/LocatorRegistry.ice", "Ice/OperationMode.ice", "Ice/Process.ice", "Ice/ReplyStatus.ice"]
 
 [source.icerpc]
 repo    = "https://github.com/icerpc/icerpc-slice"
