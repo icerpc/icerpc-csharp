@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) ZeroC, Inc.
 
-"""Synchronize vendored Slice/Ice files based on slice.toml.
+"""Synchronize vendored Slice files (*.ice, *.slice) based on slice.toml.
 
 Usage:
     python tools/sync-slice.py           # sync files from upstream
