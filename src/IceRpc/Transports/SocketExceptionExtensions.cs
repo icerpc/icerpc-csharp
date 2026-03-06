@@ -56,8 +56,11 @@ public static class SocketExceptionExtensions
             SocketError.HostDown => IceRpcError.ServerUnreachable,
             SocketError.TimedOut => IceRpcError.ServerUnreachable,
 
-            // Name resolution failures are also mapped to ServerUnreachable so that callers and retry
-            // middleware can treat DNS failures and transport reachability failures uniformly.
+            // Name resolution failures are also mapped to ServerUnreachable so that the connection cache
+            // can treat DNS failures and transport reachability failures uniformly and try alternate
+            // server addresses.
+            //
+            // These errors always occur before connection establishment (during name resolution).
             //
             // Some of these errors (for example HostNotFound) are often permanent configuration issues,
             // but IceRPC keeps the public error model small and leaves retry decisions to higher layers.
