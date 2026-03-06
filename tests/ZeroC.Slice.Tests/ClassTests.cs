@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using ZeroC.Slice.Codec;
 using ZeroC.Slice.Codec.Internal;
+using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Tests;
 

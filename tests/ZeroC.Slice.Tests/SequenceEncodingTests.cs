@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
 using ZeroC.Slice.Codec;
+using ZeroC.Tests.Common;
 
 namespace ZeroC.Slice.Tests;
 

@@ -45,6 +45,7 @@
     <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
     <Project Path="tests/ZeroC.Slice.Tests/ZeroC.Slice.Tests.csproj" />
+    <Project Path="tests/ZeroC.Tests.Common/ZeroC.Tests.Common.csproj" />
   </Folder>
   <Folder Name="/tests/assemblies/">
     <Project Path="tests/ZeroC.Slice.Tests.ReferencedAssemblies/A/A.csproj" />

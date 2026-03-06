@@ -2,7 +2,7 @@
 
 using System.Buffers;
 
-namespace IceRpc.Tests.Common;
+namespace ZeroC.Tests.Common;
 
 /// <summary>Implements a buffer writer over a single Memory{byte}.</summary>
 public class MemoryBufferWriter : IBufferWriter<byte>
