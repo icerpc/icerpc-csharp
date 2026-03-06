@@ -18,17 +18,53 @@ public static class SocketExceptionExtensions
         innerException ??= exception;
         IceRpcError errorCode = exception.SocketErrorCode switch
         {
+            // Address is already in use when attempting to bind a listening socket.
             SocketError.AddressAlreadyInUse => IceRpcError.AddressInUse,
+
+            // ConnectionAborted is reported by the OS and is often triggered by the peer or by a network failure.
             SocketError.ConnectionAborted => IceRpcError.ConnectionAborted,
-            // Shutdown matches EPIPE and ConnectionReset matches ECONNRESET. Both are the result of the peer closing
-            // non-gracefully the connection. EPIPE is returned if the socket is closed and the send buffer is empty
-            // while ECONNRESET is returned if the send buffer is not empty.
+
+            // Shutdown matches EPIPE and ConnectionReset matches ECONNRESET. Both are the result of the peer
+            // closing the connection non-gracefully.
+            //
+            // EPIPE is returned when writing to a socket that has been closed and the send buffer is empty.
+            // ECONNRESET is returned when the connection is reset while data is still pending in the send buffer.
+            //
+            // In both cases the connection can no longer be used.
             SocketError.ConnectionReset => IceRpcError.ConnectionAborted,
+            SocketError.Shutdown => IceRpcError.ConnectionAborted,
+
+            // NetworkReset indicates that an established connection became invalid due to a network event
+            // (for example interface reset, Wi-Fi reconnect, VPN reconnect).
+            SocketError.NetworkReset => IceRpcError.ConnectionAborted,
+
+            // The server is reachable but no process is listening on the target port.
+            SocketError.ConnectionRefused => IceRpcError.ConnectionRefused,
+
+            // These errors indicate the remote server cannot be reached. This includes routing failures,
+            // local network failures, timeouts, and host reachability failures.
+            //
+            // They are grouped as ServerUnreachable because from the RPC perspective the connection
+            // cannot be established or maintained.
             SocketError.HostUnreachable => IceRpcError.ServerUnreachable,
             SocketError.NetworkUnreachable => IceRpcError.ServerUnreachable,
-            SocketError.Shutdown => IceRpcError.ConnectionAborted,
-            SocketError.ConnectionRefused => IceRpcError.ConnectionRefused,
+            SocketError.NetworkDown => IceRpcError.ServerUnreachable,
+            SocketError.HostDown => IceRpcError.ServerUnreachable,
+            SocketError.TimedOut => IceRpcError.ServerUnreachable,
+
+            // Name resolution failures are also mapped to ServerUnreachable so that callers and retry
+            // middleware can treat DNS failures and transport reachability failures uniformly.
+            //
+            // Some of these errors (for example HostNotFound) are often permanent configuration issues,
+            // but IceRPC keeps the public error model small and leaves retry decisions to higher layers.
+            SocketError.HostNotFound => IceRpcError.ServerUnreachable,
+            SocketError.TryAgain => IceRpcError.ServerUnreachable,
+            SocketError.NoRecovery => IceRpcError.ServerUnreachable,
+            SocketError.NoData => IceRpcError.ServerUnreachable,
+
+            // Operation was aborted locally, typically due to cancellation or socket disposal.
             SocketError.OperationAborted => IceRpcError.OperationAborted,
+
             _ => IceRpcError.IceRpcError
         };
 
