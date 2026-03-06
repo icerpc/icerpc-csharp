@@ -37,31 +37,38 @@ jobs:
         run: |
           set -euo pipefail
 
-          case "$CHANNEL" in
-            "stable")
-              SOURCE_URL="https://api.nuget.org/v3/index.json"
-              NUGET_API_KEY="${RELEASE_NUGET_API_KEY}"
-              ;;
-            "nightly")
-              SOURCE_URL="https://download.zeroc.com/nexus/repository/nuget-nightly/"
-              NUGET_API_KEY="${NEXUS_NIGHTLY_NUGET_API_KEY}"
-              ;;
-            *)
-              echo "Unsupported channel: $CHANNEL"
-              exit 1
-              ;;
-          esac
+          NUGET_ORG_URL="https://api.nuget.org/v3/index.json"
+          NEXUS_NIGHTLY_URL="https://download.zeroc.com/nexus/repository/nuget-nightly/"
 
-          # Collect all packages. The symbol package ".snupkg" files are published automatically with the main package
-          # no need to push them separately.
+          # Collect all packages. The symbol package ".snupkg" files are published automatically with the main
+          # package, no need to push them separately.
           mapfile -t packages < <(find staging -type f -name "*.nupkg")
 
-          # Push each package to the appropriate NuGet repository
           for package in "${packages[@]}"; do
             echo "Publishing package: $package"
-            dotnet nuget push "$package" --source "$SOURCE_URL" --api-key "$NUGET_API_KEY"
+            name=$(basename "$package")
+
+            case "$CHANNEL" in
+              "stable")
+                # ZeroC-prefixed packages belong to the ZeroC NuGet.org organization;
+                # IceRpc-prefixed packages belong to the IceRPC NuGet.org organization.
+                if [[ "$name" == ZeroC.* ]]; then
+                  dotnet nuget push "$package" --source "$NUGET_ORG_URL" --api-key "$ZEROC_NUGET_API_KEY"
+                else
+                  dotnet nuget push "$package" --source "$NUGET_ORG_URL" --api-key "$ICERPC_NUGET_API_KEY"
+                fi
+                ;;
+              "nightly")
+                dotnet nuget push "$package" --source "$NEXUS_NIGHTLY_URL" --api-key "$NEXUS_NIGHTLY_NUGET_API_KEY"
+                ;;
+              *)
+                echo "Unsupported channel: $CHANNEL"
+                exit 1
+                ;;
+            esac
           done
         env:
           CHANNEL: ${{ inputs.channel }}
           NEXUS_NIGHTLY_NUGET_API_KEY: ${{ secrets.NEXUS_NIGHTLY_NUGET_API_KEY }}
-          RELEASE_NUGET_API_KEY: ${{ secrets.RELEASE_NUGET_API_KEY }}
+          ZEROC_NUGET_API_KEY: ${{ secrets.ZEROC_NUGET_API_KEY }}
+          ICERPC_NUGET_API_KEY: ${{ secrets.ICERPC_NUGET_API_KEY }}
