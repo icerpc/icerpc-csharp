@@ -2,7 +2,7 @@
 
 #pragma once
 
-module Slice::Tests::ReferencedAssemblies
+module Slice::IceGen::Tests::ReferencedAssemblies
 {
     class ClassA
     {

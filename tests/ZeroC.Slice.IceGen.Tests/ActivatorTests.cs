@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc.
 
 using NUnit.Framework;
-using Slice.Tests.ReferencedAssemblies;
+using Slice.IceGen.Tests.ReferencedAssemblies;
 using System.Reflection;
 using ZeroC.Slice.Codec;
 

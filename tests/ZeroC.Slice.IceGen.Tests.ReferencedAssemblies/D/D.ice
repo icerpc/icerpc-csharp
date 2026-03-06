@@ -5,7 +5,7 @@
 #include "../B/B.ice"
 #include "../C/C.ice"
 
-module Slice::Tests::ReferencedAssemblies
+module Slice::IceGen::Tests::ReferencedAssemblies
 {
     class ClassD : ClassB
     {

@@ -5,7 +5,7 @@
 #include "../B/B.ice"
 #include "../C/C.ice"
 
-module Slice::Tests::ReferencedAssemblies
+module Slice::IceGen::Tests::ReferencedAssemblies
 {
     // Exactly the same definitions as D but in a different assembly and with an extra suffix.
     // The type IDs remain the same.
