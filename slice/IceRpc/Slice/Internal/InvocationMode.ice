@@ -4,6 +4,7 @@ module IceRpc::Slice::Internal
 {
     /// A proxy encoded with Slice1 includes an InvocationMode which specifies the behavior when sending requests using
     /// this proxy.
+    ["cs:internal"]
     enum InvocationMode
     {
         /// This is the default invocation mode; a request using this mode always expects a response.

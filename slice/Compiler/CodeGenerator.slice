@@ -12,7 +12,7 @@ struct SliceFile {
     path: string
     moduleDeclaration: Module
     attributes: Sequence<Attribute>
-    contents: Sequence<Definition>
+    contents: Sequence<Symbol>
 }
 
 struct GeneratedFile {
@@ -20,7 +20,7 @@ struct GeneratedFile {
     contents: string
 }
 
-enum Definition {
+enum Symbol {
     Interface(v: Interface)
     Enum(v: Enum)
     Struct(v: Struct)

@@ -764,9 +764,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
 
             StatusCode statusCode = replyStatus switch
             {
-                ReplyStatus.ObjectNotExistException => StatusCode.NotFound,
-                ReplyStatus.FacetNotExistException => StatusCode.NotFound,
-                ReplyStatus.OperationNotExistException => StatusCode.NotImplemented,
+                ReplyStatus.ObjectNotExist => StatusCode.NotFound,
+                ReplyStatus.FacetNotExist => StatusCode.NotFound,
+                ReplyStatus.OperationNotExist => StatusCode.NotImplemented,
                 ReplyStatus.InvalidData => StatusCode.InvalidData,
                 ReplyStatus.Unauthorized => StatusCode.Unauthorized,
                 _ => StatusCode.InternalError
@@ -777,9 +777,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
             string message;
             switch (replyStatus)
             {
-                case ReplyStatus.FacetNotExistException:
-                case ReplyStatus.ObjectNotExistException:
-                case ReplyStatus.OperationNotExistException:
+                case ReplyStatus.FacetNotExist:
+                case ReplyStatus.ObjectNotExist:
+                case ReplyStatus.OperationNotExist:
 
                     var requestFailed = new RequestFailedExceptionData(ref decoder);
 
@@ -883,7 +883,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                 case StatusCode.NotFound:
                 case StatusCode.NotImplemented:
                     encoder.EncodeReplyStatus(response.StatusCode == StatusCode.NotFound ?
-                        ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+                        ReplyStatus.ObjectNotExist : ReplyStatus.OperationNotExist);
 
                     new RequestFailedExceptionData(
                         IceIdentity.Parse(request.Path),

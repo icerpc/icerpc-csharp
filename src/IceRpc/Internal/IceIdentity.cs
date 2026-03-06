@@ -2,7 +2,7 @@
 
 namespace IceRpc.Internal;
 
-public partial record struct IceIdentity
+internal readonly partial record struct IceIdentity
 {
     /// <summary>Converts this identity into a path string.</summary>
     /// <returns>The identity converted into a path string.</returns>
