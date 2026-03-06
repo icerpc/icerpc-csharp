@@ -6,7 +6,7 @@ using ZeroC.Slice.Codec;
 using ZeroC.Slice.Codec.Internal;
 using ZeroC.Tests.Common;
 
-namespace ZeroC.Slice.Tests;
+namespace ZeroC.Slice.Codec.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class BitSequenceWriterTests

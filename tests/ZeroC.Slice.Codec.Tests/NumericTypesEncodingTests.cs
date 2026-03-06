@@ -4,7 +4,7 @@ using NUnit.Framework;
 using ZeroC.Slice.Codec;
 using ZeroC.Tests.Common;
 
-namespace ZeroC.Slice.Tests;
+namespace ZeroC.Slice.Codec.Tests;
 
 /// <summary>Test encoding of built-in types with the supported Slice encodings.</summary>
 [Parallelizable(scope: ParallelScope.All)]

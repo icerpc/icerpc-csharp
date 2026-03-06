@@ -3,7 +3,7 @@
 using NUnit.Framework;
 using ZeroC.Slice.Codec.Internal;
 
-namespace ZeroC.Slice.Tests;
+namespace ZeroC.Slice.Codec.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class SpanEnumeratorTests
