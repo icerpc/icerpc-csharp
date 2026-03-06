@@ -44,6 +44,10 @@ public static class SocketExceptionExtensions
             // These errors indicate the remote server cannot be reached. This includes routing failures,
             // local network failures, timeouts, and host reachability failures.
             //
+            // On async TCP, these errors occur almost exclusively during connection establishment.
+            // Post-connect, the TCP stack absorbs ICMP errors and retransmits; the kernel would
+            // typically return ConnectionReset or TimedOut (after minutes of retransmission) instead.
+            //
             // They are grouped as ServerUnreachable because from the RPC perspective the connection
             // cannot be established or maintained.
             SocketError.HostUnreachable => IceRpcError.ServerUnreachable,
