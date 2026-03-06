@@ -2,7 +2,6 @@
 
 using NUnit.Framework;
 using System.IO.Pipelines;
-using ZeroC.Slice.Codec;
 using ZeroC.Slice.Codec.Internal;
 using ZeroC.Tests.Common;
 
