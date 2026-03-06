@@ -1,0 +1,18 @@
+// Copyright (c) ZeroC, Inc.
+
+module ZeroC::Slice::SlicecGen::Tests
+
+[cs::type("MyCustomType")]
+custom CustomType
+
+compact struct StructWithCustomTypeField {
+    m: CustomType
+}
+
+compact struct StructWithSequenceOfCustomTypes {
+    s: Sequence<CustomType>,
+}
+
+compact struct StructWithSequenceOfOptionalCustomTypes {
+    s: Sequence<CustomType?>,
+}
