@@ -23,7 +23,7 @@
     {
       "paths": [
         "tests/ZeroC.Slice.SlicecGen.Tests",
-        "tests/IceRpc.Slice.Tests",
+        "tests/IceRpc.Slice.SlicecGen.Tests",
         "tests/IceRpc.Compressor.Tests"
       ]
     },

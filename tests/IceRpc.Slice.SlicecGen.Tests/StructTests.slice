@@ -11,3 +11,16 @@ struct MyStruct {
     i: int32
     j: int32
 }
+
+compact struct MyCompactStructWithNullableProxy {
+    a: int32
+    i: PingableProxy?
+}
+
+compact struct MyCompactStructWithSequenceOfNullableProxies {
+    i: Sequence<PingableProxy?>
+}
+
+compact struct MyCompactStructWithDictionaryOfNullableProxies {
+    i: Dictionary<int32, PingableProxy?>
+}
