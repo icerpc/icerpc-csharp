@@ -42,14 +42,19 @@ public static class SocketExceptionExtensions
             SocketError.ConnectionRefused => IceRpcError.ConnectionRefused,
 
             // These errors indicate the remote server cannot be reached. This includes routing failures,
-            // local network failures, timeouts, and host reachability failures.
+            // local network failures, OS-level TCP timeouts, and host reachability failures.
             //
-            // On async TCP, these errors occur almost exclusively during connection establishment.
-            // Post-connect, the TCP stack absorbs ICMP errors and retransmits; the kernel would
-            // typically return ConnectionReset or TimedOut (after minutes of retransmission) instead.
+            // The TimedOut error refers to the OS TCP stack exhausting SYN retransmissions when
+            // attempting to connect — not to IceRPC-level timeouts, which result in
+            // OperationCanceledException via CancellationToken.
+            //
+            // With the async socket API used by IceRPC, these errors occur during connection
+            // establishment. On an established TCP connection, the kernel absorbs ICMP errors
+            // and retransmits internally; the application sees ConnectionReset (mapped to
+            // ConnectionAborted above) rather than these reachability errors.
             //
             // They are grouped as ServerUnreachable because from the RPC perspective the connection
-            // cannot be established or maintained.
+            // cannot be established.
             SocketError.HostUnreachable => IceRpcError.ServerUnreachable,
             SocketError.NetworkUnreachable => IceRpcError.ServerUnreachable,
             SocketError.NetworkDown => IceRpcError.ServerUnreachable,
