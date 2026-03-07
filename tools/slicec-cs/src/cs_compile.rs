@@ -82,7 +82,11 @@ mod test {
     fn compile_all_test_slice() {
         let root_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let icerpc_tests_dir = root_dir.join("tests").join("IceRpc.Slice.Tests").display().to_string();
-        let zeroc_tests_dir = root_dir.join("tests").join("ZeroC.Slice.Tests").display().to_string();
+        let zeroc_tests_dir = root_dir
+            .join("tests")
+            .join("ZeroC.Slice.SlicecGen.Tests")
+            .display()
+            .to_string();
         let slice_dir = root_dir.join("slice").display().to_string();
 
         // Create a list of all the test Slice files.

@@ -9,6 +9,7 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Security.Authentication;
 using ZeroC.Slice.Codec;
+using ZeroC.Tests.Common;
 
 namespace IceRpc.Tests;
 
