@@ -114,7 +114,7 @@ public abstract class DuplexConnectionConformanceTests
         {
             Assert.That(
                 exception?.IceRpcError,
-                Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted).Or.EqualTo(IceRpcError.IceRpcError),
+                Is.Null.Or.EqualTo(IceRpcError.ConnectionAborted),
                 $"The test failed with an unexpected IceRpcError {exception}");
         }
         else

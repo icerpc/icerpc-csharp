@@ -339,11 +339,6 @@ internal class TcpClientConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-
-            return new TransportConnectionInformation(
-                localNetworkAddress: Socket.LocalEndPoint!,
-                remoteNetworkAddress: Socket.RemoteEndPoint!,
-                _sslStream?.RemoteCertificate);
         }
         catch (IOException exception)
         {
@@ -352,6 +347,21 @@ internal class TcpClientConnection : TcpConnection
         catch (SocketException exception)
         {
             throw exception.ToIceRpcException();
+        }
+
+        try
+        {
+            return new TransportConnectionInformation(
+                localNetworkAddress: Socket.LocalEndPoint!,
+                remoteNetworkAddress: Socket.RemoteEndPoint!,
+                _sslStream?.RemoteCertificate);
+        }
+        catch (SocketException exception)
+        {
+            // This can happen if the peer closes the connection immediately after accepting it, which can
+            // cause the endpoint information to be unavailable. Any SocketException at this point means the
+            // connection is no longer usable.
+            throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
         }
     }
 }
