@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/IceRpc/IceRpc.csproj" />
-    <ProjectReference Include="../../src/IceRpc.Slice/IceRpc.Slice.csproj" />
+    <ProjectReference Include="../../src/IceRpc.Ice/IceRpc.Ice.csproj" />
     <ProjectReference Include="../IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
   </ItemGroup>
   <ItemGroup>

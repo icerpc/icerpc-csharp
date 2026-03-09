@@ -34,6 +34,7 @@
     <Project Path="tests/IceRpc.Conformance.Tests/IceRpc.Conformance.Tests.csproj" />
     <Project Path="tests/IceRpc.Deadline.Tests/IceRpc.Deadline.Tests.csproj" />
     <Project Path="tests/IceRpc.Extensions.DependencyInjection.Tests/IceRpc.Extensions.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/IceRpc.Ice.Tests/IceRpc.Ice.Tests.csproj" />
     <Project Path="tests/IceRpc.Locator.Tests/IceRpc.Locator.Tests.csproj" />
     <Project Path="tests/IceRpc.Logger.Tests/IceRpc.Logger.Tests.csproj" />
     <Project Path="tests/IceRpc.Metrics.Tests/IceRpc.Metrics.Tests.csproj" />
