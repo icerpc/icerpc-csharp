@@ -22,7 +22,7 @@ public class IncomingResponseTests
 
         // Act/Assert
         DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
-            async () => await response.DecodeVoidReturnValueAsync(request, InvalidProxy.Instance));
+            async () => await response.DecodeVoidReturnValueAsync(request));
         Assert.That(decodedException, Is.Not.Null);
         Assert.That(decodedException!.ConvertToInternalError, Is.True);
     }
@@ -42,7 +42,6 @@ public class IncomingResponseTests
         DispatchException? decodedException = Assert.ThrowsAsync<DispatchException>(
             async () => await response.DecodeReturnValueAsync(
                 request,
-                SliceEncoding.Slice2,
                 InvalidProxy.Instance,
                 (ref SliceDecoder decoder) => decoder.DecodeInt32()));
         Assert.That(decodedException, Is.Not.Null);

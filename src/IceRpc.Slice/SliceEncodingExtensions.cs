@@ -17,7 +17,5 @@ public static class SliceEncodingExtensions
     /// <param name="encoding">The Slice encoding.</param>
     /// <returns>The payload of an empty struct.</returns>
     public static PipeReader CreateEmptyStructPayload(this SliceEncoding encoding) =>
-        encoding != SliceEncoding.Slice1 ? PipeReader.Create(_emptyStructPayload) :
-            throw new NotSupportedException(
-                $"{nameof(CreateEmptyStructPayload)} is only available for stream-capable Slice encodings.");
+        PipeReader.Create(_emptyStructPayload);
 }

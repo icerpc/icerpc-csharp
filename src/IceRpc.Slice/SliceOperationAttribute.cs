@@ -26,12 +26,6 @@ public sealed class SliceOperationAttribute : Attribute
     /// <see langword="false"/>.</value>
     public bool EncodedReturn { get; init; }
 
-    /// <summary>Gets the exception specification of the operation.</summary>
-    /// <value>An array of Slice exception types that the operation may throw.</value>
-    /// <remarks>Slice1-only.</remarks>
-    /// <seealso cref="SliceException"/>
-    public Type[] ExceptionSpecification { get; init; } = [];
-
     /// <summary>Gets a value indicating whether the operation is idempotent.</summary>
     /// <value><see langword="true"/> if the operation is idempotent; otherwise, <see langword="false"/>.</value>
     public bool Idempotent { get; init; }

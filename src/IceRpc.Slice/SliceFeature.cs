@@ -11,9 +11,6 @@ public sealed class SliceFeature : ISliceFeature
     public static ISliceFeature Default { get; } = new DefaultSliceFeature();
 
     /// <inheritdoc/>
-    public IActivator? Activator { get; }
-
-    /// <inheritdoc/>
     public IProxy? BaseProxy { get; }
 
     /// <inheritdoc/>
@@ -33,7 +30,6 @@ public sealed class SliceFeature : ISliceFeature
     public int MaxSegmentSize { get; }
 
     /// <summary>Constructs a Slice feature.</summary>
-    /// <param name="activator">The activator.</param>
     /// <param name="encodeOptions">The encode options.</param>
     /// <param name="maxCollectionAllocation">The maximum collection allocation. Use <c>-1</c> to get the default value:
     /// 8 times <paramref name="maxSegmentSize" /> if set, otherwise the value provided by <paramref
@@ -44,7 +40,6 @@ public sealed class SliceFeature : ISliceFeature
     /// <param name="defaultFeature">A feature that provides default values for all parameters. <see langword="null" />
     /// is equivalent to <see cref="Default" />.</param>
     public SliceFeature(
-        IActivator? activator = null,
         SliceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
         int maxDepth = -1,
@@ -54,7 +49,6 @@ public sealed class SliceFeature : ISliceFeature
     {
         defaultFeature ??= Default;
 
-        Activator = activator ?? defaultFeature.Activator;
         EncodeOptions = encodeOptions ?? defaultFeature.EncodeOptions;
 
         MaxCollectionAllocation = maxCollectionAllocation >= 0 ? maxCollectionAllocation :
@@ -69,8 +63,6 @@ public sealed class SliceFeature : ISliceFeature
 
     private class DefaultSliceFeature : ISliceFeature
     {
-        public IActivator? Activator => null;
-
         public IProxy? BaseProxy => null;
 
         public SliceEncodeOptions? EncodeOptions => null;

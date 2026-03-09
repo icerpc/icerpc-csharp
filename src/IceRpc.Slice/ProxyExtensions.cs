@@ -14,8 +14,7 @@ namespace IceRpc.Slice;
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-/// <returns>A value task that contains the return value or a <see cref="SliceException" /> when the status code of the
-/// response is <see cref="StatusCode.ApplicationError" />.</returns>
+/// <returns>A value task that contains the decoded return value.</returns>
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
@@ -27,8 +26,7 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 /// <param name="request">The outgoing request.</param>
 /// <param name="sender">The proxy that sent the request.</param>
 /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
-/// <returns>A value task that contains a <see cref="SliceException" /> when the status code of the response is
-/// <see cref="StatusCode.ApplicationError" />.</returns>
+/// <returns>A value task.</returns>
 public delegate ValueTask ResponseDecodeFunc(
     IncomingResponse response,
     OutgoingRequest request,
@@ -52,13 +50,11 @@ public static class ProxyExtensions
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
     /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The optional payload continuation of the request.</param>
-    /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
-    /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
+    /// <param name="responseDecodeFunc">The decode function for the response payload.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The operation's return value.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a Slice exception.</exception>
     public static Task<T> InvokeOperationAsync<TProxy, T>(
         this TProxy proxy,
         string operation,
@@ -121,15 +117,13 @@ public static class ProxyExtensions
     /// <param name="operation">The name of the operation, as specified in Slice.</param>
     /// <param name="payload">The payload of the request.</param>
     /// <param name="payloadContinuation">The payload continuation of the request.</param>
-    /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws an
-    /// exception when the status code of the response is <see cref="StatusCode.ApplicationError" />.</param>
+    /// <param name="responseDecodeFunc">The decode function for the response payload.</param>
     /// <param name="features">The invocation features.</param>
     /// <param name="idempotent">When <see langword="true" />, the request is idempotent.</param>
     /// <param name="oneway">When <see langword="true" />, the request is sent one-way and an empty response is returned
     /// immediately after sending the request.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A task that completes when the void response is returned.</returns>
-    /// <exception cref="SliceException">Thrown if the response carries a failure.</exception>
     public static Task InvokeOperationAsync<TProxy>(
         this TProxy proxy,
         string operation,

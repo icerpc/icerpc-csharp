@@ -8,11 +8,6 @@ namespace IceRpc.Slice;
 /// </summary>
 public interface ISliceFeature
 {
-    /// <summary>Gets the activator to use when decoding Slice1-encoded classes and exceptions.</summary>
-    /// <value>The activator. When null, the decoding of a request or response payload uses the activator injected by
-    /// the Slice generated code.</value>
-    IActivator? Activator { get; }
-
     /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
     /// <value>The base proxy.</value>
     IProxy? BaseProxy { get; }

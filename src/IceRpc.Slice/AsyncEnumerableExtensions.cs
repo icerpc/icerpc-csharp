@@ -16,7 +16,6 @@ public static class AsyncEnumerableExtensions
     /// <param name="encodeAction">The action used to encode one element.</param>
     /// <param name="useSegments"><see langword="true" /> if an element can be encoded on a variable number of bytes;
     /// otherwise, <see langword="false" />.</param>
-    /// <param name="encoding">The Slice encoding to use.</param>
     /// <param name="encodeOptions">The Slice encode options.</param>
     /// <returns>A pipe reader that represents the encoded stream of bytes.</returns>
     /// <remarks>This extension method is used to encode streaming parameters and streaming return values with the
@@ -25,13 +24,11 @@ public static class AsyncEnumerableExtensions
         this IAsyncEnumerable<T> asyncEnumerable,
         EncodeAction<T> encodeAction,
         bool useSegments,
-        SliceEncoding encoding = SliceEncoding.Slice2,
         SliceEncodeOptions? encodeOptions = null) =>
         new AsyncEnumerablePipeReader<T>(
             asyncEnumerable,
             encodeAction,
             useSegments,
-            encoding,
             encodeOptions);
 
     // Overriding ReadAtLeastAsyncCore or CopyToAsync methods for this reader is not critical since this reader is
@@ -49,7 +46,6 @@ public static class AsyncEnumerableExtensions
         // when no one is using it since CancelPendingRead can be called by another thread after Complete is called.
         private readonly CancellationTokenSource _cts = new();
         private readonly EncodeAction<T> _encodeAction;
-        private readonly SliceEncoding _encoding;
         private bool _isCompleted;
         private readonly bool _useSegments;
         private readonly int _streamFlushThreshold;
@@ -166,7 +162,7 @@ public static class AsyncEnumerableExtensions
 
             Task<bool>? EncodeElements()
             {
-                var encoder = new SliceEncoder(_pipe.Writer, _encoding);
+                var encoder = new SliceEncoder(_pipe.Writer, SliceEncoding.Slice2);
 
                 Span<byte> sizePlaceholder = default;
                 if (_useSegments)
@@ -223,19 +219,12 @@ public static class AsyncEnumerableExtensions
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction,
             bool useSegments,
-            SliceEncoding encoding,
             SliceEncodeOptions? encodeOptions)
         {
-            if (encoding == SliceEncoding.Slice1)
-            {
-                throw new NotSupportedException("Streaming is not supported by the Slice1 encoding.");
-            }
-
             encodeOptions ??= SliceEncodeOptions.Default;
             _pipe = new Pipe(encodeOptions.PipeOptions);
             _streamFlushThreshold = encodeOptions.StreamFlushThreshold;
             _encodeAction = encodeAction;
-            _encoding = encoding;
             _useSegments = useSegments;
             _asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(_cts.Token);
         }

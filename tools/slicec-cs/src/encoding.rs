@@ -570,7 +570,6 @@ int startPos_ = encoder_.EncodedByteCount;",
 
 pub fn encode_operation_parameter_stream(operation: &Operation) -> CodeBlock {
     let namespace = operation.namespace();
-    let encoding = operation.encoding.to_cs_encoding();
 
     let stream_parameter = operation
         .streamed_parameter()
@@ -585,7 +584,6 @@ pub fn encode_operation_parameter_stream(operation: &Operation) -> CodeBlock {
 {stream_arg}.ToPipeReader(
     {encode_stream_parameter},
     {use_segments},
-    {encoding},
     {encode_options})",
             encode_stream_parameter = encode_stream_parameter(stream_type, &namespace, operation.encoding).indent(),
             use_segments = stream_type.fixed_wire_size().is_none(),
@@ -597,7 +595,6 @@ pub fn encode_operation_parameter_stream(operation: &Operation) -> CodeBlock {
 
 pub fn encode_operation_return_stream(operation: &Operation) -> CodeBlock {
     let namespace = operation.namespace();
-    let encoding = operation.encoding.to_cs_encoding();
 
     let stream_return = operation
         .streamed_return_member()
@@ -613,7 +610,6 @@ pub fn encode_operation_return_stream(operation: &Operation) -> CodeBlock {
 {stream_arg}.ToPipeReader(
     {encode_stream_parameter},
     {use_segments},
-    {encoding},
     {encode_options})",
             encode_stream_parameter = encode_stream_parameter(stream_type, &namespace, operation.encoding).indent(),
             use_segments = stream_type.fixed_wire_size().is_none(),

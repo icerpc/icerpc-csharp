@@ -597,12 +597,8 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
                 "\
 await response.DecodeVoidReturnValueAsync(
     request,
-    {encoding},
-    sender,
-    defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
-",
-                encoding = encoding.to_cs_encoding(),
+"
             );
         } else {
             writeln!(
@@ -610,14 +606,11 @@ await response.DecodeVoidReturnValueAsync(
                 "\
 var {return_value} = await response.DecodeReturnValueAsync(
     request,
-    {encoding},
     sender,
     {return_value_decode_fn},
-    defaultActivator: null,
     cancellationToken).ConfigureAwait(false);
 ",
                 return_value = non_streamed_members.to_argument_tuple(),
-                encoding = encoding.to_cs_encoding(),
                 return_value_decode_fn = decode_non_streamed_parameters_func(&non_streamed_members, encoding).indent(),
             );
         }
@@ -649,13 +642,8 @@ var {stream_parameter_name} = {decode_operation_stream}
             "\
 response.DecodeVoidReturnValueAsync(
     request,
-    {encoding},
-    sender,
-    defaultActivator: {default_activator},
     cancellationToken)
 ",
-            encoding = encoding.to_cs_encoding(),
-            default_activator = default_activator(encoding),
         );
     } else {
         writeln!(
@@ -663,15 +651,11 @@ response.DecodeVoidReturnValueAsync(
             "\
 response.DecodeReturnValueAsync(
     request,
-    {encoding},
     sender,
     {return_value_decode_fn},
-    defaultActivator: {default_activator},
     cancellationToken)
 ",
-            encoding = encoding.to_cs_encoding(),
             return_value_decode_fn = decode_non_streamed_parameters_func(&non_streamed_members, encoding).indent(),
-            default_activator = default_activator(encoding),
         );
     }
 
