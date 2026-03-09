@@ -63,6 +63,29 @@ public sealed class IceProtocolConnectionTests
         }
     }
 
+    private static IEnumerable<TestCaseData> StatusCodeRoundTripSource
+    {
+        get
+        {
+            // These StatusCodes have a dedicated ReplyStatus and round-trip through the ice protocol.
+            yield return new TestCaseData(StatusCode.NotFound, StatusCode.NotFound);
+            yield return new TestCaseData(StatusCode.NotImplemented, StatusCode.NotImplemented);
+            yield return new TestCaseData(StatusCode.InvalidData, StatusCode.InvalidData);
+            yield return new TestCaseData(StatusCode.Unauthorized, StatusCode.Unauthorized);
+
+            // InternalError encodes as ReplyStatus.UnknownException and decodes back to InternalError.
+            yield return new TestCaseData(StatusCode.InternalError, StatusCode.InternalError);
+
+            // Well-known status codes without a dedicated ReplyStatus encode as UnknownException,
+            // which decodes back to InternalError.
+            yield return new TestCaseData(StatusCode.ApplicationError, StatusCode.InternalError);
+            yield return new TestCaseData(StatusCode.DeadlineExceeded, StatusCode.InternalError);
+
+            // Custom status codes outside the defined ReplyStatus range round-trip correctly.
+            yield return new TestCaseData((StatusCode)42, (StatusCode)42);
+        }
+    }
+
     [Test, TestCaseSource(nameof(DispatchFailureSource))]
     public async Task Dispatcher_failure(
         InlineDispatcher dispatcher,
@@ -89,6 +112,36 @@ public sealed class IceProtocolConnectionTests
         Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
         Assert.That(readResult.IsCompleted, Is.True);
         Assert.That(readResult.Buffer.IsEmpty, Is.True);
+    }
+
+    /// <summary>Verifies that a StatusCode dispatched by the server is encoded as a ReplyStatus and decoded back to
+    /// the expected StatusCode by the client.</summary>
+    [Test, TestCaseSource(nameof(StatusCodeRoundTripSource))]
+    public async Task Response_reply_status_maps_to_expected_status_code(
+        StatusCode dispatchStatusCode,
+        StatusCode expectedStatusCode)
+    {
+        // Arrange
+        var dispatcher = new InlineDispatcher((request, cancellationToken) =>
+            new(new OutgoingResponse(request, dispatchStatusCode)));
+
+        await using ServiceProvider provider = new ServiceCollection()
+            .AddProtocolTest(Protocol.Ice, dispatcher)
+            .BuildServiceProvider(validateScopes: true);
+
+        var sut = provider.GetRequiredService<ClientServerProtocolConnection>();
+        await sut.ConnectAsync();
+
+        using var request = new OutgoingRequest(new ServiceAddress(Protocol.Ice) { Path = "/foo" })
+        {
+            Operation = "op"
+        };
+
+        // Act
+        IncomingResponse response = await sut.Client.InvokeAsync(request);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
     }
 
     /// <summary>Verifies that an abortive server connection shutdown causes an invocation failure.</summary>

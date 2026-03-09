@@ -727,7 +727,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         ReadOnlySequence<byte> buffer,
         int requestId)
     {
-        ReplyStatus replyStatus = ((int)buffer.FirstSpan[0]).AsReplyStatus();
+        var replyStatus = (ReplyStatus)buffer.FirstSpan[0];
 
         if (replyStatus <= ReplyStatus.UserException)
         {
@@ -760,16 +760,17 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         else
         {
-            // An ice system exception.
-
             StatusCode statusCode = replyStatus switch
             {
                 ReplyStatus.ObjectNotExist => StatusCode.NotFound,
                 ReplyStatus.FacetNotExist => StatusCode.NotFound,
                 ReplyStatus.OperationNotExist => StatusCode.NotImplemented,
+                ReplyStatus.UnknownLocalException => StatusCode.InternalError,
+                ReplyStatus.UnknownUserException => StatusCode.InternalError,
+                ReplyStatus.UnknownException => StatusCode.InternalError,
                 ReplyStatus.InvalidData => StatusCode.InvalidData,
                 ReplyStatus.Unauthorized => StatusCode.Unauthorized,
-                _ => StatusCode.InternalError
+                _ => (StatusCode)replyStatus
             };
 
             var decoder = new SliceDecoder(buffer.Slice(1), SliceEncoding.Slice1);
@@ -903,9 +904,11 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     encoder.EncodeString(response.ErrorMessage!);
                     break;
                 default:
-                    encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
-                    encoder.EncodeString(
-                        $"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
+                    // Custom status codes greater than Unauthorized round-trip through the
+                    // ice protocol; others encode as UnknownException.
+                    encoder.EncodeReplyStatus(response.StatusCode > StatusCode.Unauthorized ?
+                        (ReplyStatus)response.StatusCode : ReplyStatus.UnknownException);
+                    encoder.EncodeString(response.ErrorMessage!);
                     break;
             }
         }
