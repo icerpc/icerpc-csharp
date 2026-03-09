@@ -1,12 +1,14 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice;
+
 namespace IceRpc.Slice.IceGen.Tests;
 
-internal class InvalidProxy : IProxy
+internal class InvalidProxy : IIceProxy
 {
     internal static InvalidProxy Instance { get; } = new InvalidProxy();
 
-    public SliceEncodeOptions? EncodeOptions
+    public IceEncodeOptions? EncodeOptions
     {
         get => throw new NotImplementedException();
         init { }

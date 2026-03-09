@@ -1,18 +1,29 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Locator interceptor for IceRPC</Description>
+    <Description>IceRpc.Ice for C#.</Description>
     <AssemblyTitle>$(Description)</AssemblyTitle>
-    <PackageTags>icerpc;rpc</PackageTags>
+    <PackageTags>icerpc;slice;binary;serialization;format</PackageTags>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
-    <ProjectReference Include="../IceRpc.Ice/IceRpc.Ice.csproj" ExactVersion="true" />
+    <SliceCompile
+      Include="../../slice/Ice/Identity.ice;../../slice/IceRpc/Ice/Object.ice"
+      OutputDir="$(MSBuildProjectDirectory)/generated"
+    />
 
     <SliceCompile
-      Include="../../slice/Ice/Locator.ice;../../slice/Ice/LocatorRegistry.ice;../../slice/Ice/Process.ice"
-      OutputDir="$(MSBuildProjectDirectory)/generated"
+      Include="../../slice/IceRpc/Ice/Internal/*.ice"
+      OutputDir="$(MSBuildProjectDirectory)/generated/Internal"
+    />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../IceRpc/IceRpc.csproj" ExactVersion="true" />
+    <ProjectReference Include="../ZeroC.Slice.Codec/ZeroC.Slice.Codec.csproj" ExactVersion="true" />
+    <!-- Includes the analyzer in the package without consuming it. -->
+    <ProjectReference
+      Include="../IceRpc.Ice.Generators/IceRpc.Ice.Generators.csproj"
+      ReferenceOutputAssembly="false"
     />
 
     <PackageReference Include="ZeroC.Ice.Slice.Tools" Version="$(IceSliceToolsVersion)" PrivateAssets="all" />
@@ -27,6 +38,10 @@
     <Content Include="../../LICENSE" Pack="true" PackagePath="/" />
     <Content Include="README.md" Pack="true" PackagePath="/" />
     <None Include="../../build/icerpc-icon.png" Pack="true" PackagePath="/" />
-    <Content Include="IceRpc.Locator.props" Pack="true" PackagePath="buildTransitive" />
+    <Content
+      Include="../IceRpc.Ice.Generators/bin/$(Configuration)/netstandard2.0/IceRpc.Ice.Generators.dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+    />
   </ItemGroup>
 </Project>

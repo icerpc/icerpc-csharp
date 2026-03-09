@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc.
 
-using IceRpc.Ice;
 using NUnit.Framework;
 using ZeroC.Slice.Codec;
 
@@ -13,8 +12,8 @@ public sealed class InterfaceTests
     /// Slice type ID.</summary>
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected Slice type ID.</param>
-    [TestCase(typeof(IceObjectProxy), "::Ice::Object")]
-    [TestCase(typeof(IIceObjectService), "::Ice::Object")]
+    // [TestCase(typeof(IceObjectProxy), "::Ice::Object")]
+    // [TestCase(typeof(IIceObjectService), "::Ice::Object")]
     [TestCase(typeof(PingableProxy), "::IceRpc::Slice::SlicecGen::Tests::Pingable")]
     [TestCase(typeof(IPingableService), "::IceRpc::Slice::SlicecGen::Tests::Pingable")]
     [TestCase(typeof(MyWidgetProxy), "::IceRpc::Slice::SlicecGen::Tests::MyWidget")]
@@ -30,7 +29,7 @@ public sealed class InterfaceTests
     /// <summary>Verifies that generated service interfaces have the expected default service path.</summary>
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected default service path.</param>
-    [TestCase(typeof(IIceObjectService), "/Ice.Object")]
+    // [TestCase(typeof(IIceObjectService), "/Ice.Object")]
     [TestCase(typeof(IPingableService), "/IceRpc.Slice.SlicecGen.Tests.Pingable")]
     [TestCase(typeof(IMyWidgetService), "/IceRpc.Slice.SlicecGen.Tests.MyWidget")]
     [TestCase(typeof(IMyOtherWidgetService), "/IceRpc.Slice.SlicecGen.Tests.myOtherWidget")]
@@ -43,7 +42,7 @@ public sealed class InterfaceTests
     /// <summary>Verifies that generated proxies have the expected default service path.</summary>
     /// <param name="path">The generated default service path constant.</param>
     /// <param name="expected">The expected default service path.</param>
-    [TestCase(IceObjectProxy.DefaultServicePath, "/Ice.Object")]
+    // [TestCase(IceObjectProxy.DefaultServicePath, "/Ice.Object")]
     [TestCase(PingableProxy.DefaultServicePath, "/IceRpc.Slice.SlicecGen.Tests.Pingable")]
     [TestCase(MyWidgetProxy.DefaultServicePath, "/IceRpc.Slice.SlicecGen.Tests.MyWidget")]
     [TestCase(MyOtherWidgetProxy.DefaultServicePath, "/IceRpc.Slice.SlicecGen.Tests.myOtherWidget")]

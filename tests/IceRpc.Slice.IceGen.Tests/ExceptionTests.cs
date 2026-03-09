@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc.
 
+using IceRpc.Ice;
 using IceRpc.Features;
 using IceRpc.Tests.Common;
 using NUnit.Framework;
@@ -141,7 +142,7 @@ public sealed partial class ExceptionTests
         Assert.That(exception.Message, Is.EqualTo("MyException: i=5, j=6"));
     }
 
-    [SliceService]
+    [IceService]
     private sealed partial class SliceExceptionOperationsService : ISliceExceptionOperationsService
     {
         private readonly Exception _exception;

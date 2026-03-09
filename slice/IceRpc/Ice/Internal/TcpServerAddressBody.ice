@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc.
 
-module IceRpc::Slice::Internal
+module IceRpc::Ice::Internal
 {
-    /// Represents the body of a tcp or ssl server address in an ice proxy.
+    /// Represents the body of a tcp or ssl server address in an Ice proxy.
     ["cs:internal"]
     ["cs:readonly"]
     struct TcpServerAddressBody
