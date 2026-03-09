@@ -11,7 +11,7 @@ namespace IceRpc.Ice;
 /// <summary>Provides extension methods for <see cref="SliceEncoder" /> to encode service addresses.</summary>
 public static class ServiceAddressIceEncoderExtensions
 {
-    /// <summary>The default timeout value for tcp/ssl server addresses with Slice1.</summary>
+    /// <summary>The default timeout value for tcp/ssl server addresses encoded with the Ice encoding.</summary>
     internal const int DefaultTcpTimeout = 60_000; // 60s
 
     internal const string OpaqueName = "opaque";
@@ -23,74 +23,61 @@ public static class ServiceAddressIceEncoderExtensions
     /// <param name="value">The value to encode.</param>
     public static void EncodeServiceAddress(this ref SliceEncoder encoder, ServiceAddress value)
     {
-        if (encoder.Encoding == SliceEncoding.Slice1)
+        if (value.Protocol is not Protocol protocol)
         {
-            if (value.Protocol is not Protocol protocol)
+            throw new NotSupportedException("Cannot encode a relative service address with the Ice encoding.");
+        }
+
+        // With the Ice encoding, a non-null proxy/service address is encoded as:
+        // - identity, fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
+        // - a sequence of server addresses (can be empty)
+        // - an adapter ID string present only when the sequence of server addresses is empty
+
+        var identity = Identity.Parse(value.Path);
+        if (identity.Name.Length == 0)
+        {
+            throw new ArgumentException(
+                "Cannot encode a non-null service address with a null Ice identity.",
+                nameof(value));
+        }
+        identity.Encode(ref encoder);
+
+        encoder.EncodeFragmentAsFacet(value.Fragment);
+        encoder.EncodeInvocationMode(InvocationMode.Twoway);
+        encoder.EncodeBool(false);               // Secure
+        encoder.EncodeUInt8(protocol.ByteValue); // Protocol Major
+        encoder.EncodeUInt8(0);                  // Protocol Minor
+        encoder.EncodeUInt8(1);                  // Encoding Major
+        encoder.EncodeUInt8(1);                  // Encoding Minor
+
+        if (value.ServerAddress is ServerAddress serverAddress)
+        {
+            encoder.EncodeSize(1 + value.AltServerAddresses.Count); // server address count
+            encoder.EncodeServerAddress(serverAddress);
+            foreach (ServerAddress altServer in value.AltServerAddresses)
             {
-                throw new NotSupportedException("Cannot encode a relative service address with Slice1.");
-            }
-
-            // With Slice1, a non-null proxy/service address is encoded as:
-            // - identity, fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
-            // - a sequence of server addresses (can be empty)
-            // - an adapter ID string present only when the sequence of server addresses is empty
-
-            var identity = Identity.Parse(value.Path);
-            if (identity.Name.Length == 0)
-            {
-                throw new ArgumentException(
-                    "Cannot encode a non-null service address with a null Ice identity.",
-                    nameof(value));
-            }
-            identity.Encode(ref encoder);
-
-            encoder.EncodeFragmentAsFacet(value.Fragment);
-            encoder.EncodeInvocationMode(InvocationMode.Twoway);
-            encoder.EncodeBool(false);               // Secure
-            encoder.EncodeUInt8(protocol.ByteValue); // Protocol Major
-            encoder.EncodeUInt8(0);                  // Protocol Minor
-            encoder.EncodeUInt8(1);                  // Encoding Major
-            encoder.EncodeUInt8(1);                  // Encoding Minor
-
-            if (value.ServerAddress is ServerAddress serverAddress)
-            {
-                encoder.EncodeSize(1 + value.AltServerAddresses.Count); // server address count
-                encoder.EncodeServerAddress(serverAddress);
-                foreach (ServerAddress altServer in value.AltServerAddresses)
-                {
-                    encoder.EncodeServerAddress(altServer);
-                }
-            }
-            else
-            {
-                encoder.EncodeSize(0); // 0 server addresses
-                int maxCount = value.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
-
-                if (value.Params.Count > maxCount)
-                {
-                    throw new NotSupportedException(
-                        "Cannot encode a service address with a parameter other than adapter-id using Slice1.");
-                }
-                encoder.EncodeString(adapterId ?? "");
+                encoder.EncodeServerAddress(altServer);
             }
         }
         else
         {
-            encoder.EncodeString(value.ToString()); // a URI or an absolute path
+            encoder.EncodeSize(0); // 0 server addresses
+            int maxCount = value.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
+
+            if (value.Params.Count > maxCount)
+            {
+                throw new NotSupportedException(
+                    "Cannot encode a service address with a parameter other than adapter-id using the Ice encoding.");
+            }
+            encoder.EncodeString(adapterId ?? "");
         }
     }
 
-    /// <summary>Encodes a nullable service address (Slice1 only).</summary>
+    /// <summary>Encodes a nullable service address.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The service address to encode, or <see langword="null" />.</param>
     public static void EncodeNullableServiceAddress(this ref SliceEncoder encoder, ServiceAddress? value)
     {
-        if (encoder.Encoding != SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException(
-                "Encoding a nullable service address without a bit sequence is only supported with Slice1.");
-        }
-
         if (value is not null)
         {
             encoder.EncodeServiceAddress(value);
@@ -101,7 +88,7 @@ public static class ServiceAddressIceEncoderExtensions
         }
     }
 
-    /// <summary>Encodes a server address in a nested encapsulation (Slice1 only).</summary>
+    /// <summary>Encodes a server address in a nested encapsulation.</summary>
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="serverAddress">The server address to encode.</param>
     private static void EncodeServerAddress(this ref SliceEncoder encoder, ServerAddress serverAddress)
@@ -109,7 +96,7 @@ public static class ServiceAddressIceEncoderExtensions
         // If the server address does not specify a transport, we default to TCP. We can't encode "default".
         string transport = serverAddress.Transport ?? TcpName;
 
-        // The Slice1 encoding of ice server addresses is transport-specific, and hard-coded here.
+        // The Ice encoding of ice server addresses is transport-specific, and hard-coded here.
 
         if (serverAddress.Protocol == Protocol.Ice && transport == OpaqueName)
         {
@@ -161,10 +148,9 @@ public static class ServiceAddressIceEncoderExtensions
         }
     }
 
-    /// <summary>Encodes the body of a tcp or ssl server address using Slice1.</summary>
+    /// <summary>Encodes the body of a tcp or ssl server address.</summary>
     private static void EncodeTcpServerAddressBody(this ref SliceEncoder encoder, ServerAddress serverAddress)
     {
-        Debug.Assert(encoder.Encoding == SliceEncoding.Slice1);
         Debug.Assert(serverAddress.Protocol == Protocol.Ice);
 
         new TcpServerAddressBody(
@@ -176,7 +162,7 @@ public static class ServiceAddressIceEncoderExtensions
             compress: serverAddress.Params.ContainsKey("z")).Encode(ref encoder);
     }
 
-    /// <summary>Parses the params of an opaque server address (Slice1 only).</summary>
+    /// <summary>Parses the params of an opaque server address.</summary>
     private static (short TransportCode, byte EncodingMajor, byte EncodingMinor, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
        this ServerAddress serverAddress)
     {

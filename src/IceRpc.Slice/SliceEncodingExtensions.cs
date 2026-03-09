@@ -10,7 +10,7 @@ namespace IceRpc.Slice;
 public static class SliceEncodingExtensions
 {
     // 4 = varuint62 encoding of the size (1)
-    // 252 = varint32 encoding of the Slice2 tag end marker (-1)
+    // 252 = varint32 encoding of the tag end marker (-1)
     private static readonly ReadOnlySequence<byte> _emptyStructPayload = new(new byte[] { 4, 252 });
 
     /// <summary>Creates the payload of an empty struct.</summary>

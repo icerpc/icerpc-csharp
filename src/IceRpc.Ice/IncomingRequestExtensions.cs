@@ -101,7 +101,6 @@ public static class IncomingRequestExtensions
     /// <param name="decodeArgs">A function that decodes the arguments from the request payload.</param>
     /// <param name="method">The user-provided implementation of the operation.</param>
     /// <param name="encodeReturnValue">A function that encodes the return value into a PipeReader.</param>
-    /// <param name="encodeReturnValueStream">A function that encodes the stream portion of the return value.</param>
     /// <param name="inExceptionSpecification">A function that returns <see langword="true" /> when the provided Slice
     /// exception conforms to the exception specification; otherwise, <see langword="false" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
@@ -111,7 +110,6 @@ public static class IncomingRequestExtensions
         Func<IncomingRequest, CancellationToken, ValueTask<TArgs>> decodeArgs,
         Func<TArgs, IFeatureCollection, CancellationToken, ValueTask<TReturnValue>> method,
         Func<TReturnValue, IceEncodeOptions?, PipeReader> encodeReturnValue,
-        Func<TReturnValue, IceEncodeOptions?, PipeReader>? encodeReturnValueStream = null,
         Func<SliceException, bool>? inExceptionSpecification = null,
         CancellationToken cancellationToken = default)
     {
@@ -122,8 +120,6 @@ public static class IncomingRequestExtensions
             return new OutgoingResponse(request)
             {
                 Payload = encodeReturnValue(returnValue, request.Features.Get<IIceFeature>()?.EncodeOptions),
-                PayloadContinuation =
-                    encodeReturnValueStream?.Invoke(returnValue, request.Features.Get<IIceFeature>()?.EncodeOptions)
             };
         }
         catch (SliceException sliceException) when (inExceptionSpecification?.Invoke(sliceException) ?? false)

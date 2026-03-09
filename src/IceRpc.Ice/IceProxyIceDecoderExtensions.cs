@@ -7,7 +7,7 @@ namespace IceRpc.Ice;
 /// <summary>Provides extension methods for <see cref="SliceDecoder" /> to decode proxies.</summary>
 public static class IceProxyIceDecoderExtensions
 {
-    /// <summary>Decodes a nullable proxy struct (Slice1 only).</summary>
+    /// <summary>Decodes a nullable proxy struct.</summary>
     /// <typeparam name="TProxy">The type of the proxy struct to decode.</typeparam>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded proxy, or <see langword="null" />.</returns>
@@ -20,10 +20,8 @@ public static class IceProxyIceDecoderExtensions
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded proxy struct.</returns>
     public static TProxy DecodeProxy<TProxy>(this ref SliceDecoder decoder) where TProxy : struct, IIceProxy =>
-        decoder.Encoding == SliceEncoding.Slice1 ?
             decoder.DecodeNullableProxy<TProxy>() ??
-                throw new InvalidDataException("Decoded null for a non-nullable proxy.") :
-           CreateProxy<TProxy>(decoder.DecodeServiceAddress(), decoder.DecodingContext);
+                throw new InvalidDataException("Decoded null for a non-nullable proxy.");
 
     private static TProxy CreateProxy<TProxy>(ServiceAddress serviceAddress, object? decodingContext)
         where TProxy : struct, IIceProxy

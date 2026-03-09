@@ -17,59 +17,26 @@ public static class ServiceAddressIceDecoderExtensions
     /// <summary>Decodes a service address.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded service address.</returns>
-    public static ServiceAddress DecodeServiceAddress(this ref SliceDecoder decoder)
-    {
-        if (decoder.Encoding == SliceEncoding.Slice1)
-        {
-            return decoder.DecodeNullableServiceAddress() ??
-                throw new InvalidDataException("Decoded null for a non-nullable service address.");
-        }
-        else
-        {
-            string serviceAddressString = decoder.DecodeString();
-            try
-            {
-                if (serviceAddressString.StartsWith('/'))
-                {
-                    // relative service address
-                    return new ServiceAddress { Path = serviceAddressString };
-                }
-                else
-                {
-                    return new ServiceAddress(new Uri(serviceAddressString, UriKind.Absolute));
-                }
-            }
-            catch (Exception exception)
-            {
-                throw new InvalidDataException("Received an invalid service address.", exception);
-            }
-        }
-    }
+    public static ServiceAddress DecodeServiceAddress(this ref SliceDecoder decoder) =>
+        decoder.DecodeNullableServiceAddress() ??
+            throw new InvalidDataException("Decoded null for a non-nullable service address.");
 
-    /// <summary>Decodes a nullable service address (Slice1 only).</summary>
+    /// <summary>Decodes a nullable service address.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <returns>The decoded service address, or <see langword="null" />.</returns>
     public static ServiceAddress? DecodeNullableServiceAddress(this ref SliceDecoder decoder)
     {
-        if (decoder.Encoding != SliceEncoding.Slice1)
-        {
-            throw new InvalidOperationException(
-                $"Decoding a nullable service address with {decoder.Encoding} requires a bit sequence.");
-        }
-
         string path = new Identity(ref decoder).ToPath();
         return path != "/" ? decoder.DecodeServiceAddressCore(path) : null;
     }
 
-    /// <summary>Decodes a server address (Slice1 only).</summary>
+    /// <summary>Decodes a server address.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <param name="protocol">The protocol of this server address.</param>
     /// <returns>The server address decoded by this decoder.</returns>
     private static ServerAddress DecodeServerAddress(this ref SliceDecoder decoder, Protocol protocol)
     {
-        Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
-
-        // The Slice1 ice server addresses are transport-specific, with a transport-specific encoding.
+        // With the Ice encoding, the ice server addresses are transport-specific, with a transport-specific encoding.
 
         ServerAddress? serverAddress = null;
         var transportCode = (TransportCode)decoder.DecodeInt16();
@@ -77,7 +44,7 @@ public static class ServiceAddressIceDecoderExtensions
         int size = decoder.DecodeInt32();
         if (size < 6)
         {
-            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too small.");
+            throw new InvalidDataException($"The Ice encapsulation's size ({size}) is too small.");
         }
 
         // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
@@ -88,7 +55,7 @@ public static class ServiceAddressIceDecoderExtensions
 
         if (decoder.Remaining < size)
         {
-            throw new InvalidDataException($"The Slice1 encapsulation's size ({size}) is too big.");
+            throw new InvalidDataException($"The Ice encapsulation's size ({size}) is too big.");
         }
 
         if (encodingMajor == 1 && encodingMinor <= 1)
@@ -150,7 +117,7 @@ public static class ServiceAddressIceDecoderExtensions
             }
             else if (transportCode == TransportCode.Uri)
             {
-                // The server addresses of Slice1 encoded icerpc proxies only use TransportCode.Uri.
+                // The server addresses of an Ice-encoded icerpc proxies only use TransportCode.Uri.
                 serverAddress = new ServerAddress(new Uri(decoder.DecodeString()));
                 if (serverAddress.Value.Protocol != protocol)
                 {
@@ -179,13 +146,13 @@ public static class ServiceAddressIceDecoderExtensions
         return serverAddress.Value;
     }
 
-    /// <summary>Decodes a service address encoded with Slice1.</summary>
+    /// <summary>Decodes a service address encoded with the Ice encoding.</summary>
     /// <param name="decoder">The Slice decoder.</param>
     /// <param name="path">The decoded path.</param>
     /// <returns>The decoded service address.</returns>
     private static ServiceAddress DecodeServiceAddressCore(this ref SliceDecoder decoder, string path)
     {
-        // With Slice1, a service address is encoded as a kind of discriminated union with:
+        // With the Ice encoding, a service address is encoded as a kind of discriminated union with:
         // - Identity
         // - If Identity is not the null identity:
         //     - the fragment, invocation mode, secure, protocol major and minor, and the encoding major and minor
@@ -228,7 +195,7 @@ public static class ServiceAddressIceDecoderExtensions
             serverAddress = decoder.DecodeServerAddress(protocol);
             if (count >= 2)
             {
-                // A Slice1 encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
+                // An Ice-encoded server address consumes at least 8 bytes (2 bytes for the server address type and 6
                 // bytes for the encapsulation header). SizeOf ServerAddress is large but less than 8 * 8.
                 decoder.IncreaseCollectionAllocation(count * Unsafe.SizeOf<ServerAddress>());
 
@@ -266,11 +233,9 @@ public static class ServiceAddressIceDecoderExtensions
         }
     }
 
-    /// <summary>Decodes the body of a tcp or ssl server address encoded using Slice1.</summary>
+    /// <summary>Decodes the body of a tcp or ssl server address.</summary>
     private static ServerAddress DecodeTcpServerAddressBody(this ref SliceDecoder decoder, string transport)
     {
-        Debug.Assert(decoder.Encoding == SliceEncoding.Slice1);
-
         var body = new TcpServerAddressBody(ref decoder);
 
         if (Uri.CheckHostName(body.Host) == UriHostNameType.Unknown)

@@ -21,10 +21,6 @@ public interface ISliceFeature
     /// <value>The maximum collection allocation.</value>
     int MaxCollectionAllocation { get; }
 
-    /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
-    /// <value>The maximum depth.</value>
-    int MaxDepth { get; }
-
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
     /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
     /// variable-size elements.</summary>

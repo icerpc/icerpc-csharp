@@ -19,10 +19,6 @@ public sealed class SliceFeature : ISliceFeature
     /// <inheritdoc/>
     public int MaxCollectionAllocation { get; }
 
-    /// <summary>Gets the maximum depth when decoding a class recursively.</summary>
-    /// <value>The maximum depth. Defaults to <c>100</c>.</value>
-    public int MaxDepth { get; }
-
     /// <summary>Gets the maximum size of a Slice payload segment, in bytes. A Slice payload segment corresponds to the
     /// encoded arguments of an operation, the encoded return values of an operation, or a portion of a stream of
     /// variable-size elements.</summary>
@@ -34,7 +30,6 @@ public sealed class SliceFeature : ISliceFeature
     /// <param name="maxCollectionAllocation">The maximum collection allocation. Use <c>-1</c> to get the default value:
     /// 8 times <paramref name="maxSegmentSize" /> if set, otherwise the value provided by <paramref
     /// name="defaultFeature" />.</param>
-    /// <param name="maxDepth">The maximum depth. Use <c>-1</c> to get the default value.</param>
     /// <param name="maxSegmentSize">The maximum segment size. Use <c>-1</c> to get the default value.</param>
     /// <param name="baseProxy">The base proxy, used when decoding service addresses into proxies.</param>
     /// <param name="defaultFeature">A feature that provides default values for all parameters. <see langword="null" />
@@ -42,7 +37,6 @@ public sealed class SliceFeature : ISliceFeature
     public SliceFeature(
         SliceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
-        int maxDepth = -1,
         int maxSegmentSize = -1,
         IProxy? baseProxy = null,
         ISliceFeature? defaultFeature = null)
@@ -53,8 +47,6 @@ public sealed class SliceFeature : ISliceFeature
 
         MaxCollectionAllocation = maxCollectionAllocation >= 0 ? maxCollectionAllocation :
             (maxSegmentSize >= 0 ? 8 * maxSegmentSize : defaultFeature.MaxCollectionAllocation);
-
-        MaxDepth = maxDepth >= 0 ? maxDepth : defaultFeature.MaxDepth;
 
         MaxSegmentSize = maxSegmentSize >= 0 ? maxSegmentSize : defaultFeature.MaxSegmentSize;
 
@@ -68,8 +60,6 @@ public sealed class SliceFeature : ISliceFeature
         public SliceEncodeOptions? EncodeOptions => null;
 
         public int MaxCollectionAllocation => 8 * MaxSegmentSize;
-
-        public int MaxDepth => 100;
 
         public int MaxSegmentSize => 1024 * 1024;
     }

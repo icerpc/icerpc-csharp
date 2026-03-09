@@ -42,8 +42,7 @@ internal static class IncomingFrameExtensions
                 SliceEncoding.Slice2,
                 baseProxy,
                 feature.MaxCollectionAllocation,
-                activator: null,
-                feature.MaxDepth);
+                activator: null);
             T value = decodeFunc(ref decoder);
             decoder.SkipTagged(useTagEndMarker: false); // useTagEndMarker is Slice1-only
             decoder.CheckEndOfBuffer();

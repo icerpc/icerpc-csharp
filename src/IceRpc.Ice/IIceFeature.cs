@@ -8,9 +8,9 @@ namespace IceRpc.Ice;
 /// </summary>
 public interface IIceFeature
 {
-    /// <summary>Gets the activator to use when decoding Slice1-encoded classes and exceptions.</summary>
+    /// <summary>Gets the activator to use when decoding Ice-encoded classes and exceptions.</summary>
     /// <value>The activator. When null, the decoding of a request or response payload uses the activator injected by
-    /// the Slice generated code.</value>
+    /// the generated code.</value>
     IActivator? Activator { get; }
 
     /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
@@ -18,7 +18,7 @@ public interface IIceFeature
     IIceProxy? BaseProxy { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
-    /// <value>The Slice encode options. <see langword="null" /> is equivalent to <see cref="IceEncodeOptions.Default"
+    /// <value>The Ice encode options. <see langword="null" /> is equivalent to <see cref="IceEncodeOptions.Default"
     /// />.</value>
     IceEncodeOptions? EncodeOptions { get; }
 

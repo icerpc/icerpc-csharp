@@ -8,28 +8,9 @@ namespace IceRpc.Slice.CodeGen.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public sealed class InterfaceTests
 {
-    /// <summary>Verifies that service interfaces and proxy structs generated from Slice interfaces have the expected
-    /// Slice type ID.</summary>
-    /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
-    /// <param name="expected">The expected Slice type ID.</param>
-    // [TestCase(typeof(IceObjectProxy), "::Ice::Object")]
-    // [TestCase(typeof(IIceObjectService), "::Ice::Object")]
-    [TestCase(typeof(PingableProxy), "::IceRpc::Slice::CodeGen::Tests::Pingable")]
-    [TestCase(typeof(IPingableService), "::IceRpc::Slice::CodeGen::Tests::Pingable")]
-    [TestCase(typeof(MyWidgetProxy), "::IceRpc::Slice::CodeGen::Tests::MyWidget")]
-    [TestCase(typeof(IMyWidgetService), "::IceRpc::Slice::CodeGen::Tests::MyWidget")]
-    [TestCase(typeof(MyOtherWidgetProxy), "::IceRpc::Slice::CodeGen::Tests::myOtherWidget")]
-    [TestCase(typeof(IMyOtherWidgetService), "::IceRpc::Slice::CodeGen::Tests::myOtherWidget")]
-    public void Get_slice_type_id(Type type, string? expected)
-    {
-        string? typeId = type.GetSliceTypeId();
-        Assert.That(typeId, Is.EqualTo(expected));
-    }
-
     /// <summary>Verifies that generated service interfaces have the expected default service path.</summary>
     /// <param name="type">The <see cref="Type" /> of the generated type to test.</param>
     /// <param name="expected">The expected default service path.</param>
-    // [TestCase(typeof(IIceObjectService), "/Ice.Object")]
     [TestCase(typeof(IPingableService), "/IceRpc.Slice.CodeGen.Tests.Pingable")]
     [TestCase(typeof(IMyWidgetService), "/IceRpc.Slice.CodeGen.Tests.MyWidget")]
     [TestCase(typeof(IMyOtherWidgetService), "/IceRpc.Slice.CodeGen.Tests.myOtherWidget")]
@@ -42,7 +23,6 @@ public sealed class InterfaceTests
     /// <summary>Verifies that generated proxies have the expected default service path.</summary>
     /// <param name="path">The generated default service path constant.</param>
     /// <param name="expected">The expected default service path.</param>
-    // [TestCase(IceObjectProxy.DefaultServicePath, "/Ice.Object")]
     [TestCase(PingableProxy.DefaultServicePath, "/IceRpc.Slice.CodeGen.Tests.Pingable")]
     [TestCase(MyWidgetProxy.DefaultServicePath, "/IceRpc.Slice.CodeGen.Tests.MyWidget")]
     [TestCase(MyOtherWidgetProxy.DefaultServicePath, "/IceRpc.Slice.CodeGen.Tests.myOtherWidget")]
