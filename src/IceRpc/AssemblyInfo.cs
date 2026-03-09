@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("IceRpc.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Ice.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Slice.Tests")]
-[assembly: InternalsVisibleTo("IceRpc.Slice.SlicecGen.Tests")]
+[assembly: InternalsVisibleTo("IceRpc.Slice.CodeGen.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Conformance.Tests")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Common")]
 [assembly: InternalsVisibleTo("IceRpc.Quic.Tests")]
