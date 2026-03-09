@@ -908,7 +908,7 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     // ice protocol; others encode as UnknownException.
                     encoder.EncodeReplyStatus(response.StatusCode > StatusCode.Unauthorized ?
                         (ReplyStatus)response.StatusCode : ReplyStatus.UnknownException);
-                    encoder.EncodeString(response.ErrorMessage!);
+                    encoder.EncodeString($"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
                     break;
             }
         }
