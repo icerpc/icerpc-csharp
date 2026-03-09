@@ -67,22 +67,52 @@ public sealed class IceProtocolConnectionTests
     {
         get
         {
-            // These StatusCodes have a dedicated ReplyStatus and round-trip through the ice protocol.
-            yield return new TestCaseData(StatusCode.NotFound, StatusCode.NotFound);
-            yield return new TestCaseData(StatusCode.NotImplemented, StatusCode.NotImplemented);
-            yield return new TestCaseData(StatusCode.InvalidData, StatusCode.InvalidData);
-            yield return new TestCaseData(StatusCode.Unauthorized, StatusCode.Unauthorized);
+            // These StatusCodes encode as RequestFailedExceptionData; the decode rebuilds the message.
+            yield return new TestCaseData(
+                StatusCode.NotFound,
+                StatusCode.NotFound,
+                "The dispatch failed with status code NotFound while dispatching 'op' on '/foo'.");
+            yield return new TestCaseData(
+                StatusCode.NotImplemented,
+                StatusCode.NotImplemented,
+                "The dispatch failed with status code NotImplemented while dispatching 'op' on '/foo'.");
 
-            // InternalError encodes as ReplyStatus.UnknownException and decodes back to InternalError.
-            yield return new TestCaseData(StatusCode.InternalError, StatusCode.InternalError);
+            // These StatusCodes encode their ErrorMessage as a string and decode it back unchanged.
+            yield return new TestCaseData(
+                StatusCode.InvalidData,
+                StatusCode.InvalidData,
+                "The dispatch failed with status code InvalidData.");
+            yield return new TestCaseData(
+                StatusCode.Unauthorized,
+                StatusCode.Unauthorized,
+                "The dispatch failed with status code Unauthorized.");
+            yield return new TestCaseData(
+                StatusCode.InternalError,
+                StatusCode.InternalError,
+                "The dispatch failed with status code InternalError.");
 
-            // Well-known status codes without a dedicated ReplyStatus encode as UnknownException,
-            // which decodes back to InternalError.
-            yield return new TestCaseData(StatusCode.ApplicationError, StatusCode.InternalError);
-            yield return new TestCaseData(StatusCode.DeadlineExceeded, StatusCode.InternalError);
+            // Custom status codes that fit in a single byte round-trip correctly.
+            yield return new TestCaseData(
+                (StatusCode)42,
+                (StatusCode)42,
+                "The dispatch failed with status code 42.");
 
-            // Custom status codes outside the defined ReplyStatus range round-trip correctly.
-            yield return new TestCaseData((StatusCode)42, (StatusCode)42);
+            // Well-known status codes without a dedicated ReplyStatus encode as UnknownException
+            // with the original StatusCode preserved in the error message.
+            yield return new TestCaseData(
+                StatusCode.ApplicationError,
+                StatusCode.InternalError,
+                "The dispatch failed with status code ApplicationError. { Original StatusCode = ApplicationError }");
+            yield return new TestCaseData(
+                StatusCode.DeadlineExceeded,
+                StatusCode.InternalError,
+                "The dispatch failed with status code DeadlineExceeded. { Original StatusCode = DeadlineExceeded }");
+
+            // Custom status codes that don't fit in a single byte encode as UnknownException.
+            yield return new TestCaseData(
+                (StatusCode)1000,
+                StatusCode.InternalError,
+                "The dispatch failed with status code 1000. { Original StatusCode = 1000 }");
         }
     }
 
@@ -119,7 +149,8 @@ public sealed class IceProtocolConnectionTests
     [Test, TestCaseSource(nameof(StatusCodeRoundTripSource))]
     public async Task Response_reply_status_maps_to_expected_status_code(
         StatusCode dispatchStatusCode,
-        StatusCode expectedStatusCode)
+        StatusCode expectedStatusCode,
+        string expectedErrorMessage)
     {
         // Arrange
         var dispatcher = new InlineDispatcher((request, cancellationToken) =>
@@ -142,6 +173,7 @@ public sealed class IceProtocolConnectionTests
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
+        Assert.That(response.ErrorMessage, Is.EqualTo(expectedErrorMessage));
     }
 
     /// <summary>Verifies that an abortive server connection shutdown causes an invocation failure.</summary>

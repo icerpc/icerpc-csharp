@@ -904,11 +904,21 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     encoder.EncodeString(response.ErrorMessage!);
                     break;
                 default:
-                    // Custom status codes greater than Unauthorized round-trip through the
-                    // ice protocol; others encode as UnknownException.
-                    encoder.EncodeReplyStatus(response.StatusCode > StatusCode.Unauthorized ?
-                        (ReplyStatus)response.StatusCode : ReplyStatus.UnknownException);
-                    encoder.EncodeString($"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
+                    // Custom status codes that fit in a single byte round-trip through the
+                    // ice protocol; others encode as UnknownException with the original
+                    // StatusCode preserved in the error message.
+                    if (response.StatusCode > StatusCode.Unauthorized &&
+                        (ulong)response.StatusCode < 255)
+                    {
+                        encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
+                        encoder.EncodeString(response.ErrorMessage!);
+                    }
+                    else
+                    {
+                        encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
+                        encoder.EncodeString(
+                            $"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
+                    }
                     break;
             }
         }
