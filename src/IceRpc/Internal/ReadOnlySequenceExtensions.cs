@@ -15,9 +15,7 @@ internal static class ReadOnlySequenceExtensions
     /// <returns>The decoded value.</returns>
     /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc" /> finds invalid data.
     /// </exception>
-    internal static T DecodeIceBuffer<T>(
-        this ReadOnlySequence<byte> buffer,
-        DecodeFunc<T> decodeFunc)
+    internal static T DecodeIceBuffer<T>(this ReadOnlySequence<byte> buffer, DecodeFunc<T> decodeFunc)
     {
         var decoder = new SliceDecoder(buffer, SliceEncoding.Slice1);
         T result = decodeFunc(ref decoder);
@@ -32,9 +30,7 @@ internal static class ReadOnlySequenceExtensions
     /// <returns>The decoded value.</returns>
     /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc" /> finds invalid data.
     /// </exception>
-    internal static T DecodeSliceBuffer<T>(
-        this ReadOnlySequence<byte> buffer,
-        DecodeFunc<T> decodeFunc)
+    internal static T DecodeSliceBuffer<T>(this ReadOnlySequence<byte> buffer, DecodeFunc<T> decodeFunc)
     {
         var decoder = new SliceDecoder(buffer, SliceEncoding.Slice2);
         T result = decodeFunc(ref decoder);
