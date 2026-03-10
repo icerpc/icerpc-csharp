@@ -3,18 +3,28 @@
 [cs::namespace("ZeroC.Slice.Compiler")]
 module Compiler
 
-/// A unique identifier for a Slice entity, typically a fully-scoped identifier.
+/// A unique identifier for a Slice entity. This is always a fully-scoped identifier.
 /// For example: 'MyOuterModule::MyInnerModule::MyInterface::MyOperation::MyParameter'.
 typealias EntityId = string
 
-/// A unique identifier for a Slice type or type alias, typically a fully-scoped identifier.
-/// For example: 'MyOuterModule::MyInnerModule::MyStruct'.
-/// A type ID can also refer to a built-in primitive type, such as 'int32' or 'string'.
-/// For anonymous types (sequences, dictionaries, results), the type ID is a normalized name of the anonymous type,
-/// such as 'Sequence<int32>' or 'Dictionary<string, MyModule::MyStruct>'. Its scope is the file in which it is defined,
-/// unlike the other type IDs which have global scope.
-/// Note: a type ID is an entity ID, but not vice versa.
+/// A unique identifier for a Slice type or type alias.
+///
+/// For user-defined types, this is the type's fully-scoped identifier. For example: 'OuterModule::InnerModule::Foo'.
+/// For built-in primitive types, this is just the primitive's keyword; for example: 'int32' or 'string'.
+/// For anonymous types (sequences, dictionaries, and results), this is a numeric ID corresponding to the type's index
+/// in {@link SliceFile::contents} (indices start from '0'). These IDs are scoped to the file they're defined in.
 typealias TypeId = string
+
+struct Attribute {
+    directive: string
+    args: Sequence<string>
+}
+
+struct TypeRef {
+    typeId: TypeId
+    isOptional: bool
+    typeAttributes: Sequence<Attribute>
+}
 
 struct EntityInfo {
     identifier: string
@@ -36,9 +46,7 @@ struct Struct {
 struct Field {
     entityInfo: EntityInfo
     \tag: varint32?
-    typeId: TypeId
-    typeIsOptional: bool
-    typeAttributes: Sequence<Attribute>
+    dataType: TypeRef
 }
 
 struct Interface {
@@ -67,7 +75,7 @@ struct Enum {
 struct Enumerator {
     entityInfo: EntityInfo
     value: Discriminant
-    fields: Sequence<Field>?
+    fields: Sequence<Field>
 }
 
 struct Discriminant {
@@ -81,31 +89,19 @@ struct CustomType {
 
 struct TypeAlias {
     entityInfo: EntityInfo
-    underlying: TypeId
-    underlyingAttributes: Sequence<Attribute>
+    underlyingType: TypeRef // Can never be optional.
 }
 
 struct SequenceType {
-    /// The type ID of the sequence type. Starts with 'Sequence<' and ends with '>'.
-    typeId: TypeId
-    elementType: TypeId
+    elementType: TypeRef
 }
 
 struct DictionaryType {
-    /// The type ID of the dictionary type. Starts with 'Dictionary<' and ends with '>'.
-    typeId: TypeId
-    keyType: TypeId
-    valueType: TypeId
+    keyType: TypeRef // Can never be optional.
+    valueType: TypeRef
 }
 
 struct ResultType {
-    /// The type ID of the result type. Starts with 'Result<' and ends with '>'.
-    typeId: TypeId
-    successType: TypeId
-    failureType: TypeId
-}
-
-struct Attribute {
-    directive: string
-    args: Sequence<string>
+    successType: TypeRef
+    failureType: TypeRef
 }
