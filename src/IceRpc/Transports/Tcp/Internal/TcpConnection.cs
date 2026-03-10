@@ -324,12 +324,14 @@ internal class TcpClientConnection : TcpConnection
     private protected override async Task<TransportConnectionInformation> ConnectAsyncCore(
         CancellationToken cancellationToken)
     {
+        bool isConnected = false;
         try
         {
             Debug.Assert(Socket is not null);
 
             // Connect to the peer.
             await Socket.ConnectAsync(_addr, cancellationToken).ConfigureAwait(false);
+            isConnected = true;
 
             if (_authenticationOptions is not null)
             {
@@ -339,29 +341,26 @@ internal class TcpClientConnection : TcpConnection
                     _authenticationOptions,
                     cancellationToken).ConfigureAwait(false);
             }
-        }
-        catch (IOException exception)
-        {
-            throw exception.ToIceRpcException();
-        }
-        catch (SocketException exception)
-        {
-            throw exception.ToIceRpcException();
-        }
 
-        try
-        {
             return new TransportConnectionInformation(
                 localNetworkAddress: Socket.LocalEndPoint!,
                 remoteNetworkAddress: Socket.RemoteEndPoint!,
                 _sslStream?.RemoteCertificate);
         }
-        catch (SocketException exception)
+        catch (IOException exception)
+        {
+            throw exception.ToIceRpcException();
+        }
+        catch (SocketException exception) when (isConnected)
         {
             // This can happen if the peer closes the connection immediately after accepting it, which can
             // cause the endpoint information to be unavailable. Any SocketException at this point means the
             // connection is no longer usable.
             throw new IceRpcException(IceRpcError.ConnectionAborted, exception);
+        }
+        catch (SocketException exception)
+        {
+            throw exception.ToIceRpcException();
         }
     }
 }
