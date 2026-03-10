@@ -1335,9 +1335,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                _goAwayFrame = SliceEncoding.Slice2.DecodeBuffer(
-                    readResult.Buffer,
-                    (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
+                _goAwayFrame =
+                    readResult.Buffer.DecodeSliceBuffer((ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
             }
             finally
             {
@@ -1410,9 +1409,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         try
         {
-            IceRpcSettings settings = SliceEncoding.Slice2.DecodeBuffer(
-                readResult.Buffer,
-                (ref SliceDecoder decoder) => new IceRpcSettings(ref decoder));
+            IceRpcSettings settings =
+                readResult.Buffer.DecodeSliceBuffer((ref SliceDecoder decoder) => new IceRpcSettings(ref decoder));
 
             if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
             {

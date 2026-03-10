@@ -21,8 +21,7 @@ public static class FieldsExtensions
         this IDictionary<TKey, ReadOnlySequence<byte>> fields,
         TKey key,
         DecodeFunc<TValue> decodeFunc) where TKey : struct =>
-        fields.TryGetValue(key, out ReadOnlySequence<byte> value) ?
-            SliceEncoding.Slice2.DecodeBuffer(value, decodeFunc) : default;
+        fields.TryGetValue(key, out ReadOnlySequence<byte> value) ? value.DecodeSliceBuffer(decodeFunc) : default;
 
     /// <summary>Sets an entry in the outgoing fields dictionary and returns the fields dictionary. If
     /// <paramref name="fields" /> is read-only, a copy is created, modified and then returned.</summary>
