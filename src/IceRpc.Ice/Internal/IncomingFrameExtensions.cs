@@ -26,9 +26,9 @@ internal static class IncomingFrameExtensions
         IActivator? activator,
         CancellationToken cancellationToken)
     {
-        return frame.Payload.TryReadSegment(SliceEncoding.Slice1, feature.MaxSegmentSize, out ReadResult readResult) ?
-            new(DecodeSegment(readResult)) :
-            PerformDecodeAsync();
+        return frame.Payload.TryReadIceSegment(feature.MaxSegmentSize, out ReadResult readResult) ?
+                new(DecodeSegment(readResult)) :
+                PerformDecodeAsync();
 
         // All the logic is in this local function.
         T DecodeSegment(ReadResult readResult)
@@ -55,8 +55,7 @@ internal static class IncomingFrameExtensions
         }
 
         async ValueTask<T> PerformDecodeAsync() =>
-            DecodeSegment(await frame.Payload.ReadSegmentAsync(
-                SliceEncoding.Slice1,
+            DecodeSegment(await frame.Payload.ReadIceSegmentAsync(
                 feature.MaxSegmentSize,
                 cancellationToken).ConfigureAwait(false));
     }
@@ -70,7 +69,7 @@ internal static class IncomingFrameExtensions
         IIceFeature feature,
         CancellationToken cancellationToken)
     {
-        if (frame.Payload.TryReadSegment(SliceEncoding.Slice1, feature.MaxSegmentSize, out ReadResult readResult))
+        if (frame.Payload.TryReadIceSegment(feature.MaxSegmentSize, out ReadResult readResult))
         {
             DecodeSegment(readResult);
             return default;
@@ -99,8 +98,7 @@ internal static class IncomingFrameExtensions
         }
 
         async ValueTask PerformDecodeAsync() =>
-            DecodeSegment(await frame.Payload.ReadSegmentAsync(
-                SliceEncoding.Slice1,
+            DecodeSegment(await frame.Payload.ReadIceSegmentAsync(
                 feature.MaxSegmentSize,
                 cancellationToken).ConfigureAwait(false));
     }

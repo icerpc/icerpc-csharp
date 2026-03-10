@@ -16,7 +16,7 @@ public class PipeReaderTests
     {
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 0 }); // empty segment
-        ReadResult readResult = await pipe.Reader.ReadSegmentAsync(SliceEncoding.Slice2, maxSize: 100, default);
+        ReadResult readResult = await pipe.Reader.ReadSliceSegmentAsync(maxSize: 100, default);
 
         pipe.Reader.AdvanceTo(readResult.Buffer.End);
 
@@ -30,7 +30,7 @@ public class PipeReaderTests
     {
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 21 }); // first byte of size "5" encoded on 2 bytes
-        Task<ReadResult> task = pipe.Reader.ReadSegmentAsync(SliceEncoding.Slice2, maxSize: 100, default).AsTask();
+        Task<ReadResult> task = pipe.Reader.ReadSliceSegmentAsync(maxSize: 100, default).AsTask();
         await pipe.Writer.WriteAsync(new byte[] { 0, 1, 2, 3 }); // remaining byte of size + 3 bytes of payload
         await Task.Yield(); // give a chance to task to run
         await pipe.Writer.WriteAsync(new byte[] { 4, 5, 123 }); // remaining bytes of payload + one extra byte
@@ -49,7 +49,7 @@ public class PipeReaderTests
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xAA, 0xBB, 0xCC })); // invalid size
 
         Assert.That(
-            async () => await pipeReader.ReadSegmentAsync(SliceEncoding.Slice2, maxSize: 100, default),
+            async () => await pipeReader.ReadSliceSegmentAsync(maxSize: 100, default),
             Throws.TypeOf<InvalidDataException>());
     }
 
@@ -61,7 +61,7 @@ public class PipeReaderTests
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4 }));
 
         Assert.That(
-            async () => await pipeReader.ReadSegmentAsync(SliceEncoding.Slice2, maxSize: 100, default),
+            async () => await pipeReader.ReadSliceSegmentAsync(maxSize: 100, default),
             Throws.TypeOf<InvalidDataException>());
     }
 
@@ -71,7 +71,7 @@ public class PipeReaderTests
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 20, 1, 2, 3, 4 });
 
-        bool success = pipe.Reader.TryReadSegment(SliceEncoding.Slice2, maxSize: 100, out ReadResult _);
+        bool success = pipe.Reader.TryReadSliceSegment(maxSize: 100, out ReadResult _);
 
         Assert.That(success, Is.False);
         pipe.Reader.Complete();
@@ -84,7 +84,7 @@ public class PipeReaderTests
         var pipe = new Pipe();
         await pipe.Writer.WriteAsync(new byte[] { 20, 1, 2, 3, 4, 5 });
 
-        bool success = pipe.Reader.TryReadSegment(SliceEncoding.Slice2, maxSize: 100, out ReadResult readResult);
+        bool success = pipe.Reader.TryReadSliceSegment(maxSize: 100, out ReadResult readResult);
 
         Assert.That(success, Is.True);
         Assert.That(readResult.IsCompleted, Is.False);
@@ -99,7 +99,7 @@ public class PipeReaderTests
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 0xAA, 0xBB, 0xCC })); // invalid size
 
         Assert.That(
-            () => _ = pipeReader.TryReadSegment(SliceEncoding.Slice2, maxSize: 100, out ReadResult readResult),
+            () => _ = pipeReader.TryReadSliceSegment(maxSize: 100, out ReadResult readResult),
             Throws.TypeOf<InvalidDataException>());
     }
 
@@ -110,7 +110,7 @@ public class PipeReaderTests
         var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(new byte[] { 20, 1, 2, 3, 4 }));
 
         Assert.That(
-            () => _ = pipeReader.TryReadSegment(SliceEncoding.Slice2, maxSize: 100, out ReadResult readResult),
+            () => _ = pipeReader.TryReadSliceSegment(maxSize: 100, out ReadResult readResult),
             Throws.TypeOf<InvalidDataException>());
     }
 }

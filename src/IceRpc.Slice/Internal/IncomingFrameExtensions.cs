@@ -24,7 +24,7 @@ internal static class IncomingFrameExtensions
         DecodeFunc<T> decodeFunc,
         CancellationToken cancellationToken)
     {
-        return frame.Payload.TryReadSegment(SliceEncoding.Slice2, feature.MaxSegmentSize, out ReadResult readResult) ?
+        return frame.Payload.TryReadSliceSegment(feature.MaxSegmentSize, out ReadResult readResult) ?
             new(DecodeSegment(readResult)) :
             PerformDecodeAsync();
 
@@ -52,8 +52,7 @@ internal static class IncomingFrameExtensions
         }
 
         async ValueTask<T> PerformDecodeAsync() =>
-            DecodeSegment(await frame.Payload.ReadSegmentAsync(
-                SliceEncoding.Slice2,
+            DecodeSegment(await frame.Payload.ReadSliceSegmentAsync(
                 feature.MaxSegmentSize,
                 cancellationToken).ConfigureAwait(false));
     }
@@ -67,7 +66,7 @@ internal static class IncomingFrameExtensions
         ISliceFeature feature,
         CancellationToken cancellationToken)
     {
-        if (frame.Payload.TryReadSegment(SliceEncoding.Slice2, feature.MaxSegmentSize, out ReadResult readResult))
+        if (frame.Payload.TryReadSliceSegment(feature.MaxSegmentSize, out ReadResult readResult))
         {
             DecodeSegment(readResult);
             return default;
@@ -96,8 +95,7 @@ internal static class IncomingFrameExtensions
         }
 
         async ValueTask PerformDecodeAsync() =>
-            DecodeSegment(await frame.Payload.ReadSegmentAsync(
-                SliceEncoding.Slice2,
+            DecodeSegment(await frame.Payload.ReadSliceSegmentAsync(
                 feature.MaxSegmentSize,
                 cancellationToken).ConfigureAwait(false));
     }

@@ -29,14 +29,18 @@ public class RequestContextInterceptor : IInvoker
             }
             else
             {
+                SliceEncoding encoding = request.Protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2;
+
                 request.Fields = request.Fields.With(
                     RequestFieldKey.Context,
-                    context,
-                    (ref SliceEncoder encoder, IDictionary<string, string> dictionary) => encoder.EncodeDictionary(
-                        dictionary,
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)),
-                    request.Protocol == Protocol.Ice ? SliceEncoding.Slice1 : SliceEncoding.Slice2);
+                    new OutgoingFieldValue(bufferWriter =>
+                    {
+                        var encoder = new SliceEncoder(bufferWriter, encoding);
+                        encoder.EncodeDictionary(
+                            context,
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                    }));
             }
         }
         return _next.InvokeAsync(request, cancellationToken);

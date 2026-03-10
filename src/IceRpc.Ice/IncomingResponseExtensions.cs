@@ -106,8 +106,7 @@ public static class IncomingResponseExtensions
     {
         Debug.Assert(response.StatusCode == StatusCode.ApplicationError);
 
-        ReadResult readResult = await response.Payload.ReadSegmentAsync(
-            SliceEncoding.Slice1,
+        ReadResult readResult = await response.Payload.ReadIceSegmentAsync(
             feature.MaxSegmentSize,
             cancellationToken).ConfigureAwait(false);
 

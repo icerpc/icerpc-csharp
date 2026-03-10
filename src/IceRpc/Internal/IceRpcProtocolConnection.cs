@@ -479,8 +479,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
                 try
                 {
-                    ReadResult readResult = await streamInput.ReadSegmentAsync(
-                        SliceEncoding.Slice2,
+                    ReadResult readResult = await streamInput.ReadSliceSegmentAsync(
                         _maxLocalHeaderSize,
                         invocationCts.Token).ConfigureAwait(false);
 
@@ -1026,8 +1025,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         {
             try
             {
-                ReadResult readResult = await streamInput.ReadSegmentAsync(
-                    SliceEncoding.Slice2,
+                ReadResult readResult = await streamInput.ReadSliceSegmentAsync(
                     _maxLocalHeaderSize,
                     cancellationToken).ConfigureAwait(false);
 
@@ -1328,8 +1326,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
             await ReceiveControlFrameHeaderAsync(IceRpcControlFrameType.GoAway, cancellationToken)
                 .ConfigureAwait(false);
 
-            ReadResult readResult = await remoteInput.ReadSegmentAsync(
-                SliceEncoding.Slice2,
+            ReadResult readResult = await remoteInput.ReadSliceSegmentAsync(
                 MaxGoAwayFrameBodySize,
                 cancellationToken).ConfigureAwait(false);
 
@@ -1338,9 +1335,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
             try
             {
-                _goAwayFrame = SliceEncoding.Slice2.DecodeBuffer(
-                    readResult.Buffer,
-                    (ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
+                _goAwayFrame =
+                    readResult.Buffer.DecodeSliceBuffer((ref SliceDecoder decoder) => new IceRpcGoAway(ref decoder));
             }
             finally
             {
@@ -1404,8 +1400,7 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
         // We are still in the single-threaded initialization at this point.
 
         PipeReader input = _remoteControlStream!.Input;
-        ReadResult readResult = await input.ReadSegmentAsync(
-            SliceEncoding.Slice2,
+        ReadResult readResult = await input.ReadSliceSegmentAsync(
             MaxSettingsFrameBodySize,
             cancellationToken).ConfigureAwait(false);
 
@@ -1414,9 +1409,8 @@ internal sealed class IceRpcProtocolConnection : IProtocolConnection
 
         try
         {
-            IceRpcSettings settings = SliceEncoding.Slice2.DecodeBuffer(
-                readResult.Buffer,
-                (ref SliceDecoder decoder) => new IceRpcSettings(ref decoder));
+            IceRpcSettings settings =
+                readResult.Buffer.DecodeSliceBuffer((ref SliceDecoder decoder) => new IceRpcSettings(ref decoder));
 
             if (settings.Value.TryGetValue(IceRpcSettingKey.MaxHeaderSize, out ulong value))
             {
