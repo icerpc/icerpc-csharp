@@ -94,8 +94,8 @@ public sealed class IceProtocolConnectionTests
             // Custom status codes that fit in a single byte round-trip correctly.
             yield return new TestCaseData(
                 (StatusCode)42,
-                (StatusCode)42,
-                "The dispatch failed with status code 42.");
+                StatusCode.InternalError,
+                "The dispatch failed with status code 42. { Original StatusCode = 42 }");
 
             // Well-known status codes without a dedicated ReplyStatus encode as UnknownException
             // with the original StatusCode preserved in the error message.

@@ -760,17 +760,16 @@ internal sealed class IceProtocolConnection : IProtocolConnection
         }
         else
         {
+            // An ice system exception.
+
             StatusCode statusCode = replyStatus switch
             {
                 ReplyStatus.ObjectNotExist => StatusCode.NotFound,
                 ReplyStatus.FacetNotExist => StatusCode.NotFound,
                 ReplyStatus.OperationNotExist => StatusCode.NotImplemented,
-                ReplyStatus.UnknownLocalException => StatusCode.InternalError,
-                ReplyStatus.UnknownUserException => StatusCode.InternalError,
-                ReplyStatus.UnknownException => StatusCode.InternalError,
                 ReplyStatus.InvalidData => StatusCode.InvalidData,
                 ReplyStatus.Unauthorized => StatusCode.Unauthorized,
-                _ => (StatusCode)replyStatus
+                _ => StatusCode.InternalError
             };
 
             var decoder = new SliceDecoder(buffer.Slice(1), SliceEncoding.Slice1);
@@ -904,21 +903,9 @@ internal sealed class IceProtocolConnection : IProtocolConnection
                     encoder.EncodeString(response.ErrorMessage!);
                     break;
                 default:
-                    // Custom status codes that fit in a single byte round-trip through the
-                    // ice protocol; others encode as UnknownException with the original
-                    // StatusCode preserved in the error message.
-                    if (response.StatusCode > StatusCode.Unauthorized &&
-                        (ulong)response.StatusCode < 255)
-                    {
-                        encoder.EncodeReplyStatus((ReplyStatus)response.StatusCode);
-                        encoder.EncodeString(response.ErrorMessage!);
-                    }
-                    else
-                    {
-                        encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
-                        encoder.EncodeString(
-                            $"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
-                    }
+                    encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
+                    encoder.EncodeString(
+                        $"{response.ErrorMessage} {{ Original StatusCode = {response.StatusCode} }}");
                     break;
             }
         }
