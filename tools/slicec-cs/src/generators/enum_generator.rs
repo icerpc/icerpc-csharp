@@ -136,7 +136,7 @@ fn enumerators_as_nested_records(enum_def: &Enum) -> CodeBlock {
         // We pass "" as the namespace to force fully qualified type names (global::...) for all
         // user-defined types. This avoids CS8910 errors where the nested record class name shadows
         // the field type name (e.g., `record class Enum(Enum V)` vs `record class Enum(global::...Enum V)`).
-        for field in &enumerator.fields() {
+        for field in enumerator.fields() {
             let type_string = field.data_type().field_type_string("");
             builder.add_field(
                 &field.field_name(),
