@@ -63,14 +63,14 @@ public static class IncomingRequestExtensions
     /// <typeparam name="T">The type of the request parameters.</typeparam>
     /// <param name="request">The incoming request.</param>
     /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-    /// <param name="defaultActivator">The activator to use when the activator provided by the request's <see
-    /// cref="IIceFeature" /> is <see langword="null" />.</param>
+    /// <param name="defaultActivator">The activator to use when the activator provided by the request's
+    /// <see cref="IIceFeature" /> is <see langword="null" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The request arguments.</returns>
     public static ValueTask<T> DecodeArgsAsync<T>(
         this IncomingRequest request,
         DecodeFunc<T> decodeFunc,
-        IActivator? defaultActivator = null,
+        IActivator defaultActivator,
         CancellationToken cancellationToken = default)
     {
         IIceFeature feature = request.Features.Get<IIceFeature>() ?? IceFeature.Default;

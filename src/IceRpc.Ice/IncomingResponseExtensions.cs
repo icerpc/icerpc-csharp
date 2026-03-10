@@ -31,11 +31,11 @@ public static class IncomingResponseExtensions
         OutgoingRequest request,
         IIceProxy sender,
         DecodeFunc<T> decodeReturnValue,
-        IActivator? defaultActivator = null,
+        IActivator defaultActivator,
         CancellationToken cancellationToken = default)
     {
         IIceFeature feature = request.Features.Get<IIceFeature>() ?? IceFeature.Default;
-        IActivator? activator = feature.Activator ?? defaultActivator;
+        IActivator activator = feature.Activator ?? defaultActivator;
 
         return response.StatusCode switch
         {
@@ -76,11 +76,11 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         OutgoingRequest request,
         IIceProxy sender,
-        IActivator? defaultActivator = null,
+        IActivator defaultActivator,
         CancellationToken cancellationToken = default)
     {
         IIceFeature feature = request.Features.Get<IIceFeature>() ?? IceFeature.Default;
-        IActivator? activator = defaultActivator ?? feature.Activator;
+        IActivator activator = feature.Activator ?? defaultActivator;
 
         return response.StatusCode switch
         {
@@ -101,7 +101,7 @@ public static class IncomingResponseExtensions
         this IncomingResponse response,
         IIceFeature feature,
         IIceProxy sender,
-        IActivator? activator,
+        IActivator activator,
         CancellationToken cancellationToken)
     {
         Debug.Assert(response.StatusCode == StatusCode.ApplicationError);

@@ -11,7 +11,7 @@ This IceRpc.Ice NuGet package includes two .NET assemblies:
 - IceRpc.Ice.Generators.dll provides a [source generator] that you enable with the `[IceService]` attribute.
 
 > [!NOTE]
-> With IceRPC, you can use the `ice` and `icerpc` protocols to send requests and responses with payloads encoded
+> With IceRPC, you can use the `ice` and `icerpc` protocols to send requests and responses with payloads encoded in
 > the serialization format of your choice. You typically use Ice's IDL (Ice Slice) and its associated encoding (the Ice
 > encoding) with the `ice` protocol, to communicate with Ice-based applications. Nevertheless, this package is
 > protocol-agnostic, and allows you to use Ice Slice and the Ice encoding with the `icerpc` protocol as well.
@@ -94,7 +94,6 @@ internal partial class Chatbot : IGreeterService
 
 [api]: https://docs.icerpc.dev/api/csharp/api/IceRpc.Ice.html
 [docs]: TBD
-[IDL]: https://en.wikipedia.org/wiki/Interface_description_language
 [ice]: https://zeroc.com/ice
 [ice-tools]: https://www.nuget.org/packages/ZeroC.Ice.Slice.Tools
 [examples]: https://github.com/icerpc/icerpc-csharp/tree/main/examples

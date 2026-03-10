@@ -23,7 +23,7 @@ internal static class IncomingFrameExtensions
         IIceFeature feature,
         IIceProxy? baseProxy,
         DecodeFunc<T> decodeFunc,
-        IActivator? activator,
+        IActivator activator,
         CancellationToken cancellationToken)
     {
         return frame.Payload.TryReadIceSegment(feature.MaxSegmentSize, out ReadResult readResult) ?
