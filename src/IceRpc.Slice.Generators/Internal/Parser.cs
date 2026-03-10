@@ -195,6 +195,7 @@ internal sealed class Parser
 
             bool compressReturn = false;
             bool encodedReturn = false;
+            string[] exceptionSpecification = [];
             bool idempotent = false;
 
             foreach (KeyValuePair<string, TypedConstant> namedArgument in attribute.NamedArguments)
@@ -211,6 +212,16 @@ internal sealed class Parser
                         if (namedArgument.Value.Value is bool encodedReturnBool)
                         {
                             encodedReturn = encodedReturnBool;
+                        }
+                        break;
+                    case "ExceptionSpecification":
+                        if (namedArgument.Value.Values is ImmutableArray<TypedConstant> exceptionTypes)
+                        {
+                            exceptionSpecification = exceptionTypes
+                                .Select(et => et.Value)
+                                .OfType<INamedTypeSymbol>()
+                                .Select(GetFullName)
+                                .ToArray();
                         }
                         break;
                     case "Idempotent":
@@ -314,6 +325,7 @@ internal sealed class Parser
                     returnStream: streamReturn,
                     compressReturn: compressReturn,
                     encodedReturn: encodedReturn,
+                    exceptionSpecification: exceptionSpecification,
                     idempotent: idempotent));
         }
         return serviceMethods;
