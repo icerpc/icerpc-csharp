@@ -39,23 +39,23 @@
     <Project Path="tests/IceRpc.Quic.Tests/IceRpc.Quic.Tests.csproj" />
     <Project Path="tests/IceRpc.RequestContext.Tests/IceRpc.RequestContext.Tests.csproj" />
     <Project Path="tests/IceRpc.Retry.Tests/IceRpc.Retry.Tests.csproj" />
-    <Project Path="tests/IceRpc.Slice.IceGen.Tests/IceRpc.Slice.IceGen.Tests.csproj" />
-    <Project Path="tests/IceRpc.Slice.SlicecGen.Tests/IceRpc.Slice.SlicecGen.Tests.csproj" />
+    <Project Path="tests/IceRpc.Ice.CodeGen.Tests/IceRpc.Ice.CodeGen.Tests.csproj" />
+    <Project Path="tests/IceRpc.Slice.CodeGen.Tests/IceRpc.Slice.CodeGen.Tests.csproj" />
     <Project Path="tests/IceRpc.Slice.Tests/IceRpc.Slice.Tests.csproj" />
     <Project Path="tests/IceRpc.Telemetry.Tests/IceRpc.Telemetry.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests/IceRpc.Tests.csproj" />
     <Project Path="tests/IceRpc.Tests.Common/IceRpc.Tests.Common.csproj" />
     <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
     <Project Path="tests/ZeroC.Slice.Codec.Tests/ZeroC.Slice.Codec.Tests.csproj" />
-    <Project Path="tests/ZeroC.Slice.IceGen.Tests/ZeroC.Slice.IceGen.Tests.csproj" />
-    <Project Path="tests/ZeroC.Slice.SlicecGen.Tests/ZeroC.Slice.SlicecGen.Tests.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests/ZeroC.Ice.CodeGen.Tests.csproj" />
+    <Project Path="tests/ZeroC.Slice.CodeGen.Tests/ZeroC.Slice.CodeGen.Tests.csproj" />
     <Project Path="tests/ZeroC.Tests.Common/ZeroC.Tests.Common.csproj" />
   </Folder>
   <Folder Name="/tests/assemblies/">
-    <Project Path="tests/ZeroC.Slice.IceGen.Tests.ReferencedAssemblies/A/A.csproj" />
-    <Project Path="tests/ZeroC.Slice.IceGen.Tests.ReferencedAssemblies/B/B.csproj" />
-    <Project Path="tests/ZeroC.Slice.IceGen.Tests.ReferencedAssemblies/C/C.csproj" />
-    <Project Path="tests/ZeroC.Slice.IceGen.Tests.ReferencedAssemblies/D/D.csproj" />
-    <Project Path="tests/ZeroC.Slice.IceGen.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/A/A.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/B/B.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/C/C.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/D/D.csproj" />
+    <Project Path="tests/ZeroC.Ice.CodeGen.Tests.ReferencedAssemblies/DPrime/DPrime.csproj" />
   </Folder>
 </Solution>

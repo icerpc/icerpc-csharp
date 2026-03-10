@@ -84,7 +84,7 @@ mod test {
         let icerpc_tests_dir = root_dir.join("tests").join("IceRpc.Slice.Tests").display().to_string();
         let zeroc_tests_dir = root_dir
             .join("tests")
-            .join("ZeroC.Slice.SlicecGen.Tests")
+            .join("ZeroC.Slice.CodeGen.Tests")
             .display()
             .to_string();
         let slice_dir = root_dir.join("slice").display().to_string();

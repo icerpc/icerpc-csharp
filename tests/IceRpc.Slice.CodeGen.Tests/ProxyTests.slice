@@ -1,0 +1,21 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::CodeGen::Tests
+
+interface MyBaseInterface {}
+
+interface MyDerivedInterface : MyBaseInterface {}
+
+interface ReceiveProxyTest {
+    receiveProxy() -> ReceiveProxyTestProxy
+}
+
+[cs::type("IceRpc.Slice.CodeGen.Tests.ReceiveProxyTestProxy")]
+custom ReceiveProxyTestProxy
+
+interface SendProxyTest {
+    sendProxy(proxy: SendProxyTestProxy)
+}
+
+[cs::type("IceRpc.Slice.CodeGen.Tests.SendProxyTestProxy")]
+custom SendProxyTestProxy
