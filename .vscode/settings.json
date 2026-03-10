@@ -22,7 +22,7 @@
     // Slice Tests
     {
       "paths": [
-        "tests/ZeroC.Slice.SlicecGen.Tests",
+        "tests/ZeroC.Slice.CodeGen.Tests",
         "tests/IceRpc.Slice.CodeGen.Tests",
         "tests/IceRpc.Compressor.Tests"
       ]
