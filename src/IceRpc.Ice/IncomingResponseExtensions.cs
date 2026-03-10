@@ -23,8 +23,8 @@ public static class IncomingResponseExtensions
     /// <see cref="IIceFeature" /> is <see langword="null" />.</param>
     /// <param name="cancellationToken">A cancellation token that receives the cancellation requests.</param>
     /// <returns>A value task that holds the operation's return value. This value task is faulted and holds a <see
-    /// cref="SliceException" /> and the status code is <see cref="StatusCode.ApplicationError"/>.</returns>
-    /// <exception cref="DispatchException">Thrown the status code of the response is greater than
+    /// cref="SliceException" /> when the status code is <see cref="StatusCode.ApplicationError"/>.</returns>
+    /// <exception cref="DispatchException">Thrown when the status code of the response is greater than
     /// <see cref="StatusCode.ApplicationError"/>.</exception>
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
