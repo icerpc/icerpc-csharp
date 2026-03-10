@@ -9,9 +9,20 @@ using ZeroC.Slice.Codec;
 
 namespace IceRpc.Slice;
 
-/// <summary>Provides extension methods for <see cref="PipeReader" /> to decode streamed elements.</summary>
+/// <summary>Provides extension methods for <see cref="PipeReader" />.</summary>
 public static class PipeReaderExtensions
 {
+    // 4 = varuint62 encoding of the size (1)
+    // 252 = varint32 encoding of the tag end marker (-1)
+    private static readonly ReadOnlySequence<byte> _emptyStructPayload = new([4, 252]);
+
+    extension(PipeReader)
+    {
+        /// <summary>Creates a request or response payload holding an empty Slice struct.</summary>
+        /// <returns>The payload.</returns>
+        public static PipeReader CreateEmptySliceStructPayload() => PipeReader.Create(_emptyStructPayload);
+    }
+
     /// <summary>Creates an async enumerable over a pipe reader to decode streamed elements.</summary>
     /// <typeparam name="T">The type of the element being decoded.</typeparam>
     /// <param name="reader">The pipe reader.</param>

@@ -526,11 +526,7 @@ pub fn encode_operation(operation: &Operation, is_dispatch: bool) -> CodeBlock {
         };
         if has_stream {
             // Stream-only param or return.
-            return format!(
-                "{encoding}.CreateEmptyStructPayload()",
-                encoding = operation.encoding.to_cs_encoding()
-            )
-            .into();
+            return "System.IO.Pipelines.PipeReader.CreateEmptySliceStructPayload()".into();
         } else {
             return "IceRpc.EmptyPipeReader.Instance".into();
         }
