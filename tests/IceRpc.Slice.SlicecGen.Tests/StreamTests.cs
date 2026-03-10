@@ -111,7 +111,7 @@ public class StreamTests
             ReadResult readResult;
             do
             {
-                readResult = await payload.ReadSegmentAsync(SliceEncoding.Slice2, int.MaxValue - 1, default);
+                readResult = await payload.ReadSliceSegmentAsync(maxSize: int.MaxValue - 1, default);
                 data.AddRange(DecodeStringStream(readResult.Buffer));
                 payload.AdvanceTo(readResult.Buffer.End);
             }
