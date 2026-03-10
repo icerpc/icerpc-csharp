@@ -1,0 +1,7 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::Derived::CodeGen::Tests
+
+interface MyDerivedOperations : IceRpc::Slice::CodeGen::Tests::MyBaseOperations {
+    opDerived()
+}
