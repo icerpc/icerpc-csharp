@@ -91,12 +91,6 @@ public sealed class IceProtocolConnectionTests
                 StatusCode.InternalError,
                 "The dispatch failed with status code InternalError.");
 
-            // Custom status codes that fit in a single byte round-trip correctly.
-            yield return new TestCaseData(
-                (StatusCode)42,
-                StatusCode.InternalError,
-                "The dispatch failed with status code 42. { Original StatusCode = 42 }");
-
             // Well-known status codes without a dedicated ReplyStatus encode as UnknownException
             // with the original StatusCode preserved in the error message.
             yield return new TestCaseData(
@@ -108,11 +102,18 @@ public sealed class IceProtocolConnectionTests
                 StatusCode.InternalError,
                 "The dispatch failed with status code DeadlineExceeded. { Original StatusCode = DeadlineExceeded }");
 
-            // Custom status codes that don't fit in a single byte encode as UnknownException.
+            // Custom status codes are mapped to InternalError with the original StatusCode preserved in the
+            // error message.
+            yield return new TestCaseData(
+                (StatusCode)42,
+                StatusCode.InternalError,
+                "The dispatch failed with status code 42. { Original StatusCode = 42 }");
+
             yield return new TestCaseData(
                 (StatusCode)1000,
                 StatusCode.InternalError,
                 "The dispatch failed with status code 1000. { Original StatusCode = 1000 }");
+
         }
     }
 
