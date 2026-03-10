@@ -9,7 +9,7 @@ namespace IceRpc.Ice.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class IncomingResponseTests
 {
-     private static readonly IActivator _defaultActivator =
+    private static readonly IActivator _defaultActivator =
         IActivator.FromAssembly(typeof(IncomingResponseTests).Assembly);
 
     [Test]
