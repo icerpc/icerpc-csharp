@@ -91,7 +91,7 @@ internal static class IncomingFrameExtensions
                 // no need to pass maxCollectionAllocation and other args since the only thing this decoding can
                 // do is skip unknown tags
                 var decoder = new SliceDecoder(readResult.Buffer, SliceEncoding.Slice1);
-                decoder.SkipTagged(useTagEndMarker: false); // useTagEndMarker is Slice1-only
+                decoder.SkipTagged(useTagEndMarker: false); // false because we're decoding parameters, not class/exception fields
                 decoder.CheckEndOfBuffer();
             }
             frame.Payload.AdvanceTo(readResult.Buffer.End);
