@@ -119,7 +119,7 @@ public static class PipeReaderExtensions
         }
 
         ValueTask<ReadResult> ReadAsync(PipeReader reader, CancellationToken cancellationToken) =>
-            reader.ReadSegmentAsync(encoding, sliceFeature.MaxSegmentSize, cancellationToken);
+            reader.ReadSliceSegmentAsync(sliceFeature.MaxSegmentSize, cancellationToken);
     }
 
     /// <summary>Decodes an async enumerable from a pipe reader.</summary>
