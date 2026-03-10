@@ -108,16 +108,6 @@ internal class Emitter
         {
             codeBlock.WriteLine("request.CheckNonIdempotent();");
         }
-        if (serviceMethod.CompressReturn)
-        {
-            FunctionCallBuilder withCallBuilder =
-                new FunctionCallBuilder("IceRpc.Features.FeatureCollectionExtensions.With")
-                .ArgumentsOnNewLine(true)
-                .AddArgument("request.Features")
-                .AddArgument("IceRpc.Features.CompressFeature.Compress");
-
-            codeBlock.WriteLine($"request.Features = {withCallBuilder.Build()}");
-        }
 
         string thisInterface = $"((global::{serviceMethod.FullInterfaceName})this)";
 
@@ -150,16 +140,7 @@ internal class Emitter
         {
             if (serviceMethod.ReturnCount == 1)
             {
-                if (serviceMethod.ReturnStream)
-                {
-                    dispatchCallBuilder.AddArgument(
-                        @$"encodeReturnValue: static (_, encodeOptions) =>
-        global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}(encodeOptions)");
-
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}");
-                }
-                else if (serviceMethod.EncodedReturn)
+                if (serviceMethod.EncodedReturn)
                 {
                     dispatchCallBuilder.AddArgument("encodeReturnValue: (returnValue, _) => returnValue");
                 }
@@ -172,43 +153,24 @@ internal class Emitter
             else
             {
                 // Splatting required.
-                var nonStreamReturnNames = new List<string>(serviceMethod.ReturnFieldNames);
-                if (serviceMethod.ReturnStream)
-                {
-                    nonStreamReturnNames.RemoveAt(serviceMethod.ReturnFieldNames.Length - 1);
-                }
+                var returnNames = new List<string>(serviceMethod.ReturnFieldNames);
 
                 if (serviceMethod.EncodedReturn)
                 {
                     dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValue: (returnValue, _) => returnValue.{nonStreamReturnNames[0]}");
+                        $"encodeReturnValue: (returnValue, _) => returnValue.{returnNames[0]}");
                 }
                 else
                 {
                     var encodeBuilder = new FunctionCallBuilder(
                         $"global::{serviceMethod.FullInterfaceName}.Response.Encode{serviceMethod.DispatchMethodName}")
                             .UseSemicolon(false)
-                            .AddArguments(nonStreamReturnNames.Select(name => $"returnValue.{name}"))
+                            .AddArguments(returnNames.Select(name => $"returnValue.{name}"))
                             .AddArgument("encodeOptions");
 
                     dispatchCallBuilder.AddArgument(
                         @$"encodeReturnValue: static (returnValue, encodeOptions) =>
         {encodeBuilder.Build()}");
-                }
-
-                if (serviceMethod.ReturnStream)
-                {
-                    string streamFieldName =
-                        serviceMethod.ReturnFieldNames[serviceMethod.ReturnFieldNames.Length - 1];
-
-                    var encodeBuilder = new FunctionCallBuilder(
-                        $"global::{serviceMethod.FullInterfaceName}.Response.EncodeStreamOf{serviceMethod.DispatchMethodName}")
-                            .UseSemicolon(false)
-                            .AddArgument($"returnValue.{streamFieldName}")
-                            .AddArgument("encodeOptions");
-
-                    dispatchCallBuilder.AddArgument(
-                        $"encodeReturnValueStream: static (returnValue, encodeOptions) => {encodeBuilder.Build()}");
                 }
             }
         }

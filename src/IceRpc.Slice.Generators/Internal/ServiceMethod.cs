@@ -42,9 +42,6 @@ internal readonly record struct ServiceMethod
     /// application.</summary>
     internal bool EncodedReturn { get; }
 
-    /// <summary>Gets the exception specification of the operation.</summary>
-    internal string[] ExceptionSpecification { get; }
-
     /// <summary>Gets a value indicating whether the operation is idempotent.</summary>
     internal bool Idempotent { get; }
 
@@ -59,7 +56,6 @@ internal readonly record struct ServiceMethod
         bool returnStream,
         bool compressReturn,
         bool encodedReturn,
-        string[] exceptionSpecification,
         bool idempotent)
     {
         DispatchMethodName = dispatchMethodName;
@@ -72,7 +68,6 @@ internal readonly record struct ServiceMethod
         ReturnStream = returnStream;
         CompressReturn = compressReturn;
         EncodedReturn = encodedReturn;
-        ExceptionSpecification = exceptionSpecification;
         Idempotent = idempotent;
     }
 }

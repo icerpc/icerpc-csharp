@@ -32,12 +32,6 @@ internal readonly record struct ServiceMethod
     /// <remarks>This field is empty when <see cref="ReturnCount"/> is 0 or 1.</remarks>
     internal string[] ReturnFieldNames { get; }
 
-    /// <summary>Gets a value indicating whether the operation return value has a stream element.</summary>
-    internal bool ReturnStream { get; }
-
-    /// <summary>Gets a value indicating whether the return value should be compressed.</summary>
-    internal bool CompressReturn { get; }
-
     /// <summary>Gets a value indicating whether the non-stream portion of the return value is pre-encoded by the
     /// application.</summary>
     internal bool EncodedReturn { get; }
@@ -56,8 +50,6 @@ internal readonly record struct ServiceMethod
         string[] parameterFieldNames,
         int returnCount,
         string[] returnFieldNames,
-        bool returnStream,
-        bool compressReturn,
         bool encodedReturn,
         string[] exceptionSpecification,
         bool idempotent)
@@ -69,8 +61,6 @@ internal readonly record struct ServiceMethod
         ParameterFieldNames = parameterFieldNames;
         ReturnCount = returnCount;
         ReturnFieldNames = returnFieldNames;
-        ReturnStream = returnStream;
-        CompressReturn = compressReturn;
         EncodedReturn = encodedReturn;
         ExceptionSpecification = exceptionSpecification;
         Idempotent = idempotent;

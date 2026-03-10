@@ -213,15 +213,6 @@ internal class Emitter
             }
         }
 
-        if (serviceMethod.ExceptionSpecification.Length > 0)
-        {
-            string exceptionList =
-                string.Join(" or ", serviceMethod.ExceptionSpecification.Select(ex => $"global::{ex}"));
-
-            dispatchCallBuilder.AddArgument(
-                $"inExceptionSpecification: sliceException => sliceException is {exceptionList}");
-        }
-
         dispatchCallBuilder.AddArgument("cancellationToken: cancellationToken");
 
         codeBlock.WriteLine($"return {dispatchCallBuilder.Build()}");
