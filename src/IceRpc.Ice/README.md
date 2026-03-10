@@ -60,8 +60,8 @@ await connection.ShutdownAsync();
 // Server application
 
 using IceRpc;
-using IceRpc.Ice;
 using IceRpc.Features;
+using IceRpc.Ice;
 using VisitorCenter;
 
 // Use the ice protocol for compatibility with ZeroC Ice.
