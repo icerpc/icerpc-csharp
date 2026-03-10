@@ -12,7 +12,7 @@ namespace IceRpc.Slice.CodeGen.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public partial class ProxyTests
 {
-    /// <summary>Verifies that calling <see cref="ProxySliceDecoderExtensions.DecodeProxy" /> correctly decodes
+    /// <summary>Verifies that calling <see cref="SliceProxySliceDecoderExtensions.DecodeProxy" /> correctly decodes
     /// a proxy. </summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     // cSpell:disable

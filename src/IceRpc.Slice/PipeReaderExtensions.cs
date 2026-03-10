@@ -91,11 +91,11 @@ public static class PipeReaderExtensions
     public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
         this PipeReader reader,
         DecodeFunc<T> decodeFunc,
-        IProxy? sender = null,
+        ISliceProxy? sender = null,
         ISliceFeature? sliceFeature = null)
     {
         sliceFeature ??= SliceFeature.Default;
-        IProxy? baseProxy = sliceFeature.BaseProxy ?? sender;
+        ISliceProxy? baseProxy = sliceFeature.BaseProxy ?? sender;
         return reader.ToAsyncEnumerable(ReadAsync, DecodeBuffer);
 
         IEnumerable<T> DecodeBuffer(ReadOnlySequence<byte> buffer)

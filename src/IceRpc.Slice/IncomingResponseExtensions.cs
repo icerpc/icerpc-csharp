@@ -25,7 +25,7 @@ public static class IncomingResponseExtensions
     public static ValueTask<T> DecodeReturnValueAsync<T>(
         this IncomingResponse response,
         OutgoingRequest request,
-        IProxy sender,
+        ISliceProxy sender,
         DecodeFunc<T> decodeReturnValue,
         CancellationToken cancellationToken = default)
     {

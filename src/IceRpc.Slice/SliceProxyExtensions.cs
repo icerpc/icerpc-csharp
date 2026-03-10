@@ -18,7 +18,7 @@ namespace IceRpc.Slice;
 public delegate ValueTask<T> ResponseDecodeFunc<T>(
     IncomingResponse response,
     OutgoingRequest request,
-    IProxy sender,
+    ISliceProxy sender,
     CancellationToken cancellationToken);
 
 /// <summary>Represents a delegate that decodes the "void" return value from a Slice-encoded response.</summary>
@@ -30,12 +30,12 @@ public delegate ValueTask<T> ResponseDecodeFunc<T>(
 public delegate ValueTask ResponseDecodeFunc(
     IncomingResponse response,
     OutgoingRequest request,
-    IProxy sender,
+    ISliceProxy sender,
     CancellationToken cancellationToken);
 
-/// <summary>Provides extension methods for <see cref="IProxy" /> and generated proxy structs that implement this
+/// <summary>Provides extension methods for <see cref="ISliceProxy" /> and generated proxy structs that implement this
 /// interface.</summary>
-public static class ProxyExtensions
+public static class SliceProxyExtensions
 {
     private static readonly IDictionary<RequestFieldKey, OutgoingFieldValue> _idempotentFields =
         new Dictionary<RequestFieldKey, OutgoingFieldValue>
@@ -63,7 +63,7 @@ public static class ProxyExtensions
         ResponseDecodeFunc<T> responseDecodeFunc,
         IFeatureCollection? features = null,
         bool idempotent = false,
-        CancellationToken cancellationToken = default) where TProxy : struct, IProxy
+        CancellationToken cancellationToken = default) where TProxy : struct, ISliceProxy
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
@@ -133,7 +133,7 @@ public static class ProxyExtensions
         IFeatureCollection? features = null,
         bool idempotent = false,
         bool oneway = false,
-        CancellationToken cancellationToken = default) where TProxy : struct, IProxy
+        CancellationToken cancellationToken = default) where TProxy : struct, ISliceProxy
     {
         if (proxy.Invoker is not IInvoker invoker)
         {
@@ -187,6 +187,6 @@ public static class ProxyExtensions
     /// <typeparam name="TProxy">The type of the target proxy struct.</typeparam>
     /// <param name="proxy">The source proxy.</param>
     /// <returns>A new instance of <typeparamref name="TProxy" />.</returns>
-    public static TProxy ToProxy<TProxy>(this IProxy proxy) where TProxy : struct, IProxy =>
+    public static TProxy ToProxy<TProxy>(this ISliceProxy proxy) where TProxy : struct, ISliceProxy =>
         new() { EncodeOptions = proxy.EncodeOptions, Invoker = proxy.Invoker, ServiceAddress = proxy.ServiceAddress };
 }

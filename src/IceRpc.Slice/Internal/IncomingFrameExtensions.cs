@@ -20,7 +20,7 @@ internal static class IncomingFrameExtensions
     internal static ValueTask<T> DecodeValueAsync<T>(
         this IncomingFrame frame,
         ISliceFeature feature,
-        IProxy? baseProxy,
+        ISliceProxy? baseProxy,
         DecodeFunc<T> decodeFunc,
         CancellationToken cancellationToken)
     {

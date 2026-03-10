@@ -11,7 +11,8 @@ namespace IceRpc.Ice.CodeGen.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public partial class ProxyTests
 {
-    /// <summary>Verifies that calling DecodeNullableProxy correctly decodes a proxy. </summary>
+    /// <summary>Verifies that calling <see cref="IceProxyIceDecoderExtensions.DecodeNullableProxy" /> correctly
+    /// decodes a proxy. </summary>
     /// <param name="value">The service address of the proxy to encode.</param>
     /// <param name="expected">The expected URI string of the service address.</param>
     // cSpell:disable

@@ -11,7 +11,7 @@ public sealed class SliceFeature : ISliceFeature
     public static ISliceFeature Default { get; } = new DefaultSliceFeature();
 
     /// <inheritdoc/>
-    public IProxy? BaseProxy { get; }
+    public ISliceProxy? BaseProxy { get; }
 
     /// <inheritdoc/>
     public SliceEncodeOptions? EncodeOptions { get; }
@@ -38,7 +38,7 @@ public sealed class SliceFeature : ISliceFeature
         SliceEncodeOptions? encodeOptions = null,
         int maxCollectionAllocation = -1,
         int maxSegmentSize = -1,
-        IProxy? baseProxy = null,
+        ISliceProxy? baseProxy = null,
         ISliceFeature? defaultFeature = null)
     {
         defaultFeature ??= Default;
@@ -55,7 +55,7 @@ public sealed class SliceFeature : ISliceFeature
 
     private class DefaultSliceFeature : ISliceFeature
     {
-        public IProxy? BaseProxy => null;
+        public ISliceProxy? BaseProxy => null;
 
         public SliceEncodeOptions? EncodeOptions => null;
 

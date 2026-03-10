@@ -10,7 +10,7 @@ public interface ISliceFeature
 {
     /// <summary>Gets the base proxy used when decoding a service address into a proxy.</summary>
     /// <value>The base proxy.</value>
-    IProxy? BaseProxy { get; }
+    ISliceProxy? BaseProxy { get; }
 
     /// <summary>Gets the options to use when encoding the payload of an outgoing response.</summary>
     /// <value>The Slice encode options. <see langword="null" /> is equivalent to <see cref="SliceEncodeOptions.Default"
