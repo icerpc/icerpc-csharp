@@ -12,7 +12,6 @@ public class ServiceAddressTests
 {
     [TestCase("icerpc://hello.zeroc.com/hello")]
     public void Encode_decode_service_address(ServiceAddress value)
-
     {
         var buffer = new byte[256];
         var bufferWriter = new MemoryBufferWriter(buffer);

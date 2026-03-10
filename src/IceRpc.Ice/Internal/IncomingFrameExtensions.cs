@@ -47,7 +47,9 @@ internal static class IncomingFrameExtensions
                 activator,
                 feature.MaxDepth);
             T value = decodeFunc(ref decoder);
-            decoder.SkipTagged(useTagEndMarker: false); // useTagEndMarker is Slice1-only
+
+            // useTagEndMarker is false because we're decoding parameters or a return value, not class/exception fields.
+            decoder.SkipTagged(useTagEndMarker: false);
             decoder.CheckEndOfBuffer();
 
             frame.Payload.AdvanceTo(readResult.Buffer.End);
