@@ -58,10 +58,10 @@ public static class IncomingResponseExtensions
         ISliceFeature feature = request.Features.Get<ISliceFeature>() ?? SliceFeature.Default;
 
         return response.StatusCode == StatusCode.Ok ?
-             response.DecodeVoidAsync(feature, cancellationToken) :
-             throw new DispatchException(response.StatusCode, response.ErrorMessage)
-             {
-                 ConvertToInternalError = true
-             };
+            response.DecodeVoidAsync(feature, cancellationToken) :
+            throw new DispatchException(response.StatusCode, response.ErrorMessage)
+            {
+                ConvertToInternalError = true
+            };
     }
 }
