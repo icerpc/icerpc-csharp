@@ -803,13 +803,14 @@ public sealed class ProtocolConnectionTests
         {
             Fields = new Dictionary<RequestFieldKey, OutgoingFieldValue>(1).With(
                 RequestFieldKey.Context,
-                expectedValue,
-                (ref SliceEncoder encoder, IDictionary<string, string> dictionary) =>
+                new OutgoingFieldValue(bufferWriter =>
+                {
+                    var encoder = new SliceEncoder(bufferWriter, encoding);
                     encoder.EncodeDictionary(
-                        dictionary,
-                        (ref SliceEncoder encoder, string key) => encoder.EncodeString(key),
-                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)),
-                encoding)
+                        expectedValue,
+                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                        (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                }))
         };
 
         // Act
