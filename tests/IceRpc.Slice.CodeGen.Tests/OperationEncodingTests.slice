@@ -1,0 +1,20 @@
+// Copyright (c) ZeroC, Inc.
+
+module IceRpc::Slice::CodeGen::Tests
+
+// Used for testing the generated Request and Response classes.
+interface MyOperationsB {
+    // Single input parameter and return value
+    opInt32(p1: int32) -> int32
+
+    // Multiple input parameters and return values
+    opInt32AndString(p1: int32, p2: string) -> (r1: int32, r2: string)
+
+    // Optional input parameters and return values
+    opOptional(p1: int32, p2: string, p3: int32?, p4: string?) ->
+        (r1: int32, r2: string, r3: int32?, r4: string?)
+
+    // Tagged input parameters and return values
+    opTagged(p1: int32, p2: string, tag(1) p3: int32?, tag(2) p4: string?) ->
+        (r1: int32, r2: string, tag(1) r3: int32?, tag(2) r4: string?)
+}
