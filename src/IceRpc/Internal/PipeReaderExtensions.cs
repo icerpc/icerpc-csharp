@@ -27,7 +27,7 @@ internal static class PipeReaderExtensions
         Debug.Assert(maxSize is > 0 and < int.MaxValue);
 
         // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
-        // call TryReadSegment.
+        // call TryReadIceSegment.
 
         // We read everything up to the maxSize + 1.
         // It's maxSize + 1 and not maxSize because if the segment's size is maxSize, we could get
@@ -64,7 +64,7 @@ internal static class PipeReaderExtensions
         Debug.Assert(maxSize is > 0 and < int.MaxValue);
 
         // This method does not attempt to read the reader synchronously. A caller that wants a sync attempt can
-        // call TryReadSegment.
+        // call TryReadSliceSegment.
 
         ReadResult readResult;
         int segmentSize;
